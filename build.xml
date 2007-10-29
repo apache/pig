@@ -1,0 +1,129 @@
+<project name="Pig" default="jar">
+
+	<!-- properties -->
+	<property name="dist.dir" value="${basedir}/dist" />
+	<property name="lib.dir" value="${basedir}/lib" />
+	<property name="src.dir" value="${basedir}/src" />
+	<property name="doc.dir" value="${basedir}/doc" />
+	<property name="shock.src.dir" value="${basedir}/lib-src/shock" />
+	<property name="bzip2.src.dir" value="${basedir}/lib-src/bzip2" />
+	<property name="test.src.dir" value="${basedir}/test" />
+	<property name="output.jarfile" value="pig.jar" />
+	<property name="hadoop.jarfile" value="hadoop14.jar"/>
+	<property name="ssh.gateway" value=""/>
+	<property name="hod.server" value=""/>
+	<property name="hod.command" value=""/>
+	<property name="hod.param" value=""/>
+	<property name="test.junit.output.format" value="plain"/>
+	<property name="junit.hadoop.conf" value=""/>
+        	
+	<!-- setup the classpath -->
+	<path id="classpath">
+		<fileset file="${lib.dir}/${hadoop.jarfile}" />
+		<fileset dir="${lib.dir}" />
+	</path>
+
+	<target name="clean">
+		<delete dir="${dist.dir}" />
+		<delete dir="${doc.dir}" />
+		<delete file="${output.jarfile}" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/JJTQueryParserState.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/Node.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/ParseException.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jj" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParserConstants.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParserTokenManager.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParserTreeConstants.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/SimpleCharStream.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/SimpleNode.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/Token.java" />
+		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/TokenMgrError.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParser.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParserConstants.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParserTokenManager.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/ParseException.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/SimpleCharStream.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/Token.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/grunt/TokenMgrError.java" />
+	</target>
+
+	<target name="compile" depends="cc-compile">
+		<mkdir dir="${dist.dir}" />
+		<echo>*** Building Main Sources ***</echo>
+		<javac srcdir="${src.dir};${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
+			<classpath refid="classpath" />
+		</javac>
+		<echo>*** Building Test Sources ***</echo>
+		<javac srcdir="test" destdir="${dist.dir}" debug="on">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	<target name="cc-compile">
+		<jjtree 
+			target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" 
+			outputdirectory="${src.dir}/org/apache/pig/impl/logicalLayer/parser"
+			javacchome="${basedir}/lib" />
+		<javacc
+			target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jj" 
+			outputdirectory="${src.dir}/org/apache/pig/impl/logicalLayer/parser"
+			javacchome="${basedir}/lib" />
+		<javacc
+			target="${src.dir}/org/apache/pig/tools/grunt/GruntParser.jj" 
+			outputdirectory="${src.dir}/org/apache/pig/tools/grunt"
+			javacchome="${basedir}/lib" />
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar duplicate="preserve" jarfile="${output.jarfile}" basedir="${dist.dir}">
+			<manifest>
+				<attribute name="Main-Class" value="org.apache.pig.Main"/>
+			</manifest>
+			<zipfileset src="${lib.dir}/junit-4.1.jar"/>								
+			<zipfileset src="${lib.dir}/${hadoop.jarfile}"/>
+			<zipfileset src="${lib.dir}/jsch-0.1.33.jar"/>
+		</jar>
+	</target>
+
+	<target name="test">
+		<mkdir dir="test/reports"/>
+                <junit printsummary="on" haltonfailure="no"
+                       errorProperty="tests.failed" failureProperty="tests.failed">
+			<sysproperty key="ssh.gateway" value="${ssh.gateway}"/>
+			<sysproperty key="hod.server" value="${hod.server}"/>
+			<!-- <sysproperty key="hod.command" value="${hod.command}"/>
+			<sysproperty key="hod.param" value="${hod.param}"/> -->
+			<classpath>
+				<pathelement location="${output.jarfile}"/>
+				<pathelement location="${junit.hadoop.conf}"/>
+				<fileset dir="${lib.dir}">
+					<include name="**/*.jar" />
+					<exclude name="hadoop*.jar" />
+					<include name="${hadoop.jarfile}" />
+				</fileset>
+			</classpath>
+	                <formatter type="${test.junit.output.format}" />
+			<batchtest fork="yes" todir="test/reports">
+				<fileset dir="test">
+					<include name="**/*Test*.java" />
+					<exclude name="**/TestLargeFile.java" />
+					<exclude name="**/nightly/**" />
+				</fileset>
+			</batchtest>
+		</junit>
+		<fail if="tests.failed">Tests failed!</fail>
+	</target>
+
+	<target name="doc">
+		<mkdir dir="doc"/>
+		<echo>*** Building Java Docs ***</echo>
+		<javadoc packagenames="org.apache.pig.*" sourcepath="${src.dir}" destdir="${doc.dir}">
+                        <classpath>
+                                <path refid="classpath"/>
+                                <pathelement path="${java.class.path}"/>
+                        </classpath>
+                </javadoc>
+	</target>
+
+</project>
