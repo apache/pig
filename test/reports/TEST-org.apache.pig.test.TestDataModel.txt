@@ -1,0 +1,10 @@
+Testsuite: org.apache.pig.test.TestDataModel
+Tests run: 7, Failures: 0, Errors: 0, Time elapsed: 0.627 sec
+
+Testcase: testDatum took 0.002 sec
+Testcase: testDataAtom took 0.001 sec
+Testcase: testTuple took 0.005 sec
+Testcase: testNestTuple took 0.002 sec
+Testcase: testDataBag took 0 sec
+Testcase: testBigDataBagInMemory took 0.554 sec
+Testcase: testBigDataBagOnDisk took 0.061 sec

@@ -1,0 +1,1053 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * JavaCC file
+ * This file lists the grammar for PIG Latin.
+ * QueryParser program ouputs a ParseTree given a Valid Pig Latin Query
+ */
+options {
+  // Generate non-static functions
+  STATIC = false;
+  // Case is ignored in keywords
+  IGNORE_CASE = true;
+}
+
+PARSER_BEGIN(QueryParser)
+package org.apache.pig.impl.logicalLayer.parser;
+import java.io.*;
+import java.util.*;
+import org.apache.pig.impl.logicalLayer.*;
+import org.apache.pig.impl.logicalLayer.schema.*;
+import org.apache.pig.impl.eval.*;
+import org.apache.pig.impl.eval.window.*;
+import org.apache.pig.impl.eval.cond.*;
+import org.apache.pig.*;
+import org.apache.pig.data.*;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.impl.physicalLayer.IntermedResult;
+import org.apache.pig.impl.io.*;
+import org.apache.pig.builtin.*;
+import org.apache.pig.impl.builtin.*;
+
+public class QueryParser {
+	private PigContext pigContext;
+	private Map<String, IntermedResult> aliases;
+
+	public QueryParser(InputStream in, PigContext pigContext, Map aliases) {
+		this(in);
+		this.pigContext = pigContext;
+		this.aliases = aliases;
+	}
+	
+	public class EvalSpecAndSchema{
+		EvalSpec spec;
+		TupleSchema schema;
+	}
+	
+	public class CogroupInput {
+		public LogicalOperator op;
+		public EvalSpec spec;
+	}
+	    
+    static String unquote(String s) {
+		return s.substring(1, s.length()-1);
+	}
+	
+	static int undollar(String s) {
+		return Integer.parseInt(s.substring(1, s.length()));	
+	}
+	
+	
+	LogicalOperator makeLORead(String alias) throws ParseException {
+		if (!aliases.containsKey(alias)) throw new ParseException("Unrecognized alias: " + alias);
+	
+		LORead readOp = new LORead(aliases.get(alias));
+		readOp.setAlias(alias);
+		return readOp;
+	}
+	
+
+	
+	String massageFilename(String filename, PigContext pigContext) throws IOException, ParseException {
+		if (pigContext.getExecType() != ExecType.LOCAL) {
+			if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+				filename = FileLocalizer.hadoopify(filename, pigContext);
+			} 
+			else
+			{
+				// make sure that dfs file exists
+				if (!FileLocalizer.fileExists(filename, pigContext))
+				{
+					throw new ParseException(FileLocalizer.fullPath(filename, pigContext) + " does not exist");
+				}
+			}
+		}
+		return filename;
+	}
+	
+	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis) throws ParseException{
+		int n = gis.size();
+		
+		List<LogicalOperator> los = new ArrayList<LogicalOperator>();
+		ArrayList<EvalSpec> specs = new ArrayList<EvalSpec>();
+		
+		for (int i = 0; i < n ; i++){
+			
+			CogroupInput gi = gis.get(i);
+			los.add(gi.op);
+			specs.add(gi.spec);
+		}
+		
+		return new LOCogroup(los, specs);
+	}
+			
+	
+	LogicalOperator rewriteCross(ArrayList<LogicalOperator> inputs) throws IOException, ParseException{
+		ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>();
+		int n = inputs.size();
+		
+		for (int i=0; i< n; i++){
+			CogroupInput gi = new CogroupInput();
+			gis.add(gi);
+
+			gi.op = inputs.get(i);
+
+			ArrayList<EvalSpec> argsColumns = new ArrayList<EvalSpec>();
+			argsColumns.add(new ConstSpec(n+""));
+			argsColumns.add(new ConstSpec(i+""));
+			GenerateSpec args = new GenerateSpec(argsColumns);
+			FuncEvalSpec fes = new FuncEvalSpec(pigContext, GFCross.class.getName(), args);
+			fes.setFlatten(true);
+			gi.spec = new GenerateSpec(fes).getGroupBySpec();
+		}
+		
+		return rewriteJoin(gis); 
+	}
+
+	LogicalOperator rewriteDistinct(LogicalOperator input){
+		//First group the input on *
+		
+		ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();
+		inputs.add(input);
+		
+		ArrayList<EvalSpec> groupSpecs = new ArrayList<EvalSpec>();
+			
+		groupSpecs.add(new GenerateSpec(new StarSpec()).getGroupBySpec());
+		
+		LogicalOperator groupedInput = new LOCogroup(inputs, groupSpecs);
+		
+		//then generate the flattened group
+		EvalSpec projectSpec = new ProjectSpec(0);
+		projectSpec.setFlatten(true);
+		
+		return new LOEval(groupedInput, new GenerateSpec(projectSpec));
+	}	
+		
+		
+	
+	LogicalOperator rewriteJoin(ArrayList<CogroupInput> gis) throws IOException, ParseException{
+		
+		int n = gis.size();
+		ArrayList<EvalSpec> flattenedColumns = new ArrayList<EvalSpec>();
+		
+		for (int i = 0; i < n; i++) {		
+			EvalSpec column = new ProjectSpec(i+1);
+			column.setFlatten(true);
+			flattenedColumns.add(column);
+		}
+		
+		return new LOEval(parseCogroup(gis),new GenerateSpec(flattenedColumns));
+	}
+		
+	void assertAtomic(EvalSpec spec, boolean desiredAtomic) throws ParseException{
+		Boolean isAtomic = null;
+		if (spec instanceof CompositeEvalSpec)
+			spec = ((CompositeEvalSpec)spec).getSpecs().get(0);
+		if ( spec instanceof ConstSpec || 
+			(spec instanceof FuncEvalSpec && ((FuncEvalSpec)spec).getReturnType() == DataAtom.class))
+			isAtomic = true;
+		else if (spec instanceof FuncEvalSpec)
+			isAtomic = false;
+		
+		if (isAtomic != null && isAtomic != desiredAtomic){
+			if (desiredAtomic)
+				throw new ParseException("Atomic field expected but found non-atomic field");
+			else
+				throw new ParseException("Non-atomic field expected but found atomic field");
+		}
+	}					
+
+	EvalSpec copyItemAndAddSpec(EvalSpec spec, EvalSpec successor) throws ParseException{
+		assertAtomic(spec,false);
+		spec = spec.copy(pigContext);
+		return spec.addSpec(successor);
+	}
+	
+	 void addSplitOutput(IntermedResult intermedResult, LOSplit splitOp, String alias, Cond cond, int index){
+		splitOp.addCond(cond);
+		LORead readOp = new LORead(intermedResult, index);
+		aliases.put(alias, new IntermedResult(new LogicalPlan(readOp, pigContext), pigContext));
+	 }
+
+}
+
+	
+PARSER_END(QueryParser)
+
+// Skip all the new lines, tabs and spaces
+SKIP : { " " |	"\r" |	"\t" |	"\n" }
+
+// Skip comments(single line and multiline)
+SKIP : {
+   <"--"(~["\r","\n"])*>
+|  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+// Comparison operators that can be used in a filter:
+TOKEN : { <#STRFILTEROP : "eq" | "gt" | "lt" | "gte" | "lte" | "neq" > }
+TOKEN : { <#NUMFILTEROP : "==" | "<" | "<=" | ">" | ">=" | "!=" > }
+TOKEN : { <FILTEROP : <STRFILTEROP> | <NUMFILTEROP>  > }
+
+// List all the keywords in the language
+TOKEN : { <LOAD : "load"> }
+TOKEN : { <FILTER : "filter"> }
+TOKEN : { <FOREACH : "foreach"> }
+TOKEN : { <MATCHES : "matches"> }
+TOKEN : { <ORDER : "order"> }
+TOKEN : { <ARRANGE : "arrange"> }
+TOKEN : { <DISTINCT : "distinct"> }
+TOKEN : { <COGROUP : "cogroup"> }
+TOKEN : { <JOIN : "join"> }
+TOKEN : { <CROSS : "cross"> }
+TOKEN : { <UNION : "union"> }
+TOKEN : { <SPLIT : "split"> }
+TOKEN : { <INTO : "into"> }
+TOKEN : { <IF : "if"> }
+TOKEN : { <ALL : "all"> }
+TOKEN : { <ANY : "any"> }
+TOKEN : { <AS : "as">	}
+TOKEN : { <BY : "by">	}
+TOKEN : { <USING : "using"> }
+TOKEN : { <INNER : "inner"> }
+TOKEN : { <OUTER : "outer"> }
+TOKEN : { <STAR : "*"> 		}
+TOKEN : { <PARALLEL : "parallel"> }
+TOKEN : { <GROUP : "group"> }
+TOKEN : { <AND : "and"> }
+TOKEN : { <OR : "or"> }
+TOKEN : { <NOT : "not"> }
+TOKEN : { <CONTINUOUSLY : "continuously"> }
+TOKEN : { <WINDOW : "window"> }
+TOKEN : { <SECONDS : "seconds"> }
+TOKEN : { <MINUTES : "minutes"> }
+TOKEN : { <HOURS : "hours"> }
+TOKEN : { <TUPLES : "tuples"> }
+TOKEN : { <GENERATE : "generate"> }
+TOKEN : { <FLATTEN : "flatten"> }
+TOKEN : { <EVAL : "eval"> }
+
+TOKEN:
+{
+ 	<#LETTER : ["a"-"z", "A"-"Z"] >
+|	<#DIGIT : ["0"-"9"] >
+|   <#SPECIALCHAR : ["_"] >
+|   <#FSSPECIALCHAR: ["-", ":", "/"]>
+|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> | "::")* >
+}
+// Define Numeric Constants
+TOKEN :
+{
+	< NUMBER: <INTEGER> | <FLOAT> | <FLOAT> ( ["e","E"] ([ "-","+"])? <FLOAT> )?>
+| 	< #FLOAT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
+| 	< INTEGER: ( <DIGIT> )+ >
+}
+
+TOKEN : { <QUOTEDSTRING : "'" (~["'"])* "'"> }
+// Pig has special variables starting with $
+TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
+
+// Parse is the Starting function.
+LogicalPlan Parse() : {LogicalOperator root; Token t1;}
+{
+	(
+	LOOKAHEAD(2)
+	(t1 = <IDENTIFIER> "=" root = Expr() ";" {root.setAlias(t1.image);})
+|	(root = Expr() ";")
+|	(<SPLIT> root = SplitClause() ";")
+	)
+	{ return new LogicalPlan(root, pigContext); }
+}
+
+LogicalOperator SplitClause():
+{LogicalOperator input; Cond cond; Token alias; LOSplit splitOp; IntermedResult intermedResult; int i=0;}
+{
+	(
+	input = NestedExpr() <INTO> 
+	{
+		splitOp = new LOSplit(input);
+		intermedResult = new IntermedResult(new LogicalPlan(splitOp, pigContext), pigContext);
+	}
+	alias = <IDENTIFIER> <IF> cond = PCond(input.outputSchema(),null) 
+	{
+		addSplitOutput(intermedResult, splitOp, alias.image, cond, i);
+		i++;
+	}
+	(
+	"," alias = <IDENTIFIER> <IF> cond = PCond(input.outputSchema(),null)
+	{
+		addSplitOutput(intermedResult, splitOp, alias.image, cond, i);
+		i++;
+	}
+	)+
+	)
+	{return splitOp;}
+} 
+
+
+LogicalOperator Expr() : {LogicalOperator op; TupleSchema schema;}
+{
+	(
+	( op = NestedExpr() [ <AS> schema = SchemaTuple() {op.setSchema(schema);} ] )
+|	op = BaseExpr()
+	)
+	{return op;}
+}	
+
+LogicalOperator NestedExpr() : {LogicalOperator op;}
+{
+	(
+	(op = Alias())
+|	LOOKAHEAD(2) ( "(" op = NestedExpr() ")" )
+|	( "(" op = BaseExpr() ")" )
+	)
+	{return op;}
+}
+
+// A reference to an alias
+LogicalOperator Alias() : {Token t1; LogicalOperator op;}
+{
+	t1 = <IDENTIFIER> 
+	{
+		op = makeLORead(t1.image);
+		return op;
+	}
+}
+
+
+
+	
+	
+LogicalOperator BaseExpr() : {LogicalOperator op; TupleSchema schema; Token t1, t2;}
+{
+	(
+	(
+	(<LOAD> op = LoadClause() [<AS> schema = SchemaTuple() {op.setSchema(schema);} ])
+|	((<GROUP> | <COGROUP>) op = CogroupClause())
+|	(<FILTER> op = FilterClause())
+|   (<ORDER> op = OrderClause())
+|	(<DISTINCT> op = NestedExpr() {op = rewriteDistinct(op);})
+|	(<CROSS> op = CrossClause())
+|   (<JOIN> op = JoinClause())
+|	(<UNION> op = UnionClause())
+|	(<FOREACH> op = ForEachClause())
+	)
+    [<PARALLEL> t2=<NUMBER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
+	)	
+	{return op;}
+}
+
+LogicalOperator LoadClause() : {Token t1, t2; String filename; String funcName,funcArgs, funcSpec=null; 
+								LOLoad lo=null; boolean continuous=false;}
+{
+	(	filename = FileName()
+		(
+		<USING>  funcName = QualifiedFunction() "(" funcArgs = StringList() ")"
+		{
+			funcSpec = funcName + "(" + funcArgs + ")";
+		}
+		)?
+	)
+	[ <CONTINUOUSLY> {continuous=true;} ] 
+	{
+		if (funcSpec == null){
+			funcSpec = PigStorage.class.getName();
+			funcSpec += continuous ? "('\t','\n','0')" : "()";
+		}
+		 
+		lo = new LOLoad(new FileSpec(massageFilename(filename, pigContext), funcSpec));	
+		if (continuous)
+			lo.setOutputType(LogicalOperator.MONOTONE);
+		return lo;
+	} 
+}    
+
+String StringList() : {StringBuilder sb = new StringBuilder(); Token t;}
+{
+	(
+	(
+	t = <QUOTEDSTRING> {sb.append(t.image);}
+	( "," t = <QUOTEDSTRING> {sb.append(",");sb.append(t.image);} )*
+	)
+	| {}
+	)
+	{return sb.toString();}
+}
+
+String FileName(): {Token t;}
+{
+	t = <QUOTEDSTRING> 
+	{return unquote(t.image);}
+}
+
+LogicalOperator FilterClause():
+{Cond cond; LogicalOperator input;}
+{
+	input = NestedExpr()	
+	 <BY> cond = PCond(input.outputSchema(),null)
+	{
+		return new LOEval(input, new FilterSpec(cond));
+	}
+}
+
+
+Cond PCond(Schema over, Map<String, EvalSpec> specs) : {Cond cond = null;}
+{
+	cond = POrCond(over,specs)
+	{return cond;}
+}
+
+Cond POrCond(Schema over, Map<String, EvalSpec> specs) : {Cond cond; List<Cond> cList = new ArrayList<Cond>();}
+{
+	(
+	cond = PAndCond(over,specs) {cList.add(cond);}
+	( <OR> cond = PAndCond(over,specs) {cList.add(cond);})* 
+	)
+	{
+		if (cList.size()==1)
+			return cond;
+		else	
+			return new OrCond(cList);
+	}
+}
+	
+Cond PAndCond(Schema over, Map<String, EvalSpec> specs) : {Cond cond = null; List<Cond> cList = new ArrayList<Cond>();}
+{
+	(
+	cond = PUnaryCond(over,specs) {cList.add(cond);}
+	( <AND> cond = PUnaryCond(over,specs) {cList.add(cond);} )*
+	)
+	{
+		if (cList.size()==1)
+			return cond;
+		else	
+			return new AndCond(cList);
+	}	
+}
+
+Cond PUnaryCond(Schema over, Map<String, EvalSpec> specs) : {Cond cond = null; EvalSpec c1, c2; Token t1; String funcName; GenerateSpec args;}
+{
+	(
+	LOOKAHEAD("(" PCond(over,specs) ")")
+	("(" cond = PCond(over,specs) ")")
+|	LOOKAHEAD(InfixExpr(over,specs) <FILTEROP>) 
+		(c1=InfixExpr(over,specs) t1=<FILTEROP> c2=InfixExpr(over,specs) {cond = new CompCond(c1, t1.image, c2);})
+|	LOOKAHEAD(InfixExpr(over,specs) <MATCHES>) 
+		(c1=InfixExpr(over,specs) <MATCHES> t1=<QUOTEDSTRING> {cond = new RegexpCond(c1, unquote(t1.image));})
+|	LOOKAHEAD(FilterFunction() "(") (funcName=FilterFunction() "(" args=EvalArgs(over,specs) ")" {cond = new FuncCond(pigContext, funcName, args);})
+|	cond = PNotCond(over,specs)
+
+	)
+	{return cond;}
+}
+
+Cond PNotCond(Schema over, Map<String, EvalSpec> specs) : {Cond c1;}
+{
+	<NOT> c1=PUnaryCond(over,specs)
+	{return new NotCond(c1);}
+}
+
+
+
+LogicalOperator CogroupClause() : {CogroupInput gi; ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>();}
+{
+	(gi = GroupItem() { gis.add(gi); }
+	("," gi = GroupItem() { gis.add(gi); })*)
+	{return parseCogroup(gis);}
+}
+
+
+CogroupInput GroupItem() : {LogicalOperator op; GenerateSpec gs; EvalSpec es; CogroupInput cogroupInput = new CogroupInput();}
+{
+	(
+	cogroupInput.op = NestedExpr()
+	(
+	( <BY> 	
+	( 
+	LOOKAHEAD ( "(" FlattenedGenerateItemList(cogroupInput.op.outputSchema()) ")" )
+	( "(" gs = FlattenedGenerateItemList(cogroupInput.op.outputSchema(), null) ")" )
+|	(es = FlattenedGenerateItem(cogroupInput.op.outputSchema(), null) {gs = new GenerateSpec(es);})
+	)
+	)	
+|	<ALL> {gs = new GenerateSpec(new ConstSpec("all"));}
+|	<ANY> {gs = new GenerateSpec(new FuncEvalSpec(pigContext, GFAny.class.getName(), null));}
+	)
+	{ 
+		cogroupInput.spec = gs.getGroupBySpec();
+	}
+	[<INNER> {cogroupInput.spec.setInner(true);} | <OUTER>]
+	)
+	{return cogroupInput;}
+}
+
+
+LogicalOperator OrderClause() : {LogicalOperator op; EvalSpec sortSpec = null; ProjectSpec projSpec;}
+{
+	(
+	op = NestedExpr() <BY> 
+	(
+	    ( 
+		(projSpec = SimpleProj(op.outputSchema()) |	( "(" projSpec = SimpleProj(op.outputSchema()) ")"))
+		{
+			projSpec.setWrapInTuple(true);
+			projSpec.setFlatten(true);
+			sortSpec = new GenerateSpec(projSpec);
+		}
+		)
+	|	(sortSpec = Star() {sortSpec = new GenerateSpec(sortSpec);})
+	)
+	)
+	{
+		return new LOSort(op, sortSpec);
+	}
+}
+	
+
+LogicalOperator CrossClause() : {LogicalOperator op; ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();}
+{
+	(
+	op = NestedExpr() { inputs.add(op); }
+	("," op = NestedExpr() { inputs.add(op); })*
+	)
+	{return rewriteCross(inputs);}
+}
+
+LogicalOperator JoinClause() : {CogroupInput gi; ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>();}
+{
+	(gi = GroupItem() { gis.add(gi); }
+	("," gi = GroupItem() { gis.add(gi); })*)
+	{return rewriteJoin(gis);}
+}
+
+LogicalOperator UnionClause() : {LogicalOperator op; ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();}
+{
+	(op = NestedExpr() { inputs.add(op); }
+	("," op = NestedExpr() { inputs.add(op); })*)
+	{return new LOUnion(inputs);}
+}
+
+
+LogicalOperator ForEachClause() : {EvalSpec spec = null; LogicalOperator input, op; }
+{
+	(
+	input = NestedExpr()
+	spec = NestedBlock(input.outputSchema())
+	)
+	{
+		op = new LOEval(input, spec);
+		return op;
+	}
+}
+
+EvalSpec NestedBlock(Schema over):
+{EvalSpec spec; Map<String, EvalSpec> specs = new HashMap<String, EvalSpec>();}
+{
+	(
+	spec = GenerateStatement(over,specs)
+|	("{" (NestedCommand(over,specs) ";")* spec = GenerateStatement(over,specs)	 ";" "}")
+	)
+	{return spec;}
+}
+
+void NestedCommand(Schema over, Map<String, EvalSpec> specs):
+{Token t; EvalSpec item;}
+{
+	(
+	t = <IDENTIFIER> "="
+	(
+	item = InfixExpr(over,specs)
+|	item = NestedFilter(over,specs)	 
+| 	item = NestedSortOrArrange(over,specs)
+|	item = NestedDistinct(over,specs)	
+	)
+	)	
+	{specs.put(t.image,item);}
+}		
+
+EvalSpec NestedFilter(Schema over, Map<String, EvalSpec> specs):
+{Cond cond; EvalSpec item; Schema subSchema = null;}
+{
+	<FILTER> item = BaseEvalSpec(over,specs) { subSchema = item.getOutputSchemaForPipe(over); }
+	<BY> cond = PCond(subSchema,null)
+	{ return copyItemAndAddSpec(item,new FilterSpec(cond)); }
+}
+
+EvalSpec NestedSortOrArrange(Schema over, Map<String, EvalSpec> specs):
+{EvalSpec sortSpec; ProjectSpec projSpec; EvalSpec item; Schema subSchema = null; Token t;}
+{
+	(
+	( t = <ORDER> | t = <ARRANGE> )
+	item = BaseEvalSpec(over,specs) { subSchema = item.getOutputSchemaForPipe(over); }
+	<BY> ( (projSpec = SimpleProj(subSchema) {sortSpec = projSpec;}) 
+		| sortSpec = Star() )
+	)
+	{ return copyItemAndAddSpec(item,new SortDistinctSpec(false, sortSpec)); }
+}
+	
+EvalSpec NestedDistinct(Schema over, Map<String, EvalSpec> specs):
+{EvalSpec item; LogicalOperator subOp = null; Token t;}
+{
+	(
+	<DISTINCT>
+	item = BaseEvalSpec(over,specs)
+	)
+	{ 
+		return copyItemAndAddSpec(item,new SortDistinctSpec(true, null)); 
+	}
+}
+	
+	
+GenerateSpec GenerateStatement(Schema over, Map<String, EvalSpec> specs):
+{GenerateSpec spec = null; TupleSchema schema;}
+{
+	(
+	<GENERATE>
+	spec = FlattenedGenerateItemList(over,specs)
+	)
+	{
+		return spec;
+	}
+}
+
+GenerateSpec FlattenedGenerateItemList(Schema over, Map<String, EvalSpec> specs):
+{ArrayList<EvalSpec> specList = new ArrayList<EvalSpec>(); EvalSpec item;}
+{
+	(
+	item = FlattenedGenerateItem(over,specs) {specList.add(item);}
+	("," item = FlattenedGenerateItem(over,specs) {specList.add(item);})*
+	)
+	{return new GenerateSpec(specList);}
+}
+	
+
+EvalSpec FlattenedGenerateItem(Schema over, Map<String, EvalSpec> specs): 
+{EvalSpec item; Schema schema = null;}
+{
+	(
+	(
+	(	<FLATTEN> "(" item = InfixExpr(over,specs) ")" 
+		{
+			item.setFlatten(true);
+		}
+	)
+|	(item = InfixExpr(over,specs))
+|	(item = Star())
+	)
+	[ <AS> schema = Schema() ]
+	)
+	{
+		item.setSchema(schema);
+		return item;
+	}
+}
+	
+EvalSpec InfixExpr(Schema over, Map<String, EvalSpec> specs) : { EvalSpec expr; }
+{
+	expr = AdditiveExpr(over,specs) 
+	{return expr;}
+}
+
+EvalSpec AdditiveExpr(Schema over,  Map<String, EvalSpec> specs) : { Token t; EvalSpec lhs, rhs; GenerateSpec args;  }
+{
+	(
+	lhs = MultiplicativeExpr(over,specs) 	
+		(
+		( t = "+" | t = "-" ) rhs = MultiplicativeExpr(over,specs)
+		 	
+		{
+			assertAtomic(lhs,true);
+			assertAtomic(rhs,true);
+			ArrayList<EvalSpec> argsList = new ArrayList<EvalSpec>();
+			argsList.add(lhs);
+			argsList.add(rhs);
+			args = new GenerateSpec(argsList);
+			if (t.image.equals("+")){
+				lhs = new FuncEvalSpec(pigContext, ADD.class.getName(), args);
+			}else{
+				lhs = new FuncEvalSpec(pigContext, SUBTRACT.class.getName(), args);
+			}
+		}
+		)*
+	)
+	{return lhs;}		
+}
+
+EvalSpec MultiplicativeExpr(Schema over, Map<String, EvalSpec> specs) : { Token t; EvalSpec lhs, rhs; GenerateSpec args; }
+{
+		(
+		lhs = UnaryExpr(over,specs)
+		(
+		( t = <STAR> | t = "/" ) rhs = UnaryExpr(over,specs) 			
+		{
+			assertAtomic(lhs,true);
+			assertAtomic(rhs,true);
+			ArrayList<EvalSpec> argsList = new ArrayList<EvalSpec>();
+			argsList.add(lhs);
+			argsList.add(rhs);
+			args = new GenerateSpec(argsList);
+			if (t.image.equals("*")){
+				lhs = new FuncEvalSpec(pigContext, MULTIPLY.class.getName(), args);
+			}else{
+				lhs = new FuncEvalSpec(pigContext, DIVIDE.class.getName(), args);
+			}
+		}
+		)*
+		)
+		{return lhs;}
+}
+
+EvalSpec UnaryExpr(Schema over,  Map<String, EvalSpec> specs) : { EvalSpec expr; }
+{
+	(
+	LOOKAHEAD(BaseEvalSpec(over,specs)) expr = BaseEvalSpec(over,specs)
+|	( "(" expr = InfixExpr(over,specs) ")" )
+	)
+	{return expr;}
+}
+
+	
+EvalSpec BaseEvalSpec(Schema over, Map<String, EvalSpec> specs) :
+{EvalSpec item;EvalSpec projection; Schema subSchema = null; Token t;}
+{
+	(
+	item = Const()
+|	(
+	(
+		LOOKAHEAD(FuncEvalSpec(over,specs))
+		item = FuncEvalSpec(over,specs)
+	|	item = ColOrSpec(over,specs) 
+	| 	item = BinCond(over,specs)
+	)
+	{item = item.copy(pigContext);}
+	(
+		{ subSchema = item.getOutputSchemaForPipe(over); }	
+		( 
+			"." projection = BracketedSimpleProj(subSchema) 
+			{
+				assertAtomic(item,false); 
+				item = item.addSpec(projection);
+			}
+		)
+|		( "#" t = <QUOTEDSTRING> { 
+			assertAtomic(item, false);
+			item = item.addSpec(new MapLookupSpec(unquote(t.image)));
+		}
+		)
+	)*
+	)
+	)
+	{return item;}
+}
+
+
+
+EvalSpec BinCond(Schema over, Map<String, EvalSpec> specs):
+{Cond cond; EvalSpec ifTrue, ifFalse; EvalSpec ret = null;}
+{	
+	(
+	"(" cond = PCond(over,specs) "?" ifTrue = InfixExpr(over,specs) 
+	":" ifFalse = InfixExpr(over,specs) ")"
+	)
+	{ return new BinCondSpec(cond,ifTrue,ifFalse);}
+}
+
+
+EvalSpec FuncEvalSpec(Schema over, Map<String, EvalSpec> specs) : {String funcName; GenerateSpec args;}
+{
+	funcName=EvalFunction() "(" args=EvalArgs(over,specs) ")" 
+	{return new FuncEvalSpec(pigContext, funcName, args);}
+}
+
+GenerateSpec EvalArgs(Schema over, Map<String, EvalSpec> specs) : {ArrayList<EvalSpec> specList = new ArrayList<EvalSpec>(); EvalSpec item;}
+{
+	(
+	(item=EvalArgsItem(over,specs)	{specList.add(item);}
+	("," item=EvalArgsItem(over,specs) {specList.add(item);})*)
+	| {}
+	)
+	{
+		return new GenerateSpec(specList);
+	}
+}
+
+EvalSpec EvalArgsItem(Schema over, Map<String, EvalSpec> specs):
+{EvalSpec item;}
+{
+	(
+	item = InfixExpr(over,specs)
+|	item = Star()
+	)
+	{return item;}
+}
+
+
+Schema Schema() : { Token t1; Schema item = null;}
+{
+	(
+	LOOKAHEAD(SchemaTuple()) item = SchemaTuple()
+|	LOOKAHEAD(SchemaBag()) item = SchemaBag()
+|   LOOKAHEAD(AtomSchema()) item = AtomSchema() 
+	)
+	{return item;}
+}
+
+Schema AtomSchema() : {Token t1;}
+{
+	(  ( t1 = <IDENTIFIER> ) { return new AtomSchema(t1.image); } )
+}
+
+TupleSchema SchemaTuple() : {Token t1 = null; TupleSchema list;}
+{ 
+	[( t1 = <IDENTIFIER> ) ":"] "(" list = TupleSchema() ")"	 
+	{
+		if (t1!=null)
+			list.setAlias(t1.image);
+		return list;
+	} 
+}
+
+TupleSchema SchemaBag() : {Token t1 = null; TupleSchema list;}
+{ 
+	[( t1 = <IDENTIFIER> ) ":"] "[" list = TupleSchema() "]"	 
+	{
+		if (t1!=null)
+			list.setAlias(t1.image); 
+		return list;
+	} 
+}
+
+
+TupleSchema TupleSchema() : { Schema item = null; TupleSchema list = new TupleSchema(); }
+{
+	(	
+	(	item=Schema() { list.add(item); } 
+		( "," item=Schema() {list.add(item);} )* 
+	)
+|		{}
+	)
+	{return list;}
+}
+	
+//CQ stuff
+
+EvalSpec PWindow() : {EvalSpec spec; int numTuples; double time;}
+{
+	( <WINDOW> 
+		( LOOKAHEAD(2)
+		  time = PTimeWindow() { spec = new TimeWindowSpec(WindowSpec.windowType.SLIDING, time); } |
+		  numTuples = PTupleWindow() { spec = new TupleWindowSpec(WindowSpec.windowType.SLIDING, numTuples);}
+		)
+	)	  
+	{return spec;}
+}	
+	
+double PTimeWindow() : {double n; Token t;}
+{
+	( t = <NUMBER> { n = Double.parseDouble(t.image); }
+		( <SECONDS> |
+		  <MINUTES> { n = n*60; } |
+		  <HOURS> { n = n * 3600; }
+		)
+	)
+	{return n;}
+}   
+
+int PTupleWindow() : {int n; Token t;}
+{
+	( t = <NUMBER> { try{ 
+						n = Integer.parseInt(t.image); 
+					 }catch(NumberFormatException e){
+					 	throw new ParseException("Only whole number tuple windows allowed.");
+					 }
+				   } 
+		 <TUPLES> 
+	)
+	{return n;}
+}   
+	
+
+
+
+
+
+
+// These the simple non-terminals that are shared across many
+
+String EvalFunction() : {String funcName;}
+{
+	funcName = QualifiedFunction()
+	{
+		try{
+			EvalFunc ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
+		}catch (Exception e){
+			throw new ParseException(e.getMessage());
+		}
+		return funcName;
+	}
+}
+
+String FilterFunction() : {String funcName;}
+{
+	funcName = QualifiedFunction()
+	{
+		try{
+			FilterFunc ff = (FilterFunc) pigContext.instantiateFuncFromAlias(funcName);
+		}catch (Exception e){
+			throw new ParseException(funcName + " is not a valid filter function");
+		}
+		return funcName;
+	}	
+}
+
+/**
+ * Bug 831620 - '$' support
+ */
+void ClassName() #void : {} { <IDENTIFIER> (("."  <IDENTIFIER>)|("$"  <IDENTIFIER>))* }
+
+/**
+ * Bug 831620 - '$' support
+ */
+String QualifiedFunction() #void : {Token t1;StringBuffer s=new StringBuffer();}
+{
+	((t1=<IDENTIFIER> { s.append(t1.image);}
+	 (("." t1=<IDENTIFIER> {s.append("." + t1.image);})| 
+	  ("$" t1=<IDENTIFIER> {s.append("$" + t1.image);}))*)) 
+	 {return s.toString();}
+}
+
+
+// If there is one time it may not be bracketed, but if multiple, they must be bracketed
+ProjectSpec BracketedSimpleProj(Schema over) : {EvalSpec es; int i; ProjectSpec spec = null;}
+{
+	(
+	es = ColOrSpec(over,null) {spec = (ProjectSpec) es;} 
+|	("(" spec = SimpleProj(over) ")")	
+	)
+	{return spec;}	
+}
+
+ProjectSpec SimpleProj(Schema over): 
+{EvalSpec i = null; ArrayList<Integer> colList = new ArrayList<Integer>();}
+{
+	i = ColOrSpec(over,null) {colList.add(((ProjectSpec)i).getCol());}	
+		("," i = ColOrSpec(over, null) {colList.add(((ProjectSpec)i).getCol());})*
+	{return new ProjectSpec(colList);}
+}
+
+
+//Just a simple list of projection items
+GenerateSpec SimpleArgs(Schema over) : {EvalSpec i = null; ArrayList<EvalSpec> specList = new ArrayList<EvalSpec>();}
+{
+	(
+	(
+	i = SimpleArgsItem(over) {specList.add(i);}	
+		("," i = SimpleArgsItem(over) {specList.add(i);})*
+	)
+	| {}
+	)
+	{
+		if (specList.isEmpty())
+			return null;
+		else	
+			return new GenerateSpec(specList);
+	}	
+}
+
+EvalSpec SimpleArgsItem(Schema over):
+{EvalSpec item;}
+{
+	(
+	item = Const()
+|	item = ColOrSpec(over,null)
+|	item = Star()
+	)
+	{return item;}
+}		
+
+
+StarSpec Star() : {Token t1; StarSpec spec;}
+{
+	t1=<STAR>
+	{
+		spec = new StarSpec();
+		spec.setFlatten(true);
+		return spec;
+	}	
+}
+
+EvalSpec Const() : {Token t1; String s;}
+{
+	(
+	t1=<QUOTEDSTRING> {s = unquote(t1.image);}
+|	t1 = <NUMBER> {s = t1.image;}
+	)
+	{return new ConstSpec(s);}
+}
+
+EvalSpec ColOrSpec(Schema over, Map<String, EvalSpec> specs) : 
+{EvalSpec spec;}
+{
+	(
+	spec = DollarVar()
+|	spec = AliasFieldOrSpec(over,specs)
+	)
+	{
+		return spec;
+	}
+}
+
+ProjectSpec DollarVar() : {Token t1;}
+{
+	t1=<DOLLARVAR>	
+	{return new ProjectSpec(undollar(t1.image));}
+}
+
+EvalSpec AliasFieldOrSpec(Schema over, Map<String, EvalSpec> specs) : {Token t1;}
+{
+	(t1=<GROUP> | t1=<IDENTIFIER>) 
+	{	int i; EvalSpec item = null;
+		if (specs!=null)
+			item = specs.get(t1.image);
+		
+		if (item == null){
+			if ( over == null ||  (i = over.colFor(t1.image)) == -1)
+				throw new ParseException("Invalid alias: " + t1.image + " in " + over); 
+			item = new ProjectSpec(i);		
+		}
+		return item;
+	}
+}
