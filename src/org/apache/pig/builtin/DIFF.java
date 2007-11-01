@@ -24,6 +24,8 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
+import org.apache.pig.data.AtomicDatum;
 
 
 /**
@@ -45,16 +47,16 @@ public class DIFF extends EvalFunc<DataBag> {
         if (input.arity() != 2) {
             throw new IOException("DIFF must compare two fields not " + input.arity());
         }
-        if (input.getField(0) instanceof DataBag) {
+		if (input.getField(0).getType() == Datum.DataType.BAG) {
             DataBag field1 = input.getBagField(0);
             DataBag field2 = input.getBagField(1);
-            Iterator<Tuple> it1 = field1.content();
+            Iterator<Datum> it1 = field1.content();
             checkInBag(field2, it1, output);
-            Iterator<Tuple> it2 = field2.content();
+            Iterator<Datum> it2 = field2.content();
             checkInBag(field1, it2, output);
         } else {
-            DataAtom d1 = input.getAtomField(0);
-            DataAtom d2 = input.getAtomField(1);
+            AtomicDatum d1 = input.getAtomField(0);
+            AtomicDatum d2 = input.getAtomField(1);
             if (!d1.equals(d2)) {
                 output.add(new Tuple(d1));
                 output.add(new Tuple(d2));
@@ -62,10 +64,10 @@ public class DIFF extends EvalFunc<DataBag> {
         }
     }
 
-    private void checkInBag(DataBag bag, Iterator<Tuple> iterator, DataBag emitTo) throws IOException {
+    private void checkInBag(DataBag bag, Iterator<Datum> iterator, DataBag emitTo) throws IOException {
         while(iterator.hasNext()) {
-            Tuple t = iterator.next();
-            Iterator<Tuple> it2 = bag.content();
+            Datum t = iterator.next();
+            Iterator<Datum> it2 = bag.content();
             boolean found = false;
             while(it2.hasNext()) {
                 if (t.equals(it2.next())) {

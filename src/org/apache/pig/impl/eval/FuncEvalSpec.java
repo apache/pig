@@ -160,6 +160,7 @@ public class FuncEvalSpec extends EvalSpec {
 		boolean startAdded = false, endAdded = false;
 		
 		public FakeDataBag(DataCollector successor){
+			super(Datum.DataType.TUPLE);
 			this.successor = successor;
 		}
 		
@@ -181,12 +182,12 @@ public class FuncEvalSpec extends EvalSpec {
 		}
 		
 		@Override
-		public void add(Tuple t) {
+		public void add(Datum d) {
 			synchronized(this){
 				if (!startAdded)
 					addStart();
 			}
-			successor.add(t);
+			successor.add(d);
 		}
 		
 		@Override

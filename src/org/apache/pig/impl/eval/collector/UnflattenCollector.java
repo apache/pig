@@ -48,7 +48,7 @@ public class UnflattenCollector extends DataCollector {
 			if (checkDelimiter(d)){
 				//Bag must have started now
 				try{
-					bag = BagFactory.getInstance().getNewBag();
+					bag = BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
 				}catch(IOException e){
 					throw new RuntimeException(e);
 				}

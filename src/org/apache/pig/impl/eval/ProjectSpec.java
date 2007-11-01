@@ -85,19 +85,14 @@ public class ProjectSpec extends SimpleEvalSpec {
 		}
 		Tuple t = (Tuple)d;
 		
-		try{
-			if (!wrapInTuple && cols.size() == 1){
-				return t.getField(cols.get(0));
-			}else{
-				Tuple out = new Tuple();
-				for (int i: cols){
-					out.appendField(t.getField(i));
-				}
-				return out;
+		if (!wrapInTuple && cols.size() == 1){
+			return t.getField(cols.get(0));
+		}else{
+			Tuple out = new Tuple();
+			for (int i: cols){
+				out.appendField(t.getField(i));
 			}
-		}catch (IOException e){
-			//TODO: Based on a strictness level, insert null values here
-				throw new RuntimeException(e);		
+			return out;
 		}
 	}
 

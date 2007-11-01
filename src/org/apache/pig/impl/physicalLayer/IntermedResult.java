@@ -25,6 +25,7 @@ import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.PigFile;
@@ -58,7 +59,7 @@ public class IntermedResult {
     
     public IntermedResult() {
         executed = true;
-        databag = new DataBag();
+        databag = new DataBag(Datum.DataType.TUPLE);
     }
     
     public IntermedResult(DataBag bag) {

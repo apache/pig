@@ -54,6 +54,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.PigLogger;
 import org.apache.pig.shock.SSHSocketImplFactory;
 
 
@@ -108,8 +109,11 @@ public class PigContext implements Serializable, FunctionInstantiator {
 	public PigContext(ExecType execType){
 		this.execType = execType;
 		
+		/*
 		mLogger = Logger.getLogger("org.apache.pig");
 		mLogger.setAdditivity(false);
+		*/
+		mLogger = PigLogger.getLogger();
 
     	initProperties();
     	
@@ -406,9 +410,11 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return conf;
     }
 
+	/*
 	public Logger getLogger() {
 		return mLogger;
 	}
+	*/
 
     public void setJobtrackerLocation(String newLocation) {
         conf.set("mapred.job.tracker", newLocation);

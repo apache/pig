@@ -121,7 +121,8 @@ class POCogroup extends PhysicalOperator {
 
             boolean done = true;
             for (int i = 0; i < inputs.length; i++) {
-                DataBag b = BagFactory.getInstance().getNewBag();
+                DataBag b =
+					BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
 
                 while (sortedInputs[i].size() > 0) {
                     Datum g = sortedInputs[i].get(0)[0];

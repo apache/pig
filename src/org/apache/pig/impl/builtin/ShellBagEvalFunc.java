@@ -48,6 +48,7 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
 	}
 
 	private class EndOfQueue extends DataBag{
+		EndOfQueue() { super(Datum.DataType.TUPLE); }
 		public void add(Datum d){}
 	}
 	

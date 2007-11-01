@@ -24,7 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
 
 
 
@@ -37,11 +37,11 @@ public class DataBagFileWriter {
 		out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(store)));
 	}
 	
-	public void write(Tuple t) throws IOException{
-		t.write(out);
+	public void write(Datum d) throws IOException{
+		d.write(out);
 	}
 	
-	public void write(Iterator<Tuple> iter) throws IOException{
+	public void write(Iterator<Datum> iter) throws IOException{
 		while (iter.hasNext())
 			iter.next().write(out);
 	}

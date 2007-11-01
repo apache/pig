@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.PigLogger;
 
 import junit.framework.TestCase;
 
@@ -37,6 +38,7 @@ public class TestFilterOpString extends TestCase {
     
     @Test
     public void testStringEq() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -65,6 +67,7 @@ public class TestFilterOpString extends TestCase {
     
     @Test
     public void testStringNeq() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -93,6 +96,7 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringGt() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -123,6 +127,7 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringGte() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -154,6 +159,7 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringLt() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -183,6 +189,7 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringLte() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

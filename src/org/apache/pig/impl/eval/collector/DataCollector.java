@@ -84,7 +84,7 @@ public abstract class DataCollector {
 			DataBag bag = (DataBag)d;
 			//flatten the bag and send it through the pipeline
 			successor.add(DataBag.startBag);
-		    Iterator<Tuple> iter = bag.content();
+		    Iterator<Datum> iter = bag.content();
 	    	while(iter.hasNext())
 	    		successor.add(iter.next());
 	    	successor.add(DataBag.endBag);

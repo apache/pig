@@ -31,6 +31,7 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.PatternLayout;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.PigLogger;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
@@ -155,7 +156,7 @@ public static void main(String args[])
 		LogicalPlanBuilder.classloader = pigContext.createCl(null);
 
 		// Set the log level, and set up appenders
-		Logger log = pigContext.getLogger();
+		Logger log = PigLogger.getLogger();
 		log.setLevel(logLevel);
 		ConsoleAppender screen = new ConsoleAppender(new PatternLayout());
 		if (verbose) screen.setThreshold(logLevel);

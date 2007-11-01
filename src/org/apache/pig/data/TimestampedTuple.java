@@ -48,7 +48,7 @@ public class TimestampedTuple extends Tuple {
             delimiter = defaultDelimiter;
         }
         String[] splitString = textLine.split(delimiter, -1);
-        fields = new ArrayList<Datum>(splitString.length-1);
+        mFields = new ArrayList<Datum>(splitString.length-1);
         for (int i = 0; i < splitString.length; i++) {
         	if (i==timestampColumn){
         		try{
@@ -57,7 +57,7 @@ public class TimestampedTuple extends Tuple {
         			System.err.println("Could not parse timestamp " + splitString[i]);
         		}
         	}else{
-        		fields.add(new DataAtom(splitString[i]));
+        		mFields.add(new DataAtom(splitString[i]));
         	}
         }
     }

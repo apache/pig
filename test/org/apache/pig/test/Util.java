@@ -21,13 +21,15 @@ import java.io.IOException;
 
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
+import org.apache.pig.data.DataAtom;
 
 public class Util {
     // Helper Functions
     // =================
     static public Tuple loadFlatTuple(Tuple t, int[] input) throws IOException {
         for (int i = 0; i < input.length; i++) {
-            t.setField(i, input[i]);
+            t.setField(i, new DataAtom(new Integer(input[i]).toString()));
         }
         return t;
     }
@@ -40,7 +42,7 @@ public class Util {
     }
 
     static public Tuple loadNestTuple(Tuple t, int[] input) throws IOException {
-        DataBag bag = new DataBag();
+        DataBag bag = new DataBag(Datum.DataType.TUPLE);
         for(int i = 0; i < input.length; i++) {
             Tuple f = new Tuple(1);
             f.setField(0, input[i]);
@@ -52,7 +54,7 @@ public class Util {
 
     static public Tuple loadNestTuple(Tuple t, int[][] input) throws IOException {
         for (int i = 0; i < input.length; i++) {
-            DataBag bag = new DataBag();
+            DataBag bag = new DataBag(Datum.DataType.TUPLE);
             Tuple f = loadFlatTuple(new Tuple(input[i].length), input[i]);
             bag.add(f);
             t.setField(i, bag);
@@ -62,7 +64,7 @@ public class Util {
 
     static public Tuple loadTuple(Tuple t, String[][] input) throws IOException {
         for (int i = 0; i < input.length; i++) {
-            DataBag bag = new DataBag();
+            DataBag bag = new DataBag(Datum.DataType.TUPLE);
             Tuple f = loadTuple(new Tuple(input[i].length), input[i]);
             bag.add(f);
             t.setField(i, bag);

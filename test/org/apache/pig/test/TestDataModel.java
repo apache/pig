@@ -73,6 +73,7 @@ public class TestDataModel extends junit.framework.TestCase {
         assertFalse(da1.compareTo(da2) > 0);
     }
 
+	/* Replaced by TestTuple.java
     @Test
     public void testTuple() throws Exception {
         int arity = 5;
@@ -159,7 +160,9 @@ public class TestDataModel extends junit.framework.TestCase {
         n1.appendTuple(n2);
         assertTrue(n1.arity() == n1Arity + n2Arity);
     }
+	*/
 
+	/* Replaced by TestDataBag.java 
     @Test
     public void testDataBag() throws Exception {
         int[] input1 = { 1, 2, 3, 4, 5 };
@@ -195,6 +198,7 @@ public class TestDataModel extends junit.framework.TestCase {
         }   
         assertTrue(caught);
     }
+	*/
 
     @Test
     
@@ -211,10 +215,11 @@ public class TestDataModel extends junit.framework.TestCase {
     private void testBigDataBag(long freeMemoryToMaintain, int numItems) throws Exception {
     	BigDataBag.FREE_MEMORY_TO_MAINTAIN = freeMemoryToMaintain;
     	File tmp = File.createTempFile("test", "bag").getParentFile();
-        BigDataBag bag = new BigDataBag(tmp);
-        Iterator<Tuple> it;
+        BigDataBag bag = new BigDataBag(Datum.DataType.TUPLE, tmp);
+        Iterator<Datum> it;
         int count;
-        String last;
+        //String last;
+		Tuple lastT = null;
     
         Random r = new Random();
         
@@ -237,7 +242,7 @@ public class TestDataModel extends junit.framework.TestCase {
         it = bag.content();
         count = 0;
         while(it.hasNext()) {
-            Tuple t = it.next();
+            Tuple t = (Tuple)it.next();
             int ix = Integer.parseInt(t.getAtomField(0).strval(), 16);
             assertTrue(Integer.toString(ix).equals(t.getAtomField(1).strval()));
             assertEquals(lastI+1, ix);
@@ -262,12 +267,17 @@ public class TestDataModel extends junit.framework.TestCase {
         
         it = bag.content();
         count = 0;
-        last= "";
+        // last= "";
+		lastT = new Tuple();
         while(it.hasNext()) {
-            Tuple t = it.next();
+            Tuple t = (Tuple)it.next();
+			/*
             String next = t.getAtomField(0).strval();
             assertTrue(last.compareTo(next)<=0);
             last = next;
+			*/
+			assertTrue("last should be <= next", lastT.compareTo(t) <= 0);
+			lastT = t;
             count++;
         }
 
@@ -288,12 +298,17 @@ public class TestDataModel extends junit.framework.TestCase {
 
         it = bag.content();
         count = 0;
-        last= "";
+        //last= "";
+		lastT = new Tuple();
         while(it.hasNext()) {
-            Tuple t = it.next();
+            Tuple t = (Tuple)it.next();
+			/*
             String next = t.getAtomField(0).strval();
             assertTrue(last.compareTo(next)<=0);
             last = next;
+			*/
+			assertTrue("last should be <= next", lastT.compareTo(t) <= 0);
+			lastT = t;
             count++;
         }
 
@@ -316,12 +331,17 @@ public class TestDataModel extends junit.framework.TestCase {
 
         it = bag.content();
         count = 0;
-        last= "";
+        //last= "";
+		lastT = new Tuple();
         while(it.hasNext()) {
-            Tuple t = it.next();
+            Tuple t = (Tuple)it.next();
+			/*
             String next = t.getAtomField(0).strval();
             assertTrue(last.compareTo(next)<0);
             last = next;
+			*/
+			assertTrue("last should be <= next", lastT.compareTo(t) <= 0);
+			lastT = t;
             count++;
         }
 
@@ -345,12 +365,17 @@ public class TestDataModel extends junit.framework.TestCase {
 
         it = bag.content();
         count = 0;
-        last= "";
+        //last= "";
+		lastT = new Tuple();
         while(it.hasNext()) {
-            Tuple t = it.next();
+            Tuple t = (Tuple)it.next();
+			/*
             String next = t.getAtomField(0).strval();
             assertTrue(last.compareTo(next)<0);
             last = next;
+			*/
+			assertTrue("last should be <= next", lastT.compareTo(t) <= 0);
+			lastT = t;
             count++;
         }
 
@@ -359,12 +384,17 @@ public class TestDataModel extends junit.framework.TestCase {
         //Check if it gives the correct contents the second time around
         it = bag.content();
         count = 0;
-        last= "";
+        //last= "";
+		lastT = new Tuple();
         while(it.hasNext()) {
-            Tuple t = it.next();
+            Tuple t = (Tuple)it.next();
+			/*
             String next = t.getAtomField(0).strval();
             assertTrue(last.compareTo(next)<0);
             last = next;
+			*/
+			assertTrue("last should be <= next", lastT.compareTo(t) <= 0);
+			lastT = t;
             count++;
         }
 

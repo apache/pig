@@ -24,13 +24,14 @@ import java.util.Iterator;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
 import org.apache.pig.impl.eval.EvalSpec;
 
 
 public class POSort extends PhysicalOperator {
 	static final long serialVersionUID = 1L; 
 	EvalSpec sortSpec;
-	transient Iterator<Tuple> iter;
+	transient Iterator<Datum> iter;
 	
 	
 	public POSort(EvalSpec sortSpec, int outputType) {
@@ -43,7 +44,8 @@ public class POSort extends PhysicalOperator {
 	public boolean open(boolean continueFromLast) throws IOException {
 		if (!super.open(continueFromLast))
 			return false;
-		DataBag bag = BagFactory.getInstance().getNewBag();
+		DataBag bag =
+			BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
 		
 		bag.sort(sortSpec);
 		Tuple t;
@@ -57,7 +59,7 @@ public class POSort extends PhysicalOperator {
 	@Override
 	public Tuple getNext() throws IOException {
 		if (iter.hasNext())
-			return iter.next();
+			return (Tuple)iter.next();
 		else
 			return null;
 	}

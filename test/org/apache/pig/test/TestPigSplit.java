@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.PigLogger;
 
 import junit.framework.TestCase;
 
@@ -37,6 +38,7 @@ public class TestPigSplit extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
+		PigLogger.setAppenderForJunit();
 		pig = new PigServer();
 	}
 	

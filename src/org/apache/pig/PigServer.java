@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -243,7 +244,12 @@ public class PigServer {
        		pp = physicalPlans.get(readFrom);
     	}
     	
-    	return pp.exec(continueFromLast).content();
+		// Data bags are guaranteed to contain tuples.
+    	//return pp.exec(continueFromLast).content();
+		// A direct subversion of the type system, this has to be bad.
+		Iterator<Datum> i = pp.exec(continueFromLast).content();
+		Object o = i;
+    	return (Iterator<Tuple>)o;
     	
     }
     
@@ -259,8 +265,10 @@ public class PigServer {
 
         readFrom.compile(queryResults);
         readFrom.exec();
-        if (pigContext.getExecType() == ExecType.LOCAL)
-            return readFrom.read().content();
+        if (pigContext.getExecType() == ExecType.LOCAL) {
+            Object o = readFrom.read().content();
+			return (Iterator<Tuple>)o;
+		}
         final LoadFunc p;
         
         try{

@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.pig.data.DataMap;
 import org.apache.pig.data.Datum;
+import org.apache.pig.data.AtomicDatum;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
@@ -32,9 +33,9 @@ public class MapLookupSpec extends SimpleEvalSpec {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	protected String keyToLookup;
+	protected AtomicDatum keyToLookup;
 	
-	public MapLookupSpec(String keyToLookup){
+	public MapLookupSpec(AtomicDatum keyToLookup){
 		this.keyToLookup = keyToLookup;
 	}
 
@@ -66,7 +67,7 @@ public class MapLookupSpec extends SimpleEvalSpec {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		sb.append("#'");
-		sb.append(keyToLookup);
+		sb.append(keyToLookup.toString());
 		sb.append("'");
 		sb.append("]");
 		return sb.toString();

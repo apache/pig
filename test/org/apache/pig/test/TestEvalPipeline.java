@@ -131,6 +131,7 @@ public class TestEvalPipeline extends TestCase {
 	}
 	
 	
+	/* Replaced by TestDataMap.java
 	@Test
 	public void testMapLookup() throws IOException{
 		PigServer pigServer = new PigServer(initString);
@@ -161,6 +162,7 @@ public class TestEvalPipeline extends TestCase {
 		assertEquals(t.getAtomField(1).numval(), 0.3);
 		assertFalse(iter.hasNext());
 	}
+	*/
 	
 	
 	static public class TitleNGrams extends EvalFunc<DataBag> {

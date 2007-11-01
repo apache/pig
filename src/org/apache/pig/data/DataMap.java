@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *	 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,109 +23,203 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Iterator;
 
-public class DataMap extends Datum {
+/**
+ * A datum that contain a map.
+ */
 
-	Map<String, Datum> content = new HashMap<String, Datum>();
+public class DataMap extends ComplexDatum {
+
+public DataMap()
+{
+	mContent = new HashMap<AtomicDatum, Datum>();
+}
 	
-	@Override
-	public boolean equals(Object other) {
-		return compareTo(other) == 0;
+public DataType getType() { return Datum.DataType.MAP; }
+
+/**
+ * @deprecated Use size() 
+ * @return the cardinality of the data map
+ */
+public int cardinality() { return (int)size(); }
+
+public long size() { return mContent.size(); }
+	
+/**
+ * Adds the key value pair to the map.  Does not make a copy of the key or
+ * value, simply stores a reference to them.
+ * @param key
+ * @param value
+ */
+public final void put(AtomicDatum key, Datum value) { mContent.put(key, value); }
+
+/**
+ * @deprecated
+ * Add a string key with a Datum value to a map.  This is included for backward
+ * compatibility only.
+ * @param key
+ * @param value
+ */
+public final void put(String key, Datum value)
+{
+	put(new DataAtom(key), value);
+}
+	/**
+ * @deprecated
+ * Add a string key/value pair to a map.  This is included for backward
+ * compatibility only.
+ * @param key
+ * @param value
+ */
+public final void put(String key, String value)
+{
+	put(new DataAtom(key), new DataAtom(value));
+}
+	
+/**
+ * Fetch the value corresponding to a given key
+ * @param key
+ * @return Value, as a datum
+ */
+public final Datum get(AtomicDatum key)
+{
+	Datum d = mContent.get(key);
+	if (d == null) {
+		d = new DataUnknown();
+		d.setNull(true);
+		return d;
+	} else {
+		return d;
+	}
+}
+	
+@Override
+public String toString()
+{
+	StringBuffer sb = new StringBuffer();
+	sb.append('[');
+	Iterator<Map.Entry<AtomicDatum, Datum> > i;
+	for (i = mContent.entrySet().iterator(); i.hasNext(); ) {
+		Map.Entry<AtomicDatum, Datum> e = i.next();
+		sb.append(e.getKey().toString());
+		sb.append('#');
+		sb.append(e.getValue().toString());
+		if (i.hasNext()) sb.append(", ");
+	}
+	sb.append(']');
+	return sb.toString();
+}
+
+public int hashCode()
+{
+	int hash = 0;
+	Iterator<Map.Entry<AtomicDatum, Datum> > i;
+	for (i = mContent.entrySet().iterator(); i.hasNext(); ) {
+		Map.Entry<AtomicDatum, Datum> e = i.next();
+		hash += (e.getKey().hashCode() ^ e.getValue().hashCode());
+	}
+	return hash;
+}
+
+// Don't make this use compareTo.  These functions are used in things like hashs
+// and we want them to be as fast as possible.
+/*
+public boolean equals(Object other)
+{
+	if (!(other instanceof DataMap)) return false;
+	DataMap o = (DataMap)other;
+	if (mContent.size() != o.mContent.size()) return false;
+
+	Iterator<Map.Entry<AtomicDatum, Datum> > i;
+	Iterator<Map.Entry<AtomicDatum, Datum> > j;
+	for (i = mContent.entrySet().iterator(), j = o.mContent.entrySet().iterator();
+			i.hasNext(); ) {
+		Map.Entry<AtomicDatum, Datum> us = i.next();
+		Map.Entry<AtomicDatum, Datum> them = j.next();
+		if (!us.getKey().equals(them.getKey()) ||
+				!us.getValue().equals(them.getValue())) return false;
 	}
 
-	public int compareTo(Object other) {
-		if (!(other instanceof DataMap))
-			return -1;
-		DataMap mbOther = (DataMap) other;
-		if (mbOther.cardinality()!=cardinality())
-			return cardinality() - mbOther.cardinality();
-		for (String key: content.keySet()){
-			if (!content.get(key).equals(mbOther.get(key)))
-				return -1;
+	return true;
+}
+*/
+
+public boolean equals(Object other)
+{
+	if (!(other instanceof DataMap)) return false;
+	DataMap o = (DataMap)other;
+	if (mContent.size() != o.mContent.size()) return false;
+
+	Iterator<Map.Entry<AtomicDatum, Datum> > i;
+	for (i = mContent.entrySet().iterator(); i.hasNext(); ) {
+		Map.Entry<AtomicDatum, Datum> us = i.next();
+		Datum val = (Datum)o.get(us.getKey());
+		if (val == null) return false;
+		if (!val.equals(us.getValue())) return false;
+	}
+
+	return true;
+}
+
+public int compareTo(Object other)
+{
+	if (!(other instanceof Datum)) return -1;
+
+	Datum od = (Datum)other;
+
+	if (od.getType() != Datum.DataType.MAP) return crossTypeCompare(od);
+
+	DataMap map = (DataMap)od;
+
+	if (mContent.size() < map.mContent.size()) return -1;
+	else if (mContent.size() > map.mContent.size()) return 1;
+
+	Iterator<Map.Entry<AtomicDatum, Datum> > i;
+	Iterator<Map.Entry<AtomicDatum, Datum> > j;
+	for (i = mContent.entrySet().iterator(), j = map.mContent.entrySet().iterator();
+			i.hasNext(); ) {
+		Map.Entry<AtomicDatum, Datum> us = i.next();
+		Map.Entry<AtomicDatum, Datum> them = j.next();
+		int keyrc = us.getKey().compareTo(them.getKey());
+		if (keyrc != 0) {
+			return keyrc;
+		} else {
+			int valrc = us.getValue().compareTo(them.getValue());
+			if (valrc != 0) return valrc;
 		}
-		return 0;
-	}
-	
-	/**
-	 * 
-	 * @return the cardinality of the data map
-	 */
-	public int cardinality(){
-		return content.size();
-	}
-	
-	/**
-	 * Adds the key value pair to the map
-	 * @param key
-	 * @param value
-	 */
-	public void put(String key, Datum value){
-		content.put(key, value);
-	}
-	
-	/**
-	 * Adds the value as a data atom mapped to the given key
-	 * @param key
-	 * @param value
-	 */
-	public void put(String key, String value){
-		content.put(key, new DataAtom(value));
 	}
 
-	/**
-	 * Adds the value as a data atom mapped to the given key
-	 * @param key
-	 * @param value
-	 */
-	
-	public void put(String key, int value){
-		content.put(key, new DataAtom(value));
-	}
+	return 0;
+}
 
 
-	/**
-	 * Fetch the value corresponding to a given key
-	 * @param key
-	 * @return
-	 */
-	public Datum get(String key){
-		Datum d = content.get(key);
-		if (d == null)
-			return new DataAtom("");
-		else
-			return d;
+public static DataMap read(DataInput in) throws IOException
+{
+	long size = in.readLong();
+	DataMap ret = new DataMap();
+	for (long i = 0; i < size; i++) {
+		Datum key = DatumImpl.readDatum(in);
+		if (key.getDimension() == Datum.DataDimension.COMPLEX) {
+			throw new IOException("Maps only accept atomic and unknown data types as keys");
+		}
+		ret.put((AtomicDatum)key, DatumImpl.readDatum(in));
 	}
+	return ret;
+}
 	
-	@Override
-	public String toString(){
-		return content.toString();
-	}
-	
-	public static DataMap read(DataInput in) throws IOException{
-		int size = Tuple.decodeInt(in);
-		DataMap ret = new DataMap();
-        byte[] b = new byte[1];
-               
-        for (int i = 0; i < size; i++) {
-            in.readFully(b);
-            if (b[0]!=ATOM)
-            	throw new IOException("Invalid data when reading map from binary file");
-            String key = DataAtom.read(in).strval();
-            Datum value = Tuple.readDatum(in);
-            ret.put(key, value);
-        }
-        return ret;
-	}
-	
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.write(MAP);
-        Tuple.encodeInt(out, cardinality());
-        for (Entry<String, Datum> e: content.entrySet()){
-        	DataAtom d = new DataAtom(e.getKey());
-        	d.write(out);
-        	e.getValue().write(out);
-        }
+@Override
+public void write(DataOutput out) throws IOException
+{
+	out.write(Datum.DataType.MAP.getMarker());
+	out.writeLong(size());
+	for (Entry<AtomicDatum, Datum> e: mContent.entrySet()){
+		AtomicDatum k = e.getKey();
+		k.write(out);
+		e.getValue().write(out);
  	}
+}
+
+private Map<AtomicDatum, Datum> mContent;
 
 }

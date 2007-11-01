@@ -25,7 +25,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
+import org.apache.pig.data.DatumImpl;
 
 
 public class DataBagFileReader {
@@ -35,34 +36,37 @@ public class DataBagFileReader {
 		store = f;
 	}
 	
-	private class myIterator implements Iterator<Tuple>{
+	private class myIterator implements Iterator<Datum>{
 		DataInputStream in;
-		Tuple nextTuple;
+		Datum nextDatum;
 		
 		public myIterator() throws IOException{
 			in = new DataInputStream(new BufferedInputStream(new FileInputStream(store)));
-			getNextTuple();
+			getNextDatum();
 		}
 		
-		private void getNextTuple() throws IOException{
+		private void getNextDatum() throws IOException{
 			try{
-				nextTuple = new Tuple();
-		        nextTuple.readFields(in);
+				/*
+				nextDatum = new Datum();
+		        nextDatum.readFields(in);
+				*/
+				nextDatum = DatumImpl.readDatum(in);
 			} catch (EOFException e) {
 				in.close();
-				nextTuple = null;
+				nextDatum = null;
 			}
 		}
 		
 		public boolean hasNext(){
-			return nextTuple != null;
+			return nextDatum != null;
 		}
 		
-		public Tuple next(){
-			Tuple returnValue = nextTuple;
+		public Datum next(){
+			Datum returnValue = nextDatum;
 			if (returnValue!=null){
 				try{
-					getNextTuple();
+					getNextDatum();
 				}catch (IOException e){
 					throw new RuntimeException(e.getMessage());
 				}
@@ -75,7 +79,7 @@ public class DataBagFileReader {
 		}
 	}
 
-	public Iterator<Tuple> content() throws IOException{
+	public Iterator<Datum> content() throws IOException{
 		return new myIterator();		
 	}
 	

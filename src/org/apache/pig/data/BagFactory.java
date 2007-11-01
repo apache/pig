@@ -42,15 +42,15 @@ public class BagFactory {
     }
     
     // Get BigBag or Bag, depending on whether the temp directory has been set up
-    public DataBag getNewBag() throws IOException {
-        if (tmpdir == null) return new DataBag();
-        else return getNewBigBag();
+    public DataBag getNewBag(Datum.DataType type) throws IOException {
+        if (tmpdir == null) return new DataBag(type);
+        else return getNewBigBag(type);
     }
     
     // Need a Big Bag, dammit!
-    public BigDataBag getNewBigBag() throws IOException {
+    public BigDataBag getNewBigBag(Datum.DataType type) throws IOException {
         if (tmpdir == null) throw new IOException("No temp directory given for BigDataBag.");
-        else return new BigDataBag(tmpdir);
+        else return new BigDataBag(type, tmpdir);
     }
 
 }

@@ -71,7 +71,7 @@ public class PigCombine implements Reducer {
                 
                 bags = new BigDataBag[inputCount];
                 for (int i = 0; i < inputCount; i++) {
-                    bags[i] = BagFactory.getInstance().getNewBigBag();
+                    bags[i] = BagFactory.getInstance().getNewBigBag(Datum.DataType.TUPLE);
                 }
             }
 

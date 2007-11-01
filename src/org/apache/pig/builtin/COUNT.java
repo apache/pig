@@ -87,8 +87,8 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     static protected double sum(Tuple input) throws IOException {
         DataBag values = input.getBagField(0);
         double sum = 0;
-        for (Iterator<Tuple> it = values.content(); it.hasNext();) {
-            Tuple t = it.next();
+        for (Iterator<Datum> it = values.content(); it.hasNext();) {
+            Tuple t = (Tuple)it.next();
             try {
                 sum += t.getAtomField(0).numval();
             } catch (NumberFormatException exp) {

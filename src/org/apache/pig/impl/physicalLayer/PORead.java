@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
 
 
 public class PORead extends PhysicalOperator {
@@ -30,7 +31,7 @@ public class PORead extends PhysicalOperator {
 	 */
 	private static final long serialVersionUID = 1L;
 	DataBag             bag;
-    Iterator<Tuple> it;
+    Iterator<Datum> it;
 
     public PORead(DataBag bagIn, int outputType) {
     	super(outputType);
@@ -54,7 +55,7 @@ public class PORead extends PhysicalOperator {
     @Override
 	public Tuple getNext() throws IOException {
         if (it.hasNext())
-            return it.next();
+            return (Tuple)it.next();
         else
             return null;
     }

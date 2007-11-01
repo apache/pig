@@ -149,10 +149,10 @@ public abstract class EvalSpec implements Serializable{
      * Compare 2 tuples according to this spec. This is used while sorting by arbitrary (even generated) fields.
      * @return
      */
-    public Comparator<Tuple> getComparator() {
-        return new Comparator<Tuple>() {
+    public Comparator<Datum> getComparator() {
+        return new Comparator<Datum>() {
         	
-        	public int compare(Tuple t1, Tuple t2) {
+        	public int compare(Datum t1, Datum t2) {
     			return (simpleEval(t1).compareTo(simpleEval(t2)));
             }
         };

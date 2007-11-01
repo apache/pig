@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.Datum;
 
 
 public class FindQuantiles extends EvalFunc<DataBag>{
@@ -42,9 +43,9 @@ public class FindQuantiles extends EvalFunc<DataBag>{
 		int toSkip = numSamples / numQuantiles;
 		
 		int i=0, nextQuantile = 0;
-		Iterator<Tuple> iter = samples.content();
+		Iterator<Datum> iter = samples.content();
 		while (iter.hasNext()){
-			Tuple t = iter.next();
+			Tuple t = (Tuple)iter.next();
 			if (i==nextQuantile){
 				output.add(t);
 				nextQuantile+=toSkip+1;

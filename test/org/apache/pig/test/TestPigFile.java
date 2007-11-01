@@ -44,7 +44,7 @@ import org.apache.pig.impl.PigContext;
 
 public class TestPigFile extends TestCase {
 
-    DataBag bag          = new DataBag();
+    DataBag bag          = new DataBag(Datum.DataType.TUPLE);
     Random rand = new Random();
     
     @Override
@@ -91,11 +91,11 @@ public class TestPigFile extends TestCase {
 
         assertTrue(bag.cardinality() == loaded.cardinality());
 
-        Iterator<Tuple> it1 = bag.content();
-        Iterator<Tuple> it2 = loaded.content();
+        Iterator<Datum> it1 = bag.content();
+        Iterator<Datum> it2 = loaded.content();
         while (it1.hasNext() && it2.hasNext()) {
-            Tuple f1 = it1.next();
-            Tuple f2 = it2.next();
+            Tuple f1 = (Tuple)it1.next();
+            Tuple f2 = (Tuple)it2.next();
             assertTrue(f1.equals(f2));
         }
         assertFalse(it1.hasNext() || it2.hasNext());
@@ -131,7 +131,7 @@ public class TestPigFile extends TestCase {
     
     private DataBag getRandomBag(int maxCardinality, int nestingLevel) throws IOException{
     	int cardinality = rand.nextInt(maxCardinality)+1;
-    	DataBag b = new DataBag();
+    	DataBag b = new DataBag(Datum.DataType.TUPLE);
     	for (int i=0; i<cardinality; i++){
     		Tuple t = getRandomTuple(nestingLevel+1); 
     		b.add(t);
@@ -170,11 +170,12 @@ public class TestPigFile extends TestCase {
 
         assertTrue(bag.cardinality() == loaded.cardinality());
 
-        Iterator<Tuple> it1 = bag.content();
-        Iterator<Tuple> it2 = loaded.content();
-        while (it1.hasNext() && it2.hasNext()) {
-            Tuple f1 = it1.next();
-            Tuple f2 = it2.next();
+        Iterator<Datum> it1 = bag.content();
+        Iterator<Datum> it2 = loaded.content();
+        //while (it1.hasNext() && it2.hasNext()) {
+        for (int i = 0; it1.hasNext() && it2.hasNext(); i++) {
+            Tuple f1 = (Tuple)it1.next();
+            Tuple f2 = (Tuple)it2.next();
             assertTrue(f1.equals(f2));
         }
         assertFalse(it1.hasNext() || it2.hasNext());

@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.PigLogger;
 
 import junit.framework.TestCase;
 
@@ -38,6 +39,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test
     public void testNumericEq() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -69,6 +71,7 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testNumericNeq() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -96,6 +99,7 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testNumericGt() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -124,6 +128,7 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testBinCond() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -153,6 +158,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test
     public void testNestedBinCond() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -181,6 +187,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test 
     public void testNumericLt() throws Exception {
+		PigLogger.setAppenderForJunit();
     	PigServer pig = new PigServer(initString);
     	File tmpFile = File.createTempFile("test", "txt");
     	PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -211,6 +218,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test
     public void testNumericGte() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -241,6 +249,7 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testNumericLte() throws Exception {
+		PigLogger.setAppenderForJunit();
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

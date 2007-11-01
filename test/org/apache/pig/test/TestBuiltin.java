@@ -34,11 +34,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.*;
-import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.*;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.builtin.ShellBagEvalFunc;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -95,7 +91,7 @@ public class TestBuiltin extends TestCase {
         count.exec(tup,output);
         assertTrue(output.numval() == 0);
         
-        map.put("a", new DataAtom("a"));
+        map.put("a", "a");
 
         assertFalse(isEmpty.exec(tup));
         count.exec(tup,output);
@@ -176,7 +172,8 @@ public class TestBuiltin extends TestCase {
         t2.setField(0,a);
         Tuple t3 = new Tuple(1);
         t3.setField(0, b);
-        DataBag bag = BagFactory.getInstance().getNewBigBag();
+        DataBag bag =
+			BagFactory.getInstance().getNewBigBag(Datum.DataType.TUPLE);
         bag.add(t2);
         bag.add(t3);
         Tuple t4 = new Tuple(2);
@@ -195,7 +192,8 @@ public class TestBuiltin extends TestCase {
         t6.setField(0,c);
         Tuple t7 = new Tuple(1);
         t7.setField(0, d);
-        DataBag bag2 = BagFactory.getInstance().getNewBigBag();    
+        DataBag bag2 =
+			BagFactory.getInstance().getNewBigBag(Datum.DataType.TUPLE);    
         for(int i = 0; i < 10; i ++) {
             bag2.add(t6);
             bag2.add(t7);
@@ -319,8 +317,10 @@ public class TestBuiltin extends TestCase {
     	for (int i=0; i< numTimes; i++){
     		Tuple t = iter.next();
     		
-    		assertEquals(i+"AA", t.getBagField(0).content().next().getAtomField(0).strval());
-    		assertEquals(i+"BB", t.getBagField(1).content().next().getAtomField(0).strval());
+			Tuple t0 = (Tuple)t.getBagField(0).content().next();
+			Tuple t1 = (Tuple)t.getBagField(1).content().next();
+    		assertEquals(i+"AA", t0.getAtomField(0).strval());
+    		assertEquals(i+"BB", t1.getAtomField(0).strval());
     		
     	}
     	

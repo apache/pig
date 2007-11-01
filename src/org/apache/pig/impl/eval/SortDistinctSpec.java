@@ -81,7 +81,7 @@ public class SortDistinctSpec extends EvalSpec {
 					if (checkDelimiter(d)){
 						//Bag must have started now
 						try{
-							bag = BagFactory.getInstance().getNewBag();
+							bag = BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
 							if (eliminateDuplicates)
 								bag.distinct();
 							else

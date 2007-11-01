@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
@@ -33,7 +34,7 @@ public class PhysicalPlan {
     }
 
     public DataBag exec(boolean continueFromLast) throws IOException {
-        DataBag results = new DataBag();
+        DataBag results = new DataBag(Datum.DataType.TUPLE);
 
         root.open(continueFromLast);
         Tuple t;

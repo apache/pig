@@ -32,7 +32,7 @@ public class IndexedTuple extends Tuple {
 	}
 	
 	public IndexedTuple(Tuple t, int indexIn) {
-		fields = t.fields;
+		super(t);
 		index = indexIn;
 	}
 
@@ -45,17 +45,19 @@ public class IndexedTuple extends Tuple {
 	@Override
 	public void write(DataOutput out) throws IOException {
 		super.write(out);
-		encodeInt(out, index);
+		out.writeInt(index);
+		//encodeInt(out, index);
 	}
 	@Override
 	public void readFields(DataInput in) throws IOException {
 		super.readFields(in);
-		index = decodeInt(in);
+		index = in.readInt();
+		//index = decodeInt(in);
 	}
 	
 	public Tuple toTuple(){
 		Tuple t = new Tuple();
-		t.fields = fields;
+		t.mFields = mFields;
 		return t;
 	}
 }

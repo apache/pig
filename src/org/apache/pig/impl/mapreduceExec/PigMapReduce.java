@@ -140,7 +140,8 @@ public class PigMapReduce implements MapRunnable, Reducer {
             Tuple t = new Tuple(1 + inputCount);
             t.setField(0, groupName);
             for (int i = 1; i < 1 + inputCount; i++) {
-                bags[i - 1] = BagFactory.getInstance().getNewBag();
+                bags[i - 1] =
+					BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
                 t.setField(i, bags[i - 1]);
             }
 
