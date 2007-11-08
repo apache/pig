@@ -5,6 +5,7 @@
 	<property name="lib.dir" value="${basedir}/lib" />
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="doc.dir" value="${basedir}/doc" />
+        <property name="test.reports.dir" value="${basedir}/test/reports" />
 	<property name="shock.src.dir" value="${basedir}/lib-src/shock" />
 	<property name="bzip2.src.dir" value="${basedir}/lib-src/bzip2" />
 	<property name="test.src.dir" value="${basedir}/test" />
@@ -26,6 +27,7 @@
 	<target name="clean">
 		<delete dir="${dist.dir}" />
 		<delete dir="${doc.dir}" />
+                <delete dir="${test.reports.dir}" />
 		<delete file="${output.jarfile}" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.java" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/JJTQueryParserState.java" />
