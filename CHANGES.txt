@@ -14,4 +14,6 @@ Trunk (unreleased changes)
   	PIG-24 Files that were incorrectly placed under test/reports have been
 	removed.  ant clean now cleans test/reports.  (milindb via gates)
 
+	PIG-25 com.yahoo.pig dir left under pig/test by mistake. removed it (olgan@)
+
 
