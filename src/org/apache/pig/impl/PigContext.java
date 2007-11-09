@@ -500,7 +500,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		// create ClassNotFoundException exception and attach to IOException
 		// so that we don't need to buble interface changes throughout the code
 		ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
-		throw new IOException(e);
+		IOException newE = new IOException(e.getMessage());
+                newE.initCause(e);
+                throw newE;
     }
     
     private static List<String> parseArguments(String argString){
@@ -542,7 +544,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
 				ret = objClass.newInstance();
 			}
     	}catch(Throwable e){
-    		throw new IOException(e);
+    		IOException newE = new IOException(e.getMessage());
+                newE.initCause(e);
+                throw newE;
     	}
 		return ret;
 	}

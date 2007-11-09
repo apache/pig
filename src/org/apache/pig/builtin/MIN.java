@@ -73,7 +73,9 @@ public class MIN extends EvalFunc<DataAtom> implements Algebraic {
 			try {
 				curMin = java.lang.Math.min(curMin, t.getAtomField(0).numval());
 			}catch(RuntimeException exp) {
-				throw new IOException("Error processing: " + t.toString(), exp);
+				IOException newE =  new IOException("Error processing: " + t.toString() + exp.getMessage());
+                                newE.initCause(exp);
+                                throw newE;
 		}
 	}
 
