@@ -16,4 +16,6 @@ Trunk (unreleased changes)
 
 	PIG-25 com.yahoo.pig dir left under pig/test by mistake. removed it (olgan@)
 
+	PIG-23 Made pig work with java 1.5. (milindb via gates)
+
 

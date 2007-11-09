@@ -161,7 +161,9 @@ public class PigSplit implements InputSplit {
     	try{
     		return ois.readObject();
     	}catch (ClassNotFoundException cnfe){
-    		throw new IOException(cnfe);
+    		IOException newE = new IOException(cnfe.getMessage());
+                newE.initCause(cnfe);
+                throw newE;
     	}
     }
     

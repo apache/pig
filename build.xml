@@ -50,10 +50,10 @@
 		<delete file="${src.dir}/org/apache/pig/tools/grunt/TokenMgrError.java" />
 	</target>
 
-	<target name="compile" depends="cc-compile">
+	<target name="compile" depends="cc-compile, lib-compile">
 		<mkdir dir="${dist.dir}" />
 		<echo>*** Building Main Sources ***</echo>
-		<javac srcdir="${src.dir};${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
+		<javac srcdir="${src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
 			<classpath refid="classpath" />
 		</javac>
 		<echo>*** Building Test Sources ***</echo>
@@ -75,6 +75,14 @@
 			target="${src.dir}/org/apache/pig/tools/grunt/GruntParser.jj" 
 			outputdirectory="${src.dir}/org/apache/pig/tools/grunt"
 			javacchome="${basedir}/lib" />
+	</target>
+
+        <target name="lib-compile">
+		<mkdir dir="${dist.dir}" />
+		<echo>*** Building Library Sources ***</echo>
+		<javac srcdir="${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
+			<classpath refid="classpath" />
+		</javac>
 	</target>
 
 	<target name="jar" depends="compile">
