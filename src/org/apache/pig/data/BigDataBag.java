@@ -399,7 +399,7 @@ public class BigDataBag extends DataBag {
     
     @Override
 	public void distinct() {
-    	sort(null,true);
+    	sort(new StarSpec(),true);
     	isSorted = true;
     }
 

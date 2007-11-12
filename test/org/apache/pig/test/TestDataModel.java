@@ -204,7 +204,7 @@ public class TestDataModel extends junit.framework.TestCase {
 
     public void testBigDataBagOnDisk() throws Exception{
     	Runtime.getRuntime().gc();
-    	//testBigDataBag(Runtime.getRuntime().maxMemory() - 1*1024*1024, 10000);
+    	testBigDataBag(Runtime.getRuntime().maxMemory() - 1*1024*1024, 10000);
     }
 
     
@@ -247,6 +247,8 @@ public class TestDataModel extends junit.framework.TestCase {
         
         assertTrue(bag.cardinality() == count);
         
+        bag.distinct();
+
         bag.clear();
 
         //Test pre sort
