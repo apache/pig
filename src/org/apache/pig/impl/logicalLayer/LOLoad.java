@@ -29,70 +29,67 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class LOLoad extends LogicalOperator {
-	private static final long serialVersionUID = 1L;
-	   
-	protected FileSpec inputFileSpec;
+    private static final long serialVersionUID = 1L;
 
-	protected int  outputType = FIXED;
+    protected FileSpec inputFileSpec;
+
+    protected int outputType = FIXED;
 
 
-	public LOLoad(FileSpec inputFileSpec) throws IOException, ParseException{
-		super();
-		this.inputFileSpec = inputFileSpec;               
-	try
-	{
-        	LoadFunc storageFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());                
-	}
-	catch (IOException e)
-	{
-		Throwable cause = e.getCause();
-		while (cause != null && cause.getClass().getName() != "java.lang.ClassNotFoundException")
-		{
-			System.out.println("cause = " + cause.getClass().getName());
-			cause = cause.getCause();
-		}
+    public LOLoad(FileSpec inputFileSpec) throws IOException, ParseException {
+        super();
+        this.inputFileSpec = inputFileSpec;
+        try {
+            LoadFunc storageFunc =
+                (LoadFunc) PigContext.instantiateFuncFromSpec(inputFileSpec.
+                                                              getFuncSpec());
+        } catch(IOException e) {
+            Throwable cause = e.getCause();
+            while (cause != null
+                   && cause.getClass().getName() !=
+                   "java.lang.ClassNotFoundException") {
+                System.out.println("cause = " + cause.getClass().getName());
+                cause = cause.getCause();
+            } if (cause != null) {
+                throw new ParseException("Load function " +
+                                         inputFileSpec.getFuncSpec() +
+                                         " not found");
+            } else {
+                throw e;
+            }
 
-		if (cause != null)
-		{
-			throw new ParseException("Load function " + inputFileSpec.getFuncSpec() + " not found");
-		}
-		else
-		{
-			throw e;
-		}
-		
-	}
+        }
 
         //TODO: Handle Schemas defined by Load Functions
         schema = new TupleSchema();
     }
 
     @Override
-	public String name() {
+    public String name() {
         return "Load";
     }
-    
-    public FileSpec getInputFileSpec(){
-    	return inputFileSpec;
+
+    public FileSpec getInputFileSpec() {
+        return inputFileSpec;
     }
-    
+
     public void setInputFileSpec(FileSpec spec) {
-    	inputFileSpec = spec;
-    }
-    
-	@Override
-	public String arguments() {
-    	return inputFileSpec.toString();
+        inputFileSpec = spec;
     }
 
     @Override
-	public TupleSchema outputSchema() {
-    	schema.setAlias(alias);
+    public String arguments() {
+        return inputFileSpec.toString();
+    }
+
+    @Override
+    public TupleSchema outputSchema() {
+        schema.setAlias(alias);
         return this.schema;
     }
 
     @Override
-	public int getOutputType() {
+    public int getOutputType() {
         return outputType;
     }
 
@@ -104,16 +101,16 @@ public class LOLoad extends LogicalOperator {
     }
 
     @Override
-	public String toString() {
-		StringBuffer result = new StringBuffer(super.toString());
-		result.append(" (outputType: ");
-		result.append(outputType);
-		result.append(')');
-		return result.toString();
-	}
+    public String toString() {
+        StringBuffer result = new StringBuffer(super.toString());
+        result.append(" (outputType: ");
+        result.append(outputType);
+        result.append(')');
+        return result.toString();
+    }
 
-	@Override
-	public List<String> getFuncs() {
+    @Override
+    public List<String> getFuncs() {
         List<String> funcs = super.getFuncs();
         funcs.add(inputFileSpec.getFuncName());
         return funcs;
