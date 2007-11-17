@@ -18,4 +18,4 @@ Trunk (unreleased changes)
 
 	PIG-23 Made pig work with java 1.5. (milindb via gates)
 
-
+	PIG-8 added binary comparator (olgan)
