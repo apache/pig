@@ -10,7 +10,7 @@
 	<property name="bzip2.src.dir" value="${basedir}/lib-src/bzip2" />
 	<property name="test.src.dir" value="${basedir}/test" />
 	<property name="output.jarfile" value="pig.jar" />
-	<property name="hadoop.jarfile" value="hadoop14.jar"/>
+	<property name="hadoop.jarfile" value="hadoop15.jar"/>
 	<property name="ssh.gateway" value=""/>
 	<property name="hod.server" value=""/>
 	<property name="hod.command" value=""/>
@@ -53,12 +53,14 @@
 	<target name="compile" depends="cc-compile, lib-compile">
 		<mkdir dir="${dist.dir}" />
 		<echo>*** Building Main Sources ***</echo>
-		<javac srcdir="${src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
+		<javac srcdir="${src.dir};${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on" deprecation="on">
 			<classpath refid="classpath" />
+			<compilerarg value="-Xlint:unchecked"/>
 		</javac>
 		<echo>*** Building Test Sources ***</echo>
 		<javac srcdir="test" destdir="${dist.dir}" debug="on">
 			<classpath refid="classpath" />
+			<compilerarg value="-Xlint:unchecked"/>
 		</javac>
 	</target>
 

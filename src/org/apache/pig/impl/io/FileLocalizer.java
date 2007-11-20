@@ -32,6 +32,7 @@ import java.util.Stack;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.PigContext;
@@ -158,7 +159,10 @@ public class FileLocalizer {
        Path paths[] = null;
     	if (fs.exists(path)) {
     		if (fs.isFile(path)) return fs.open(path);
-        	paths = fs.listPaths(path);
+			FileStatus fileStat[] = fs.listStatus(path);
+			paths = new Path[fileStat.length];
+			for (int i = 0; i < fileStat.length; i++)
+        		paths[i] = fileStat[i].getPath();
 		} else {
 			// It might be a glob
 			if (!globMatchesFiles(path, paths, fs)) throw new IOException(path + " does not exist");

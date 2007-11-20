@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob; 
@@ -102,13 +103,14 @@ class GruntParser
 		if (!mDfs.exists(dfsPath))
 			throw new IOException("Directory " + path + " does not exist.");
 
-		if (mDfs.isDirectory(dfsPath)) 
+		if (mDfs.getFileStatus(dfsPath).isDir()) 
 		{
-			Path paths[] = mDfs.listPaths(dfsPath);
-			for (int j = 0; j < paths.length; j++)
+			FileStatus fileStat[] = mDfs.listStatus(dfsPath);
+			for (int j = 0; j < fileStat.length; j++)
 			{
-				if (!mDfs.isFile(paths[j])) continue;
-				FSDataInputStream is = mDfs.open(paths[j]);
+				Path curPath = fileStat[j].getPath();
+				if (!mDfs.isFile(curPath)) continue;
+				FSDataInputStream is = mDfs.open(curPath);
 				while ((rc = is.read(buffer)) > 0)
 					System.out.write(buffer, 0, rc);
 				is.close();
@@ -134,7 +136,7 @@ class GruntParser
 			if (!mDfs.exists(dfsDir))
 				throw new IOException("Directory " + path + " does not exist.");
 
-			if (!mDfs.isDirectory(dfsDir))
+			if (!mDfs.getFileStatus(dfsDir).isDir())
 				throw new IOException(path + " is not a directory.");
 
 			mDfs.setWorkingDirectory(dfsDir);
@@ -175,14 +177,13 @@ class GruntParser
 				throw new IOException("File or directory " + path + " does not exist.");
 		}
 
-		Path paths[] = mDfs.listPaths(dir);
-		for (int j = 0; j < paths.length; j++)
+		FileStatus fileStat[] = mDfs.listStatus(dir);
+		for (int j = 0; j < fileStat.length; j++)
 		{
-			Path curPath = paths[j];
-                	if (mDfs.isDirectory(curPath))
-                    		System.out.println(curPath + "\t<dir>");
+            if (fileStat[j].isDir())
+           		System.out.println(fileStat[j].getPath() + "\t<dir>");
 			else
-				System.out.println(curPath + "<r " + mDfs.getReplication(curPath) + ">\t" + mDfs.getLength(curPath));
+				System.out.println(fileStat[j].getPath() + "<r " + fileStat[j].getReplication() + ">\t" + fileStat[j].getLen());
                 }
 	}
 
