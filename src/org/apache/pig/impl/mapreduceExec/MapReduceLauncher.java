@@ -39,7 +39,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.UTF8;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskReport;
@@ -158,8 +158,8 @@ public class MapReduceLauncher {
             	conf.setReducerClass(PigMapReduce.class);
             	conf.setInputFormat(PigInputFormat.class);
             	conf.setOutputFormat(PigOutputFormat.class);
-            	conf.setInputKeyClass(UTF8.class);
-            	conf.setInputValueClass(Tuple.class);
+            	// not used starting with 0.15 conf.setInputKeyClass(Text.class);
+            	// not used starting with 0.15 conf.setInputValueClass(Tuple.class);
             	conf.setOutputKeyClass(Tuple.class);
             	conf.setOutputValueClass(IndexedTuple.class);
             	conf.set("pig.inputs", ObjectSerializer.serialize(pom.inputFileSpecs));

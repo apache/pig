@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.hadoop.dfs.DistributedFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -488,7 +489,7 @@ public class PigServer {
     public long fileSize(String filename) throws IOException {
         FileSystem dfs = pigContext.getDfs();
         Path p = new Path(filename);
-        long len = dfs.getLength(p);
+        long len = dfs.getFileStatus(p).getLen();
         long replication = dfs.getDefaultReplication(); // did not work, for some reason: dfs.getReplication(p);
         return len * replication;
     }
@@ -510,10 +511,10 @@ public class PigServer {
     }
     
     public String[] listPaths(String dir) throws IOException {
-        Path paths[] = pigContext.getDfs().listPaths(new Path(dir));
-        String strPaths[] = new String[paths.length];
-        for (int i = 0; i < paths.length; i++) {
-            strPaths[i] = paths[i].toString();
+        FileStatus stats[] = pigContext.getDfs().listStatus(new Path(dir));
+        String strPaths[] = new String[stats.length];
+        for (int i = 0; i < stats.length; i++) {
+            strPaths[i] = stats[i].getPath().toString();
         }
         return strPaths;
     }

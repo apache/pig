@@ -42,6 +42,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobSubmissionProtocol;
 import org.apache.hadoop.mapred.JobTracker;
@@ -330,7 +331,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
 	    {
 		conf = new JobConf(hadoopConf);
 		// make sure that files on class path are used
-		conf.addFinalResource("pig-cluster-hadoop-site.xml");
+		conf.addResource("pig-cluster-hadoop-site.xml");
 		System.out.println("Job Conf = " + conf);
 		System.out.println("dfs.block.size= " + conf.get("dfs.block.size"));
 		System.out.println("ipc.client.timeout= " + conf.get("ipc.client.timeout"));
