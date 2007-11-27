@@ -23,6 +23,11 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Enumeration;
+import java.util.Vector;
+import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.apache.hadoop.dfs.DistributedFileSystem;
 import org.apache.hadoop.fs.FileSystem;
@@ -146,11 +151,59 @@ public class PigServer {
     	pigContext.registerFunction(function, functionSpec);
     }
     
-    public void registerJar(String path) throws IOException{
-    	File f = new File(path);
-    	if (!f.canRead())
-    		throw new IOException("Can't read " + path);
-        pigContext.addJar(path);
+    private URL locateJarFromResources(String jarName) throws IOException {
+        Enumeration<URL> urls = ClassLoader.getSystemResources(jarName);
+        URL resourceLocation = null;
+        
+        if (urls.hasMoreElements()) {
+        	resourceLocation = urls.nextElement();
+        }
+        
+        if (pigContext.debug && urls.hasMoreElements()) {
+            String logMessage = "Found multiple resources that match " 
+                + jarName + ": " + resourceLocation;
+            
+            while (urls.hasMoreElements()) {
+            	logMessage += (logMessage + urls.nextElement() + "; ");
+            }
+            
+            pigContext.getLogger().debug(logMessage);
+        }
+    
+        return resourceLocation;
+    }
+    
+    /**
+     * Registers a jar file. Name of the jar file can be an absolute or 
+     * relative path.
+     * 
+     * If multiple resources are found with the specified name, the
+     * first one is registered as returned by getSystemResources.
+     * A warning is issued to inform the user.
+     * 
+     * @param name of the jar file to register
+     * @throws IOException
+     */
+    public void registerJar(String name) throws IOException {
+        // first try to locate jar via system resources
+        // if this fails, try by using "name" as File (this preserves 
+        // compatibility with case when user passes absolute path or path 
+    	// relative to current working directory.)    	
+        if (name != null) {
+            URL resource = locateJarFromResources(name);
+
+            if (resource == null) {
+                File f = new File(name);
+                
+                if (!f.canRead()) {
+                    throw new IOException("Can't read jar file: " + name);
+                }
+                
+                resource = f.toURI().toURL();
+            }
+
+            pigContext.addJar(resource);    	
+        }
     }
     
     /**

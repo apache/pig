@@ -10,6 +10,7 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
+        PIG-11 Add capability to search for jar file to register.
 
   	PIG-24 Files that were incorrectly placed under test/reports have been
 	removed.  ant clean now cleans test/reports.  (milindb via gates)
