@@ -19,6 +19,7 @@ package org.apache.pig.impl;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
@@ -75,7 +76,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     transient private JobConf conf = null;        
     
     //  extra jar files that are needed to run a job
-    transient public List<String> extraJars = new LinkedList<String>();              
+    transient public List<URL> extraJars = new LinkedList<URL>();              
     
     //  The jars that should not be merged in. (Some functions may come from pig.jar and we don't want the whole jar file.)
     transient public Vector<String> skipJars = new Vector<String>(2);    
@@ -369,9 +370,18 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		}
     }
     
-    public void addJar(String path) throws MalformedURLException{
-        extraJars.add(path);
-        LogicalPlanBuilder.classloader = createCl(null);
+    public void addJar(String path) throws MalformedURLException {
+        if (path != null) {
+            URL resource = (new File(path)).toURI().toURL();
+            addJar(resource);
+        }
+    }
+    
+    public void addJar(URL resource) throws MalformedURLException{
+        if (resource != null) {
+            extraJars.add(resource);
+            LogicalPlanBuilder.classloader = createCl(null);
+        }
     }
 
     public void rename(String oldName, String newName) throws IOException {
@@ -466,7 +476,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             urls[0] = new URL("file:" + jarFile);
         }
         for (int i = 0; i < extraJars.size(); i++) {
-            urls[i + passedJar] = new URL("file:" + extraJars.get(i));
+            urls[i + passedJar] = extraJars.get(i);
         }
         return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
     }

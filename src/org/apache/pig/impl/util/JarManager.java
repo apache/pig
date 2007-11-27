@@ -168,17 +168,29 @@ public class JarManager {
      */
     private static void mergeJar(JarOutputStream jarFile, String jar, String prefix, Map<String, String> contents)
             throws FileNotFoundException, IOException {
-        JarInputStream jis = new JarInputStream(new FileInputStream(jar));
+        JarInputStream jarInput = new JarInputStream(new FileInputStream(jar));
+        
+        mergeJar(jarFile, jarInput, prefix, contents);
+    }
+    
+    private static void mergeJar(JarOutputStream jarFile, URL jar, String prefix, Map<String, String> contents)
+    throws FileNotFoundException, IOException {
+        JarInputStream jarInput = new JarInputStream(jar.openStream());
+
+        mergeJar(jarFile, jarInput, prefix, contents);
+    }
+
+    private static void mergeJar(JarOutputStream jarFile, JarInputStream jarInput, String prefix, Map<String, String> contents)
+    throws FileNotFoundException, IOException {
         JarEntry entry;
-        while ((entry = jis.getNextJarEntry()) != null) {
+        while ((entry = jarInput.getNextJarEntry()) != null) {
             if (prefix != null && !entry.getName().startsWith(prefix)) {
                 continue;
             }
-            addStream(jarFile, entry.getName(), jis, contents);
+            addStream(jarFile, entry.getName(), jarInput, contents);
         }
     }
-    
-    /**
+        /**
      * Adds a stream to a Jar file.
      * 
      * @param os
