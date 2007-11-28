@@ -22,3 +22,5 @@ Trunk (unreleased changes)
 	PIG-8 added binary comparator (olgan)
 
 	PIG-17 integrated with Hadoop 0.15 (olgan@)
+
+	PIG-20 Added custom comparator functions for order by (phunt via gates)

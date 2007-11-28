@@ -24,6 +24,7 @@ import java.util.Arrays;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
 import org.apache.pig.builtin.BinStorage;
@@ -34,12 +35,13 @@ import org.apache.pig.impl.io.FileLocalizer;
 
 public class SortPartitioner implements Partitioner {
 	Tuple[] quantiles;
+	WritableComparator comparator;
 	
 	public int getPartition(WritableComparable key, Writable value,
 			int numPartitions) {
 		try{
 			Tuple keyTuple = (Tuple)key;
-			int index = Arrays.binarySearch(quantiles, keyTuple.getTupleField(0));
+			int index = Arrays.binarySearch(quantiles, keyTuple.getTupleField(0), comparator);
 			if (index < 0)
 				index = -index-1;
 			return Math.min(index, numPartitions - 1);
@@ -71,6 +73,8 @@ public class SortPartitioner implements Partitioner {
 		}catch (IOException e){
 			throw new RuntimeException(e);
 		}
+
+		comparator = job.getOutputKeyComparator();
 	}
 
 }

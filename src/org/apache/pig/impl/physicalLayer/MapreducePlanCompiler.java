@@ -19,9 +19,12 @@ package org.apache.pig.impl.physicalLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
 
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
@@ -271,6 +274,17 @@ public class MapreducePlanCompiler extends PlanCompiler {
 		sortJob.addReduceSpec(new GenerateSpec(ps));
 	
     	sortJob.reduceParallelism = loSort.getRequestedParallelism();
+    	
+    	String comparatorFuncName = loSort.getSortSpec().getComparatorName();
+    	if (comparatorFuncName != null) {
+    		try {
+    			sortJob.userComparator = 
+    				(Class<WritableComparator>)Class.forName(comparatorFuncName);
+    		} catch (ClassNotFoundException e) {
+    			throw new RuntimeException("Unable to find user comparator " + comparatorFuncName, e);
+    		}
+    	}
+
     	return sortJob;
     }
     
