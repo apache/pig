@@ -405,7 +405,11 @@ public class BigDataBag extends DataBag {
 
     @Override
     protected void finalize() throws Throwable {
-    	clear();
+    	//clear();
+        close();
+        while(!stores.isEmpty())
+            stores.removeFirst().delete();
+		
     	super.finalize();
     }
     

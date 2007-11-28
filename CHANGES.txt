@@ -10,8 +10,6 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
-        PIG-11 Add capability to search for jar file to register.
-
   	PIG-24 Files that were incorrectly placed under test/reports have been
 	removed.  ant clean now cleans test/reports.  (milindb via gates)
 
@@ -23,6 +21,11 @@ Trunk (unreleased changes)
 
 	PIG-17 integrated with Hadoop 0.15 (olgan@)
 
+    PIG-11 Add capability to search for jar file to register. (antmagna via
+	olgan)
+
 	PIG-20 Added custom comparator functions for order by (phunt via gates)
 
-	PIG-33 Help was commented out - uncommented (olgan@)
+	PIG-33 Help was commented out - uncommented (olgan)
+
+	PIG-31: second half of concurrent mode problem addressed (olgan)
