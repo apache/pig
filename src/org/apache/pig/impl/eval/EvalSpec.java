@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.pig.ComparisonFunc;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.FunctionInstantiator;
@@ -41,6 +42,8 @@ public abstract class EvalSpec implements Serializable{
 	transient DataCollector simpleEvalInput; 
 	protected boolean inner = false; //used only if this generate spec is used in a group by
 
+	private String comparatorFuncName;
+	private transient Comparator<Tuple> comparator;
 	
 	/*
 	 * Keep a precomputed pipeline ready if we do simple evals
@@ -51,7 +54,36 @@ public abstract class EvalSpec implements Serializable{
 		simpleEvalInput = setupPipe(simpleEvalOutput);
 	}
 	
-	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{};
+	public class UserComparator implements Comparator<Tuple> {
+		Comparator<Tuple> nested;
+		
+		UserComparator(Comparator<Tuple> nested) {
+			this.nested = nested;
+		}
+    	public int compare(Tuple t1, Tuple t2) {
+    		Datum d1 = simpleEval(t1);
+    		Datum d2 = simpleEval(t2);
+    		if (d1 instanceof Tuple) {
+    			return nested.compare((Tuple)d1, (Tuple)d2);
+    		} else {
+    			return nested.compare(new Tuple(d1), new Tuple(d2));
+    		}
+        }
+	}
+	
+	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
+		if (comparatorFuncName != null) {
+			Comparator<Tuple> userComparator = 
+				(ComparisonFunc)instantiaor.instantiateFuncFromAlias(comparatorFuncName);
+			comparator = new UserComparator(userComparator);
+		} else {
+			comparator = new Comparator<Tuple>() {
+		    	public int compare(Tuple t1, Tuple t2) {
+					return simpleEval(t1).compareTo(simpleEval(t2));
+		        }
+		    };
+		}
+	};
 	
     /**
      * set up a default data processing pipe for processing by this spec
@@ -145,17 +177,30 @@ public abstract class EvalSpec implements Serializable{
     public abstract boolean amenableToCombiner();
 
     
+    public void setComparatorName(String name) {
+        comparatorFuncName = name;
+    }
+    
+    public String getComparatorName() {
+        return comparatorFuncName;
+    }
+    
     /**
      * Compare 2 tuples according to this spec. This is used while sorting by arbitrary (even generated) fields.
      * @return
      */
     public Comparator<Tuple> getComparator() {
-        return new Comparator<Tuple>() {
-        	
-        	public int compare(Tuple t1, Tuple t2) {
-    			return (simpleEval(t1).compareTo(simpleEval(t2)));
-            }
-        };
+		if (comparator != null)
+            return comparator;
+		else
+        {
+            comparator = new Comparator<Tuple>() {
+                public int compare(Tuple t1, Tuple t2) {
+                    return simpleEval(t1).compareTo(simpleEval(t2));
+                }
+            };
+            return comparator;
+        }
     }
     
     public void setFlatten(boolean isFlattened){

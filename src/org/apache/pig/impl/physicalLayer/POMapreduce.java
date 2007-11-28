@@ -19,7 +19,10 @@ package org.apache.pig.impl.physicalLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
@@ -40,12 +43,14 @@ public class POMapreduce extends PhysicalOperator {
     public ArrayList<FileSpec>           inputFileSpecs         = new ArrayList<FileSpec>();
     public FileSpec         outputFileSpec        = null;
     public Class           partitionFunction = null;
+    public Class<WritableComparator> userComparator = null;
     public String quantilesFile = null;
     public PigContext pigContext;
     
     public int                     mapParallelism       = -1;     // -1 means let hadoop decide
     public int                     reduceParallelism    = -1;
 
+    
     static MapReduceLauncher mapReduceLauncher = new MapReduceLauncher();
 
     

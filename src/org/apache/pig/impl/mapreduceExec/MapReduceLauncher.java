@@ -17,8 +17,6 @@
  */
 package org.apache.pig.impl.mapreduceExec;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +29,6 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.physicalLayer.POMapreduce;
@@ -74,7 +71,7 @@ public class MapReduceLauncher {
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
 	    }
     }
-        
+
     static Random rand = new Random();
 
     /**
@@ -161,6 +158,8 @@ public class MapReduceLauncher {
             	// not used starting with 0.15 conf.setInputKeyClass(Text.class);
             	// not used starting with 0.15 conf.setInputValueClass(Tuple.class);
             	conf.setOutputKeyClass(Tuple.class);
+            	if (pom.userComparator != null)
+                	conf.setOutputKeyComparatorClass(pom.userComparator);
             	conf.setOutputValueClass(IndexedTuple.class);
             	conf.set("pig.inputs", ObjectSerializer.serialize(pom.inputFileSpecs));
             
