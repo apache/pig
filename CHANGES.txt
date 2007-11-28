@@ -24,3 +24,5 @@ Trunk (unreleased changes)
 	PIG-17 integrated with Hadoop 0.15 (olgan@)
 
 	PIG-20 Added custom comparator functions for order by (phunt via gates)
+
+	PIG-33 Help was commented out - uncommented (olgan@)
