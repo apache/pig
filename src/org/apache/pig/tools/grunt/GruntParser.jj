@@ -190,19 +190,19 @@ class GruntParser
 	private void printHelp() 
 	{
 		System.err.println("Commands:");
-		//System.err.println("<pig latin statement>;");
+		System.err.println("<pig latin statement>;");
 		System.err.println("store <alias> into <filename> [using <functionSpec>]");
-		//System.err.println("dump <alias>");
-		//System.err.println("describe <alias>");
-		//System.err.println("kill <job_id>");
-		//System.err.println("ls <path>\r\ndu <path>\r\nmv <src> <dst>\r\ncp <src> <dst>\r\nrm <src>");
-		//System.err.println("copyFromLocal <localsrc> <dst>\r\ncd <dir>\r\npwd");
-		//System.err.println("cat <src>\r\ncopyToLocal <src> <localdst>\r\nmkdir <path>");
-		//System.err.println("cd <path>");
-		//System.err.println("define <functionAlias> <functionSpec>");
-		//System.err.println("register <udfJar>");
-		//System.err.println("set key value");
-		//System.err.println("quit");
+		System.err.println("dump <alias>");
+		System.err.println("describe <alias>");
+		System.err.println("kill <job_id>");
+		System.err.println("ls <path>\r\ndu <path>\r\nmv <src> <dst>\r\ncp <src> <dst>\r\nrm <src>");
+		System.err.println("copyFromLocal <localsrc> <dst>\r\ncd <dir>\r\npwd");
+		System.err.println("cat <src>\r\ncopyToLocal <src> <localdst>\r\nmkdir <path>");
+		System.err.println("cd <path>");
+		System.err.println("define <functionAlias> <functionSpec>");
+		System.err.println("register <udfJar>");
+		System.err.println("set key value");
+		System.err.println("quit");
 	}
 
 	private void processMove(String src, String dst) throws IOException
