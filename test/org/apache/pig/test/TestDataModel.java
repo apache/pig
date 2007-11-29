@@ -194,6 +194,18 @@ public class TestDataModel extends junit.framework.TestCase {
             caught = true;
         }   
         assertTrue(caught);
+
+        // check that notifications are sent
+         b.clear();
+         DataBag.notifyInterval = 2;
+         Tuple g = Util.loadFlatTuple(new Tuple(input1.length), input1);
+         for (int i = 0; i < 10; i++) {
+             b.add(g);
+         }
+
+         Iterator it = b.content();
+         while (it.hasNext()) it.next();
+         assert(b.numNotifies == 5);
     }
 
     @Test
@@ -287,7 +299,7 @@ public class TestDataModel extends junit.framework.TestCase {
         }
         
         bag.sort();
-
+        DataBag.notifyInterval = 100;
         it = bag.content();
         count = 0;
         last= "";
@@ -300,6 +312,8 @@ public class TestDataModel extends junit.framework.TestCase {
         }
 
         assertTrue(bag.cardinality() == count);
+        int cnt = numItems/DataBag.notifyInterval;
+        assertTrue(bag.numNotifies >= cnt);
         
         bag.clear();
 		

@@ -29,3 +29,5 @@ Trunk (unreleased changes)
 	PIG-33 Help was commented out - uncommented (olgan)
 
 	PIG-31: second half of concurrent mode problem addressed (olgan)
+
+	PIG-14: added heartbeat functionality (olgan)

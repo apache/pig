@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.collector.DataCollector;
+import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 
 /**
@@ -114,9 +115,18 @@ public class DataBag extends Datum{
         
         Collections.sort(content);
         isSorted = true;
+        int curCall = 0;
         
         Tuple lastTup = null;
         for (Iterator<Tuple> it = content.iterator(); it.hasNext(); ) {
+            if (curCall < notifyInterval - 1)
+                curCall++;
+            else
+            {
+                    if (PigMapReduce.reporter != null)
+                        PigMapReduce.reporter.progress(); 
+                    curCall = 0;
+            }
             Tuple thisTup = it.next();
             
             if (lastTup == null) {
@@ -132,8 +142,37 @@ public class DataBag extends Datum{
         }
     }
 
+    public static int notifyInterval = 1000;
+    public int numNotifies; // used for unit tests only
+
     public Iterator<Tuple> content() {
-        return content.iterator();
+        return new Iterator<Tuple>() {
+             Iterator<Tuple> myIt;
+             int curCall;
+
+            {
+                numNotifies = 0;
+                myIt = content.iterator();
+
+            }
+            public final boolean hasNext(){
+                return myIt.hasNext();
+            }
+            public final Tuple next(){
+                if (curCall < notifyInterval - 1)
+                    curCall ++;
+                else{
+                    if (PigMapReduce.reporter != null)
+                        PigMapReduce.reporter.progress(); 
+                    numNotifies ++;
+                    curCall = 0;
+                } 
+                return myIt.next();
+            }
+            public final void remove(){
+                myIt.remove();
+            }
+        };
     }
     
 
