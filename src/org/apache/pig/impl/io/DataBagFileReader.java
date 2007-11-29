@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 
 public class DataBagFileReader {
@@ -35,16 +36,29 @@ public class DataBagFileReader {
 		store = f;
 	}
 	
+    public static int notifyInterval = 1000;
+    public int numNotifies;
 	private class myIterator implements Iterator<Tuple>{
 		DataInputStream in;
 		Tuple nextTuple;
+        int curCall;
 		
 		public myIterator() throws IOException{
+            numNotifies = 0;
 			in = new DataInputStream(new BufferedInputStream(new FileInputStream(store)));
 			getNextTuple();
 		}
 		
 		private void getNextTuple() throws IOException{
+            if (curCall < notifyInterval - 1)
+                curCall ++;
+            else{
+                if (PigMapReduce.reporter != null)
+                    PigMapReduce.reporter.progress();
+                curCall = 0;
+                numNotifies ++;
+            }
+
 			try{
 				nextTuple = new Tuple();
 		        nextTuple.readFields(in);

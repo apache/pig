@@ -29,6 +29,7 @@ import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.StarSpec;
 import org.apache.pig.impl.io.DataBagFileReader;
 import org.apache.pig.impl.io.DataBagFileWriter;
+import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 
 public class BigDataBag extends DataBag {
@@ -62,7 +63,6 @@ public class BigDataBag extends DataBag {
     }
         
     private void writeContentToDisk() throws IOException{
-    	
     	if (writer==null){
 			File store = File.createTempFile("bag",".dat",tempdir);
 			stores.add(store);
@@ -82,7 +82,6 @@ public class BigDataBag extends DataBag {
         	writer.close();
         	writer = null;
         }
-        
     }
     
     @Override
@@ -177,7 +176,6 @@ public class BigDataBag extends DataBag {
     
     @Override
 	public Iterator<Tuple> content() {
-    	
     	if (sortInProgress)
     		throw new RuntimeException("Cannot open another iterator: a sort is in progress");
     	
@@ -272,11 +270,12 @@ public class BigDataBag extends DataBag {
     private class FileMerger implements Iterator<Tuple>{
     	PriorityQueue<HeapEntry> heap;
     	private final int FANIN_LIMIT = 25;
+        int curCall;
     	DataBagFileWriter writer;
     	HeapEntry nextEntry;
     	
     	public FileMerger() throws IOException{
-        	
+            numNotifies = 0;
     		Comparator<HeapEntry> comp = new Comparator<HeapEntry>(){
         		public int compare(HeapEntry he1, HeapEntry he2){
 				try
@@ -317,6 +316,14 @@ public class BigDataBag extends DataBag {
     	}
     	
     	private void getNextEntry() throws IOException{
+            if (curCall < notifyInterval - 1)
+                curCall ++;
+            else{
+                if (PigMapReduce.reporter != null)
+                    PigMapReduce.reporter.progress();
+                curCall = 0;
+                numNotifies ++;
+            }
     		if (heap.isEmpty()){
         		nextEntry = null;
         		writer.close();
