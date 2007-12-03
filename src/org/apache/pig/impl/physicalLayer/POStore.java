@@ -89,4 +89,9 @@ public class POStore extends PhysicalOperator {
     	return -1;
     }
 
+    @Override
+    public void visit(POVisitor v) {
+        v.visitStore(this);
+    }
+
 }

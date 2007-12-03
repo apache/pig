@@ -51,5 +51,8 @@ public class LOSplit extends LogicalOperator {
         return getInputs().get(0).outputSchema().copy();
     }
 
+	public void visit(LOVisitor v) {
+		v.visitSplit(this);
+	}
 
 }

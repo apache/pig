@@ -75,4 +75,8 @@ public class LOUnion extends LogicalOperator {
         }
         return outputType;
     }
+
+	public void visit(LOVisitor v) {
+		v.visitUnion(this);
+	}
 }

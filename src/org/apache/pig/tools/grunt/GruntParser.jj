@@ -271,6 +271,7 @@ TOKEN: {<COPYTOLOCAL: "copyToLocal">}
 TOKEN: {<DEFINE: "define">}
 TOKEN: {<DUMP: "dump">}
 TOKEN: {<DESCRIBE: "describe">}
+TOKEN: {<EXPLAIN: "explain">}
 TOKEN: {<HELP: "help">}
 TOKEN: {<KILL: "kill">}
 TOKEN: {<LS: "ls">}
@@ -459,6 +460,10 @@ void parse() throws IOException:
 	t1 = <IDENTIFIER>
 	{mPigServer.dumpSchema(t1.image);}
 	|
+	<EXPLAIN>
+	t1 = <IDENTIFIER>
+	{mPigServer.explain(t1.image, System.out);}
+	|
 	<HELP>
 	{printHelp();}
 	|
@@ -626,6 +631,8 @@ Token GetReserved () :
 	t = <DUMP>
 	|
 	t = <DESCRIBE>
+	|
+	t = <EXPLAIN>
 	|
 	t = <HELP>
 	|

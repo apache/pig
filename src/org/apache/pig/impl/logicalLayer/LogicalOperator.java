@@ -36,16 +36,16 @@ abstract public class LogicalOperator implements Serializable {
 
     protected int requestedParallelism = -1;
     protected TupleSchema schema = null;
-    protected List < LogicalOperator > inputs;
+    protected List<LogicalOperator> inputs;
 
     protected LogicalOperator() {
-        this.inputs = new ArrayList < LogicalOperator > ();
-    } protected LogicalOperator(List < LogicalOperator > inputs) {
+        this.inputs = new ArrayList<LogicalOperator> ();
+    } protected LogicalOperator(List<LogicalOperator> inputs) {
         this.inputs = inputs;
     }
 
     protected LogicalOperator(LogicalOperator input) {
-        this.inputs = new ArrayList < LogicalOperator > ();
+        this.inputs = new ArrayList<LogicalOperator> ();
         inputs.add(input);
     }
 
@@ -102,4 +102,11 @@ abstract public class LogicalOperator implements Serializable {
     public void setSchema(TupleSchema schema) {
         this.schema = schema;
     }
+
+    /**
+     * Visit all of the logical operators in a tree, starting with this
+     * one.  
+     * @param v LOVisitor to visit this logical plan with.
+     */
+    public abstract void visit(LOVisitor v);
 }

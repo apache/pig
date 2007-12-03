@@ -34,7 +34,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * implemenation, so if possible the execution will be split into a local and global application
  */
 public class AVG extends EvalFunc<DataAtom> implements Algebraic {
-
+	
     @Override
 	public void exec(Tuple input, DataAtom output) throws IOException {
         double sum = sum(input);
@@ -65,7 +65,7 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
         	try {
             output.appendField(new DataAtom(sum(input)));
             output.appendField(new DataAtom(count(input)));
-            output.appendField(new DataAtom("processed by initial"));
+            // output.appendField(new DataAtom("processed by initial"));
         	} catch(RuntimeException t) {
         		throw new RuntimeException(t.getMessage() + ": " + input);
         	}

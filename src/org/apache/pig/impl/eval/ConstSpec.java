@@ -61,12 +61,6 @@ public class ConstSpec extends SimpleEvalSpec {
     	init();
     }
 	
-	
-	@Override
-	public boolean amenableToCombiner() {
-		return true;
-	}
-
 	@Override
 	public List<String> getFuncs() {
 		return new ArrayList<String>();
@@ -92,5 +86,13 @@ public class ConstSpec extends SimpleEvalSpec {
 		sb.append("]");
 		return sb.toString();
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitConst(this);
+	}
+
+	public String value() { return constant; }
+    
 
 }

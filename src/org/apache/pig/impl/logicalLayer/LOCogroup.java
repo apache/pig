@@ -174,6 +174,8 @@ public class LOCogroup extends LogicalOperator {
         return specs;
     }
 
-
+	public void visit(LOVisitor v) {
+		v.visitCogroup(this);
+	}
 
 }

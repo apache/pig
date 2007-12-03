@@ -74,8 +74,9 @@ final public class DataAtom extends Datum {
 
     public void setValue(long valIn) {
         // conversion is cheap, do it now
-        doubleVal = new Double(valIn);
+        // doubleVal = new Double(valIn);
         stringVal = Long.toString(valIn);
+        doubleVal = Double.POSITIVE_INFINITY;
     }
 
     public void setValue(double valIn) {
@@ -94,6 +95,12 @@ final public class DataAtom extends Datum {
             doubleVal = new Double(stringVal);
         }
         return doubleVal;
+    }
+
+    public long longVal() {
+        Long ll = new Long(stringVal);
+        return ll.longValue();
+        //return Long.getLong(stringVal).longValue();
     }
 
     @Override

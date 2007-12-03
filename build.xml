@@ -50,7 +50,13 @@
 		<delete file="${src.dir}/org/apache/pig/tools/grunt/TokenMgrError.java" />
 	</target>
 
-	<target name="compile" depends="cc-compile, lib-compile">
+    <target name="depend">
+        <mkdir dir="depend"/>
+        <echo>*** Resolving dependencies ***</echo>
+        <depend srcdir="src;lib-src/shock;lib-src/bzip2" destdir="dist" cache="depend"/>
+    </target>
+
+	<target name="compile" depends="depend, cc-compile, lib-compile">
 		<mkdir dir="${dist.dir}" />
 		<echo>*** Building Main Sources ***</echo>
 		<javac srcdir="${src.dir};${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on" deprecation="on">

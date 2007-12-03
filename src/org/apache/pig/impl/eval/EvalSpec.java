@@ -169,14 +169,6 @@ public abstract class EvalSpec implements Serializable{
     	return false;
     }
     
-    /**
-     * To determine if this spec is a candidate for 
-     * algebraic evaluation. 
-     * @return
-     */
-    public abstract boolean amenableToCombiner();
-
-    
     public void setComparatorName(String name) {
         comparatorFuncName = name;
     }
@@ -253,6 +245,6 @@ public abstract class EvalSpec implements Serializable{
 		this.inner = inner;
 	}
 
-
+	public abstract void visit(EvalSpecVisitor v);
     
 }

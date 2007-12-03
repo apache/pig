@@ -152,4 +152,8 @@ class POCogroup extends PhysicalOperator {
 
     }
 
+    public void visit(POVisitor v) {
+        v.visitCogroup(this);
+    }
+
 }

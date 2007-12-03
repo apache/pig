@@ -59,4 +59,8 @@ public class PORead extends PhysicalOperator {
             return null;
     }
 
+    public void visit(POVisitor v) {
+        v.visitRead(this);
+    }
+
 }

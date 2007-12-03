@@ -71,4 +71,6 @@ abstract public class PhysicalOperator implements Serializable {
     public int getOutputType(){
     	return outputType;
     }
+
+    public abstract void visit(POVisitor v);
 }

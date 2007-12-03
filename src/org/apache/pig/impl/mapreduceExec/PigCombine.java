@@ -99,7 +99,7 @@ public class PigCombine implements Reducer {
             }
 //          throw new RuntimeException("combine input: " + t.toString());
             evalPipe.add(t);
-            evalPipe.add(null); // EOF marker
+            // evalPipe.add(null); // EOF marker
         } catch (Throwable tr) {
             tr.printStackTrace();
             RuntimeException exp = new RuntimeException(tr.getMessage());
@@ -135,7 +135,8 @@ public class PigCombine implements Reducer {
 		public void add(Datum d){
             if (d == null) return;  // EOF marker from eval pipeline; ignore
             try{
-            	oc.collect(group, new IndexedTuple(((Tuple)d).getTupleField(0),index));
+            	// oc.collect(group, new IndexedTuple(((Tuple)d).getTupleField(0),index));
+                oc.collect(group, new IndexedTuple(((Tuple)d),index));
             }catch (IOException e){
             	throw new RuntimeException(e);
             }

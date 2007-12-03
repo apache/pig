@@ -38,11 +38,6 @@ public class FilterSpec extends EvalSpec {
     }
     
     @Override
-    public boolean amenableToCombiner() {
-    	return false;
-    }
-    
-    @Override
     public List<String> getFuncs() {
     	return cond.getFuncs();
     }
@@ -90,6 +85,11 @@ public class FilterSpec extends EvalSpec {
 	public void instantiateFunc(FunctionInstantiator instantiaor)
 			throws IOException {
 		cond.instantiateFunc(instantiaor);		
+	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitFilter(this);
 	}
     
    

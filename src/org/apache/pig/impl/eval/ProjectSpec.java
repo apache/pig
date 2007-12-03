@@ -48,11 +48,6 @@ public class ProjectSpec extends SimpleEvalSpec {
 	}
 		
 	@Override
-	public boolean amenableToCombiner() {
-		return true;
-	}
-
-	@Override
 	public List<String> getFuncs() {
 		return new ArrayList<String>();
 	}
@@ -138,5 +133,11 @@ public class ProjectSpec extends SimpleEvalSpec {
 	public void setWrapInTuple(boolean wrapInTuple) {
 		this.wrapInTuple = wrapInTuple;
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitProject(this);
+	}
+    
 
 }

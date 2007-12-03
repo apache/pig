@@ -36,7 +36,8 @@ public class POMapreduce extends PhysicalOperator {
 	private static final long serialVersionUID = 1L;
 	
     public ArrayList<EvalSpec> toMap             = new ArrayList<EvalSpec>();
-    public ArrayList<EvalSpec>     toCombine         = null;
+    //public ArrayList<EvalSpec>     toCombine         = null;
+    public EvalSpec     toCombine         = null;
     public EvalSpec    toReduce          = null;
     public ArrayList<EvalSpec>  groupFuncs           = null;
     public SplitSpec        toSplit           = null;
@@ -204,6 +205,10 @@ public class POMapreduce extends PhysicalOperator {
     		toReduce = spec;
     	else
     		toReduce = toReduce.addSpec(spec);
+    }
+
+    public void visit(POVisitor v) {
+        v.visitMapreduce(this);
     }
     
 }
