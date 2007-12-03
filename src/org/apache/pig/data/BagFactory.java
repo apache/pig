@@ -22,9 +22,12 @@ import java.io.IOException;
 
 public class BagFactory {
 
-    private File              tmpdir = null;
+    private File              tmpdir;
     private static BagFactory instance = new BagFactory();
 
+    static{
+    	init(new File(System.getProperty("java.io.tmpdir")));
+    }
     public static BagFactory getInstance() {
         return instance;
     }
