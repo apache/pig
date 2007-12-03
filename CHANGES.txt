@@ -33,5 +33,7 @@ Trunk (unreleased changes)
 	PIG-14: added heartbeat functionality (olgan)
 
 	PIG-17: updated hadoop15.jar to match hadoop 0.15.1 release
+
+	PIG-7: Added use of combiner in some restricted cases. (gates)
 	
 	PIG-29: fixed bag factory to be properly initialized (utkarsh)

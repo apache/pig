@@ -66,6 +66,48 @@ public class TestBuiltin extends TestCase {
     }
 
     @Test
+    public void testAVGInitial() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<Tuple> avg = new AVG.Initial();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple output = new Tuple();
+        avg.exec(tup, output);
+
+        assertEquals("Expected sum to be 55.0", 55.0,
+            output.getAtomField(0).numval());
+        assertEquals("Expected count to be 10", 10,
+            output.getAtomField(1).longVal());
+    }
+
+    @Test
+    public void testAVGFinal() throws Exception {
+        Tuple t1 = new Tuple(2);
+        t1.setField(0, 55.0);
+        t1.setField(1, 10);
+        Tuple t2 = new Tuple(2);
+        t2.setField(0, 28.0);
+        t2.setField(1, 7);
+        Tuple t3 = new Tuple(2);
+        t3.setField(0, 82.0);
+        t3.setField(1, 17);
+        DataBag bag = new DataBag();
+        bag.add(t1);
+        bag.add(t2);
+        bag.add(t3);
+        
+        Tuple tup = new Tuple(bag);
+
+        EvalFunc<DataAtom> avg = new AVG.Final();
+        DataAtom output = new DataAtom();
+        avg.exec(tup, output);
+
+        assertEquals("Expected average to be 4.852941176470588",
+            4.852941176470588, output.numval());
+    }
+
+
+    @Test
     public void testCOUNT() throws Exception {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         double expected = input.length;
@@ -109,7 +151,32 @@ public class TestBuiltin extends TestCase {
         assertTrue(output.numval() == 2);
         
     }
-    
+
+    @Test
+    public void testCOUNTInitial() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<Tuple> count = new COUNT.Initial();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple output = new Tuple();
+        count.exec(tup, output);
+
+        assertEquals("Expected count to be 10", 10,
+            output.getAtomField(0).longVal());
+    }
+
+    @Test
+    public void testCOUNTFinal() throws Exception {
+        int input[] = { 23, 38, 39 };
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+
+        EvalFunc<DataAtom> count = new COUNT.Final();
+        DataAtom output = new DataAtom();
+        count.exec(tup, output);
+
+        assertEquals("Expected count to be 100", 100, output.longVal());
+    }
+
     @Test
     public void testSUM() throws Exception {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -124,6 +191,108 @@ public class TestBuiltin extends TestCase {
 
         assertTrue(actual == expected);
     }
+
+    @Test
+    public void testSUMInitial() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<Tuple> sum = new SUM.Initial();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple output = new Tuple();
+        sum.exec(tup, output);
+
+        assertEquals("Expected sum to be 55.0", 55.0,
+            output.getAtomField(0).numval());
+    }
+
+    @Test
+    public void testSUMFinal() throws Exception {
+        int input[] = { 23, 38, 39 };
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+
+        EvalFunc<DataAtom> sum = new SUM.Final();
+        DataAtom output = new DataAtom();
+        sum.exec(tup, output);
+
+        assertEquals("Expected sum to be 100.0", 100.0, output.numval());
+    }
+
+    @Test
+    public void testMIN() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<DataAtom> min = new MIN();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        DataAtom output = new DataAtom();
+        min.exec(tup, output);
+
+        assertEquals("Expected min to be 1.0", 1.0, output.numval());
+    }
+
+
+    @Test
+    public void testMINInitial() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<Tuple> min = new MIN.Initial();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple output = new Tuple();
+        min.exec(tup, output);
+
+        assertEquals("Expected min to be 1.0", 1.0,
+            output.getAtomField(0).numval());
+    }
+
+    @Test
+    public void testMINFinal() throws Exception {
+        int input[] = { 23, 38, 39 };
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+
+        EvalFunc<DataAtom> min = new MIN.Final();
+        DataAtom output = new DataAtom();
+        min.exec(tup, output);
+
+        assertEquals("Expected sum to be 23.0", 23.0, output.numval());
+    }
+
+    @Test
+    public void testMAX() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<DataAtom> max = new MAX();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        DataAtom output = new DataAtom();
+        max.exec(tup, output);
+
+        assertEquals("Expected max to be 10.0", 10.0, output.numval());
+    }
+
+
+    @Test
+    public void testMAXInitial() throws Exception {
+        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        EvalFunc<Tuple> max = new MAX.Initial();
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple output = new Tuple();
+        max.exec(tup, output);
+
+        assertEquals("Expected max to be 10.0", 10.0,
+            output.getAtomField(0).numval());
+    }
+
+    @Test
+    public void testMAXFinal() throws Exception {
+        int input[] = { 23, 38, 39 };
+        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+
+        EvalFunc<DataAtom> max = new MAX.Final();
+        DataAtom output = new DataAtom();
+        max.exec(tup, output);
+
+        assertEquals("Expected sum to be 39.0", 39.0, output.numval());
+    }
+
 
     // Builtin APPLY Functions
     // ========================

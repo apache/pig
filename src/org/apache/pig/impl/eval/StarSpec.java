@@ -47,10 +47,10 @@ final public class StarSpec extends EvalSpec {
     	return input;
     }
 
-    @Override
-    public boolean amenableToCombiner() {
-    	return true;
-    }
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitStar(this);
+	}
     
     
 

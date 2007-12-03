@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.TimestampedTuple;
 import org.apache.pig.impl.eval.collector.DataCollector;
+import org.apache.pig.impl.eval.EvalSpecVisitor;
 
 
 
@@ -85,5 +86,9 @@ public class TimeWindowSpec extends WindowSpec {
     	sb.append(duration);
     	sb.append("]");
     	return sb.toString();
+    }
+
+    public void visit(EvalSpecVisitor v) {
+        v.visitTimeWindow(this);
     }
 }

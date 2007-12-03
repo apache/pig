@@ -62,4 +62,9 @@ public class POSort extends PhysicalOperator {
 			return null;
 	}
 
+    @Override
+    public void visit(POVisitor v) {
+        v.visitSort(this);
+    }
+
 }

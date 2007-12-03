@@ -42,10 +42,5 @@ public abstract class WindowSpec extends EvalSpec {
 		return input;
 	}
 	
-	@Override
-	public boolean amenableToCombiner() {
-		return false;
-	}
-	
 	
 }

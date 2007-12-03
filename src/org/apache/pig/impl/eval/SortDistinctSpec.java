@@ -43,12 +43,6 @@ public class SortDistinctSpec extends EvalSpec {
 	}
 		
 	@Override
-	public boolean amenableToCombiner() {
-		//Combiner may potentially be useful if we are eliminating duplicates
-		return eliminateDuplicates;
-	}
-
-	@Override
 	public List<String> getFuncs() {
 		if (sortSpec!=null)
 			return sortSpec.getFuncs();
@@ -133,5 +127,14 @@ public class SortDistinctSpec extends EvalSpec {
 			sortSpec.instantiateFunc(instantiaor);		
 	}
 
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitSortDistinct(this);
+	}
+
+	public EvalSpec getSortSpec() { return sortSpec; }
+
+	public boolean distinct() { return eliminateDuplicates; }
+    
 	
 }

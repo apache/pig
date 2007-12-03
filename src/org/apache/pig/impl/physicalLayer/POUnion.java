@@ -72,4 +72,8 @@ class POUnion extends PhysicalOperator {
         return null;
     }
 
+    public void visit(POVisitor v) {
+        v.visitUnion(this);
+    }
+
 }

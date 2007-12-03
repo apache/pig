@@ -40,8 +40,9 @@ public class LORead extends LogicalOperator {
           result.append(')');
           return result.toString();
     }
+
     //Since intermed result may have multiple outputs, which output do I read?
-        public int splitOutputToRead = 0;
+    public int splitOutputToRead = 0;
 
     public LORead(IntermedResult readFromIn) {
         super();
@@ -95,4 +96,8 @@ public class LORead extends LogicalOperator {
     public IntermedResult getReadFrom() {
         return readFrom;
     }
+
+	public void visit(LOVisitor v) {
+		v.visitRead(this);
+	}
 }

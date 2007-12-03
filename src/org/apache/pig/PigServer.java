@@ -20,6 +20,7 @@ package org.apache.pig;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -44,6 +45,8 @@ import org.apache.pig.impl.logicalLayer.LORead;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LOVisitor;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
@@ -52,6 +55,8 @@ import org.apache.pig.impl.physicalLayer.IntermedResult;
 import org.apache.pig.impl.physicalLayer.POMapreduce;
 import org.apache.pig.impl.physicalLayer.POStore;
 import org.apache.pig.impl.physicalLayer.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.POVisitor;
+import org.apache.pig.impl.physicalLayer.POPrinter;
 
 
 
@@ -514,6 +519,35 @@ public class PigServer {
     	}
     	new PhysicalPlan(new POStore(pp.root,new FileSpec(filename,func),append,pigContext)).exec(true);
 	}
+
+    /**
+     * Provide information on how a pig query will be executed.  For now
+     * this information is very developer focussed, and probably not very
+     * useful to the average user.
+     * @param alias Name of alias to explain.
+     * @param stream PrintStream to write explanation to.
+     * @throws IOException if the requested alias cannot be found.
+     */
+    public void explain(
+            String alias,
+            PrintStream stream) throws IOException {
+        stream.println("Logical Plan:");
+        IntermedResult ir = queryResults.get(alias);
+        if (ir == null) {
+            pigContext.getLogger().error("Invalid alias: " + alias);
+            throw new IOException("Invalid alias: " + alias);
+        }
+
+        LOVisitor lprinter = new LOPrinter(stream);
+        ir.lp.getRoot().visit(lprinter);
+
+        stream.println("-----------------------------------------------");
+        stream.println("Physical Plan:");
+        // have to first compile the plan
+        ir.compile(queryResults);
+        POVisitor pprinter = new POPrinter(stream);
+        ir.pp.root.visit(pprinter);
+    }
 
     /**
      * Returns the unused byte capacity of an HDFS filesystem. This value does

@@ -84,13 +84,13 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
         	throw new IOException("Cannot count a " + values.getClass().getSimpleName());
     }
 
-    static protected double sum(Tuple input) throws IOException {
+    static protected long sum(Tuple input) throws IOException {
         DataBag values = input.getBagField(0);
-        double sum = 0;
+        long sum = 0;
         for (Iterator<Tuple> it = values.content(); it.hasNext();) {
             Tuple t = it.next();
             try {
-                sum += t.getAtomField(0).numval();
+                sum += t.getAtomField(0).longVal();
             } catch (NumberFormatException exp) {
                 throw new IOException(exp.getClass().getName() + ":" + exp.getMessage());
             }

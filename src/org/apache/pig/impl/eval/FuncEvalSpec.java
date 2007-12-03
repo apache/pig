@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.Algebraic;
 import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataMap;
@@ -53,17 +54,12 @@ public class FuncEvalSpec extends EvalSpec {
 	
 	@Override
 	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
-		if(instantiaor != null)
+		if(instantiaor != null) {
 			func = (EvalFunc) instantiaor.instantiateFuncFromAlias(funcName);
+        }
 		args.instantiateFunc(instantiaor);
 	}
 	
-	@Override
-	public boolean amenableToCombiner() {
-		// TODO Turn on algebraic
-		return false;
-	}
-
 	@Override
 	public List<String> getFuncs() {
 		List<String> funcs = new ArrayList<String>();
@@ -236,5 +232,66 @@ public class FuncEvalSpec extends EvalSpec {
 	public boolean isAsynchronous() {
 		return func.isAsynchronous();
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitFuncEval(this);
+	}
+
+	public String getFuncName() { return funcName; }
+
+	public EvalSpec getArgs() { return args; }
+
+    public void setArgs(EvalSpec a) { args = a; }
+
+    /**
+     * This will replace the function to be called by this spec to be the
+     * initial instance instead of the general instance.  This should only
+     * be called if the function is algebraic.  It will only change the
+     * funcName variable, not the func variable itself.
+     */
+    public void resetFuncToInitial() {
+        if (!combinable()) {
+            throw new AssertionError(
+                "Can't convert non-algebraic function to inital.");
+        }
+        funcName = ((Algebraic)func).getInitial();
+    }
+
+    /**
+     * This will replace the function to be called by this spec to be the
+     * intermediate instance instead of the general instance.  This should only
+     * be called if the function is algebraic.  It will only change the
+     * funcName variable, not the func variable itself.
+     */
+    public void resetFuncToIntermediate() {
+        if (!combinable()) {
+            throw new AssertionError(
+                "Can't convert non-algebraic function to intermediate.");
+        }
+        funcName = ((Algebraic)func).getIntermed();
+    }
+
+    /**
+     * This will replace the function to be called by this spec to be the
+     * final instance instead of the general instance.  This should only
+     * be called if the function is algebraic.  It will only change the
+     * funcName variable, not the func variable itself.
+     * @param finalTuplePos position in the tuple handed to the final
+     * function that it should use.
+     */
+    public void resetFuncToFinal() {
+        if (!combinable()) {
+            throw new AssertionError(
+                "Can't convert non-algebraic function to final.");
+        }
+        funcName = ((Algebraic)func).getFinal();
+    }
+
+    public boolean combinable() {
+        // constructor should have called by instantiateFunc
+        if (func != null) return (func instanceof Algebraic);
+        else return false;
+    }
 	
 }

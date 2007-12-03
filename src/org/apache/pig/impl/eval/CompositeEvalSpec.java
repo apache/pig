@@ -38,7 +38,7 @@ public class CompositeEvalSpec extends EvalSpec {
 	
 	private List<EvalSpec> specs = new ArrayList<EvalSpec>();
 	
-	CompositeEvalSpec(EvalSpec spec){
+	public CompositeEvalSpec(EvalSpec spec){
 		specs.add(spec);
 	}
 		
@@ -79,21 +79,6 @@ public class CompositeEvalSpec extends EvalSpec {
     }
 
     
-    /**
-     * Process the pipe and determine if the pipe is a candidate for 
-     * algebraic evaluation. 
-     * @return
-     */
-    @Override
-	public boolean amenableToCombiner() {
-        if (true) return false;
-    	for (EvalSpec spec: specs){
-    		if (!spec.amenableToCombiner())
-    			return false;
-    	}
-    	return true;
-    }
-    
     @Override
     public boolean isAsynchronous() {
     	for (EvalSpec spec: specs)
@@ -120,6 +105,11 @@ public class CompositeEvalSpec extends EvalSpec {
 
 	public List<EvalSpec> getSpecs() {
 		return specs;
+	}
+    
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitCompositeEval(this);
 	}
     
 }

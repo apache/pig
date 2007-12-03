@@ -104,4 +104,8 @@ public class LOStore extends LogicalOperator {
     public boolean isAppend() {
         return append;
     }
+
+	public void visit(LOVisitor v) {
+		v.visitStore(this);
+	}
 }

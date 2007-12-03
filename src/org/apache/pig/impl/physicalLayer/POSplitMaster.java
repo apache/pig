@@ -109,4 +109,9 @@ class POSplitMaster extends POSplit {
         }
     }
 	*/
+
+    public void visit(POVisitor v) {
+        v.visitSplitMaster(this);
+    }
+
 }

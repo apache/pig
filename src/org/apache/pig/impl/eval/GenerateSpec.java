@@ -302,18 +302,6 @@ public class GenerateSpec extends EvalSpec {
         }
     }
  
-    /**
-     * Determine if this instance of EvalItems is a candiate for algebraic
-     * evaluation. This means it contains an Algebraic Function, and does not
-     * contain repeated references to column used by the algebraic function.
-     * @return
-     */
-    @Override
-	public boolean amenableToCombiner() {
-    	//TODO
-        return false;
-    }
-
     @Override
 	public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -381,4 +369,9 @@ public class GenerateSpec extends EvalSpec {
 		return specs;
 	}
 
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitGenerate(this);
+	}
+    
 }

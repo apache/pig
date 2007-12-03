@@ -42,4 +42,8 @@ class POSplitSlave extends POSplit {
         return master.slaveGetNext(this);
     }
 
+    public void visit(POVisitor v) {
+        v.visitSplit(this);
+    }
+
 }

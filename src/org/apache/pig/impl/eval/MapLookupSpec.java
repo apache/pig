@@ -46,11 +46,6 @@ public class MapLookupSpec extends SimpleEvalSpec {
 	}
 	
 	@Override
-	public boolean amenableToCombiner() {
-		return true;
-	}
-	
-	@Override
 	public List<String> getFuncs() {
 		return new ArrayList<String>();
 	}
@@ -71,5 +66,13 @@ public class MapLookupSpec extends SimpleEvalSpec {
 		sb.append("]");
 		return sb.toString();
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitMapLookup(this);
+	}
+
+	public String key() { return keyToLookup; }
+    
 	
 }

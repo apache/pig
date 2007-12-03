@@ -22,6 +22,7 @@ import java.util.*;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.TimestampedTuple;
 import org.apache.pig.impl.eval.collector.DataCollector;
+import org.apache.pig.impl.eval.EvalSpecVisitor;
 
 public class TupleWindowSpec extends WindowSpec {
 	private static final long serialVersionUID = 1L;
@@ -72,6 +73,10 @@ public class TupleWindowSpec extends WindowSpec {
     	sb.append(numTuples);
     	sb.append("]");
     	return sb.toString();
+    }
+
+    public void visit(EvalSpecVisitor v) {
+        v.visitTupleWindow(this);
     }
 
 }

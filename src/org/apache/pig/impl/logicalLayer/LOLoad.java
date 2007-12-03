@@ -115,4 +115,8 @@ public class LOLoad extends LogicalOperator {
         funcs.add(inputFileSpec.getFuncName());
         return funcs;
     }
+
+	public void visit(LOVisitor v) {
+		v.visitLoad(this);
+	}
 }

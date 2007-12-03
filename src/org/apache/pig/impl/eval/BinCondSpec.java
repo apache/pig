@@ -61,10 +61,6 @@ public class BinCondSpec extends EvalSpec {
     	ifTrue.instantiateFunc(fInstantiaor);
     	ifFalse.instantiateFunc(fInstantiaor);
     };
-    @Override
-    public boolean amenableToCombiner() {
-    	return false;
-    }
 
     @Override
 	protected Schema mapInputSchema(Schema schema) {
@@ -104,5 +100,13 @@ public class BinCondSpec extends EvalSpec {
         sb.append(")]");
         return sb.toString();
     }
+
+	public EvalSpec ifTrue() { return ifTrue; }
+	public EvalSpec ifFalse() { return ifFalse; }
+    
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitBinCond(this);
+	}
     
 }

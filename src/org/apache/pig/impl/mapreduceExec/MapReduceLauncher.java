@@ -38,6 +38,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.JobClient;
@@ -140,8 +141,10 @@ public class MapReduceLauncher {
             		conf.set("pig.pigContext", ObjectSerializer.serialize(pom.pigContext));
             
             	conf.setMapRunnerClass(PigMapReduce.class);
-            	if (pom.toCombine != null)
-                	conf.setCombinerClass(PigCombine.class);
+                if (pom.toCombine != null) {
+                    conf.setCombinerClass(PigCombine.class);
+                    //conf.setCombinerClass(PigMapReduce.class);
+                }
             	if (pom.quantilesFile!=null){
             		conf.set("pig.quantilesFile", pom.quantilesFile);
                 }
