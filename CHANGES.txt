@@ -37,3 +37,6 @@ Trunk (unreleased changes)
 	PIG-7: Added use of combiner in some restricted cases. (gates)
 	
 	PIG-29: fixed bag factory to be properly initialized (utkarsh)
+
+    PIG-43: fixed problem where using the combiner prevented a pig alias
+    from being evaluated more than once. (gates)

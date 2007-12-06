@@ -214,7 +214,7 @@ public class MapreducePlanCompiler extends PlanCompiler {
                 if (mro.toCombine != null) {
                     throw new AssertionError("Combiner already set.");
                 }
-                mro.toCombine = spec;
+                // mro.toCombine = spec;
 
                 // Now, we need to adjust the expected projection for the
                 // eval spec(s) we just pushed.  Also, this will change the
@@ -225,9 +225,13 @@ public class MapreducePlanCompiler extends PlanCompiler {
 
                 // Adjust the function name for the combine spec, to set it
                 // to the initial function instead of the general
-                // instance.  This has to be done after the copy is made
-                // for the combiner.
-                spec.visit(new CombineAdjuster());
+                // instance.  Make a copy of the eval spec rather than
+                // adjusting the existing one, to prevent breaking the 
+                // logical plan in case another physical plan is generated
+                // from it later.
+                EvalSpec combineSpec = spec.copy(pigContext);
+                combineSpec.visit(new CombineAdjuster());
+                mro.toCombine = combineSpec;
 
             } else {
                 mro.addReduceSpec(lo.getSpec()); // otherwise, don't use combiner
