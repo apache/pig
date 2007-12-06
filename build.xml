@@ -41,13 +41,13 @@
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/SimpleNode.java" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/Token.java" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/TokenMgrError.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParser.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParserConstants.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParserTokenManager.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/ParseException.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/SimpleCharStream.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/Token.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/TokenMgrError.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParserConstants.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParserTokenManager.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/ParseException.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/SimpleCharStream.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/Token.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/TokenMgrError.java" />
 	</target>
 
     <target name="depend">
@@ -80,8 +80,8 @@
 			outputdirectory="${src.dir}/org/apache/pig/impl/logicalLayer/parser"
 			javacchome="${basedir}/lib" />
 		<javacc
-			target="${src.dir}/org/apache/pig/tools/grunt/GruntParser.jj" 
-			outputdirectory="${src.dir}/org/apache/pig/tools/grunt"
+			target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" 
+			outputdirectory="${src.dir}/org/apache/pig/tools/pigscript/parser"
 			javacchome="${basedir}/lib" />
 	</target>
 
