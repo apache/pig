@@ -44,7 +44,8 @@ public class LOCogroup extends LogicalOperator {
 
     @Override
     public String name() {
-        return "CoGroup";
+    	if (inputs.size() == 1) return "Group";
+    	else return "CoGroup";
     }
     @Override
     public String arguments() {

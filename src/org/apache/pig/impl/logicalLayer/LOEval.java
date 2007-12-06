@@ -37,7 +37,7 @@ public class LOEval extends LogicalOperator {
 
     @Override
     public String name() {
-        return "Eval";
+        return "Foreach";
     }
 
     @Override
