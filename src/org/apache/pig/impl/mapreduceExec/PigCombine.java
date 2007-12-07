@@ -91,7 +91,7 @@ public class PigCombine implements Reducer {
 
             while (values.hasNext()) {
                 IndexedTuple it = (IndexedTuple) values.next();
-                t.getBagField(it.index + 1).add(it);
+                t.getBagField(it.index + 1).add(it.toTuple());
             }
             for (int i = 0; i < inputCount; i++) {  // XXX: shouldn't we only do this if INNER flag is set?
                 if (t.getBagField(1 + i).isEmpty())

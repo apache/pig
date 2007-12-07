@@ -43,3 +43,6 @@ Trunk (unreleased changes)
 
     PIG-45: Fixed pig.pl to not assume hodrc file is named the same as
     cluster name (gates).
+
+    PIG-7 (more): Fixed bug in PigCombiner where it was writing IndexedTuples
+    instead of Tuples, causing Reducer to crash in some cases.
