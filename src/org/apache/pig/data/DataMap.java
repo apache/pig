@@ -22,6 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 public class DataMap extends Datum {
@@ -127,5 +128,18 @@ public class DataMap extends Datum {
         	e.getValue().write(out);
         }
  	}
+	
+	
+	public Datum remove(String key){
+		return content.remove(key);
+	}
+	
+	public Set<String> keySet(){
+		return content.keySet();
+	}
+	
+	public Map<String, Datum> content(){
+		return content;
+	}
 
 }

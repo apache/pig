@@ -46,3 +46,5 @@ Trunk (unreleased changes)
 
     PIG-7 (more): Fixed bug in PigCombiner where it was writing IndexedTuples
     instead of Tuples, causing Reducer to crash in some cases.
+
+    PIG-47: Added methods to DataMap to provide access to its content
