@@ -19,7 +19,7 @@ our $hodParam = "";
 # Read our configuration file.  This will fill in values for pigJarRoot
 # and hodRoot.
 our $ROOT = (defined($ENV{'ROOT'}) ? $ENV{'ROOT'} : "/home/y");
-my ($pigJarRoot, $hodRoot);
+my ($pigJarRoot, $hodRoot, $defaultCluster);
 
 open(CFG, "< $ROOT/conf/pigclient.conf") or
 	die "Can't open $ROOT/conf/pigclient.conf, $ERRNO\n";
@@ -67,6 +67,16 @@ processClasspath();
 
 if (defined $classpath)
 {
+    # Check to make sure that the jar file specified in the class path is
+    # available.
+    $classpath =~ /(^|:)([^:]*pig.jar)($|:)/;
+    my $jar = $2;
+    if (!(-e $jar)) {
+        die "I can't find the jar file $jar.  If you explicitly
+put this jar in your classpath, please check that you have the path name
+correct.  If you specified a cluster via -c[luster], then the pig jar for
+that cluster is not present on this machine.\n";
+    }
 	push (@javaArgs, "-cp", $classpath);
 }
 
@@ -89,10 +99,10 @@ push(@cmd, @javaArgs);
 
 # If we aren't attaching to kryptonite, set up the right hod config file.
 if ($cluster ne "kryptonite") {
-	my $hodCfg = "$hodRoot/conf/$cluster";
-	if (-e $hodCfg) {
-		$hodParam .= "--config=$hodCfg";
-	} else {
+    # With splitting of gateways, HOD file is always hodrc, no matter what
+    # cluster you're talking to.
+	my $hodCfg = "$hodRoot/conf/hodrc";
+	if (! (-e $hodCfg)) {
 		push(@cmd, "-Dhod.server=");
 		warn "I can't find HOD configuration for $cluster, hopefully you weren't planning on using HOD.\n";
 	}
@@ -118,8 +128,9 @@ sub processClasspath()
 	# first, figure out if we are working with a deployed cluster 
 	if (!(defined $cluster) && (!(defined $classpath) || !($classpath =~/pig.jar/)))
 	{
-		# we are using default cluster
-		$cluster = 'kryptonite';
+		# we are using default cluster, the name of which is stored in the
+        # pigclient.conf file.
+		$cluster = $defaultCluster;
 	}
 
 	# we are running from a cluster

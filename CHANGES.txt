@@ -40,3 +40,6 @@ Trunk (unreleased changes)
 
     PIG-43: fixed problem where using the combiner prevented a pig alias
     from being evaluated more than once. (gates)
+
+    PIG-45: Fixed pig.pl to not assume hodrc file is named the same as
+    cluster name (gates).
