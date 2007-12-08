@@ -50,3 +50,6 @@ Trunk (unreleased changes)
     PIG-47: Added methods to DataMap to provide access to its content
 
 	PIG-12: Added time stamps to log4j messages (phunt via gates).
+
+	PIG-44: Added adaptive decision of the number of records to hold in memory 
+	before spilling (utkarsh)

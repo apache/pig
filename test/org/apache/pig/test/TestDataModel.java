@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -216,176 +215,78 @@ public class TestDataModel extends junit.framework.TestCase {
 
     public void testBigDataBagOnDisk() throws Exception{
     	Runtime.getRuntime().gc();
-    	testBigDataBag(Runtime.getRuntime().maxMemory() - 1*1024*1024, 10000);
+    	testBigDataBag(Runtime.getRuntime().maxMemory() - 1*1024*1024, 1000000);
     }
 
+    private enum TestType {
+    	PRE_SORT,
+    	POST_SORT,
+    	PRE_DISTINCT,
+    	POST_DISTINCT,
+    	NONE
+    }
+       
     
     private void testBigDataBag(long freeMemoryToMaintain, int numItems) throws Exception {
     	BigDataBag.FREE_MEMORY_TO_MAINTAIN = freeMemoryToMaintain;
-    	File tmp = File.createTempFile("test", "bag").getParentFile();
-        BigDataBag bag = new BigDataBag(tmp);
-        Iterator<Tuple> it;
-        int count;
-        String last;
-    
         Random r = new Random();
-        
-        
-        //Basic test
-        assertTrue(bag.isEmpty());
-        
-        for(int i = 0; i < numItems; i++) {
-            Tuple t = new Tuple(2);
-            t.setField(0, Integer.toHexString(i));
-            t.setField(1, i);
-            bag.add(t);
-        }
-        
-        assertFalse(bag.isEmpty());
+   
+    	for (TestType testType: TestType.values()){
+    		BigDataBag bag = BagFactory.getInstance().getNewBigBag();
 
-        assertTrue(bag.cardinality() == numItems);
-        
-        int lastI = -1;
-        it = bag.content();
-        count = 0;
-        while(it.hasNext()) {
-            Tuple t = it.next();
-            int ix = Integer.parseInt(t.getAtomField(0).strval(), 16);
-            assertTrue(Integer.toString(ix).equals(t.getAtomField(1).strval()));
-            assertEquals(lastI+1, ix);
-            lastI = ix;
-            count++;
-        }
-        
-        assertTrue(bag.cardinality() == count);
-        
-        bag.distinct();
+            assertTrue(bag.isEmpty());
 
-        bag.clear();
+            if (testType == TestType.PRE_SORT)
+            	bag.sort();
+            else if (testType == TestType.PRE_DISTINCT)
+            	bag.distinct();
+            
+            //generate data and add it to the bag
+            for(int i = 0; i < numItems; i++) {
+                Tuple t = new Tuple(1);
+                t.setField(0, r.nextInt(numItems));
+                bag.add(t);
+            }
 
-        //Test pre sort
-        
-        bag.sort();
-        
-        
-        for(int i = 0; i < numItems; i++) {
-            Tuple t = new Tuple(1);
-            t.setField(0, r.nextInt(100000));
-            bag.add(t);
-        }
-        
-        it = bag.content();
-        count = 0;
-        last= "";
-        while(it.hasNext()) {
-            Tuple t = it.next();
-            String next = t.getAtomField(0).strval();
-            assertTrue(last.compareTo(next)<=0);
-            last = next;
-            count++;
-        }
+            assertFalse(bag.isEmpty());
 
-        assertTrue(bag.cardinality() == count);
-        
-        bag.clear();
+            if (testType == TestType.POST_SORT)
+            	bag.sort();
+            else if (testType == TestType.POST_DISTINCT)
+            	bag.distinct();
 
+            
+            if (testType == TestType.NONE)
+            	assertTrue(bag.cardinality() == numItems);
+            checkContents(bag, numItems, testType);
+            checkContents(bag, numItems, testType);
 
-        //Test post sort
-        
-        for(int i = 0; i < numItems; i++) {
-            Tuple t = new Tuple(1);
-            t.setField(0, r.nextInt(100000));
-            bag.add(t);
-        }
-        
-        bag.sort();
-        DataBag.notifyInterval = 100;
-        it = bag.content();
-        count = 0;
-        last= "";
-        while(it.hasNext()) {
-            Tuple t = it.next();
-            String next = t.getAtomField(0).strval();
-            assertTrue(last.compareTo(next)<=0);
-            last = next;
-            count++;
-        }
-
-        assertTrue(bag.cardinality() == count);
-        int cnt = numItems/DataBag.notifyInterval;
-        assertTrue(bag.numNotifies >= cnt);
-        
-        bag.clear();
-		
-        //test post-distinct
-        
-       
-        for(int i = 0; i < numItems; i++) {
-            Tuple t = new Tuple(1);
-            //To get a lot of duplicates
-            t.setField(0, r.nextInt(1000));
-            bag.add(t);
-        }
-        
-        
-        bag.distinct();
-
-        it = bag.content();
-        count = 0;
-        last= "";
-        while(it.hasNext()) {
-            Tuple t = it.next();
-            String next = t.getAtomField(0).strval();
-            assertTrue(last.compareTo(next)<0);
-            last = next;
-            count++;
-        }
-
-        assertTrue(bag.cardinality() == count);
-        
-        bag.clear();
-		
-        
-        //Test pre distinct
-
-        bag.distinct();
-
-        
-        for(int i = 0; i < numItems; i++) {
-            Tuple t = new Tuple(1);
-            //To get a lot of duplicates
-            t.setField(0, r.nextInt(10));
-            bag.add(t);
-        }
-        
-
-        it = bag.content();
-        count = 0;
-        last= "";
-        while(it.hasNext()) {
-            Tuple t = it.next();
-            String next = t.getAtomField(0).strval();
-            assertTrue(last.compareTo(next)<0);
-            last = next;
-            count++;
-        }
-
-        assertTrue(bag.cardinality() == count);
-
-        //Check if it gives the correct contents the second time around
-        it = bag.content();
-        count = 0;
-        last= "";
-        while(it.hasNext()) {
-            Tuple t = it.next();
-            String next = t.getAtomField(0).strval();
-            assertTrue(last.compareTo(next)<0);
-            last = next;
-            count++;
-        }
-
-        assertTrue(bag.cardinality() == count);
-        
-        bag.clear();
+    	}
     }
+     
+    
+    private void checkContents(DataBag bag, int numItems, TestType testType) throws Exception{
+        String last = "";
+        
+        DataBag.notifyInterval = 100;
+        
+        Iterator<Tuple> it = bag.content();
+        int count = 0;
+        while(it.hasNext()) {
+        	Tuple t = it.next();
+        	String next = t.getAtomField(0).strval();
+        	if (testType == TestType.POST_SORT || testType == TestType.PRE_SORT)
+                assertTrue(last.compareTo(next)<=0);
+        	else if (testType == TestType.POST_DISTINCT || testType == TestType.PRE_DISTINCT)
+                assertTrue(last.compareTo(next)<0);
+            last = next;
+        	count++;
+        }
+        
+        assertTrue(bag.cardinality() == count);
+        
+        if (testType != TestType.NONE)
+        	assertTrue(bag.numNotifies >= count/DataBag.notifyInterval);
+    }
+
 }

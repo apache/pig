@@ -40,7 +40,9 @@ public class BigDataBag extends DataBag {
     
     boolean finishedAdds = false,wantSorting = false, doneSorting = false, sortInProgress = false, wroteUnsortedFile = false;
     int trueCount = 0;
-
+    int numRecordsToHoldInMemory = 1000;
+    
+    
     boolean eliminateDuplicates = false;
     EvalSpec spec = null;
     
@@ -50,7 +52,10 @@ public class BigDataBag extends DataBag {
      * cause us to switch to disk backed mode
      */
     public static long FREE_MEMORY_TO_MAINTAIN = (long)(MAX_MEMORY*.25);
-    
+    /**
+     * want to hold roughly only 1% of max memory, once we are in a low memory condition
+     */
+    public static long TARGET_IN_MEMORY_SIZE = (long)(0.01 * MAX_MEMORY);
     
     public BigDataBag(File tempdir) throws IOException {
     	this.tempdir = tempdir;
@@ -61,10 +66,16 @@ public class BigDataBag extends DataBag {
 	long usedMemory = Runtime.getRuntime().totalMemory() - freeMemory;
     	return MAX_MEMORY-usedMemory > memLimit;
     }
-        
+    
+    private File getTempFile() throws IOException{
+		File store = File.createTempFile("bag",".dat",tempdir);
+		store.deleteOnExit();
+		return store;
+    }
+    
     private void writeContentToDisk() throws IOException{
     	if (writer==null){
-			File store = File.createTempFile("bag",".dat",tempdir);
+			File store = getTempFile();
 			stores.add(store);
 			writer = new DataBagFileWriter(store);
 		}
@@ -76,7 +87,10 @@ public class BigDataBag extends DataBag {
     	}else{
     		wroteUnsortedFile = true;
     	}
-    	writer.write(content.iterator());
+    	long bytesWritten = writer.write(content.iterator());
+    	//Adjust the number of records to hold in memory so that what 
+    	//we hold in memory is about TARGET_IN_MEMORY_SIZE
+    	numRecordsToHoldInMemory = (int)((numRecordsToHoldInMemory * TARGET_IN_MEMORY_SIZE) / bytesWritten);
     	super.clear();
     	if (wantSorting){
         	writer.close();
@@ -95,7 +109,7 @@ public class BigDataBag extends DataBag {
 	        if (writer == null) {
 	        	//Want to add in memory
 	        	super.add(t);
-	            if (!isMemoryAvailable(FREE_MEMORY_TO_MAINTAIN) && trueCount > 10) {
+	            if (!isMemoryAvailable(FREE_MEMORY_TO_MAINTAIN) && content.size() > numRecordsToHoldInMemory) {
 	            	writeContentToDisk();
 	            }	
 	        }else{
@@ -133,7 +147,7 @@ public class BigDataBag extends DataBag {
     	Iterator<Tuple> iter = reader.content();
     	while(iter.hasNext()){
     		DataBag bag = new DataBag();
-    		while( iter.hasNext() && isMemoryAvailable(FREE_MEMORY_TO_MAINTAIN/2)){
+    		while( iter.hasNext() && (isMemoryAvailable(FREE_MEMORY_TO_MAINTAIN/2) || bag.cardinality() < numRecordsToHoldInMemory)){
     			bag.add(iter.next());
     		}
     		if(eliminateDuplicates){
@@ -141,7 +155,7 @@ public class BigDataBag extends DataBag {
     			trueCount = bag.cardinality();
     		}else
     			bag.sort(spec);
-    		File f = File.createTempFile("bag", ".dat",tempdir);
+    		File f = getTempFile();
     		stores.add(f);
     		DataBagFileWriter writer = new DataBagFileWriter(f);
     		writer.write(bag.content());
@@ -306,7 +320,7 @@ public class BigDataBag extends DataBag {
         		}
         	}
         	
-        	File outputFile  = File.createTempFile("bag",".dat",tempdir);
+        	File outputFile  = getTempFile();
         	stores.add(outputFile);
         	writer = new DataBagFileWriter(outputFile);
         	
