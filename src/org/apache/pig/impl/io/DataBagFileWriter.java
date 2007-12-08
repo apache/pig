@@ -41,10 +41,20 @@ public class DataBagFileWriter {
 		t.write(out);
 	}
 	
-	public void write(Iterator<Tuple> iter) throws IOException{
+	public long write(Iterator<Tuple> iter) throws IOException{
+	
+		long initialSize = getFileLength();
 		while (iter.hasNext())
 			iter.next().write(out);
+		
+		return getFileLength() - initialSize;
 	}
+	
+	public long getFileLength() throws IOException{
+		out.flush();
+		return store.length();
+	}
+	
 	
 	public void close() throws IOException{
 		flush();
