@@ -111,7 +111,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		this.execType = execType;
 		
 		mLogger = Logger.getLogger("org.apache.pig");
-		mLogger.setAdditivity(false);
 
     	initProperties();
     	

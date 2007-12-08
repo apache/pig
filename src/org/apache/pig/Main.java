@@ -25,10 +25,12 @@ import java.text.ParseException;
 
 import org.apache.hadoop.util.HadoopExe;
 
+import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Level;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.PatternLayout;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
@@ -64,11 +66,15 @@ public static void main(String args[])
 		int port = 0;
 		String file = null;
 		Level logLevel = Level.INFO;
+        boolean brief = false;
+        String log4jconf = null;
 		boolean verbose = false;
 
 		CmdLineParser opts = new CmdLineParser(args);
 		// Don't use -l, --latest, -c, --cluster, -cp, -classpath, -D as these
 		// are masked by the startup perl script.
+        opts.registerOpt('4', "log4jconf", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('b', "brief", CmdLineParser.ValueExpected.NOT_ACCEPTED);
 		opts.registerOpt('c', "cluster", CmdLineParser.ValueExpected.REQUIRED);
 		opts.registerOpt('d', "debug", CmdLineParser.ValueExpected.REQUIRED);
 		opts.registerOpt('e', "execute", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -82,6 +88,14 @@ public static void main(String args[])
 		char opt;
 		while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
 			switch (opt) {
+            case '4':
+                log4jconf = opts.getValStr();
+                break;
+
+            case 'b':
+                brief = true;
+                break;
+
 			case 'c': {
 				// Needed away to specify the cluster to run the MR job on
 				// Bug 831708 - fixed
@@ -154,14 +168,35 @@ public static void main(String args[])
 
 		LogicalPlanBuilder.classloader = pigContext.createCl(null);
 
-		// Set the log level, and set up appenders
-		Logger log = pigContext.getLogger();
-		log.setLevel(logLevel);
-		ConsoleAppender screen = new ConsoleAppender(new PatternLayout());
-		if (verbose) screen.setThreshold(logLevel);
-		else screen.setThreshold(Level.INFO);
-		screen.setTarget(ConsoleAppender.SYSTEM_ERR);
-		log.addAppender(screen);
+		if (log4jconf != null) {
+            PropertyConfigurator.configure(log4jconf);
+		} else if (!brief) {
+		    // non-brief logging - timestamps
+		    Properties props = new Properties();
+		    props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
+            props.setProperty("log4j.appender.PIGCONSOLE",
+                              "org.apache.log4j.ConsoleAppender");
+            props.setProperty("log4j.appender.PIGCONSOLE.layout",
+                              "org.apache.log4j.PatternLayout");
+            props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
+                              "%d [%t] %-5p %c - %m%n");
+    	    PropertyConfigurator.configure(props);
+            // Set the log level/threshold
+            Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
+		} else {
+		    // brief logging - no timestamps
+            Properties props = new Properties();
+            props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
+            props.setProperty("log4j.appender.PIGCONSOLE",
+                              "org.apache.log4j.ConsoleAppender");
+            props.setProperty("log4j.appender.PIGCONSOLE.layout",
+                              "org.apache.log4j.PatternLayout");
+            props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
+                              "%m%n");
+            PropertyConfigurator.configure(props);
+            // Set the log level/threshold
+            Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
+		}
 
 		// TODO Add a file appender for the logs
 		// TODO Need to create a property in the properties file for it.
@@ -246,6 +281,8 @@ public static void usage()
 	System.err.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
 	System.err.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
 	System.err.println("  options include:");
+    System.err.println("    -4, -log4jconf log4j configuration file, overrides log conf");
+    System.err.println("    -b, -brief brief logging (no timestamps)");
 	System.err.println("    -c, -cluster clustername, kryptonite is default");
 	System.err.println("    -d, -debug debug level, INFO is default");
 	System.err.println("    -h, -help display this message");

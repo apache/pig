@@ -48,3 +48,5 @@ Trunk (unreleased changes)
     instead of Tuples, causing Reducer to crash in some cases.
 
     PIG-47: Added methods to DataMap to provide access to its content
+
+	PIG-12: Added time stamps to log4j messages (phunt via gates).
