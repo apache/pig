@@ -42,6 +42,13 @@ public class BufferedPositionedInputStream extends InputStream {
         pos++;
         return c;
 	}
+
+    @Override
+    public int read(byte b[], int off, int len) throws IOException {
+        int read = in.read(b, off, len);
+        pos += read;
+        return read;
+    }
 	
     @Override
 	public long skip(long n) throws IOException {
