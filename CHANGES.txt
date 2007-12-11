@@ -53,3 +53,4 @@ Trunk (unreleased changes)
 
 	PIG-44: Added adaptive decision of the number of records to hold in memory 
 	before spilling (utkarsh)
+    PIG-39: created more efficient version of read (spullara via olgan)
