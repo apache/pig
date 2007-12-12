@@ -124,7 +124,7 @@
 	                <formatter type="${test.junit.output.format}" />
 			<batchtest fork="yes" todir="test/reports">
 				<fileset dir="test">
-					<include name="**/*Test*.java" />
+					<include name="**/*TestAbstraction*.java" />
 					<exclude name="**/TestLargeFile.java" />
 					<exclude name="**/nightly/**" />
 				</fileset>

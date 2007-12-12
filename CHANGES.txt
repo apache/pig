@@ -37,3 +37,6 @@ Trunk (unreleased changes)
 	PIG-7: Added use of combiner in some restricted cases. (gates)
 	
 	PIG-29: fixed bag factory to be properly initialized (utkarsh)
+
+	PIG-32: incremental changes to split logical and physical plans (antmagna
+	via olgan)
