@@ -56,3 +56,5 @@ Trunk (unreleased changes)
     PIG-39: created more efficient version of read (spullara via olgan)
 
     PIG-41: Added patterns to svn:ignore
+
+    PIG-51: Fixed combiner in the presence of flattening
