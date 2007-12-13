@@ -100,6 +100,8 @@ public class ProjectSpec extends SimpleEvalSpec {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
+		if (isFlattened)
+			sb.append("FLATTEN ");
 		sb.append("PROJECT ");
 		boolean first = true;
 		for (int i: cols){

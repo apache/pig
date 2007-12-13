@@ -400,12 +400,26 @@ public class MapreducePlanCompiler extends PlanCompiler {
 
     private class CombineAdjuster extends EvalSpecVisitor {
         private int position = 0;
+        
+        //We don't want to be performing any flattening in the combiner since the column numbers in
+        //the reduce spec assume that there is no combiner. If the combiner performs flattening, the column
+        //numbers get messed up. For now, since combiner works only with generate group, func1(), func2(),...,
+        //it suffices to write visitors for those eval spec types.
 
         public void visitFuncEval(FuncEvalSpec fe) {
             // Reset the function to call the initial instance of itself
             // instead of the general instance.
             fe.resetFuncToInitial();
+            fe.setFlatten(false);
         }
+        
+
+        @Override
+        public void visitProject(ProjectSpec p) {
+            p.setFlatten(false);
+        }
+        
+        
     }
 
     private class CombineDeterminer extends EvalSpecVisitor {
