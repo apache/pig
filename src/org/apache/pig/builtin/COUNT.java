@@ -77,7 +77,7 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     static protected long count(Tuple input) throws IOException {
         Datum values = input.getField(0);        
         if (values instanceof DataBag)
-        	return ((DataBag)values).cardinality();
+        	return ((DataBag)values).size();
         else if (values instanceof DataMap)
         	return ((DataMap)values).cardinality();
         else
@@ -87,7 +87,7 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     static protected long sum(Tuple input) throws IOException {
         DataBag values = input.getBagField(0);
         long sum = 0;
-        for (Iterator<Tuple> it = values.content(); it.hasNext();) {
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             try {
                 sum += t.getAtomField(0).longVal();

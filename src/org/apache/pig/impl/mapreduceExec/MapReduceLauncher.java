@@ -27,12 +27,14 @@ import java.io.FileOutputStream;
 import org.apache.log4j.Logger;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.physicalLayer.POMapreduce;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.PigLogger;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 import org.apache.hadoop.fs.Path;
@@ -99,7 +101,7 @@ public class MapReduceLauncher {
      */
     public boolean launchPig(POMapreduce pom) throws IOException {
 	      
-	Logger log = pom.pigContext.getLogger();
+        Logger log = PigLogger.getLogger();
         JobConf conf = new JobConf(pom.pigContext.getConf());
         conf.setJobName(pom.pigContext.getJobName());
         boolean success = false;
@@ -120,7 +122,7 @@ public class MapReduceLauncher {
 	{
 		FileOutputStream fos = new FileOutputStream(submitJarFile);
                	JarManager.createJar(fos, funcs, pom.pigContext);
-               	System.out.println("Job jar size = " + submitJarFile.length());
+               	log.debug("Job jar size = " + submitJarFile.length());
 		conf.setJar(submitJarFile.getPath());
         	String user = System.getProperty("user.name");
         	conf.setUser(user != null ? user : "Pigster");
@@ -228,7 +230,8 @@ public class MapReduceLauncher {
             	
             		// create an empty output file
                 	PigFile f = new PigFile(outputFile.toString(), false);
-                	f.store(new DataBag(), new PigStorage(), pom.pigContext);
+                	f.store(BagFactory.getInstance().newDefaultBag(),
+                        new PigStorage(), pom.pigContext);
                 
             	}
 

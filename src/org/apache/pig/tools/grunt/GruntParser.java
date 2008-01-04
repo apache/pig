@@ -98,6 +98,10 @@ public class GruntParser extends PigScriptParser {
 	protected void processDescribe(String alias) throws IOException {
 		mPigServer.dumpSchema(alias);
 	}
+
+    protected void processExplain(String alias) throws IOException {
+        mPigServer.explain(alias, System.out);
+    }
 	
 	protected void processRegister(String jar) throws IOException {
 		mPigServer.registerJar(jar);

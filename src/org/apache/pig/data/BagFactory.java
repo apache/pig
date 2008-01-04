@@ -17,43 +17,58 @@
  */
 package org.apache.pig.data;
 
-import java.io.File;
-import java.io.IOException;
+import org.apache.pig.impl.eval.EvalSpec;
+import org.apache.pig.impl.util.SpillableMemoryManager;
 
+/**
+ * A bag factory.  Can be used to generate different types of bags
+ * depending on what is needed.
+ */
 public class BagFactory {
+    private static BagFactory gSelf;
+    private static SpillableMemoryManager gMemMgr;
 
-    private File              tmpdir;
-    private static BagFactory instance = new BagFactory();
-
-    static{
-    	init(new File(System.getProperty("java.io.tmpdir")));
-    }
+    static { gSelf = new BagFactory(); }
+    
+    /**
+     * Get a reference to the singleton factory.
+     */
     public static BagFactory getInstance() {
-        return instance;
+        return gSelf;
+    }
+    
+    /**
+     * Get a default (unordered, not distinct) data bag.
+     */
+    public DataBag newDefaultBag() {
+        DataBag b = new DefaultDataBag();
+        gMemMgr.registerSpillable(b);
+        return b;
+    }
+
+    /**
+     * Get a sorted data bag.
+     * @param spec EvalSpec that controls how the data is sorted.
+     * If null, default comparator will be used.
+     */
+    public DataBag newSortedBag(EvalSpec spec) {
+        DataBag b = new SortedDataBag(spec);
+        gMemMgr.registerSpillable(b);
+        return b;
+    }
+    
+    /**
+     * Get a distinct data bag.
+     */
+    public DataBag newDistinctBag() {
+        DataBag b = new DistinctDataBag();
+        gMemMgr.registerSpillable(b);
+        return b;
     }
 
     private BagFactory() {
-    }
-
-    public static void init(File tmpdir) {
-        instance.setTmpDir(tmpdir);
-    }
-
-    private void setTmpDir(File tmpdir) {
-        this.tmpdir = tmpdir;
-        this.tmpdir.mkdirs();
-    }
-    
-    // Get BigBag or Bag, depending on whether the temp directory has been set up
-    public DataBag getNewBag() throws IOException {
-        if (tmpdir == null) return new DataBag();
-        else return getNewBigBag();
-    }
-    
-    // Need a Big Bag, dammit!
-    public BigDataBag getNewBigBag() throws IOException {
-        if (tmpdir == null) throw new IOException("No temp directory given for BigDataBag.");
-        else return new BigDataBag(tmpdir);
+        gMemMgr = new SpillableMemoryManager();
     }
 
 }
+

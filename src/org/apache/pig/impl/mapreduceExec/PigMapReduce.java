@@ -87,7 +87,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
     private int                       index;
     private int                       inputCount;
     private boolean                   isInner[];
-    private File                      tmpdir;
+    // private File                      tmpdir;
     private static PigContext pigContext = null;
     ArrayList<PigRecordWriter> sideFileWriters = new ArrayList<PigRecordWriter>();
 
@@ -100,9 +100,11 @@ public class PigMapReduce implements MapRunnable, Reducer {
         PigMapReduce.reporter = reporter;
 
         oc = output;
+        /*
         tmpdir = new File(job.get("mapred.task.id"));
         tmpdir.mkdirs();
         BagFactory.init(tmpdir);
+        */
 
         setupMapPipe(reporter);
 
@@ -125,10 +127,12 @@ public class PigMapReduce implements MapRunnable, Reducer {
         PigMapReduce.reporter = reporter;
         
         try {
+            /*
             tmpdir = new File(job.get("mapred.task.id"));
             tmpdir.mkdirs();
 
             BagFactory.init(tmpdir);
+            */
 
             oc = output;
             if (evalPipe == null) {
@@ -140,7 +144,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
             Tuple t = new Tuple(1 + inputCount);
             t.setField(0, groupName);
             for (int i = 1; i < 1 + inputCount; i++) {
-                bags[i - 1] = BagFactory.getInstance().getNewBag();
+                bags[i - 1] = BagFactory.getInstance().newDefaultBag();
                 t.setField(i, bags[i - 1]);
             }
 
@@ -150,7 +154,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
             }
             
             for (int i = 0; i < inputCount; i++) {
-                if (isInner[i] && t.getBagField(1 + i).isEmpty())
+                if (isInner[i] && t.getBagField(1 + i).size() == 0)
                     return;
             }
             

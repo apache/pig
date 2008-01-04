@@ -32,7 +32,7 @@ public class IsEmpty extends FilterFunc {
     public boolean exec(Tuple input) throws IOException {
     	Datum values = input.getField(0);        
         if (values instanceof DataBag)
-        	return ((DataBag)values).cardinality() == 0;
+        	return ((DataBag)values).size() == 0;
         else if (values instanceof DataMap)
         	return ((DataMap)values).cardinality() == 0;
         else

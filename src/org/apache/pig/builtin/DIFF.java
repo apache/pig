@@ -48,9 +48,9 @@ public class DIFF extends EvalFunc<DataBag> {
         if (input.getField(0) instanceof DataBag) {
             DataBag field1 = input.getBagField(0);
             DataBag field2 = input.getBagField(1);
-            Iterator<Tuple> it1 = field1.content();
+            Iterator<Tuple> it1 = field1.iterator();
             checkInBag(field2, it1, output);
-            Iterator<Tuple> it2 = field2.content();
+            Iterator<Tuple> it2 = field2.iterator();
             checkInBag(field1, it2, output);
         } else {
             DataAtom d1 = input.getAtomField(0);
@@ -65,7 +65,7 @@ public class DIFF extends EvalFunc<DataBag> {
     private void checkInBag(DataBag bag, Iterator<Tuple> iterator, DataBag emitTo) throws IOException {
         while(iterator.hasNext()) {
             Tuple t = iterator.next();
-            Iterator<Tuple> it2 = bag.content();
+            Iterator<Tuple> it2 = bag.iterator();
             boolean found = false;
             while(it2.hasNext()) {
                 if (t.equals(it2.next())) {

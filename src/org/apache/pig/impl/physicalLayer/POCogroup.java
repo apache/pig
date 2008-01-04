@@ -121,7 +121,7 @@ class POCogroup extends PhysicalOperator {
 
             boolean done = true;
             for (int i = 0; i < inputs.length; i++) {
-                DataBag b = BagFactory.getInstance().getNewBag();
+                DataBag b = BagFactory.getInstance().newDefaultBag();
 
                 while (sortedInputs[i].size() > 0) {
                     Datum g = sortedInputs[i].get(0)[0];
@@ -139,7 +139,7 @@ class POCogroup extends PhysicalOperator {
                     }
                 }
 
-                if (specs.get(i).isInner() && b.isEmpty())
+                if (specs.get(i).isInner() && (b.size() == 0))
                     done = false; // this input uses "inner" semantics, and it has no tuples for
                                     // this group, so suppress the tuple we're currently building
 

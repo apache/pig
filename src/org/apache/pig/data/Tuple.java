@@ -161,8 +161,8 @@ public class Tuple extends Datum implements WritableComparable {
             }
         } else if (field instanceof DataBag) {
             DataBag b = (DataBag) field;
-            if (b.cardinality() == 1) {
-                Tuple t = b.content().next();
+            if (b.size() == 1) {
+                Tuple t = b.iterator().next();
                 if (t.arity() == 1) {
                     return t.getAtomField(0);
                 }
@@ -180,8 +180,8 @@ public class Tuple extends Datum implements WritableComparable {
             return (Tuple) field;
         } else if (field instanceof DataBag) {
             DataBag b = (DataBag) field;
-            if (b.cardinality() == 1) {
-                return b.content().next();
+            if (b.size() == 1) {
+                return b.iterator().next();
             }
         }
 
@@ -356,5 +356,18 @@ public class Tuple extends Datum implements WritableComparable {
                 break;
         }
         return i;
+    }
+
+	@Override
+    public long getMemorySize() {
+        long used = 0;
+        try {
+            int sz = fields.size();
+            for (int i = 0; i < sz; i++) used += getField(i).getMemorySize();
+            used += 2 * OBJECT_SIZE + REF_SIZE;
+        } catch (IOException ioe) {
+            // Not really much I can do here.
+        }
+        return used;
     }
 }

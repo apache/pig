@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.Algebraic;
@@ -158,6 +159,13 @@ public class FuncEvalSpec extends EvalSpec {
 		public FakeDataBag(DataCollector successor){
 			this.successor = successor;
 		}
+
+        // To satisfy abstract functions in DataBag.
+        public boolean isSorted() { return false; }
+        public boolean isDistinct() { return false; }
+        public Iterator<Tuple> iterator() { return null; }
+        public long spill() { return 0; }
+
 		
 		void addStart(){
 			successor.add(DataBag.startBag);

@@ -78,7 +78,7 @@ public class TestMapReduce extends TestCase {
     	}
         @Override
 		public void exec(Tuple input, DataBag output) throws IOException {
-            Iterator<Tuple> it = (input.getBagField(0)).content();
+            Iterator<Tuple> it = (input.getBagField(0)).iterator();
             while(it.hasNext()) {
                 Tuple t = it.next();
                 Tuple newT = new Tuple(2);

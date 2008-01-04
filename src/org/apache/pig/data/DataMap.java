@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Iterator;
+import java.lang.String;
+
 
 public class DataMap extends Datum {
 
@@ -141,5 +144,19 @@ public class DataMap extends Datum {
 	public Map<String, Datum> content(){
 		return content;
 	}
+
+    @Override
+    public long getMemorySize() {
+        long used = 0;
+        Iterator<Map.Entry<String, Datum> > i = content.entrySet().iterator();
+        while (i.hasNext()) {
+            Map.Entry<String, Datum> e = i.next();
+            used += e.getKey().length() * 2 + OBJECT_SIZE + REF_SIZE;
+            used += e.getValue().getMemorySize() + REF_SIZE;
+        }
+
+        used += 2 * OBJECT_SIZE + REF_SIZE;
+        return used;
+    }
 
 }

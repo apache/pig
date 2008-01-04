@@ -110,11 +110,7 @@ public class GenerateSpec extends EvalSpec {
     	DataBag bag;
     	public DatumBag(){
     		super(null);
-    		try{
-    			bag = BagFactory.getInstance().getNewBag();
-    		}catch(IOException e){
-    			throw new RuntimeException(e);
-    		}
+    		bag = BagFactory.getInstance().newDefaultBag();
     	}
     	
     	@Override
@@ -126,7 +122,7 @@ public class GenerateSpec extends EvalSpec {
     		return new Iterator<Datum>(){
     			Iterator<Tuple> iter;
     			{
-    				iter = bag.content();
+    				iter = bag.iterator();
     			}
     			public boolean hasNext() {
     				return iter.hasNext();

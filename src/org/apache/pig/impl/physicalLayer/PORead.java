@@ -46,7 +46,7 @@ public class PORead extends PhysicalOperator {
     	if (continueFromLast){
     		throw new RuntimeException("LOReads should not occur in continuous plans");
     	}
-        it = bag.content();
+        it = bag.iterator();
 
         return true;
     }

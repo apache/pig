@@ -106,7 +106,7 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
         double sum = 0;
         double count = 0;
 
-        for (Iterator it = values.content(); it.hasNext();) {
+        for (Iterator it = values.iterator(); it.hasNext();) {
             Tuple t = (Tuple) it.next();
 //            if(!(t.getField(0) instanceof DataAtom)) {
 //                throw new RuntimeException("Unexpected Type: " + t.getField(0).getClass().getName() + " in " + t);
@@ -124,14 +124,14 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
         DataBag values = input.getBagField(0);
 
         
-        return values.cardinality();
+        return values.size();
     }
 
     static protected double sum(Tuple input) throws IOException {
         DataBag values = input.getBagField(0);
 
         double sum = 0;
-        for (Iterator it = values.content(); it.hasNext();) {
+        for (Iterator it = values.iterator(); it.hasNext();) {
             Tuple t = (Tuple) it.next();
             sum += t.getAtomField(0).numval();
         }

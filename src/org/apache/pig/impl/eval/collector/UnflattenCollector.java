@@ -47,11 +47,7 @@ public class UnflattenCollector extends DataCollector {
 		}else{
 			if (checkDelimiter(d)){
 				//Bag must have started now
-				try{
-					bag = BagFactory.getInstance().getNewBag();
-				}catch(IOException e){
-					throw new RuntimeException(e);
-				}
+				bag = BagFactory.getInstance().newDefaultBag();
 			}else{
 				successor.add(d);
 			}

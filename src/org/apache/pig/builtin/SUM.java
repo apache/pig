@@ -70,13 +70,13 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
         double sum = 0;
 	int i = 0;
         Tuple t = null;
-        for (Iterator it = values.content(); it.hasNext();) {
+        for (Iterator it = values.iterator(); it.hasNext();) {
             try {
             t = (Tuple) it.next();
 	    i++;
             sum += t.getAtomField(0).numval();
             }catch(RuntimeException exp) {
-		String msg = "iteration = " + i + "bag size = " + values.cardinality() + " partial sum = " + sum + "\n";
+		String msg = "iteration = " + i + "bag size = " + values.size() + " partial sum = " + sum + "\n";
 		if (t != null)
 			msg += "previous tupple = " + t.toString();
 		throw new RuntimeException(exp.getMessage() + " additional info: " + msg);

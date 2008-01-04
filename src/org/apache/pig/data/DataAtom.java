@@ -153,4 +153,13 @@ final public class DataAtom extends Datum {
         return stringVal.hashCode();
     }
 
+    @Override
+    public long getMemorySize() {
+        long used = 0;
+        if (stringVal != null) used += stringVal.length() * 2 + OBJECT_SIZE;
+        if (doubleVal != null) used += 8 + OBJECT_SIZE;
+        if (binaryVal != null) used += binaryVal.length + OBJECT_SIZE;
+        used += OBJECT_SIZE + 3 * REF_SIZE;
+        return used;
+     }
 }
