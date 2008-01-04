@@ -28,7 +28,7 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.BigDataBag;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
@@ -47,17 +47,19 @@ public class PigCombine implements Reducer {
     private OutputCollector oc;
     private int             index;
     private int             inputCount;
-    private BigDataBag      bags[];
-    private File            tmpdir;
+    private DataBag         bags[];
+    // private File            tmpdir;
 
     public void reduce(WritableComparable key, Iterator values, OutputCollector output, Reporter reporter)
             throws IOException {
 
         try {
+            /*
             tmpdir = new File(job.get("mapred.task.id"));
             tmpdir.mkdirs();
 
             BagFactory.init(tmpdir);
+            */
             PigContext pigContext = (PigContext) ObjectSerializer.deserialize(job.get("pig.pigContext"));
             if (evalPipe == null) {
                 inputCount = ((ArrayList<FileSpec>)ObjectSerializer.deserialize(job.get("pig.inputs"))).size();
@@ -69,9 +71,9 @@ public class PigCombine implements Reducer {
                 evalPipe = esp.setupPipe(finalout);
                 //throw new RuntimeException("combine spec: " + evalSpec + " combine pipe: " + esp.toString());
                 
-                bags = new BigDataBag[inputCount];
+                bags = new DataBag[inputCount];
                 for (int i = 0; i < inputCount; i++) {
-                    bags[i] = BagFactory.getInstance().getNewBigBag();
+                    bags[i] = BagFactory.getInstance().newDefaultBag();
                 }
             }
 
@@ -94,7 +96,7 @@ public class PigCombine implements Reducer {
                 t.getBagField(it.index + 1).add(it.toTuple());
             }
             for (int i = 0; i < inputCount; i++) {  // XXX: shouldn't we only do this if INNER flag is set?
-                if (t.getBagField(1 + i).isEmpty())
+                if (t.getBagField(1 + i).size() == 0)
                     return;
             }
 //          throw new RuntimeException("combine input: " + t.toString());

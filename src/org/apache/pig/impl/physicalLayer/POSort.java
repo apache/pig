@@ -43,14 +43,13 @@ public class POSort extends PhysicalOperator {
 	public boolean open(boolean continueFromLast) throws IOException {
 		if (!super.open(continueFromLast))
 			return false;
-		DataBag bag = BagFactory.getInstance().getNewBag();
+		DataBag bag = BagFactory.getInstance().newSortedBag(sortSpec);
 		
-		bag.sort(sortSpec);
 		Tuple t;
 		while((t = inputs[0].getNext())!=null){
 			bag.add(t);
 		}
-		iter = bag.content();
+		iter = bag.iterator();
 		return true;
 	}
 	

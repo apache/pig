@@ -24,6 +24,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -58,7 +59,7 @@ public class IntermedResult {
     
     public IntermedResult() {
         executed = true;
-        databag = new DataBag();
+        databag = BagFactory.getInstance().newDefaultBag();
     }
     
     public IntermedResult(DataBag bag) {

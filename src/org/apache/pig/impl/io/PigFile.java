@@ -44,7 +44,7 @@ public class PigFile {
     }
     
     public DataBag load(LoadFunc lfunc, PigContext pigContext) throws IOException {
-        DataBag content = BagFactory.getInstance().getNewBag();
+        DataBag content = BagFactory.getInstance().newDefaultBag();
         InputStream is = FileLocalizer.open(file, pigContext);
         lfunc.bindTo(file, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
         Tuple f = null;
@@ -58,7 +58,7 @@ public class PigFile {
     public void store(DataBag data, StoreFunc sfunc, PigContext pigContext) throws IOException {
         BufferedOutputStream bos = new BufferedOutputStream(FileLocalizer.create(file, append, pigContext));
         sfunc.bindTo(bos);
-        for (Iterator<Tuple> it = data.content(); it.hasNext();) {
+        for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
             Tuple row = it.next();
             sfunc.putNext(row);
         }

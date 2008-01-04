@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Iterator;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
@@ -47,9 +48,16 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
 		this.cmd = cmd;
 	}
 
-	private class EndOfQueue extends DataBag{
-		public void add(Datum d){}
-	}
+    private class EndOfQueue extends DataBag {
+        @Override
+        public void add(Tuple t){}
+
+        // To satisfy abstract functions in DataBag.
+        public boolean isSorted() { return false; }
+        public boolean isDistinct() { return false; }
+        public Iterator<Tuple> iterator() { return null; }
+        public long spill() { return 0; }
+    }
 	
 	private void startProcess() throws IOException {
 		Process p = Runtime.getRuntime().exec(cmd);

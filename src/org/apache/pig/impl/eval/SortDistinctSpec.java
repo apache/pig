@@ -74,15 +74,10 @@ public class SortDistinctSpec extends EvalSpec {
 				}else{
 					if (checkDelimiter(d)){
 						//Bag must have started now
-						try{
-							bag = BagFactory.getInstance().getNewBag();
-							if (eliminateDuplicates)
-								bag.distinct();
-							else
-								bag.sort(sortSpec);
-							
-						}catch(IOException e){
-							throw new RuntimeException(e);
+						if (eliminateDuplicates) {
+							bag = BagFactory.getInstance().newDistinctBag();
+						} else {
+							bag = BagFactory.getInstance().newSortedBag(sortSpec);
 						}
 					}else{
 						addToSuccessor(d);

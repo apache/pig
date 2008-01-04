@@ -57,6 +57,7 @@ import org.apache.pig.impl.physicalLayer.POStore;
 import org.apache.pig.impl.physicalLayer.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.physicalLayer.POPrinter;
+import org.apache.pig.impl.util.PigLogger;
 
 
 
@@ -172,7 +173,7 @@ public class PigServer {
             	logMessage += (logMessage + urls.nextElement() + "; ");
             }
             
-            pigContext.getLogger().debug(logMessage);
+            PigLogger.getLogger().debug(logMessage);
         }
     
         return resourceLocation;
@@ -302,7 +303,7 @@ public class PigServer {
        		pp = physicalPlans.get(readFrom);
     	}
     	
-    	return pp.exec(continueFromLast).content();
+    	return pp.exec(continueFromLast).iterator();
     	
     }
     
@@ -319,7 +320,7 @@ public class PigServer {
         readFrom.compile(queryResults);
         readFrom.exec();
         if (pigContext.getExecType() == ExecType.LOCAL)
-            return readFrom.read().content();
+            return readFrom.read().iterator();
         final LoadFunc p;
         
         try{
@@ -534,7 +535,7 @@ public class PigServer {
         stream.println("Logical Plan:");
         IntermedResult ir = queryResults.get(alias);
         if (ir == null) {
-            pigContext.getLogger().error("Invalid alias: " + alias);
+            PigLogger.getLogger().error("Invalid alias: " + alias);
             throw new IOException("Invalid alias: " + alias);
         }
 

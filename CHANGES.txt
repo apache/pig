@@ -58,3 +58,7 @@ Trunk (unreleased changes)
     PIG-41: Added patterns to svn:ignore
 
     PIG-51: Fixed combiner in the presence of flattening
+
+	PIG-30: Rewrote DataBags to better handle decisions of when to spill to
+	disk and to spill more intelligently. (gates)
+

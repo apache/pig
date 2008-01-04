@@ -68,7 +68,7 @@ public class MIN extends EvalFunc<DataAtom> implements Algebraic {
 		DataBag values = input.getBagField(0);
 
 		double curMin = Double.POSITIVE_INFINITY;
-		for (Iterator it = values.content(); it.hasNext();) {
+		for (Iterator it = values.iterator(); it.hasNext();) {
 			Tuple t = (Tuple) it.next();
 			try {
 				curMin = java.lang.Math.min(curMin, t.getAtomField(0).numval());

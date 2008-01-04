@@ -159,6 +159,7 @@ public class TestDataModel extends junit.framework.TestCase {
         assertTrue(n1.arity() == n1Arity + n2Arity);
     }
 
+    /*
     @Test
     public void testDataBag() throws Exception {
         int[] input1 = { 1, 2, 3, 4, 5 };
@@ -217,6 +218,7 @@ public class TestDataModel extends junit.framework.TestCase {
     	Runtime.getRuntime().gc();
     	testBigDataBag(Runtime.getRuntime().maxMemory() - 1*1024*1024, 1000000);
     }
+    */
 
     private enum TestType {
     	PRE_SORT,
@@ -227,6 +229,7 @@ public class TestDataModel extends junit.framework.TestCase {
     }
        
     
+    /*
     private void testBigDataBag(long freeMemoryToMaintain, int numItems) throws Exception {
     	BigDataBag.FREE_MEMORY_TO_MAINTAIN = freeMemoryToMaintain;
         Random r = new Random();
@@ -288,5 +291,6 @@ public class TestDataModel extends junit.framework.TestCase {
         if (testType != TestType.NONE)
         	assertTrue(bag.numNotifies >= count/DataBag.notifyInterval);
     }
+    */
 
 }
