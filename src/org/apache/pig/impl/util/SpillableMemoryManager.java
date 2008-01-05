@@ -85,7 +85,6 @@ public class SpillableMemoryManager implements NotificationListener {
                  * We don't lock anything, so this sort may not be stable if a WeakReference suddenly
                  * becomes null, but it will be close enough.
                  */    
-                @Override
                 public int compare(WeakReference<Spillable> o1Ref, WeakReference<Spillable> o2Ref) {
                     Spillable o1 = o1Ref.get();
                     Spillable o2 = o2Ref.get();
