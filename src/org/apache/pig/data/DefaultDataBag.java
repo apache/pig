@@ -31,7 +31,9 @@ import org.apache.pig.impl.util.PigLogger;
 
 
 /**
- * An unordered collection of Tuples (possibly) with multiples.
+ * An unordered collection of Tuples (possibly) with multiples.  The tuples
+ * are stored in an ArrayList, since there is no concern for order or
+ * distinctness.
  */
 public class DefaultDataBag extends DataBag {
 
@@ -69,7 +71,7 @@ public class DefaultDataBag extends DataBag {
                 while (i.hasNext()) {
                     i.next().write(out);
                     spilled++;
-                    // This will spill every 16383 records.
+                    // This will report progress every 16383 records.
                     if ((spilled & 0x3fff) == 0) reportProgress();
                 }
                 out.flush();

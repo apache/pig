@@ -40,9 +40,13 @@ import org.apache.pig.impl.util.PigLogger;
 
 /**
  * An ordered collection of Tuples (possibly) with multiples.  Data is
- * stored unsorted as it comes in, and only sorted when it is time to dump
+ * stored unsorted in an ArrayList as it comes in, and only sorted when it
+ * is time to dump
  * it to a file or when the first iterator is requested.  Experementation
  * found this to be the faster than storing it sorted to begin with.
+ * 
+ * We allow a user defined comparator, but provide a default comparator in
+ * cases where the user doesn't specify one.
  */
 public class SortedDataBag extends DataBag {
     private Comparator<Tuple> mComp;
@@ -59,6 +63,11 @@ public class SortedDataBag extends DataBag {
 
     }
 
+    /**
+     * @param spec EvalSpec to use to do the sorting. spec.getComparator()
+     * will be called to populate our mComp field.  If null,
+     * DefaultComparator will be used.
+     */
     public SortedDataBag(EvalSpec spec) {
         if (spec == null) {
             mComp = new DefaultComparator();
@@ -97,8 +106,14 @@ public class SortedDataBag extends DataBag {
                 DataOutputStream out = getSpillFile();
                 // Have to sort the data before we can dump it.  It's bogus
                 // that we have to do this under the lock, but there's no way
-                // around it.
-                Collections.sort((ArrayList<Tuple>)mContents, mComp);
+                // around it.  If the reads alread started, then we've
+                // already sorted it.  No reason to do it again.  Don't
+                // set mReadStarted, because we could still be in the add
+                // phase, in which case more (unsorted) will be added
+                // later.
+                if (!mReadStarted) {
+                    Collections.sort((ArrayList<Tuple>)mContents, mComp);
+                }
                 Iterator<Tuple> i = mContents.iterator();
                 while (i.hasNext()) {
                     i.next().write(out);
@@ -130,6 +145,12 @@ public class SortedDataBag extends DataBag {
      */
     private class SortedDataBagIterator implements Iterator<Tuple> {
 
+        /**
+         * A container to hold tuples in a priority queue.  Stores the
+         * file number the tuple came from, so that when the tuple is read
+         * out of the queue, we know which file to read its replacement
+         * tuple from.
+         */
         private class PQContainer implements Comparable<PQContainer> {
             public Tuple tuple;
             public int fileNum;
@@ -199,6 +220,10 @@ public class SortedDataBag extends DataBag {
                 // from memory that were already in the queue will be fine,
                 // as they're guaranteed to be ahead of the point we fast
                 // foward to.
+                // We're guaranteed that the file we want to read from for
+                // the fast forward is the last element in mSpillFiles,
+                // because we don't support calls to add() after calls to
+                // iterator(), and spill() won't create empty files.
                 try {
                     in = new DataInputStream(new BufferedInputStream(
                         new FileInputStream(mSpillFiles.get(
