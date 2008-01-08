@@ -222,6 +222,10 @@ public class DistinctDataBag extends DataBag {
                 // from memory that were already in the queue will be fine,
                 // as they're guaranteed to be ahead of the point we fast
                 // foward to.
+                // We're guaranteed that the file we want to read from for
+                // the fast forward is the last element in mSpillFiles,
+                // because we don't support calls to add() after calls to
+                // iterator(), and spill() won't create empty files.
                 try {
                     in = new DataInputStream(new BufferedInputStream(
                         new FileInputStream(mSpillFiles.get(

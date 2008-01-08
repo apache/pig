@@ -32,7 +32,38 @@ import org.apache.pig.impl.util.Spillable;
 import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 /**
- * A collection of Tuples
+ * A collection of Tuples.  A DataBag may or may not fit into memory.
+ * DataBag extends spillable, which means that it registers with a memory
+ * manager.  By default, it attempts to keep all of its contents in memory.
+ * If it is asked by the memory manager to spill to disk (by a call to
+ * spill()), it takes whatever it has in memory, opens a spill file, and
+ * writes the contents out.  This may happen multiple times.  The bag
+ * tracks all of the files it's spilled to.
+ * 
+ * DataBag provides an Iterator interface, that allows callers to read
+ * through the contents.  The iterators are aware of the data spilling.
+ * They have to be able to handle reading from files, as well as the fact
+ * that data they were reading from memory may have been spilled to disk
+ * underneath them.
+ *
+ * The DataBag interface assumes that all data is written before any is
+ * read.  That is, a DataBag cannot be used as a queue.  If data is written
+ * after data is read, the results are undefined.  This condition is not
+ * checked on each add or read, for reasons of speed.  Caveat emptor.
+ *
+ * Since spills are asynchronous (the memory manager requesting a spill
+ * runs in a separate thread), all operations dealing with the mContents
+ * Collection (which is the collection of tuples contained in the bag) have
+ * to be synchronized.  This means that reading from a DataBag is currently
+ * serialized.  This is ok for the moment because pig execution is
+ * currently single threaded.  A ReadWriteLock was experimented with, but
+ * it was found to be about 10x slower than using the synchronize keyword.
+ * If pig changes its execution model to be multithreaded, we may need to
+ * return to this issue, as synchronizing reads will most likely defeat the
+ * purpose of multi-threading execution.
+ *
+ * DataBag come in several types, default, sorted, and distinct.  The type
+ * must be chosen up front, there is no way to convert a bag on the fly.
  */
 public abstract class DataBag extends Datum implements Spillable {
     // Container that holds the tuples. Actual object instantiated by
@@ -170,6 +201,10 @@ public abstract class DataBag extends Datum implements Spillable {
         }
     }
 
+    /**
+     * This method is potentially very expensive since it may require a
+     * sort of the bag; don't call it unless you have to.
+     */
     public int compareTo(Object other) {
         // Do we really need to be able to compare to DataAtom and Tuple?
         // When does that happen?
@@ -182,9 +217,31 @@ public abstract class DataBag extends Datum implements Spillable {
                 else return -1;
             }
 
-            // Don't sort them, just go tuple by tuple.
-            Iterator<Tuple> thisIt = this.iterator();
-            Iterator<Tuple> otherIt = bOther.iterator();
+            // Ugh, this is bogus.  But I have to know if two bags have the
+            // same tuples, regardless of order.  Hopefully most of the
+            // time the size check above will prevent this.
+            // If either bag isn't already sorted, create a sorted bag out
+            // of it so I can guarantee order.
+            DataBag thisClone;
+            DataBag otherClone;
+            if (this instanceof SortedDataBag ||
+                    this instanceof DistinctDataBag) {
+                thisClone = this;
+            } else {
+                thisClone = new SortedDataBag(null);
+                Iterator<Tuple> i = iterator();
+                while (i.hasNext()) thisClone.add(i.next());
+            }
+            if (other instanceof SortedDataBag ||
+                    this instanceof DistinctDataBag) {
+                otherClone = bOther;
+            } else {
+                otherClone = new SortedDataBag(null);
+                Iterator<Tuple> i = bOther.iterator();
+                while (i.hasNext()) otherClone.add(i.next());
+            }
+            Iterator<Tuple> thisIt = thisClone.iterator();
+            Iterator<Tuple> otherIt = otherClone.iterator();
             while (thisIt.hasNext() && otherIt.hasNext()) {
                 Tuple thisT = thisIt.next();
                 Tuple otherT = otherIt.next();
@@ -203,6 +260,7 @@ public abstract class DataBag extends Datum implements Spillable {
         }
     }
 
+    @Override
     public boolean equals(Object other) {
         return compareTo(other) == 0;
     }
@@ -270,6 +328,17 @@ public abstract class DataBag extends Datum implements Spillable {
         }
         sb.append('}');
         return sb.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        Iterator<Tuple> i = iterator();
+        while (i.hasNext()) {
+            // Use 37 because we want a prime, and tuple uses 31.
+            hash = 37 * hash + i.next().hashCode();
+        }
+        return hash;
     }
 
     /**
