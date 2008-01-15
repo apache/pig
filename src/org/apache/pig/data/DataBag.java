@@ -65,7 +65,7 @@ import org.apache.pig.impl.mapreduceExec.PigMapReduce;
  * DataBag come in several types, default, sorted, and distinct.  The type
  * must be chosen up front, there is no way to convert a bag on the fly.
  */
-public abstract class DataBag extends Datum implements Spillable {
+public abstract class DataBag extends Datum implements Spillable, Iterable<Tuple> {
     // Container that holds the tuples. Actual object instantiated by
     // subclasses.
     protected Collection<Tuple> mContents;
@@ -140,8 +140,9 @@ public abstract class DataBag extends Datum implements Spillable {
         synchronized (mContents) {
             mMemSizeChanged = true;
             mSize += b.size();
-            Iterator<Tuple> i = b.iterator();
-            while (i.hasNext()) mContents.add(i.next());
+            for (Tuple t : b) {
+               mContents.add(t);
+            }
         }
     }
 
@@ -278,10 +279,8 @@ public abstract class DataBag extends Datum implements Spillable {
         // time re-sorting or re-applying distinct.
         out.write(BAG);
         out.writeLong(size());
-        Iterator<Tuple> it = iterator();
-        while (it.hasNext()) {
-            Tuple item = it.next();
-            item.write(out);
+        for (Tuple t : this) {
+            t.write(out);
         }    
     }
  
