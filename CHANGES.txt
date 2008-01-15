@@ -65,3 +65,4 @@ Trunk (unreleased changes)
 	PIG-61: Fixed MapreducePlanCompiler to use PigContext to load up the
 	comparator function instead of Class.forName.  (gates)
 
+	PIG-56: Made DataBag implement Iterable. (groves via gates)
