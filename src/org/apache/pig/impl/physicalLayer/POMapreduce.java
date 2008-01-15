@@ -165,15 +165,16 @@ public class POMapreduce extends PhysicalOperator {
 
     void print() {
         Logger log = PigLogger.getLogger();
-        log.debug("Input: " + inputFileSpecs);
-        log.debug("Map: " + toMap);
-        log.debug("Group: " + groupFuncs);
-        log.debug("Combine: " + toCombine);
-        log.debug("Reduce: " + toReduce);
-        log.debug("Output: " + outputFileSpec);
-        log.debug("Split: " + toSplit);
-        log.debug("Map parallelism: " + mapParallelism);
-        log.debug("Reduce parallelism: " + reduceParallelism);
+        log.info("----- MapReduce Job -----");
+        log.info("Input: " + inputFileSpecs);
+        log.info("Map: " + toMap);
+        log.info("Group: " + groupFuncs);
+        log.info("Combine: " + toCombine);
+        log.info("Reduce: " + toReduce);
+        log.info("Output: " + outputFileSpec);
+        log.info("Split: " + toSplit);
+        log.info("Map parallelism: " + mapParallelism);
+        log.info("Reduce parallelism: " + reduceParallelism);
     }
     
     public POMapreduce copy(){

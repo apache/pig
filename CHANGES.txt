@@ -62,3 +62,6 @@ Trunk (unreleased changes)
 	PIG-30: Rewrote DataBags to better handle decisions of when to spill to
 	disk and to spill more intelligently. (gates)
 
+	PIG-61: Fixed MapreducePlanCompiler to use PigContext to load up the
+	comparator function instead of Class.forName.  (gates)
+

@@ -310,12 +310,9 @@ public class MapreducePlanCompiler extends PlanCompiler {
     	
     	String comparatorFuncName = loSort.getSortSpec().getComparatorName();
     	if (comparatorFuncName != null) {
-    		try {
-    			sortJob.userComparator = 
-    				(Class<WritableComparator>)Class.forName(comparatorFuncName);
-    		} catch (ClassNotFoundException e) {
-    			throw new RuntimeException("Unable to find user comparator " + comparatorFuncName, e);
-    		}
+    		sortJob.userComparator =
+                (Class<WritableComparator>)PigContext.resolveClassName(
+                    comparatorFuncName);
     	}
 
     	return sortJob;
