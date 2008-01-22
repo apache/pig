@@ -36,7 +36,6 @@ public static Logger getLogger()
 {
 	if (mLogger == null) {
 		mLogger = Logger.getLogger("org.apache.pig");
-		mLogger.setAdditivity(false);
 	}
 	return mLogger;
 }

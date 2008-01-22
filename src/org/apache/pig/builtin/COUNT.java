@@ -19,14 +19,14 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Datum;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -34,11 +34,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * Generates the count of the values of the first field of a tuple. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global functions
  */
-public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
+public class COUNT extends EvalFunc<Long> implements Algebraic{
 
     @Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(count(input));
+    public Long exec(Tuple input) throws IOException {
+        return count(input);
     }
 
     public String getInitial() {
@@ -54,43 +54,50 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     }
 
     static public class Initial extends EvalFunc<Tuple> {
+        TupleFactory tfact = TupleFactory.getInstance();
+
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(count(input)));
+        public Tuple exec(Tuple input) throws IOException {
+            return tfact.newTuple(count(input));
         }
     }
 
     static public class Intermed extends EvalFunc<Tuple> {
+        TupleFactory tfact = TupleFactory.getInstance();
+
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(sum(input)));
+        public Tuple exec(Tuple input) throws IOException {
+            return tfact.newTuple(count(input));
         }
     }
 
-    static public class Final extends EvalFunc<DataAtom> {
+    static public class Final extends EvalFunc<Long> {
         @Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
-            output.setValue(sum(input));
+        public Long exec(Tuple input) throws IOException {
+            return sum(input);
         }
     }
 
-    static protected long count(Tuple input) throws IOException {
-        Datum values = input.getField(0);        
+    static protected Long count(Tuple input) throws IOException {
+        Object values = input.get(0);        
         if (values instanceof DataBag)
-        	return ((DataBag)values).cardinality();
-        else if (values instanceof DataMap)
-        	return ((DataMap)values).cardinality();
+            return ((DataBag)values).size();
+        else if (values instanceof Map)
+            return new Long(((Map)values).size());
         else
-        	throw new IOException("Cannot count a " + values.getClass().getSimpleName());
+            throw new IOException("Cannot count a " +
+                DataType.findTypeName(values));
     }
 
-    static protected double sum(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
-        double sum = 0;
-        for (Iterator<Datum> it = values.content(); it.hasNext();) {
-            Tuple t = (Tuple)it.next();
+    static protected Long sum(Tuple input) throws IOException {
+        DataBag values = (DataBag)input.get(0);
+        long sum = 0;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
             try {
-                sum += t.getAtomField(0).numval();
+                // Have faith here.  Checking each value before the cast is
+                // just too much.
+                sum += (Long)t.get(0);
             } catch (NumberFormatException exp) {
                 throw new IOException(exp.getClass().getName() + ":" + exp.getMessage());
             }
@@ -98,7 +105,7 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
         return sum;
     }
 
-@Override
+    @Override
     public Schema outputSchema(Schema input) {
         return new AtomSchema("count" + count++);
     }

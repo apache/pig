@@ -21,43 +21,41 @@ import java.io.IOException;
 
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 
 public class UnflattenCollector extends DataCollector {
-	DataBag bag;
-	
-	public UnflattenCollector(DataCollector successor){
-		super(successor);
-	}
-	
-	@Override
-	public void add(Datum d) {
-		if (inTheMiddleOfBag){
-			if (checkDelimiter(d)){
-				successor.add(bag);
-			}else{
-				if (d instanceof Tuple){
-					bag.add((Tuple)d);
-				}else{
-					bag.add(new Tuple(d));
-				}
-			}
-		}else{
-			if (checkDelimiter(d)){
-				//Bag must have started now
-				try{
-					bag = BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
-				}catch(IOException e){
-					throw new RuntimeException(e);
-				}
-			}else{
-				successor.add(d);
-			}
-		}
-	}
-	
-	
+    DataBag bag;
+    TupleFactory mTupleFactory;
+    
+    public UnflattenCollector(DataCollector successor){
+        super(successor);
+        mTupleFactory = TupleFactory.getInstance();
+    }
+    
+    @Override
+    public void add(Object d) {
+        if (inTheMiddleOfBag){
+            if (checkDelimiter(d)){
+                successor.add(bag);
+            }else{
+                if (d instanceof Tuple){
+                    bag.add((Tuple)d);
+                }else{
+                    bag.add(mTupleFactory.newTuple(d));
+                }
+            }
+        }else{
+            if (checkDelimiter(d)){
+                //Bag must have started now
+                bag = BagFactory.getInstance().newDefaultBag();
+            }else{
+                successor.add(d);
+            }
+        }
+    }
+    
+    
 
 }

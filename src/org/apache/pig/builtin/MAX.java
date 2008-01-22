@@ -22,9 +22,9 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -32,58 +32,67 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * Generates the max of the values of the first field of a tuple.
  */
-public class MAX extends EvalFunc<DataAtom> implements Algebraic {
+public class MAX extends EvalFunc<Double> implements Algebraic {
 
-	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(max(input));
-	}
+    @Override
+    public Double exec(Tuple input) throws IOException {
+         return max(input);
+    }
 
-	public String getInitial() {
-		return Initial.class.getName();
-	}
+    public String getInitial() {
+        return Initial.class.getName();
+    }
 
-	public String getIntermed() {
-		return Initial.class.getName();
-	}
+    public String getIntermed() {
+        return Initial.class.getName();
+    }
 
-	public String getFinal() {
-		return Final.class.getName();
-	}
+    public String getFinal() {
+        return Final.class.getName();
+    }
 
-	static public class Initial extends EvalFunc<Tuple> {
-		@Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-			output.appendField(new DataAtom(max(input)));
-		}
-	}
-	static public class Final extends EvalFunc<DataAtom> {
-		@Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
-			output.setValue(max(input));
-		}
-	}
+    static public class Initial extends EvalFunc<Tuple> {
+        TupleFactory tfact = TupleFactory.getInstance();
 
-	static protected double max(Tuple input) throws IOException {
-		DataBag values = input.getBagField(0);
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            return tfact.newTuple(max(input));
+        }
+    }
+    static public class Final extends EvalFunc<Double> {
+        @Override
+        public Double exec(Tuple input) throws IOException {
+            return max(input);
+        }
+    }
 
-		double curMax = Double.NEGATIVE_INFINITY;
-		for (Iterator it = values.content(); it.hasNext();) {
-			Tuple t = (Tuple) it.next();
-			try {
-				curMax = java.lang.Math.max(curMax, t.getAtomField(0).numval());
-			}catch(RuntimeException exp) {
-				throw new IOException("Error processing: " + t.toString(), exp);
+    static protected Double max(Tuple input) throws IOException {
+        Object o = input.get(0);
+        if (!(o instanceof DataBag)) {
+            throw new IOException("Input to sum function should be a bag");
+        }
+        DataBag values = (DataBag)o;
 
-			}
-		}
+        double curMax = Double.NEGATIVE_INFINITY;
+        for (Iterator it = values.iterator(); it.hasNext();) {
+            Tuple t = (Tuple)it.next();
+            try {
+                curMax = java.lang.Math.max(curMax, (Double)t.get(0));
+            } catch (RuntimeException exp) {
+                IOException newE = new IOException("Error processing: " +
+                    t.toString() + exp.getMessage());
+                newE.initCause(exp);
+                throw newE;
+            }
+        }
 
-		return curMax;
-	}
-	@Override
-	public Schema outputSchema(Schema input) {
-		return new AtomSchema("max" + count++);
-	}
+        return curMax;
+    }
 
-	private static int count = 1;
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new AtomSchema("max" + count++);
+    }
+
+    private static int count = 1;
 }

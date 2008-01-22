@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -43,7 +42,7 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
  * @author database-systems@yahoo.research
  *
  */
-public abstract class EvalFunc<T extends Datum>  {
+public abstract class EvalFunc<T>  {
 	
 	protected Type returnType;
 	
@@ -70,9 +69,11 @@ public abstract class EvalFunc<T extends Datum>  {
 		
 		returnType = parameters[0];
 		
+        /*
 		if (returnType == Datum.class){
 			throw new RuntimeException("Eval function must return a specific type of Datum");
 		}
+        */
 		
 		
 		//Type check the initial, intermediate, and final functions
@@ -135,9 +136,10 @@ public abstract class EvalFunc<T extends Datum>  {
      * invocations of this method.
      * 
      * @param input the Tuple to be processed.
+     * @return result, of type T.
      * @throws IOException
      */
-    abstract public void exec(Tuple input, T output) throws IOException;
+    abstract public T exec(Tuple input) throws IOException;
     
     /**
      * @param input Schema of the input

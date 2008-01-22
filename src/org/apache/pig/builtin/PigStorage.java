@@ -18,18 +18,22 @@
 package org.apache.pig.builtin;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.data.TimestampedTuple;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
 
@@ -40,11 +44,13 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  */
 public class PigStorage implements LoadFunc, StoreFunc {
     protected BufferedPositionedInputStream in = null;
-    private DataInputStream inData = null;
         
-	long                end            = Long.MAX_VALUE;
-	private String recordDel = "\n";
-	private String fieldDel = "\t";
+    long                end            = Long.MAX_VALUE;
+    private byte recordDel = '\n';
+    private byte fieldDel = '\t';
+    private ByteArrayOutputStream mBuf;
+    private ArrayList<Object> mProtoTuple;
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
     
     public PigStorage() {
     }
@@ -53,28 +59,44 @@ public class PigStorage implements LoadFunc, StoreFunc {
      * Constructs a Pig loader that uses specified regex as a field delimiter.
      * 
      * @param delimiter
-     *            the regular expression that is used to separate fields. ("\t" is the default.) See
-     *            http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for complete
-     *            explanation.
+     *            the single byte character that is used to separate fields.
+     *            ("\t" is the default.)
      */
     public PigStorage(String delimiter) {
-        this.fieldDel = delimiter;
+        this.fieldDel = (byte)delimiter.charAt(0);
+        mBuf = new ByteArrayOutputStream(4096);
+        mProtoTuple = new ArrayList<Object>();
     }
 
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         if (in == null || in.getPosition() > end) {
             return null;
         }
-        String line;
-        if((line = inData.readLine()) != null) {            
-            return new Tuple(line, fieldDel);
+
+        mBuf.reset();
+        while (true) {
+            // Hadoop's FSDataInputStream (which my input stream is based
+            // on at some point) is buffered, so I don't need to buffer.
+            int b = in.read();
+
+            if (b == fieldDel) {
+                readField();
+            } else if (b == recordDel) {
+                readField();
+                Tuple t =  mTupleFactory.newTuple(mProtoTuple);
+                mProtoTuple.clear();
+                return t;
+            } else if (b == -1) {
+                // hit end of file
+                return null;
+            } else {
+                mBuf.write(b);
+            }
         }
-        return null;
     }
 
-	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
+    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
-        inData = new DataInputStream(in);
         this.end = end;
         
         // Since we are not block aligned we throw away the first
@@ -84,16 +106,87 @@ public class PigStorage implements LoadFunc, StoreFunc {
         }
     }
     
-    OutputStream os;
+    OutputStream mOut;
     public void bindTo(OutputStream os) throws IOException {
-        this.os = os;
+        mOut = os;
     }
 
     public void putNext(Tuple f) throws IOException {
-        os.write((f.toDelimitedString(this.fieldDel) + this.recordDel).getBytes());
+        // I have to convert integer fields to string, and then to bytes.
+        // If I use a DataOutputStream to convert directly from integer to
+        // bytes, I don't get a string representation.
+        int sz = f.size();
+        for (int i = 0; i < sz; i++) {
+            Object field = f.get(i);
+            switch (DataType.findType(field)) {
+            case DataType.NULL:
+                break; // just leave it empty
+
+            case DataType.BOOLEAN:
+                mOut.write(((Boolean)field).toString().getBytes());
+                break;
+
+            case DataType.INTEGER:
+                mOut.write(((Integer)field).toString().getBytes());
+                break;
+
+            case DataType.LONG:
+                mOut.write(((Long)field).toString().getBytes());
+                break;
+
+            case DataType.FLOAT:
+                mOut.write(((Float)field).toString().getBytes());
+                break;
+
+            case DataType.DOUBLE:
+                mOut.write(((Double)field).toString().getBytes());
+                break;
+
+            case DataType.BYTEARRAY: {
+                byte[] b = ((DataByteArray)field).get();
+                mOut.write(b, 0, b.length);
+                break;
+                                     }
+
+            case DataType.CHARARRAY:
+                // oddly enough, writeBytes writes a string
+                mOut.write(((String)field).getBytes());
+                break;
+
+            case DataType.MAP:
+            case DataType.TUPLE:
+            case DataType.BAG:
+                throw new IOException("Cannot store a non-flat tuple " +
+                    "using PigStorage");
+                
+            default:
+                throw new RuntimeException("Unknown datatype " + 
+                    DataType.findType(field));
+            }
+
+            if (i == sz - 1) {
+                // last field in tuple.
+                mOut.write(recordDel);
+            } else {
+                mOut.write(fieldDel);
+            }
+        }
     }
 
     public void finish() throws IOException {
+    }
+
+    private void readField() {
+        if (mBuf.size() == 0) {
+            // NULL value
+            mProtoTuple.add(null);
+        } else {
+            // TODO, once this can take schemas, we need to figure out
+            // if the user requested this to be viewed as a certain
+            // type, and if so, then construct it appropriately.
+            mProtoTuple.add(new DataByteArray(mBuf.toByteArray()));
+        }
+        mBuf.reset();
     }
 
 }

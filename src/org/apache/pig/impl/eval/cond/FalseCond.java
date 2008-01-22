@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 
 
@@ -30,7 +29,7 @@ public class FalseCond extends Cond {
 	private static final long serialVersionUID = 1L;
 
     @Override
-    public boolean eval(Datum input) {
+    public boolean eval(Object input) {
         return false;
     }
 

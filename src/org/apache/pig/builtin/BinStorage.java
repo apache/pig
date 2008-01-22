@@ -26,11 +26,16 @@ import java.util.Iterator;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.data.DataReaderWriter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
 
 public class BinStorage implements LoadFunc, StoreFunc {
+    public static final byte RECORD_1 = 0x21;
+    public static final byte RECORD_2 = 0x31;
+    public static final byte RECORD_3 = 0x41;
+
     Iterator<Tuple>     i              = null;
     protected BufferedPositionedInputStream in = null;
     private DataInputStream inData = null;
@@ -51,25 +56,23 @@ public class BinStorage implements LoadFunc, StoreFunc {
                 return null;
             }
             b = (byte) in.read();
-            if(b != Tuple.RECORD_1 && b != -1) {
+            if(b != RECORD_1 && b != -1) {
                 continue;
             }
             if(b == -1) return null;
             b = (byte) in.read();
-            if(b != Tuple.RECORD_2 && b != -1) {
+            if(b != RECORD_2 && b != -1) {
                 continue;
             }
             if(b == -1) return null;
             b = (byte) in.read();
-            if(b != Tuple.RECORD_3 && b != -1) {
+            if(b != RECORD_3 && b != -1) {
                 continue;
             }
             if(b == -1) return null;
             break;
         }
-        Tuple t = new Tuple();
-        t.readFields(inData);
-        return t;
+        return (Tuple)DataReaderWriter.readDatum(inData);
     }
 
 	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
@@ -90,9 +93,9 @@ public class BinStorage implements LoadFunc, StoreFunc {
     }
 
     public void putNext(Tuple t) throws IOException {
-        out.write(Tuple.RECORD_1);
-        out.write(Tuple.RECORD_2);
-        out.write(Tuple.RECORD_3);
+        out.write(RECORD_1);
+        out.write(RECORD_2);
+        out.write(RECORD_3);
         t.write(out);
     }
 }

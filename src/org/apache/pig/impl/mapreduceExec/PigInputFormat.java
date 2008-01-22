@@ -24,7 +24,8 @@ import java.util.ArrayList;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.UTF8;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -37,6 +38,7 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -45,7 +47,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 
 
-public class PigInputFormat implements InputFormat, JobConfigurable {
+public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable {
 
     public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
     	
@@ -87,15 +89,15 @@ public class PigInputFormat implements InputFormat, JobConfigurable {
             //paths.add(path);
             for (int j = 0; j < paths.size(); j++) {
                 Path fullPath = new Path(fs.getWorkingDirectory(), paths.get(j));
-                if (fs.isDirectory(fullPath)) {
-                	Path children[] = fs.listPaths(fullPath);
+                if (fs.getFileStatus(fullPath).isDir()) {
+                	FileStatus children[] = fs.listStatus(fullPath);
                 	for(int k = 0; k < children.length; k++) {
-                		paths.add(children[k]);
+                		paths.add(children[k].getPath());
                 	}
                 	continue;
                 }
-                long bs = fs.getBlockSize(fullPath);
-                long size = fs.getLength(fullPath);
+                long bs = fs.getFileStatus(fullPath).getBlockSize();
+                long size = fs.getFileStatus(fullPath).getLen();
                 long pos = 0;
                 String name = paths.get(j).getName();
                 if (name.endsWith(".gz")) {
@@ -114,7 +116,7 @@ public class PigInputFormat implements InputFormat, JobConfigurable {
         return splits.toArray(new PigSplit[splits.size()]);
     }
 
-   public RecordReader getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
+   public RecordReader<Text, Tuple> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
         PigRecordReader r = new PigRecordReader(job, (PigSplit)split, compressionCodecs);
         return r;
     }
@@ -127,7 +129,7 @@ public class PigInputFormat implements InputFormat, JobConfigurable {
         codecList = conf.get("io.compression.codecs", "none");
     }
     
-    public static class PigRecordReader implements RecordReader {
+    public static class PigRecordReader implements RecordReader<Text, Tuple> {
         /**
          * This is a tremendously ugly hack to get around the fact that mappers do not have access
          * to their readers. We take advantage of the fact that RecordReader.next and Mapper.map is
@@ -146,6 +148,7 @@ public class PigInputFormat implements InputFormat, JobConfigurable {
         LoadFunc                loader;
         CompressionCodecFactory compressionFactory;
         JobConf job;
+        TupleFactory mTupleFactory = TupleFactory.getInstance();
         
         PigRecordReader(JobConf job, PigSplit split, CompressionCodecFactory compressionFactory) throws IOException {
             this.split = split;
@@ -182,15 +185,15 @@ public class PigInputFormat implements InputFormat, JobConfigurable {
         public JobConf getJobConf(){
         	return job;
         }
-        
-        public boolean next(Writable key, Writable value) throws IOException {
+
+        public boolean next(Text key, Tuple value) throws IOException {
             Tuple t = loader.getNext();
             if (t == null) {
                 return false;
             }
 
-            ((UTF8) key).set(split.getPath().getName());
-            ((Tuple)value).copyFrom(t);
+            key.set(split.getPath().getName());
+            value.reference(t);
             return true;
         }
 
@@ -206,19 +209,19 @@ public class PigInputFormat implements InputFormat, JobConfigurable {
             return split;
         }
 
-        public WritableComparable createKey() {
-            return new UTF8();
+        public Text createKey() {
+            return new Text();
         }
 
-        public Writable createValue() {
-            return new Tuple();
+        public Tuple createValue() {
+            return mTupleFactory.newTuple();
         }
 
-	public float getProgress() throws IOException {
-	    float progress = getPos() - split.getStart();
-	    float finish = split.getLength();
-	    return progress/finish;
-	}
+    	public float getProgress() throws IOException {
+    	    float progress = getPos() - split.getStart();
+    	    float finish = split.getLength();
+    	    return progress/finish;
+    	}
     }
 
     public void validateInput(JobConf arg0) throws IOException {

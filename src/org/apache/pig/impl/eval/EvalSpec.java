@@ -22,8 +22,10 @@ import java.io.Serializable;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
+import org.apache.pig.ComparisonFunc;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.collector.DataCollector;
@@ -41,6 +43,8 @@ public abstract class EvalSpec implements Serializable{
 	transient DataCollector simpleEvalInput; 
 	protected boolean inner = false; //used only if this generate spec is used in a group by
 
+	private String comparatorFuncName;
+	private transient Comparator<Tuple> comparator;
 	
 	/*
 	 * Keep a precomputed pipeline ready if we do simple evals
@@ -51,7 +55,38 @@ public abstract class EvalSpec implements Serializable{
 		simpleEvalInput = setupPipe(simpleEvalOutput);
 	}
 	
-	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{};
+	public class UserComparator implements Comparator<Tuple> {
+		Comparator<Tuple> nested;
+        TupleFactory mTupleFactory = TupleFactory.getInstance();
+		
+		UserComparator(Comparator<Tuple> nested) {
+			this.nested = nested;
+		}
+    	public int compare(Tuple t1, Tuple t2) {
+    		Object d1 = simpleEval(t1);
+    		Object d2 = simpleEval(t2);
+    		if (d1 instanceof Tuple) {
+    			return nested.compare((Tuple)d1, (Tuple)d2);
+    		} else {
+    			return nested.compare(mTupleFactory.newTuple(d1),
+                    mTupleFactory.newTuple(d2));
+    		}
+        }
+	}
+	
+	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
+		if (comparatorFuncName != null) {
+			Comparator<Tuple> userComparator = 
+				(ComparisonFunc)instantiaor.instantiateFuncFromAlias(comparatorFuncName);
+			comparator = new UserComparator(userComparator);
+		} else {
+			comparator = new Comparator<Tuple>() {
+		    	public int compare(Tuple t1, Tuple t2) {
+                    return DataType.compare(simpleEval(t1), simpleEval(t2));
+		        }
+		    };
+		}
+	};
 	
     /**
      * set up a default data processing pipe for processing by this spec
@@ -137,25 +172,30 @@ public abstract class EvalSpec implements Serializable{
     	return false;
     }
     
-    /**
-     * To determine if this spec is a candidate for 
-     * algebraic evaluation. 
-     * @return
-     */
-    public abstract boolean amenableToCombiner();
-
+    public void setComparatorName(String name) {
+        comparatorFuncName = name;
+    }
+    
+    public String getComparatorName() {
+        return comparatorFuncName;
+    }
     
     /**
      * Compare 2 tuples according to this spec. This is used while sorting by arbitrary (even generated) fields.
      * @return
      */
-    public Comparator<Datum> getComparator() {
-        return new Comparator<Datum>() {
-        	
-        	public int compare(Datum t1, Datum t2) {
-    			return (simpleEval(t1).compareTo(simpleEval(t2)));
-            }
-        };
+    public Comparator<Tuple> getComparator() {
+		if (comparator != null)
+            return comparator;
+		else
+        {
+            comparator = new Comparator<Tuple>() {
+                public int compare(Tuple t1, Tuple t2) {
+                    return DataType.compare(simpleEval(t1), simpleEval(t2));
+                }
+            };
+            return comparator;
+        }
     }
     
     public void setFlatten(boolean isFlattened){
@@ -173,7 +213,7 @@ public abstract class EvalSpec implements Serializable{
      * @param input
      * @return
      */
-    public Datum simpleEval(Datum input){
+    public Object simpleEval(Object input){
     	if (simpleEvalInput == null)
     		init();
     	simpleEvalInput.add(input);
@@ -208,6 +248,6 @@ public abstract class EvalSpec implements Serializable{
 		this.inner = inner;
 	}
 
-
+	public abstract void visit(EvalSpecVisitor v);
     
 }

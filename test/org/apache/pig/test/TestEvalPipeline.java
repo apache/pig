@@ -37,9 +37,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.TextLoader;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
 
@@ -59,6 +57,7 @@ public class TestEvalPipeline extends TestCase {
 			
 		}
 	}
+	
 	
 	private File createFile(String[] data) throws Exception{
 		File f = File.createTempFile("tmp", "");
@@ -131,11 +130,10 @@ public class TestEvalPipeline extends TestCase {
 	}
 	
 	
-	/* Replaced by TestDataMap.java
 	@Test
 	public void testMapLookup() throws IOException{
 		PigServer pigServer = new PigServer(initString);
-		DataBag b = new DataBag();
+		DataBag b = BagFactory.getInstance().newDefaultBag();
 		DataMap colors = new DataMap();
 		colors.put("apple","red");
 		colors.put("orange","orange");
@@ -162,7 +160,6 @@ public class TestEvalPipeline extends TestCase {
 		assertEquals(t.getAtomField(1).numval(), 0.3);
 		assertFalse(iter.hasNext());
 	}
-	*/
 	
 	
 	static public class TitleNGrams extends EvalFunc<DataBag> {

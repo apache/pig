@@ -21,8 +21,8 @@ import java.io.IOException;
 
 import org.apache.pig.StoreFunc;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.PigFile;
@@ -63,7 +63,7 @@ public class POStore extends PhysicalOperator {
     @Override
 	public Tuple getNext() throws IOException {
         // get all tuples from input, and store them.
-        DataBag b = new DataBag(Datum.DataType.TUPLE);
+        DataBag b = BagFactory.getInstance().newDefaultBag();
         Tuple t;
         while ((t = (Tuple) inputs[0].getNext()) != null) {
             b.add(t);
@@ -88,6 +88,11 @@ public class POStore extends PhysicalOperator {
     	new RuntimeException().printStackTrace();
     	System.exit(1);
     	return -1;
+    }
+
+    @Override
+    public void visit(POVisitor v) {
+        v.visitStore(this);
     }
 
 }

@@ -17,40 +17,99 @@
  */
 package org.apache.pig.data;
 
-import java.io.File;
-import java.io.IOException;
+import java.lang.Class;
+import java.lang.ClassLoader;
+import java.net.URL;
+import java.net.URLClassLoader;
 
-public class BagFactory {
+import org.apache.pig.impl.eval.EvalSpec;
+import org.apache.pig.impl.util.SpillableMemoryManager;
 
-    private File              tmpdir = null;
-    private static BagFactory instance = new BagFactory();
+/**
+ * A bag factory.  Can be used to generate different types of bags
+ * depending on what is needed.  This class is abstract so that users can
+ * override the bag factory if they desire to provide their own that
+ * returns their implementation of a bag.  If the property
+ * pig.data.bag.factory.name is set to a class name and
+ * pig.data.bag.factory.jar is set to a URL pointing to a jar that
+ * contains the above named class, then getInstance() will create a
+ * a instance of the named class using the indicatd jar.  Otherwise, it
+ * will create and instance of DefaultBagFactory.
+ */
+public abstract class BagFactory {
+    private static BagFactory gSelf = null;
+    private static SpillableMemoryManager gMemMgr;
 
+    /**
+     * Get a reference to the singleton factory.
+     */
     public static BagFactory getInstance() {
-        return instance;
-    }
-
-    private BagFactory() {
-    }
-
-    public static void init(File tmpdir) {
-        instance.setTmpDir(tmpdir);
-    }
-
-    private void setTmpDir(File tmpdir) {
-        this.tmpdir = tmpdir;
-        this.tmpdir.mkdirs();
+        if (gSelf == null) {
+            String factoryName =
+                System.getProperty("pig.data.bag.factory.name");
+            String factoryJar =
+                System.getProperty("pig.data.bag.factory.jar");
+            if (factoryName != null && factoryJar != null) {
+                try {
+                    URL[] urls = new URL[1];
+                    urls[0] = new URL(factoryJar);
+                    ClassLoader loader = new URLClassLoader(urls,
+                        BagFactory.class.getClassLoader());
+                    Class c = Class.forName(factoryName, true, loader);
+                    Object o = c.newInstance();
+                    if (!(o instanceof BagFactory)) {
+                        throw new RuntimeException("Provided factory " +
+                            factoryName + " does not extend BagFactory!");
+                    }
+                    gSelf = (BagFactory)o;
+                } catch (Exception e) {
+                    if (e instanceof RuntimeException) {
+                        // We just threw this
+                        RuntimeException re = (RuntimeException)e;
+                        throw re;
+                    }
+                    throw new RuntimeException("Unable to instantiate "
+                        + "bag factory " + factoryName, e);
+                }
+            } else {
+                gSelf = new DefaultBagFactory();
+            }
+        }
+        return gSelf;
     }
     
-    // Get BigBag or Bag, depending on whether the temp directory has been set up
-    public DataBag getNewBag(Datum.DataType type) throws IOException {
-        if (tmpdir == null) return new DataBag(type);
-        else return getNewBigBag(type);
-    }
+    /**
+     * Get a default (unordered, not distinct) data bag.
+     */
+    public abstract DataBag newDefaultBag();
+
+    /**
+     * Get a sorted data bag.
+     * @param spec EvalSpec that controls how the data is sorted.
+     * If null, default comparator will be used.
+     */
+    public abstract DataBag newSortedBag(EvalSpec spec);
     
-    // Need a Big Bag, dammit!
-    public BigDataBag getNewBigBag(Datum.DataType type) throws IOException {
-        if (tmpdir == null) throw new IOException("No temp directory given for BigDataBag.");
-        else return new BigDataBag(type, tmpdir);
+    /**
+     * Get a distinct data bag.
+     */
+    public abstract DataBag newDistinctBag();
+
+    protected BagFactory() {
+        gMemMgr = new SpillableMemoryManager();
+    }
+
+    protected void registerBag(DataBag b) {
+        gMemMgr.registerSpillable(b);
+    }
+
+    /**
+     * Provided for testing purposes only.  This function should never be
+     * called by anybody but the unit tests.
+     */
+    public static void resetSelf() {
+        gSelf = null;
     }
 
 }
+

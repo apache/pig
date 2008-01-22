@@ -180,7 +180,8 @@ public class QueryParser {
 		if (spec instanceof CompositeEvalSpec)
 			spec = ((CompositeEvalSpec)spec).getSpecs().get(0);
 		if ( spec instanceof ConstSpec || 
-			(spec instanceof FuncEvalSpec && ((FuncEvalSpec)spec).getReturnType() == DataAtom.class))
+			(spec instanceof FuncEvalSpec &&
+                DataType.isAtomic(DataType.findType(((FuncEvalSpec)spec).getReturnType()))))
 			isAtomic = true;
 		else if (spec instanceof FuncEvalSpec)
 			isAtomic = false;
@@ -515,7 +516,7 @@ CogroupInput GroupItem() : {LogicalOperator op; GenerateSpec gs; EvalSpec es; Co
 }
 
 
-LogicalOperator OrderClause() : {LogicalOperator op; EvalSpec sortSpec = null; ProjectSpec projSpec;}
+LogicalOperator OrderClause() : {LogicalOperator op; EvalSpec sortSpec = null; ProjectSpec projSpec; String funcName;}
 {
 	(
 	op = NestedExpr() <BY> 
@@ -530,6 +531,17 @@ LogicalOperator OrderClause() : {LogicalOperator op; EvalSpec sortSpec = null; P
 		)
 	|	(sortSpec = Star() {sortSpec = new GenerateSpec(sortSpec);})
 	)
+    (
+        <USING>  funcName = QualifiedFunction()
+        {
+            try {
+                sortSpec.setComparatorName(funcName);
+            } catch (Exception e){
+                throw new ParseException(e.getMessage());
+            }
+        }
+    )?
+
 	)
 	{
 		return new LOSort(op, sortSpec);
@@ -607,13 +619,23 @@ EvalSpec NestedFilter(Schema over, Map<String, EvalSpec> specs):
 }
 
 EvalSpec NestedSortOrArrange(Schema over, Map<String, EvalSpec> specs):
-{EvalSpec sortSpec; ProjectSpec projSpec; EvalSpec item; Schema subSchema = null; Token t;}
+{EvalSpec sortSpec; ProjectSpec projSpec; EvalSpec item; Schema subSchema = null; Token t; String funcName;}
 {
 	(
 	( t = <ORDER> | t = <ARRANGE> )
 	item = BaseEvalSpec(over,specs) { subSchema = item.getOutputSchemaForPipe(over); }
-	<BY> ( (projSpec = SimpleProj(subSchema) {sortSpec = projSpec;}) 
-		| sortSpec = Star() )
+	<BY> ( (projSpec = SimpleProj(subSchema) {sortSpec = projSpec;})
+		| sortSpec = Star() )     
+    (
+        <USING>  funcName = QualifiedFunction()
+        {
+            try {
+                sortSpec.setComparatorName(funcName);
+            } catch (Exception e){
+                throw new ParseException(e.getMessage());
+            }
+        }
+    )?
 	)
 	{ return copyItemAndAddSpec(item,new SortDistinctSpec(false, sortSpec)); }
 }
@@ -932,6 +954,7 @@ String FilterFunction() : {String funcName;}
 		return funcName;
 	}	
 }
+
 
 /**
  * Bug 831620 - '$' support

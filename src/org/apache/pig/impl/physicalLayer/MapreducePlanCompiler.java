@@ -19,19 +19,29 @@ package org.apache.pig.impl.physicalLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Iterator;
 
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
+import org.apache.pig.impl.eval.BinCondSpec;
 import org.apache.pig.impl.eval.ConstSpec;
 import org.apache.pig.impl.eval.EvalSpec;
+import org.apache.pig.impl.eval.FilterSpec;
 import org.apache.pig.impl.eval.FuncEvalSpec;
 import org.apache.pig.impl.eval.GenerateSpec;
 import org.apache.pig.impl.eval.ProjectSpec;
+import org.apache.pig.impl.eval.CompositeEvalSpec;
+import org.apache.pig.impl.eval.MapLookupSpec;
 import org.apache.pig.impl.eval.SortDistinctSpec;
 import org.apache.pig.impl.eval.StarSpec;
+import org.apache.pig.impl.eval.EvalSpecVisitor;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
@@ -194,9 +204,35 @@ public class MapreducePlanCompiler extends PlanCompiler {
 
         } else { // push into "reduce" phase
             
-            // use combiner, if amenable
-            if (mro.toReduce == null && lo.getSpec().amenableToCombiner()) {
-            	//TODO
+            EvalSpec spec = lo.getSpec();
+
+            if (mro.toReduce == null && shouldCombine(spec)) {
+                // Push this spec into the combiner.  But we also need to
+                // create a new spec with a changed expected projection to
+                // push into the reducer.
+
+                if (mro.toCombine != null) {
+                    throw new AssertionError("Combiner already set.");
+                }
+                // mro.toCombine = spec;
+
+                // Now, we need to adjust the expected projection for the
+                // eval spec(s) we just pushed.  Also, this will change the
+                // function to be the final instead of general instance.
+                EvalSpec newSpec = spec.copy(pigContext);
+                newSpec.visit(new ReduceAdjuster(pigContext));
+                mro.addReduceSpec(newSpec);
+
+                // Adjust the function name for the combine spec, to set it
+                // to the initial function instead of the general
+                // instance.  Make a copy of the eval spec rather than
+                // adjusting the existing one, to prevent breaking the 
+                // logical plan in case another physical plan is generated
+                // from it later.
+                EvalSpec combineSpec = spec.copy(pigContext);
+                combineSpec.visit(new CombineAdjuster());
+                mro.toCombine = combineSpec;
+
             } else {
                 mro.addReduceSpec(lo.getSpec()); // otherwise, don't use combiner
             }
@@ -271,7 +307,216 @@ public class MapreducePlanCompiler extends PlanCompiler {
 		sortJob.addReduceSpec(new GenerateSpec(ps));
 	
     	sortJob.reduceParallelism = loSort.getRequestedParallelism();
+    	
+    	String comparatorFuncName = loSort.getSortSpec().getComparatorName();
+    	if (comparatorFuncName != null) {
+    		try {
+    			sortJob.userComparator = 
+    				(Class<WritableComparator>)Class.forName(comparatorFuncName);
+    		} catch (ClassNotFoundException e) {
+    			throw new RuntimeException("Unable to find user comparator " + comparatorFuncName, e);
+    		}
+    	}
+
     	return sortJob;
     }
-    
+
+    private boolean shouldCombine(EvalSpec spec) {
+        // Determine whether this something we can combine or not.
+        // First, it must be a generate spec.
+        if (!(spec instanceof GenerateSpec)) {
+            return false;
+        }
+
+        GenerateSpec gen = (GenerateSpec)spec;
+
+        // Second, the first immediate child of the generate spec must be
+        // a project with a value of 0.
+        Iterator<EvalSpec> i = gen.getSpecs().iterator();
+        if (!i.hasNext()) return false;
+        EvalSpec s = i.next();
+        if (!(s instanceof ProjectSpec)) {
+            return false;
+        } else {
+            ProjectSpec p = (ProjectSpec)s;
+            if (p.numCols() > 1) return false;
+            else if (p.getCol() != 0) return false;
+        }
+
+        // Third, all subsequent immediate children of the generate spec
+        // must be func eval specs
+        while (i.hasNext()) {
+            s = i.next();
+            if (!(s instanceof FuncEvalSpec)) return false;
+        }
+
+        // Third, walk the entire tree of the generate spec and see if we
+        // can combine it.
+        CombineDeterminer cd = new CombineDeterminer();
+        gen.visit(cd);
+        return cd.useCombiner();
+    }
+
+    private class ReduceAdjuster extends EvalSpecVisitor {
+        private int position = 0;
+        FunctionInstantiator instantiator = null;
+
+        public ReduceAdjuster(FunctionInstantiator fi) {
+            instantiator = fi;
+        }
+
+        public void visitGenerate(GenerateSpec g) {
+            Iterator<EvalSpec> i = g.getSpecs().iterator();
+            for (position = 0; i.hasNext(); position++) {
+                i.next().visit(this);
+            }
+        }
+        
+        public void visitFuncEval(FuncEvalSpec fe) {
+            // Need to replace our arg spec with a project of our position.
+            // DON'T visit our args, they're exactly what we're trying to
+            // lop off.
+            // The first ProjectSpec in the Composite is because the tuples
+            // will come out of the combiner in the form (groupkey,
+            // {(x, y, z)}).  The second ProjectSpec contains the offset of
+            // the projection element we're interested in.
+            CompositeEvalSpec cs = new CompositeEvalSpec(new ProjectSpec(1));
+            cs.addSpec(new ProjectSpec(position));
+            fe.setArgs(new GenerateSpec(cs));
+
+
+            // Reset the function to call the final instance of itself
+            // instead of the general instance.  Have to instantiate the
+            // function itself first so we can find out if it's algebraic
+            // or not.
+            try {
+                fe.instantiateFunc(instantiator);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            fe.resetFuncToFinal();
+        }
+    }
+
+    private class CombineAdjuster extends EvalSpecVisitor {
+        private int position = 0;
+        
+        //We don't want to be performing any flattening in the combiner since the column numbers in
+        //the reduce spec assume that there is no combiner. If the combiner performs flattening, the column
+        //numbers get messed up. For now, since combiner works only with generate group, func1(), func2(),...,
+        //it suffices to write visitors for those eval spec types.
+
+        public void visitFuncEval(FuncEvalSpec fe) {
+            // Reset the function to call the initial instance of itself
+            // instead of the general instance.
+            fe.resetFuncToInitial();
+            fe.setFlatten(false);
+        }
+        
+
+        @Override
+        public void visitProject(ProjectSpec p) {
+            p.setFlatten(false);
+        }
+        
+        
+    }
+
+    private class CombineDeterminer extends EvalSpecVisitor {
+        private class FuncCombinable extends EvalSpecVisitor {
+            public boolean combinable = true;
+
+            @Override
+            public void visitBinCond(BinCondSpec bc) {
+                combinable = false;
+            }
+            
+            @Override
+            public void visitFilter(FilterSpec bc) {
+                combinable = false;
+            }
+
+            @Override
+            public void visitFuncEval(FuncEvalSpec bc) {
+                combinable = false;
+            }
+
+            @Override
+            public void visitSortDistinct(SortDistinctSpec bc) {
+                combinable = false;
+            }
+        };
+
+        private int shouldCombine = 0;
+
+        public boolean useCombiner() {
+            return shouldCombine > 0;
+        }
+
+        @Override
+        public void visitBinCond(BinCondSpec bc) {
+            // TODO Could be true if both are true.  But the logic in
+            // CombineAdjuster and ReduceAdjuster don't know how to handle
+            // binconds, so just do false for now.
+            shouldCombine = -1;
+        }
+
+        @Override
+        public void visitCompositeEval(CompositeEvalSpec ce) {
+            // If we've already determined we're not combinable, stop.
+            if (shouldCombine < 0) return;
+
+            for (EvalSpec spec: ce.getSpecs()) {
+                spec.visit(this);
+            }
+        }
+
+        // ConstSpec is a NOP, as it neither will benefit from nor
+        // prevents combinability.
+        
+        @Override
+        public void visitFilter(FilterSpec f) {
+            shouldCombine = -1;
+        }
+
+        @Override
+        public void visitFuncEval(FuncEvalSpec fe) {
+            // Check the functions arguments, to make sure they are
+            // combinable.
+            FuncCombinable fc = new FuncCombinable();
+            fe.getArgs().visit(fc);
+            if (!fc.combinable) {
+                shouldCombine = -1;
+                return;
+            }
+            
+            if (fe.combinable()) shouldCombine = 1;
+            else shouldCombine = -1;
+        }
+
+        @Override
+        public void visitGenerate(GenerateSpec g) {
+            // If we've already determined we're not combinable, stop.
+            if (shouldCombine < 0) return;
+
+            for (EvalSpec spec: g.getSpecs()) {
+                spec.visit(this);
+            }
+        }
+
+        // MapLookupSpec is a NOP, as it neither will benefit from nor
+        // prevents combinability.
+        
+        // ProjectSpec is a NOP, as it neither will benefit from nor
+        // prevents combinability.
+        
+        @Override
+        public void visitSortDistinct(SortDistinctSpec sd) {
+            shouldCombine = -1;
+        }
+
+        // StarSpec is a NOP, as it neither will benefit from nor
+        // prevents combinability.
+    }
+
 }

@@ -22,9 +22,9 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -33,10 +33,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * Generates the average of the values of the first field of a tuple. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global application
  */
-public class AVG extends EvalFunc<DataAtom> implements Algebraic {
+public class AVG extends EvalFunc<Double> implements Algebraic {
+    
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
+    public Double exec(Tuple input) throws IOException {
         double sum = sum(input);
         double count = count(input);
 
@@ -44,7 +46,7 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
         if (count > 0)
             avg = sum / count;
 
-        output.setValue(avg);
+        return new Double(avg);
     }
 
     public String getInitial() {
@@ -61,79 +63,72 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
 
     static public class Initial extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-        	try {
-            output.appendField(new DataAtom(sum(input)));
-            output.appendField(new DataAtom(count(input)));
-            output.appendField(new DataAtom("processed by initial"));
-        	} catch(RuntimeException t) {
-        		throw new RuntimeException(t.getMessage() + ": " + input);
-        	}
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                Tuple t = mTupleFactory.newTuple(2);
+                t.set(0, sum(input));
+                t.set(1, count(input));
+                return t;
+            } catch(RuntimeException t) {
+                throw new RuntimeException(t.getMessage() + ": " + input);
+            }
         }
     }
 
     static public class Intermed extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-            combine(input.getBagField(0), output);
+        public Tuple exec(Tuple input) throws IOException {
+            DataBag b = (DataBag)input.get(0);
+            return combine(b);
         }
     }
 
-    static public class Final extends EvalFunc<DataAtom> {
+    static public class Final extends EvalFunc<Double> {
         @Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
-            Tuple combined = new Tuple();
-            if(input.getField(0) instanceof DataBag) {
-                combine(input.getBagField(0), combined);    
-            } else {
-                throw new RuntimeException("Bag not found in: " + input);
-                
-                
-                //combined = input.getTupleField(0);
-            }
-            double sum = combined.getAtomField(0).numval();
-            double count = combined.getAtomField(1).numval();
+        public Double exec(Tuple input) throws IOException {
+            DataBag b = (DataBag)input.get(0);
+            Tuple combined = combine(b);
+
+            double sum = (Double)combined.get(0);
+            double count = (Long)combined.get(1);
 
             double avg = 0;
             if (count > 0) {
                 avg = sum / count;
             }
-            output.setValue(avg);
+            return new Double(avg);
         }
     }
 
-    static protected void combine(DataBag values, Tuple output) throws IOException {
+    static protected Tuple combine(DataBag values) throws IOException {
         double sum = 0;
-        double count = 0;
+        long count = 0;
 
-        for (Iterator it = values.content(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
-//            if(!(t.getField(0) instanceof DataAtom)) {
-//                throw new RuntimeException("Unexpected Type: " + t.getField(0).getClass().getName() + " in " + t);
-//            }
-            
-            sum += t.getAtomField(0).numval();
-            count += t.getAtomField(1).numval();
+        Tuple output = mTupleFactory.newTuple(2);
+
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            sum += (Double)t.get(0);
+            count += (Long)t.get(1);
         }
 
-        output.appendField(new DataAtom(sum));
-        output.appendField(new DataAtom(count));
+        output.set(0, new Double(sum));
+        output.set(1, new Long(count));
+        return output;
     }
 
     static protected long count(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
-
-        
-        return values.cardinality();
+        DataBag values = (DataBag)input.get(0);
+        return values.size();
     }
 
     static protected double sum(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
+        DataBag values = (DataBag)input.get(0);
 
         double sum = 0;
-        for (Iterator it = values.content(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
-            sum += t.getAtomField(0).numval();
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            sum += (Double)t.get(0);
         }
 
         return sum;

@@ -20,7 +20,6 @@ package org.apache.pig.impl.eval.cond;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 
 
@@ -40,7 +39,7 @@ public class NotCond extends Cond {
     }
 
     @Override
-	public boolean eval(Datum input){
+	public boolean eval(Object input){
         return !cond.eval(input);
     }
     

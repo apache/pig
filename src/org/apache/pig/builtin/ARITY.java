@@ -20,17 +20,17 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-public class ARITY extends EvalFunc<DataAtom> {
+public class ARITY extends EvalFunc<Integer> {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(input.arity());
+    public Integer exec(Tuple input) throws IOException {
+        return new Integer(input.size());
     }
+
     @Override
     public Schema outputSchema(Schema input) {
         return new AtomSchema("arity");

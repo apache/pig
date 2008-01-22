@@ -17,12 +17,13 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.DataInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
 
 import org.apache.pig.LoadFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
 
@@ -32,13 +33,13 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  */
 public class TextLoader implements LoadFunc{
 	BufferedPositionedInputStream in;
-	private DataInputStream inData = null;
-    
+	private BufferedReader inData = null;
 	long                end;
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
 	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
-        inData = new DataInputStream(in);
+        inData = new BufferedReader(new InputStreamReader(in, "UTF8"));
         this.end = end;
         // Since we are not block aligned we throw away the first
         // record and cound on a different instance to read it
@@ -51,9 +52,7 @@ public class TextLoader implements LoadFunc{
             return null;
         String line;
         if ((line = inData.readLine()) != null) {
-            Tuple t = new Tuple(1);
-            t.setField(0, new DataAtom(line));
-            return t;
+            return mTupleFactory.newTuple(new String(line));
         }
         return null;
     }

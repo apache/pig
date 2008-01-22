@@ -24,78 +24,80 @@ import org.apache.pig.impl.physicalLayer.IntermedResult;
 
 
 public class LORead extends LogicalOperator {
-	private static final long serialVersionUID = 1L;
-
-
-	   
-	protected IntermedResult readFrom = null;
-
-	boolean readsFromSplit = false;
-    
-	@Override
-	public String toString() {
-		StringBuffer result = new StringBuffer(super.toString());
-		result.append(" (readsFromSplit: ");
-		result.append(readsFromSplit);
-		result.append(')');
-		return result.toString();
-	}
+    private static final long serialVersionUID = 1L;
 
 
 
-	//Since intermed result may have multiple outputs, which output do I read?
-    
+    protected IntermedResult readFrom = null;
+
+    boolean readsFromSplit = false;
+
+     @Override
+     public String toString() {
+        StringBuffer result = new StringBuffer(super.toString());
+          result.append(" (readsFromSplit: ");
+          result.append(readsFromSplit);
+          result.append(')');
+          return result.toString();
+    }
+
+    //Since intermed result may have multiple outputs, which output do I read?
     public int splitOutputToRead = 0;
-	
-	public LORead(IntermedResult readFromIn) {
-		super();		
+
+    public LORead(IntermedResult readFromIn) {
+        super();
         readFrom = readFromIn;
-	}
-    
-	public LORead(IntermedResult readFromIn, int outputToRead) {
-		super();
-		readsFromSplit = true;
-		this.splitOutputToRead = outputToRead;		
+    }
+
+    public LORead(IntermedResult readFromIn, int outputToRead) {
+        super();
+        readsFromSplit = true;
+        this.splitOutputToRead = outputToRead;
         readFrom = readFromIn;
-	}
-	
-	public boolean readsFromSplit(){
-		return readsFromSplit;
-	}
-	
-	@Override
-	public String name() {
-		return "Read";
-	}
-	@Override
-	public String arguments() {
-		return alias;
-	}
-     
+    }
+
+    public boolean readsFromSplit() {
+        return readsFromSplit;
+    }
+
     @Override
-	public TupleSchema outputSchema() {
-    	if (schema == null) {
-            if (readFrom.lp != null && readFrom.lp.root != null && readFrom.lp.root.outputSchema() != null) {
+    public String name() {
+        return "Read";
+    }
+    @Override
+    public String arguments() {
+        return alias;
+    }
+
+    @Override
+    public TupleSchema outputSchema() {
+        if (schema == null) {
+            if (readFrom.lp != null && readFrom.lp.root != null
+                && readFrom.lp.root.outputSchema() != null) {
                 schema = readFrom.lp.root.outputSchema().copy();
             } else {
                 schema = new TupleSchema();
             }
-    	}
-    	
-    	schema.removeAllAliases();
+        }
+
+        schema.removeAllAliases();
         schema.setAlias(alias);
-        
+
         return schema;
     }
-    
-    
-	
-	@Override
-	public int getOutputType(){
-		return readFrom.getOutputType();
-	}
 
-	public IntermedResult getReadFrom() {
-		return readFrom;
+
+
+    @Override
+    public int getOutputType() {
+        return readFrom.getOutputType();
+    }
+
+    public IntermedResult getReadFrom() {
+        return readFrom;
+    }
+
+	public void visit(LOVisitor v) {
+		v.visitRead(this);
 	}
 }

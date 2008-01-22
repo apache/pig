@@ -20,7 +20,7 @@ package org.apache.pig.impl.eval.collector;
 import java.util.Iterator;
 
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
+import org.apache.pig.data.DefaultAbstractBag;
 import org.apache.pig.data.Tuple;
 
 
@@ -43,7 +43,7 @@ public abstract class DataCollector {
 	/**
      * Add a tuple to the collector.
 	 */
-	public abstract void add(Datum d);
+	public abstract void add(Object d);
 	
 	private boolean needsFlattening(){
 		if (needFlatteningLocally() || (successor!=null && successor.needsFlattening()))
@@ -60,15 +60,15 @@ public abstract class DataCollector {
 	}
 	
 	
-	protected boolean checkDelimiter(Datum d){
-		if (d instanceof DataBag.BagDelimiterTuple){
-			if (d instanceof DataBag.StartBag){
+	protected boolean checkDelimiter(Object d){
+		if (d instanceof DefaultAbstractBag.BagDelimiterTuple){
+			if (d instanceof DefaultAbstractBag.StartBag){
 				if (inTheMiddleOfBag)
 					throw new RuntimeException("Internal error: Found a flattened bag inside another");
 				else
 					inTheMiddleOfBag = true;
 			}else{
-				if (!(d instanceof DataBag.EndBag))
+				if (!(d instanceof DefaultAbstractBag.EndBag))
 					throw new RuntimeException("Internal error: Unknown bag delimiter type");
 				if (!inTheMiddleOfBag)
 					throw new RuntimeException("Internal error: Improper nesting of bag delimiter tuples");
@@ -79,15 +79,15 @@ public abstract class DataCollector {
 		return false;
 	}
 
-	protected void addToSuccessor(Datum d){
+	protected void addToSuccessor(Object d){
 		if (d instanceof DataBag && !inTheMiddleOfBag && successor!=null && successor.needsFlattening()){
 			DataBag bag = (DataBag)d;
 			//flatten the bag and send it through the pipeline
-			successor.add(DataBag.startBag);
-		    Iterator<Datum> iter = bag.content();
+			successor.add(DefaultAbstractBag.startBag);
+		    Iterator<Tuple> iter = bag.iterator();
 	    	while(iter.hasNext())
 	    		successor.add(iter.next());
-	    	successor.add(DataBag.endBag);
+	    	successor.add(DefaultAbstractBag.endBag);
 		}else{
 			//simply add the datum
 			successor.add(d);

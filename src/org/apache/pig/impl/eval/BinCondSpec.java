@@ -20,7 +20,6 @@ package org.apache.pig.impl.eval;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.eval.cond.Cond;
@@ -61,10 +60,6 @@ public class BinCondSpec extends EvalSpec {
     	ifTrue.instantiateFunc(fInstantiaor);
     	ifFalse.instantiateFunc(fInstantiaor);
     };
-    @Override
-    public boolean amenableToCombiner() {
-    	return false;
-    }
 
     @Override
 	protected Schema mapInputSchema(Schema schema) {
@@ -75,7 +70,7 @@ public class BinCondSpec extends EvalSpec {
 	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
     	return new DataCollector(endOfPipe){
     		@Override
-    		public void add(Datum d) {
+    		public void add(Object d) {
     			if (cond.eval(d)){
     				addToSuccessor(ifTrue.simpleEval(d));
     			}else{
@@ -104,5 +99,13 @@ public class BinCondSpec extends EvalSpec {
         sb.append(")]");
         return sb.toString();
     }
+
+	public EvalSpec ifTrue() { return ifTrue; }
+	public EvalSpec ifFalse() { return ifFalse; }
+    
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitBinCond(this);
+	}
     
 }

@@ -36,9 +36,9 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.StarSpec;
@@ -87,9 +87,10 @@ public class PigMapReduce implements MapRunnable, Reducer {
     private int                       index;
     private int                       inputCount;
     private boolean                   isInner[];
-    private File                      tmpdir;
+    // private File                      tmpdir;
     private static PigContext pigContext = null;
     ArrayList<PigRecordWriter> sideFileWriters = new ArrayList<PigRecordWriter>();
+    TupleFactory                      mTupleFactory = TupleFactory.getInstance();
 
     /**
      * This function is called in MapTask by Hadoop as the Mapper.run() method. We basically pull
@@ -100,9 +101,11 @@ public class PigMapReduce implements MapRunnable, Reducer {
         PigMapReduce.reporter = reporter;
 
         oc = output;
+        /*
         tmpdir = new File(job.get("mapred.task.id"));
         tmpdir.mkdirs();
         BagFactory.init(tmpdir);
+        */
 
         setupMapPipe(reporter);
 
@@ -125,10 +128,12 @@ public class PigMapReduce implements MapRunnable, Reducer {
         PigMapReduce.reporter = reporter;
         
         try {
+            /*
             tmpdir = new File(job.get("mapred.task.id"));
             tmpdir.mkdirs();
 
             BagFactory.init(tmpdir);
+            */
 
             oc = output;
             if (evalPipe == null) {
@@ -136,22 +141,21 @@ public class PigMapReduce implements MapRunnable, Reducer {
             }
 
             DataBag[] bags = new DataBag[inputCount];
-            Datum groupName = ((Tuple) key).getField(0);
-            Tuple t = new Tuple(1 + inputCount);
-            t.setField(0, groupName);
+            String groupName = (String)((Tuple) key).get(0);
+            Tuple t = mTupleFactory.newTuple(1 + inputCount);
+            t.set(0, groupName);
             for (int i = 1; i < 1 + inputCount; i++) {
-                bags[i - 1] =
-					BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
-                t.setField(i, bags[i - 1]);
+                bags[i - 1] = BagFactory.getInstance().newDefaultBag();
+                t.set(i, bags[i - 1]);
             }
 
             while (values.hasNext()) {
                 IndexedTuple it = (IndexedTuple) values.next();
-                t.getBagField(it.index + 1).add(it.toTuple());
+                ((DataBag)t.get(it.index + 1)).add(it.toTuple());
             }
             
             for (int i = 0; i < inputCount; i++) {
-                if (isInner[i] && t.getBagField(1 + i).isEmpty())
+                if (isInner[i] && ((DataBag)t.get(1 + i)).size() == 0)
                     return;
             }
             
@@ -300,14 +304,15 @@ public class PigMapReduce implements MapRunnable, Reducer {
     	}
     	
         @Override
-		public void add(Datum d){
+		public void add(Object d){
         	try{
 	            if (group == null) {
 	                oc.collect(null, (Tuple)d);
 	            } else {
-	            	Datum[] groupAndTuple = LOCogroup.getGroupAndTuple(d);
+	            	Object[] groupAndTuple = LOCogroup.getGroupAndTuple(d);
                     // wrap group label in a tuple, so it becomes writable.
-	            	oc.collect(new Tuple(groupAndTuple[0]), new IndexedTuple((Tuple)groupAndTuple[1], index));
+	            	oc.collect(mTupleFactory.newTuple(groupAndTuple[0]),
+                        new IndexedTuple((Tuple)groupAndTuple[1], index));
                 }
             }catch(IOException e){
             	throw new RuntimeException(e);
@@ -329,7 +334,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
     	}
     	
         @Override
-		public void add(Datum d){    
+		public void add(Object d){    
         	try{
         		//System.out.println("Adding " + d + " to reduce output");
         		oc.collect(null, (Tuple)d);

@@ -97,4 +97,8 @@ class POEval extends PhysicalOperator {
         }
     }
        
+    public void visit(POVisitor v) {
+        v.visitEval(this);
+    }
+
 }

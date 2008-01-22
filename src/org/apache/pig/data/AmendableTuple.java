@@ -17,18 +17,18 @@
  */
 package org.apache.pig.data;
 
-public class AmendableTuple extends Tuple {
-    Datum amendKey;       // the identifier of the group to which this tuple belongs.
+public class AmendableTuple extends DefaultTuple {
+    Object amendKey;       // the identifier of the group to which this tuple belongs.
 
-    public AmendableTuple(int numFields, Datum amendKey) {
+    public AmendableTuple(int numFields, Object amendKey) {
         super(numFields);
         this.amendKey = amendKey;
     }
     
-    public Datum getAmendKey() {
+    public Object getAmendKey() {
         return amendKey;
     }
-    public void setAmendKey(Datum amendKey) {
+    public void setAmendKey(Object amendKey) {
         this.amendKey = amendKey;
     }
 

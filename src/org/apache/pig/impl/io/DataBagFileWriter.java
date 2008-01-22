@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ /*
 package org.apache.pig.impl.io;
 
 import java.io.BufferedOutputStream;
@@ -24,7 +25,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.data.Datum;
+import org.apache.pig.data.Tuple;
 
 
 
@@ -37,14 +38,24 @@ public class DataBagFileWriter {
 		out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(store)));
 	}
 	
-	public void write(Datum d) throws IOException{
-		d.write(out);
+	public void write(Tuple t) throws IOException{
+		t.write(out);
 	}
 	
-	public void write(Iterator<Datum> iter) throws IOException{
+	public long write(Iterator<Tuple> iter) throws IOException{
+	
+		long initialSize = getFileLength();
 		while (iter.hasNext())
 			iter.next().write(out);
+		
+		return getFileLength() - initialSize;
 	}
+	
+	public long getFileLength() throws IOException{
+		out.flush();
+		return store.length();
+	}
+	
 	
 	public void close() throws IOException{
 		flush();
@@ -56,3 +67,4 @@ public class DataBagFileWriter {
 	}
 	
 }
+*/

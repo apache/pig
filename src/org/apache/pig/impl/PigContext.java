@@ -19,6 +19,7 @@ package org.apache.pig.impl;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
@@ -42,6 +43,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobSubmissionProtocol;
 import org.apache.hadoop.mapred.JobTracker;
@@ -75,7 +77,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     transient private JobConf conf = null;        
     
     //  extra jar files that are needed to run a job
-    transient public List<String> extraJars = new LinkedList<String>();              
+    transient public List<URL> extraJars = new LinkedList<URL>();              
     
     //  The jars that should not be merged in. (Some functions may come from pig.jar and we don't want the whole jar file.)
     transient public Vector<String> skipJars = new Vector<String>(2);    
@@ -89,7 +91,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
     //  connection to hadoop jobtracker (stays as null if doing local execution)
     transient private JobSubmissionProtocol jobTracker;                  
     transient private JobClient jobClient;                  
-	transient private Logger                mLogger;
    
     private String jobName = JOB_NAME_PREFIX;	// can be overwritten by users
   
@@ -109,12 +110,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
 	public PigContext(ExecType execType){
 		this.execType = execType;
 		
-		/*
-		mLogger = Logger.getLogger("org.apache.pig");
-		mLogger.setAdditivity(false);
-		*/
-		mLogger = PigLogger.getLogger();
-
     	initProperties();
     	
         String pigJar = JarManager.findContainingJar(Main.class);
@@ -134,6 +129,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
 
 	private void initProperties() {
+        Logger log = PigLogger.getLogger();
+
 	    Properties fileProperties = new Properties();
 	        
 	    try{        
@@ -158,15 +155,16 @@ public class PigContext implements Serializable, FunctionInstantiator {
 	    //Now set these as system properties only if they are not already defined.
 	    for (Object o: fileProperties.keySet()){
 	    	String propertyName = (String)o;
-			mLogger.debug("Found system property " + propertyName + " in .pigrc"); 
+			log.debug("Found system property " + propertyName + " in .pigrc"); 
 	    	if (System.getProperty(propertyName) == null){
 	    		System.setProperty(propertyName, fileProperties.getProperty(propertyName));
-				mLogger.debug("Setting system property " + propertyName);
+				log.debug("Setting system property " + propertyName);
 	    	}
 	    }
 	}    
 	
     public void connect(){
+        Logger log = PigLogger.getLogger();
     	try{
 		if (execType != ExecType.LOCAL){
 		    	//First set the ssh socket factory
@@ -202,10 +200,10 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		     
 	            lfs = FileSystem.getNamed("local", conf);
 	       
-	            mLogger.info("Connecting to hadoop file system at: " + conf.get("fs.default.name"));
+	            log.info("Connecting to hadoop file system at: " + conf.get("fs.default.name"));
 	            dfs = FileSystem.get(conf);
 	        
-	            mLogger.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
+	            log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
 	            jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
 	            				JobSubmissionProtocol.versionID, JobTracker.getAddress(conf), conf);
 		    jobClient = new JobClient(conf);
@@ -236,6 +234,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     };
     
     private String[] doHod(String server) {
+        Logger log = PigLogger.getLogger();
     	if (hodMapRed != null) {
     		return new String[] {hodHDFS, hodMapRed};
     	}
@@ -253,7 +252,10 @@ public class PigContext implements Serializable, FunctionInstantiator {
             cmd.append(System.getProperty("hod.command"));
             //String cmd = System.getProperty("hod.command", "/home/breed/startHOD.expect");
 			String cluster = System.getProperty("yinst.cluster");
-			if (cluster.length() > 0 && !cluster.startsWith("kryptonite")) {
+            // TODO This is a Yahoo specific holdover, need to remove
+            // this.
+			if (cluster != null && cluster.length() > 0 &&
+                    !cluster.startsWith("kryptonite")) {
 				cmd.append(" --config=");
 				cmd.append(System.getProperty("hod.config.dir"));
 				cmd.append('/');
@@ -267,8 +269,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
             	p = fac.ssh(cmd.toString());
             }
             InputStream is = p.getInputStream();
-            mLogger.info("Connecting to HOD...");
-			mLogger.debug("sending HOD command " + cmd.toString());
+            log.info("Connecting to HOD...");
+			log.debug("sending HOD command " + cmd.toString());
             StringBuffer sb = new StringBuffer();
             int c;
             String hdfsUI = null;
@@ -282,23 +284,23 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 	switch(current) {
                 	case HDFSUI:
                 		hdfsUI = sb.toString().trim();
-                		mLogger.info("HDFS Web UI: " + hdfsUI);
+                		log.info("HDFS Web UI: " + hdfsUI);
                 		break;
                 	case HDFS:
                 		hdfs = sb.toString().trim();
-                		mLogger.info("HDFS: " + hdfs);
+                		log.info("HDFS: " + hdfs);
                 		break;
                 	case MAPREDUI:
                 		mapredUI = sb.toString().trim();
-                		mLogger.info("JobTracker Web UI: " + mapredUI);
+                		log.info("JobTracker Web UI: " + mapredUI);
                 		break;
                 	case MAPRED:
                 		mapred = sb.toString().trim();
-                		mLogger.info("JobTracker: " + mapred);
+                		log.info("JobTracker: " + mapred);
                 		break;
 			case HADOOPCONF:
 				hadoopConf = sb.toString().trim();
-                		mLogger.info("HadoopConf: " + hadoopConf);
+                		log.info("HadoopConf: " + hadoopConf);
                 		break;
                 	}
                 	current = ParsingState.NOTHING;
@@ -334,7 +336,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
 	    {
 		conf = new JobConf(hadoopConf);
 		// make sure that files on class path are used
-		conf.addFinalResource("pig-cluster-hadoop-site.xml");
+		conf.addResource("pig-cluster-hadoop-site.xml");
 		System.out.println("Job Conf = " + conf);
 		System.out.println("dfs.block.size= " + conf.get("dfs.block.size"));
 		System.out.println("ipc.client.timeout= " + conf.get("ipc.client.timeout"));
@@ -344,7 +346,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		throw new IOException("Missing Hadoop configuration file");
             return new String[] {hdfs, mapred};
         } catch (Exception e) {
-            mLogger.fatal("Could not connect to HOD", e);
+            log.fatal("Could not connect to HOD", e);
             System.exit(4);
         }
         throw new RuntimeException("Could not scrape needed information.");
@@ -372,9 +374,18 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		}
     }
     
-    public void addJar(String path) throws MalformedURLException{
-        extraJars.add(path);
-        LogicalPlanBuilder.classloader = createCl(null);
+    public void addJar(String path) throws MalformedURLException {
+        if (path != null) {
+            URL resource = (new File(path)).toURI().toURL();
+            addJar(resource);
+        }
+    }
+    
+    public void addJar(URL resource) throws MalformedURLException{
+        if (resource != null) {
+            extraJars.add(resource);
+            LogicalPlanBuilder.classloader = createCl(null);
+        }
     }
 
     public void rename(String oldName, String newName) throws IOException {
@@ -409,12 +420,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public JobConf getConf() {
         return conf;
     }
-
-	/*
-	public Logger getLogger() {
-		return mLogger;
-	}
-	*/
 
     public void setJobtrackerLocation(String newLocation) {
         conf.set("mapred.job.tracker", newLocation);
@@ -471,7 +476,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             urls[0] = new URL("file:" + jarFile);
         }
         for (int i = 0; i < extraJars.size(); i++) {
-            urls[i + passedJar] = new URL("file:" + extraJars.get(i));
+            urls[i + passedJar] = extraJars.get(i);
         }
         return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
     }
@@ -506,7 +511,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		// create ClassNotFoundException exception and attach to IOException
 		// so that we don't need to buble interface changes throughout the code
 		ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
-		throw new IOException(e);
+		IOException newE = new IOException(e.getMessage());
+                newE.initCause(e);
+                throw newE;
     }
     
     private static List<String> parseArguments(String argString){
@@ -548,7 +555,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
 				ret = objClass.newInstance();
 			}
     	}catch(Throwable e){
-    		throw new IOException(e);
+    		IOException newE = new IOException(e.getMessage());
+                newE.initCause(e);
+                throw newE;
     	}
 		return ret;
 	}

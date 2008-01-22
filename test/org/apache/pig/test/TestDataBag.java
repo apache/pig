@@ -17,698 +17,728 @@
  */
 package org.apache.pig.test;
 
-import java.io.DataInput;
-import java.io.DataOutput;
+/*
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-
-import java.util.List;
-import java.util.ArrayList;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.Iterator;
+import java.util.Random;
+*/
+
+import java.util.*;
+import java.io.IOException;
 
 import org.junit.Test;
 
 import org.apache.pig.data.*;
+import org.apache.pig.impl.eval.*;
+import org.apache.pig.impl.util.Spillable;
 
 /**
- * This class will exercise the data bag data type.
+ * This class will exercise the basic Pig data model and members. It tests for proper behavior in
+ * assigment and comparision, as well as function application.
  * 
- * @author gates
+ * @author dnm
  */
-public class TestDataBag extends junit.framework.TestCase
-{
+public class TestDataBag extends junit.framework.TestCase {
 
-public void testDefaultConstructor() throws Exception
-{
-	DataBag bag = new DataBag(Datum.DataType.INT);
+    private Random rand = new Random();
 
-	assertEquals("getType", Datum.DataType.BAG, bag.getType());
-	assertFalse("is null", bag.isNull());
-	assertTrue("bag of ints", bag.bagOf() == Datum.DataType.INT);
+    private class TestMemoryManager {
+        ArrayList<Spillable> mManagedObjects = new ArrayList<Spillable>();
 
-	assertEquals("Default constructor size before", 0, bag.size());
-	DataInteger val = new DataInteger(42);
+        public void register(Spillable s) {
+            mManagedObjects.add(s);
+        }
 
-	bag.add(val);
-	assertEquals("Default constructor size after", 1, bag.size());
+        public void forceSpill() throws IOException {
+            Iterator<Spillable> i = mManagedObjects.iterator();
+            while (i.hasNext()) i.next().spill();
+        }
+    }
 
-	Iterator<Datum> i = bag.content();
-	Datum d = i.next();
+    // Need to override the regular bag factory so I can register with my local
+    // memory manager.
+    private class LocalBagFactory {
+        TestMemoryManager mMemMgr;
 
-	assertTrue("should be an integer", d.getType() == Datum.DataType.INT);
-	assertNotNull("get with entry in bag", d);
-	assertEquals("value of val", 42, ((DataInteger)d).get());
+        public LocalBagFactory(TestMemoryManager mgr) {
+            mMemMgr = mgr;
+        }
+
+        public DataBag newDefaultBag() {
+            DataBag bag = new DefaultDataBag();
+            mMemMgr.register(bag);
+            return bag;
+        }
+
+        public DataBag newSortedBag(EvalSpec sortSpec) {
+            DataBag bag = new SortedDataBag(sortSpec);
+            mMemMgr.register(bag);
+            return bag;
+        }
+
+        public DataBag newDistinctBag() {
+            DataBag bag = new DistinctDataBag();
+            mMemMgr.register(bag);
+            return bag;
+        }
+    }
+
+    // Test reading and writing default from memory, no spills.
+    @Test
+    public void testDefaultInMemory() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDefaultBag();
+        ArrayList<Tuple> rightAnswer = new ArrayList<Tuple>(10);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing default from file with one spill
+    @Test
+    public void testDefaultSingleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDefaultBag();
+        ArrayList<Tuple> rightAnswer = new ArrayList<Tuple>(10);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing default from file with three spills
+    @Test
+    public void testDefaultTripleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDefaultBag();
+        ArrayList<Tuple> rightAnswer = new ArrayList<Tuple>(30);
+
+        // Write tuples into both
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 10; i++) {
+                Tuple t = new Tuple(new DataAtom(i));
+                b.add(t);
+                rightAnswer.add(t);
+            }
+            mgr.forceSpill();
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading with some in file, some in memory.
+    @Test
+    public void testDefaultInMemInFile() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDefaultBag();
+        ArrayList<Tuple> rightAnswer = new ArrayList<Tuple>(20);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading with a spill happening in the middle of the read.
+    @Test
+    public void testDefaultSpillDuringRead() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDefaultBag();
+        ArrayList<Tuple> rightAnswer = new ArrayList<Tuple>(20);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        for (int i = 0; i < 15; i++) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        mgr.forceSpill();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading and writing sorted from memory, no spills.
+    @Test
+    public void testSortedInMemory() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(10);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing default from file with one spill
+    @Test
+    public void testSortedSingleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(10);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing default from file with three spills
+    @Test
+    public void testSortedTripleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(30);
+
+        // Write tuples into both
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 10; i++) {
+                Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+                b.add(t);
+                rightAnswer.add(t);
+            }
+            mgr.forceSpill();
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading with some in file, some in memory.
+    @Test
+    public void testSortedInMemInFile() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(20);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading with a spill happening in the middle of the read.
+    @Test
+    public void testSortedSpillDuringRead() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(20);
+
+        // Write tuples into both
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+
+        for (int i = 0; i < 15; i++) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rightAnswer.poll());
+        }
+
+        mgr.forceSpill();
+
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading with first spill happening in the middle of the read.
+    @Test
+    public void testSortedFirstSpillDuringRead() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(20);
+
+        for (int i = 0; i < 10; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+
+        for (int i = 0; i < 5; i++) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rightAnswer.poll());
+        }
+
+        mgr.forceSpill();
+
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing sorted file with so many spills it requires
+   // premerge.
+    @Test
+    public void testSortedPreMerge() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newSortedBag(null);
+        PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(30);
+
+        // Write tuples into both
+        for (int j = 0; j < 373; j++) {
+            for (int i = 0; i < 10; i++) {
+                Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+                b.add(t);
+                rightAnswer.add(t);
+            }
+            mgr.forceSpill();
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+
+        Tuple t;
+        while ((t = rightAnswer.poll()) != null) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), t);
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading and writing distinct from memory, no spills.
+    @Test
+    public void testDistinctInMemory() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDistinctBag();
+        TreeSet<Tuple> rightAnswer = new TreeSet<Tuple>();
+
+        // Write tuples into both
+        for (int i = 0; i < 50; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing distinct from file with one spill
+    @Test
+    public void testDistinctSingleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDistinctBag();
+        TreeSet<Tuple> rightAnswer = new TreeSet<Tuple>();
+
+        // Write tuples into both
+        for (int i = 0; i < 50; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing distinct from file with three spills
+    @Test
+    public void testDistinctTripleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDistinctBag();
+        TreeSet<Tuple> rightAnswer = new TreeSet<Tuple>();
+
+        // Write tuples into both
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 50; i++) {
+                Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+                b.add(t);
+                rightAnswer.add(t);
+            }
+            mgr.forceSpill();
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test reading with some in file, some in memory.
+    @Test
+    public void testDistinctInMemInFile() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDistinctBag();
+        TreeSet<Tuple> rightAnswer = new TreeSet<Tuple>();
+
+        // Write tuples into both
+        for (int i = 0; i < 50; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        for (int i = 0; i < 50; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading with a spill happening in the middle of the read.
+    @Test
+    public void testDistinctSpillDuringRead() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDistinctBag();
+        TreeSet<Tuple> rightAnswer = new TreeSet<Tuple>();
+
+        // Write tuples into both
+        for (int i = 0; i < 50; i++) {
+            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+        mgr.forceSpill();
+
+        for (int i = 0; i < 50; i++) {
+            Tuple t = new Tuple(new DataAtom(i));
+            b.add(t);
+            rightAnswer.add(t);
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        for (int i = 0; i < 5; i++) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        mgr.forceSpill();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+   // Test reading and writing distinct from file with enough spills to
+   // force a pre-merge
+    @Test
+    public void testDistinctPreMerge() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDistinctBag();
+        TreeSet<Tuple> rightAnswer = new TreeSet<Tuple>();
+
+        // Write tuples into both
+        for (int j = 0; j < 321; j++) {
+            for (int i = 0; i < 50; i++) {
+                Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+                b.add(t);
+                rightAnswer.add(t);
+            }
+            mgr.forceSpill();
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    // Test the default bag factory.
+    @Test
+    public void testDefaultBagFactory() throws Exception {
+        BagFactory f = BagFactory.getInstance();
+
+        DataBag bag = f.newDefaultBag();
+        DataBag sorted = f.newSortedBag(null);
+        DataBag distinct = f.newDistinctBag();
+
+        assertTrue("Expected a default bag", (bag instanceof DefaultDataBag));
+        assertTrue("Expected a sorted bag", (sorted instanceof SortedDataBag));
+        assertTrue("Expected a distinct bag", (distinct instanceof DistinctDataBag));
+    }
+
+    @Test
+    public void testProvidedBagFactory() throws Exception {
+        // Test bogus factory name.
+        BagFactory.resetSelf();
+        System.setProperty("pig.data.bag.factory.name", "no such class");
+        System.setProperty("pig.data.bag.factory.jar", "file:./pig.jar");
+        boolean caughtIt = false;
+        try {
+            BagFactory f = BagFactory.getInstance();
+        } catch (RuntimeException re) {
+            assertEquals("Expected Unable to instantiate message",
+                "Unable to instantiate bag factory no such class",
+                re.getMessage());
+            caughtIt = true;
+        }
+        assertTrue("Expected to catch exception", caughtIt);
+
+        // Test factory that isn't a BagFactory
+        BagFactory.resetSelf();
+        System.setProperty("pig.data.bag.factory.name",
+            "org.apache.pig.test.TestDataBag");
+        System.setProperty("pig.data.bag.factory.jar",
+            "file:./pig.jar");
+        caughtIt = false;
+        try {
+            BagFactory f = BagFactory.getInstance();
+        } catch (RuntimeException re) {
+            assertEquals("Expected does not extend BagFactory message", 
+                "Provided factory org.apache.pig.test.TestDataBag does not extend BagFactory!",
+                re.getMessage());
+            caughtIt = true;
+        }
+        assertTrue("Expected to catch exception", caughtIt);
+
+        // Test that we can instantiate our test factory.
+        BagFactory.resetSelf();
+        System.setProperty("pig.data.bag.factory.name",
+            "org.apache.pig.test.NonDefaultBagFactory");
+        System.setProperty("pig.data.bag.factory.jar", "file:./pig.jar");
+        BagFactory f = BagFactory.getInstance();
+        DataBag b = f.newDefaultBag();
+        b = f.newSortedBag(null);
+        b = f.newDistinctBag();
+
+        BagFactory.resetSelf();
+    }
 }
 
-public void testListConstructor() throws Exception
-{
-	List<Datum> list = new ArrayList<Datum>();
-	list.add(new DataInteger(10));
-	list.add(new DataInteger(11));
-	list.add(new DataInteger(9));
 
-	DataBag bag = new DataBag(list);
 
-	assertEquals("list construct size", 3L, bag.size());
-
-	Iterator<Datum> i = bag.content();
-	Datum d = i.next();
-	assertNotNull("get first entry in bag", d);
-	assertTrue("should be an integer", d.getType() == Datum.DataType.INT);
-	assertEquals("first value of val", 10, ((DataInteger)d).get());
-	d = i.next();
-	assertNotNull("get second entry in bag", d);
-	assertTrue("should be an integer", d.getType() == Datum.DataType.INT);
-	assertEquals("second value of val", 11, ((DataInteger)d).get());
-	d = i.next();
-	assertNotNull("get third entry in bag", d);
-	assertTrue("should be an integer", d.getType() == Datum.DataType.INT);
-	assertEquals("third value of val", 9, ((DataInteger)d).get());
-	assertFalse("bag should be exhausted now", i.hasNext());
-
-	bag.add(new DataInteger(4));
-	i = bag.content();
-	d = i.next();
-	d = i.next();
-	d = i.next();
-	d = i.next();
-	assertNotNull("get fourth entry in bag", d);
-	assertTrue("should be an integer", d.getType() == Datum.DataType.INT);
-	assertEquals("fourth value of val", 4, ((DataInteger)d).get());
-	assertFalse("bag should be exhausted now", i.hasNext());
-}
-
-
-public void testBigBag() throws Exception
-{
-	DataBag bag = new DataBag(Datum.DataType.INT);
-
-	for (int i = 0; i < 10000; i++) {
-		bag.add(new DataInteger(i));
-	}
-
-	assertEquals("big size after loading", 10000, bag.size());
-
-	Iterator<Datum> i = bag.content();
-	for (int j = 0; j < 10000; j++) {
-		assertTrue("should still have data", i.hasNext());
-		Datum val = i.next();
-		assertTrue("should be an integer", val.getType() == Datum.DataType.INT);
-		assertEquals("value of val", j, ((DataInteger)val).get());
-	}
-	assertFalse("bag should be exhausted now", i.hasNext());
-}
-
-public void testToString() throws Exception
-{
-	DataBag bag = new DataBag(Datum.DataType.INT);
-
-	bag.add(new DataInteger(1));
-	bag.add(new DataInteger(1));
-	bag.add(new DataInteger(3));
-
-	assertEquals("toString", "{1, 1, 3}", bag.toString());
-}
-
-public void testEquals() throws Exception
-{
-	DataBag bag1 = new DataBag(Datum.DataType.INT);
-	DataBag bag2 = new DataBag(Datum.DataType.INT);
-
-	bag1.add(new DataInteger(3));
-	bag2.add(new DataInteger(3));
-
-	assertFalse("different object", bag1.equals(new String()));
-
-	assertTrue("same data", bag1.equals(bag2));
-
-	bag2 = new DataBag(Datum.DataType.INT);
-	bag2.add(new DataInteger(4));
-	assertFalse("different data", bag1.equals(bag2));
-
-	bag2 = new DataBag(Datum.DataType.INT);
-	bag2.add(new DataInteger(3));
-	bag2.add(new DataInteger(3));
-	assertFalse("different size", bag1.equals(bag2));
-
-	bag2 = new DataBag(Datum.DataType.LONG);
-	bag2.add(new DataLong(3));
-	assertFalse("different type of bag", bag1.equals(bag2));
-}
-
-public void testCompareTo() throws Exception
-{
-	DataBag bag1 = new DataBag(Datum.DataType.INT);
-	DataBag bag2 = new DataBag(Datum.DataType.INT);
-
-	bag1.add(new DataInteger(3));
-	bag2.add(new DataInteger(3));
-
-	assertEquals("different object less than", -1, bag1.compareTo(new String()));
-
-	Tuple t = new Tuple();
-	assertTrue("less than tuple", bag1.compareTo(t) < 0);
-	DataMap map = new DataMap();
-	assertTrue("less than map", bag1.compareTo(map) < 0);
-	DataLong l = new DataLong();
-	assertTrue("less than long", bag1.compareTo(l) < 0);
-	DataFloat f = new DataFloat();
-	assertTrue("less than float", bag1.compareTo(f) < 0);
-	DataDouble d = new DataDouble();
-	assertTrue("less than double", bag1.compareTo(d) < 0);
-	DataUnknown unk = new DataUnknown();
-	assertTrue("less than unknown", bag1.compareTo(unk) < 0);
-	DataCharArrayUtf16 utf16 = new DataCharArrayUtf16();
-	assertTrue("less than utf16", bag1.compareTo(utf16) < 0);
-
-	assertEquals("same data equal", 0,  bag1.compareTo(bag2));
-
-	bag2 = new DataBag(Datum.DataType.INT);
-	bag2.add(new DataInteger(2));
-	assertEquals("greater than bag with lesser value", 1, bag1.compareTo(bag2));
-
-	bag2 = new DataBag(Datum.DataType.INT);
-	bag2.add(new DataInteger(4));
-	assertEquals("less than bag with greater value", -1, bag1.compareTo(bag2));
-
-	bag2 = new DataBag(Datum.DataType.INT);
-	bag2.add(new DataInteger(3));
-	bag2.add(new DataInteger(4));
-	assertEquals("less than bigger bag", -1, bag1.compareTo(bag2));
-
-	bag2 = new DataBag(Datum.DataType.INT);
-	assertEquals("greater than smaller bag", 1, bag1.compareTo(bag2));
-
-	bag2 = new DataBag(Datum.DataType.LONG);
-	bag2.add(new DataLong(3));
-	assertEquals("different type of bag", -1, bag1.compareTo(bag2));
-}
-
-
-public void testWriteReadUnknown() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.UNKNOWN);
-
-	String s = new String("zzz");
-	before.add(new DataUnknown(s.getBytes()));
-	s = new String("yyy");
-	before.add(new DataUnknown(s.getBytes()));
-	s = new String("xxx");
-	before.add(new DataUnknown(s.getBytes()));
-
-	File file = null;
-	file = File.createTempFile("DataBagUnknown", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of unknowns", after.bagOf() == Datum.DataType.UNKNOWN);
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum valAfter = j.next();
-	assertTrue("should be an unknown",
-		valAfter.getType() == Datum.DataType.UNKNOWN);
-	for (int i = 0; i < 3; i++) {
-		assertEquals("value of valAfter", (byte)0x7a,
-			((DataUnknown)valAfter).get()[i]);
-	}
-
-	valAfter = j.next();
-	assertTrue("should be an unknown",
-		valAfter.getType() == Datum.DataType.UNKNOWN);
-	for (int i = 0; i < 3; i++) {
-		assertEquals("value of valAfter", (byte)0x79,
-			((DataUnknown)valAfter).get()[i]);
-	}
-
-	valAfter = j.next();
-	assertTrue("should be an unknown",
-		valAfter.getType() == Datum.DataType.UNKNOWN);
-	for (int i = 0; i < 3; i++) {
-		assertEquals("value of valAfter", (byte)0x78,
-			((DataUnknown)valAfter).get()[i]);
-	}
-
-	assertFalse("should have read all values in bag", j.hasNext());
-	
-	file.delete();
-}
-
-public void testWriteReadInt() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.INT);
-
-	before.add(new DataInteger(99));
-	before.add(new DataInteger(-98));
-	before.add(new DataInteger(97));
-
-	File file = null;
-	file = File.createTempFile("DataBagInteger", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of ints", after.bagOf() == Datum.DataType.INT);
-
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum val = j.next();
-	assertTrue("should be an integer", val.getType() == Datum.DataType.INT);
-	assertEquals("value of valAfter", 99, ((DataInteger)val).get());
-
-	val = j.next();
-	assertTrue("should be an integer", val.getType() == Datum.DataType.INT);
-	assertEquals("value of valAfter2", -98, ((DataInteger)val).get());
-
-	val = j.next();
-	assertTrue("should be an integer", val.getType() == Datum.DataType.INT);
-	assertEquals("value of valAfter", 97, ((DataInteger)val).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-		
-	file.delete();
-}
-
-public void testWriteReadLong() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.LONG);
-
-	before.add(new DataLong(99000000000L));
-	before.add(new DataLong(-98L));
-	before.add(new DataLong(97L));
-
-	File file = null;
-	file = File.createTempFile("DataBagLong", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of longs", after.bagOf() == Datum.DataType.LONG);
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum val = j.next();
-	assertTrue("should be a long", val.getType() == Datum.DataType.LONG);
-	assertEquals("value of valAfter", 99000000000L, ((DataLong)val).get());
-
-	val = j.next();
-	assertTrue("should be a long", val.getType() == Datum.DataType.LONG);
-	assertEquals("value of valAfter2", -98L, ((DataLong)val).get());
-
-	val = j.next();
-	assertTrue("should be a long", val.getType() == Datum.DataType.LONG);
-	assertEquals("value of valAfter", 97L, ((DataLong)val).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-		
-	file.delete();
-}
-
-public void testWriteReadFloat() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.FLOAT);
-
-	before.add(new DataFloat(3.2e32f));
-	before.add(new DataFloat(-9.929292e-29f));
-	before.add(new DataFloat(97.0f));
-
-	File file = null;
-	file = File.createTempFile("DataBagFloat", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of floats", after.bagOf() == Datum.DataType.FLOAT);
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum val = j.next();
-	assertTrue("should be a float", val.getType() == Datum.DataType.FLOAT);
-	assertEquals("value of valAfter", 3.2e32f, ((DataFloat)val).get());
-
-	val = j.next();
-	assertTrue("should be a float", val.getType() == Datum.DataType.FLOAT);
-	assertEquals("value of valAfter2", -9.929292e-29f, ((DataFloat)val).get());
-
-	val = j.next();
-	assertTrue("should be a float", val.getType() == Datum.DataType.FLOAT);
-	assertEquals("value of valAfter", 97.0f, ((DataFloat)val).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-		
-	file.delete();
-}
-
-public void testWriteReadDouble() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.DOUBLE);
-
-	before.add(new DataDouble(3.2e132));
-	before.add(new DataDouble(-9.929292e-129));
-	before.add(new DataDouble(97.0));
-
-	File file = null;
-	file = File.createTempFile("DataBagDouble", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of double", after.bagOf() == Datum.DataType.DOUBLE);
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum val = j.next();
-	assertTrue("should be a double", val.getType() == Datum.DataType.DOUBLE);
-	assertEquals("value of valAfter", 3.2e132, ((DataDouble)val).get());
-
-	val = j.next();
-	assertTrue("should be a double", val.getType() == Datum.DataType.DOUBLE);
-	assertEquals("value of valAfter2", -9.929292e-129, ((DataDouble)val).get());
-
-	val = j.next();
-	assertTrue("should be a double", val.getType() == Datum.DataType.DOUBLE);
-	assertEquals("value of valAfter", 97.0, ((DataDouble)val).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-		
-	file.delete();
-}
-
-public void testWriteReadUtf16() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.CHARARRAY);
-
-	before.add(new DataCharArrayUtf16("zzz"));
-	before.add(new DataCharArrayUtf16("yyy"));
-	before.add(new DataCharArrayUtf16("xxx"));
-
-	File file = null;
-	file = File.createTempFile("DataBagUtf16", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of chararray", after.bagOf() == Datum.DataType.CHARARRAY);
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum val = j.next();
-	assertTrue("should be a chararray", val.getType() == Datum.DataType.CHARARRAY);
-	assertTrue("encoding should be utf16",
-		((DataCharArray)val).getEncoding() == DataCharArray.Encoding.UTF16);
-	assertEquals("value of valAfter", "zzz", ((DataCharArrayUtf16)val).get());
-
-	val = j.next();
-	assertTrue("should be a chararray", val.getType() == Datum.DataType.CHARARRAY);
-	assertTrue("encoding should be utf16",
-		((DataCharArray)val).getEncoding() == DataCharArray.Encoding.UTF16);
-	assertEquals("value of valAfter2", "yyy", ((DataCharArrayUtf16)val).get());
-
-	val = j.next();
-	assertTrue("should be a chararray", val.getType() == Datum.DataType.CHARARRAY);
-	assertTrue("encoding should be utf16",
-		((DataCharArray)val).getEncoding() == DataCharArray.Encoding.UTF16);
-	assertEquals("value of valAfter", "xxx", ((DataCharArrayUtf16)val).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-		
-	file.delete();
-}
-
-public void testWriteReadNone() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.CHARARRAY);
-
-	String s = new String("zzz");
-	before.add(new DataCharArrayNone(s.getBytes()));
-	s = new String("yyy");
-	before.add(new DataCharArrayNone(s.getBytes()));
-	s = new String("xxx");
-	before.add(new DataCharArrayNone(s.getBytes()));
-
-	File file = null;
-	file = File.createTempFile("DataBagCharArrayNone", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of chararray", after.bagOf() == Datum.DataType.CHARARRAY);
-	assertEquals("after read, size", 3, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum valAfter = j.next();
-	assertTrue("should be a chararray", valAfter.getType() == Datum.DataType.CHARARRAY);
-	assertTrue("encoding should be none",
-		((DataCharArray)valAfter).getEncoding() == DataCharArray.Encoding.NONE);
-	for (int i = 0; i < 3; i++) {
-		assertEquals("value of valAfter", (byte)0x7a,
-			((DataCharArrayNone)valAfter).get()[i]);
-	}
-
-	valAfter = j.next();
-	assertTrue("should be a chararray", valAfter.getType() == Datum.DataType.CHARARRAY);
-	assertTrue("encoding should be none",
-		((DataCharArray)valAfter).getEncoding() == DataCharArray.Encoding.NONE);
-	for (int i = 0; i < 3; i++) {
-		assertEquals("value of valAfter", (byte)0x79,
-			((DataCharArrayNone)valAfter).get()[i]);
-	}
-
-	valAfter = j.next();
-	assertTrue("should be a chararray", valAfter.getType() == Datum.DataType.CHARARRAY);
-	assertTrue("encoding should be none",
-		((DataCharArray)valAfter).getEncoding() == DataCharArray.Encoding.NONE);
-	for (int i = 0; i < 3; i++) {
-		assertEquals("value of valAfter", (byte)0x78,
-			((DataCharArrayNone)valAfter).get()[i]);
-	}
-
-	assertFalse("should have read all values in bag", j.hasNext());
-	
-	file.delete();
-}
-
-public void testWriteReadMap() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.MAP);
-
-	DataMap map = new DataMap();
-
-	DataInteger key = new DataInteger(1);
-	Datum val = new DataInteger(99);
-	map.put(key, val);
-
-	before.add(map);
-
-	File file = null;
-	file = File.createTempFile("DataBagCharArrayNone", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of maps", after.bagOf() == Datum.DataType.MAP);
-	assertEquals("after read, size", 1, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum v = j.next();
-	assertTrue("valAfter should be a map", v.getType() == Datum.DataType.MAP);
-	DataMap valAfter = (DataMap)v;
-
-	assertEquals("valAfter size", 1L, valAfter.size());
-
-	DataInteger nosuch = new DataInteger(-1);
-	Datum d = valAfter.get(nosuch);
-	assertTrue("after read, no such key", d.isNull());
-
-	Datum mapValAfter = valAfter.get(key);
-	assertTrue("mapValAfter isa integer", mapValAfter instanceof DataInteger);
-	assertEquals("value of valAfter", 99, ((DataInteger)mapValAfter).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-	
-	file.delete();
-}
-
-public void testWriteReadTuple() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.TUPLE);
-
-	Tuple t = new Tuple(1);
-	t.setField(0, new DataInteger(1));
-	before.add(t);
-
-	File file = null;
-	file = File.createTempFile("DataBagCharArrayNone", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of tuples", after.bagOf() == Datum.DataType.TUPLE);
-	assertEquals("after read, size", 1, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum v = j.next();
-	assertTrue("valAfter should be a tuple",
-		v.getType() == Datum.DataType.TUPLE);
-
-	Tuple valAfter = (Tuple)v;
-
-	assertEquals("valAfter size", 1L, valAfter.size());
-
-	Datum tupleValAfter = valAfter.getField(0);
-	assertTrue("tupleValAfter isa integer", tupleValAfter instanceof DataInteger);
-	assertEquals("value of valAfter", 1, ((DataInteger)tupleValAfter).get());
-
-	assertFalse("should have read all values in bag", j.hasNext());
-	
-	file.delete();
-}
-
-public void testWriteReadBag() throws Exception
-{
-	DataBag before = new DataBag(Datum.DataType.BAG);
-
-	DataBag b = new DataBag(Datum.DataType.INT);
-	b.add(new DataInteger(2));
-	before.add(b);
-
-	File file = null;
-	file = File.createTempFile("DataBagCharArrayNone", "put");
-	FileOutputStream fos = new FileOutputStream(file);
-	DataOutput out = new DataOutputStream(fos);
-	before.write(out);
-	fos.close();
-
-	FileInputStream fis = new FileInputStream(file);
-	DataInput in = new DataInputStream(fis);
-	Datum a = DatumImpl.readDatum(in);
-
-	assertTrue("isa DataBag", a instanceof DataBag);
-
-	DataBag after = (DataBag)a;
-
-	assertTrue("bag of bags", after.bagOf() == Datum.DataType.BAG);
-	assertEquals("after read, size", 1, after.size()); 
-
-	Iterator<Datum> j = after.content();
-
-	Datum v = j.next();
-	assertTrue("valAfter should be a bag", v.getType() == Datum.DataType.BAG);
-	DataBag valAfter = (DataBag)v;
-
-	assertEquals("valAfter size", 1L, valAfter.size());
-
-	Iterator<Datum> k = valAfter.content();
-	Datum w = k.next();
-	assertTrue("bagValAfter should be an integer",
-		w.getType() == Datum.DataType.INT);
-	DataInteger bagValAfter = (DataInteger)w;
-
-	assertEquals("value of valAfter", 2, bagValAfter.get());
-
-	assertFalse("should have read all values in inner bag", k.hasNext());
-	assertFalse("should have read all values in bag", j.hasNext());
-	
-	file.delete();
-}
-
-}
-
-
- 

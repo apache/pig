@@ -23,8 +23,6 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
@@ -32,22 +30,11 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 public class ConstSpec extends SimpleEvalSpec {
 	private static final long serialVersionUID = 1L;
-	public String constant;
-	transient public DataAtom atom;
+	public Object mConst;
 	
 	
-	public ConstSpec(String constant){
-		this.constant = constant;
-		init();
-	}
-	
-	public ConstSpec(Integer constant){
-		this.constant = constant.toString();
-		init();
-	}
-	
-	private void init(){
-		atom = new DataAtom(constant);
+	public ConstSpec(Object constant){
+		mConst = constant;
 	}
 	
 	/**
@@ -56,17 +43,13 @@ public class ConstSpec extends SimpleEvalSpec {
      * @throws IOException
      * @throws ClassNotFoundException
      */
+     /* Why do I need this?
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
     	in.defaultReadObject();
     	init();
     }
+    */
 	
-	
-	@Override
-	public boolean amenableToCombiner() {
-		return true;
-	}
-
 	@Override
 	public List<String> getFuncs() {
 		return new ArrayList<String>();
@@ -78,8 +61,8 @@ public class ConstSpec extends SimpleEvalSpec {
 	}
 
 	@Override
-	protected Datum eval(Datum d) {
-		return atom;
+	protected Object eval(Object d) {
+		return mConst;
 	}
 	
 	@Override
@@ -87,10 +70,18 @@ public class ConstSpec extends SimpleEvalSpec {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		sb.append("'");
-		sb.append(constant);
+		sb.append(mConst);
 		sb.append("'");
 		sb.append("]");
 		return sb.toString();
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitConst(this);
+	}
+
+	public String value() { return (String)mConst; }
+    
 
 }

@@ -27,58 +27,55 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 abstract public class LogicalOperator implements Serializable {
-    public String            alias                = null;
-    
-    public static final int  FIXED                = 1;
-    public static final int  MONOTONE             = 2;
-    public static final int  UPDATABLE            = 3;   // Reserved for future use
-    public static final int  AMENDABLE            = 4;
+    public String alias = null;
 
-	protected int            requestedParallelism = -1;
-	protected TupleSchema    schema               = null;
-	protected List<LogicalOperator> inputs;
-	
-	protected LogicalOperator(){
-		this.inputs = new ArrayList<LogicalOperator>();
-	}
-	
-	protected LogicalOperator(List<LogicalOperator> inputs) {
-		this.inputs = inputs;
-	}
+    public static final int FIXED = 1;
+    public static final int MONOTONE = 2;
+    public static final int UPDATABLE = 3;      // Reserved for future use
+    public static final int AMENDABLE = 4;
 
-	protected LogicalOperator(LogicalOperator input) {
-		this.inputs = new ArrayList<LogicalOperator>();
-		inputs.add(input);
-	}
+    protected int requestedParallelism = -1;
+    protected TupleSchema schema = null;
+    protected List<LogicalOperator> inputs;
 
-	public String getAlias() {
-		return alias;
-	}
+    protected LogicalOperator() {
+        this.inputs = new ArrayList<LogicalOperator> ();
+    } protected LogicalOperator(List<LogicalOperator> inputs) {
+        this.inputs = inputs;
+    }
 
-	public void setAlias(String newAlias) {
-		alias = newAlias;
-	}
+    protected LogicalOperator(LogicalOperator input) {
+        this.inputs = new ArrayList<LogicalOperator> ();
+        inputs.add(input);
+    }
 
-	public int getRequestedParallelism() {
-		return requestedParallelism;
-	}
+    public String getAlias() {
+        return alias;
+    }
 
-	public void setRequestedParallelism(int newRequestedParallelism) {
-		requestedParallelism = newRequestedParallelism;
-	}
+    public void setAlias(String newAlias) {
+        alias = newAlias;
+    }
 
-	@Override
-	public String toString() {
-		StringBuffer result = new StringBuffer(super.toString());
-		result.append(" (alias: ");
-		result.append(alias);
-		result.append(", requestedParallelism: ");
-		result.append(requestedParallelism);
-		result.append(')');
-		return result.toString();
-	}
+    public int getRequestedParallelism() {
+        return requestedParallelism;
+    }
 
-	public abstract TupleSchema outputSchema();
+    public void setRequestedParallelism(int newRequestedParallelism) {
+        requestedParallelism = newRequestedParallelism;
+    }
+
+    @Override public String toString() {
+        StringBuffer result = new StringBuffer(super.toString());
+        result.append(" (alias: ");
+        result.append(alias);
+        result.append(", requestedParallelism: ");
+        result.append(requestedParallelism);
+        result.append(')');
+        return result.toString();
+    }
+
+    public abstract TupleSchema outputSchema();
 
     public String name() {
         return "ROOT";
@@ -99,10 +96,17 @@ abstract public class LogicalOperator implements Serializable {
         }
         return funcs;
     }
-    
+
     public abstract int getOutputType();
 
-	public void setSchema(TupleSchema schema) {
-		this.schema = schema;
-	}
+    public void setSchema(TupleSchema schema) {
+        this.schema = schema;
+    }
+
+    /**
+     * Visit all of the logical operators in a tree, starting with this
+     * one.  
+     * @param v LOVisitor to visit this logical plan with.
+     */
+    public abstract void visit(LOVisitor v);
 }

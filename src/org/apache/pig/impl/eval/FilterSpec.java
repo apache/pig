@@ -20,7 +20,6 @@ package org.apache.pig.impl.eval;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.eval.cond.Cond;
@@ -38,11 +37,6 @@ public class FilterSpec extends EvalSpec {
     }
     
     @Override
-    public boolean amenableToCombiner() {
-    	return false;
-    }
-    
-    @Override
     public List<String> getFuncs() {
     	return cond.getFuncs();
     }
@@ -57,7 +51,7 @@ public class FilterSpec extends EvalSpec {
         return new DataCollector(endOfPipe) {
 
             @Override
-			public void add(Datum d){
+			public void add(Object d){
             	if (checkDelimiter(d))
             		addToSuccessor(d);
             	else if (cond.eval(d)) 
@@ -90,6 +84,11 @@ public class FilterSpec extends EvalSpec {
 	public void instantiateFunc(FunctionInstantiator instantiaor)
 			throws IOException {
 		cond.instantiateFunc(instantiaor);		
+	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitFilter(this);
 	}
     
    

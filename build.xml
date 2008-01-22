@@ -5,11 +5,12 @@
 	<property name="lib.dir" value="${basedir}/lib" />
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="doc.dir" value="${basedir}/doc" />
+        <property name="test.reports.dir" value="${basedir}/test/reports" />
 	<property name="shock.src.dir" value="${basedir}/lib-src/shock" />
 	<property name="bzip2.src.dir" value="${basedir}/lib-src/bzip2" />
 	<property name="test.src.dir" value="${basedir}/test" />
 	<property name="output.jarfile" value="pig.jar" />
-	<property name="hadoop.jarfile" value="hadoop14.jar"/>
+	<property name="hadoop.jarfile" value="hadoop15.jar"/>
 	<property name="ssh.gateway" value=""/>
 	<property name="hod.server" value=""/>
 	<property name="hod.command" value=""/>
@@ -26,6 +27,7 @@
 	<target name="clean">
 		<delete dir="${dist.dir}" />
 		<delete dir="${doc.dir}" />
+                <delete dir="${test.reports.dir}" />
 		<delete file="${output.jarfile}" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.java" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/JJTQueryParserState.java" />
@@ -39,24 +41,32 @@
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/SimpleNode.java" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/Token.java" />
 		<delete file="${src.dir}/org/apache/pig/impl/logicalLayer/parser/TokenMgrError.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParser.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParserConstants.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/GruntParserTokenManager.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/ParseException.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/SimpleCharStream.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/Token.java" />
-		<delete file="${src.dir}/org/apache/pig/tools/grunt/TokenMgrError.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParserConstants.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParserTokenManager.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/ParseException.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/SimpleCharStream.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/Token.java" />
+		<delete file="${src.dir}/org/apache/pig/tools/pigscript/parser/TokenMgrError.java" />
 	</target>
 
-	<target name="compile" depends="cc-compile">
+    <target name="depend">
+        <mkdir dir="depend"/>
+        <echo>*** Resolving dependencies ***</echo>
+        <depend srcdir="src;lib-src/shock;lib-src/bzip2" destdir="dist" cache="depend"/>
+    </target>
+
+	<target name="compile" depends="depend, cc-compile, lib-compile">
 		<mkdir dir="${dist.dir}" />
 		<echo>*** Building Main Sources ***</echo>
-		<javac srcdir="${src.dir};${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
+		<javac srcdir="${src.dir};${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on" deprecation="on">
 			<classpath refid="classpath" />
+			<!--<compilerarg value="-Xlint:unchecked"/> -->
 		</javac>
 		<echo>*** Building Test Sources ***</echo>
 		<javac srcdir="test" destdir="${dist.dir}" debug="on">
 			<classpath refid="classpath" />
+			<compilerarg value="-Xlint:unchecked"/>
 		</javac>
 	</target>
 
@@ -70,9 +80,17 @@
 			outputdirectory="${src.dir}/org/apache/pig/impl/logicalLayer/parser"
 			javacchome="${basedir}/lib" />
 		<javacc
-			target="${src.dir}/org/apache/pig/tools/grunt/GruntParser.jj" 
-			outputdirectory="${src.dir}/org/apache/pig/tools/grunt"
+			target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" 
+			outputdirectory="${src.dir}/org/apache/pig/tools/pigscript/parser"
 			javacchome="${basedir}/lib" />
+	</target>
+
+        <target name="lib-compile">
+		<mkdir dir="${dist.dir}" />
+		<echo>*** Building Library Sources ***</echo>
+		<javac srcdir="${shock.src.dir};${bzip2.src.dir}" destdir="${dist.dir}" target="1.5" debug="on">
+			<classpath refid="classpath" />
+		</javac>
 	</target>
 
 	<target name="jar" depends="compile">

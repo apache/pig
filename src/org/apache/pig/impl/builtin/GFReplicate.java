@@ -20,27 +20,31 @@ package org.apache.pig.impl.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 
 public class GFReplicate extends EvalFunc<DataBag> {
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
+    BagFactory mBagFactory = BagFactory.getInstance();
 
-	int numGroups = GFAny.defaultNumGroups;
-	
-	public GFReplicate(){}
-	
-	public GFReplicate(int numGroups){
-		this.numGroups = numGroups;
-	}
-	
-	@Override
-	public void exec(Tuple input, DataBag output) throws IOException{
-		for (int i=0; i<numGroups; i++){
-			output.add(new Tuple(new DataAtom(i)));
-		}
-	}
+    int numGroups = GFAny.defaultNumGroups;
+    
+    public GFReplicate(){}
+    
+    public GFReplicate(int numGroups) {
+        this.numGroups = numGroups;
+    }
+    
+    @Override
+    public DataBag exec(Tuple input) throws IOException {
+        DataBag b = mBagFactory.newDefaultBag();
+        for (int i = 0; i < numGroups; i++) {
+            b.add(mTupleFactory.newTuple(new Integer(1)));
+        }
+        return b;
+    }
 
 }

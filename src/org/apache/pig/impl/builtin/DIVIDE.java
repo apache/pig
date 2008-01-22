@@ -20,17 +20,16 @@ package org.apache.pig.impl.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.Tuple;
 
 
-public class DIVIDE extends EvalFunc<DataAtom> {
+public class DIVIDE extends EvalFunc<Double> {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        double v1 = input.getAtomField(0).numval();
-        double v2 = input.getAtomField(1).numval();
-        output.setValue(v1/v2);
+    public Double exec(Tuple input) throws IOException {
+        double v1 = (Double)input.get(0);
+        double v2 = (Double)input.get(1);
+        return new Double(v1/v2);
     }
 
 }

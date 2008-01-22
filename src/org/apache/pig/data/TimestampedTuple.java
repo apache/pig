@@ -21,7 +21,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
-public class TimestampedTuple extends Tuple {
+public class TimestampedTuple extends DefaultTuple {
 
     protected double timestamp = 0;      // timestamp of this tuple
     protected boolean heartbeat = false;  // true iff this is a heartbeat (i.e. purpose is just to convey new timestamp; carries no data)
@@ -42,13 +42,14 @@ public class TimestampedTuple extends Tuple {
         super(numFields);
     }
     
+    /*
     public TimestampedTuple(String textLine, String delimiter, int timestampColumn, 
     						SimpleDateFormat dateFormat){
         if (delimiter == null) {
             delimiter = defaultDelimiter;
         }
         String[] splitString = textLine.split(delimiter, -1);
-        mFields = new ArrayList<Datum>(splitString.length-1);
+        fields = new ArrayList<Datum>(splitString.length-1);
         for (int i = 0; i < splitString.length; i++) {
         	if (i==timestampColumn){
         		try{
@@ -57,10 +58,11 @@ public class TimestampedTuple extends Tuple {
         			System.err.println("Could not parse timestamp " + splitString[i]);
         		}
         	}else{
-        		mFields.add(new DataAtom(splitString[i]));
+        		fields.add(new DataAtom(splitString[i]));
         	}
         }
     }
+    */
 
     
 }

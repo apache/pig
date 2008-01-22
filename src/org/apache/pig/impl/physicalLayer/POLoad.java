@@ -65,4 +65,9 @@ public class POLoad extends PhysicalOperator {
         return lf.getNext();
     }
 
+    @Override
+    public void visit(POVisitor v) {
+        v.visitLoad(this);
+    }
+
 }

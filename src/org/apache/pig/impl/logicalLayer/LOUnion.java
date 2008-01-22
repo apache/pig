@@ -24,52 +24,59 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class LOUnion extends LogicalOperator {
-	private static final long serialVersionUID = 1L;
-	   
-    public LOUnion(List<LogicalOperator> inputsIn) {
-    	super(inputsIn);        
-    }
+    private static final long serialVersionUID = 1L;
 
+    public LOUnion(List<LogicalOperator> inputsIn) {
+        super(inputsIn);
+    }
+    
     @Override
-	public String name() {
+    public String name() {
         return "Union";
     }
 
     @Override
-	public TupleSchema outputSchema() {
-    	if (schema == null){
-    		TupleSchema longest = getInputs().get(0).outputSchema();
-	        int current = 0;
-	        for (LogicalOperator lo : getInputs()) {
-	            if (lo != null && lo.outputSchema() != null && lo.outputSchema().numFields() > current) {
-	                longest = lo.outputSchema();
-	                current = longest.numFields();
-	            }
-	        }
-	        schema = longest.copy();
-    	}
-    	
-    	schema.setAlias(alias);
+    public TupleSchema outputSchema() {
+        if (schema == null) {
+            TupleSchema longest = getInputs().get(0).outputSchema();
+            int current = 0;
+          for (LogicalOperator lo:getInputs()) {
+                if (lo != null && lo.outputSchema() != null
+                        && lo.outputSchema().numFields() > current) {
+                    longest = lo.outputSchema();
+                    current = longest.numFields();
+                }
+            }
+            schema = longest.copy();
+        }
+
+        schema.setAlias(alias);
         return schema;
     }
-	
-	@Override
-	public int getOutputType(){
-	 	int outputType = FIXED;
-    	for (int i=0; i<getInputs().size(); i++){
-    		switch (getInputs().get(i).getOutputType()){
-    			case FIXED: 
-    				continue;
-    			case MONOTONE: 
-    				if (outputType == FIXED)
-    					outputType = MONOTONE;
-    				continue;
-    			case AMENDABLE:
-    				outputType = AMENDABLE;
-    			default:	
-    				throw new RuntimeException("Invalid input type to the UNION operator");
-    		} 
-    	}
-    	return outputType;
+
+    @Override
+    public int getOutputType() {
+        int outputType = FIXED;
+        for (int i = 0; i < getInputs().size(); i++) {
+            switch (getInputs().get(i).getOutputType()) {
+            case FIXED:
+                continue;
+            case MONOTONE:
+                if (outputType == FIXED)
+                    outputType = MONOTONE;
+                continue;
+            case AMENDABLE:
+                outputType = AMENDABLE;
+            default:
+                throw new
+                    RuntimeException
+                    ("Invalid input type to the UNION operator");
+            }
+        }
+        return outputType;
+    }
+
+	public void visit(LOVisitor v) {
+		v.visitUnion(this);
 	}
 }

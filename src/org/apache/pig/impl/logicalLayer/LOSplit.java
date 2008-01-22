@@ -25,31 +25,34 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class LOSplit extends LogicalOperator {
-	private static final long serialVersionUID = 1L;
-	   
-	List<Cond> conditions = new ArrayList<Cond>();
-	
-	public LOSplit(LogicalOperator input){
-		super(input);	
+    private static final long serialVersionUID = 1L;
+
+      List<Cond> conditions = new ArrayList<Cond>();
+
+    public LOSplit(LogicalOperator input) {
+        super(input);
+    }
+    
+    public void addCond(Cond cond) {
+        conditions.add(cond);
+    }
+
+    @Override
+    public int getOutputType() {
+        return getInputs().get(0).getOutputType();
+    }
+
+    public ArrayList<Cond> getConditions() {
+        return new ArrayList<Cond> (conditions);
+    }
+
+    @Override
+    public TupleSchema outputSchema() {
+        return getInputs().get(0).outputSchema().copy();
+    }
+
+	public void visit(LOVisitor v) {
+		v.visitSplit(this);
 	}
-	
-	public void addCond(Cond cond){
-		conditions.add(cond);
-	}
-	
-	@Override
-	public int getOutputType(){
-		return getInputs().get(0).getOutputType();
-	}
-	
-	public ArrayList<Cond> getConditions(){		
-		return new ArrayList<Cond>(conditions);
-	}
-	
-	@Override
-	public TupleSchema outputSchema(){
-		return getInputs().get(0).outputSchema().copy();
-	}
-	
-	
+
 }

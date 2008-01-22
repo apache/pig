@@ -24,34 +24,36 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 
-public class LOEval extends LogicalOperator{
-	private static final long serialVersionUID = 1L;
-	   
-	protected EvalSpec spec;
+public class LOEval extends LogicalOperator {
+    private static final long serialVersionUID = 1L;
+
+    protected EvalSpec spec;
 
     public LOEval(LogicalOperator input, EvalSpec specIn) {
-    	super(input);
+        super(input);
         spec = specIn;
         getOutputType();
     }
 
     @Override
-	public String name() {
-        return "Eval";
+    public String name() {
+        return "Foreach";
     }
 
     @Override
-	public String arguments() {
+    public String arguments() {
         return spec.toString();
     }
 
     @Override
-	public TupleSchema outputSchema() {
+    public TupleSchema outputSchema() {
         if (schema == null) {
             //System.out.println("LOEval input: " + inputs[0].outputSchema());
             //System.out.println("LOEval spec: " + spec);
-            schema = (TupleSchema)spec.getOutputSchemaForPipe(getInputs().get(0).outputSchema());
-            
+            schema =
+                (TupleSchema) spec.getOutputSchemaForPipe(getInputs().get(0).
+                                                          outputSchema());
+
             //System.out.println("LOEval output: " + schema);
         }
         schema.setAlias(alias);
@@ -59,7 +61,7 @@ public class LOEval extends LogicalOperator{
     }
 
     @Override
-	public int getOutputType() {
+    public int getOutputType() {
         switch (getInputs().get(0).getOutputType()) {
         case FIXED:
             return FIXED;
@@ -72,13 +74,17 @@ public class LOEval extends LogicalOperator{
     }
 
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         List<String> funcs = super.getFuncs();
         funcs.addAll(spec.getFuncs());
         return funcs;
     }
 
-	public EvalSpec getSpec() {
-		return spec;
+    public EvalSpec getSpec() {
+        return spec;
+    }
+
+	public void visit(LOVisitor v) {
+		v.visitEval(this);
 	}
 }

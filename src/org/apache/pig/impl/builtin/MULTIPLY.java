@@ -20,21 +20,21 @@ package org.apache.pig.impl.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 
-public class MULTIPLY extends EvalFunc<DataAtom> {
+public class MULTIPLY extends EvalFunc<Double> {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        double v1 = input.getAtomField(0).numval();
-        double v2 = input.getAtomField(1).numval();
-        output.setValue(v1*v2);
+    public Double exec(Tuple input) throws IOException {
+        double v1 = (Double)input.get(0);
+        double v2 = (Double)input.get(1);
+        return new Double(v1 * v2);
     }
+
     @Override
     public Schema outputSchema(Schema input) {
         return new AtomSchema("product");

@@ -27,59 +27,62 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class LOStore extends LogicalOperator {
-	private static final long serialVersionUID = 1L;
-	   
-	protected FileSpec outputFileSpec;
+    private static final long serialVersionUID = 1L;
 
-	protected boolean append;
-    
+    protected FileSpec outputFileSpec;
 
-	public LOStore(LogicalOperator input, FileSpec fileSpec, boolean append) throws IOException{
-    	super(input);    	
+    protected boolean append;
+
+
+    public LOStore(LogicalOperator input,
+                   FileSpec fileSpec,
+                   boolean append) throws IOException {
+        super(input);
         this.outputFileSpec = fileSpec;
         this.append = append;
 
         //See if the store function spec is valid
-        try{
-        	StoreFunc StoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(fileSpec.getFuncSpec());
-        }catch (Exception e){
-        	IOException ioe = new IOException(e.getMessage());
-        	ioe.setStackTrace(e.getStackTrace());
-        	throw ioe;
-        }
-        
-        getOutputType();
-    }
-    
-    
-    public FileSpec getOutputFileSpec(){
-    	return outputFileSpec;
+        try {
+            StoreFunc StoreFunc =
+                (StoreFunc) PigContext.instantiateFuncFromSpec(
+                    fileSpec.getFuncSpec());
+        } catch(Exception e) {
+            IOException ioe = new IOException(e.getMessage());
+            ioe.setStackTrace(e.getStackTrace());
+            throw ioe;
+        } getOutputType();
     }
 
-    
-		@Override
-	public String toString() {
-	
-		StringBuffer result = new StringBuffer(super.toString());
-		result.append(" (append: ");
-		result.append(append);
-		result.append(')');
-		return result.toString();
-	}
+
+    public FileSpec getOutputFileSpec() {
+        return outputFileSpec;
+    }
 
 
-	@Override
-	public String name() {
+    @Override
+    public String toString() {
+        StringBuffer result = new StringBuffer(super.toString());
+        result.append(" (append: ");
+        result.append(append);
+        result.append(')');
+        return result.toString();
+    }
+
+
+    @Override
+    public String name() {
         return "Store";
     }
 
     @Override
-	public TupleSchema outputSchema() {
-        throw new RuntimeException("Internal error: Asking for schema of a store operator.");
+    public TupleSchema outputSchema() {
+        throw new
+            RuntimeException
+            ("Internal error: Asking for schema of a store operator.");
     }
 
     @Override
-	public int getOutputType() {
+    public int getOutputType() {
         switch (getInputs().get(0).getOutputType()) {
         case FIXED:
             return FIXED;
@@ -91,14 +94,18 @@ public class LOStore extends LogicalOperator {
     }
 
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         List<String> funcs = super.getFuncs();
         funcs.add(outputFileSpec.getFuncName());
         return funcs;
     }
 
 
-	public boolean isAppend() {
-		return append;
+    public boolean isAppend() {
+        return append;
+    }
+
+	public void visit(LOVisitor v) {
+		v.visitStore(this);
 	}
 }

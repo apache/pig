@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 
 
@@ -47,7 +46,7 @@ public class OrCond extends Cond {
     }
     
     @Override
-	public boolean eval(Datum input){
+	public boolean eval(Object input){
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
             if (it.next().eval(input) == true) return true;
         }

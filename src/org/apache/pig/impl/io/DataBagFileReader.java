@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
 package org.apache.pig.impl.io;
 
 import java.io.BufferedInputStream;
@@ -25,8 +26,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.data.Datum;
-import org.apache.pig.data.DatumImpl;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 
 public class DataBagFileReader {
@@ -36,37 +37,47 @@ public class DataBagFileReader {
 		store = f;
 	}
 	
-	private class myIterator implements Iterator<Datum>{
+    public static int notifyInterval = 1000;
+    public int numNotifies;
+	private class myIterator implements Iterator<Tuple>{
 		DataInputStream in;
-		Datum nextDatum;
+		Tuple nextTuple;
+        int curCall;
 		
 		public myIterator() throws IOException{
+            numNotifies = 0;
 			in = new DataInputStream(new BufferedInputStream(new FileInputStream(store)));
-			getNextDatum();
+			getNextTuple();
 		}
 		
-		private void getNextDatum() throws IOException{
+		private void getNextTuple() throws IOException{
+            if (curCall < notifyInterval - 1)
+                curCall ++;
+            else{
+                if (PigMapReduce.reporter != null)
+                    PigMapReduce.reporter.progress();
+                curCall = 0;
+                numNotifies ++;
+            }
+
 			try{
-				/*
-				nextDatum = new Datum();
-		        nextDatum.readFields(in);
-				*/
-				nextDatum = DatumImpl.readDatum(in);
+				nextTuple = new Tuple();
+		        nextTuple.readFields(in);
 			} catch (EOFException e) {
 				in.close();
-				nextDatum = null;
+				nextTuple = null;
 			}
 		}
 		
 		public boolean hasNext(){
-			return nextDatum != null;
+			return nextTuple != null;
 		}
 		
-		public Datum next(){
-			Datum returnValue = nextDatum;
+		public Tuple next(){
+			Tuple returnValue = nextTuple;
 			if (returnValue!=null){
 				try{
-					getNextDatum();
+					getNextTuple();
 				}catch (IOException e){
 					throw new RuntimeException(e.getMessage());
 				}
@@ -79,7 +90,7 @@ public class DataBagFileReader {
 		}
 	}
 
-	public Iterator<Datum> content() throws IOException{
+	public Iterator<Tuple> content() throws IOException{
 		return new myIterator();		
 	}
 	
@@ -87,3 +98,4 @@ public class DataBagFileReader {
 		store.delete();
 	}
 }
+*/

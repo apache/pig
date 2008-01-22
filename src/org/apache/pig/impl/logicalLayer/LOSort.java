@@ -23,56 +23,59 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class LOSort extends LogicalOperator {
-	private static final long serialVersionUID = 1L;
-	private EvalSpec sortSpec;
-	
-
-	protected EvalSpec spec;
-
-	public EvalSpec getSpec() {
-		return spec;
-	}
+    private static final long serialVersionUID = 1L;
+    private EvalSpec sortSpec;
 
 
+    protected EvalSpec spec;
 
-	public LOSort( LogicalOperator input, EvalSpec sortSpec){
-		super(input);		
-		this.sortSpec = sortSpec;
-		getOutputType();
-	}
-	
-	@Override
-	public String name() {
-			return "SORT";
-	}
-	
-	@Override
-	public String arguments() {
-			return sortSpec.toString();
-	}
-		
-	@Override
-	public int getOutputType() {
-		switch(getInputs().get(0).getOutputType()){
-		case FIXED:
-			return FIXED;
-		default:
-			throw new RuntimeException("Blocking operator such as sort cannot handle streaming input");
-		}
-	}
+    public EvalSpec getSpec() {
+        return spec;
+    }
+    
+    public LOSort(LogicalOperator input, EvalSpec sortSpec) {
+        super(input);
+        this.sortSpec = sortSpec;
+        getOutputType();
+    }
 
-	@Override
-	public TupleSchema outputSchema() {
-		if (schema== null)
-			schema = getInputs().get(0).outputSchema().copy();
-		
-		schema.setAlias(alias);
-		return schema;
-		
-	}
+    @Override
+    public String name() {
+        return "SORT";
+    }
 
-	public EvalSpec getSortSpec() {
-		return sortSpec;
+    @Override
+    public String arguments() {
+        return sortSpec.toString();
+    }
+
+    @Override
+    public int getOutputType() {
+        switch (getInputs().get(0).getOutputType()) {
+        case FIXED:
+            return FIXED;
+        default:
+            throw new RuntimeException
+                ("Blocking operator such as sort cannot handle streaming input");
+        }
+    }
+
+    @Override
+    public TupleSchema outputSchema() {
+        if (schema == null)
+            schema = getInputs().get(0).outputSchema().copy();
+
+        schema.setAlias(alias);
+        return schema;
+
+    }
+
+    public EvalSpec getSortSpec() {
+        return sortSpec;
+    }
+
+	public void visit(LOVisitor v) {
+		v.visitSort(this);
 	}
 
 }

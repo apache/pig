@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
@@ -32,6 +32,8 @@ public class ProjectSpec extends SimpleEvalSpec {
 
 	protected List<Integer> cols;
 	protected boolean wrapInTuple;
+
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
 	
 
 	public List<Integer> getCols() {
@@ -47,11 +49,6 @@ public class ProjectSpec extends SimpleEvalSpec {
 		cols.add(col);
 	}
 		
-	@Override
-	public boolean amenableToCombiner() {
-		return true;
-	}
-
 	@Override
 	public List<String> getFuncs() {
 		return new ArrayList<String>();
@@ -79,20 +76,25 @@ public class ProjectSpec extends SimpleEvalSpec {
 	}
 	
 	@Override
-	protected Datum eval(Datum d){
+	protected Object eval(Object d){
 		if (!(d instanceof Tuple)){
 			throw new RuntimeException("Project operator expected a Tuple, found a " + d.getClass().getSimpleName());
 		}
 		Tuple t = (Tuple)d;
 		
-		if (!wrapInTuple && cols.size() == 1){
-			return t.getField(cols.get(0));
-		}else{
-			Tuple out = new Tuple();
-			for (int i: cols){
-				out.appendField(t.getField(i));
+		try{
+			if (!wrapInTuple && cols.size() == 1){
+				return t.get(cols.get(0));
+			}else{
+				Tuple out = mTupleFactory.newTuple(cols.size());
+				for (int i: cols){
+					out.set(i, t.get(i));
+				}
+				return out;
 			}
-			return out;
+		}catch (IOException e){
+			//TODO: Based on a strictness level, insert null values here
+				throw new RuntimeException(e);		
 		}
 	}
 
@@ -100,6 +102,8 @@ public class ProjectSpec extends SimpleEvalSpec {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
+		if (isFlattened)
+			sb.append("FLATTEN ");
 		sb.append("PROJECT ");
 		boolean first = true;
 		for (int i: cols){
@@ -133,5 +137,11 @@ public class ProjectSpec extends SimpleEvalSpec {
 	public void setWrapInTuple(boolean wrapInTuple) {
 		this.wrapInTuple = wrapInTuple;
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitProject(this);
+	}
+    
 
 }

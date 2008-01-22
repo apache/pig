@@ -24,7 +24,7 @@ import java.io.IOException;
 /**
  * This is an internal class that keeps track of the specific input that a Tuple came from
  */
-public class IndexedTuple extends Tuple {
+public class IndexedTuple extends DefaultTuple {
 
 	public int index = -1;
 	
@@ -32,7 +32,9 @@ public class IndexedTuple extends Tuple {
 	}
 	
 	public IndexedTuple(Tuple t, int indexIn) {
-		super(t);
+        // Have to do it like this because Tuple is an interface, we don't
+        // have access to its internal structures.
+        super(t.getAll());
 		index = indexIn;
 	}
 
@@ -45,19 +47,15 @@ public class IndexedTuple extends Tuple {
 	@Override
 	public void write(DataOutput out) throws IOException {
 		super.write(out);
-		out.writeInt(index);
-		//encodeInt(out, index);
+        out.writeInt(index);
 	}
 	@Override
 	public void readFields(DataInput in) throws IOException {
 		super.readFields(in);
 		index = in.readInt();
-		//index = decodeInt(in);
 	}
 	
 	public Tuple toTuple(){
-		Tuple t = new Tuple();
-		t.mFields = mFields;
-		return t;
+        return TupleFactory.getInstance().newTuple(mFields);
 	}
 }

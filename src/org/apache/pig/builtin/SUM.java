@@ -22,9 +22,9 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -32,11 +32,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * Generates the sum of the values of the first field of a tuple.
  */
-public class SUM extends EvalFunc<DataAtom> implements Algebraic {
+public class SUM extends EvalFunc<Double> implements Algebraic {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(sum(input));
+    public Double exec(Tuple input) throws IOException {
+        return sum(input);
     }
 
     public String getInitial() {
@@ -52,40 +52,43 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
+        TupleFactory tfact = TupleFactory.getInstance();
+
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(sum(input)));
+        public Tuple exec(Tuple input) throws IOException {
+            return tfact.newTuple(sum(input));
         }
     }
-    static public class Final extends EvalFunc<DataAtom> {
+    static public class Final extends EvalFunc<Double> {
         @Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
-            output.setValue(sum(input));
+        public Double exec(Tuple input) throws IOException {
+            return sum(input);
         }
     }
 
     static protected double sum(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
+        DataBag values = (DataBag)input.get(0);
 
         double sum = 0;
-	int i = 0;
+        int i = 0;
         Tuple t = null;
-        for (Iterator it = values.content(); it.hasNext();) {
+        for (Iterator it = values.iterator(); it.hasNext();) {
             try {
             t = (Tuple) it.next();
-	    i++;
-            sum += t.getAtomField(0).numval();
+            i++;
+            sum += (Double)t.get(0);
             }catch(RuntimeException exp) {
-		String msg = "iteration = " + i + "bag size = " + values.cardinality() + " partial sum = " + sum + "\n";
-		if (t != null)
-			msg += "previous tupple = " + t.toString();
-		throw new RuntimeException(exp.getMessage() + " additional info: " + msg);
-                //throw new RuntimeException(exp.getMessage() + " error processing: " + t.toString());
+                String msg = "iteration = " + i + "bag size = " +
+                    values.size() + " partial sum = " + sum + "\n";
+                if (t != null)
+                        msg += "previous tupple = " + t.toString();
+                throw new RuntimeException(exp.getMessage() + " additional info: " + msg);
             }
         }
 
         return sum;
     }
+
     @Override
     public Schema outputSchema(Schema input) {
         return new AtomSchema("sum" + count++);

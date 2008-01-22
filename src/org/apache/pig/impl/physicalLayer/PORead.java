@@ -22,7 +22,6 @@ import java.util.Iterator;
 
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.Datum;
 
 
 public class PORead extends PhysicalOperator {
@@ -31,7 +30,7 @@ public class PORead extends PhysicalOperator {
 	 */
 	private static final long serialVersionUID = 1L;
 	DataBag             bag;
-    Iterator<Datum> it;
+    Iterator<Tuple> it;
 
     public PORead(DataBag bagIn, int outputType) {
     	super(outputType);
@@ -47,7 +46,7 @@ public class PORead extends PhysicalOperator {
     	if (continueFromLast){
     		throw new RuntimeException("LOReads should not occur in continuous plans");
     	}
-        it = bag.content();
+        it = bag.iterator();
 
         return true;
     }
@@ -55,9 +54,13 @@ public class PORead extends PhysicalOperator {
     @Override
 	public Tuple getNext() throws IOException {
         if (it.hasNext())
-            return (Tuple)it.next();
+            return it.next();
         else
             return null;
+    }
+
+    public void visit(POVisitor v) {
+        v.visitRead(this);
     }
 
 }

@@ -33,18 +33,14 @@ import org.junit.Test;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Datum;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.*;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.PigContext;
 
 public class TestPigFile extends TestCase {
 
-    DataBag bag          = new DataBag(Datum.DataType.TUPLE);
+    DataBag bag          = BagFactory.getInstance().newDefaultBag();
     Random rand = new Random();
     
     @Override
@@ -89,13 +85,13 @@ public class TestPigFile extends TestCase {
         DataBag loaded = load.load(new PigStorage(), pigContext);
         System.out.println("Done.");
 
-        assertTrue(bag.cardinality() == loaded.cardinality());
+        assertTrue(bag.size() == loaded.size());
 
-        Iterator<Datum> it1 = bag.content();
-        Iterator<Datum> it2 = loaded.content();
+        Iterator<Tuple> it1 = bag.iterator();
+        Iterator<Tuple> it2 = loaded.iterator();
         while (it1.hasNext() && it2.hasNext()) {
-            Tuple f1 = (Tuple)it1.next();
-            Tuple f2 = (Tuple)it2.next();
+            Tuple f1 = it1.next();
+            Tuple f2 = it2.next();
             assertTrue(f1.equals(f2));
         }
         assertFalse(it1.hasNext() || it2.hasNext());
@@ -131,7 +127,7 @@ public class TestPigFile extends TestCase {
     
     private DataBag getRandomBag(int maxCardinality, int nestingLevel) throws IOException{
     	int cardinality = rand.nextInt(maxCardinality)+1;
-    	DataBag b = new DataBag(Datum.DataType.TUPLE);
+    	DataBag b = BagFactory.getInstance().newDefaultBag();
     	for (int i=0; i<cardinality; i++){
     		Tuple t = getRandomTuple(nestingLevel+1); 
     		b.add(t);
@@ -168,14 +164,13 @@ public class TestPigFile extends TestCase {
         DataBag loaded = load.load(new BinStorage(), pigContext);
         System.out.println("Done.");
 
-        assertTrue(bag.cardinality() == loaded.cardinality());
+        assertTrue(bag.size() == loaded.size());
 
-        Iterator<Datum> it1 = bag.content();
-        Iterator<Datum> it2 = loaded.content();
-        //while (it1.hasNext() && it2.hasNext()) {
-        for (int i = 0; it1.hasNext() && it2.hasNext(); i++) {
-            Tuple f1 = (Tuple)it1.next();
-            Tuple f2 = (Tuple)it2.next();
+        Iterator<Tuple> it1 = bag.iterator();
+        Iterator<Tuple> it2 = loaded.iterator();
+        while (it1.hasNext() && it2.hasNext()) {
+            Tuple f1 = it1.next();
+            Tuple f2 = it2.next();
             assertTrue(f1.equals(f2));
         }
         assertFalse(it1.hasNext() || it2.hasNext());

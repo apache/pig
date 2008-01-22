@@ -26,8 +26,9 @@ import java.util.List;
 import org.apache.pig.data.AmendableTuple;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
@@ -40,7 +41,7 @@ class POCogroup extends PhysicalOperator {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	List<Datum[]>[] sortedInputs;
+	List<Object[]>[] sortedInputs;
     List<EvalSpec>       specs;
         
     public POCogroup(List<EvalSpec> specs, int outputType) {
@@ -61,11 +62,11 @@ class POCogroup extends PhysicalOperator {
         for (int i = 0; i < inputs.length; i++) {
         	
         	final int finalI = i;
-            sortedInputs[i] = new ArrayList<Datum[]>();
+            sortedInputs[i] = new ArrayList<Object[]>();
             
             DataCollector outputFromSpec = new DataCollector(null){
             	@Override
-            	public void add(Datum d) {
+            	public void add(Object d) {
             		sortedInputs[finalI].add(LOCogroup.getGroupAndTuple(d));
             	}
             };
@@ -78,9 +79,9 @@ class POCogroup extends PhysicalOperator {
             }
             inputToSpec.finishPipe();
 
-            Collections.sort(sortedInputs[i], new Comparator<Datum[]>() {
-                public int compare(Datum[] a, Datum[] b) {
-                    return a[0].compareTo(b[0]);
+            Collections.sort(sortedInputs[i], new Comparator<Object[]>() {
+                public int compare(Object[] a, Object[] b) {
+                    return DataType.compare(a[0], b[0]);
                 }
             });
         }
@@ -95,11 +96,11 @@ class POCogroup extends PhysicalOperator {
 
             // find the smallest group among all inputs (this is the group we should make a tuple
             // out of)
-            Datum smallestGroup = null;
+            Object smallestGroup = null;
             for (int i = 0; i < inputs.length; i++) {
                 if (sortedInputs[i].size() > 0) {
-                    Datum g = (sortedInputs[i].get(0))[0];
-                    if (smallestGroup == null || g.compareTo(smallestGroup)<0)
+                    Object g = (sortedInputs[i].get(0))[0];
+                    if (smallestGroup == null || DataType.compare(g, smallestGroup)<0)
                         smallestGroup = g;
                 }
             }
@@ -112,26 +113,26 @@ class POCogroup extends PhysicalOperator {
             
             Tuple output;
             if (outputType == LogicalOperator.AMENDABLE) output = new AmendableTuple(1 + inputs.length, smallestGroup);
-            else output = new Tuple(1 + inputs.length);
+            else output = TupleFactory.getInstance().newTuple(1 + inputs.length);
 
             // set first field to the group tuple
-            output.setField(0, smallestGroup);
+            output.set(0, smallestGroup);
             
             if (lineageTracer != null) lineageTracer.insert(output);
 
             boolean done = true;
             for (int i = 0; i < inputs.length; i++) {
-                DataBag b =
-					BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
+                DataBag b = BagFactory.getInstance().newDefaultBag();
 
                 while (sortedInputs[i].size() > 0) {
-                    Datum g = sortedInputs[i].get(0)[0];
+                    Object g = sortedInputs[i].get(0)[0];
 
                     Tuple t = (Tuple) sortedInputs[i].get(0)[1];
 
-                    if (g.compareTo(smallestGroup) < 0) {
+                    int c = DataType.compare(g, smallestGroup);
+                    if (c < 0) {
                         sortedInputs[i].remove(0); // discard this tuple
-                    } else if (g.equals(smallestGroup)) {
+                    } else if (c == 0) {
                         b.add(t);
                         if (lineageTracer != null) lineageTracer.union(t, output);   // update lineage
                         sortedInputs[i].remove(0);
@@ -140,17 +141,21 @@ class POCogroup extends PhysicalOperator {
                     }
                 }
 
-                if (specs.get(i).isInner() && b.isEmpty())
+                if (specs.get(i).isInner() && (b.size() == 0))
                     done = false; // this input uses "inner" semantics, and it has no tuples for
                                     // this group, so suppress the tuple we're currently building
 
-                output.setField(1 + i, b);
+                output.set(1 + i, b);
             }
 
             if (done)
                 return output;
         }
 
+    }
+
+    public void visit(POVisitor v) {
+        v.visitCogroup(this);
     }
 
 }

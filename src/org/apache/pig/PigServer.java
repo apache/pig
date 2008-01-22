@@ -20,16 +20,22 @@ package org.apache.pig;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Enumeration;
+import java.util.Vector;
+import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.apache.hadoop.dfs.DistributedFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -39,6 +45,8 @@ import org.apache.pig.impl.logicalLayer.LORead;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LOVisitor;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
@@ -47,6 +55,9 @@ import org.apache.pig.impl.physicalLayer.IntermedResult;
 import org.apache.pig.impl.physicalLayer.POMapreduce;
 import org.apache.pig.impl.physicalLayer.POStore;
 import org.apache.pig.impl.physicalLayer.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.POVisitor;
+import org.apache.pig.impl.physicalLayer.POPrinter;
+import org.apache.pig.impl.util.PigLogger;
 
 
 
@@ -146,11 +157,59 @@ public class PigServer {
     	pigContext.registerFunction(function, functionSpec);
     }
     
-    public void registerJar(String path) throws IOException{
-    	File f = new File(path);
-    	if (!f.canRead())
-    		throw new IOException("Can't read " + path);
-        pigContext.addJar(path);
+    private URL locateJarFromResources(String jarName) throws IOException {
+        Enumeration<URL> urls = ClassLoader.getSystemResources(jarName);
+        URL resourceLocation = null;
+        
+        if (urls.hasMoreElements()) {
+        	resourceLocation = urls.nextElement();
+        }
+        
+        if (pigContext.debug && urls.hasMoreElements()) {
+            String logMessage = "Found multiple resources that match " 
+                + jarName + ": " + resourceLocation;
+            
+            while (urls.hasMoreElements()) {
+            	logMessage += (logMessage + urls.nextElement() + "; ");
+            }
+            
+            PigLogger.getLogger().debug(logMessage);
+        }
+    
+        return resourceLocation;
+    }
+    
+    /**
+     * Registers a jar file. Name of the jar file can be an absolute or 
+     * relative path.
+     * 
+     * If multiple resources are found with the specified name, the
+     * first one is registered as returned by getSystemResources.
+     * A warning is issued to inform the user.
+     * 
+     * @param name of the jar file to register
+     * @throws IOException
+     */
+    public void registerJar(String name) throws IOException {
+        // first try to locate jar via system resources
+        // if this fails, try by using "name" as File (this preserves 
+        // compatibility with case when user passes absolute path or path 
+    	// relative to current working directory.)    	
+        if (name != null) {
+            URL resource = locateJarFromResources(name);
+
+            if (resource == null) {
+                File f = new File(name);
+                
+                if (!f.canRead()) {
+                    throw new IOException("Can't read jar file: " + name);
+                }
+                
+                resource = f.toURI().toURL();
+            }
+
+            pigContext.addJar(resource);    	
+        }
     }
     
     /**
@@ -244,12 +303,7 @@ public class PigServer {
        		pp = physicalPlans.get(readFrom);
     	}
     	
-		// Data bags are guaranteed to contain tuples.
-    	//return pp.exec(continueFromLast).content();
-		// A direct subversion of the type system, this has to be bad.
-		Iterator<Datum> i = pp.exec(continueFromLast).content();
-		Object o = i;
-    	return (Iterator<Tuple>)o;
+    	return pp.exec(continueFromLast).iterator();
     	
     }
     
@@ -265,10 +319,8 @@ public class PigServer {
 
         readFrom.compile(queryResults);
         readFrom.exec();
-        if (pigContext.getExecType() == ExecType.LOCAL) {
-            Object o = readFrom.read().content();
-			return (Iterator<Tuple>)o;
-		}
+        if (pigContext.getExecType() == ExecType.LOCAL)
+            return readFrom.read().iterator();
         final LoadFunc p;
         
         try{
@@ -470,6 +522,35 @@ public class PigServer {
 	}
 
     /**
+     * Provide information on how a pig query will be executed.  For now
+     * this information is very developer focussed, and probably not very
+     * useful to the average user.
+     * @param alias Name of alias to explain.
+     * @param stream PrintStream to write explanation to.
+     * @throws IOException if the requested alias cannot be found.
+     */
+    public void explain(
+            String alias,
+            PrintStream stream) throws IOException {
+        stream.println("Logical Plan:");
+        IntermedResult ir = queryResults.get(alias);
+        if (ir == null) {
+            PigLogger.getLogger().error("Invalid alias: " + alias);
+            throw new IOException("Invalid alias: " + alias);
+        }
+
+        LOVisitor lprinter = new LOPrinter(stream);
+        ir.lp.getRoot().visit(lprinter);
+
+        stream.println("-----------------------------------------------");
+        stream.println("Physical Plan:");
+        // have to first compile the plan
+        ir.compile(queryResults);
+        POVisitor pprinter = new POPrinter(stream);
+        ir.pp.root.visit(pprinter);
+    }
+
+    /**
      * Returns the unused byte capacity of an HDFS filesystem. This value does
      * not take into account a replication factor, as that can vary from file
      * to file. Thus if you are using this to determine if you data set will fit
@@ -496,7 +577,7 @@ public class PigServer {
     public long fileSize(String filename) throws IOException {
         FileSystem dfs = pigContext.getDfs();
         Path p = new Path(filename);
-        long len = dfs.getLength(p);
+        long len = dfs.getFileStatus(p).getLen();
         long replication = dfs.getDefaultReplication(); // did not work, for some reason: dfs.getReplication(p);
         return len * replication;
     }
@@ -518,10 +599,10 @@ public class PigServer {
     }
     
     public String[] listPaths(String dir) throws IOException {
-        Path paths[] = pigContext.getDfs().listPaths(new Path(dir));
-        String strPaths[] = new String[paths.length];
-        for (int i = 0; i < paths.length; i++) {
-            strPaths[i] = paths[i].toString();
+        FileStatus stats[] = pigContext.getDfs().listStatus(new Path(dir));
+        String strPaths[] = new String[stats.length];
+        for (int i = 0; i < stats.length; i++) {
+            strPaths[i] = stats[i].getPath().toString();
         }
         return strPaths;
     }

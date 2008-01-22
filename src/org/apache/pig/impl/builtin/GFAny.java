@@ -21,27 +21,26 @@ import java.io.IOException;
 import java.util.Random;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.Tuple;
 
 
 /**
  * built-in grouping function; permits system to choose any grouping.
  */
-public class GFAny extends EvalFunc<DataAtom> {
-	public static final int defaultNumGroups = 1000;
-	
-	int numGroups = defaultNumGroups;
-	Random r = new Random();
-	
-	public GFAny(){}
-	
-	public GFAny(int numGroups){
-		this.numGroups = numGroups;
-	}
-	
-	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException{
-		output.setValue(r.nextInt(numGroups));
-	}
+public class GFAny extends EvalFunc<Integer> {
+    public static final int defaultNumGroups = 1000;
+    
+    int numGroups = defaultNumGroups;
+    Random r = new Random();
+    
+    public GFAny(){}
+    
+    public GFAny(int numGroups){
+        this.numGroups = numGroups;
+    }
+    
+    @Override
+    public Integer exec(Tuple input) throws IOException{
+        return r.nextInt(numGroups);
+    }
 }

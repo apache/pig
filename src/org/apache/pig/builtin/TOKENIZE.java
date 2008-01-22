@@ -21,22 +21,28 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class TOKENIZE extends EvalFunc<DataBag> {
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
+    BagFactory mBagFactory = BagFactory.getInstance();
 
     @Override
-    public void exec(Tuple input, DataBag output) throws IOException {
-        String str = input.getAtomField(0).strval();
+    public DataBag exec(Tuple input) throws IOException {
+        DataBag output = mBagFactory.newDefaultBag();
+        String str = (String)input.get(0);
         StringTokenizer tok = new StringTokenizer(str, " \",()*", false);
         while (tok.hasMoreTokens()) {
-            output.add(new Tuple(tok.nextToken()));
+            output.add(mTupleFactory.newTuple(tok.nextToken()));
         }
+        return output;
     }
 
     @Override

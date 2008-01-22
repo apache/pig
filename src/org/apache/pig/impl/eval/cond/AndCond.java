@@ -22,21 +22,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 
 
 
 public class AndCond extends Cond {
-	private static final long serialVersionUID = 1L;
-	public List<Cond> cList;
-	
-	public AndCond(List<Cond> cList) {
-		this.cList = cList;
-	}
-	
+    private static final long serialVersionUID = 1L;
+    public List<Cond> cList;
+    
+    public AndCond(List<Cond> cList) {
+        this.cList = cList;
+    }
+    
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         List<String> funcs = new ArrayList<String>();
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
             funcs.addAll(it.next().getFuncs());
@@ -45,7 +44,7 @@ public class AndCond extends Cond {
     }
 
     @Override
-	public boolean eval(Datum input){
+    public boolean eval(Object input){
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
             if (it.next().eval(input) == false) return false;
         }
@@ -53,7 +52,7 @@ public class AndCond extends Cond {
     }
     
     @Override
-	public String toString() {
+    public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("(");
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
@@ -66,15 +65,15 @@ public class AndCond extends Cond {
     
     @Override
     public void finish() {
-    	for (Cond c: cList)
-    		c.finish();
+        for (Cond c: cList)
+            c.finish();
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-		for (Cond c: cList)
-    		c.instantiateFunc(instantiaor);
-		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        for (Cond c: cList)
+            c.instantiateFunc(instantiaor);
+        
+    }
 }

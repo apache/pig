@@ -25,8 +25,8 @@ import java.util.List;
 
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -40,6 +40,7 @@ public class GenerateSpec extends EvalSpec {
 
 	protected int driver;
 
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
 
     public GenerateSpec(List<EvalSpec> specs){
@@ -68,7 +69,7 @@ public class GenerateSpec extends EvalSpec {
     		LinkedList<CrossProductItem> pendingCrossProducts = new LinkedList<CrossProductItem>();
     		
     		@Override
-    		public void add(Datum d) {
+    		public void add(Object d) {
     			
     			if (checkDelimiter(d))
         			throw new RuntimeException("Internal error: not expecting a delimiter tuple");
@@ -110,30 +111,30 @@ public class GenerateSpec extends EvalSpec {
     	DataBag bag;
     	public DatumBag(){
     		super(null);
-    		try{
-    			bag = BagFactory.getInstance().getNewBag(Datum.DataType.TUPLE);
-    		}catch(IOException e){
-    			throw new RuntimeException(e);
-    		}
+    		bag = BagFactory.getInstance().newDefaultBag();
     	}
     	
     	@Override
-		public void add(Datum d){
-    		bag.add(new Tuple(d));
+		public void add(Object d){
+    		bag.add(mTupleFactory.newTuple(d));
     	}
     	
-    	public Iterator<Datum> content(){
-    		return new Iterator<Datum>(){
-    			Iterator<Datum> iter;
+    	public Iterator<Object> content(){
+    		return new Iterator<Object>(){
+    			Iterator<Tuple> iter;
     			{
-    				iter = bag.content();
+    				iter = bag.iterator();
     			}
     			public boolean hasNext() {
     				return iter.hasNext();
     			}
-    			public Datum next() {
-    				return ((Tuple)iter.next()).getField(0);
-    			}
+                public Object next() {
+                    try {
+                        return iter.next().get(0);
+                    } catch(IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
     			public void remove() {
     				throw new RuntimeException("Can't remove from read-only iterator");
     			}
@@ -144,9 +145,9 @@ public class GenerateSpec extends EvalSpec {
 
     private class CrossProductItem extends DataCollector{
     	DatumBag[] toBeCrossed;
-    	Datum cpiInput;    	
+    	Object cpiInput;    	
     	
-    	public CrossProductItem(Datum driverInput, DataCollector successor){
+    	public CrossProductItem(Object driverInput, DataCollector successor){
     		super(successor);
     		this.cpiInput = driverInput;
     		
@@ -163,13 +164,13 @@ public class GenerateSpec extends EvalSpec {
     	}
     	
     	@Override
-    	public void add(Datum d){
+    	public void add(Object d){
     		if (checkDelimiter(d))
     			throw new RuntimeException("Internal error: not expecting a delimiter tuple");
     	   int numItems = specs.size();
     	   
            // create one iterator per to-be-crossed bag
-           Iterator<Datum>[] its = new Iterator[numItems];
+           Iterator<Object>[] its = new Iterator[numItems];
            for (int i = 0; i < numItems; i++) {
         	   if (i != driver){
         		   its[i] = toBeCrossed[i].content();
@@ -178,8 +179,8 @@ public class GenerateSpec extends EvalSpec {
         	   }
            }
 
-           Datum[] lastOutput = null;
-           Datum[] outData = new Datum[numItems];
+           Object[] lastOutput = null;
+           Object[] outData = new Object[numItems];
 
            boolean done = false;
            while (!done) {
@@ -219,16 +220,20 @@ public class GenerateSpec extends EvalSpec {
                    }
                }
 
-               Tuple outTuple = new Tuple();
+               Tuple outTuple = mTupleFactory.newTuple();
                
                for (int i=0; i< numItems; i++){
             	   if (specs.get(i).isFlattened() && outData[i] instanceof Tuple){
         				Tuple t = (Tuple)outData[i];
-						for (int j=0; j < t.arity(); j++){
-		    			   outTuple.appendField(t.getField(j));
-		    			}
+                        try {
+						    for (int j=0; j < t.size(); j++){
+		    			        outTuple.append(t.get(j));
+		    			    }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
         		   }else{
-            		   outTuple.appendField(outData[i]);
+            		   outTuple.append(outData[i]);
             	   }
                }
                successor.add(outTuple);
@@ -294,18 +299,6 @@ public class GenerateSpec extends EvalSpec {
         }
     }
  
-    /**
-     * Determine if this instance of EvalItems is a candiate for algebraic
-     * evaluation. This means it contains an Algebraic Function, and does not
-     * contain repeated references to column used by the algebraic function.
-     * @return
-     */
-    @Override
-	public boolean amenableToCombiner() {
-    	//TODO
-        return false;
-    }
-
     @Override
 	public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -373,4 +366,9 @@ public class GenerateSpec extends EvalSpec {
 		return specs;
 	}
 
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitGenerate(this);
+	}
+    
 }

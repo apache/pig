@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 
 
@@ -30,7 +29,7 @@ public abstract class Cond implements Serializable{
 
 	public abstract List<String> getFuncs();
     
-    public abstract boolean eval(Datum input);
+    public abstract boolean eval(Object input);
     
     public abstract void finish();
 

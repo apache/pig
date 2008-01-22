@@ -19,7 +19,12 @@ package org.apache.pig.impl.physicalLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 
+import org.apache.log4j.Logger;
+
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
@@ -27,25 +32,28 @@ import org.apache.pig.impl.eval.StarSpec;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.impl.util.ObjectSerializer;
-
+import org.apache.pig.impl.util.PigLogger;
 
 public class POMapreduce extends PhysicalOperator {
 	private static final long serialVersionUID = 1L;
 	
     public ArrayList<EvalSpec> toMap             = new ArrayList<EvalSpec>();
-    public ArrayList<EvalSpec>     toCombine         = null;
+    //public ArrayList<EvalSpec>     toCombine         = null;
+    public EvalSpec     toCombine         = null;
     public EvalSpec    toReduce          = null;
     public ArrayList<EvalSpec>  groupFuncs           = null;
     public SplitSpec        toSplit           = null;
     public ArrayList<FileSpec>           inputFileSpecs         = new ArrayList<FileSpec>();
     public FileSpec         outputFileSpec        = null;
     public Class           partitionFunction = null;
+    public Class<WritableComparator> userComparator = null;
     public String quantilesFile = null;
     public PigContext pigContext;
     
     public int                     mapParallelism       = -1;     // -1 means let hadoop decide
     public int                     reduceParallelism    = -1;
 
+    
     static MapReduceLauncher mapReduceLauncher = new MapReduceLauncher();
 
     
@@ -156,16 +164,16 @@ public class POMapreduce extends PhysicalOperator {
     }
 
     void print() {
-        System.out.println("\n----- MapReduce Job -----");
-        System.out.println("Input: " + inputFileSpecs);
-        System.out.println("Map: " + toMap);
-        System.out.println("Group: " + groupFuncs);
-        System.out.println("Combine: " + toCombine);
-        System.out.println("Reduce: " + toReduce);
-        System.out.println("Output: " + outputFileSpec);
-        System.out.println("Split: " + toSplit);
-        System.out.println("Map parallelism: " + mapParallelism);
-        System.out.println("Reduce parallelism: " + reduceParallelism);
+        Logger log = PigLogger.getLogger();
+        log.debug("Input: " + inputFileSpecs);
+        log.debug("Map: " + toMap);
+        log.debug("Group: " + groupFuncs);
+        log.debug("Combine: " + toCombine);
+        log.debug("Reduce: " + toReduce);
+        log.debug("Output: " + outputFileSpec);
+        log.debug("Split: " + toSplit);
+        log.debug("Map parallelism: " + mapParallelism);
+        log.debug("Reduce parallelism: " + reduceParallelism);
     }
     
     public POMapreduce copy(){
@@ -199,6 +207,10 @@ public class POMapreduce extends PhysicalOperator {
     		toReduce = spec;
     	else
     		toReduce = toReduce.addSpec(spec);
+    }
+
+    public void visit(POVisitor v) {
+        v.visitMapreduce(this);
     }
     
 }

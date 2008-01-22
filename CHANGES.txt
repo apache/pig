@@ -1,0 +1,64 @@
+Pig Change Log
+
+
+Trunk (unreleased changes)
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+  	PIG-24 Files that were incorrectly placed under test/reports have been
+	removed.  ant clean now cleans test/reports.  (milindb via gates)
+
+	PIG-25 com.yahoo.pig dir left under pig/test by mistake. removed it (olgan@)
+
+	PIG-23 Made pig work with java 1.5. (milindb via gates)
+
+	PIG-8 added binary comparator (olgan)
+
+	PIG-17 integrated with Hadoop 0.15 (olgan@)
+
+    PIG-11 Add capability to search for jar file to register. (antmagna via
+	olgan)
+
+	PIG-20 Added custom comparator functions for order by (phunt via gates)
+
+	PIG-33 Help was commented out - uncommented (olgan)
+
+	PIG-31: second half of concurrent mode problem addressed (olgan)
+
+	PIG-14: added heartbeat functionality (olgan)
+
+	PIG-17: updated hadoop15.jar to match hadoop 0.15.1 release
+
+	PIG-7: Added use of combiner in some restricted cases. (gates)
+	
+	PIG-29: fixed bag factory to be properly initialized (utkarsh)
+
+    PIG-43: fixed problem where using the combiner prevented a pig alias
+    from being evaluated more than once. (gates)
+
+    PIG-45: Fixed pig.pl to not assume hodrc file is named the same as
+    cluster name (gates).
+
+    PIG-7 (more): Fixed bug in PigCombiner where it was writing IndexedTuples
+    instead of Tuples, causing Reducer to crash in some cases.
+
+    PIG-47: Added methods to DataMap to provide access to its content
+
+	PIG-12: Added time stamps to log4j messages (phunt via gates).
+
+	PIG-44: Added adaptive decision of the number of records to hold in memory 
+	before spilling (utkarsh)
+    PIG-39: created more efficient version of read (spullara via olgan)
+
+    PIG-41: Added patterns to svn:ignore
+
+    PIG-51: Fixed combiner in the presence of flattening
+
+	PIG-30: Rewrote DataBags to better handle decisions of when to spill to
+	disk and to spill more intelligently. (gates)
+

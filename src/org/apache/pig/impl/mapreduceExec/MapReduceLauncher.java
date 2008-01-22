@@ -17,8 +17,6 @@
  */
 package org.apache.pig.impl.mapreduceExec;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,19 +27,21 @@ import java.io.FileOutputStream;
 import org.apache.log4j.Logger;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.Datum;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.physicalLayer.POMapreduce;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.PigLogger;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PigLogger;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.UTF8;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.JobClient;
@@ -65,7 +65,17 @@ public class MapReduceLauncher {
         numMRJobs = numMRJobsIn;
         mrJobNumber = 0;
     }
-        
+
+    public static class PigWritableComparator extends WritableComparator {
+        public PigWritableComparator() {
+            super(Tuple.class);
+        }
+
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
+            return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
+	    }
+    }
+
     static Random rand = new Random();
 
     /**
@@ -91,7 +101,7 @@ public class MapReduceLauncher {
      * @throws IOException
      */
     public boolean launchPig(POMapreduce pom) throws IOException {
-		Logger log = PigLogger.getLogger();
+        Logger log = PigLogger.getLogger();
         JobConf conf = new JobConf(pom.pigContext.getConf());
         conf.setJobName(pom.pigContext.getJobName());
         boolean success = false;
@@ -112,7 +122,7 @@ public class MapReduceLauncher {
 	{
 		FileOutputStream fos = new FileOutputStream(submitJarFile);
                	JarManager.createJar(fos, funcs, pom.pigContext);
-               	System.out.println("Job jar size = " + submitJarFile.length());
+               	log.debug("Job jar size = " + submitJarFile.length());
 		conf.setJar(submitJarFile.getPath());
         	String user = System.getProperty("user.name");
         	conf.setUser(user != null ? user : "Pigster");
@@ -133,20 +143,28 @@ public class MapReduceLauncher {
             		conf.set("pig.pigContext", ObjectSerializer.serialize(pom.pigContext));
             
             	conf.setMapRunnerClass(PigMapReduce.class);
-            	if (pom.toCombine != null)
-                	conf.setCombinerClass(PigCombine.class);
+                if (pom.toCombine != null) {
+                    conf.setCombinerClass(PigCombine.class);
+                    //conf.setCombinerClass(PigMapReduce.class);
+                }
             	if (pom.quantilesFile!=null){
             		conf.set("pig.quantilesFile", pom.quantilesFile);
-            	}
+                }
+                else{
+                    // this is not a sort job - can use byte comparison to speed up processing
+                    conf.setOutputKeyComparatorClass(PigWritableComparator.class);					
+                }
             	if (pom.partitionFunction!=null){
             		conf.setPartitionerClass(SortPartitioner.class);
             	}
             	conf.setReducerClass(PigMapReduce.class);
             	conf.setInputFormat(PigInputFormat.class);
             	conf.setOutputFormat(PigOutputFormat.class);
-            	conf.setInputKeyClass(UTF8.class);
-            	conf.setInputValueClass(Tuple.class);
+            	// not used starting with 0.15 conf.setInputKeyClass(Text.class);
+            	// not used starting with 0.15 conf.setInputValueClass(Tuple.class);
             	conf.setOutputKeyClass(Tuple.class);
+            	if (pom.userComparator != null)
+                	conf.setOutputKeyComparatorClass(pom.userComparator);
             	conf.setOutputValueClass(IndexedTuple.class);
             	conf.set("pig.inputs", ObjectSerializer.serialize(pom.inputFileSpecs));
             
@@ -212,8 +230,8 @@ public class MapReduceLauncher {
             	
             		// create an empty output file
                 	PigFile f = new PigFile(outputFile.toString(), false);
-                	f.store(new DataBag(Datum.DataType.TUPLE),
-						new PigStorage(), pom.pigContext);
+                	f.store(BagFactory.getInstance().newDefaultBag(),
+                        new PigStorage(), pom.pigContext);
                 
             	}
 

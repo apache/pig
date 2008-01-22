@@ -19,20 +19,20 @@ package org.apache.pig.impl.eval.window;
 
 import java.util.*;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.TimestampedTuple;
 import org.apache.pig.impl.eval.collector.DataCollector;
+import org.apache.pig.impl.eval.EvalSpecVisitor;
 
 public class TupleWindowSpec extends WindowSpec {
 	private static final long serialVersionUID = 1L;
 	   
 	int numTuples;
-    transient List<Datum> window;
+    transient List<Object> window;
 	
 	public TupleWindowSpec(windowType type, int numTuples){
 		super(type);
 		this.numTuples = numTuples;
-        window = new LinkedList<Datum>();
+        window = new LinkedList<Object>();
 	}
 	
 	@Override
@@ -40,7 +40,7 @@ public class TupleWindowSpec extends WindowSpec {
 	    return new DataCollector(endOfPipe) {
 
 	        @Override
-			public void add(Datum d) {
+			public void add(Object d) {
 	        	if (d!=null){
 	        	
 		        	if (d instanceof TimestampedTuple){
@@ -54,7 +54,7 @@ public class TupleWindowSpec extends WindowSpec {
 	        	}
 	        	
 	        	// emit entire window content to output collector
-                for (Iterator<Datum> it = window.iterator(); it.hasNext(); ) {
+                for (Iterator<Object> it = window.iterator(); it.hasNext(); ) {
                     addToSuccessor(it.next());
                 }
 	        }
@@ -72,6 +72,10 @@ public class TupleWindowSpec extends WindowSpec {
     	sb.append(numTuples);
     	sb.append("]");
     	return sb.toString();
+    }
+
+    public void visit(EvalSpecVisitor v) {
+        v.visitTupleWindow(this);
     }
 
 }

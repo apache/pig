@@ -18,7 +18,6 @@
 package org.apache.pig.impl.eval;
 
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.eval.collector.DataCollector;
 
 
@@ -28,7 +27,7 @@ public abstract class SimpleEvalSpec extends EvalSpec {
 	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
 		return new DataCollector(endOfPipe){
 			@Override
-			public void add(Datum d) {
+			public void add(Object d) {
 				if (checkDelimiter(d))
 					addToSuccessor(d);
 				else
@@ -42,7 +41,7 @@ public abstract class SimpleEvalSpec extends EvalSpec {
 		};
 	}
 	
-	protected abstract Datum eval(Datum d);
+	protected abstract Object eval(Object d);
 
 
 }

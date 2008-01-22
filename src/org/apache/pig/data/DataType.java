@@ -1,0 +1,270 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.pig.data;
+
+import java.lang.Class;
+import java.lang.reflect.Type;
+import java.util.Iterator;
+import java.util.Map;
+
+/**
+ * A class of static final values used to encode data type.  This could be
+ * done as an enumeration, but it done as byte codes instead to save
+ * creating objects.  A few utility functions are also included.
+ */
+public class DataType {
+    // IMPORTANT! This list can be used to record values of data on disk,
+    // so do not change the values.  You may strand user data.
+    // IMPORTANT! Order matters here, as compare() below uses the order to
+    // order unlink datatypes.  Don't change this ordering.
+    // Spaced unevenly to leave room for new entries without changing
+    // values or creating order issues.  
+    public static final byte UNKNOWN   =   0;
+    public static final byte NULL      =   1;
+    public static final byte BOOLEAN   =   5;
+    public static final byte INTEGER   =  10;
+    public static final byte LONG      =  15;
+    public static final byte FLOAT     =  20;
+    public static final byte DOUBLE    =  25;
+    public static final byte BYTEARRAY =  50;
+    public static final byte CHARARRAY =  55;
+    public static final byte MAP       = 100;
+    public static final byte TUPLE     = 110;
+    public static final byte BAG       = 120;
+    public static final byte ERROR     =  -1;
+
+    /**
+     * Determine the datatype of an object.
+     * @param o Object to test.
+     * @return byte code of the type, or ERROR if we don't know.
+     */
+    public static byte findType(Object o) {
+        if (o == null) return NULL;
+
+        // Try to put the most common first
+        if (o instanceof DataByteArray) return BYTEARRAY;
+        else if (o instanceof String) return CHARARRAY;
+        else if (o instanceof Tuple) return TUPLE;
+        else if (o instanceof DataBag) return BAG;
+        else if (o instanceof Integer) return INTEGER;
+        else if (o instanceof Long) return LONG;
+        else if (o instanceof Map) return MAP;
+        else if (o instanceof Float) return FLOAT;
+        else if (o instanceof Double) return DOUBLE;
+        else if (o instanceof Boolean) return BOOLEAN;
+        else return ERROR;
+    }
+
+    /**
+     * Given a Type object determine the data type it represents.  This isn't
+     * cheap, as it uses reflection, so use sparingly.
+     * @param t Type to examine
+     * @return byte code of the type, or ERROR if we don't know.
+     */
+    public static byte findType(Type t) {
+        if (t == null) return NULL;
+
+        // Try to put the most common first
+        if (t == DataByteArray.class) return BYTEARRAY;
+        else if (t == String.class) return CHARARRAY;
+        else if (t == Integer.class) return INTEGER;
+        else if (t == Long.class) return LONG;
+        else if (t == Float.class) return FLOAT;
+        else if (t == Double.class) return DOUBLE;
+        else if (t == Boolean.class) return BOOLEAN;
+        else {
+            // Might be a tuple or a bag, need to check the interfaces it
+            // implements
+            if (t instanceof Class) {
+                Class c = (Class)t;
+                Class[] interfaces = c.getInterfaces();
+                for (int i = 0; i < interfaces.length; i++) {
+                    if (interfaces[i].getName().equals("org.apache.pig.data.Tuple")) {
+                        return TUPLE;
+                    } else if (interfaces[i].getName().equals("org.apache.pig.data.DataBag")) {
+                        return BAG;
+                    } else if (interfaces[i].getName().equals("java.util.Map")) {
+                        return MAP;
+                    }
+                }
+            }
+            return ERROR;
+        }
+    }
+
+    /**
+     * Get the type name.
+     * @param o Object to test.
+     * @return type name, as a String.
+     */
+    public static String findTypeName(Object o) {
+        byte dt = findType(o);
+        switch (dt) {
+        case NULL:      return "NULL";
+        case BOOLEAN:   return "boolean";
+        case INTEGER:   return "integer";
+        case LONG:      return "long";
+        case FLOAT:     return "float";
+        case DOUBLE:    return "double";
+        case BYTEARRAY: return "bytearray";
+        case CHARARRAY: return "chararray";
+        case MAP:       return "map";
+        case TUPLE:     return "tuple";
+        case BAG:       return "bag";
+        default: return "Unknown";
+        }
+    }
+
+    /**
+     * Determine whether the this data type is complex.
+     * @param dataType Data type code to test.
+     * @return true if dataType is bag, tuple, or map.
+     */
+    public static boolean isComplex(byte dataType) {
+        return ((dataType == BAG) || (dataType == TUPLE) ||
+            (dataType == MAP));
+    }
+
+    /**
+     * Determine whether the object is complex or atomic.
+     * @param o Object to determine type of.
+     * @return true if dataType is bag, tuple, or map.
+     */
+    public static boolean isComplex(Object o) {
+        return isComplex(findType(o));
+    }
+
+    /**
+     * Determine whether the this data type is atomic.
+     * @param dataType Data type code to test.
+     * @return true if dataType is bytearray, chararray, integer, long,
+     * float, or boolean.
+     */
+    public static boolean isAtomic(byte dataType) {
+        return ((dataType == BYTEARRAY) || (dataType == CHARARRAY) ||
+            (dataType == INTEGER) || (dataType == LONG) || 
+            (dataType == FLOAT) || (dataType == BOOLEAN));
+    }
+
+    /**
+     * Determine whether the this data type is atomic.
+     * @param o Object to determine type of.
+     * @return true if dataType is bytearray, chararray, integer, long,
+     * float, or boolean.
+     */
+    public static boolean isAtomic(Object o) {
+        return isAtomic(findType(o));
+    }
+
+    /**
+     * Compare two objects to each other.  This function is necessary
+     * because there's no super class that implements compareTo.  This
+     * function provides an (arbitrary) ordering of objects of different
+     * types as follows:  NULL &lt; BOOLEAN &lt; INTEGER &lt; LONG &lt;
+     * FLOAT &lt; DOUBLE * &lt; BYTEARRAY &lt; STRING &lt; MAP &lt;
+     * TUPLE &lt; BAG.  No other functions should implement this cross
+     * object logic.  They should call this function for it instead.
+     * @param o1 First object
+     * @param o2 Second object
+     * @return -1 if o1 is less, 0 if they are equal, 1 if o2 is less.
+     */
+    public static int compare(Object o1, Object o2) {
+        byte dt1 = findType(o1);
+        byte dt2 = findType(o2);
+
+        if (dt1 == dt2) {
+            switch (dt1) {
+            case NULL:
+                return 0;
+
+            case BOOLEAN:
+                return ((Boolean)o1).compareTo((Boolean)o2);
+
+            case INTEGER:
+                return ((Integer)o1).compareTo((Integer)o2);
+
+            case LONG:
+                return ((Long)o1).compareTo((Long)o2);
+
+            case FLOAT:
+                return ((Float)o1).compareTo((Float)o2);
+
+            case DOUBLE:
+                return ((Double)o1).compareTo((Double)o2);
+
+            case BYTEARRAY:
+                return ((DataByteArray)o1).compareTo((DataByteArray)o2);
+
+            case CHARARRAY:
+                return ((String)o1).compareTo((String)o2);
+
+            case MAP: {
+                Map<Object, Object> m1 = (Map<Object, Object>)o1;
+                Map<Object, Object> m2 = (Map<Object, Object>)o2;
+                int sz1 = m1.size();
+                int sz2 = m2.size();
+                if (sz1 < sz2) {
+                    return -1;
+                } else if (sz1 > sz2) { 
+                    return 1;
+                } else {
+                    Iterator<Map.Entry<Object, Object> > i1 =
+                        m1.entrySet().iterator();
+                    Iterator<Map.Entry<Object, Object> > i2 =
+                        m2.entrySet().iterator();
+                    while (i1.hasNext()) {
+                        // This isn't real meaningful, as there are no
+                        // guarantees on iteration order in a map.  But it
+                        // makes more sense than iterating through one and
+                        // probing the other, which will almost always
+                        // result in missing keys in the second and thus
+                        // not provide communativity.
+                        Map.Entry<Object, Object> entry1 = i1.next();
+                        Map.Entry<Object, Object> entry2 = i2.next();
+                        int c = compare(entry1.getKey(), entry2.getKey());
+                        if (c != 0) {
+                            return c;
+                        } else {
+                            c = compare(entry1.getValue(), entry2.getValue());
+                            if (c != 0) {
+                                return c;
+                            }
+                        } 
+                    }
+                    return 0;
+                }
+                      }
+
+            case TUPLE:
+                return ((Tuple)o1).compareTo((Tuple)o2);
+
+            case BAG:
+                return ((DataBag)o1).compareTo((DataBag)o2);
+
+            default:
+                throw new RuntimeException("Unkown type " + dt1 +
+                    " in compare");
+            }
+        } else if (dt1 < dt2) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
+}

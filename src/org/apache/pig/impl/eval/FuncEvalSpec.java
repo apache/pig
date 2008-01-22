@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.pig.impl.eval;
+import java.util.Iterator;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -23,10 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Datum;
+import org.apache.pig.Algebraic;
+import org.apache.pig.data.DefaultAbstractBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.collector.DataCollector;
@@ -53,17 +52,12 @@ public class FuncEvalSpec extends EvalSpec {
 	
 	@Override
 	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
-		if(instantiaor != null)
+		if(instantiaor != null) {
 			func = (EvalFunc) instantiaor.instantiateFuncFromAlias(funcName);
+        }
 		args.instantiateFunc(instantiaor);
 	}
 	
-	@Override
-	public boolean amenableToCombiner() {
-		// TODO Turn on algebraic
-		return false;
-	}
-
 	@Override
 	public List<String> getFuncs() {
 		List<String> funcs = new ArrayList<String>();
@@ -86,7 +80,8 @@ public class FuncEvalSpec extends EvalSpec {
 	@Override
 	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
 		return new DataCollector(endOfPipe){
-			private Datum getPlaceHolderForFuncOutput(){
+            /*
+			private Object getPlaceHolderForFuncOutput(){
 				Type returnType = func.getReturnType();
 				if (returnType == DataAtom.class)
 					return new DataAtom();
@@ -98,36 +93,37 @@ public class FuncEvalSpec extends EvalSpec {
 					return new DataMap();
 				else throw new RuntimeException("Internal error: Unknown return type of eval function");
 			}
-			
+            */
+
 			@Override
-			public void add(Datum d) {
+			public void add(Object d) {
 				if (checkDelimiter(d))
 					addToSuccessor(d);
 				
-				Datum argsValue = null;
+				Object argsValue = null;
 				if (args!=null)
 					argsValue = args.simpleEval(d);
 				
 				if (argsValue!=null && !(argsValue instanceof Tuple))
 	        		throw new RuntimeException("Internal error: Non-tuple returned on evaluation of arguments.");
 	            
-				Datum placeHolderForFuncOutput = getPlaceHolderForFuncOutput();
+				Object funcOutput;
 				try{
-					func.exec((Tuple)argsValue, placeHolderForFuncOutput);
+					funcOutput = func.exec((Tuple)argsValue);
 				}catch (IOException e){
 					RuntimeException re = new RuntimeException(e);
 					re.setStackTrace(e.getStackTrace());
 					throw re;
 				}
 				
-				if (placeHolderForFuncOutput instanceof FakeDataBag){
-					FakeDataBag fBag = (FakeDataBag)placeHolderForFuncOutput;
+				if (funcOutput instanceof FakeDataBag){
+					FakeDataBag fBag = (FakeDataBag)funcOutput;
 					synchronized(fBag){
 						if (!fBag.isStale())
 							fBag.addDelimiters();
 					}
 				}else{
-					addToSuccessor(placeHolderForFuncOutput);
+					addToSuccessor(funcOutput);
 				}
 			}
 			
@@ -154,23 +150,29 @@ public class FuncEvalSpec extends EvalSpec {
 	
 	
 
-	private class FakeDataBag extends DataBag{
+	private class FakeDataBag extends DefaultAbstractBag {
 		int staleCount = 0;
 		DataCollector successor;
 		boolean startAdded = false, endAdded = false;
 		
 		public FakeDataBag(DataCollector successor){
-			super(Datum.DataType.TUPLE);
 			this.successor = successor;
 		}
+
+        // To satisfy abstract functions in DataBag.
+        public boolean isSorted() { return false; }
+        public boolean isDistinct() { return false; }
+        public Iterator<Tuple> iterator() { return null; }
+        public long spill() { return 0; }
+
 		
 		void addStart(){
-			successor.add(DataBag.startBag);
+			successor.add(DefaultAbstractBag.startBag);
 			startAdded = true;	
 		}
 		
 		void addEnd(){
-			successor.add(DataBag.endBag);
+			successor.add(DefaultAbstractBag.endBag);
 			endAdded = true;
 		}
 		
@@ -182,12 +184,12 @@ public class FuncEvalSpec extends EvalSpec {
 		}
 		
 		@Override
-		public void add(Datum d) {
+		public void add(Tuple t) {
 			synchronized(this){
 				if (!startAdded)
 					addStart();
 			}
-			successor.add(d);
+			successor.add(t);
 		}
 		
 		@Override
@@ -237,5 +239,66 @@ public class FuncEvalSpec extends EvalSpec {
 	public boolean isAsynchronous() {
 		return func.isAsynchronous();
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitFuncEval(this);
+	}
+
+	public String getFuncName() { return funcName; }
+
+	public EvalSpec getArgs() { return args; }
+
+    public void setArgs(EvalSpec a) { args = a; }
+
+    /**
+     * This will replace the function to be called by this spec to be the
+     * initial instance instead of the general instance.  This should only
+     * be called if the function is algebraic.  It will only change the
+     * funcName variable, not the func variable itself.
+     */
+    public void resetFuncToInitial() {
+        if (!combinable()) {
+            throw new AssertionError(
+                "Can't convert non-algebraic function to inital.");
+        }
+        funcName = ((Algebraic)func).getInitial();
+    }
+
+    /**
+     * This will replace the function to be called by this spec to be the
+     * intermediate instance instead of the general instance.  This should only
+     * be called if the function is algebraic.  It will only change the
+     * funcName variable, not the func variable itself.
+     */
+    public void resetFuncToIntermediate() {
+        if (!combinable()) {
+            throw new AssertionError(
+                "Can't convert non-algebraic function to intermediate.");
+        }
+        funcName = ((Algebraic)func).getIntermed();
+    }
+
+    /**
+     * This will replace the function to be called by this spec to be the
+     * final instance instead of the general instance.  This should only
+     * be called if the function is algebraic.  It will only change the
+     * funcName variable, not the func variable itself.
+     * @param finalTuplePos position in the tuple handed to the final
+     * function that it should use.
+     */
+    public void resetFuncToFinal() {
+        if (!combinable()) {
+            throw new AssertionError(
+                "Can't convert non-algebraic function to final.");
+        }
+        funcName = ((Algebraic)func).getFinal();
+    }
+
+    public boolean combinable() {
+        // constructor should have called by instantiateFunc
+        if (func != null) return (func instanceof Algebraic);
+        else return false;
+    }
 	
 }

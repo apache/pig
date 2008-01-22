@@ -19,10 +19,9 @@ package org.apache.pig.impl.eval;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Datum;
-import org.apache.pig.data.AtomicDatum;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
@@ -33,22 +32,18 @@ public class MapLookupSpec extends SimpleEvalSpec {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	protected AtomicDatum keyToLookup;
+	protected String keyToLookup;
 	
-	public MapLookupSpec(AtomicDatum keyToLookup){
+	public MapLookupSpec(String keyToLookup){
 		this.keyToLookup = keyToLookup;
 	}
 
 	@Override
-	protected Datum eval(Datum d) {
-		if (!(d instanceof DataMap))
-			throw new RuntimeException("Attempt to lookup on data of type " + d.getClass().getName());
-		return ((DataMap)d).get(keyToLookup);
-	}
-	
-	@Override
-	public boolean amenableToCombiner() {
-		return true;
+	protected Object eval(Object d) {
+		if (!(d instanceof Map))
+			throw new RuntimeException("Attempt to lookup on data of type "
+                + DataType.findTypeName(d));
+		return ((Map<Object, Object>)d).get(keyToLookup);
 	}
 	
 	@Override
@@ -67,10 +62,18 @@ public class MapLookupSpec extends SimpleEvalSpec {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		sb.append("#'");
-		sb.append(keyToLookup.toString());
+		sb.append(keyToLookup);
 		sb.append("'");
 		sb.append("]");
 		return sb.toString();
 	}
+
+	@Override
+	public void visit(EvalSpecVisitor v) {
+		v.visitMapLookup(this);
+	}
+
+	public String key() { return keyToLookup; }
+    
 	
 }

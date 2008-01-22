@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.FilterFunc;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.EvalSpec;
@@ -60,10 +59,10 @@ public class FuncCond extends Cond {
     }
 
     @Override
-    public boolean eval(Datum input){
+    public boolean eval(Object input){
     	try {
         	
-        	Datum d = null;
+        	Object d = null;
         	if (args!=null)
         		d = args.simpleEval(input);
         	

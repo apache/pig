@@ -24,6 +24,7 @@ import java.util.Arrays;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
 import org.apache.pig.builtin.BinStorage;
@@ -33,44 +34,47 @@ import org.apache.pig.impl.io.FileLocalizer;
 
 
 public class SortPartitioner implements Partitioner {
-	Tuple[] quantiles;
-	
-	public int getPartition(WritableComparable key, Writable value,
-			int numPartitions) {
-		try{
-			Tuple keyTuple = (Tuple)key;
-			int index = Arrays.binarySearch(quantiles, keyTuple.getTupleField(0));
-			if (index < 0)
-				index = -index-1;
-			return Math.min(index, numPartitions - 1);
-		}catch(IOException e){
-			throw new RuntimeException(e);
-		}
-	}
+    Tuple[] quantiles;
+    WritableComparator comparator;
+    
+    public int getPartition(WritableComparable key, Writable value,
+            int numPartitions) {
+        try{
+            Tuple keyTuple = (Tuple)key;
+            int index = Arrays.binarySearch(quantiles, (Tuple)keyTuple.get(0), comparator);
+            if (index < 0)
+                index = -index-1;
+            return Math.min(index, numPartitions - 1);
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
 
-	public void configure(JobConf job) {
-		String quantilesFile = job.get("pig.quantilesFile", "");
-		if (quantilesFile.length() == 0)
-			throw new RuntimeException("Sort paritioner used but no quantiles found");
-		
-		try{
-			InputStream is = FileLocalizer.openDFSFile(quantilesFile,job);
-			BinStorage loader = new BinStorage();
-			loader.bindTo(quantilesFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
-			
-			Tuple t;
-			ArrayList<Tuple> quantiles = new ArrayList<Tuple>();
-			
-			while(true){
-				t = loader.getNext();
-				if (t==null)
-					break;
-				quantiles.add(t);
-			}
-			this.quantiles = quantiles.toArray(new Tuple[0]);
-		}catch (IOException e){
-			throw new RuntimeException(e);
-		}
-	}
+    public void configure(JobConf job) {
+        String quantilesFile = job.get("pig.quantilesFile", "");
+        if (quantilesFile.length() == 0)
+            throw new RuntimeException("Sort paritioner used but no quantiles found");
+        
+        try{
+            InputStream is = FileLocalizer.openDFSFile(quantilesFile,job);
+            BinStorage loader = new BinStorage();
+            loader.bindTo(quantilesFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+            
+            Tuple t;
+            ArrayList<Tuple> quantiles = new ArrayList<Tuple>();
+            
+            while(true){
+                t = loader.getNext();
+                if (t==null)
+                    break;
+                quantiles.add(t);
+            }
+            this.quantiles = quantiles.toArray(new Tuple[0]);
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }
+
+        comparator = job.getOutputKeyComparator();
+    }
 
 }

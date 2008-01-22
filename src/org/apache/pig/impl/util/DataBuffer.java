@@ -19,7 +19,6 @@ package org.apache.pig.impl.util;
 
 import java.util.*;
 
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.eval.collector.DataCollector;
 
 
@@ -30,14 +29,14 @@ public class DataBuffer extends DataCollector {
 		super(null);
 	}
 	
-    List<Datum> buf = Collections.synchronizedList(new LinkedList<Datum>());
+    List<Object> buf = Collections.synchronizedList(new LinkedList<Object>());
 
     @Override
-	public void add(Datum d){
+	public void add(Object d){
         if (d != null) buf.add(d);
     }
     
-    public Datum removeFirst(){
+    public Object removeFirst(){
         if (buf.isEmpty())
         	return null;
         else
@@ -48,8 +47,8 @@ public class DataBuffer extends DataCollector {
      * This is a sequence we want to do frequently to accomodate the simple eval case, i.e., cases
      * where we know that running an eval spec one item should produce one and only one item.
      */
-    public Datum removeFirstAndAssertEmpty(){
-    	Datum d;
+    public Object removeFirstAndAssertEmpty(){
+    	Object d;
     	if (isStale() || (d = removeFirst()) == null){
     		throw new RuntimeException("Simple eval used but buffer found to be empty or stale");
     	}

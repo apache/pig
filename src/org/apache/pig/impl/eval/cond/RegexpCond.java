@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.EvalSpec;
 
@@ -48,14 +46,17 @@ public class RegexpCond extends Cond {
     }
 
     @Override
-    public boolean eval(Datum input){
+    public boolean eval(Object input){
     	
+        return false;
+        /*
     	Datum d = left.simpleEval(input);
     	
     	if (!(d instanceof DataAtom))
     		throw new RuntimeException("Cannot match non-atomic value against a regular expression. Use a filter function instead.");
 
     	return ((DataAtom)d).strval().matches(re);
+        */
     }
       
     @Override
