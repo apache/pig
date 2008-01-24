@@ -18,9 +18,6 @@
 package org.apache.pig.test;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
@@ -39,11 +36,8 @@ import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataMap;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.builtin.ShellBagEvalFunc;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.PigContext;
 
 public class TestBuiltin extends TestCase {
 	
@@ -312,6 +306,28 @@ public class TestBuiltin extends TestCase {
         p1.bindTo(null, new BufferedPositionedInputStream(ffis1), 0, input1.getBytes().length);
         Tuple f1 = p1.getNext();
         assertTrue(f1.arity() == arity1);
+
+        LoadFunc p15 = new PigStorage();
+        StringBuilder sb = new StringBuilder();
+        int LOOP_COUNT = 1024;
+        for (int i = 0; i < LOOP_COUNT; i++) {
+            for (int j = 0; j < LOOP_COUNT; j++) {
+                sb.append(i + "\t" + i + "\t" + j % 2 + "\n");
+            }
+        }
+        FakeFSInputStream ffis15 = new FakeFSInputStream(sb.toString()
+                .getBytes());
+        p15.bindTo(null, new BufferedPositionedInputStream(ffis15), 0, input1
+                .getBytes().length);
+        int count = 0;
+        while (true) {
+            Tuple f15 = p15.getNext();
+            if (f15 == null)
+                break;
+            count++;
+            assertEquals(3, f15.arity());
+        }
+        assertEquals(LOOP_COUNT * LOOP_COUNT, count);
 
         String input2 = ":this:has:a:leading:colon\n";
         int arity2 = 6;
