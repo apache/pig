@@ -66,3 +66,5 @@ Trunk (unreleased changes)
 	comparator function instead of Class.forName.  (gates)
 
 	PIG-56: Made DataBag implement Iterable. (groves via gates)
+
+	PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)

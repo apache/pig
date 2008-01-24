@@ -17,18 +17,12 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Iterator;
+import java.nio.charset.Charset;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.data.TimestampedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
@@ -40,11 +34,10 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  */
 public class PigStorage implements LoadFunc, StoreFunc {
     protected BufferedPositionedInputStream in = null;
-    private DataInputStream inData = null;
-        
 	long                end            = Long.MAX_VALUE;
-	private String recordDel = "\n";
+	private byte recordDel = (byte)'\n';
 	private String fieldDel = "\t";
+	final private static Charset utf8 = Charset.forName("UTF8");
     
     public PigStorage() {
     }
@@ -66,7 +59,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
             return null;
         }
         String line;
-        if((line = inData.readLine()) != null) {            
+        if((line = in.readLine(utf8, recordDel)) != null) {            
             return new Tuple(line, fieldDel);
         }
         return null;
@@ -74,11 +67,10 @@ public class PigStorage implements LoadFunc, StoreFunc {
 
 	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
-        inData = new DataInputStream(in);
         this.end = end;
         
         // Since we are not block aligned we throw away the first
-        // record and cound on a different instance to read it
+        // record and could on a different instance to read it
         if (offset != 0) {
             getNext();
         }
@@ -90,7 +82,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
     }
 
     public void putNext(Tuple f) throws IOException {
-        os.write((f.toDelimitedString(this.fieldDel) + this.recordDel).getBytes());
+        os.write((f.toDelimitedString(this.fieldDel) + (char)this.recordDel).getBytes(utf8));
     }
 
     public void finish() throws IOException {

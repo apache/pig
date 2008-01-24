@@ -17,8 +17,8 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.DataAtom;
@@ -32,16 +32,14 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  */
 public class TextLoader implements LoadFunc{
 	BufferedPositionedInputStream in;
-	private DataInputStream inData = null;
-    
+	final private static Charset utf8 = Charset.forName("UTF8");
 	long                end;
 
 	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
-        inData = new DataInputStream(in);
         this.end = end;
         // Since we are not block aligned we throw away the first
-        // record and cound on a different instance to read it
+        // record and could on a different instance to read it
         if (offset != 0)
             getNext();
     }
@@ -50,7 +48,7 @@ public class TextLoader implements LoadFunc{
         if (in == null || in.getPosition() > end)
             return null;
         String line;
-        if ((line = inData.readLine()) != null) {
+        if ((line = in.readLine(utf8, (byte)'\n')) != null) {
             Tuple t = new Tuple(1);
             t.setField(0, new DataAtom(line));
             return t;
