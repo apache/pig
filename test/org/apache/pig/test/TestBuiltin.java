@@ -315,10 +315,9 @@ public class TestBuiltin extends TestCase {
                 sb.append(i + "\t" + i + "\t" + j % 2 + "\n");
             }
         }
-        FakeFSInputStream ffis15 = new FakeFSInputStream(sb.toString()
-                .getBytes());
-        p15.bindTo(null, new BufferedPositionedInputStream(ffis15), 0, input1
-                .getBytes().length);
+        byte bytes[] = sb.toString().getBytes();
+        FakeFSInputStream ffis15 = new FakeFSInputStream(bytes);
+        p15.bindTo(null, new BufferedPositionedInputStream(ffis15), 0, bytes.length);
         int count = 0;
         while (true) {
             Tuple f15 = p15.getNext();
