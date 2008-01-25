@@ -68,3 +68,5 @@ Trunk (unreleased changes)
 	PIG-56: Made DataBag implement Iterable. (groves via gates)
 
 	PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)
+
+	PIG-77: Added eclipse specific files to svn:ignore
