@@ -351,9 +351,23 @@ public class PigContext implements Serializable, FunctionInstantiator {
         }
         throw new RuntimeException("Could not scrape needed information.");
     }
+    
+    /**
+     * Transform from "hostname:port" to "ip:port".
+     * @param hostPort "hostname:port"
+     * @throws IllegalArgumentException if hostPort doesn't match pattern 'host:port'
+     * @return "ip:port"
+     */
     private String fixUpDomain(String hostPort) throws UnknownHostException {
+      if (hostPort == null) {
+        return null;
+      }
         String parts[] = hostPort.split(":");
+        if (parts.length < 2) {
+          throw new IllegalArgumentException("Invalid 'host:port' parameter was: " + hostPort);
+        }
         if (parts[0].indexOf('.') == -1) {
+          // FIXME don't hardcode "inktomisearch" strings
             parts[0] = parts[0] + ".inktomisearch.com";
         }
         InetAddress.getByName(parts[0]);

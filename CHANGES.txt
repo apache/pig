@@ -70,3 +70,5 @@ Trunk (unreleased changes)
 	PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)
 
 	PIG-77: Added eclipse specific files to svn:ignore
+
+	PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
