@@ -52,12 +52,11 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         double expected = 5.5;
 
-        EvalFunc<DataAtom> avg = new AVG();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        DataAtom output = new DataAtom();
-        avg.exec(tup, output);
+        EvalFunc<Double> avg = new AVG();
+        Tuple tup =
+            Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Double output = avg.exec(tup);
         
-        double actual = (new Double(output.strval())).doubleValue();
         assertTrue(actual == expected);
     }
 
@@ -66,84 +65,80 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
         EvalFunc<Tuple> avg = new AVG.Initial();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        Tuple output = new Tuple();
-        avg.exec(tup, output);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Tuple output = avg.exec(tup);
 
-        assertEquals("Expected sum to be 55.0", 55.0,
-            output.getAtomField(0).numval());
-        assertEquals("Expected count to be 10", 10,
-            output.getAtomField(1).longVal());
+        DataByteArray a = output.get(0);
+        Double f1 = Double.valueOf(a.toString());
+        assertEquals("Expected sum to be 55.0", 55.0, f1);
+        a = output.get(1);
+        Long f2 = Long.valueOf(a.toString());
+        assertEquals("Expected count to be 10", 10, f2);
     }
 
     @Test
     public void testAVGFinal() throws Exception {
-        Tuple t1 = new Tuple(2);
-        t1.setField(0, 55.0);
-        t1.setField(1, 10);
-        Tuple t2 = new Tuple(2);
-        t2.setField(0, 28.0);
-        t2.setField(1, 7);
-        Tuple t3 = new Tuple(2);
-        t3.setField(0, 82.0);
-        t3.setField(1, 17);
+        Tuple t1 = TupleFactory.getInstance().newTuple(2);
+        t1.set(0, 55.0);
+        t1.set(1, 10);
+        Tuple t2 = TupleFactory.getInstance().newTuple(2);
+        t2.set(0, 28.0);
+        t2.set(1, 7);
+        Tuple t3 = TupleFactory.getInstance().newTuple(2);
+        t3.set(0, 82.0);
+        t3.set(1, 17);
         DataBag bag = BagFactory.getInstance().newDefaultBag();
         bag.add(t1);
         bag.add(t2);
         bag.add(t3);
         
-        Tuple tup = new Tuple(bag);
+        Tuple tup = TupleFactory.getInstance().newTuple(bag);
 
-        EvalFunc<DataAtom> avg = new AVG.Final();
-        DataAtom output = new DataAtom();
-        avg.exec(tup, output);
+        EvalFunc<Double> avg = new AVG.Final();
+        Double output = avg.exec(tup);
 
         assertEquals("Expected average to be 4.852941176470588",
-            4.852941176470588, output.numval());
+            4.852941176470588, output);
     }
 
 
     @Test
     public void testCOUNT() throws Exception {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        double expected = input.length;
+        long expected = input.length;
 
-        EvalFunc<DataAtom> count = new COUNT();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        DataAtom output = new DataAtom();
-        count.exec(tup, output);
+        EvalFunc<Long> count = new COUNT();
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Long output = count.exec(tup);
 
-        double actual = (new Double(output.strval())).doubleValue();
         assertTrue(actual == expected);
     }
 
     @Test
     public void testCOUNTMap() throws Exception {
-        DataMap map = new DataMap();
+        Map<Object, Object> map = new Map<Object, Object>();
         
-        Tuple tup = new Tuple();
-        tup.appendField(map);
-        DataAtom output = new DataAtom();
+        Tuple tup = TupleFactory.getInstance().newTuple();
+        tup.append(map);
         
-        
-        EvalFunc<DataAtom> count = new COUNT();
+        EvalFunc<Long> count = new COUNT();
         FilterFunc isEmpty = new IsEmpty();
         
         assertTrue(isEmpty.exec(tup));
-        count.exec(tup,output);
-        assertTrue(output.numval() == 0);
+        Long output = count.exec(tup);
+        assertTrue(output == 0);
         
-        map.put("a", new DataAtom("a"));
+        map.put("a", "a");
 
         assertFalse(isEmpty.exec(tup));
-        count.exec(tup,output);
-        assertTrue(output.numval() == 1);
+        output = count.exec(tup);
+        assertTrue(output == 1);
 
         
-        map.put("b", new Tuple());
+        map.put("b", Tuple.getInstance().newTuple());
 
         assertFalse(isEmpty.exec(tup));
-        count.exec(tup,output);
+        output = count.exec(tup);
         assertTrue(output.numval() == 2);
         
     }
@@ -153,24 +148,23 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
         EvalFunc<Tuple> count = new COUNT.Initial();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        Tuple output = new Tuple();
-        count.exec(tup, output);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Tuple output = count.exec(tup);
 
-        assertEquals("Expected count to be 10", 10,
-            output.getAtomField(0).longVal());
+        DataByteArray a = output.get(0);
+        Long f1 = Long.valueOf(a.toString());
+        assertEquals("Expected count to be 10", 10, f1);
     }
 
     @Test
     public void testCOUNTFinal() throws Exception {
         int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
 
         EvalFunc<DataAtom> count = new COUNT.Final();
-        DataAtom output = new DataAtom();
-        count.exec(tup, output);
+        Long output = count.exec(tup);
 
-        assertEquals("Expected count to be 100", 100, output.longVal());
+        assertEquals("Expected count to be 100", 100, output);
     }
 
     @Test

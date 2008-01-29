@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 
 public class TestAlgebraicEval extends TestCase {
@@ -54,7 +55,8 @@ public class TestAlgebraicEval extends TestCase {
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()){
-            int sum = it.next().getAtomField(2).numval().intValue();
+            DataByteArray a = (DataByteArray)it.next().get(2);
+            int sum = Double.valueOf(a.toString()).intValue();
             assertEquals(LOOP_COUNT/2, sum);
             count++;
         }
@@ -79,7 +81,8 @@ public class TestAlgebraicEval extends TestCase {
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        Double count = t.getAtomField(0).numval();
+        DataByteArray a = (DataByteArray)t.get(0);
+        Double count = Double.valueOf(a.toString());
         assertEquals(count, (double)LOOP_COUNT);
     }
 
@@ -99,7 +102,8 @@ public class TestAlgebraicEval extends TestCase {
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        Double count = t.getAtomField(1).numval();
+        DataByteArray a = (DataByteArray)t.get(1);
+        Double count = Double.valueOf(a.toString());
         assertEquals(count, (double)LOOP_COUNT);
     }
     
@@ -121,7 +125,8 @@ public class TestAlgebraicEval extends TestCase {
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        Double count = t.getAtomField(0).numval();
+        DataByteArray a = (DataByteArray)t.get(0);
+        Double count = Double.valueOf(a.toString());
         assertEquals(count, (double)LOOP_COUNT);
     }
 
@@ -146,9 +151,11 @@ public class TestAlgebraicEval extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double group = t.getAtomField(0).numval();
+            DataByteArray a = (DataByteArray)t.get(0);
+            Double group = Double.valueOf(a.toString());
             if(group == 0.0) {
-                Double count = t.getAtomField(1).numval();
+                DataByteArray b = (DataByteArray)t.get(1);
+                Double count = Double.valueOf(b.toString());
                 assertEquals(count, (double)groupsize);
                 break;
             }
@@ -174,9 +181,11 @@ public class TestAlgebraicEval extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double group = t.getAtomField(0).numval();
+            DataByteArray a = (DataByteArray)t.get(0);
+            Double group = Double.valueOf(a.toString());
             if(group == 0.0) {
-                Double count = t.getAtomField(1).numval();
+                DataByteArray b = (DataByteArray)t.get(1);
+                Double count = Double.valueOf(b.toString());
                 assertEquals(count, (double)groupsize);
                 break;
             }

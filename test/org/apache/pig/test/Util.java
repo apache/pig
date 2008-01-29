@@ -20,8 +20,6 @@ package org.apache.pig.test;
 import java.io.IOException;
 
 import org.apache.pig.data.*;
-import org.apache.pig.data.Datum;
-import org.apache.pig.data.DataAtom;
 
 public class Util {
     // Helper Functions

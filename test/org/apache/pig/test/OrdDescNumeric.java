@@ -1,3 +1,4 @@
+/*
 package org.apache.pig.test;
 
 import java.io.IOException;
@@ -40,3 +41,4 @@ public class OrdDescNumeric extends ComparisonFunc {
         return 0;
     }
 }
+*/

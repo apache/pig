@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import junit.framework.TestCase;
@@ -98,7 +99,7 @@ public class TestPigFile extends TestCase {
         new File(initialdata).delete();
     }
 
-    private Datum getRandomDatum(int nestingLevel) throws IOException{
+    private Object getRandomDatum(int nestingLevel) throws IOException{
     	if (nestingLevel>3)
     		return getRandomDataAtom();
     	int i = rand.nextInt(4);
@@ -112,8 +113,8 @@ public class TestPigFile extends TestCase {
     	throw new RuntimeException("Shouldn't reach here.");
     }
     
-    private DataAtom getRandomDataAtom(){
-    	return new DataAtom(rand.nextInt());
+    private Integer getRandomDataAtom(){
+    	return new Integer(rand.nextInt());
     }
     
     private Tuple getRandomTuple(int nestingLevel) throws IOException{
@@ -136,9 +137,9 @@ public class TestPigFile extends TestCase {
     	
     }
     
-    private DataMap getRandomMap(int nestingLevel) throws IOException{
+    private Map<Object, Object> getRandomMap(int nestingLevel) throws IOException{
     	int cardinality = rand.nextInt(2)+1;
-    	DataMap m = new DataMap();
+    	Map<Object, Object> m = new Map<Object, Object>();
     	for (int i=0; i<cardinality; i++){
     		m.put(getRandomDataAtom().strval(),getRandomDatum(nestingLevel+1));
     	}
