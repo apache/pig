@@ -74,7 +74,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     private ExecType execType;;    
 
     //  configuration for connecting to hadoop
-    transient private JobConf conf = null;        
+    transient private JobConf conf = new JobConf();
     
     //  extra jar files that are needed to run a job
     transient public List<URL> extraJars = new LinkedList<URL>();              
@@ -179,7 +179,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
 		     	}
 			else
 			{
-				conf = new JobConf();
         			String cluster = System.getProperty("cluster");
         			if (cluster!=null && cluster.length() > 0){
 	        			if(cluster.indexOf(':') < 0) {
@@ -435,10 +434,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return conf;
     }
 
+    @Deprecated
+    /** @deprecated use setConf() instead */
     public void setJobtrackerLocation(String newLocation) {
         conf.set("mapred.job.tracker", newLocation);
     }
 
+    @Deprecated
+    /** @deprecated use setConf() instead */
     public void setFilesystemLocation(String newLocation) {
         conf.set("fs.default.name", newLocation);
     }
@@ -605,5 +608,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
 	public void setExecType(ExecType execType) {
 		this.execType = execType;
 	}
-		
+
+	public void setConf(JobConf conf) {
+		this.conf = conf;
+	}
 }

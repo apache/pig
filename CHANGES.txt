@@ -72,3 +72,5 @@ Trunk (unreleased changes)
 	PIG-77: Added eclipse specific files to svn:ignore
 
 	PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
+
+	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
