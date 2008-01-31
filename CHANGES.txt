@@ -74,3 +74,5 @@ Trunk (unreleased changes)
 	PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
 
 	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
+
+	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile
