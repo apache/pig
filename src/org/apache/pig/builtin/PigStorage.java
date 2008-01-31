@@ -82,7 +82,8 @@ public class PigStorage implements LoadFunc, StoreFunc {
     }
 
     public void putNext(Tuple f) throws IOException {
-        os.write((f.toDelimitedString(this.fieldDel) + (char)this.recordDel).getBytes(utf8));
+        os.write((f.toDelimitedString(this.fieldDel) + (char)this.recordDel).getBytes("utf8"));
+        //os.write((f.toDelimitedString(this.fieldDel) + (char)this.recordDel).getBytes(utf8));
     }
 
     public void finish() throws IOException {
