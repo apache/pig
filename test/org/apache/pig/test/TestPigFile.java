@@ -178,7 +178,7 @@ public class TestPigFile extends TestCase {
     }
 
 
-    public void testLocalStore() throws Exception{
+    public void testLocalStore() throws Throwable {
     	PigServer pig = new PigServer("local");
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

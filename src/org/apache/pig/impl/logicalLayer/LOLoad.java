@@ -19,6 +19,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.PigContext;
@@ -36,8 +37,11 @@ public class LOLoad extends LogicalOperator {
     protected int outputType = FIXED;
 
 
-    public LOLoad(FileSpec inputFileSpec) throws IOException, ParseException {
-        super();
+    public LOLoad(Map<OperatorKey, LogicalOperator> opTable, 
+                  String scope, 
+                  long id, 
+                  FileSpec inputFileSpec) throws IOException, ParseException {
+        super(opTable, scope, id);
         this.inputFileSpec = inputFileSpec;
         try {
             LoadFunc storageFunc =
@@ -66,7 +70,7 @@ public class LOLoad extends LogicalOperator {
 
     @Override
     public String name() {
-        return "Load";
+        return "Load " + scope + "-" + id;
     }
 
     public FileSpec getInputFileSpec() {

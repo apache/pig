@@ -4,20 +4,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
+
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 
 public class GruntParser extends PigScriptParser {
 
@@ -72,9 +79,18 @@ public class GruntParser extends PigScriptParser {
 	public void setParams(PigServer pigServer)
 	{
 		mPigServer = pigServer;
+		
 		mDfs = mPigServer.getPigContext().getDfs();
+		mLfs = mPigServer.getPigContext().getLfs();
 		mConf = mPigServer.getPigContext().getConf();
-		mJobClient = mPigServer.getPigContext().getJobClient();
+		
+		// TODO: this violates the abstraction layer decoupling between
+		// front end and back end and needs to be changed.
+		// Right now I am not clear on how the Job Id comes from to tell
+		// the back end to kill a given job (mJobClient is used only in 
+		// processKill)
+		//
+		mJobClient = ((HExecutionEngine)(mPigServer.getPigContext().getExecutionEngine())).getJobClient();
 	}
 
 	public void prompt()
@@ -137,50 +153,74 @@ public class GruntParser extends PigScriptParser {
 		
 	protected void processCat(String path) throws IOException
 	{
-		byte buffer[] = new byte[65536];
-		Path dfsPath = new Path(path);
-		int rc;
-		
-		if (!mDfs.exists(dfsPath))
-			throw new IOException("Directory " + path + " does not exist.");
-
-		if (mDfs.getFileStatus(dfsPath).isDir()) 
-		{
-			FileStatus fileStat[] = mDfs.listStatus(dfsPath);
-			for (int j = 0; j < fileStat.length; j++)
-			{
-				Path curPath = fileStat[j].getPath();
-				if (!mDfs.isFile(curPath)) continue;
-				FSDataInputStream is = mDfs.open(curPath);
-				while ((rc = is.read(buffer)) > 0)
-					System.out.write(buffer, 0, rc);
-				is.close();
+		try {
+			byte buffer[] = new byte[65536];
+			ElementDescriptor dfsPath = mDfs.asElement(path);
+			int rc;
+			
+			if (!dfsPath.exists())
+				throw new IOException("Directory " + path + " does not exist.");
+	
+			if (mDfs.isContainer(path)) {
+				ContainerDescriptor dfsDir = (ContainerDescriptor) dfsPath;
+				Iterator<ElementDescriptor> paths = dfsDir.iterator();
+				
+				while (paths.hasNext()) {
+					ElementDescriptor curElem = paths.next();
+					
+					if (mDfs.isContainer(curElem.toString())) {
+						continue;
+					}
+					
+					InputStream is = curElem.open();
+					while ((rc = is.read(buffer)) > 0) {
+						System.out.write(buffer, 0, rc);
+					}
+					is.close();				
+				}
 			}
-		} 
-		else 
-		{
-			FSDataInputStream is = mDfs.open(dfsPath);
-			while ((rc = is.read(buffer)) > 0)
-				System.out.write(buffer, 0, rc);
-			is.close();
+			else {
+				InputStream is = dfsPath.open();
+				while ((rc = is.read(buffer)) > 0) {
+					System.out.write(buffer, 0, rc);
+				}
+				is.close();			
+			}
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to Cat: " + path, e);
 		}
 	}
 
 	protected void processCD(String path) throws IOException
 	{	
-		if (path == null)
-			mDfs.setWorkingDirectory(new Path("/user/" + System.getProperty("user.name")));
-		else
-		{
-			Path dfsDir = new Path(path);
+		ContainerDescriptor container;
 
-			if (!mDfs.exists(dfsDir))
-				throw new IOException("Directory " + path + " does not exist.");
-
-			if (!mDfs.getFileStatus(dfsDir).isDir())
-				throw new IOException(path + " is not a directory.");
-
-			mDfs.setWorkingDirectory(dfsDir);
+		try {
+			if (path == null) {
+				container = mDfs.asContainer("/user/" + System.getProperty("user.name"));
+				mDfs.setActiveContainer(container);
+			}
+			else
+			{
+				container = mDfs.asContainer(path);
+	
+				if (!container.exists()) {
+					throw new IOException("Directory " + path + " does not exist.");
+				}
+				
+				if (!mDfs.isContainer(path)) {
+					throw new IOException(path + " is not a directory.");
+				}
+				
+				mDfs.setActiveContainer(container);
+			}
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to change working directory to " + 
+								  ((path == null) ? ("/user/" + System.getProperty("user.name")) 
+									       	      : (path)),
+								  e);
 		}
 	}
 
@@ -208,29 +248,57 @@ public class GruntParser extends PigScriptParser {
 
 	protected void processLS(String path) throws IOException
 	{
-		Path dir;
-		if(path == null)
-                	dir = mDfs.getWorkingDirectory();
-		else
-		{
-			dir = new Path(path);
-			if (!mDfs.exists(dir))
-				throw new IOException("File or directory " + path + " does not exist.");
-		}
+		try {
+			ElementDescriptor pathDescriptor;
+			
+			if (path == null) {
+				pathDescriptor = mDfs.getActiveContainer();
+			}
+			else {
+				pathDescriptor = mDfs.asElement(path);
+			}
 
-		FileStatus fileStat[] = mDfs.listStatus(dir);
-		for (int j = 0; j < fileStat.length; j++)
-		{
-            if (fileStat[j].isDir())
-           		System.out.println(fileStat[j].getPath() + "\t<dir>");
-			else
-				System.out.println(fileStat[j].getPath() + "<r " + fileStat[j].getReplication() + ">\t" + fileStat[j].getLen());
-                }
+			if (!pathDescriptor.exists()) {
+				throw new IOException("File or directory " + path + " does not exist.");				
+			}
+			
+			if (mDfs.isContainer(pathDescriptor.toString())) {
+				ContainerDescriptor container = (ContainerDescriptor) pathDescriptor;
+				Iterator<ElementDescriptor> elems = container.iterator();
+				
+				while (elems.hasNext()) {
+					ElementDescriptor curElem = elems.next();
+					
+					if (mDfs.isContainer(curElem.toString())) {
+		           		System.out.println(curElem.toString() + "\t<dir>");						
+					}
+					else {
+						Properties config = curElem.getConfiguration();
+						Map<String, Object> stats = curElem.getStatistics();
+						
+						String strReplication = config.getProperty(ElementDescriptor.BLOCK_REPLICATION_KEY);
+						String strLen = (String) stats.get(ElementDescriptor.LENGTH_KEY);
+
+						System.out.println(curElem.toString() + "<r " + strReplication + ">\t" + strLen);
+					}
+				}
+			}
+			else {
+				Map<String, Object> properties = pathDescriptor.getStatistics();
+				String strReplication = (String) properties.get(DataStorage.DEFAULT_REPLICATION_FACTOR_KEY);
+				String strLen = (String) properties.get(DataStorage.USED_BYTES_KEY);
+
+				System.out.println(pathDescriptor.toString() + "<r " + strReplication + ">\t" + strLen);				
+			}
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to LS on " + path, e);
+		}
 	}
 	
 	protected void processPWD() throws IOException 
 	{
-		System.out.println(mDfs.getWorkingDirectory());
+		System.out.println(mDfs.getActiveContainer().toString());
 	}
 
 	protected void printHelp() 
@@ -253,32 +321,70 @@ public class GruntParser extends PigScriptParser {
 
 	protected void processMove(String src, String dst) throws IOException
 	{
-		Path srcPath = new Path(src);
-		Path dstPath = new Path(dst);
-		if (!mDfs.exists(srcPath))
-			throw new IOException("File or directory " + src + " does not exist.");
-
-		{mDfs.rename(srcPath, dstPath);}
+		try {
+			ElementDescriptor srcPath = mDfs.asElement(src);
+			ElementDescriptor dstPath = mDfs.asElement(dst);
+			
+			if (!srcPath.exists()) {
+				throw new IOException("File or directory " + src + " does not exist.");				
+			}
+			
+			srcPath.rename(dstPath);
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to move " + src + " to " + dst, e);
+		}
 	}
 	
 	protected void processCopy(String src, String dst) throws IOException
 	{
-        FileUtil.copy(mDfs, new Path(src), mDfs, new Path(dst), false, mConf);
+		try {
+			ElementDescriptor srcPath = mDfs.asElement(src);
+			ElementDescriptor dstPath = mDfs.asElement(dst);
+			
+			srcPath.copy(dstPath, mConf, false);
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to copy " + src + " to " + dst, e);
+		}
 	}
 	
 	protected void processCopyToLocal(String src, String dst) throws IOException
 	{
-		mDfs.copyToLocalFile(new Path(src), new Path(dst));
+		try {
+			ElementDescriptor srcPath = mDfs.asElement(src);
+			ElementDescriptor dstPath = mLfs.asElement(dst);
+			
+			srcPath.copy(dstPath, false);
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to copy " + src + "to (locally) " + dst, e);
+		}
 	}
 
 	protected void processCopyFromLocal(String src, String dst) throws IOException
 	{
-        mDfs.copyFromLocalFile(new Path(src), new Path(dst));
+		try {
+			ElementDescriptor srcPath = mLfs.asElement(src);
+			ElementDescriptor dstPath = mDfs.asElement(dst);
+			
+			srcPath.copy(dstPath, false);
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to copy (loally) " + src + "to " + dst, e);
+		}
 	}
 	
 	protected void processMkdir(String dir) throws IOException
 	{
-		mDfs.mkdirs(new Path(dir));
+		try {
+			ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
+			
+			dirDescriptor.create();
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to create dir: " + dir, e);
+		}
 	}
 	
 	protected void processPig(String cmd) throws IOException
@@ -291,16 +397,24 @@ public class GruntParser extends PigScriptParser {
 
 	protected void processRemove(String path) throws IOException
 	{
-		Path dfsPath = new Path(path);
-		if (!mDfs.exists(dfsPath))
-			throw new IOException("File or directory " + path + " does not exist.");
-
-		mDfs.delete(dfsPath);
+		try {
+			ElementDescriptor dfsPath = mDfs.asElement(path);
+		
+			if (!dfsPath.exists()) {
+				throw new IOException("File or directory " + path + " does not exist.");			
+			}
+			
+			dfsPath.delete();
+		}
+		catch (DataStorageException e) {
+			throw new IOException("Failed to get descriptor for " + path, e);
+		}
 	}
 
 	private PigServer mPigServer;
-	private FileSystem mDfs;
-	private Configuration mConf;
+	private DataStorage mDfs;
+	private DataStorage mLfs;
+	private Properties mConf;
 	private JobClient mJobClient;
 	private boolean mDone;
 

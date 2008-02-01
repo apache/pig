@@ -28,37 +28,40 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
 import java.util.Stack;
+import java.util.ArrayList;
+import java.util.Iterator;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.mapreduceExec.PigInputFormat;
-import org.apache.pig.impl.mapreduceExec.PigInputFormat.PigRecordReader;
 
+import org.apache.pig.backend.datastorage.*;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputFormat.PigRecordReader;
+
+import java.util.Properties;
 
 public class FileLocalizer {
     static public final String LOCAL_PREFIX  = "file:";
-    
-    public static class DFSInputStreamIterator extends InputStream {
+
+    public static class DataStorageInputStreamIterator extends InputStream {
         InputStream current;
-        Path        paths[];
-        int         currentPath;
-        FileSystem fs;
+        ElementDescriptor[] elements;
+        int currentElement;
         
-        public DFSInputStreamIterator(Path paths[], FileSystem fs) {
-            this.paths = paths;
-            this.fs = fs;
+        public DataStorageInputStreamIterator(ElementDescriptor[] elements) {
+            this.elements = elements;
         }
 
         private boolean isEOF() throws IOException {
             if (current == null) {
-                if (currentPath == paths.length)
+                if (currentElement == elements.length) {
                     return true;
-                current = fs.open(paths[currentPath++]);
+                }
+                current = elements[ currentElement++ ].open();
             }
             return false;
         }
@@ -92,7 +95,7 @@ public class FileLocalizer {
                 current.close();
                 current = null;
             }
-            currentPath = paths.length;
+            currentElement = elements.length;
         }
 
         @Override
@@ -150,33 +153,66 @@ public class FileLocalizer {
     }
 
     public static InputStream openDFSFile(String fileName, JobConf conf) throws IOException{
-    	Path path = new Path(fileName);
-		FileSystem fs = path.getFileSystem(conf);
-		return  openDFSFile(fs, path);
+        try {
+            DataStorage dds = new HDataStorage(conf);
+            ElementDescriptor elem = dds.asElement(fileName);
+            
+            return openDFSFile(elem);
+        }
+        catch (DataStorageException e) {
+            throw new IOException("Failed to obtain descriptor for " + fileName, e);
+        }
     }
     
-    private static InputStream openDFSFile(FileSystem fs, Path path) throws IOException{
-       Path paths[] = null;
-    	if (fs.exists(path)) {
-    		if (fs.isFile(path)) return fs.open(path);
-			FileStatus fileStat[] = fs.listStatus(path);
-			paths = new Path[fileStat.length];
-			for (int i = 0; i < fileStat.length; i++)
-        		paths[i] = fileStat[i].getPath();
-		} else {
+    private static InputStream openDFSFile(ElementDescriptor elem) throws IOException{
+        ElementDescriptor[] elements = null;
+        
+        if (elem.exists()) {
+            try {
+                if(! elem.getDataStorage().isContainer(elem.toString())) {
+        		    return elem.open();
+        		}
+            }
+            catch (DataStorageException e) {
+                throw new IOException("Failed to determine if elem=" + elem + " is container", e);
+            }
+            
+            ArrayList<ElementDescriptor> arrayList = 
+                new ArrayList<ElementDescriptor>();
+            Iterator<ElementDescriptor> allElements = 
+                ((ContainerDescriptor)elem).iterator();
+            
+            while (allElements.hasNext()) {
+                arrayList.add(allElements.next());
+            }
+            
+            elements = new ElementDescriptor[ arrayList.size() ];
+            arrayList.toArray(elements);
+        
+        } else {
 			// It might be a glob
-			if (!globMatchesFiles(path, paths, fs)) throw new IOException(path + " does not exist");
+			if (!globMatchesFiles(elem, elem.getDataStorage())) {
+			    throw new IOException(elem.toString() + " does not exist");
+			}
 		}
-        return new DFSInputStreamIterator(paths, fs);
+        
+        return new DataStorageInputStreamIterator(elements);
     }
     
     static public InputStream open(String fileSpec, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
-            init(pigContext);
-            Path path = new Path(fullPath(fileSpec,pigContext));
-            return openDFSFile(pigContext.getDfs(), path);
-        } else {
+            try {
+                init(pigContext);
+                ElementDescriptor elem = pigContext.getDfs().
+                                                    asElement(fullPath(fileSpec, pigContext));
+                return openDFSFile(elem);
+            }
+            catch (DataStorageException e) {
+                throw new IOException("Failed to open " + fileSpec, e);
+            }
+        }
+        else {
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
             //buffering because we only want buffered streams to be passed to load functions.
             return new BufferedInputStream(new FileInputStream(fileSpec));
@@ -190,11 +226,19 @@ public class FileLocalizer {
     static public OutputStream create(String fileSpec, boolean append, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
-            init(pigContext);
-            return pigContext.getDfs().create(new Path(fileSpec));
-        } else {
-        	fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
-        	
+            try {
+                init(pigContext);
+                ElementDescriptor elem = pigContext.getDfs().asElement(fileSpec);
+                return elem.create();
+            }
+            catch (DataStorageException e) {
+                throw new IOException("Failed to create " + fileSpec, e);
+            }
+        }
+        else {
+            fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
+
+        	// TODO probably this should be replaced with the local file system
         	File f = (new File(fileSpec)).getParentFile();
         	if (f!=null){
         		f.mkdirs();
@@ -202,26 +246,27 @@ public class FileLocalizer {
         	
             return new FileOutputStream(fileSpec,append);
         }
-
     }
 
-    static Stack<Path> toDelete    = new Stack<Path>();
+    static Stack<ElementDescriptor> toDelete    = 
+        new Stack<ElementDescriptor>();
     static Random      r           = new Random();
-    static Path        relativeRoot;
+    static ContainerDescriptor relativeRoot;
     static boolean     initialized = false;
-    static private void init(final PigContext pigContext) {
+    static private void init(final PigContext pigContext) throws DataStorageException {
         if (!initialized) {
             initialized = true;
-            relativeRoot = new Path("/tmp/temp" + r.nextInt());
+            relativeRoot = pigContext.getDfs().asContainer("/tmp/temp" + r.nextInt());
             toDelete.push(relativeRoot);
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
-				public void run() {
+                public void run() {
                     while (!toDelete.empty()) {
                         try {
-                            Path path = toDelete.pop();
-                            pigContext.getDfs().delete(path);
-                        } catch (IOException e) {
+                            ElementDescriptor elem = toDelete.pop();
+                            elem.delete();
+                        } 
+                        catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
@@ -230,89 +275,118 @@ public class FileLocalizer {
         }
     }
 
-    public static synchronized Path getTemporaryPath(Path relative, PigContext pigContext) throws IOException {
-        init(pigContext);
-        if (relative == null) {
-            relative = relativeRoot;
+    public static synchronized ElementDescriptor 
+        getTemporaryPath(ElementDescriptor relative, 
+                         PigContext pigContext) throws IOException {
+        try {
+            init(pigContext);
+            if (relative == null) {
+                relative = relativeRoot;
+            }
+            if (!relativeRoot.exists()) {
+                relativeRoot.create();
+            }
+            ElementDescriptor elem= 
+                pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt());
+            toDelete.push(elem);
+            return elem;
         }
-        if (!pigContext.getDfs().exists(relativeRoot))
-            pigContext.getDfs().mkdirs(relativeRoot);
-        Path path = new Path(relative, "tmp" + r.nextInt());
-        toDelete.push(path);
-        return path;
+        catch (DataStorageException e) {
+            throw new IOException("Unable to get elem descriptor for " + relative.toString(), e);
+        }
     }
 
     public static String hadoopify(String filename, PigContext pigContext) throws IOException {
         if (filename.startsWith(LOCAL_PREFIX)) {
             filename = filename.substring(LOCAL_PREFIX.length());
         }
-        Path localPath = new Path(filename);
-        if (!pigContext.getLfs().exists(localPath)) {
-            throw new FileNotFoundException(filename);
+        
+        try {
+            ElementDescriptor localElem =
+                pigContext.getLfs().asElement(filename);
+            
+            if (!localElem.exists()) {
+                throw new FileNotFoundException(filename);
+            }
+            
+            ElementDescriptor distribElem = 
+                getTemporaryPath(null, pigContext);
+    
+            int suffixStart = filename.lastIndexOf('.');
+            if (suffixStart != -1) {
+                distribElem = pigContext.getDfs().asElement(distribElem.toString() +
+                                                            filename.substring(suffixStart));
+            }
+            
+            // TODO: currently the copy method in Data Storage does not allow to specify overwrite
+            //       so the work around is to delete the dst file first, if it exists
+            if (distribElem.exists()) {
+                distribElem.delete();
+            }
+            localElem.copy(distribElem, null, false);
+            
+            return distribElem.toString();
         }
-        Path newPath = getTemporaryPath(null, pigContext);
-        int suffixStart = filename.lastIndexOf('.');
-        if (suffixStart != -1) {
-            newPath = newPath.suffix(filename.substring(suffixStart));
-        }
-        boolean success = FileUtil.copy(pigContext.getLfs(), new Path(filename), pigContext.getDfs(), newPath, false, pigContext.getConf());
-        if (!success) {
-            throw new IOException("Couldn't copy " + filename);
-        }
-        return newPath.toString();
+        catch (DataStorageException e) {
+            throw new IOException("Failed to hadoopify " + filename, e);
+        }        
     }
 
     public static String fullPath(String filename, PigContext pigContext) throws IOException {
-	try
-	{
-        	if (filename.charAt(0) != '/') {
-            	return new Path(pigContext.getDfs().getWorkingDirectory(), filename).toString();
-        	}
-        	return filename;
-	}
-	catch (IllegalArgumentException e)
-	{
-		return filename;
-	}
+        try {
+            if (filename.charAt(0) != '/') {
+                ElementDescriptor currentDir = pigContext.getDfs().getActiveContainer();
+                ElementDescriptor elem = pigContext.getDfs().asElement(currentDir.toString(),
+                                                                                  filename);
+                
+                return elem.toString();
+            }
+            return filename;
+        }
+        catch (DataStorageException e) {
+            return filename;
+        }
     }
 
     public static boolean fileExists(String filename, PigContext pigContext) throws IOException {
-	try
-	{
-		Path path = new Path(filename);
-		FileSystem fs = pigContext.getDfs();
-		if (fs.exists(path)) return true;
-		else return globMatchesFiles(path, fs);
-	}
-	catch (IllegalArgumentException e)
-	{
-		return false;
-	}
+        try
+        {
+            ElementDescriptor elem = pigContext.getDfs().asElement(filename);
+
+            if (elem.exists()) {
+                return true;
+            }
+            else {
+                return globMatchesFiles(elem, pigContext.getDfs());
+            }
+        }
+        catch (DataStorageException e) {
+            return false;
+        }
     }
 
-	private static boolean globMatchesFiles(Path p, FileSystem fs)
-		throws IOException
+	private static boolean globMatchesFiles(ElementDescriptor elem,
+	                                        DataStorage fs)
+		    throws IOException
 	{
-		Path[] paths = null;
-		return globMatchesFiles(p, paths, fs);
-	}
-
-	private static boolean globMatchesFiles(Path p, Path[] paths, FileSystem fs)
-		throws IOException
-	{
-		// Currently, if you give a glob with non-special glob characters, hadoop
-		// returns an array with your file name in it.  So check for that.
-		paths = fs.globPaths(p);
-		switch (paths.length) {
-		case 0:
-			return false;
-
-		case 1:
-			return !paths[0].equals(p);
-
-		default:
-			return true;
-		}
+	    try {
+    		// Currently, if you give a glob with non-special glob characters, hadoop
+    		// returns an array with your file name in it.  So check for that.
+    		ElementDescriptor[] elems = fs.asCollection(elem.toString());
+    		switch (elems.length) {
+    		case 0:
+    			return false;
+    
+    		case 1:
+    			return !elems[0].equals(elem);
+    
+    		default:
+    			return true;
+    		}
+	    }
+	    catch (DataStorageException e) {
+	        throw new IOException("Unable to get collect for pattern " + elem.toString(), e);
+	    }
 	}
 
 }

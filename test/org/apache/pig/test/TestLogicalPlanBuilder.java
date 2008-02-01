@@ -34,12 +34,13 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.builtin.ShellBagEvalFunc;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOEval;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
+
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
@@ -198,13 +199,15 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     public void testQuery18() {
         String query = "FOREACH (group (load 'a') ALL PARALLEL 16) generate group;";
         LogicalPlan lp = buildPlan(query);
-        LogicalOperator lo = lp.getRoot().getInputs().get(0);
+        Map<OperatorKey, LogicalOperator> logicalOpTable = lp.getOpTable();
+        OperatorKey logicalKey = lp.getRoot();
+        LogicalOperator lo = logicalOpTable.get(logicalOpTable.get(logicalKey).getInputs().get(0));
+        
         if (lo instanceof LOCogroup) {
             assertTrue(((LOCogroup) lo).getRequestedParallelism() == 16);
         } else {
             fail("Error: Unexpected Parse Tree output");
         }
-
     }
     
     
@@ -425,7 +428,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
 
     
-    public void testQueryFail44() {
+    public void testQueryFail44() throws Throwable {
         PigServer pig = null;
         try {
             pig = new PigServer("local");
@@ -532,15 +535,18 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
 
         try {
-            LogicalPlan lp = builder.parse(query, queryResults);
-            if (lp.getRoot() instanceof LOEval){
+            LogicalPlan lp = builder.parse("Test-Plan-Builder",
+                                           query,
+                                           aliases,
+                                           logicalOpTable);
+            if (logicalOpTable.get(lp.getRoot()) instanceof LOEval){
             	System.out.println(query);
-            	System.out.println(((LOEval)lp.getRoot()).getSpec());
+            	System.out.println(((LOEval)logicalOpTable.get(lp.getRoot())).getSpec());
             }
             if (lp.getAlias()!=null){
-            	queryResults.put(lp.getAlias(), new IntermedResult(lp, pigContext));
+            	aliases.put(lp.getAlias(), lp);
             }
-            //System.out.println(lp.root().outputSchema());
+            
             assertTrue(lp != null);
             return lp;
         } catch (IOException e) {
@@ -553,6 +559,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         return null;
     }
     
-    Map<String, IntermedResult> queryResults = new HashMap<String, IntermedResult>();
-
+    Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
+    Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();    
 }

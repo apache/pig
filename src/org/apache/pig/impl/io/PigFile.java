@@ -28,6 +28,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 
 
 public class PigFile {
@@ -58,7 +59,7 @@ public class PigFile {
     public void store(DataBag data, StoreFunc sfunc, PigContext pigContext) throws IOException {
         BufferedOutputStream bos = new BufferedOutputStream(FileLocalizer.create(file, append, pigContext));
         sfunc.bindTo(bos);
-        for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
+        for (Iterator<Tuple> it = data.content(); it.hasNext();) {
             Tuple row = it.next();
             sfunc.putNext(row);
         }
@@ -66,4 +67,7 @@ public class PigFile {
         bos.close();
     }
 
+    public String toString() {
+        return "PigFile: file: " + this.file + ", append: " + this.append;
+    }
 }

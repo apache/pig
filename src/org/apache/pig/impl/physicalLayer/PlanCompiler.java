@@ -26,14 +26,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 
 
 public abstract class PlanCompiler {
-	PigContext pigContext;
-	protected PlanCompiler(PigContext pigContext) {
-		this.pigContext = pigContext;
-	}
+
     public abstract PhysicalOperator compile(LogicalOperator lo, Map queryResults) throws IOException;
 
-    // various helper methods for map-reduce and hadoop compilation:
-    public static String getTempFile(PigContext pigContext) throws IOException {
-        return FileLocalizer.getTemporaryPath(null, pigContext).toString();
-    }
 }

@@ -19,18 +19,21 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.eval.cond.Cond;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
 
 public class LOSplit extends LogicalOperator {
     private static final long serialVersionUID = 1L;
 
       List<Cond> conditions = new ArrayList<Cond>();
 
-    public LOSplit(LogicalOperator input) {
-        super(input);
+    public LOSplit(Map<OperatorKey, LogicalOperator> opTable,
+                   String scope, 
+                   long id, 
+                   OperatorKey input) {
+        super(opTable, scope, id, input);
     }
     
     public void addCond(Cond cond) {
@@ -39,7 +42,7 @@ public class LOSplit extends LogicalOperator {
 
     @Override
     public int getOutputType() {
-        return getInputs().get(0).getOutputType();
+        return opTable.get(getInputs().get(0)).getOutputType();
     }
 
     public ArrayList<Cond> getConditions() {
@@ -48,9 +51,14 @@ public class LOSplit extends LogicalOperator {
 
     @Override
     public TupleSchema outputSchema() {
-        return getInputs().get(0).outputSchema().copy();
+        return opTable.get(getInputs().get(0)).outputSchema().copy();
     }
 
+    @Override
+    public String name() {
+        return "Split " + scope + "-" + id;
+    }
+    
 	public void visit(LOVisitor v) {
 		v.visitSplit(this);
 	}

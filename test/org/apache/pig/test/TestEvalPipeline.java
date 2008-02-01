@@ -41,6 +41,8 @@ import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
 
+import org.apache.pig.backend.executionengine.ExecException;
+
 import junit.framework.TestCase;
 
 public class TestEvalPipeline extends TestCase {
@@ -67,9 +69,9 @@ public class TestEvalPipeline extends TestCase {
 		pw.close();
 		return f;
 	}
-	
+
 	@Test
-	public void testFunctionInsideFunction() throws Exception{
+	public void testFunctionInsideFunction() throws Throwable {
 		PigServer pigServer = new PigServer(initString);
 		
 		File f1 = createFile(new String[]{"a:1","b:1","a:1"});
@@ -85,7 +87,7 @@ public class TestEvalPipeline extends TestCase {
 	}
 	
 	@Test
-	public void testJoin() throws Exception{
+	public void testJoin() throws Throwable {
 		PigServer pigServer = new PigServer(initString);
 		
 		File f1 = createFile(new String[]{"a:1","b:1","a:1"});
@@ -107,7 +109,7 @@ public class TestEvalPipeline extends TestCase {
 	}
 	
 	@Test
-	public void testDriverMethod() throws Exception{
+	public void testDriverMethod() throws Throwable {
 		PigServer pigServer = new PigServer(initString);
 		File f = File.createTempFile("tmp", "");
 		PrintWriter pw = new PrintWriter(f);
@@ -130,7 +132,7 @@ public class TestEvalPipeline extends TestCase {
 	
 	
 	@Test
-	public void testMapLookup() throws IOException{
+	public void testMapLookup() throws Throwable {
 		PigServer pigServer = new PigServer(initString);
 		DataBag b = BagFactory.getInstance().newDefaultBag();
 		DataMap colors = new DataMap();
@@ -212,11 +214,8 @@ public class TestEvalPipeline extends TestCase {
 		}
 	}
 
-	
-	
-	
 	@Test
-	public void testBagFunctionWithFlattening() throws Exception{
+	public void testBagFunctionWithFlattening() throws Throwable {
 		PigServer pigServer = new PigServer(initString);
 		File queryLogFile = createFile(
 					new String[]{ 
@@ -259,20 +258,17 @@ public class TestEvalPipeline extends TestCase {
 	    }
 	}
 	
-
-	
 	@Test
-	public void testSort() throws Exception{
+	public void testSort() throws Throwable {
 		testSortDistinct(false);
 	}
 	
-
 	@Test
-	public void testDistinct() throws Exception{
+	public void testDistinct() throws Throwable {
 		testSortDistinct(true);
 	}
 
-	private void testSortDistinct(boolean eliminateDuplicates) throws Exception{
+	private void testSortDistinct(boolean eliminateDuplicates) throws Throwable {
 		int LOOP_SIZE = 1024*16;
 		File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

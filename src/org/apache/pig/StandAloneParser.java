@@ -21,14 +21,15 @@ import java.io.*;
 import java.util.*;
 
 import org.apache.pig.PigServer.ExecType;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
+import org.apache.pig.backend.executionengine.ExecException;
 
 public class StandAloneParser {
     
     static PigServer pig;
     
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws IOException, ExecException {
         
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         pig = new PigServer(ExecType.LOCAL);
@@ -59,10 +60,10 @@ public class StandAloneParser {
         try{        
         	pig.registerQuery(query);
         	System.out.print("Current aliases: ");
-            for (Iterator<String> it = pig.getQueryResults().keySet().iterator(); it.hasNext(); ) {
+            for (Iterator<String> it = pig.getAliases().keySet().iterator(); it.hasNext(); ) {
                 String alias = it.next();
-                IntermedResult ir = pig.getQueryResults().get(alias);
-                System.out.print(alias + "->" + ir.lp.getRoot().outputSchema());
+                LogicalPlan lp = pig.getAliases().get(alias);
+                System.out.print(alias + "->" + lp.getOpTable().get(lp.getRoot()).outputSchema());
                 if (it.hasNext()) System.out.print(", \n");
                 else System.out.print("\n");
             }

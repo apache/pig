@@ -24,12 +24,15 @@ import org.apache.pig.data.Tuple;
 
 import org.apache.pig.impl.io.FileLocalizer;
 
+import org.apache.pig.backend.executionengine.ExecException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import junit.framework.TestCase;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
@@ -90,8 +93,14 @@ public class TestPi extends TestCase {
         
         dat.close();
         
-        pig = new PigServer(initString);
-		fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
+        try {
+            pig = new PigServer(initString);
+        }
+        catch (ExecException e) {
+            throw new IOException("Failed to create Pig Server", e);
+        }
+        
+        fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
 		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
 
         datFile.delete();

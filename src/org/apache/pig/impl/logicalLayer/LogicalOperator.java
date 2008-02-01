@@ -21,12 +21,14 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
+import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 
 
-abstract public class LogicalOperator implements Serializable {
+abstract public class LogicalOperator implements Serializable, ExecScopedLogicalOperator {
     public String alias = null;
 
     public static final int FIXED = 1;
@@ -36,19 +38,64 @@ abstract public class LogicalOperator implements Serializable {
 
     protected int requestedParallelism = -1;
     protected TupleSchema schema = null;
-    protected List<LogicalOperator> inputs;
+    protected List<OperatorKey> inputs;
 
-    protected LogicalOperator() {
-        this.inputs = new ArrayList<LogicalOperator> ();
-    } protected LogicalOperator(List<LogicalOperator> inputs) {
+    protected Map<OperatorKey, LogicalOperator> opTable;
+
+    protected String scope;
+    protected long id;
+    
+    protected LogicalOperator(Map<OperatorKey, LogicalOperator> opTable,
+                              String scope, 
+                              long id) {
+        this.inputs = new ArrayList<OperatorKey> ();
+        this.opTable = opTable;
+        this.scope = scope;
+        this.id = id;
+
+        opTable.put(getOperatorKey(), this);
+    } 
+    
+    protected LogicalOperator(Map<OperatorKey, LogicalOperator> opTable, 
+                              String scope, 
+                              long id, 
+                              List<OperatorKey> inputs) {
+        this.opTable = opTable;
         this.inputs = inputs;
+        this.scope = scope;
+        this.id = id;
+        
+        opTable.put(getOperatorKey(), this);
     }
 
-    protected LogicalOperator(LogicalOperator input) {
-        this.inputs = new ArrayList<LogicalOperator> ();
+    protected LogicalOperator(Map<OperatorKey, LogicalOperator> opTable,
+                              String scope, 
+                              long id, 
+                              OperatorKey input) {
+        this.opTable = opTable;
+        this.inputs = new ArrayList<OperatorKey> ();
         inputs.add(input);
-    }
+        this.scope = scope;
+        this.id = id;
 
+        opTable.put(getOperatorKey(), this);
+    }
+    
+    @Override
+    public OperatorKey getOperatorKey() {
+        return new OperatorKey(scope, id);
+    }
+    
+    @Override
+    public String getScope() {
+        return this.scope;
+    }
+    
+    @Override 
+    public long getId() {
+        return this.id;
+    }
+    
     public String getAlias() {
         return alias;
     }
@@ -78,13 +125,17 @@ abstract public class LogicalOperator implements Serializable {
     public abstract TupleSchema outputSchema();
 
     public String name() {
-        return "ROOT";
+        return "ROOT " + scope + "-" + id;
     }
 
-    public List<LogicalOperator> getInputs() {
+    public List<OperatorKey> getInputs() {
         return inputs;
     }
 
+    public Map<OperatorKey, LogicalOperator> getOpTable() {
+        return opTable;
+    }
+    
     public String arguments() {
         return "";
     }
@@ -92,7 +143,7 @@ abstract public class LogicalOperator implements Serializable {
     public List<String> getFuncs() {
         List<String> funcs = new LinkedList<String>();
         for (int i = 0; i < inputs.size(); i++) {
-            funcs.addAll(inputs.get(i).getFuncs());
+            funcs.addAll(opTable.get(inputs.get(i)).getFuncs());
         }
         return funcs;
     }

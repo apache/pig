@@ -37,7 +37,7 @@ public class TestFilterOpNumeric extends TestCase {
     private String initString = "mapreduce";
     
     @Test
-    public void testNumericEq() throws Exception {
+    public void testNumericEq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -68,7 +68,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testNumericNeq() throws Exception {
+    public void testNumericNeq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -95,7 +95,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testNumericGt() throws Exception {
+    public void testNumericGt() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -123,7 +123,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testBinCond() throws Exception {
+    public void testBinCond() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -152,7 +152,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     
     @Test
-    public void testNestedBinCond() throws Exception {
+    public void testNestedBinCond() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -180,7 +180,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     
     @Test 
-    public void testNumericLt() throws Exception {
+    public void testNumericLt() throws Throwable {
     	PigServer pig = new PigServer(initString);
     	File tmpFile = File.createTempFile("test", "txt");
     	PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -210,7 +210,7 @@ public class TestFilterOpNumeric extends TestCase {
 
     
     @Test
-    public void testNumericGte() throws Exception {
+    public void testNumericGte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -240,7 +240,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testNumericLte() throws Exception {
+    public void testNumericLte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

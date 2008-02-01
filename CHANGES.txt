@@ -75,4 +75,7 @@ Trunk (unreleased changes)
 
 	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
 
-	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile
+	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arun
+	via olgan)
+
+	PIG-32: ABstraction layer (olgan)

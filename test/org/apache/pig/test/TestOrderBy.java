@@ -38,7 +38,7 @@ public class TestOrderBy extends TestCase {
     private PigServer pig;
     private File tmpFile;
 
-    public TestOrderBy() throws Exception {
+    public TestOrderBy() throws Throwable {
         DecimalFormat myFormatter = new DecimalFormat("0000000");
         for (int i = 0; i < DATALEN; i++) {
             DATA[0][i] = myFormatter.format(i);

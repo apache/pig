@@ -22,7 +22,7 @@ import java.io.BufferedReader;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
-
+import org.apache.pig.backend.executionengine.ExecException;
 
 
 public class Grunt 
@@ -31,7 +31,7 @@ public class Grunt
 	PigServer pig;
 	GruntParser parser;	
 
-	public Grunt(BufferedReader in, PigContext pigContext) 
+	public Grunt(BufferedReader in, PigContext pigContext) throws ExecException
 	{
 		this.in = in;
 		this.pig = new PigServer(pigContext);

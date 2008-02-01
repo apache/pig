@@ -36,7 +36,7 @@ public class TestInfixArithmetic extends TestCase {
     private String initString = "mapreduce";
     
     @Test
-    public void testAdd() throws Exception {
+    public void testAdd() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -58,7 +58,7 @@ public class TestInfixArithmetic extends TestCase {
     }
  
     @Test
-    public void testSubtract() throws Exception {
+    public void testSubtract() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -79,7 +79,7 @@ public class TestInfixArithmetic extends TestCase {
     }
  
     @Test
-    public void testMultiply() throws Exception {
+    public void testMultiply() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -101,7 +101,7 @@ public class TestInfixArithmetic extends TestCase {
     }
     
     @Test
-    public void testDivide() throws Exception {
+    public void testDivide() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

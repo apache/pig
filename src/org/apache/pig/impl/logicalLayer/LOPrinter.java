@@ -26,7 +26,6 @@ import org.apache.pig.impl.eval.*;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
 
 /**
  * A visitor mechanism printing out the logical plan.
@@ -34,7 +33,6 @@ import org.apache.pig.impl.physicalLayer.IntermedResult;
 public class LOPrinter extends LOVisitor {
 
     private PrintStream mStream = null;
-    private Schema mInputSchema = null;
 
     public LOPrinter(PrintStream ps) {
         mStream = ps;
@@ -45,7 +43,7 @@ public class LOPrinter extends LOVisitor {
      */
     @Override
     public void visitCogroup(LOCogroup g) {
-        print(g, "COGROUP", g.getSpecs());
+        print(g, g.name(), g.getSpecs());
         super.visitCogroup(g);
     }
         
@@ -56,7 +54,7 @@ public class LOPrinter extends LOVisitor {
     public void visitEval(LOEval e) {
         List<EvalSpec> ls = new ArrayList<EvalSpec>();
         ls.add(e.getSpec());
-        print(e, "EVAL", ls);
+        print(e, e.name(), ls);
         super.visitEval(e);
     }
         
@@ -65,30 +63,17 @@ public class LOPrinter extends LOVisitor {
      */
     @Override
     public void visitUnion(LOUnion u) {
-        print(u, "UNION");
+        print(u, u.name());
         super.visitUnion(u);
-    }
-        
-    /**
-     * Only LORead.visit() should ever call this method.
-     */
-    @Override
-    public void visitRead(LORead r) {
-        print(r, "READ");
-        super.visitRead(r);
-        IntermedResult ir = r.getReadFrom();
-        if (ir != null) {
-            mInputSchema = ir.lp.getRoot().outputSchema();
-        }
     }
         
     /**
      * Only LOLoad.visit() should ever call this method.
      */
     @Override
-    public void visitLoad(LOLoad load) {
-        print(load, "LOAD");
-        super.visitLoad(load);
+    public void visitLoad(LOLoad l) {
+        print(l, l.name());
+        super.visitLoad(l);
     }
         
     /**
@@ -98,7 +83,7 @@ public class LOPrinter extends LOVisitor {
     public void visitSort(LOSort s) {
         List<EvalSpec> ls = new ArrayList<EvalSpec>();
         ls.add(s.getSpec());
-        print(s, "SORT");
+        print(s, s.name());
         super.visitSort(s);
     }
         
@@ -107,7 +92,7 @@ public class LOPrinter extends LOVisitor {
      */
     @Override
     public void visitSplit(LOSplit s) {
-        print(s, "SPLIT");
+        print(s, s.name());
         super.visitSplit(s);
     }
         
@@ -116,7 +101,7 @@ public class LOPrinter extends LOVisitor {
      */
     @Override
     public void visitStore(LOStore s) {
-        print(s, "STORE");
+        print(s, s.name());
         super.visitStore(s);
     }
 
@@ -132,10 +117,10 @@ public class LOPrinter extends LOVisitor {
         mStream.println(name);
         mStream.println("Object id: " + lo.hashCode());
         mStream.print("Inputs: ");
-        List<LogicalOperator> inputs = lo.getInputs();
-        Iterator<LogicalOperator> i = inputs.iterator();
+        List<OperatorKey> inputs = lo.getInputs();
+        Iterator<OperatorKey> i = inputs.iterator();
         while (i.hasNext()) {
-            LogicalOperator input = i.next();
+            LogicalOperator input = lo.getOpTable().get(i.next());
             mStream.print(input.hashCode() + " ");
         }
         mStream.println();
@@ -150,52 +135,7 @@ public class LOPrinter extends LOVisitor {
         while (j.hasNext()) {
             j.next().visit(new EvalSpecPrinter(mStream));
         }
-        // Setup the input schema for the next operator.
-        mInputSchema = lo.outputSchema();
     }
-
-    /*
-    private void printSpecs(List<EvalSpec> specs) {
-        Iterator<EvalSpec> j = specs.iterator();
-        while (j.hasNext()) {
-            EvalSpec spec = j.next();
-            if (spec instanceof FilterSpec) {
-                mStream.print("filter");
-            } else if (spec instanceof SortDistinctSpec) {
-                mStream.print("sort/distinct");
-            } else if (spec instanceof GenerateSpec) {
-                mStream.print("generate: (");
-                printSpecs(((GenerateSpec)(spec)).getSpecs());
-                mStream.print(")");
-            } else if (spec instanceof BinCondSpec) {
-                mStream.print("bincond");
-            } else if (spec instanceof MapLookupSpec) {
-                mStream.print("maplookup");
-            } else if (spec instanceof ConstSpec) {
-                mStream.print("const");
-            } else if (spec instanceof ProjectSpec) {
-                mStream.print("project");
-            } else if (spec instanceof StarSpec) {
-                mStream.print("star");
-            } else if (spec instanceof FuncEvalSpec) {
-                mStream.print("funceval");
-            } else if (spec instanceof CompositeEvalSpec) {
-                mStream.print("composite: (");
-                printSpecs(((CompositeEvalSpec)(spec)).getSpecs());
-                mStream.print(")");
-            } else {
-                throw new AssertionError("Unknown EvalSpec type");
-            }
-
-            if (mInputSchema != null) {
-                mStream.print(" [Schema: ");
-                printSchema(spec.getOutputSchemaForPipe(mInputSchema), 0);
-                mStream.print("]");
-            }
-            if (j.hasNext()) mStream.print(", ");
-        }
-    }
-    */
 
     private void printSchema(Schema schema, int pos) {
         if (schema instanceof AtomSchema) {
