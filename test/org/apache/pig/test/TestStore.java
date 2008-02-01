@@ -18,12 +18,14 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.backend.executionengine.ExecException;
 
 import junit.framework.TestCase;
 
@@ -35,7 +37,7 @@ public class TestStore extends TestCase {
 	String fileName;
 	String tmpFile1, tmpFile2;
 	PigServer pig;
-	
+
 	public void testSingleStore() throws Exception{
 		pig.registerQuery("A = load " + fileName + ";");
 		
@@ -104,7 +106,13 @@ public class TestStore extends TestCase {
 			pw.println(i + "\t" + i);
 		}
 		pw.close();
-		pig = new PigServer(initString);
+		try {
+		    pig = new PigServer(initString);
+		}
+		catch (ExecException e) {
+		    throw new IOException("Failed to create Pig Server", e);
+		}
+		
 		fileName = "'" + FileLocalizer.hadoopify(f.toString(), pig.getPigContext()) + "'";
 		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
 		tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";

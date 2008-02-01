@@ -40,19 +40,33 @@ import org.apache.pig.*;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.PigServer.ExecType;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
 import org.apache.pig.impl.io.*;
 import org.apache.pig.builtin.*;
 import org.apache.pig.impl.builtin.*;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
 public class QueryParser {
 	private PigContext pigContext;
-	private Map<String, IntermedResult> aliases;
+	private Map<String, LogicalPlan> aliases;
+	private Map<OperatorKey, LogicalOperator> opTable;
+	private String scope;
+	private NodeIdGenerator nodeIdGen;
 
-	public QueryParser(InputStream in, PigContext pigContext, Map aliases) {
+	private long getNextId() {
+		return nodeIdGen.getNextNodeId(scope);
+	}
+
+	public QueryParser(InputStream in, 
+					   PigContext pigContext, 
+					   String scope, 
+					   Map<String, LogicalPlan> aliases,
+					   Map<OperatorKey, LogicalOperator> opTable) {
 		this(in);
 		this.pigContext = pigContext;
 		this.aliases = aliases;
+		this.opTable = opTable;
+		this.scope = scope;
+		this.nodeIdGen = NodeIdGenerator.getGenerator();
 	}
 	
 	public class EvalSpecAndSchema{
@@ -61,10 +75,43 @@ public class QueryParser {
 	}
 	
 	public class CogroupInput {
-		public LogicalOperator op;
+		public OperatorKey op;
 		public EvalSpec spec;
 	}
 	    
+    private static String removeQuotes(String str) {
+        if (str.startsWith("\'") && str.endsWith("\'"))
+            return str.substring(1, str.length() - 1);
+        else
+            return str;
+    }
+
+    public static LogicalPlan generateStorePlan(Map<OperatorKey, LogicalOperator> opTable,
+    										    String scope,
+                                                LogicalPlan readFrom,
+                                                String fileName,
+                                                String func,
+                                                PigContext pigContext) throws IOException {
+        if (func == null) {
+            func = PigStorage.class.getName();
+        }
+
+        fileName = removeQuotes(fileName);
+
+        long storeNodeId = NodeIdGenerator.getGenerator().getNextNodeId(scope);
+
+		LogicalOperator root = new LOStore(opTable,
+										   scope,
+                                           storeNodeId,
+                                           readFrom.getRoot(),
+                                           new FileSpec(fileName, func),
+                                           false);
+                                           
+        LogicalPlan storePlan = new LogicalPlan(root.getOperatorKey(), opTable, pigContext);
+
+        return storePlan;
+    }
+
     static String unquote(String s) {
 		return s.substring(1, s.length()-1);
 	}
@@ -74,20 +121,11 @@ public class QueryParser {
 	}
 	
 	
-	LogicalOperator makeLORead(String alias) throws ParseException {
-		if (!aliases.containsKey(alias)) throw new ParseException("Unrecognized alias: " + alias);
-	
-		LORead readOp = new LORead(aliases.get(alias));
-		readOp.setAlias(alias);
-		return readOp;
-	}
-	
-
 	
 	String massageFilename(String filename, PigContext pigContext) throws IOException, ParseException {
 		if (pigContext.getExecType() != ExecType.LOCAL) {
 			if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-				filename = FileLocalizer.hadoopify(filename, pigContext);
+					filename = FileLocalizer.hadoopify(filename, pigContext);
 			} 
 			else
 			{
@@ -104,7 +142,7 @@ public class QueryParser {
 	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis) throws ParseException{
 		int n = gis.size();
 		
-		List<LogicalOperator> los = new ArrayList<LogicalOperator>();
+		List<OperatorKey> los = new ArrayList<OperatorKey>();
 		ArrayList<EvalSpec> specs = new ArrayList<EvalSpec>();
 		
 		for (int i = 0; i < n ; i++){
@@ -114,11 +152,11 @@ public class QueryParser {
 			specs.add(gi.spec);
 		}
 		
-		return new LOCogroup(los, specs);
+		return new LOCogroup(opTable, scope, getNextId(), los, specs);
 	}
 			
 	
-	LogicalOperator rewriteCross(ArrayList<LogicalOperator> inputs) throws IOException, ParseException{
+	LogicalOperator rewriteCross(ArrayList<OperatorKey> inputs) throws IOException, ParseException{
 		ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>();
 		int n = inputs.size();
 		
@@ -140,23 +178,23 @@ public class QueryParser {
 		return rewriteJoin(gis); 
 	}
 
-	LogicalOperator rewriteDistinct(LogicalOperator input){
+	LogicalOperator rewriteDistinct(OperatorKey input){
 		//First group the input on *
 		
-		ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();
+		ArrayList<OperatorKey> inputs = new ArrayList<OperatorKey>();
 		inputs.add(input);
 		
 		ArrayList<EvalSpec> groupSpecs = new ArrayList<EvalSpec>();
 			
 		groupSpecs.add(new GenerateSpec(new StarSpec()).getGroupBySpec());
 		
-		LogicalOperator groupedInput = new LOCogroup(inputs, groupSpecs);
+		LogicalOperator groupedInput = new LOCogroup(opTable, scope, getNextId(), inputs, groupSpecs);
 		
 		//then generate the flattened group
 		EvalSpec projectSpec = new ProjectSpec(0);
 		projectSpec.setFlatten(true);
 		
-		return new LOEval(groupedInput, new GenerateSpec(projectSpec));
+		return new LOEval(opTable, scope, getNextId(), groupedInput.getOperatorKey()	, new GenerateSpec(projectSpec));
 	}	
 		
 		
@@ -172,7 +210,7 @@ public class QueryParser {
 			flattenedColumns.add(column);
 		}
 		
-		return new LOEval(parseCogroup(gis),new GenerateSpec(flattenedColumns));
+		return new LOEval(opTable, scope, getNextId(), parseCogroup(gis).getOperatorKey(),new GenerateSpec(flattenedColumns));
 	}
 		
 	void assertAtomic(EvalSpec spec, boolean desiredAtomic) throws ParseException{
@@ -199,10 +237,10 @@ public class QueryParser {
 		return spec.addSpec(successor);
 	}
 	
-	 void addSplitOutput(IntermedResult intermedResult, LOSplit splitOp, String alias, Cond cond, int index){
+	 void addSplitOutput(LogicalPlan lp, LOSplit splitOp, String alias, Cond cond, int index){
 		splitOp.addCond(cond);
-		LORead readOp = new LORead(intermedResult, index);
-		aliases.put(alias, new IntermedResult(new LogicalPlan(readOp, pigContext), pigContext));
+		LOSplitOutput splitOut = new LOSplitOutput(opTable, scope, getNextId(), lp.getRoot(), index);
+		aliases.put(alias, new LogicalPlan(splitOut.getOperatorKey(), opTable, pigContext));
 	 }
 
 }
@@ -290,27 +328,27 @@ LogicalPlan Parse() : {LogicalOperator root; Token t1;}
 |	(root = Expr() ";")
 |	(<SPLIT> root = SplitClause() ";")
 	)
-	{ return new LogicalPlan(root, pigContext); }
+	{ return new LogicalPlan(root.getOperatorKey(), opTable, pigContext); }
 }
 
 LogicalOperator SplitClause():
-{LogicalOperator input; Cond cond; Token alias; LOSplit splitOp; IntermedResult intermedResult; int i=0;}
+{LogicalOperator input; Cond cond; Token alias; LOSplit splitOp; LogicalPlan lp; int i=0;}
 {
 	(
 	input = NestedExpr() <INTO> 
 	{
-		splitOp = new LOSplit(input);
-		intermedResult = new IntermedResult(new LogicalPlan(splitOp, pigContext), pigContext);
+		splitOp = new LOSplit(opTable, scope, getNextId(), input.getOperatorKey());
+		lp = new LogicalPlan(splitOp.getOperatorKey(), opTable, pigContext);
 	}
 	alias = <IDENTIFIER> <IF> cond = PCond(input.outputSchema(),null) 
 	{
-		addSplitOutput(intermedResult, splitOp, alias.image, cond, i);
+		addSplitOutput(lp, splitOp, alias.image, cond, i);
 		i++;
 	}
 	(
 	"," alias = <IDENTIFIER> <IF> cond = PCond(input.outputSchema(),null)
 	{
-		addSplitOutput(intermedResult, splitOp, alias.image, cond, i);
+		addSplitOutput(lp, splitOp, alias.image, cond, i);
 		i++;
 	}
 	)+
@@ -343,8 +381,16 @@ LogicalOperator Alias() : {Token t1; LogicalOperator op;}
 {
 	t1 = <IDENTIFIER> 
 	{
-		op = makeLORead(t1.image);
-		return op;
+		LogicalOperator aliasOp;
+		String alias = t1.image;
+		
+		aliasOp = opTable.get(aliases.get(alias).getRoot());
+		
+		if (aliasOp == null) {
+			throw new ParseException("Unrecognized alias " + alias);
+		}
+		
+		return aliasOp;
 	}
 }
 
@@ -360,7 +406,7 @@ LogicalOperator BaseExpr() : {LogicalOperator op; TupleSchema schema; Token t1, 
 |	((<GROUP> | <COGROUP>) op = CogroupClause())
 |	(<FILTER> op = FilterClause())
 |   (<ORDER> op = OrderClause())
-|	(<DISTINCT> op = NestedExpr() {op = rewriteDistinct(op);})
+|	(<DISTINCT> op = NestedExpr() {op = rewriteDistinct(op.getOperatorKey());})
 |	(<CROSS> op = CrossClause())
 |   (<JOIN> op = JoinClause())
 |	(<UNION> op = UnionClause())
@@ -389,7 +435,7 @@ LogicalOperator LoadClause() : {Token t1, t2; String filename; String funcName,f
 			funcSpec += continuous ? "('\t','\n','0')" : "()";
 		}
 		 
-		lo = new LOLoad(new FileSpec(massageFilename(filename, pigContext), funcSpec));	
+		lo = new LOLoad(opTable, scope, getNextId(), new FileSpec(massageFilename(filename, pigContext), funcSpec));	
 		if (continuous)
 			lo.setOutputType(LogicalOperator.MONOTONE);
 		return lo;
@@ -420,7 +466,7 @@ LogicalOperator FilterClause():
 	input = NestedExpr()	
 	 <BY> cond = PCond(input.outputSchema(),null)
 	{
-		return new LOEval(input, new FilterSpec(cond));
+		return new LOEval(opTable, scope, getNextId(), input.getOperatorKey(), new FilterSpec(cond));
 	}
 }
 
@@ -491,27 +537,34 @@ LogicalOperator CogroupClause() : {CogroupInput gi; ArrayList<CogroupInput> gis 
 }
 
 
-CogroupInput GroupItem() : {LogicalOperator op; GenerateSpec gs; EvalSpec es; CogroupInput cogroupInput = new CogroupInput();}
+CogroupInput GroupItem() : {LogicalOperator op; GenerateSpec gs; EvalSpec es; LogicalOperator cgOp; EvalSpec cgSpec;}
 {
 	(
-	cogroupInput.op = NestedExpr()
+	cgOp = NestedExpr()
 	(
 	( <BY> 	
 	( 
-	LOOKAHEAD ( "(" FlattenedGenerateItemList(cogroupInput.op.outputSchema()) ")" )
-	( "(" gs = FlattenedGenerateItemList(cogroupInput.op.outputSchema(), null) ")" )
-|	(es = FlattenedGenerateItem(cogroupInput.op.outputSchema(), null) {gs = new GenerateSpec(es);})
+	LOOKAHEAD ( "(" FlattenedGenerateItemList(cgOp.outputSchema()) ")" )
+	( "(" gs = FlattenedGenerateItemList(cgOp.outputSchema(), null) ")" )
+|	(es = FlattenedGenerateItem(cgOp.outputSchema(), null) {gs = new GenerateSpec(es);})
 	)
 	)	
 |	<ALL> {gs = new GenerateSpec(new ConstSpec("all"));}
 |	<ANY> {gs = new GenerateSpec(new FuncEvalSpec(pigContext, GFAny.class.getName(), null));}
 	)
 	{ 
-		cogroupInput.spec = gs.getGroupBySpec();
+		cgSpec = gs.getGroupBySpec();
 	}
-	[<INNER> {cogroupInput.spec.setInner(true);} | <OUTER>]
+	[<INNER> {cgSpec.setInner(true);} | <OUTER>]
 	)
-	{return cogroupInput;}
+	{
+		CogroupInput cogroupInput = new CogroupInput(); 
+
+		cogroupInput.spec = cgSpec;
+		cogroupInput.op = cgOp.getOperatorKey();
+		
+		return cogroupInput;
+    }
 }
 
 
@@ -543,16 +596,16 @@ LogicalOperator OrderClause() : {LogicalOperator op; EvalSpec sortSpec = null; P
 
 	)
 	{
-		return new LOSort(op, sortSpec);
+		return new LOSort(opTable, scope, getNextId(), op.getOperatorKey(), sortSpec);
 	}
 }
 	
 
-LogicalOperator CrossClause() : {LogicalOperator op; ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();}
+LogicalOperator CrossClause() : {LogicalOperator op; ArrayList<OperatorKey> inputs = new ArrayList<OperatorKey>();}
 {
 	(
-	op = NestedExpr() { inputs.add(op); }
-	("," op = NestedExpr() { inputs.add(op); })*
+	op = NestedExpr() { inputs.add(op.getOperatorKey()); }
+	("," op = NestedExpr() { inputs.add(op.getOperatorKey()); })*
 	)
 	{return rewriteCross(inputs);}
 }
@@ -564,11 +617,11 @@ LogicalOperator JoinClause() : {CogroupInput gi; ArrayList<CogroupInput> gis = n
 	{return rewriteJoin(gis);}
 }
 
-LogicalOperator UnionClause() : {LogicalOperator op; ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();}
+LogicalOperator UnionClause() : {LogicalOperator op; ArrayList<OperatorKey> inputs = new ArrayList<OperatorKey>();}
 {
-	(op = NestedExpr() { inputs.add(op); }
-	("," op = NestedExpr() { inputs.add(op); })*)
-	{return new LOUnion(inputs);}
+	(op = NestedExpr() { inputs.add(op.getOperatorKey()); }
+	("," op = NestedExpr() { inputs.add(op.getOperatorKey()); })*)
+	{return new LOUnion(opTable, scope, getNextId(), inputs);}
 }
 
 
@@ -579,7 +632,7 @@ LogicalOperator ForEachClause() : {EvalSpec spec = null; LogicalOperator input, 
 	spec = NestedBlock(input.outputSchema())
 	)
 	{
-		op = new LOEval(input, spec);
+		op = new LOEval(opTable, scope, getNextId(), input.getOperatorKey(), spec);
 		return op;
 	}
 }

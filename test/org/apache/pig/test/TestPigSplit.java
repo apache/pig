@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
@@ -28,6 +29,7 @@ import org.junit.Test;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.backend.executionengine.ExecException;
 
 import junit.framework.TestCase;
 
@@ -37,9 +39,14 @@ public class TestPigSplit extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
-		pig = new PigServer();
+		
+		try {
+		    pig = new PigServer();
+		}
+		catch (ExecException e) {
+		    throw new IOException("Failed to create Pig Server", e);
+		}
 	}
-	
 	@Test
 	public void testLongEvalSpec() throws Exception{
 		File f = File.createTempFile("tmp", "");

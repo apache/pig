@@ -33,38 +33,8 @@ import org.apache.pig.data.Tuple;
 public class TestAlgebraicEval extends TestCase {
     
 	private String initString = "mapreduce";
-    
     @Test
-    public void testGroupCountWithMultipleFields() throws Exception {
-        int LOOP_COUNT = 1024;
-        PigServer pig = new PigServer(initString);
-        File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            for(int j=0; j< LOOP_COUNT; j++) {
-                ps.println(i + "\t" + i + "\t" + j%2);
-            }
-        }
-        ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate group, COUNT($1) ;";
-        System.out.println(query);
-        pig.registerQuery(" a = group (load 'file:" + tmpFile + "') by ($0,$1);");
-        pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
-        Iterator<Tuple> it = pig.openIterator("b");
-        tmpFile.delete();
-        int count = 0;
-        while(it.hasNext()){
-            int sum = it.next().getAtomField(2).numval().intValue();
-            assertEquals(LOOP_COUNT/2, sum);
-            count++;
-        }
-        assertEquals(count, LOOP_COUNT);
-    }
-    
-    
-    
-    @Test
-    public void testSimpleCount() throws Exception {
+    public void testSimpleCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -84,7 +54,7 @@ public class TestAlgebraicEval extends TestCase {
     }
 
     @Test
-    public void testGroupCount() throws Exception {
+    public void testGroupCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -103,10 +73,8 @@ public class TestAlgebraicEval extends TestCase {
         assertEquals(count, (double)LOOP_COUNT);
     }
     
-    
-    
     @Test
-    public void testGroupReorderCount() throws Exception {
+    public void testGroupReorderCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -128,7 +96,7 @@ public class TestAlgebraicEval extends TestCase {
 
 
     @Test
-    public void testGroupUniqueColumnCount() throws Exception {
+    public void testGroupUniqueColumnCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -156,7 +124,7 @@ public class TestAlgebraicEval extends TestCase {
     }
 
     @Test
-    public void testGroupDuplicateColumnCount() throws Exception {
+    public void testGroupDuplicateColumnCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");

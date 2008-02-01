@@ -19,36 +19,55 @@ package org.apache.pig.impl.physicalLayer;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Map;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.util.LineageTracer;
+import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.backend.local.executionengine.POVisitor;
 
+public abstract class PhysicalOperator implements Serializable, ExecPhysicalOperator {
 
-abstract public class PhysicalOperator implements Serializable {
-
-    public PhysicalOperator[] inputs = null;
-    int outputType;
+    public Map<OperatorKey, ExecPhysicalOperator> opTable;
+    public OperatorKey[] inputs = null;
+    public int outputType;
     protected LineageTracer lineageTracer = null;
+    protected String scope;
+    protected long id;
     
-    /**
-     * 
-     * This constructor should go away when we eventually implement CQ even for the mapreduce exec type 
-     */
-    public PhysicalOperator(){
-    	outputType = LogicalOperator.FIXED;
-    }
-   
-    
-    public PhysicalOperator(int outputType){
+    public PhysicalOperator(String scope, 
+                            long id,
+                            Map<OperatorKey, ExecPhysicalOperator> opTable, 
+                            int outputType){
+        this.scope = scope;
+        this.id = id;
+        this.opTable = opTable;
     	this.outputType = outputType;
+    	
+    	opTable.put(getOperatorKey(), this);
     }
     
-    public boolean open(boolean continueFromLast) throws IOException {
+    public OperatorKey getOperatorKey() {
+        return new OperatorKey(scope, id);
+    }
+    
+    @Override
+    public String getScope() {
+        return this.scope;
+    }
+    
+    @Override
+    public long getId() {
+        return this.id;
+    }
+    
+    public boolean open() throws IOException {
         // call open() on all inputs
         if (inputs != null) {
             for (int i = 0; i < inputs.length; i++) {
-                if (!inputs[i].open(continueFromLast))
+                if (! ((PhysicalOperator)opTable.get(inputs[i])).open())
                     return false;
             }
         }
@@ -61,7 +80,7 @@ abstract public class PhysicalOperator implements Serializable {
         // call close() on all inputs
         if (inputs != null)
             for (int i = 0; i < inputs.length; i++)
-                inputs[i].close();
+                ((PhysicalOperator)opTable.get(inputs[i])).close();
     }
     
     public void setLineageTracer(LineageTracer lineageTracer) {
@@ -72,5 +91,5 @@ abstract public class PhysicalOperator implements Serializable {
     	return outputType;
     }
 
-    public abstract void visit(POVisitor v);
+    public abstract void visit(POVisitor v, String prfix);
 }

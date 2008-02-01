@@ -20,7 +20,6 @@ package org.apache.pig.impl.logicalLayer;
 import java.util.List;
 import java.util.Iterator;
 
-import org.apache.pig.impl.physicalLayer.IntermedResult;
 
 /**
  * A visitor mechanism for navigating and operating on a tree of Logical
@@ -69,17 +68,6 @@ abstract public class LOVisitor {
         basicVisit(u);
     }
         
-    /**
-     * Only LORead.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitRead(LORead r) {
-        // I'm assuming LORead is always at the head of a list of LO operators.
-        IntermedResult ir = r.getReadFrom();
-        if (ir != null) {
-            ir.lp.getRoot().visit(this);
-        }
-    }
         
     /**
      * Only LOLoad.visit() and subclass implementations of this function
@@ -104,6 +92,11 @@ abstract public class LOVisitor {
     public void visitSplit(LOSplit s) {
         basicVisit(s);
     }
+    
+    public void visitSplitOutput(LOSplitOutput s) {
+        basicVisit(s);
+    }
+    
         
     /**
      * Only LOStore.visit() and subclass implementations of this function
@@ -114,10 +107,11 @@ abstract public class LOVisitor {
     }
 
     private void basicVisit(LogicalOperator lo) {
-        List<LogicalOperator> inputs = lo.getInputs();
-        Iterator<LogicalOperator> i = inputs.iterator();
+        List<OperatorKey> inputs = lo.getInputs();
+        Iterator<OperatorKey> i = inputs.iterator();
+        
         while (i.hasNext()) {
-            LogicalOperator input = i.next();
+            LogicalOperator input = lo.getOpTable().get(i.next());
             input.visit(this);
         }
     }

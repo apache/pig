@@ -18,6 +18,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
@@ -26,25 +27,30 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 public class LOUnion extends LogicalOperator {
     private static final long serialVersionUID = 1L;
 
-    public LOUnion(List<LogicalOperator> inputsIn) {
-        super(inputsIn);
+    public LOUnion(Map<OperatorKey, LogicalOperator> opTable,
+                   String scope, 
+                   long id, 
+                   List<OperatorKey> inputsIn) {
+        super(opTable, scope, id, inputsIn);
     }
     
     @Override
     public String name() {
-        return "Union";
+        return "Union " + scope + "-" + id;
     }
 
     @Override
     public TupleSchema outputSchema() {
         if (schema == null) {
-            TupleSchema longest = getInputs().get(0).outputSchema();
+            TupleSchema longest = opTable.get(getInputs().get(0)).outputSchema();
             int current = 0;
-          for (LogicalOperator lo:getInputs()) {
-                if (lo != null && lo.outputSchema() != null
-                        && lo.outputSchema().numFields() > current) {
-                    longest = lo.outputSchema();
-                    current = longest.numFields();
+          for (OperatorKey opKey: getInputs()) {
+              LogicalOperator lo = opTable.get(opKey);
+              
+              if (lo != null && lo.outputSchema() != null && 
+                  lo.outputSchema().numFields() > current) {
+                  longest = lo.outputSchema();
+                  current = longest.numFields();
                 }
             }
             schema = longest.copy();
@@ -58,7 +64,7 @@ public class LOUnion extends LogicalOperator {
     public int getOutputType() {
         int outputType = FIXED;
         for (int i = 0; i < getInputs().size(); i++) {
-            switch (getInputs().get(i).getOutputType()) {
+            switch (opTable.get(getInputs().get(i)).getOutputType()) {
             case FIXED:
                 continue;
             case MONOTONE:

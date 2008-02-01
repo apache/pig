@@ -19,6 +19,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.PigContext;
@@ -34,10 +35,13 @@ public class LOStore extends LogicalOperator {
     protected boolean append;
 
 
-    public LOStore(LogicalOperator input,
+    public LOStore(Map<OperatorKey, LogicalOperator> opTable,
+                   String scope,
+                   long id,
+                   OperatorKey input,
                    FileSpec fileSpec,
                    boolean append) throws IOException {
-        super(input);
+        super(opTable, scope, id, input);
         this.outputFileSpec = fileSpec;
         this.append = append;
 
@@ -71,7 +75,7 @@ public class LOStore extends LogicalOperator {
 
     @Override
     public String name() {
-        return "Store";
+        return "Store " + scope + "-" + id;
     }
 
     @Override
@@ -83,7 +87,7 @@ public class LOStore extends LogicalOperator {
 
     @Override
     public int getOutputType() {
-        switch (getInputs().get(0).getOutputType()) {
+        switch (opTable.get(getInputs().get(0)).getOutputType()) {
         case FIXED:
             return FIXED;
         case MONOTONE:

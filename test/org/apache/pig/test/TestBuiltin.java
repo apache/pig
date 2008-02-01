@@ -456,7 +456,7 @@ public class TestBuiltin extends TestCase {
     }
     
     @Test
-    public void testShellFuncSingle() throws Exception {
+    public void testShellFuncSingle() throws Throwable {
     	//ShellBagEvalFunc func = new ShellBagEvalFunc("tr o 0");
     	PigServer pig = new PigServer(initString);
     	
@@ -484,7 +484,7 @@ public class TestBuiltin extends TestCase {
     }
     
     @Test
-    public void testShellFuncMultiple() throws Exception {
+    public void testShellFuncMultiple() throws Throwable {
 
     	PigServer pig = new PigServer(initString);
     	final int numTimes = 100;

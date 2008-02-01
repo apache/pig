@@ -18,6 +18,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
@@ -29,15 +30,19 @@ public class LOEval extends LogicalOperator {
 
     protected EvalSpec spec;
 
-    public LOEval(LogicalOperator input, EvalSpec specIn) {
-        super(input);
+    public LOEval(Map<OperatorKey, LogicalOperator> opTable,
+                  String scope, 
+                  long id, 
+                  OperatorKey input, 
+                  EvalSpec specIn) {
+        super(opTable, scope, id, input);
         spec = specIn;
         getOutputType();
     }
 
     @Override
     public String name() {
-        return "Foreach";
+        return "Eval " + scope + "-" + id;
     }
 
     @Override
@@ -51,7 +56,7 @@ public class LOEval extends LogicalOperator {
             //System.out.println("LOEval input: " + inputs[0].outputSchema());
             //System.out.println("LOEval spec: " + spec);
             schema =
-                (TupleSchema) spec.getOutputSchemaForPipe(getInputs().get(0).
+                (TupleSchema) spec.getOutputSchemaForPipe(opTable.get(getInputs().get(0)).
                                                           outputSchema());
 
             //System.out.println("LOEval output: " + schema);
@@ -62,7 +67,7 @@ public class LOEval extends LogicalOperator {
 
     @Override
     public int getOutputType() {
-        switch (getInputs().get(0).getOutputType()) {
+        switch (opTable.get(getInputs().get(0)).getOutputType()) {
         case FIXED:
             return FIXED;
         case MONOTONE:

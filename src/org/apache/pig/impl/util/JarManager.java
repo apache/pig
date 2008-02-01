@@ -38,8 +38,8 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 
 public class JarManager {

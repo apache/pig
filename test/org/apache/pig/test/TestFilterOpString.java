@@ -36,7 +36,7 @@ public class TestFilterOpString extends TestCase {
     private String initString = "mapreduce";
     
     @Test
-    public void testStringEq() throws Exception {
+    public void testStringEq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -64,7 +64,7 @@ public class TestFilterOpString extends TestCase {
     }
     
     @Test
-    public void testStringNeq() throws Exception {
+    public void testStringNeq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -92,7 +92,7 @@ public class TestFilterOpString extends TestCase {
     }
 
     @Test
-    public void testStringGt() throws Exception {
+    public void testStringGt() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -122,7 +122,7 @@ public class TestFilterOpString extends TestCase {
     
 
     @Test
-    public void testStringGte() throws Exception {
+    public void testStringGte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -153,7 +153,7 @@ public class TestFilterOpString extends TestCase {
     }
 
     @Test
-    public void testStringLt() throws Exception {
+    public void testStringLt() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -182,7 +182,7 @@ public class TestFilterOpString extends TestCase {
     }
 
     @Test
-    public void testStringLte() throws Exception {
+    public void testStringLte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));

@@ -29,7 +29,6 @@ import java.util.Iterator;
 
 import junit.framework.TestCase;
 
-import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 import org.apache.pig.EvalFunc;
@@ -40,18 +39,18 @@ import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class TestMapReduce extends TestCase {
 
 	private String initString = "mapreduce";
-	
+
 	@Test
-    public void testBigGroupAll() throws Exception {
+    public void testBigGroupAll() throws Throwable {
         int LOOP_COUNT = 4*1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -119,7 +118,7 @@ public class TestMapReduce extends TestCase {
 		}
     }
     @Test
-    public void testStoreFunction() throws IOException {
+    public void testStoreFunction() throws Throwable {
     	PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -146,7 +145,7 @@ public class TestMapReduce extends TestCase {
         pig.deleteFile("frog");
     }
     @Test
-    public void testQualifiedFuncions() throws IOException {
+    public void testQualifiedFuncions() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -171,7 +170,7 @@ public class TestMapReduce extends TestCase {
     }
     
     @Test
-    public void testDefinedFunctions() throws IOException {
+    public void testDefinedFunctions() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -195,9 +194,9 @@ public class TestMapReduce extends TestCase {
         }
         assertEquals(count, MyStorage.COUNT);
     }
-    
+
     @Test
-    public void testPigServer() throws IOException {
+    public void testPigServer() throws Throwable {
         System.out.println("creating pig server");
         PigContext pigContext = new PigContext(ExecType.MAPREDUCE);
         PigServer pig = new PigServer(pigContext);
@@ -206,24 +205,12 @@ public class TestMapReduce extends TestCase {
         assertTrue(capacity > 0);
         String sampleFileName = "/tmp/fileTest";
         if (!pig.existsFile(sampleFileName)) {
-            OutputStream os = pigContext.getDfs().create(new Path(sampleFileName));
+            ElementDescriptor path = pigContext.getDfs().asElement(sampleFileName);
+            OutputStream os = path.create();
             os.write("Ben was here!".getBytes());
             os.close();
         }
         long length = pig.fileSize(sampleFileName);
         assertTrue(length > 0);
     }
-    
-    @Test
-    public void testCreateNewRelation() throws IOException {
-        System.out.println("creating pig server");
-        PigServer pig = new PigServer(initString);
-		pig.deleteFile("/tmp/test_createNewRelation");
-        System.out.println("testing create new relation");
-        pig.newRelation("new_rel");
-        pig.insertTuple("new_rel", new Tuple("hello"));
-        pig.store("new_rel", "/tmp/test_createNewRelation");
-        assertTrue(pig.existsFile("/tmp/test_createNewRelation"));
-    }
-    
 }

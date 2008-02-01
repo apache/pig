@@ -20,34 +20,44 @@ package org.apache.pig.impl.logicalLayer;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Map;
 
 import org.apache.pig.impl.PigContext;
 
+import org.apache.pig.backend.executionengine.ExecLogicalPlan;
 
-
-
-public class LogicalPlan implements Serializable{
+public class LogicalPlan implements Serializable, ExecLogicalPlan{
 	private static final long serialVersionUID = 1L;
 
-	protected LogicalOperator root;
+	protected OperatorKey root;
+	protected Map<OperatorKey, LogicalOperator> opTable;
 	protected PigContext pigContext = null;
 	
 	protected String alias = null;
-
-	public LogicalOperator getRoot() {
+	
+	public OperatorKey getRoot() {
 		return root;
 	}
 
-	public LogicalPlan(LogicalOperator rootIn, PigContext pigContext) {
+	public LogicalPlan(OperatorKey rootIn,
+	                   Map<OperatorKey, LogicalOperator> opTable ,
+	                   PigContext pigContext) {
 		this.pigContext = pigContext;
-		root = rootIn;
-        alias = root.alias;
+		this.root = rootIn;
+		this.opTable = opTable;
+        alias = opTable.get(root).alias;
 	}
 	
-    public void setRoot(LogicalOperator newRoot) {
+	public Map<OperatorKey, LogicalOperator> getOpTable() {
+	    return this.opTable;
+	}
+	
+    public void setRoot(OperatorKey newRoot) {
         root = newRoot;
     }
-	
+
 	public PigContext getPigContext() {
 		return pigContext;
 	}
@@ -60,35 +70,41 @@ public class LogicalPlan implements Serializable{
 		alias = newAlias;
 	}
 
-
 	public List<String> getFuncs() {
         if (root == null) return new LinkedList<String>();
-        else return root.getFuncs();
+        else return opTable.get(root).getFuncs();
     }
 	
 	// indentation for root is 0
 	@Override
 	public String toString() {		
 		StringBuffer sb = new StringBuffer();
-		sb.append(root.name() +"(" + root.arguments() +")\n");
+		sb.append(opTable.get(root).name() +"(" + opTable.get(root).arguments() +")\n");
 		sb.append(appendChildren(root, 1));
 		return sb.toString();
 	}
-	public String appendChildren(LogicalOperator parent, int indentation) {
+	public String appendChildren(OperatorKey parent, int indentation) {
 		StringBuffer sb = new StringBuffer();
-		List<LogicalOperator> children = parent.getInputs();
+		List<OperatorKey> children = opTable.get(parent).getInputs();
 		for(int i=0; i != children.size(); i++) {
 			for(int j=0; j != indentation; j++) {
 				sb.append("\t");
 			}
-			sb.append(children.get(i).name() + "(" + children.get(i).arguments()+ ")\n");
+			
+			sb.append(opTable.get(children.get(i)).name() + 
+			          "(" + opTable.get(children.get(i)).arguments()+ ")\n");
 			sb.append(appendChildren(children.get(i), indentation+1));
 		}
 		return sb.toString();
 	}
 	
 	public int getOutputType(){
-		return root.getOutputType();
+		return opTable.get(root).getOutputType();
 	}
 	
+	public void explain(OutputStream out) {
+	    LOVisitor lprinter = new LOPrinter(new PrintStream(out));
+	    
+	    opTable.get(root).visit(lprinter);
+	}
 }

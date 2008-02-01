@@ -30,9 +30,12 @@ import org.junit.Test;
 import junit.framework.TestCase;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
+
+import org.apache.pig.backend.executionengine.ExecException;
 
 import org.apache.hadoop.conf.Configuration;
 //This class tests pig behavior with large file spanning multiple blocks along with group and count functions
@@ -84,7 +87,12 @@ public class TestLargeFile extends TestCase {
         
         dat.close();
     
-        pig = new PigServer(initString);
+        try {
+            pig = new PigServer(initString);
+        }
+        catch (ExecException e) {
+            throw new IOException("Failed to create Pig server", e);
+        }
 		fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
 		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
 

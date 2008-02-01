@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
 
 
 /**
@@ -38,16 +37,13 @@ public class LogicalPlanBuilder {
 		this.pigContext = pigContext;
 	}
 
-	public LogicalPlan parse(String query, Map<String, IntermedResult> aliases)
+	public LogicalPlan parse(String scope, 
+	                         String query, 
+	                         Map<String, LogicalPlan> aliases,
+	                         Map<OperatorKey, LogicalOperator> opTable)
 		throws IOException, ParseException {
-		/*
-		if(query.matches(".*select.*")) { 
-			query = sqlToPigLatin(query);
-			//System.err.println(query);
-		}
-		*/
 		ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes());		
-		QueryParser parser = new QueryParser(in, pigContext, aliases);
+		QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable);
 		return parser.Parse();		
 	}
 }
