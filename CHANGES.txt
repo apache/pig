@@ -79,3 +79,7 @@ Trunk (unreleased changes)
 	via olgan)
 
 	PIG-32: ABstraction layer (olgan)
+
+	PIG-87: Fix pig.pl to find java via JAVA_HOME instead of hardcoded default
+	path.  Also fix it to not die if pigclient.conf is missing. (craigm via
+	gates).
