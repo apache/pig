@@ -16,7 +16,8 @@ import org.apache.pig.backend.datastorage.*;
 
 
 public class HDataStorage implements DataStorage {
-        
+
+	
     private FileSystem fs;
     
     public HDataStorage(URI uri, Configuration conf) throws IOException {
@@ -35,15 +36,12 @@ public class HDataStorage implements DataStorage {
         fs = FileSystem.get(conf.getConfiguration());
     }
 
-    @Override
     public void init() { }
     
-    @Override
     public void close() throws IOException {
         fs.close();
     }
     
-    @Override
     public Properties getConfiguration() {
         Properties props = new HConfiguration(fs.getConf());
                 
@@ -54,7 +52,6 @@ public class HDataStorage implements DataStorage {
         return props;
     }
     
-    @Override
     public void updateConfiguration(Properties newConfiguration) 
             throws DataStorageException {        
         if (newConfiguration == null) {
@@ -73,7 +70,6 @@ public class HDataStorage implements DataStorage {
         }
     }
     
-    @Override
     public Map<String, Object> getStatistics() throws IOException {
         Map<String, Object> stats = new HashMap<String, Object>();
 
@@ -93,7 +89,6 @@ public class HDataStorage implements DataStorage {
         return stats;
     }
     
-    @Override
     public ElementDescriptor asElement(String name) 
             throws DataStorageException {
         if (this.isContainer(name)) {
@@ -104,77 +99,65 @@ public class HDataStorage implements DataStorage {
         }
     }
     
-    @Override
     public ElementDescriptor asElement(ElementDescriptor element)
             throws DataStorageException {
         return asElement(element.toString());
     }
     
-    @Override
     public ElementDescriptor asElement(String parent,
                                                   String child) 
             throws DataStorageException {
         return asElement((new Path(parent, child)).toString());
     }
 
-    @Override
     public ElementDescriptor asElement(ContainerDescriptor parent,
                                                   String child) 
             throws DataStorageException {
         return asElement(parent.toString(), child);
     }
 
-    @Override
     public ElementDescriptor asElement(ContainerDescriptor parent,
                                                   ElementDescriptor child) 
             throws DataStorageException {
         return asElement(parent.toString(), child.toString());
     }
 
-    @Override
     public ContainerDescriptor asContainer(String name) 
             throws DataStorageException {
         return new HDirectory(this, name);
     }
     
-    @Override
     public ContainerDescriptor asContainer(ContainerDescriptor container)
             throws DataStorageException {
         return new HDirectory(this, container.toString());
     }
     
-    @Override
     public ContainerDescriptor asContainer(String parent,
                                                       String child) 
             throws DataStorageException {
         return new HDirectory(this, parent, child);
     }
 
-    @Override
     public ContainerDescriptor asContainer(ContainerDescriptor parent,
                                                       String child) 
             throws DataStorageException {
         return new HDirectory(this, parent.toString(), child);
     }
     
-    @Override
     public ContainerDescriptor asContainer(ContainerDescriptor parent,
                                                       ContainerDescriptor child)
             throws DataStorageException {
         return new HDirectory(this, parent.toString(), child.toString());
     }
     
-    @Override
     public void setActiveContainer(ContainerDescriptor container) {
         fs.setWorkingDirectory(new Path(container.toString()));
     }
     
-    @Override
     public ContainerDescriptor getActiveContainer() {
         return new HDirectory(this, fs.getWorkingDirectory());
     }
 
-    @Override
     public boolean isContainer(String name) throws DataStorageException {
         boolean isContainer = false;
         Path path = new Path(name);
@@ -191,7 +174,6 @@ public class HDataStorage implements DataStorage {
         return isContainer;
     }
     
-    @Override
     public HPath[] asCollection(String pattern) throws DataStorageException {
         try {
             Path[] paths = this.fs.globPaths(new Path(pattern));

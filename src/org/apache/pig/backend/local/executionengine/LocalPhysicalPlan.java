@@ -23,30 +23,25 @@ public class LocalPhysicalPlan implements ExecPhysicalPlan {
         this.opTable = opTable;
     }
     
-    @Override
     public Properties getConfiguration() {
     	throw new UnsupportedOperationException();
     }
 
-    @Override
     public void updateConfiguration(Properties configuration)
         throws ExecException {
         throw new UnsupportedOperationException();
     }
              
-    @Override
     public void explain(OutputStream out) {
         POVisitor lprinter = new POVisitor(new PrintStream(out));
         
         ((PhysicalOperator)opTable.get(root)).visit(lprinter, "");
     }
     
-    @Override
     public Map<OperatorKey, ExecPhysicalOperator> getOpTable() {
     	return opTable;
     }
     
-    @Override
     public OperatorKey getRoot() {
         return root;
     }

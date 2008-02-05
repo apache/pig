@@ -30,17 +30,14 @@ public class HJob implements ExecJob {
         this.outFileSpec = outFileSpec;
     }
     
-    @Override
     public JOB_STATUS getStatus() {
         return status;
     }
     
-    @Override
     public boolean hasCompleted() throws ExecException {
         return true;
     }
     
-    @Override
     public Iterator<Tuple> getResults() throws ExecException {
         final LoadFunc p;
         
@@ -98,38 +95,31 @@ public class HJob implements ExecJob {
         };
     }
 
-    @Override
     public Properties getContiguration() {
         Properties props = new Properties();
         return props;
     }
 
-    @Override
     public Map<String, Object> getStatistics() {
     	throw new UnsupportedOperationException();
     }
 
-    @Override
     public void completionNotification(Object cookie) {
         throw new UnsupportedOperationException();
     }
     
-    @Override
     public void kill() throws ExecException {
         throw new UnsupportedOperationException();
     }
     
-    @Override
     public void getLogs(OutputStream log) throws ExecException {
     	throw new UnsupportedOperationException();
     }
     
-    @Override
     public void getSTDOut(OutputStream out) throws ExecException {
     	throw new UnsupportedOperationException();
     }
     
-    @Override
     public void getSTDError(OutputStream error) throws ExecException {
     	throw new UnsupportedOperationException();
     }

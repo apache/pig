@@ -160,7 +160,9 @@ public class FileLocalizer {
             return openDFSFile(elem);
         }
         catch (DataStorageException e) {
-            throw new IOException("Failed to obtain descriptor for " + fileName, e);
+            IOException ioe = new IOException("Failed to obtain descriptor for " + fileName);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
     
@@ -174,7 +176,9 @@ public class FileLocalizer {
         		}
             }
             catch (DataStorageException e) {
-                throw new IOException("Failed to determine if elem=" + elem + " is container", e);
+            	IOException ioe = new IOException("Failed to determine if elem=" + elem + " is container");
+            	ioe.initCause(e);
+            	throw ioe;
             }
             
             ArrayList<ElementDescriptor> arrayList = 
@@ -209,7 +213,9 @@ public class FileLocalizer {
                 return openDFSFile(elem);
             }
             catch (DataStorageException e) {
-                throw new IOException("Failed to open " + fileSpec, e);
+                IOException ioe = new IOException("Failed to open " + fileSpec);
+                ioe.initCause(e);
+                throw ioe;
             }
         }
         else {
@@ -232,7 +238,9 @@ public class FileLocalizer {
                 return elem.create();
             }
             catch (DataStorageException e) {
-                throw new IOException("Failed to create " + fileSpec, e);
+                IOException ioe = new IOException("Failed to create " + fileSpec);
+                ioe.initCause(e);
+                throw ioe;
             }
         }
         else {
@@ -292,7 +300,9 @@ public class FileLocalizer {
             return elem;
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to get elem descriptor for " + relative.toString(), e);
+            IOException ioe = new IOException("Unable to get elem descriptor for " + relative.toString());
+            ioe.initCause(e);
+            throw ioe;
         }
     }
 
@@ -328,7 +338,9 @@ public class FileLocalizer {
             return distribElem.toString();
         }
         catch (DataStorageException e) {
-            throw new IOException("Failed to hadoopify " + filename, e);
+            IOException ioe = new IOException("Failed to hadoopify " + filename);
+            ioe.initCause(e);
+            throw ioe;
         }        
     }
 
@@ -385,7 +397,9 @@ public class FileLocalizer {
     		}
 	    }
 	    catch (DataStorageException e) {
-	        throw new IOException("Unable to get collect for pattern " + elem.toString(), e);
+	        IOException ioe = new IOException("Unable to get collect for pattern " + elem.toString());
+	        ioe.initCause(e);
+	        throw ioe;
 	    }
 	}
 

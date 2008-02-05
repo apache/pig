@@ -1,6 +1,6 @@
 package org.apache.pig.backend.datastorage;
 
-public class DataStorageException extends Throwable {
+public class DataStorageException extends Exception {
 
     static final long serialVersionUID = 1;
     

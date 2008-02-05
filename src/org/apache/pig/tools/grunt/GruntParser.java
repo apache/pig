@@ -24,6 +24,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 
 public class GruntParser extends PigScriptParser {
@@ -90,7 +91,13 @@ public class GruntParser extends PigScriptParser {
 		// the back end to kill a given job (mJobClient is used only in 
 		// processKill)
 		//
-		mJobClient = ((HExecutionEngine)(mPigServer.getPigContext().getExecutionEngine())).getJobClient();
+		ExecutionEngine execEngine = mPigServer.getPigContext().getExecutionEngine();
+		if (execEngine instanceof HExecutionEngine) {
+			mJobClient = ((HExecutionEngine)execEngine).getJobClient();
+		}
+		else {
+			mJobClient = null;
+		}
 	}
 
 	public void prompt()
@@ -188,7 +195,9 @@ public class GruntParser extends PigScriptParser {
 			}
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to Cat: " + path, e);
+			IOException ioe = new IOException("Failed to Cat: " + path);
+			ioe.initCause(e);
+			throw ioe; 
 		}
 	}
 
@@ -217,10 +226,11 @@ public class GruntParser extends PigScriptParser {
 			}
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to change working directory to " + 
+			IOException ioe = new IOException("Failed to change working directory to " + 
 								  ((path == null) ? ("/user/" + System.getProperty("user.name")) 
-									       	      : (path)),
-								  e);
+									       	      : (path)));
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 
@@ -236,16 +246,18 @@ public class GruntParser extends PigScriptParser {
 
 	protected void processKill(String jobid) throws IOException
 	{
-		RunningJob job = mJobClient.getJob(jobid);
-		if (job == null)
-			System.out.println("Job with id " + jobid + " is not active");
-		else
-		{	
-			job.killJob();
-			System.err.println("kill submited.");
+		if (mJobClient != null) {
+			RunningJob job = mJobClient.getJob(jobid);
+			if (job == null)
+				System.out.println("Job with id " + jobid + " is not active");
+			else
+			{	
+				job.killJob();
+				System.err.println("kill submited.");
+			}
 		}
 	}
-
+		
 	protected void processLS(String path) throws IOException
 	{
 		try {
@@ -284,15 +296,19 @@ public class GruntParser extends PigScriptParser {
 				}
 			}
 			else {
-				Map<String, Object> properties = pathDescriptor.getStatistics();
-				String strReplication = (String) properties.get(DataStorage.DEFAULT_REPLICATION_FACTOR_KEY);
-				String strLen = (String) properties.get(DataStorage.USED_BYTES_KEY);
+				Properties config = pathDescriptor.getConfiguration();
+				Map<String, Object> stats = pathDescriptor.getStatistics();
+
+				String strReplication = (String) config.get(ElementDescriptor.BLOCK_REPLICATION_KEY);
+				String strLen = (String) stats.get(ElementDescriptor.LENGTH_KEY);
 
 				System.out.println(pathDescriptor.toString() + "<r " + strReplication + ">\t" + strLen);				
 			}
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to LS on " + path, e);
+			IOException ioe = new IOException("Failed to LS on " + path);
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 	
@@ -332,7 +348,9 @@ public class GruntParser extends PigScriptParser {
 			srcPath.rename(dstPath);
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to move " + src + " to " + dst, e);
+			IOException ioe = new IOException("Failed to move " + src + " to " + dst);
+			ioe.initCause(e);
+			throw ioe;		
 		}
 	}
 	
@@ -345,7 +363,9 @@ public class GruntParser extends PigScriptParser {
 			srcPath.copy(dstPath, mConf, false);
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to copy " + src + " to " + dst, e);
+			IOException ioe = new IOException("Failed to copy " + src + " to " + dst);
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 	
@@ -358,7 +378,9 @@ public class GruntParser extends PigScriptParser {
 			srcPath.copy(dstPath, false);
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to copy " + src + "to (locally) " + dst, e);
+			IOException ioe = new IOException("Failed to copy " + src + "to (locally) " + dst);
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 
@@ -371,7 +393,9 @@ public class GruntParser extends PigScriptParser {
 			srcPath.copy(dstPath, false);
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to copy (loally) " + src + "to " + dst, e);
+			IOException ioe = new IOException("Failed to copy (loally) " + src + "to " + dst);
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 	
@@ -383,7 +407,9 @@ public class GruntParser extends PigScriptParser {
 			dirDescriptor.create();
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to create dir: " + dir, e);
+			IOException ioe = new IOException("Failed to create dir: " + dir);
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 	
@@ -407,7 +433,9 @@ public class GruntParser extends PigScriptParser {
 			dfsPath.delete();
 		}
 		catch (DataStorageException e) {
-			throw new IOException("Failed to get descriptor for " + path, e);
+			IOException ioe = new IOException("Failed to get descriptor for " + path);
+			ioe.initCause(e);
+			throw ioe;
 		}
 	}
 

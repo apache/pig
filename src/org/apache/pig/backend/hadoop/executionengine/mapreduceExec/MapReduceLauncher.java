@@ -265,7 +265,9 @@ public class MapReduceLauncher {
 	    	    }
 	    	}
 	    	catch (DataStorageException e) {
-	    	    throw new IOException("Failed to obtain descriptor for " + outputFile.toString(), e);
+	    	    IOException ioe = new IOException("Failed to obtain descriptor for " + outputFile.toString());
+	    	    ioe.initCause(e);
+	    	    throw ioe;
 	    	}
 
 	    	if (!success) {

@@ -105,7 +105,6 @@ public class HExecutionEngine implements ExecutionEngine {
         conf.put("fs.default.name", newLocation);
     }
 
-    @Override
     public void init() throws ExecException {
         //First set the ssh socket factory
         setSSHFactory();
@@ -164,17 +163,14 @@ public class HExecutionEngine implements ExecutionEngine {
         }
     }
 
-    @Override
     public void close() throws ExecException {
         ;
     }
         
-    @Override
     public Properties getConfiguration() throws ExecException {
         return this.conf;
     }
         
-    @Override
     public void updateConfiguration(Properties newConfiguration) 
         	throws ExecException {
     	Enumeration keys = newConfiguration.propertyNames();
@@ -190,12 +186,10 @@ public class HExecutionEngine implements ExecutionEngine {
     	}
     }
         
-    @Override
     public Map<String, Object> getStatistics() throws ExecException {
     	throw new UnsupportedOperationException();
     }
 
-    @Override
     public ExecPhysicalPlan compile(ExecLogicalPlan plan,
                                                Properties properties)
             throws ExecException {
@@ -203,7 +197,6 @@ public class HExecutionEngine implements ExecutionEngine {
                        properties);
     }
 
-    @Override
     public ExecPhysicalPlan compile(ExecLogicalPlan[] plans,
                                                Properties properties)
             throws ExecException {
@@ -240,7 +233,6 @@ public class HExecutionEngine implements ExecutionEngine {
         return new MapRedPhysicalPlan(physicalKey, physicalOpTable);
     }
 
-    @Override
     public ExecJob execute(ExecPhysicalPlan plan) 
             throws ExecException {
 
@@ -284,22 +276,18 @@ public class HExecutionEngine implements ExecutionEngine {
 
     }
 
-    @Override
     public ExecJob submit(ExecPhysicalPlan plan) throws ExecException {
     	throw new UnsupportedOperationException();
     }
 
-    @Override
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
     	throw new UnsupportedOperationException();
     }
     
-    @Override
     public Collection<String> activeScopes() throws ExecException {
     	throw new UnsupportedOperationException();
     }
     
-    @Override
     public void reclaimScope(String scope) throws ExecException {
     	throw new UnsupportedOperationException();
     }

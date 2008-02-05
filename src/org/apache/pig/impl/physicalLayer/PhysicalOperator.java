@@ -53,12 +53,10 @@ public abstract class PhysicalOperator implements Serializable, ExecPhysicalOper
         return new OperatorKey(scope, id);
     }
     
-    @Override
     public String getScope() {
         return this.scope;
     }
     
-    @Override
     public long getId() {
         return this.id;
     }

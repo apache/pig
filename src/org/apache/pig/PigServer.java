@@ -278,7 +278,9 @@ public class PigServer {
             }
         }
         catch (ExecException e) {
-            throw new IOException("Unable to open iterator for alias: " + id, e);
+            IOException ioe = new IOException("Unable to open iterator for alias: " + id);
+            ioe.initCause(e);
+            throw ioe;
         }
 	}
     
@@ -323,7 +325,9 @@ public class PigServer {
             pigContext.getExecutionEngine().execute(pp);
         }
         catch (ExecException e) {
-            throw new IOException("Unable to store alias " + readFrom.getAlias(), e);
+            IOException ioe = new IOException("Unable to store alias " + readFrom.getAlias());
+            ioe.initCause(e);
+            throw ioe;
         }
     }
 
@@ -358,7 +362,9 @@ public class PigServer {
         catch (ExecException e) {
             PigLogger.getLogger().error("Failed to compile to physical plan: " + alias);
             stream.println("Failed to compile the logical plan for " + alias + " into a physical plan");
-            throw new IOException("Failed to compile to phyiscal plan: " + alias, e);
+            IOException ioe = new IOException("Failed to compile to phyiscal plan: " + alias);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
 
@@ -414,7 +420,9 @@ public class PigServer {
                    (new Integer(replication)).intValue();
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to get element descriptor for " + filename, e);
+            IOException ioe = new IOException("Unable to get element descriptor for " + filename);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
     
@@ -424,7 +432,9 @@ public class PigServer {
             return elem.exists();
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to get element descriptor for " + filename, e);
+            IOException ioe = new IOException("Unable to get element descriptor for " + filename);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
     
@@ -435,7 +445,9 @@ public class PigServer {
             return true;
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to get element descriptor for " + filename, e);
+            IOException ioe = new IOException("Unable to get element descriptor for " + filename);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
     
@@ -451,7 +463,9 @@ public class PigServer {
             return true;
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to get container descriptor for " + dirs, e);
+            IOException ioe = new IOException("Unable to get container descriptor for " + dirs);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
     
@@ -469,7 +483,9 @@ public class PigServer {
             return (String[])(allPaths.toArray());
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to get container descriptor for " + dir, e);
+            IOException ioe = new IOException("Unable to get container descriptor for " + dir);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
     

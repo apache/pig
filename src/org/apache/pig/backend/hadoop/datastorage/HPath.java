@@ -46,16 +46,13 @@ public abstract class HPath implements ElementDescriptor {
         this.fs = fs;
     }
 
-    @Override
     public DataStorage getDataStorage() {
         return fs;
     }
     
-    @Override
     public abstract OutputStream create(Properties configuration) 
              throws IOException;
     
-    @Override
     public void copy(ElementDescriptor dstName,
     				 Properties dstConfiguration,
                      boolean removeSrc)
@@ -79,18 +76,14 @@ public abstract class HPath implements ElementDescriptor {
     	}
     }
     
-    @Override
     public abstract InputStream open() throws IOException;
 
-    @Override
     public abstract SeekableInputStream sopen() throws IOException;
 
-    @Override
     public boolean exists() throws IOException {
         return fs.getHFS().exists(path);
     }
     
-    @Override
     public void rename(ElementDescriptor newName) 
              throws IOException {
         if (newName != null) {
@@ -98,13 +91,11 @@ public abstract class HPath implements ElementDescriptor {
         }
     }
 
-    @Override
     public void delete() throws IOException {
     	// the file is removed and not placed in the trash bin
         fs.getHFS().delete(path);
     }
 
-    @Override
     public Properties getConfiguration() throws IOException {
         HConfiguration props = new HConfiguration();
 
@@ -118,7 +109,6 @@ public abstract class HPath implements ElementDescriptor {
         return props;
     }
 
-    @Override
     public void updateConfiguration(Properties newConfig) throws IOException {
         if (newConfig == null) {
             return;
@@ -130,7 +120,6 @@ public abstract class HPath implements ElementDescriptor {
                                    new Short(blkReplStr).shortValue());    
     }
 
-    @Override
     public Map<String, Object> getStatistics() throws IOException {
         HashMap<String, Object> props = new HashMap<String, Object>();
         
@@ -145,12 +134,10 @@ public abstract class HPath implements ElementDescriptor {
         return props;
     }
 
-    @Override
     public OutputStream create() throws IOException {
         return create(null);
     }
 
-    @Override
     public void copy(ElementDescriptor dstName,
                      boolean removeSrc) 
             throws IOException {
@@ -179,7 +166,6 @@ public abstract class HPath implements ElementDescriptor {
         return this.path.equals(((HPath)obj).path);  
     }
     
-    @Override
     public int compareTo(ElementDescriptor other) {
         return path.compareTo(((HPath)other).path);
     }

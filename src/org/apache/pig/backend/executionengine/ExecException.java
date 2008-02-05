@@ -1,6 +1,6 @@
 package org.apache.pig.backend.executionengine;
 
-public class ExecException extends Throwable {
+public class ExecException extends Exception {
     static final long serialVersionUID = 1;
     
     public ExecException (String message, Throwable cause) {

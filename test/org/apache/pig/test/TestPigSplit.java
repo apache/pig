@@ -44,7 +44,9 @@ public class TestPigSplit extends TestCase {
 		    pig = new PigServer();
 		}
 		catch (ExecException e) {
-		    throw new IOException("Failed to create Pig Server", e);
+			IOException ioe = new IOException("Failed to create Pig Server");
+			ioe.initCause(e);
+		    throw ioe;
 		}
 	}
 	@Test
