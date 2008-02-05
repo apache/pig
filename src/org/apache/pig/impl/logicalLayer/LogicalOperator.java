@@ -81,17 +81,14 @@ abstract public class LogicalOperator implements Serializable, ExecScopedLogical
         opTable.put(getOperatorKey(), this);
     }
     
-    @Override
     public OperatorKey getOperatorKey() {
         return new OperatorKey(scope, id);
     }
     
-    @Override
     public String getScope() {
         return this.scope;
     }
     
-    @Override 
     public long getId() {
         return this.id;
     }

@@ -38,28 +38,23 @@ public class HFile extends HPath {
         super(fs, path);
     }
     
-    @Override
     public OutputStream create(Properties configuration) 
              throws IOException {
         return fs.getHFS().create(path, false);
     }
     
-    @Override
     public InputStream open(Properties configuration) throws IOException {
         return open();
     }
     
-    @Override
     public InputStream open() throws IOException {
         return fs.getHFS().open(path);
     }
 
-    @Override
     public SeekableInputStream sopen(Properties configuration) throws IOException {
     	return sopen();
     }
     
-	@Override
     public SeekableInputStream sopen() throws IOException {
         return new HSeekableInputStream(fs.getHFS().open(path),
                                         fs.getHFS().getContentLength(path));

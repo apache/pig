@@ -53,40 +53,33 @@ public class LocalExecutionEngine implements ExecutionEngine {
         this.materializedResults = new HashMap<OperatorKey, LocalResult>();
     }
 
-    @Override
     public DataStorage getDataStorage() {
         return this.ds;
     }
     
-    @Override
     public void init() throws ExecException {
         ;
     }
 
-    @Override
     public void close() throws ExecException {
         ;
     }
         
-    @Override
     public Properties getConfiguration() throws ExecException {
         Properties conf = new Properties();
         return conf;
     }
         
-    @Override
     public void updateConfiguration(Properties newConfiguration) 
         throws ExecException {
         ;
     }
         
-    @Override
     public Map<String, Object> getStatistics() throws ExecException {
     	throw new UnsupportedOperationException();
     }
 
     
-    @Override
     public LocalPhysicalPlan compile(ExecLogicalPlan plan,
                                      Properties properties)
             throws ExecException {
@@ -97,7 +90,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
         return compile(new ExecLogicalPlan[]{ plan } , properties);
     }
 
-    @Override
     public LocalPhysicalPlan compile(ExecLogicalPlan[] plans,
                                      Properties properties)
             throws ExecException {
@@ -127,7 +119,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
         return new LocalPhysicalPlan(physicalKey, physicalOpTable);
     }
 
-    @Override
     public LocalJob execute(ExecPhysicalPlan plan) throws ExecException {
         DataBag results = BagFactory.getInstance().newDefaultBag();
         try {
@@ -149,22 +140,18 @@ public class LocalExecutionEngine implements ExecutionEngine {
         return new LocalJob(results, JOB_STATUS.COMPLETED);
     }
 
-    @Override
     public LocalJob submit(ExecPhysicalPlan plan) throws ExecException {
         throw new UnsupportedOperationException();
     }
 
-    @Override
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
         return new HashSet<ExecJob>();
     }
     
-    @Override
     public Collection<String> activeScopes() throws ExecException {
     	throw new UnsupportedOperationException();
     }
     
-    @Override
     public void reclaimScope(String scope) throws ExecException {
     	throw new UnsupportedOperationException();
     }

@@ -64,7 +64,9 @@ public class LocalDir extends LocalPath
     		}
     	}
     	catch (DataStorageException e) {
-    		throw new IOException("Failed to get container for " + dstName.toString(), e);
+    		IOException ioe = new IOException("Failed to get container for " + dstName.toString());
+    		ioe.initCause(e);
+    		throw ioe;
     	}
 
         copy((ContainerDescriptor) dstName,
@@ -120,7 +122,9 @@ public class LocalDir extends LocalPath
             }
         }
         catch (DataStorageException e) {
-            throw new IOException("Failed to copy " + this + " to " + dstName, e);
+            IOException ioe = new IOException("Failed to copy " + this + " to " + dstName);
+            ioe.initCause(e);
+            throw ioe;
         }
 
         if (removeSrc) {
@@ -128,27 +132,22 @@ public class LocalDir extends LocalPath
         }
     }
 
-    @Override
     public InputStream open(Properties configuration) throws IOException {
     	return open();
     }
     
-    @Override
     public InputStream open() throws IOException {
         throw new IOException("Cannot open dir " + path);
     }
 
-    @Override
     public SeekableInputStream sopen(Properties configuration) throws IOException {
     	return sopen();
     }
     
-    @Override
     public SeekableInputStream sopen() throws IOException {
         throw new IOException("Cannot sopen dir " + path);
     }
 
-    @Override
     public Iterator<ElementDescriptor> iterator() {
         LinkedList<ElementDescriptor> elements =
             new LinkedList<ElementDescriptor>();

@@ -60,7 +60,6 @@ public abstract class LocalPath implements ElementDescriptor {
         this(fs, parent, child.getPath());
     }
     
-    @Override
     public DataStorage getDataStorage() {
         return fs;
     }
@@ -69,40 +68,32 @@ public abstract class LocalPath implements ElementDescriptor {
         return this.path;
     }
 
-    @Override
     public abstract OutputStream create(Properties configuration) 
             throws IOException;
 
-    @Override
     public OutputStream create() 
             throws IOException {
         return create(null);
     }
 
-    @Override
     public abstract void copy(ElementDescriptor dstName,
                               Properties dstConfiguration,
                               boolean removeSrc) 
             throws IOException;
         
-    @Override
     public void copy(ElementDescriptor dstName,
                      boolean removeSrc) throws IOException {
         copy(dstName, null, removeSrc);
     }
                 
-    @Override
     public abstract InputStream open() throws IOException;
 
-    @Override
     public abstract SeekableInputStream sopen() throws IOException;
         
-    @Override
     public boolean exists() throws IOException {
         return getCurPath().exists();
     }
     
-    @Override
     public void rename(ElementDescriptor newName) 
             throws IOException {
         if (! this.path.renameTo(((LocalPath)newName).path)) {
@@ -111,12 +102,10 @@ public abstract class LocalPath implements ElementDescriptor {
         }
     }
 
-    @Override
     public void delete() throws IOException {
         getCurPath().delete();
     }
 
-    @Override
     public Properties getConfiguration() throws IOException {
         Properties props = new Properties();
         
@@ -125,13 +114,11 @@ public abstract class LocalPath implements ElementDescriptor {
         return props;
     }
 
-    @Override
     public void updateConfiguration(Properties newConfig) 
             throws IOException {
         ;
     }
         
-    @Override
     public Map<String, Object> getStatistics() throws IOException {
         Map<String, Object> stats = new HashMap<String, Object>();
 
@@ -144,7 +131,6 @@ public abstract class LocalPath implements ElementDescriptor {
         return stats;
     }
 
-    @Override
     public int compareTo(ElementDescriptor other) {
         return this.path.compareTo(((LocalPath)other).path);
     }

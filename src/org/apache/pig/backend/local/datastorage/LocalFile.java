@@ -72,9 +72,10 @@ public class LocalFile extends LocalPath {
                                                 path.getName());
                 }
                 catch (DataStorageException e) {
-                    throw new IOException("Unable to generate element name (src: " + 
-                                           this + ", dst: " + dstName + ")",
-                                          e);
+                    IOException ioe = new IOException("Unable to generate element name (src: " + 
+                                           this + ", dst: " + dstName + ")");
+                    ioe.initCause(e);
+                    throw ioe;
                 }
             }
         }
@@ -98,28 +99,26 @@ public class LocalFile extends LocalPath {
         }
     }    
 
-    @Override
     public InputStream open (Properties configuration) throws IOException {
     	return open();
     }
     
-    @Override
     public InputStream open () throws IOException {
         return new FileInputStream(this.path);
     }
     
-    @Override
     public SeekableInputStream sopen(Properties configuration) throws IOException {
     	return sopen();
     }
     
-	@Override
     public SeekableInputStream sopen() throws IOException {
         try {
             return new LocalSeekableInputStream(this.path);
         }
         catch (FileNotFoundException e) {
-            throw new IOException("Unable to find " + this.path, e);
+            IOException ioe = new IOException("Unable to find " + this.path);
+            ioe.initCause(e);
+            throw ioe;
         }
     }
 }

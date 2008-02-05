@@ -94,7 +94,9 @@ public class HDirectory extends HPath
             }
         }
         catch (DataStorageException e) {
-            throw new IOException("Failed to copy " + this + " to " + dstName, e);
+            IOException ioe = new IOException("Failed to copy " + this + " to " + dstName);
+            ioe.initCause(e);
+            throw ioe;
         }
 
         if (removeSrc) {
@@ -102,17 +104,14 @@ public class HDirectory extends HPath
         }
     }
 
-    @Override
     public InputStream open(Properties configuration) throws IOException {
     	return open();
     }
     
-    @Override
     public InputStream open() throws IOException {
         throw new IOException("Cannot open dir " + path);
     }
 
-    @Override
     public SeekableInputStream sopen(Properties configuration) throws IOException {
     	return sopen();
     }

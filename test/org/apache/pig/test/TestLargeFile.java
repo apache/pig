@@ -91,7 +91,9 @@ public class TestLargeFile extends TestCase {
             pig = new PigServer(initString);
         }
         catch (ExecException e) {
-            throw new IOException("Failed to create Pig server", e);
+        	IOException ioe = new IOException("Failed to create Pig server");
+        	ioe.initCause(e);
+            throw ioe;
         }
 		fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
 		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";

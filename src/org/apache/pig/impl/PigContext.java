@@ -248,7 +248,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
             src = dfs.asElement(oldName);            
         }
         catch (DataStorageException e) {
-            throw new IOException("Unable to rename " + oldName + " to " + newName, e);
+            IOException ioe = new IOException("Unable to rename " + oldName + " to " + newName);
+            ioe.initCause(e);
+            throw ioe;
         }
 
         if (dst.exists()) {
@@ -274,8 +276,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-            throw new IOException ("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""), 
-                                    e);
+        	IOException ioe = new IOException ("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""));
+        	ioe.initCause(e);
+        	throw ioe;
         }
         
         srcElement.copy(dstElement, conf,false);
