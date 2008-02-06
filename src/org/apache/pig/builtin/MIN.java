@@ -34,57 +34,57 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  */
 public class MIN extends EvalFunc<DataAtom> implements Algebraic {
 
-	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(min(input));
-	}
+    @Override
+    public void exec(Tuple input, DataAtom output) throws IOException {
+        output.setValue(min(input));
+    }
 
-	public String getInitial() {
-		return Initial.class.getName();
-	}
+    public String getInitial() {
+        return Initial.class.getName();
+    }
 
-	public String getIntermed() {
-		return Initial.class.getName();
-	}
+    public String getIntermed() {
+        return Initial.class.getName();
+    }
 
-	public String getFinal() {
-		return Final.class.getName();
-	}
+    public String getFinal() {
+        return Final.class.getName();
+    }
 
-	static public class Initial extends EvalFunc<Tuple> {
-		@Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-			output.appendField(new DataAtom(min(input)));
-		}
-	}
-	static public class Final extends EvalFunc<DataAtom> {
-		@Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
-			output.setValue(min(input));
-		}
-	}
+    static public class Initial extends EvalFunc<Tuple> {
+        @Override
+        public void exec(Tuple input, Tuple output) throws IOException {
+            output.appendField(new DataAtom(min(input)));
+        }
+    }
+    static public class Final extends EvalFunc<DataAtom> {
+        @Override
+        public void exec(Tuple input, DataAtom output) throws IOException {
+            output.setValue(min(input));
+        }
+    }
 
-	static protected double min(Tuple input) throws IOException {
-		DataBag values = input.getBagField(0);
+    static protected double min(Tuple input) throws IOException {
+        DataBag values = input.getBagField(0);
 
-		double curMin = Double.POSITIVE_INFINITY;
-		for (Iterator it = values.iterator(); it.hasNext();) {
-			Tuple t = (Tuple) it.next();
-			try {
-				curMin = java.lang.Math.min(curMin, t.getAtomField(0).numval());
-			}catch(RuntimeException exp) {
-				IOException newE =  new IOException("Error processing: " + t.toString() + exp.getMessage());
+        double curMin = Double.POSITIVE_INFINITY;
+        for (Iterator it = values.iterator(); it.hasNext();) {
+            Tuple t = (Tuple) it.next();
+            try {
+                curMin = java.lang.Math.min(curMin, t.getAtomField(0).numval());
+            }catch(RuntimeException exp) {
+                IOException newE =  new IOException("Error processing: " + t.toString() + exp.getMessage());
                                 newE.initCause(exp);
                                 throw newE;
-		}
-	}
+        }
+    }
 
-	return curMin;
+    return curMin;
 }
-	@Override
-	public Schema outputSchema(Schema input) {
-		return new AtomSchema("min" + count++);
-	}
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new AtomSchema("min" + count++);
+    }
 
-	private static int count = 1;
+    private static int count = 1;
 }

@@ -109,7 +109,7 @@ public class LOStore extends LogicalOperator {
         return append;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitStore(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitStore(this);
+    }
 }

@@ -76,7 +76,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
         
     public Map<String, Object> getStatistics() throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     
@@ -149,11 +149,11 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
     
     public Collection<String> activeScopes() throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     public void reclaimScope(String scope) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     private OperatorKey doCompile(OperatorKey logicalKey,

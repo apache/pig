@@ -31,103 +31,103 @@ import org.apache.pig.data.Tuple;
  * or a file.
  */
 public abstract class DataCollector {
-	Integer staleCount = 0;
-	protected boolean inTheMiddleOfBag = false;
-	
-	protected DataCollector successor = null;
-	
-	public DataCollector(DataCollector successor){
-		this.successor = successor;
-	}
-	
-	/**
+    Integer staleCount = 0;
+    protected boolean inTheMiddleOfBag = false;
+    
+    protected DataCollector successor = null;
+    
+    public DataCollector(DataCollector successor){
+        this.successor = successor;
+    }
+    
+    /**
      * Add a tuple to the collector.
-	 */
-	public abstract void add(Datum d);
-	
-	private boolean needsFlattening(){
-		if (needFlatteningLocally() || (successor!=null && successor.needsFlattening()))
-			return true;
-		else
-			return false;
-	}
-	
-	/*
-	 * Whether this collector needs flattened bags to operate
-	 */
-	protected boolean needFlatteningLocally(){
-		return false;
-	}
-	
-	
-	protected boolean checkDelimiter(Datum d){
-		if (d instanceof DataBag.BagDelimiterTuple){
-			if (d instanceof DataBag.StartBag){
-				if (inTheMiddleOfBag)
-					throw new RuntimeException("Internal error: Found a flattened bag inside another");
-				else
-					inTheMiddleOfBag = true;
-			}else{
-				if (!(d instanceof DataBag.EndBag))
-					throw new RuntimeException("Internal error: Unknown bag delimiter type");
-				if (!inTheMiddleOfBag)
-					throw new RuntimeException("Internal error: Improper nesting of bag delimiter tuples");
-				inTheMiddleOfBag = false;
-			}
-			return true;
-		}
-		return false;
-	}
+     */
+    public abstract void add(Datum d);
+    
+    private boolean needsFlattening(){
+        if (needFlatteningLocally() || (successor!=null && successor.needsFlattening()))
+            return true;
+        else
+            return false;
+    }
+    
+    /*
+     * Whether this collector needs flattened bags to operate
+     */
+    protected boolean needFlatteningLocally(){
+        return false;
+    }
+    
+    
+    protected boolean checkDelimiter(Datum d){
+        if (d instanceof DataBag.BagDelimiterTuple){
+            if (d instanceof DataBag.StartBag){
+                if (inTheMiddleOfBag)
+                    throw new RuntimeException("Internal error: Found a flattened bag inside another");
+                else
+                    inTheMiddleOfBag = true;
+            }else{
+                if (!(d instanceof DataBag.EndBag))
+                    throw new RuntimeException("Internal error: Unknown bag delimiter type");
+                if (!inTheMiddleOfBag)
+                    throw new RuntimeException("Internal error: Improper nesting of bag delimiter tuples");
+                inTheMiddleOfBag = false;
+            }
+            return true;
+        }
+        return false;
+    }
 
-	protected void addToSuccessor(Datum d){
-		if (d instanceof DataBag && !inTheMiddleOfBag && successor!=null && successor.needsFlattening()){
-			DataBag bag = (DataBag)d;
-			//flatten the bag and send it through the pipeline
-			successor.add(DataBag.startBag);
-		    Iterator<Tuple> iter = bag.iterator();
-	    	while(iter.hasNext())
-	    		successor.add(iter.next());
-	    	successor.add(DataBag.endBag);
-		}else{
-			//simply add the datum
-			successor.add(d);
-		}
-	}
-	
-	public void markStale(boolean stale){
-		synchronized(staleCount){
-			if (stale){
-				staleCount++;
-			}else{
-				if (staleCount > 0){
-					synchronized(this){
-						staleCount--;
-						notifyAll();
-					}
-				}
-			}
-		}
-		if (successor!=null)
-			successor.markStale(stale);
-	}
-	
-	public void setSuccessor(DataCollector output){
-		this.successor = output;
-	}
-	
-	public boolean isStale(){
-		synchronized(staleCount){
-			return staleCount>0;
-		}
-	}
-	
-	public void finishPipe(){
-		finish();
-		if (successor!=null)
-			successor.finishPipe();
-	}
-	
-	protected void finish(){}
-	
+    protected void addToSuccessor(Datum d){
+        if (d instanceof DataBag && !inTheMiddleOfBag && successor!=null && successor.needsFlattening()){
+            DataBag bag = (DataBag)d;
+            //flatten the bag and send it through the pipeline
+            successor.add(DataBag.startBag);
+            Iterator<Tuple> iter = bag.iterator();
+            while(iter.hasNext())
+                successor.add(iter.next());
+            successor.add(DataBag.endBag);
+        }else{
+            //simply add the datum
+            successor.add(d);
+        }
+    }
+    
+    public void markStale(boolean stale){
+        synchronized(staleCount){
+            if (stale){
+                staleCount++;
+            }else{
+                if (staleCount > 0){
+                    synchronized(this){
+                        staleCount--;
+                        notifyAll();
+                    }
+                }
+            }
+        }
+        if (successor!=null)
+            successor.markStale(stale);
+    }
+    
+    public void setSuccessor(DataCollector output){
+        this.successor = output;
+    }
+    
+    public boolean isStale(){
+        synchronized(staleCount){
+            return staleCount>0;
+        }
+    }
+    
+    public void finishPipe(){
+        finish();
+        if (successor!=null)
+            successor.finishPipe();
+    }
+    
+    protected void finish(){}
+    
 }
 

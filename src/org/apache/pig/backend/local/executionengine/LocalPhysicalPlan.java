@@ -24,7 +24,7 @@ public class LocalPhysicalPlan implements ExecPhysicalPlan {
     }
     
     public Properties getConfiguration() {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     public void updateConfiguration(Properties configuration)
@@ -39,7 +39,7 @@ public class LocalPhysicalPlan implements ExecPhysicalPlan {
     }
     
     public Map<OperatorKey, ExecPhysicalOperator> getOpTable() {
-    	return opTable;
+        return opTable;
     }
     
     public OperatorKey getRoot() {

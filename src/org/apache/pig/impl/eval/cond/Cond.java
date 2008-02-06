@@ -28,12 +28,12 @@ import org.apache.pig.impl.FunctionInstantiator;
 
 public abstract class Cond implements Serializable{
 
-	public abstract List<String> getFuncs();
+    public abstract List<String> getFuncs();
     
     public abstract boolean eval(Datum input);
     
     public abstract void finish();
 
-	abstract public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException;
+    abstract public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException;
 
 }

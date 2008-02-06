@@ -81,7 +81,7 @@ public class HExecutionEngine implements ExecutionEngine {
     }
     
     public Map<OperatorKey, MapRedResult> getMaterializedResults() {
-    	return this.materializedResults;
+        return this.materializedResults;
     }
     
     public HExecutionEngine(PigContext pigContext, Logger logger) {
@@ -172,22 +172,22 @@ public class HExecutionEngine implements ExecutionEngine {
     }
         
     public void updateConfiguration(Properties newConfiguration) 
-        	throws ExecException {
-    	Enumeration keys = newConfiguration.propertyNames();
-    	
-    	while (keys.hasMoreElements()) {
-    		Object obj = keys.nextElement();
-    		
-    		if (obj instanceof String) {
-    			String str = (String) obj;
-    			
-    			conf.put(str, newConfiguration.get(str));
-    		}
-    	}
+            throws ExecException {
+        Enumeration keys = newConfiguration.propertyNames();
+        
+        while (keys.hasMoreElements()) {
+            Object obj = keys.nextElement();
+            
+            if (obj instanceof String) {
+                String str = (String) obj;
+                
+                conf.put(str, newConfiguration.get(str));
+            }
+        }
     }
         
     public Map<String, Object> getStatistics() throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     public ExecPhysicalPlan compile(ExecLogicalPlan plan,
@@ -265,8 +265,8 @@ public class HExecutionEngine implements ExecutionEngine {
             pom.close();
             
             this.materializedResults.put(pom.sourceLogicalKey,
-            							 new MapRedResult(pom.outputFileSpec,
-            									 		  pom.reduceParallelism));
+                                         new MapRedResult(pom.outputFileSpec,
+                                                           pom.reduceParallelism));
         }
         catch (IOException e) {
             throw new ExecException(e);
@@ -277,19 +277,19 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     public ExecJob submit(ExecPhysicalPlan plan) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     public Collection<String> activeScopes() throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     public void reclaimScope(String scope) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     private void setSSHFactory(){

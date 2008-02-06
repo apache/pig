@@ -25,32 +25,32 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 final public class StarSpec extends EvalSpec {
-	private static final long serialVersionUID = 1L;
-	
-	@Override
-	public String toString() {
+    private static final long serialVersionUID = 1L;
+    
+    @Override
+    public String toString() {
         return "[*]";
     }
 
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         return new ArrayList<String>();
     }
     
     @Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-    	return endOfPipe;
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+        return endOfPipe;
     }
     
     @Override
-	protected Schema mapInputSchema(Schema input){
-    	return input;
+    protected Schema mapInputSchema(Schema input){
+        return input;
     }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitStar(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitStar(this);
+    }
     
     
 

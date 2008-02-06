@@ -41,7 +41,7 @@ public class MapRedPhysicalPlan implements ExecPhysicalPlan {
     }
     
     public Map<OperatorKey, ExecPhysicalOperator> getOpTable() {
-    	return opTable;
+        return opTable;
     }
     
     public OperatorKey getRoot() {

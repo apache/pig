@@ -28,34 +28,34 @@ import org.apache.pig.impl.PigContext;
  *
  */
 public class FileSpec implements Serializable {
-	
-	private static final long serialVersionUID = 1L;
-	String fileName;
+    
+    private static final long serialVersionUID = 1L;
+    String fileName;
 
-	String funcSpec;
-	
-	public FileSpec(String fileName, String funcSpec){
-		this.fileName = fileName;
-		this.funcSpec = funcSpec;
-	}
-	
-	public String getFileName(){
-		return fileName;
-	}
-	
-	public String getFuncSpec(){
-		return funcSpec;
-	}
-	
-	@Override
-	public String toString(){
-		return fileName + ":" + funcSpec;
-	}
-	
-	public String getFuncName(){
-			return PigContext.getClassNameFromSpec(funcSpec);
-	}
-	public int getSize() {
-		throw new UnsupportedOperationException("File Size not implemented yet");
-	}
+    String funcSpec;
+    
+    public FileSpec(String fileName, String funcSpec){
+        this.fileName = fileName;
+        this.funcSpec = funcSpec;
+    }
+    
+    public String getFileName(){
+        return fileName;
+    }
+    
+    public String getFuncSpec(){
+        return funcSpec;
+    }
+    
+    @Override
+    public String toString(){
+        return fileName + ":" + funcSpec;
+    }
+    
+    public String getFuncName(){
+            return PigContext.getClassNameFromSpec(funcSpec);
+    }
+    public int getSize() {
+        throw new UnsupportedOperationException("File Size not implemented yet");
+    }
 }

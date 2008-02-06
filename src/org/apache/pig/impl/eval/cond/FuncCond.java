@@ -31,25 +31,25 @@ import org.apache.pig.impl.eval.EvalSpec;
 
 public class FuncCond extends Cond {
 
-	private static final long serialVersionUID = 1L;
-	
-	public String funcName;
+    private static final long serialVersionUID = 1L;
+    
+    public String funcName;
     transient public FilterFunc func;
     public EvalSpec args;
 
-	public FuncCond(FunctionInstantiator fInstantiaor, String funcName, EvalSpec args) throws IOException{       
-    	this.funcName = funcName; 
-    	this.args = args;
-    	if (args!=null && args.isAsynchronous())
-    		throw new IOException("Can't use the output of an asynchronous function as an argument");
-    	instantiateFunc(fInstantiaor);
-    	
+    public FuncCond(FunctionInstantiator fInstantiaor, String funcName, EvalSpec args) throws IOException{       
+        this.funcName = funcName; 
+        this.args = args;
+        if (args!=null && args.isAsynchronous())
+            throw new IOException("Can't use the output of an asynchronous function as an argument");
+        instantiateFunc(fInstantiaor);
+        
     }
 
     @Override
-	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
-   		if(instantiaor != null)
-   			func = (FilterFunc)instantiaor.instantiateFuncFromAlias(funcName);
+    public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
+           if(instantiaor != null)
+               func = (FilterFunc)instantiaor.instantiateFuncFromAlias(funcName);
     }
     
     @Override
@@ -61,16 +61,16 @@ public class FuncCond extends Cond {
 
     @Override
     public boolean eval(Datum input){
-    	try {
-        	
-        	Datum d = null;
-        	if (args!=null)
-        		d = args.simpleEval(input);
-        	
-        	if (d!=null && !(d instanceof Tuple))
-        		throw new RuntimeException("Internal error: Non-tuple returned on evaluation of arguments.");
+        try {
             
-        	return func.exec((Tuple)d);
+            Datum d = null;
+            if (args!=null)
+                d = args.simpleEval(input);
+            
+            if (d!=null && !(d instanceof Tuple))
+                throw new RuntimeException("Internal error: Non-tuple returned on evaluation of arguments.");
+            
+            return func.exec((Tuple)d);
         } catch (IOException e) {
             System.out.println("Warning: filter function " + funcName + " failed. Substituting default value \'false\'.");
             return false;
@@ -78,14 +78,14 @@ public class FuncCond extends Cond {
     }
     
     @Override
-	public String toString() {
+    public String toString() {
         return funcName + "(" + args + ")";
     }
     
     @Override
     public void finish() {
-    	if (args!=null)
-    		args.finish();
-    	func.finish();
+        if (args!=null)
+            args.finish();
+        func.finish();
     }
 }

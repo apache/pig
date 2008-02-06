@@ -25,22 +25,22 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 public abstract class WindowSpec extends EvalSpec {
 
-	public enum windowType {SLIDING, HOPPING};
-	protected windowType type;
-	
-	public WindowSpec(windowType type){
-		this.type = type;
-	}
+    public enum windowType {SLIDING, HOPPING};
+    protected windowType type;
+    
+    public WindowSpec(windowType type){
+        this.type = type;
+    }
 
-	@Override
-	public List<String> getFuncs() {
-		return new ArrayList<String>();
-	}
+    @Override
+    public List<String> getFuncs() {
+        return new ArrayList<String>();
+    }
 
-	@Override
-	protected Schema mapInputSchema(Schema input){
-		return input;
-	}
-	
-	
+    @Override
+    protected Schema mapInputSchema(Schema input){
+        return input;
+    }
+    
+    
 }

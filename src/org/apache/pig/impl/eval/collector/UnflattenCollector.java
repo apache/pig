@@ -26,34 +26,34 @@ import org.apache.pig.data.Tuple;
 
 
 public class UnflattenCollector extends DataCollector {
-	DataBag bag;
-	
-	public UnflattenCollector(DataCollector successor){
-		super(successor);
-	}
-	
-	@Override
-	public void add(Datum d) {
-		if (inTheMiddleOfBag){
-			if (checkDelimiter(d)){
-				successor.add(bag);
-			}else{
-				if (d instanceof Tuple){
-					bag.add((Tuple)d);
-				}else{
-					bag.add(new Tuple(d));
-				}
-			}
-		}else{
-			if (checkDelimiter(d)){
-				//Bag must have started now
-				bag = BagFactory.getInstance().newDefaultBag();
-			}else{
-				successor.add(d);
-			}
-		}
-	}
-	
-	
+    DataBag bag;
+    
+    public UnflattenCollector(DataCollector successor){
+        super(successor);
+    }
+    
+    @Override
+    public void add(Datum d) {
+        if (inTheMiddleOfBag){
+            if (checkDelimiter(d)){
+                successor.add(bag);
+            }else{
+                if (d instanceof Tuple){
+                    bag.add((Tuple)d);
+                }else{
+                    bag.add(new Tuple(d));
+                }
+            }
+        }else{
+            if (checkDelimiter(d)){
+                //Bag must have started now
+                bag = BagFactory.getInstance().newDefaultBag();
+            }else{
+                successor.add(d);
+            }
+        }
+    }
+    
+    
 
 }

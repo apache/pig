@@ -33,22 +33,22 @@ class POSplit extends PhysicalOperator {
     protected ArrayList<Cond> conditions;
     protected int readFromCond;
 
-	public POSplit(String scope, 
-	               long id, 
-	               Map<OperatorKey, ExecPhysicalOperator> opTable, 
-	               OperatorKey input, 
-	               ArrayList<Cond> conditions,
-	               int readFromCond,
-	               int outputType){
-		super(scope, id, opTable, outputType);
-		
-		this.inputs = new OperatorKey[1];
-		this.inputs[0] = input;
-		
-		this.conditions = conditions;
-		this.readFromCond = readFromCond;
-	}
-	
+    public POSplit(String scope, 
+                   long id, 
+                   Map<OperatorKey, ExecPhysicalOperator> opTable, 
+                   OperatorKey input, 
+                   ArrayList<Cond> conditions,
+                   int readFromCond,
+                   int outputType){
+        super(scope, id, opTable, outputType);
+        
+        this.inputs = new OperatorKey[1];
+        this.inputs[0] = input;
+        
+        this.conditions = conditions;
+        this.readFromCond = readFromCond;
+    }
+    
     @Override
     public boolean open() throws IOException{
         if (!super.open()){

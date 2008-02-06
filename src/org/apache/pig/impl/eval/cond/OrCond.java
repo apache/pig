@@ -28,17 +28,17 @@ import org.apache.pig.impl.FunctionInstantiator;
 
 
 public class OrCond extends Cond {
-	private static final long serialVersionUID = 1L;
-	
-	public List<Cond> cList;
+    private static final long serialVersionUID = 1L;
+    
+    public List<Cond> cList;
     
 
-	public OrCond(List<Cond> cList) {
+    public OrCond(List<Cond> cList) {
         this.cList = cList;
     }
 
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         List<String> funcs = new ArrayList<String>();
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
             funcs.addAll(it.next().getFuncs());
@@ -47,7 +47,7 @@ public class OrCond extends Cond {
     }
     
     @Override
-	public boolean eval(Datum input){
+    public boolean eval(Datum input){
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
             if (it.next().eval(input) == true) return true;
         }
@@ -55,7 +55,7 @@ public class OrCond extends Cond {
     }
 
     @Override
-	public String toString() {
+    public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("(");
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
@@ -68,16 +68,16 @@ public class OrCond extends Cond {
     
     @Override
     public void finish() {
-    	for (Cond c: cList)
-    		c.finish();
+        for (Cond c: cList)
+            c.finish();
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-    	for (Cond c: cList)
-    		c.instantiateFunc(instantiaor);
- 		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        for (Cond c: cList)
+            c.instantiateFunc(instantiaor);
+         
+    }
 
 }

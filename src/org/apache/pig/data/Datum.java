@@ -24,7 +24,7 @@ import java.io.IOException;
  * A marker class for a basic data unit.
  */
 public abstract class Datum implements Comparable {
-	public static final byte ATOM   = 0x50;
+    public static final byte ATOM   = 0x50;
     public static final byte BAG    = 0x51;
     public static final byte TUPLE  = 0x60;
     public static final byte MAP  = 0x52;
@@ -32,15 +32,15 @@ public abstract class Datum implements Comparable {
     public static final byte RECORD_2 = 0x31;
     public static final byte RECORD_3 = 0x41;
 
-	public static final int OBJECT_SIZE = 8;
-	public static final int REF_SIZE = 4;
+    public static final int OBJECT_SIZE = 8;
+    public static final int REF_SIZE = 4;
 
-	@Override
-	public abstract boolean equals(Object o);
-	
-	public abstract void write(DataOutput out) throws IOException;
+    @Override
+    public abstract boolean equals(Object o);
+    
+    public abstract void write(DataOutput out) throws IOException;
 
-	public abstract long getMemorySize();
-	
-	     
+    public abstract long getMemorySize();
+    
+         
 }

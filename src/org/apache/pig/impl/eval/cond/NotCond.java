@@ -26,38 +26,38 @@ import org.apache.pig.impl.FunctionInstantiator;
 
 
 public class NotCond extends Cond {
-	private static final long serialVersionUID = 1L;
-	
-	public Cond cond;
+    private static final long serialVersionUID = 1L;
+    
+    public Cond cond;
 
-	public NotCond(Cond cond) {
+    public NotCond(Cond cond) {
         this.cond = cond;
     }
 
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         return cond.getFuncs();
     }
 
     @Override
-	public boolean eval(Datum input){
+    public boolean eval(Datum input){
         return !cond.eval(input);
     }
     
     @Override
-	public String toString() {
+    public String toString() {
         return "(NOT " + cond + ")";
     }
     
     @Override
     public void finish() {
-    	cond.finish();
+        cond.finish();
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-		cond.instantiateFunc(instantiaor);
-		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        cond.instantiateFunc(instantiaor);
+        
+    }
 }

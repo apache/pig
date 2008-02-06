@@ -34,9 +34,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * implemenation, so if possible the execution will be split into a local and global application
  */
 public class AVG extends EvalFunc<DataAtom> implements Algebraic {
-	
+    
     @Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
+    public void exec(Tuple input, DataAtom output) throws IOException {
         double sum = sum(input);
         double count = count(input);
 
@@ -61,27 +61,27 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
 
     static public class Initial extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-        	try {
+        public void exec(Tuple input, Tuple output) throws IOException {
+            try {
             output.appendField(new DataAtom(sum(input)));
             output.appendField(new DataAtom(count(input)));
             // output.appendField(new DataAtom("processed by initial"));
-        	} catch(RuntimeException t) {
-        		throw new RuntimeException(t.getMessage() + ": " + input);
-        	}
+            } catch(RuntimeException t) {
+                throw new RuntimeException(t.getMessage() + ": " + input);
+            }
         }
     }
 
     static public class Intermed extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
+        public void exec(Tuple input, Tuple output) throws IOException {
             combine(input.getBagField(0), output);
         }
     }
 
     static public class Final extends EvalFunc<DataAtom> {
         @Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
+        public void exec(Tuple input, DataAtom output) throws IOException {
             Tuple combined = new Tuple();
             if(input.getField(0) instanceof DataBag) {
                 combine(input.getBagField(0), combined);    

@@ -27,38 +27,38 @@ public class TimestampedTuple extends Tuple {
     protected boolean heartbeat = false;  // true iff this is a heartbeat (i.e. purpose is just to convey new timestamp; carries no data)
     
     public double getTimeStamp() {
-    	return timestamp;
+        return timestamp;
     }
     public void setTimeStamp(double t) {
-    	this.timestamp = t;
+        this.timestamp = t;
     }
     public boolean isHeartBeat() {
-    	return heartbeat;
+        return heartbeat;
     }
     public void setHeartBeat(boolean h) {
-    	this.heartbeat = h;
+        this.heartbeat = h;
     }
     public TimestampedTuple(int numFields) {
         super(numFields);
     }
     
     public TimestampedTuple(String textLine, String delimiter, int timestampColumn, 
-    						SimpleDateFormat dateFormat){
+                            SimpleDateFormat dateFormat){
         if (delimiter == null) {
             delimiter = defaultDelimiter;
         }
         String[] splitString = textLine.split(delimiter, -1);
         fields = new ArrayList<Datum>(splitString.length-1);
         for (int i = 0; i < splitString.length; i++) {
-        	if (i==timestampColumn){
-        		try{
-        			timestamp = dateFormat.parse(splitString[i]).getTime()/1000.0;
-        		}catch(ParseException e){
-        			System.err.println("Could not parse timestamp " + splitString[i]);
-        		}
-        	}else{
-        		fields.add(new DataAtom(splitString[i]));
-        	}
+            if (i==timestampColumn){
+                try{
+                    timestamp = dateFormat.parse(splitString[i]).getTime()/1000.0;
+                }catch(ParseException e){
+                    System.err.println("Could not parse timestamp " + splitString[i]);
+                }
+            }else{
+                fields.add(new DataAtom(splitString[i]));
+            }
         }
     }
 

@@ -59,8 +59,8 @@ public class LOSplit extends LogicalOperator {
         return "Split " + scope + "-" + id;
     }
     
-	public void visit(LOVisitor v) {
-		v.visitSplit(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitSplit(this);
+    }
 
 }

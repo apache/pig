@@ -87,7 +87,7 @@ public class MapReduceLauncher {
 
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
-	    }
+        }
     }
 
     static Random rand = new Random();
@@ -134,7 +134,7 @@ public class MapReduceLauncher {
         }
         
         // create jobs.jar locally and pass it to hadoop
-        File submitJarFile = File.createTempFile("Job", ".jar");	
+        File submitJarFile = File.createTempFile("Job", ".jar");    
         try {
             FileOutputStream fos = new FileOutputStream(submitJarFile);
             JarManager.createJar(fos, funcs, pom.pigContext);
@@ -174,7 +174,7 @@ public class MapReduceLauncher {
             }
             else{
                 // this is not a sort job - can use byte comparison to speed up processing
-                conf.setOutputKeyComparatorClass(PigWritableComparator.class);					
+                conf.setOutputKeyComparatorClass(PigWritableComparator.class);                    
             }
             if (pom.partitionFunction!=null){
                 conf.setPartitionerClass(SortPartitioner.class);
@@ -198,99 +198,99 @@ public class MapReduceLauncher {
             // Now, actually submit the job (using the submit name)
             //
             JobClient jobClient = execEngine.getJobClient();
-	    	RunningJob status = jobClient.submitJob(conf);
-	    	log.debug("submitted job: " + status.getJobID());
+            RunningJob status = jobClient.submitJob(conf);
+            log.debug("submitted job: " + status.getJobID());
             
-	    	long sleepTime = 1000;
-	    	double lastQueryProgress = -1.0;
-	    	int lastJobsQueued = -1;
-	    	double lastMapProgress = -1.0;
-	    	double lastReduceProgress = -1.0;
-	    	while (true) {
-	    	    try {
-	    	        Thread.sleep(sleepTime); } catch (Exception e) {}
-	    	        
-	    	        if (status.isComplete()) {
-	    	            success = status.isSuccessful();
-	    	            log.debug("Job finished " + (success ? "" : "un") + "successfully");
-	    	            if (success) {
-	    	                mrJobNumber++;
-	    	            }
-	    	            double queryProgress = ((double) mrJobNumber) / ((double) numMRJobs);
-	    	            if (queryProgress > lastQueryProgress) {
-	    	                log.info("Pig progress = " + ((int) (queryProgress * 100)) + "%");
-	    	                lastQueryProgress = queryProgress;
-	    	            }
-	    	            break;
-	    	        }
-	    	        else // still running
-	    	        {
-	    	            double mapProgress = status.mapProgress();
-	    	            double reduceProgress = status.reduceProgress();
-	    	            if (lastMapProgress != mapProgress || lastReduceProgress != reduceProgress) {
-	    	                log.debug("Hadoop job progress: Map=" + (int) (mapProgress * 100) + "% Reduce="
-	    	                        + (int) (reduceProgress * 100) + "%");
-	    	                lastMapProgress = mapProgress;
-	    	                lastReduceProgress = reduceProgress;
-	    	            }
-	    	            double numJobsCompleted = mrJobNumber;
-	    	            double thisJobProgress = (mapProgress + reduceProgress) / 2.0;
-	    	            double queryProgress = (numJobsCompleted + thisJobProgress) / ((double) numMRJobs);
-	    	            if (queryProgress > lastQueryProgress) {
-	    	                log.info("Pig progress = " + ((int) (queryProgress * 100)) + "%");
-	    	                lastQueryProgress = queryProgress;
-	    	            }
-	    	        }
-	    	}
+            long sleepTime = 1000;
+            double lastQueryProgress = -1.0;
+            int lastJobsQueued = -1;
+            double lastMapProgress = -1.0;
+            double lastReduceProgress = -1.0;
+            while (true) {
+                try {
+                    Thread.sleep(sleepTime); } catch (Exception e) {}
+                    
+                    if (status.isComplete()) {
+                        success = status.isSuccessful();
+                        log.debug("Job finished " + (success ? "" : "un") + "successfully");
+                        if (success) {
+                            mrJobNumber++;
+                        }
+                        double queryProgress = ((double) mrJobNumber) / ((double) numMRJobs);
+                        if (queryProgress > lastQueryProgress) {
+                            log.info("Pig progress = " + ((int) (queryProgress * 100)) + "%");
+                            lastQueryProgress = queryProgress;
+                        }
+                        break;
+                    }
+                    else // still running
+                    {
+                        double mapProgress = status.mapProgress();
+                        double reduceProgress = status.reduceProgress();
+                        if (lastMapProgress != mapProgress || lastReduceProgress != reduceProgress) {
+                            log.debug("Hadoop job progress: Map=" + (int) (mapProgress * 100) + "% Reduce="
+                                    + (int) (reduceProgress * 100) + "%");
+                            lastMapProgress = mapProgress;
+                            lastReduceProgress = reduceProgress;
+                        }
+                        double numJobsCompleted = mrJobNumber;
+                        double thisJobProgress = (mapProgress + reduceProgress) / 2.0;
+                        double queryProgress = (numJobsCompleted + thisJobProgress) / ((double) numMRJobs);
+                        if (queryProgress > lastQueryProgress) {
+                            log.info("Pig progress = " + ((int) (queryProgress * 100)) + "%");
+                            lastQueryProgress = queryProgress;
+                        }
+                    }
+            }
 
-	    	// bug 1030028: if the input file is empty; hadoop doesn't create the output file!
-	    	Path outputFile = conf.getOutputPath();
-	    	String outputName = outputFile.getName();
-	    	int colon = outputName.indexOf(':');
-	    	if (colon != -1) {
-	    	    outputFile = new Path(outputFile.getParent(), outputName.substring(0, colon));
-	    	}
-            	
-	    	try {
-	    	    ElementDescriptor descriptor = 
-	    	        ((HDataStorage)(pom.pigContext.getDfs())).asElement(outputFile.toString());
+            // bug 1030028: if the input file is empty; hadoop doesn't create the output file!
+            Path outputFile = conf.getOutputPath();
+            String outputName = outputFile.getName();
+            int colon = outputName.indexOf(':');
+            if (colon != -1) {
+                outputFile = new Path(outputFile.getParent(), outputName.substring(0, colon));
+            }
+                
+            try {
+                ElementDescriptor descriptor = 
+                    ((HDataStorage)(pom.pigContext.getDfs())).asElement(outputFile.toString());
 
-	    	    if (success && !descriptor.exists()) {
+                if (success && !descriptor.exists()) {
                         
-	    	        // create an empty output file
-	    	        PigFile f = new PigFile(outputFile.toString(), false);
-	    	        f.store(BagFactory.getInstance().newDefaultBag(), 
-	    	        	    new PigStorage(), 
-	    	        	    pom.pigContext);
-	    	    }
-	    	}
-	    	catch (DataStorageException e) {
-	    	    IOException ioe = new IOException("Failed to obtain descriptor for " + outputFile.toString());
-	    	    ioe.initCause(e);
-	    	    throw ioe;
-	    	}
+                    // create an empty output file
+                    PigFile f = new PigFile(outputFile.toString(), false);
+                    f.store(BagFactory.getInstance().newDefaultBag(), 
+                            new PigStorage(), 
+                            pom.pigContext);
+                }
+            }
+            catch (DataStorageException e) {
+                IOException ioe = new IOException("Failed to obtain descriptor for " + outputFile.toString());
+                ioe.initCause(e);
+                throw ioe;
+            }
 
-	    	if (!success) {
-	    	    // go find the error messages
-	    	    getErrorMessages(jobClient.getMapTaskReports(status.getJobID()),
-	    	            "map", log);
-	    	    getErrorMessages(jobClient.getReduceTaskReports(status.getJobID()),
-	    	            "reduce", log);
-	    	}
-	    	else {
-	    	    long timeSpent = 0;
+            if (!success) {
+                // go find the error messages
+                getErrorMessages(jobClient.getMapTaskReports(status.getJobID()),
+                        "map", log);
+                getErrorMessages(jobClient.getReduceTaskReports(status.getJobID()),
+                        "reduce", log);
+            }
+            else {
+                long timeSpent = 0;
               
-	    	    // NOTE: this call is crashing due to a bug in Hadoop; the bug is known and the patch has not been applied yet.
-	    	    TaskReport[] mapReports = jobClient.getMapTaskReports(status.getJobID());
-	    	    TaskReport[] reduceReports = jobClient.getReduceTaskReports(status.getJobID());
-	    	    for (TaskReport r : mapReports) {
-	    	        timeSpent += (r.getFinishTime() - r.getStartTime());
-	    	    }
-	    	    for (TaskReport r : reduceReports) {
-	    	        timeSpent += (r.getFinishTime() - r.getStartTime());
-	    	    }
-	    	    totalHadoopTimeSpent += timeSpent;
-	    	}
+                // NOTE: this call is crashing due to a bug in Hadoop; the bug is known and the patch has not been applied yet.
+                TaskReport[] mapReports = jobClient.getMapTaskReports(status.getJobID());
+                TaskReport[] reduceReports = jobClient.getReduceTaskReports(status.getJobID());
+                for (TaskReport r : mapReports) {
+                    timeSpent += (r.getFinishTime() - r.getStartTime());
+                }
+                for (TaskReport r : reduceReports) {
+                    timeSpent += (r.getFinishTime() - r.getStartTime());
+                }
+                totalHadoopTimeSpent += timeSpent;
+            }
         }
         catch (Exception e) {
             // Do we need different handling for different exceptions
@@ -305,15 +305,15 @@ public class MapReduceLauncher {
 
 private void getErrorMessages(TaskReport reports[], String type, Logger log)
 {
-	for (int i = 0; i < reports.length; i++) {
-		String msgs[] = reports[i].getDiagnostics();
-		StringBuilder sb = new StringBuilder("Error message from task (" + type + ") " +
-			reports[i].getTaskId());
-		for (int j = 0; j < msgs.length; j++) {
-			sb.append(" " + msgs[j]);
-		}
-		log.error(sb.toString());
-	}
+    for (int i = 0; i < reports.length; i++) {
+        String msgs[] = reports[i].getDiagnostics();
+        StringBuilder sb = new StringBuilder("Error message from task (" + type + ") " +
+            reports[i].getTaskId());
+        for (int j = 0; j < msgs.length; j++) {
+            sb.append(" " + msgs[j]);
+        }
+        log.error(sb.toString());
+    }
 }
 
 }

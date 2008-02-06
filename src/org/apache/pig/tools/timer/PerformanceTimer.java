@@ -34,9 +34,9 @@ public class PerformanceTimer
  */
 public void start()
 {
-	mStartedAt = System.nanoTime();
-	mStarts++;
-	mState = State.RUNNING;
+    mStartedAt = System.nanoTime();
+    mStarts++;
+    mState = State.RUNNING;
 }
 
 /**
@@ -44,8 +44,8 @@ public void start()
  */
 public void stop()
 {
-	mState = State.STOPPED;
-	mNanosecs += System.nanoTime() - mStartedAt;
+    mState = State.STOPPED;
+    mNanosecs += System.nanoTime() - mStartedAt;
 }
 
 /**
@@ -55,22 +55,22 @@ public void stop()
  */
 public void print(PrintStream out)
 {
-	if (mStarts == 0) {
-		out.println(mName + " never started.");
-		return;
-	}
-	
-	if (mState == State.RUNNING) out.print("WARNING:  timer still running!  ");
-	out.print(mName + ": ");
-	double t = mNanosecs / 1000000000.0;
-	out.print(t);
-	out.print(".  Run ");
-	out.print(mStarts);
-	out.print(" times, average run time ");
-	long avg = mNanosecs / mStarts;
-	t = avg / 1000000000.0;
-	out.print(t);
-	out.println(".");
+    if (mStarts == 0) {
+        out.println(mName + " never started.");
+        return;
+    }
+    
+    if (mState == State.RUNNING) out.print("WARNING:  timer still running!  ");
+    out.print(mName + ": ");
+    double t = mNanosecs / 1000000000.0;
+    out.print(t);
+    out.print(".  Run ");
+    out.print(mStarts);
+    out.print(" times, average run time ");
+    long avg = mNanosecs / mStarts;
+    t = avg / 1000000000.0;
+    out.print(t);
+    out.println(".");
 }
 
 /**
@@ -78,10 +78,10 @@ public void print(PrintStream out)
  */
 PerformanceTimer(String name)
 {
-	mNanosecs = 0;
-	mStarts = 0;
-	mName = name;
-	mState = State.STOPPED;
+    mNanosecs = 0;
+    mStarts = 0;
+    mName = name;
+    mState = State.STOPPED;
 }
 
 

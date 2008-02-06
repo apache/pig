@@ -54,8 +54,8 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.PigLogger;
 
 public class PigContext implements Serializable, FunctionInstantiator {
-	private static final long serialVersionUID = 1L;
-	private static final String JOB_NAME_PREFIX= "PigLatin";
+    private static final long serialVersionUID = 1L;
+    private static final String JOB_NAME_PREFIX= "PigLatin";
     
     /* NOTE: we only serialize some of the stuff 
      * 
@@ -63,7 +63,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
      * and also because some is not serializable e.g. the Configuration)
      */
     
-	//one of: local, mapreduce, pigbody
+    //one of: local, mapreduce, pigbody
     private ExecType execType;;    
 
     //  configuration for connecting to hadoop
@@ -86,7 +86,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     
     transient private Logger                mLogger;
    
-    private String jobName = JOB_NAME_PREFIX;	// can be overwritten by users
+    private String jobName = JOB_NAME_PREFIX;    // can be overwritten by users
   
     /**
      * a table mapping function names to function specs.
@@ -98,16 +98,16 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public boolean                       debug       = true;
     
     public PigContext() {
-    	this(ExecType.MAPREDUCE);
+        this(ExecType.MAPREDUCE);
     }
-    	
-	public PigContext(ExecType execType){
-		this.execType = execType;
-		
-	mLogger = PigLogger.getLogger(); 
+        
+    public PigContext(ExecType execType){
+        this.execType = execType;
+        
+    mLogger = PigLogger.getLogger(); 
 
-    	initProperties();
-    	
+        initProperties();
+        
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {
@@ -126,39 +126,39 @@ public class PigContext implements Serializable, FunctionInstantiator {
         packageImportList.add("org.apache.pig.impl.builtin.");        
     }
 
-	private void initProperties() {
-	    Properties fileProperties = new Properties();
-	        
-	    try{        
-			// first read the properties in the jar file
-	    	InputStream pis = MapReduceLauncher.class.getClassLoader().getResourceAsStream("properties");
-	        if (pis != null) {
-	        	fileProperties.load(pis);
-	        }
-	        
-	        //then read the properties in the home directory
-	        try{
-	        	pis = new FileInputStream(System.getProperty("user.home") + "/.pigrc");
-	        }catch(IOException e){}
-	        if (pis != null) {
-	        	fileProperties.load(pis);
-	        }
-	    }catch (IOException e){
-	    	e.printStackTrace();
-	    	throw new RuntimeException(e);
-	    }
-	    
-	    //Now set these as system properties only if they are not already defined.
-	    for (Object o: fileProperties.keySet()){
-	    	String propertyName = (String)o;
-			mLogger.debug("Found system property " + propertyName + " in .pigrc"); 
-	    	if (System.getProperty(propertyName) == null){
-	    		System.setProperty(propertyName, fileProperties.getProperty(propertyName));
-				mLogger.debug("Setting system property " + propertyName);
-	    	}
-	    }
-	}    
-	
+    private void initProperties() {
+        Properties fileProperties = new Properties();
+            
+        try{        
+            // first read the properties in the jar file
+            InputStream pis = MapReduceLauncher.class.getClassLoader().getResourceAsStream("properties");
+            if (pis != null) {
+                fileProperties.load(pis);
+            }
+            
+            //then read the properties in the home directory
+            try{
+                pis = new FileInputStream(System.getProperty("user.home") + "/.pigrc");
+            }catch(IOException e){}
+            if (pis != null) {
+                fileProperties.load(pis);
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        
+        //Now set these as system properties only if they are not already defined.
+        for (Object o: fileProperties.keySet()){
+            String propertyName = (String)o;
+            mLogger.debug("Found system property " + propertyName + " in .pigrc"); 
+            if (System.getProperty(propertyName) == null){
+                System.setProperty(propertyName, fileProperties.getProperty(propertyName));
+                mLogger.debug("Setting system property " + propertyName);
+            }
+        }
+    }    
+    
     public void connect() throws ExecException {
         try {
             switch (execType) {
@@ -200,23 +200,23 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
 
     public void setJobName(String name){
-	jobName = JOB_NAME_PREFIX + ":" + name;
+    jobName = JOB_NAME_PREFIX + ":" + name;
     }
 
     public String getJobName(){
-	return jobName;
+    return jobName;
     }
 
     public void setJobtrackerLocation(String newLocation) {
-    	Properties trackerLocation = new Properties();
-    	trackerLocation.setProperty("mapred.job.tracker", newLocation);
-    	
-    	try {
-    		executionEngine.updateConfiguration(trackerLocation);
-    	}
-    	catch (ExecException e) {
-    		mLogger.error("Failed to set tracker at: " + newLocation);
-    	}
+        Properties trackerLocation = new Properties();
+        trackerLocation.setProperty("mapred.job.tracker", newLocation);
+        
+        try {
+            executionEngine.updateConfiguration(trackerLocation);
+        }
+        catch (ExecException e) {
+            mLogger.error("Failed to set tracker at: " + newLocation);
+        }
     }
     
     public void addJar(String path) throws MalformedURLException {
@@ -276,9 +276,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-        	IOException ioe = new IOException ("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""));
-        	ioe.initCause(e);
-        	throw ioe;
+            IOException ioe = new IOException ("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""));
+            ioe.initCause(e);
+            throw ioe;
         }
         
         srcElement.copy(dstElement, conf,false);
@@ -310,11 +310,11 @@ public class PigContext implements Serializable, FunctionInstantiator {
      * It should have the form: classname('arg1', 'arg2', ...)
      */
     public void registerFunction(String function, String functionSpec) {
-    	if (functionSpec == null) {
-    		definedFunctions.remove(function);
-    	} else {
-    		definedFunctions.put(function, functionSpec);
-    	}
+        if (functionSpec == null) {
+            definedFunctions.remove(function);
+        } else {
+            definedFunctions.put(function, functionSpec);
+        }
     }
 
     /**
@@ -327,7 +327,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
     
     
-	
+    
     
 
     /**
@@ -353,113 +353,113 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
     
     public static String getClassNameFromSpec(String funcSpec){
-	    int paren = funcSpec.indexOf('(');
-	    if (paren!=-1)
-	    	return funcSpec.substring(0, paren);
-	    else
-	    	return funcSpec;
+        int paren = funcSpec.indexOf('(');
+        if (paren!=-1)
+            return funcSpec.substring(0, paren);
+        else
+            return funcSpec;
     }
 
     private static String getArgStringFromSpec(String funcSpec){
-    	int paren = funcSpec.indexOf('(');
-	    if (paren!=-1)
-	    	return funcSpec.substring(paren+1);
-	    else
-	    	return "";
+        int paren = funcSpec.indexOf('(');
+        if (paren!=-1)
+            return funcSpec.substring(paren+1);
+        else
+            return "";
     }
     
 
     public static Class resolveClassName(String name) throws IOException{
-		for(String prefix: packageImportList) {
-	    	Class c;
-		try {
-			c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
-			return c;
-	    	} catch (ClassNotFoundException e) {
-		    } catch (LinkageError e) {}
-		}
+        for(String prefix: packageImportList) {
+            Class c;
+        try {
+            c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
+            return c;
+            } catch (ClassNotFoundException e) {
+            } catch (LinkageError e) {}
+        }
 
-		// create ClassNotFoundException exception and attach to IOException
-		// so that we don't need to buble interface changes throughout the code
-		ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
-		IOException newE = new IOException(e.getMessage());
+        // create ClassNotFoundException exception and attach to IOException
+        // so that we don't need to buble interface changes throughout the code
+        ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
+        IOException newE = new IOException(e.getMessage());
                 newE.initCause(e);
                 throw newE;
     }
     
     private static List<String> parseArguments(String argString){
-    	List<String> args = new ArrayList<String>();
+        List<String> args = new ArrayList<String>();
         
-    	int startIndex = 0;
+        int startIndex = 0;
         int endIndex;
         while (startIndex < argString.length()) {
-	        while (startIndex < argString.length() && argString.charAt(startIndex++) != '\'')
-    	        ;
-        	endIndex = startIndex;
+            while (startIndex < argString.length() && argString.charAt(startIndex++) != '\'')
+                ;
+            endIndex = startIndex;
             while (endIndex < argString.length() && argString.charAt(endIndex) != '\'') {
-	            if (argString.charAt(endIndex) == '\\')
-    	            endIndex++;
-        	    endIndex++;
-        	}
-       		if (endIndex < argString.length()) {
-           		args.add(argString.substring(startIndex, endIndex));
+                if (argString.charAt(endIndex) == '\\')
+                    endIndex++;
+                endIndex++;
             }
-	        startIndex = endIndex + 1;
-    	}
+               if (endIndex < argString.length()) {
+                   args.add(argString.substring(startIndex, endIndex));
+            }
+            startIndex = endIndex + 1;
+        }
         return args;
     }
     
     @SuppressWarnings("unchecked")
-	private static Object instantiateFunc(String className, String argString) throws IOException {
-    	Object ret;
-    	List<String> args = parseArguments(argString);
-    	try{
-			Class objClass = resolveClassName(className);
-			if (args != null && args.size() > 0) {
-	        	Class paramTypes[] = new Class[args.size()];
-	        	for (int i = 0; i < paramTypes.length; i++) {
-	    			paramTypes[i] = String.class;
-	        	}
-	        	Constructor c = objClass.getConstructor(paramTypes);
-				ret =  c.newInstance(args.toArray());
-			} else {
-				ret = objClass.newInstance();
-			}
-    	}catch(Throwable e){
-    		IOException newE = new IOException(e.getMessage());
+    private static Object instantiateFunc(String className, String argString) throws IOException {
+        Object ret;
+        List<String> args = parseArguments(argString);
+        try{
+            Class objClass = resolveClassName(className);
+            if (args != null && args.size() > 0) {
+                Class paramTypes[] = new Class[args.size()];
+                for (int i = 0; i < paramTypes.length; i++) {
+                    paramTypes[i] = String.class;
+                }
+                Constructor c = objClass.getConstructor(paramTypes);
+                ret =  c.newInstance(args.toArray());
+            } else {
+                ret = objClass.newInstance();
+            }
+        }catch(Throwable e){
+            IOException newE = new IOException(e.getMessage());
                 newE.initCause(e);
                 throw newE;
-    	}
-		return ret;
-	}
+        }
+        return ret;
+    }
     
     public static Object instantiateFuncFromSpec(String funcSpec) throws IOException{
-    	return instantiateFunc(getClassNameFromSpec(funcSpec), getArgStringFromSpec(funcSpec));
+        return instantiateFunc(getClassNameFromSpec(funcSpec), getArgStringFromSpec(funcSpec));
     }
     
     
     public Class getClassForAlias(String alias) throws IOException{
-    	String className, funcSpec = null;
-    	if (definedFunctions != null) {
-			funcSpec = definedFunctions.get(alias);
-    	}
-		if (funcSpec != null) {
-			className = getClassNameFromSpec(funcSpec);
-		}else{
-			className = alias;
-		}
-		return resolveClassName(className);
+        String className, funcSpec = null;
+        if (definedFunctions != null) {
+            funcSpec = definedFunctions.get(alias);
+        }
+        if (funcSpec != null) {
+            className = getClassNameFromSpec(funcSpec);
+        }else{
+            className = alias;
+        }
+        return resolveClassName(className);
     }
   
-	public Object instantiateFuncFromAlias(String alias) throws IOException {
-		String funcSpec;
-		if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
-			return instantiateFuncFromSpec(funcSpec);
-		else
-			return instantiateFuncFromSpec(alias);
-	}
+    public Object instantiateFuncFromAlias(String alias) throws IOException {
+        String funcSpec;
+        if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
+            return instantiateFuncFromSpec(funcSpec);
+        else
+            return instantiateFuncFromSpec(alias);
+    }
 
-	public void setExecType(ExecType execType) {
-		this.execType = execType;
-	}
+    public void setExecType(ExecType execType) {
+        this.execType = execType;
+    }
 }

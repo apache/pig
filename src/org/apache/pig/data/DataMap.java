@@ -30,120 +30,120 @@ import java.lang.String;
 
 public class DataMap extends Datum {
 
-	Map<String, Datum> content = new HashMap<String, Datum>();
-	
-	@Override
-	public boolean equals(Object other) {
-		return compareTo(other) == 0;
-	}
+    Map<String, Datum> content = new HashMap<String, Datum>();
+    
+    @Override
+    public boolean equals(Object other) {
+        return compareTo(other) == 0;
+    }
 
-	public int compareTo(Object other) {
-		if (!(other instanceof DataMap))
-			return -1;
-		DataMap mbOther = (DataMap) other;
-		if (mbOther.cardinality()!=cardinality())
-			return cardinality() - mbOther.cardinality();
-		for (String key: content.keySet()){
-			if (!content.get(key).equals(mbOther.get(key)))
-				return -1;
-		}
-		return 0;
-	}
-	
-	/**
-	 * 
-	 * @return the cardinality of the data map
-	 */
-	public int cardinality(){
-		return content.size();
-	}
-	
-	/**
-	 * Adds the key value pair to the map
-	 * @param key
-	 * @param value
-	 */
-	public void put(String key, Datum value){
-		content.put(key, value);
-	}
-	
-	/**
-	 * Adds the value as a data atom mapped to the given key
-	 * @param key
-	 * @param value
-	 */
-	public void put(String key, String value){
-		content.put(key, new DataAtom(value));
-	}
+    public int compareTo(Object other) {
+        if (!(other instanceof DataMap))
+            return -1;
+        DataMap mbOther = (DataMap) other;
+        if (mbOther.cardinality()!=cardinality())
+            return cardinality() - mbOther.cardinality();
+        for (String key: content.keySet()){
+            if (!content.get(key).equals(mbOther.get(key)))
+                return -1;
+        }
+        return 0;
+    }
+    
+    /**
+     * 
+     * @return the cardinality of the data map
+     */
+    public int cardinality(){
+        return content.size();
+    }
+    
+    /**
+     * Adds the key value pair to the map
+     * @param key
+     * @param value
+     */
+    public void put(String key, Datum value){
+        content.put(key, value);
+    }
+    
+    /**
+     * Adds the value as a data atom mapped to the given key
+     * @param key
+     * @param value
+     */
+    public void put(String key, String value){
+        content.put(key, new DataAtom(value));
+    }
 
-	/**
-	 * Adds the value as a data atom mapped to the given key
-	 * @param key
-	 * @param value
-	 */
-	
-	public void put(String key, int value){
-		content.put(key, new DataAtom(value));
-	}
+    /**
+     * Adds the value as a data atom mapped to the given key
+     * @param key
+     * @param value
+     */
+    
+    public void put(String key, int value){
+        content.put(key, new DataAtom(value));
+    }
 
 
-	/**
-	 * Fetch the value corresponding to a given key
-	 * @param key
-	 * @return
-	 */
-	public Datum get(String key){
-		Datum d = content.get(key);
-		if (d == null)
-			return new DataAtom("");
-		else
-			return d;
-	}
-	
-	@Override
-	public String toString(){
-		return content.toString();
-	}
-	
-	public static DataMap read(DataInput in) throws IOException{
-		int size = Tuple.decodeInt(in);
-		DataMap ret = new DataMap();
+    /**
+     * Fetch the value corresponding to a given key
+     * @param key
+     * @return
+     */
+    public Datum get(String key){
+        Datum d = content.get(key);
+        if (d == null)
+            return new DataAtom("");
+        else
+            return d;
+    }
+    
+    @Override
+    public String toString(){
+        return content.toString();
+    }
+    
+    public static DataMap read(DataInput in) throws IOException{
+        int size = Tuple.decodeInt(in);
+        DataMap ret = new DataMap();
         byte[] b = new byte[1];
                
         for (int i = 0; i < size; i++) {
             in.readFully(b);
             if (b[0]!=ATOM)
-            	throw new IOException("Invalid data when reading map from binary file");
+                throw new IOException("Invalid data when reading map from binary file");
             String key = DataAtom.read(in).strval();
             Datum value = Tuple.readDatum(in);
             ret.put(key, value);
         }
         return ret;
-	}
-	
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.write(MAP);
+    }
+    
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.write(MAP);
         Tuple.encodeInt(out, cardinality());
         for (Entry<String, Datum> e: content.entrySet()){
-        	DataAtom d = new DataAtom(e.getKey());
-        	d.write(out);
-        	e.getValue().write(out);
+            DataAtom d = new DataAtom(e.getKey());
+            d.write(out);
+            e.getValue().write(out);
         }
- 	}
-	
-	
-	public Datum remove(String key){
-		return content.remove(key);
-	}
-	
-	public Set<String> keySet(){
-		return content.keySet();
-	}
-	
-	public Map<String, Datum> content(){
-		return content;
-	}
+     }
+    
+    
+    public Datum remove(String key){
+        return content.remove(key);
+    }
+    
+    public Set<String> keySet(){
+        return content.keySet();
+    }
+    
+    public Map<String, Datum> content(){
+        return content;
+    }
 
     @Override
     public long getMemorySize() {

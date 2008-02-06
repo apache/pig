@@ -43,25 +43,25 @@ public class PigOutputFormat implements OutputFormat {
 
     public RecordWriter getRecordWriter(FileSystem fs, JobConf job, String name, Progressable progress)
     throws IOException {
-       	Path outputDir = job.getOutputPath();
+           Path outputDir = job.getOutputPath();
         return getRecordWriter(fs, job, outputDir, name, progress);
     }
 
     public PigRecordWriter getRecordWriter(FileSystem fs, JobConf job, Path outputDir, String name, Progressable progress)
             throws IOException {
-    	StoreFunc store;
-    	String storeFunc = job.get("pig.storeFunc", "");
-    	if (storeFunc.length() == 0) {
-    	    store = new PigStorage();
-    	} else {
-    	    try {
-    		store = (StoreFunc) PigContext.instantiateFuncFromSpec(storeFunc);
-    	    } catch (Exception e) {
-    		RuntimeException re = new RuntimeException(e.getClass().getName() + ": " + e.getMessage());
-    		re.setStackTrace(e.getStackTrace());
-    		throw re;
-    	    }
-    	}
+        StoreFunc store;
+        String storeFunc = job.get("pig.storeFunc", "");
+        if (storeFunc.length() == 0) {
+            store = new PigStorage();
+        } else {
+            try {
+            store = (StoreFunc) PigContext.instantiateFuncFromSpec(storeFunc);
+            } catch (Exception e) {
+            RuntimeException re = new RuntimeException(e.getClass().getName() + ": " + e.getMessage());
+            re.setStackTrace(e.getStackTrace());
+            throw re;
+            }
+        }
         String parentName = outputDir.getParent().getName();
         int suffixStart = parentName.lastIndexOf('.');
         if (suffixStart != -1) {

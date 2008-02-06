@@ -29,22 +29,22 @@ import org.apache.pig.impl.eval.EvalSpecVisitor;
 
 
 public class TimeWindowSpec extends WindowSpec {
-	private static final long serialVersionUID = 1L;
-	double duration;  // duration in seconds
-	transient List<TimestampedTuple> window;
+    private static final long serialVersionUID = 1L;
+    double duration;  // duration in seconds
+    transient List<TimestampedTuple> window;
         
-	public TimeWindowSpec(windowType type, double duration){
-		super(type);
-		this.duration = duration;
+    public TimeWindowSpec(windowType type, double duration){
+        super(type);
+        this.duration = duration;
         window = new LinkedList<TimestampedTuple>();
     }
-	
+    
     @Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
         return new DataCollector(endOfPipe) {
 
             @Override
-			public void add(Datum d){
+            public void add(Datum d){
                 
                 boolean changed = false;
                 
@@ -79,13 +79,13 @@ public class TimeWindowSpec extends WindowSpec {
     
     @Override
     public String toString() {
-    	StringBuilder sb = new StringBuilder();
-    	sb.append("[WINDOW ");
-    	sb.append(type);
-    	sb.append(" TIME ");
-    	sb.append(duration);
-    	sb.append("]");
-    	return sb.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append("[WINDOW ");
+        sb.append(type);
+        sb.append(" TIME ");
+        sb.append(duration);
+        sb.append("]");
+        return sb.toString();
     }
 
     public void visit(EvalSpecVisitor v) {

@@ -41,7 +41,7 @@ public class PigFile {
     }
     
     public PigFile(String filename){
-    	file = filename;
+        file = filename;
     }
     
     public DataBag load(LoadFunc lfunc, PigContext pigContext) throws IOException {

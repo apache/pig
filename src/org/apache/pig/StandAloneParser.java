@@ -55,11 +55,11 @@ public class StandAloneParser {
     }
     
     private static void tryParse(String query) {
-    	if (query.trim().equals(""))
-    		return;
+        if (query.trim().equals(""))
+            return;
         try{        
-        	pig.registerQuery(query);
-        	System.out.print("Current aliases: ");
+            pig.registerQuery(query);
+            System.out.print("Current aliases: ");
             for (Iterator<String> it = pig.getAliases().keySet().iterator(); it.hasNext(); ) {
                 String alias = it.next();
                 LogicalPlan lp = pig.getAliases().get(alias);

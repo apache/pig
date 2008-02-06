@@ -31,22 +31,22 @@ import org.apache.pig.data.Tuple;
 
 
 public class ShellBagEvalFunc extends EvalFunc<DataBag> {
-	byte groupDelim = '\n';
-	byte recordDelim = '\n';
-	byte fieldDelim = '\t';
-	String fieldDelimString = "\t";
-	OutputStream os;
-	InputStream is;
-	InputStream es;
-	String cmd;
-	Thread processThread;
-	
-	LinkedBlockingQueue<DataBag> bags = new LinkedBlockingQueue<DataBag>();
-	
-	
-	public ShellBagEvalFunc(String cmd) {
-		this.cmd = cmd;
-	}
+    byte groupDelim = '\n';
+    byte recordDelim = '\n';
+    byte fieldDelim = '\t';
+    String fieldDelimString = "\t";
+    OutputStream os;
+    InputStream is;
+    InputStream es;
+    String cmd;
+    Thread processThread;
+    
+    LinkedBlockingQueue<DataBag> bags = new LinkedBlockingQueue<DataBag>();
+    
+    
+    public ShellBagEvalFunc(String cmd) {
+        this.cmd = cmd;
+    }
 
     private class EndOfQueue extends DataBag {
         @Override
@@ -58,115 +58,115 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
         public Iterator<Tuple> iterator() { return null; }
         public long spill() { return 0; }
     }
-	
-	private void startProcess() throws IOException {
-		Process p = Runtime.getRuntime().exec(cmd);
-		is = p.getInputStream();
-		os = p.getOutputStream();
-		es = p.getErrorStream();
-		
-		
-		new Thread() {
-			@Override
-			public void run() {
-				byte b[] = new byte[256];
-				int rc;
-				try {
-					while((rc = es.read(b)) > 0) {
-						System.err.write(b, 0, rc);
-					}
-				} catch(Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}.start();
-		
-		
-		processThread = new Thread() {
-			@Override
-			public void run() {
-				while(true){
-					DataBag bag;
-					try{
-						bag = bags.take();
-					}catch(InterruptedException e){
-						continue;
-					}
-					if (bag instanceof EndOfQueue)
-						break;
-					try {
-						readBag(bag);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		};
-		
-		processThread.start();
-	}
-	
-	@Override
-	public void exec(Tuple input, DataBag output) throws IOException {
-		if (os == null) {
-			startProcess();
-		}
-		os.write(input.toDelimitedString(fieldDelimString).getBytes());
-		os.write(recordDelim);
-		os.write(groupDelim);
-		os.flush();
-		try{
-			bags.put(output);
-		}catch(InterruptedException e){}
-		
-		//Since returning before ensuring that output is present
-		output.markStale(true);
-		
-	}
-	
-	@Override
-	public void finish(){
-		try{
-			os.close();
-			try{
-				bags.put(new EndOfQueue());
-			}catch(InterruptedException e){}
-		}catch(IOException e){
-			e.printStackTrace();
-		}
-		while(true){
-			try{
-				processThread.join();
-				break;
-			}catch (InterruptedException e){}
-		}
-	}
+    
+    private void startProcess() throws IOException {
+        Process p = Runtime.getRuntime().exec(cmd);
+        is = p.getInputStream();
+        os = p.getOutputStream();
+        es = p.getErrorStream();
+        
+        
+        new Thread() {
+            @Override
+            public void run() {
+                byte b[] = new byte[256];
+                int rc;
+                try {
+                    while((rc = es.read(b)) > 0) {
+                        System.err.write(b, 0, rc);
+                    }
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+        
+        
+        processThread = new Thread() {
+            @Override
+            public void run() {
+                while(true){
+                    DataBag bag;
+                    try{
+                        bag = bags.take();
+                    }catch(InterruptedException e){
+                        continue;
+                    }
+                    if (bag instanceof EndOfQueue)
+                        break;
+                    try {
+                        readBag(bag);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        
+        processThread.start();
+    }
+    
+    @Override
+    public void exec(Tuple input, DataBag output) throws IOException {
+        if (os == null) {
+            startProcess();
+        }
+        os.write(input.toDelimitedString(fieldDelimString).getBytes());
+        os.write(recordDelim);
+        os.write(groupDelim);
+        os.flush();
+        try{
+            bags.put(output);
+        }catch(InterruptedException e){}
+        
+        //Since returning before ensuring that output is present
+        output.markStale(true);
+        
+    }
+    
+    @Override
+    public void finish(){
+        try{
+            os.close();
+            try{
+                bags.put(new EndOfQueue());
+            }catch(InterruptedException e){}
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        while(true){
+            try{
+                processThread.join();
+                break;
+            }catch (InterruptedException e){}
+        }
+    }
 
-	@Override
-	public boolean isAsynchronous() {
-		return true;
-	}
-	
-	private void readBag(DataBag output) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		boolean inRecord = false;
-		int c;
-		while((c = is.read()) != -1) {
-			System.out.print(((char)c));
-			if ((inRecord == false) && (c == groupDelim)) {
-				output.markStale(false);
-				return;
-			}
-			inRecord = true;
-			if (c == recordDelim) {
-				inRecord = false;
-				Tuple t = new Tuple(baos.toString(), fieldDelimString);
-				// System.err.println(Thread.currentThread().getName() + ": Adding tuple " + t + " to collector " + output);
-				output.add(t);
-				baos = new ByteArrayOutputStream();
-				continue;
-			}
-			baos.write(c);
-		}
-	}
+    @Override
+    public boolean isAsynchronous() {
+        return true;
+    }
+    
+    private void readBag(DataBag output) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        boolean inRecord = false;
+        int c;
+        while((c = is.read()) != -1) {
+            System.out.print(((char)c));
+            if ((inRecord == false) && (c == groupDelim)) {
+                output.markStale(false);
+                return;
+            }
+            inRecord = true;
+            if (c == recordDelim) {
+                inRecord = false;
+                Tuple t = new Tuple(baos.toString(), fieldDelimString);
+                // System.err.println(Thread.currentThread().getName() + ": Adding tuple " + t + " to collector " + output);
+                output.add(t);
+                baos = new ByteArrayOutputStream();
+                continue;
+            }
+            baos.write(c);
+        }
+    }
 }

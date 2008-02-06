@@ -7,7 +7,7 @@ public class MapRedResult {
     public int parallelismRequest;
     
     public MapRedResult(FileSpec outFileSpec,
-    					int parallelismRequest) {
+                        int parallelismRequest) {
         this.outFileSpec = outFileSpec;
         this.parallelismRequest = parallelismRequest;
     }

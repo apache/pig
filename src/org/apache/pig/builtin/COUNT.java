@@ -37,7 +37,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
 
     @Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
+    public void exec(Tuple input, DataAtom output) throws IOException {
         output.setValue(count(input));
     }
 
@@ -55,21 +55,21 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
 
     static public class Initial extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
+        public void exec(Tuple input, Tuple output) throws IOException {
             output.appendField(new DataAtom(count(input)));
         }
     }
 
     static public class Intermed extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
+        public void exec(Tuple input, Tuple output) throws IOException {
             output.appendField(new DataAtom(sum(input)));
         }
     }
 
     static public class Final extends EvalFunc<DataAtom> {
         @Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
+        public void exec(Tuple input, DataAtom output) throws IOException {
             output.setValue(sum(input));
         }
     }
@@ -77,11 +77,11 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     static protected long count(Tuple input) throws IOException {
         Datum values = input.getField(0);        
         if (values instanceof DataBag)
-        	return ((DataBag)values).size();
+            return ((DataBag)values).size();
         else if (values instanceof DataMap)
-        	return ((DataMap)values).cardinality();
+            return ((DataMap)values).cardinality();
         else
-        	throw new IOException("Cannot count a " + values.getClass().getSimpleName());
+            throw new IOException("Cannot count a " + values.getClass().getSimpleName());
     }
 
     static protected long sum(Tuple input) throws IOException {

@@ -21,5 +21,5 @@ import java.io.IOException;
 
 public interface FunctionInstantiator {
 
-	public Object instantiateFuncFromAlias(String alias) throws IOException;
+    public Object instantiateFuncFromAlias(String alias) throws IOException;
 }

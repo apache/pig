@@ -30,24 +30,24 @@ import java.nio.charset.CodingErrorAction;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 
 public class BufferedPositionedInputStream extends InputStream {
-	long pos;
+    long pos;
     InputStream in;
     
-	public BufferedPositionedInputStream(InputStream in, long pos) {
-		this.in = in;
-		this.pos = pos;
-	}
-	
-	public BufferedPositionedInputStream(InputStream in){
-		this(in,0);
-	}
-	
-	@Override
-	public int read() throws IOException {
+    public BufferedPositionedInputStream(InputStream in, long pos) {
+        this.in = in;
+        this.pos = pos;
+    }
+    
+    public BufferedPositionedInputStream(InputStream in){
+        this(in,0);
+    }
+    
+    @Override
+    public int read() throws IOException {
         int c = in.read();
         pos++;
         return c;
-	}
+    }
 
     @Override
     public int read(byte b[], int off, int len) throws IOException {
@@ -55,9 +55,9 @@ public class BufferedPositionedInputStream extends InputStream {
         pos += read;
         return read;
     }
-	
+    
     @Override
-	public long skip(long n) throws IOException {
+    public long skip(long n) throws IOException {
         long rc = in.skip(n);
         pos += rc;
         return rc;
@@ -68,8 +68,8 @@ public class BufferedPositionedInputStream extends InputStream {
      */
     public long getPosition() throws IOException{
         if (in instanceof CBZip2InputStream)
-        	return ((CBZip2InputStream)in).getPos();
-    	return pos;
+            return ((CBZip2InputStream)in).getPos();
+        return pos;
     }
 
     /*

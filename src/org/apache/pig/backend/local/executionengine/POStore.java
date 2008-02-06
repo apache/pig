@@ -36,10 +36,10 @@ import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 
 public class POStore extends PhysicalOperator {
     /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private PigFile f;
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    private PigFile f;
     private String funcSpec;
     boolean append = false;
     PigContext pigContext;
@@ -56,8 +56,8 @@ public class POStore extends PhysicalOperator {
                    FileSpec outputFileSpec, 
                    boolean append, 
                    PigContext pigContext) {
-    	super(scope, id, opTable, LogicalOperator.FIXED);
-    	funcSpec = outputFileSpec.getFuncSpec();
+        super(scope, id, opTable, LogicalOperator.FIXED);
+        funcSpec = outputFileSpec.getFuncSpec();
         inputs = new OperatorKey[1];
         inputs[0] = input;
         System.out.println("Creating " + outputFileSpec.getFileName());
@@ -77,7 +77,7 @@ public class POStore extends PhysicalOperator {
                    FileSpec outputFileSpec, 
                    boolean append, 
                    PigContext pigContext) {
-    	super(scope, id, opTable, LogicalOperator.FIXED);
+        super(scope, id, opTable, LogicalOperator.FIXED);
         inputs = new OperatorKey[1];
         inputs[0] = null;
         funcSpec = outputFileSpec.getFuncSpec();
@@ -90,7 +90,7 @@ public class POStore extends PhysicalOperator {
     }
 
     @Override
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         // get all tuples from input, and store them.
         DataBag b = BagFactory.getInstance().newDefaultBag();
         Tuple t;
@@ -98,30 +98,30 @@ public class POStore extends PhysicalOperator {
             b.add(t);
         }
         try {
-        	StoreFunc func = (StoreFunc) PigContext.instantiateFuncFromSpec(funcSpec);
-        	f.store(b, func, pigContext);
-        	
-        	// a result has materialized, track it!
-        	LocalResult materializedResult = new LocalResult(this.outFileSpec);
+            StoreFunc func = (StoreFunc) PigContext.instantiateFuncFromSpec(funcSpec);
+            f.store(b, func, pigContext);
+            
+            // a result has materialized, track it!
+            LocalResult materializedResult = new LocalResult(this.outFileSpec);
 
-        	materializedResults.put(logicalKey, materializedResult);
+            materializedResults.put(logicalKey, materializedResult);
         } catch(IOException e) {
-        	throw e;
+            throw e;
         } catch(Exception e) {
-        	IOException ne = new IOException(e.getClass().getName() + ": " + e.getMessage());
-        	ne.setStackTrace(e.getStackTrace());
-        	throw ne;
+            IOException ne = new IOException(e.getClass().getName() + ": " + e.getMessage());
+            ne.setStackTrace(e.getStackTrace());
+            throw ne;
         }
 
         return null;
     }
     
     @Override
-	public int getOutputType(){
-    	System.err.println("No one should be asking my output type");
-    	RuntimeException runtimeException = new RuntimeException();
-		runtimeException.printStackTrace();
-		throw runtimeException;
+    public int getOutputType(){
+        System.err.println("No one should be asking my output type");
+        RuntimeException runtimeException = new RuntimeException();
+        runtimeException.printStackTrace();
+        throw runtimeException;
     }
 
     @Override

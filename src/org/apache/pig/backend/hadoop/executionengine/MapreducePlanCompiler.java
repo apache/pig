@@ -71,41 +71,41 @@ public class MapreducePlanCompiler {
     protected NodeIdGenerator nodeIdGenerator;
 
     protected MapreducePlanCompiler(PigContext pigContext) {
-		this.pigContext = pigContext;
-		this.nodeIdGenerator = NodeIdGenerator.getGenerator();
-	}
+        this.pigContext = pigContext;
+        this.nodeIdGenerator = NodeIdGenerator.getGenerator();
+    }
 
     private String getTempFile(PigContext pigcontext) throws IOException {
         return FileLocalizer.getTemporaryPath(null,
                                               pigContext).toString();
     }
     
-	public OperatorKey compile(OperatorKey logicalKey, 
-	                           Map<OperatorKey, LogicalOperator> logicalOpTable, 
-	                           HExecutionEngine execEngine) throws IOException {
-	    
-	    // check to see if we have materialized results for the logical tree to
-	    // compile, if so, re-use them...
-		//
-		Map<OperatorKey, MapRedResult> materializedResults = execEngine.getMaterializedResults();
-		
-		MapRedResult materializedResult = materializedResults.get(logicalKey);
-	    
-		if (materializedResult != null) {
-			POMapreduce pom = new POMapreduce(logicalKey.getScope(),
-											  nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-											  execEngine.getPhysicalOpTable(),
-											  logicalKey,
-											  pigContext);
+    public OperatorKey compile(OperatorKey logicalKey, 
+                               Map<OperatorKey, LogicalOperator> logicalOpTable, 
+                               HExecutionEngine execEngine) throws IOException {
+        
+        // check to see if we have materialized results for the logical tree to
+        // compile, if so, re-use them...
+        //
+        Map<OperatorKey, MapRedResult> materializedResults = execEngine.getMaterializedResults();
+        
+        MapRedResult materializedResult = materializedResults.get(logicalKey);
+        
+        if (materializedResult != null) {
+            POMapreduce pom = new POMapreduce(logicalKey.getScope(),
+                                              nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
+                                              execEngine.getPhysicalOpTable(),
+                                              logicalKey,
+                                              pigContext);
 
-			String filename = FileLocalizer.fullPath(materializedResult.outFileSpec.getFileName(), pigContext);
-			FileSpec fileSpec = new FileSpec(filename, materializedResult.outFileSpec.getFuncSpec());
-			pom.addInputFile(fileSpec);
-			pom.mapParallelism = Math.max(pom.mapParallelism, materializedResult.parallelismRequest);
+            String filename = FileLocalizer.fullPath(materializedResult.outFileSpec.getFileName(), pigContext);
+            FileSpec fileSpec = new FileSpec(filename, materializedResult.outFileSpec.getFuncSpec());
+            pom.addInputFile(fileSpec);
+            pom.mapParallelism = Math.max(pom.mapParallelism, materializedResult.parallelismRequest);
 
-			return pom.getOperatorKey();			
-		}
-		
+            return pom.getOperatorKey();            
+        }
+        
         // first, compile inputs into MapReduce operators
         OperatorKey[] compiledInputs = new OperatorKey[logicalOpTable.get(logicalKey).getInputs().size()];
         
@@ -165,21 +165,21 @@ public class MapreducePlanCompiler {
         }
         else if (lo instanceof LOSplit) {
             //Make copy of previous operator
-        	POMapreduce pom = ((POMapreduce)execEngine.getPhysicalOpTable().get(compiledInputs[0])).
-        	                    copy(nodeIdGenerator.getNextNodeId(logicalKey.getScope()));
-        	
+            POMapreduce pom = ((POMapreduce)execEngine.getPhysicalOpTable().get(compiledInputs[0])).
+                                copy(nodeIdGenerator.getNextNodeId(logicalKey.getScope()));
+            
             // need to do this because the copy is implemented via serialize/deserialize and the ctr is not
             // invoked for pom.
             execEngine.getPhysicalOpTable().put(pom.getOperatorKey(), pom);
             
             pom.toSplit = new SplitSpec((LOSplit)lo, pigContext);
-        	
-        	//Technically, we don't need the output to be set, in the split case 
-        	//because nothing will go to the output. But other code assumes its non
-        	//null, so we set it to a temp file.
+            
+            //Technically, we don't need the output to be set, in the split case 
+            //because nothing will go to the output. But other code assumes its non
+            //null, so we set it to a temp file.
             FileSpec fileSpec = new FileSpec(getTempFile(pigContext), BinStorage.class.getName());
             pom.outputFileSpec = fileSpec;
-        	return pom.getOperatorKey();
+            return pom.getOperatorKey();
         }
         else if (lo instanceof LOLoad) {
             POMapreduce pom = new POMapreduce(lo.getScope(),
@@ -200,7 +200,7 @@ public class MapreducePlanCompiler {
             ((POMapreduce)execEngine.getPhysicalOpTable().get(compiledInputs[0])).outputFileSpec = los.getOutputFileSpec();
             
             ((POMapreduce)execEngine.getPhysicalOpTable().get(compiledInputs[0])).sourceLogicalKey = 
-            	los.getInputs().get(0);
+                los.getInputs().get(0);
             
             return compiledInputs[0];
         } 
@@ -216,21 +216,21 @@ public class MapreducePlanCompiler {
             return pom.getOperatorKey();
         } 
         else if (lo instanceof LOSort) {
-        	LOSort loSort = (LOSort) lo;
-        	//must break up into 2 map reduce jobs, one for gathering quantiles, another for sorting
-        	POMapreduce quantileJob = getQuantileJob(lo.getScope(), 
-        	                                         nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-        	                                         execEngine.getPhysicalOpTable(),
-        	                                         logicalKey,
-        	                                         (POMapreduce) (execEngine.getPhysicalOpTable().get(compiledInputs[0])), 
-        	                                         loSort);
-        	
-        	return getSortJob(lo.getScope(), 
-        	                  nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-        	                  execEngine.getPhysicalOpTable(),
-        	                  logicalKey,
-        	                  quantileJob, 
-        	                  loSort).getOperatorKey();
+            LOSort loSort = (LOSort) lo;
+            //must break up into 2 map reduce jobs, one for gathering quantiles, another for sorting
+            POMapreduce quantileJob = getQuantileJob(lo.getScope(), 
+                                                     nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
+                                                     execEngine.getPhysicalOpTable(),
+                                                     logicalKey,
+                                                     (POMapreduce) (execEngine.getPhysicalOpTable().get(compiledInputs[0])), 
+                                                     loSort);
+            
+            return getSortJob(lo.getScope(), 
+                              nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
+                              execEngine.getPhysicalOpTable(),
+                              logicalKey,
+                              quantileJob, 
+                              loSort).getOperatorKey();
         }
         throw new IOException("Unknown logical operator.");
     }
@@ -249,8 +249,8 @@ public class MapreducePlanCompiler {
         for (int i = 0; i < compiledInputs.length; i++) {
             if (okayToMergeWithBinaryOp((POMapreduce)physicalOpTable.get(compiledInputs[i]))) {
                 // can merge input i with this operator
-            	pom.addInputFile(((POMapreduce)physicalOpTable.get(compiledInputs[i])).getFileSpec(0), 
-            	                  ((POMapreduce)physicalOpTable.get(compiledInputs[i])).getEvalSpec(0));
+                pom.addInputFile(((POMapreduce)physicalOpTable.get(compiledInputs[i])).getFileSpec(0), 
+                                  ((POMapreduce)physicalOpTable.get(compiledInputs[i])).getEvalSpec(0));
                 pom.addInputOperators(((PhysicalOperator)physicalOpTable.get(compiledInputs[i])).inputs);
             } else {
                 // chain together via a temp file
@@ -324,52 +324,52 @@ public class MapreducePlanCompiler {
                                        OperatorKey logicalKey,
                                        POMapreduce input, 
                                        LOSort loSort) throws IOException{
-    	//first the quantile job
-    	POMapreduce quantileJob = new POMapreduce(scope, 
-    											  id,
-    											  physicalOpTable,
-    											  logicalKey,
-    											  pigContext,
-    											  input.getOperatorKey());
-    	//first materialize the output of the previous stage
-    	String fileName = getTempFile(pigContext);
-    	input.outputFileSpec = new FileSpec(fileName,BinStorage.class.getName());
-    	
-    	//Load the output using a random sample load function
-    	FileSpec inputFileSpec = new FileSpec(fileName, RandomSampleLoader.class.getName());
-    	quantileJob.addInputFile(inputFileSpec);
-    	
-		quantileJob.addMapSpec(0, loSort.getSortSpec());
-    	
-		//Constructing the query structures by hand, quite ugly.
-		
-    	//group all
-    	ArrayList<EvalSpec> groupFuncs = new ArrayList<EvalSpec>();
-	
-    	groupFuncs.add(new GenerateSpec(new ConstSpec("all")).getGroupBySpec());
-	
-    	quantileJob.groupFuncs = groupFuncs;
-    	
-    	//find the quantiles in the reduce step
-    	ArrayList<EvalSpec> argsList = new ArrayList<EvalSpec>();
-    	argsList.add(new ConstSpec(Math.max(loSort.getRequestedParallelism()-1,1)));
-    	
-    	//sort the first column of the cogroup output and feed it to the quantiles function
-    	EvalSpec sortedSampleSpec = new ProjectSpec(1);
-    	sortedSampleSpec = sortedSampleSpec.addSpec(new SortDistinctSpec(false, new StarSpec()));
-    	argsList.add(sortedSampleSpec);
-    	
-    	EvalSpec args = new GenerateSpec(argsList);
+        //first the quantile job
+        POMapreduce quantileJob = new POMapreduce(scope, 
+                                                  id,
+                                                  physicalOpTable,
+                                                  logicalKey,
+                                                  pigContext,
+                                                  input.getOperatorKey());
+        //first materialize the output of the previous stage
+        String fileName = getTempFile(pigContext);
+        input.outputFileSpec = new FileSpec(fileName,BinStorage.class.getName());
+        
+        //Load the output using a random sample load function
+        FileSpec inputFileSpec = new FileSpec(fileName, RandomSampleLoader.class.getName());
+        quantileJob.addInputFile(inputFileSpec);
+        
+        quantileJob.addMapSpec(0, loSort.getSortSpec());
+        
+        //Constructing the query structures by hand, quite ugly.
+        
+        //group all
+        ArrayList<EvalSpec> groupFuncs = new ArrayList<EvalSpec>();
+    
+        groupFuncs.add(new GenerateSpec(new ConstSpec("all")).getGroupBySpec());
+    
+        quantileJob.groupFuncs = groupFuncs;
+        
+        //find the quantiles in the reduce step
+        ArrayList<EvalSpec> argsList = new ArrayList<EvalSpec>();
+        argsList.add(new ConstSpec(Math.max(loSort.getRequestedParallelism()-1,1)));
+        
+        //sort the first column of the cogroup output and feed it to the quantiles function
+        EvalSpec sortedSampleSpec = new ProjectSpec(1);
+        sortedSampleSpec = sortedSampleSpec.addSpec(new SortDistinctSpec(false, new StarSpec()));
+        argsList.add(sortedSampleSpec);
+        
+        EvalSpec args = new GenerateSpec(argsList);
 
-    	EvalSpec reduceSpec = new FuncEvalSpec(pigContext, FindQuantiles.class.getName(), args);
-    	reduceSpec.setFlatten(true);
-    	quantileJob.addReduceSpec(new GenerateSpec(reduceSpec));
-    	
-    	//a temporary file to hold the quantile data
-    	String quantileFile = getTempFile(pigContext);
-    	quantileJob.outputFileSpec = new FileSpec(quantileFile, BinStorage.class.getName());
-    	
-    	return quantileJob;
+        EvalSpec reduceSpec = new FuncEvalSpec(pigContext, FindQuantiles.class.getName(), args);
+        reduceSpec.setFlatten(true);
+        quantileJob.addReduceSpec(new GenerateSpec(reduceSpec));
+        
+        //a temporary file to hold the quantile data
+        String quantileFile = getTempFile(pigContext);
+        quantileJob.outputFileSpec = new FileSpec(quantileFile, BinStorage.class.getName());
+        
+        return quantileJob;
     }
     
     public POMapreduce getSortJob(String scope, 
@@ -378,39 +378,39 @@ public class MapreducePlanCompiler {
                                   OperatorKey logicalKey,
                                   POMapreduce quantileJob, 
                                   LOSort loSort) throws IOException{
-    	POMapreduce sortJob = new POMapreduce(scope,
-    										  id,
-    										  physicalOpTable,
-    										  logicalKey,
-    										  pigContext, 
-    										  quantileJob.getOperatorKey());
-    	
-    	sortJob.quantilesFile = quantileJob.outputFileSpec.getFileName();
-    	
-    	//same input as the quantile job, but the full BinStorage load function
-    	sortJob.addInputFile(new FileSpec(quantileJob.getFileSpec(0).getFileName(), BinStorage.class.getName()));
-    	
-    	ArrayList<EvalSpec> groupFuncs = new ArrayList<EvalSpec>();
-    	    	
-    	groupFuncs.add(new GenerateSpec(loSort.getSortSpec()).getGroupBySpec());
-    	
-    	sortJob.groupFuncs = groupFuncs;
-    	sortJob.partitionFunction = SortPartitioner.class;
-    	
-		ProjectSpec ps = new ProjectSpec(1);
-		ps.setFlatten(true);
-		sortJob.addReduceSpec(new GenerateSpec(ps));
-	
-    	sortJob.reduceParallelism = loSort.getRequestedParallelism();
-    	
-    	String comparatorFuncName = loSort.getSortSpec().getComparatorName();
-    	if (comparatorFuncName != null) {
-    		sortJob.userComparator =
+        POMapreduce sortJob = new POMapreduce(scope,
+                                              id,
+                                              physicalOpTable,
+                                              logicalKey,
+                                              pigContext, 
+                                              quantileJob.getOperatorKey());
+        
+        sortJob.quantilesFile = quantileJob.outputFileSpec.getFileName();
+        
+        //same input as the quantile job, but the full BinStorage load function
+        sortJob.addInputFile(new FileSpec(quantileJob.getFileSpec(0).getFileName(), BinStorage.class.getName()));
+        
+        ArrayList<EvalSpec> groupFuncs = new ArrayList<EvalSpec>();
+                
+        groupFuncs.add(new GenerateSpec(loSort.getSortSpec()).getGroupBySpec());
+        
+        sortJob.groupFuncs = groupFuncs;
+        sortJob.partitionFunction = SortPartitioner.class;
+        
+        ProjectSpec ps = new ProjectSpec(1);
+        ps.setFlatten(true);
+        sortJob.addReduceSpec(new GenerateSpec(ps));
+    
+        sortJob.reduceParallelism = loSort.getRequestedParallelism();
+        
+        String comparatorFuncName = loSort.getSortSpec().getComparatorName();
+        if (comparatorFuncName != null) {
+            sortJob.userComparator =
                 (Class<WritableComparator>)PigContext.resolveClassName(
                     comparatorFuncName);
-    	}
+        }
 
-    	return sortJob;
+        return sortJob;
     }
 
     private boolean shouldCombine(EvalSpec spec) {

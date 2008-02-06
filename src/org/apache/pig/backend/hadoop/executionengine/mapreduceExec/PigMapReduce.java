@@ -165,24 +165,24 @@ public class PigMapReduce implements MapRunnable, Reducer {
      * Nothing happens here.
      */
     public void close() throws IOException {
-    	if (evalPipe!=null)
-    		evalPipe.finishPipe();
+        if (evalPipe!=null)
+            evalPipe.finishPipe();
     }
 
     public static PigContext getPigContext() {
-    	if (pigContext!=null)
-    		return pigContext;
-    	try {
-			InputStream is = PigMapReduce.class.getResourceAsStream("/pigContext");
-			if (is == null) throw new RuntimeException("/pigContext not found!");
-			return (PigContext)new ObjectInputStream(is).readObject();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+        if (pigContext!=null)
+            return pigContext;
+        try {
+            InputStream is = PigMapReduce.class.getResourceAsStream("/pigContext");
+            if (is == null) throw new RuntimeException("/pigContext not found!");
+            return (PigContext)new ObjectInputStream(is).readObject();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String getTaskId(){
-    	String taskidParts[] = job.get("mapred.task.id").split("_"); // The format is
+        String taskidParts[] = job.get("mapred.task.id").split("_"); // The format is
         // tip_job_m_partition_try
         return taskidParts[taskidParts.length - 2];
     }
@@ -202,15 +202,15 @@ public class PigMapReduce implements MapRunnable, Reducer {
             if(splitSpec  != null) splitSpec.instantiateFunc(pigContext);
             
             if (splitSpec == null){
-	            pigWriter = (PigRecordWriter) job.getOutputFormat().getRecordWriter(FileSystem.get(job), job, fileName,
-	                    reporter);
-	            oc = new OutputCollector() {
-	                public void collect(WritableComparable key, Writable value) throws IOException {
-	                    pigWriter.write(key, value);
-	                }
-	            };
+                pigWriter = (PigRecordWriter) job.getOutputFormat().getRecordWriter(FileSystem.get(job), job, fileName,
+                        reporter);
+                oc = new OutputCollector() {
+                    public void collect(WritableComparable key, Writable value) throws IOException {
+                        pigWriter.write(key, value);
+                    }
+                };
             }else{
-	            oc = getSplitCollector(splitSpec);	
+                oc = getSplitCollector(splitSpec);    
             }
             evalPipe = evalSpec.setupPipe(new MapDataOutputCollector());
         } else {
@@ -222,36 +222,36 @@ public class PigMapReduce implements MapRunnable, Reducer {
     }
     
     private OutputCollector getSplitCollector(final SplitSpec splitSpec) throws IOException{
-    	 
-    	PigOutputFormat outputFormat = (PigOutputFormat)job.getOutputFormat(); 
-		
-    	for (String name: splitSpec.tempFiles){
-    		sideFileWriters.add( outputFormat.getRecordWriter(FileSystem.get(job), job, new Path(name), "split-" + getTaskId(), reporter));
-    	}
-    	return new OutputCollector(){
-    		public void collect(WritableComparable key, Writable value) throws IOException {
-    			Tuple t = (Tuple) value;
-    			ArrayList<Cond> conditions = splitSpec.conditions;
-    			for (int i=0; i< conditions.size(); i++){
-    				Cond cond = conditions.get(i);
-    				if (cond.eval(t)){
-    					//System.out.println("Writing " + t + " to condition " + cond);
-    					sideFileWriters.get(i).write(null, t);
-    				}
-    			}
-    			
-    		}
-    	};
+         
+        PigOutputFormat outputFormat = (PigOutputFormat)job.getOutputFormat(); 
+        
+        for (String name: splitSpec.tempFiles){
+            sideFileWriters.add( outputFormat.getRecordWriter(FileSystem.get(job), job, new Path(name), "split-" + getTaskId(), reporter));
+        }
+        return new OutputCollector(){
+            public void collect(WritableComparable key, Writable value) throws IOException {
+                Tuple t = (Tuple) value;
+                ArrayList<Cond> conditions = splitSpec.conditions;
+                for (int i=0; i< conditions.size(); i++){
+                    Cond cond = conditions.get(i);
+                    if (cond.eval(t)){
+                        //System.out.println("Writing " + t + " to condition " + cond);
+                        sideFileWriters.get(i).write(null, t);
+                    }
+                }
+                
+            }
+        };
     }
     
     private void setupReducePipe() throws IOException {
         pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
-    	EvalSpec evalSpec = (EvalSpec)ObjectSerializer.deserialize(job.get("pig.reduceFunc", ""));
+        EvalSpec evalSpec = (EvalSpec)ObjectSerializer.deserialize(job.get("pig.reduceFunc", ""));
         
         if (evalSpec == null) 
-        	evalSpec = new StarSpec();
+            evalSpec = new StarSpec();
         else
-        	evalSpec.instantiateFunc(pigContext);
+            evalSpec.instantiateFunc(pigContext);
         
         ArrayList<EvalSpec> groupSpecs = (ArrayList<EvalSpec>) ObjectSerializer.deserialize(job.get("pig.groupFuncs", ""));        
         
@@ -263,7 +263,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
 
         SplitSpec splitSpec = (SplitSpec) ObjectSerializer.deserialize(job.get("pig.splitSpec", ""));        
         if (splitSpec != null){
-        	splitSpec.instantiateFunc(pigContext);
+            splitSpec.instantiateFunc(pigContext);
             oc = getSplitCollector(splitSpec);
         }
     
@@ -274,63 +274,63 @@ public class PigMapReduce implements MapRunnable, Reducer {
     }
     
     public void closeSideFiles(){
-    	for (PigRecordWriter writer: sideFileWriters){
-    		try{
-    			writer.close(reporter);
-    		}catch(IOException e){
-    			e.printStackTrace();
-    		}
-    	}
+        for (PigRecordWriter writer: sideFileWriters){
+            try{
+                writer.close(reporter);
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+        }
     }
 
     class MapDataOutputCollector extends DataCollector {
-    	
-    	public MapDataOutputCollector(){
-    		super(null);
-    	}
-    	
+        
+        public MapDataOutputCollector(){
+            super(null);
+        }
+        
         @Override
-		public void add(Datum d){
-        	try{
-	            if (group == null) {
-	                oc.collect(null, (Tuple)d);
-	            } else {
-	            	Datum[] groupAndTuple = LOCogroup.getGroupAndTuple(d);
+        public void add(Datum d){
+            try{
+                if (group == null) {
+                    oc.collect(null, (Tuple)d);
+                } else {
+                    Datum[] groupAndTuple = LOCogroup.getGroupAndTuple(d);
                     // wrap group label in a tuple, so it becomes writable.
-	            	oc.collect(new Tuple(groupAndTuple[0]), new IndexedTuple((Tuple)groupAndTuple[1], index));
+                    oc.collect(new Tuple(groupAndTuple[0]), new IndexedTuple((Tuple)groupAndTuple[1], index));
                 }
             }catch(IOException e){
-            	throw new RuntimeException(e);
+                throw new RuntimeException(e);
             }
         }
         
         @Override
-		public void finish(){
-        	closeSideFiles();
-        	if (group != null)
-        		group.finish();
+        public void finish(){
+            closeSideFiles();
+            if (group != null)
+                group.finish();
         }
     }
 
     class ReduceDataOutputCollector extends DataCollector {
-    	
-    	public ReduceDataOutputCollector(){
-    		super(null);
-    	}
-    	
+        
+        public ReduceDataOutputCollector(){
+            super(null);
+        }
+        
         @Override
-		public void add(Datum d){    
-        	try{
-        		//System.out.println("Adding " + d + " to reduce output");
-        		oc.collect(null, (Tuple)d);
-        	}catch(IOException e){
-        		throw new RuntimeException(e);
-        	}
+        public void add(Datum d){    
+            try{
+                //System.out.println("Adding " + d + " to reduce output");
+                oc.collect(null, (Tuple)d);
+            }catch(IOException e){
+                throw new RuntimeException(e);
+            }
         }
         
         @Override
         protected void finish(){
-        	closeSideFiles();
+            closeSideFiles();
         }
     }
 

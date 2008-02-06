@@ -70,11 +70,11 @@ public interface ExecutionEngine {
      * @return physical plan
      */
     public ExecPhysicalPlan compile(ExecLogicalPlan plan,
-    						        Properties properties)
+                                    Properties properties)
         throws ExecException;
 
     public ExecPhysicalPlan compile(ExecLogicalPlan[] plans,
-            					    Properties properties)
+                                    Properties properties)
         throws ExecException;
 
     /**

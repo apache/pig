@@ -26,57 +26,57 @@ import org.apache.pig.data.Tuple;
 
 
 public class GFCross extends EvalFunc<DataBag> {
-	int numInputs, myNumber, numGroupsPerInput;
-	
-	public static int DEFAULT_PARALLELISM = 96;
+    int numInputs, myNumber, numGroupsPerInput;
+    
+    public static int DEFAULT_PARALLELISM = 96;
 
-	@Override
-	public void exec(Tuple input, DataBag output) throws IOException {;
-			numInputs = Integer.parseInt(input.getAtomField(0).strval());
-			myNumber = Integer.parseInt(input.getAtomField(1).strval());
-		
-		
-			numGroupsPerInput = (int) Math.ceil(Math.pow(DEFAULT_PARALLELISM, 1.0/numInputs));
-			int numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
-			
-			int[] digits = new int[numInputs];
-			for (int i=0; i<numInputs; i++){
-				if (i == myNumber){
-					Random r = new Random(System.currentTimeMillis());
-					digits[i] = r.nextInt(numGroupsPerInput);
-				}else{
-					digits[i] = 0;
-				}
-			}
-			
-			for (int i=0; i<numGroupsGoingTo; i++){
-				output.add(toTuple(digits));
-				next(digits);
-			}			
+    @Override
+    public void exec(Tuple input, DataBag output) throws IOException {;
+            numInputs = Integer.parseInt(input.getAtomField(0).strval());
+            myNumber = Integer.parseInt(input.getAtomField(1).strval());
+        
+        
+            numGroupsPerInput = (int) Math.ceil(Math.pow(DEFAULT_PARALLELISM, 1.0/numInputs));
+            int numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
+            
+            int[] digits = new int[numInputs];
+            for (int i=0; i<numInputs; i++){
+                if (i == myNumber){
+                    Random r = new Random(System.currentTimeMillis());
+                    digits[i] = r.nextInt(numGroupsPerInput);
+                }else{
+                    digits[i] = 0;
+                }
+            }
+            
+            for (int i=0; i<numGroupsGoingTo; i++){
+                output.add(toTuple(digits));
+                next(digits);
+            }            
 
-	}
-	
-	private Tuple toTuple(int[] digits) throws IOException{
-		Tuple t = new Tuple(numInputs);
-		for (int i=0; i<numInputs; i++){
-			t.setField(i, digits[i]);
-		}
-		return t;
-	}
-	
-	private void next(int[] digits){
-		for (int i=0; i<numInputs; i++){
-			if (i== myNumber)
-				continue;
-			else{
-				if (digits[i] == numGroupsPerInput - 1){
-					digits[i] = 0;
-				}else{
-					digits[i]++;
-					break;
-				}
-			}
-		}
-	}
+    }
+    
+    private Tuple toTuple(int[] digits) throws IOException{
+        Tuple t = new Tuple(numInputs);
+        for (int i=0; i<numInputs; i++){
+            t.setField(i, digits[i]);
+        }
+        return t;
+    }
+    
+    private void next(int[] digits){
+        for (int i=0; i<numInputs; i++){
+            if (i== myNumber)
+                continue;
+            else{
+                if (digits[i] == numGroupsPerInput - 1){
+                    digits[i] = 0;
+                }else{
+                    digits[i]++;
+                    break;
+                }
+            }
+        }
+    }
 
 }

@@ -17,7 +17,7 @@ import org.apache.pig.backend.datastorage.*;
 
 public class HDataStorage implements DataStorage {
 
-	
+    
     private FileSystem fs;
     
     public HDataStorage(URI uri, Configuration conf) throws IOException {

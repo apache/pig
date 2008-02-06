@@ -100,7 +100,7 @@ public class LocalFile extends LocalPath {
     }    
 
     public InputStream open (Properties configuration) throws IOException {
-    	return open();
+        return open();
     }
     
     public InputStream open () throws IOException {
@@ -108,7 +108,7 @@ public class LocalFile extends LocalPath {
     }
     
     public SeekableInputStream sopen(Properties configuration) throws IOException {
-    	return sopen();
+        return sopen();
     }
     
     public SeekableInputStream sopen() throws IOException {

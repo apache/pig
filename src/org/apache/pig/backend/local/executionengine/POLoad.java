@@ -34,10 +34,10 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 
 public class POLoad extends PhysicalOperator {
     /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	String   filename;
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    String   filename;
     LoadFunc lf;
     boolean bound = false;
     PigContext pigContext;
@@ -48,25 +48,25 @@ public class POLoad extends PhysicalOperator {
                   PigContext pigContext, 
                   FileSpec fileSpec, 
                   int outputType) {
-    	super(scope, id, opTable, outputType);
+        super(scope, id, opTable, outputType);
         inputs = new OperatorKey[0];
 
         filename = fileSpec.getFileName();
         try{
-        	lf = (LoadFunc) PigContext.instantiateFuncFromSpec(fileSpec.getFuncSpec());
+            lf = (LoadFunc) PigContext.instantiateFuncFromSpec(fileSpec.getFuncSpec());
         }catch(Exception e){
-        	throw new RuntimeException(e);
+            throw new RuntimeException(e);
         }
 
         this.pigContext = pigContext;
     }
 
     @Override
-	public boolean open() throws IOException {
-    	if (!bound){
-    		lf.bindTo(filename, new BufferedPositionedInputStream(FileLocalizer.open(filename, pigContext)), 0, Long.MAX_VALUE);
-    		bound = true;
-    	}
+    public boolean open() throws IOException {
+        if (!bound){
+            lf.bindTo(filename, new BufferedPositionedInputStream(FileLocalizer.open(filename, pigContext)), 0, Long.MAX_VALUE);
+            bound = true;
+        }
         return true;
     }
 
@@ -77,7 +77,7 @@ public class POLoad extends PhysicalOperator {
     }
     
     @Override
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         return lf.getNext();
     }
 

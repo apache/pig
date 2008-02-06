@@ -26,36 +26,36 @@ import java.io.IOException;
  */
 public class IndexedTuple extends Tuple {
 
-	public int index = -1;
-	
-	public IndexedTuple() {
-	}
-	
-	public IndexedTuple(Tuple t, int indexIn) {
-		fields = t.fields;
-		index = indexIn;
-	}
+    public int index = -1;
+    
+    public IndexedTuple() {
+    }
+    
+    public IndexedTuple(Tuple t, int indexIn) {
+        fields = t.fields;
+        index = indexIn;
+    }
 
-	@Override
-	public String toString() {
-		return super.toString() + "[" + index + "]";
-	}
+    @Override
+    public String toString() {
+        return super.toString() + "[" + index + "]";
+    }
 
-	// Writable methods:
-	@Override
-	public void write(DataOutput out) throws IOException {
-		super.write(out);
-		encodeInt(out, index);
-	}
-	@Override
-	public void readFields(DataInput in) throws IOException {
-		super.readFields(in);
-		index = decodeInt(in);
-	}
-	
-	public Tuple toTuple(){
-		Tuple t = new Tuple();
-		t.fields = fields;
-		return t;
-	}
+    // Writable methods:
+    @Override
+    public void write(DataOutput out) throws IOException {
+        super.write(out);
+        encodeInt(out, index);
+    }
+    @Override
+    public void readFields(DataInput in) throws IOException {
+        super.readFields(in);
+        index = decodeInt(in);
+    }
+    
+    public Tuple toTuple(){
+        Tuple t = new Tuple();
+        t.fields = fields;
+        return t;
+    }
 }

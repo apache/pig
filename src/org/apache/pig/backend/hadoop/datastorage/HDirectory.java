@@ -105,7 +105,7 @@ public class HDirectory extends HPath
     }
 
     public InputStream open(Properties configuration) throws IOException {
-    	return open();
+        return open();
     }
     
     public InputStream open() throws IOException {
@@ -113,7 +113,7 @@ public class HDirectory extends HPath
     }
 
     public SeekableInputStream sopen(Properties configuration) throws IOException {
-    	return sopen();
+        return sopen();
     }
     
     @Override
@@ -125,14 +125,14 @@ public class HDirectory extends HPath
         LinkedList<ElementDescriptor> elements =
             new LinkedList<ElementDescriptor>();
 
-	try {
-	    FileStatus fileStat[] = fs.getHFS().listStatus(path);
-	    for (int j = 0; j < fileStat.length; ++j) {
+    try {
+        FileStatus fileStat[] = fs.getHFS().listStatus(path);
+        for (int j = 0; j < fileStat.length; ++j) {
                if (fileStat[j].isDir()) {
-	           elements.add(fs.asContainer(fileStat[j].getPath().toString()));
-	       }
-	       else {
-	           elements.add(fs.asElement(fileStat[j].getPath().toString()));
+               elements.add(fs.asContainer(fileStat[j].getPath().toString()));
+           }
+           else {
+               elements.add(fs.asElement(fileStat[j].getPath().toString()));
                }
             }
         }

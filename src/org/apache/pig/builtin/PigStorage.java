@@ -34,10 +34,10 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  */
 public class PigStorage implements LoadFunc, StoreFunc {
     protected BufferedPositionedInputStream in = null;
-	long                end            = Long.MAX_VALUE;
-	private byte recordDel = (byte)'\n';
-	private String fieldDel = "\t";
-	final private static Charset utf8 = Charset.forName("UTF8");
+    long                end            = Long.MAX_VALUE;
+    private byte recordDel = (byte)'\n';
+    private String fieldDel = "\t";
+    final private static Charset utf8 = Charset.forName("UTF8");
     
     public PigStorage() {
     }
@@ -54,7 +54,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
         this.fieldDel = delimiter;
     }
 
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         if (in == null || in.getPosition() > end) {
             return null;
         }
@@ -65,7 +65,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
         return null;
     }
 
-	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
+    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
         this.end = end;
         

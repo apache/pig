@@ -31,11 +31,11 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  * contains the line of text.
  */
 public class TextLoader implements LoadFunc{
-	BufferedPositionedInputStream in;
-	final private static Charset utf8 = Charset.forName("UTF8");
-	long                end;
+    BufferedPositionedInputStream in;
+    final private static Charset utf8 = Charset.forName("UTF8");
+    long                end;
 
-	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
+    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
         this.end = end;
         // Since we are not block aligned we throw away the first
@@ -44,7 +44,7 @@ public class TextLoader implements LoadFunc{
             getNext();
     }
 
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         if (in == null || in.getPosition() > end)
             return null;
         String line;

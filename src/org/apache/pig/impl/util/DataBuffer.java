@@ -26,22 +26,22 @@ import org.apache.pig.impl.eval.collector.DataCollector;
 
 public class DataBuffer extends DataCollector {
     
-	public DataBuffer(){
-		super(null);
-	}
-	
+    public DataBuffer(){
+        super(null);
+    }
+    
     List<Datum> buf = Collections.synchronizedList(new LinkedList<Datum>());
 
     @Override
-	public void add(Datum d){
+    public void add(Datum d){
         if (d != null) buf.add(d);
     }
     
     public Datum removeFirst(){
         if (buf.isEmpty())
-        	return null;
+            return null;
         else
-        	return buf.remove(0);
+            return buf.remove(0);
     }
     
     /**
@@ -49,13 +49,13 @@ public class DataBuffer extends DataCollector {
      * where we know that running an eval spec one item should produce one and only one item.
      */
     public Datum removeFirstAndAssertEmpty(){
-    	Datum d;
-    	if (isStale() || (d = removeFirst()) == null){
-    		throw new RuntimeException("Simple eval used but buffer found to be empty or stale");
-    	}
-    	if (!buf.isEmpty())
-    		throw new RuntimeException("Simple eval used but buffer found to have more than one datum");
-    	return d;
+        Datum d;
+        if (isStale() || (d = removeFirst()) == null){
+            throw new RuntimeException("Simple eval used but buffer found to be empty or stale");
+        }
+        if (!buf.isEmpty())
+            throw new RuntimeException("Simple eval used but buffer found to have more than one datum");
+        return d;
     }
     
     public boolean isEmpty() {

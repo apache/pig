@@ -44,9 +44,9 @@ public abstract class PhysicalOperator implements Serializable, ExecPhysicalOper
         this.scope = scope;
         this.id = id;
         this.opTable = opTable;
-    	this.outputType = outputType;
-    	
-    	opTable.put(getOperatorKey(), this);
+        this.outputType = outputType;
+        
+        opTable.put(getOperatorKey(), this);
     }
     
     public OperatorKey getOperatorKey() {
@@ -86,7 +86,7 @@ public abstract class PhysicalOperator implements Serializable, ExecPhysicalOper
     }
 
     public int getOutputType(){
-    	return outputType;
+        return outputType;
     }
 
     public abstract void visit(POVisitor v, String prfix);

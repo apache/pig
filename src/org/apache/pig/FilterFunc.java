@@ -24,7 +24,7 @@ import org.apache.pig.data.Tuple;
 
 public abstract class FilterFunc {
     
-				/**
+                /**
      * This callback method must be implemented by all subclasses. This
      * is the method that will be invoked on every Tuple of a given dataset.
      * Since the dataset may be divided up in a variety of ways the programmer

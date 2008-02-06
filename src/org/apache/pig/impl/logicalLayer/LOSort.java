@@ -79,8 +79,8 @@ public class LOSort extends LogicalOperator {
         return sortSpec;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitSort(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitSort(this);
+    }
 
 }

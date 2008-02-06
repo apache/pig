@@ -29,19 +29,19 @@ import org.apache.pig.data.Tuple;
  * built-in grouping function; permits system to choose any grouping.
  */
 public class GFAny extends EvalFunc<DataAtom> {
-	public static final int defaultNumGroups = 1000;
-	
-	int numGroups = defaultNumGroups;
-	Random r = new Random();
-	
-	public GFAny(){}
-	
-	public GFAny(int numGroups){
-		this.numGroups = numGroups;
-	}
-	
-	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException{
-		output.setValue(r.nextInt(numGroups));
-	}
+    public static final int defaultNumGroups = 1000;
+    
+    int numGroups = defaultNumGroups;
+    Random r = new Random();
+    
+    public GFAny(){}
+    
+    public GFAny(int numGroups){
+        this.numGroups = numGroups;
+    }
+    
+    @Override
+    public void exec(Tuple input, DataAtom output) throws IOException{
+        output.setValue(r.nextInt(numGroups));
+    }
 }
