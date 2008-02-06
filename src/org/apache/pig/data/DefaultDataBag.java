@@ -65,8 +65,17 @@ public class DefaultDataBag extends DataBag {
         // trying to read while I'm mucking with the container.
         long spilled = 0;
         synchronized (mContents) {
+            DataOutputStream out = null;
             try {
-                DataOutputStream out = getSpillFile();
+                out = getSpillFile();
+            }  catch (IOException ioe) {
+                // Do not remove last file from spilled array. It was not
+                // added as File.createTmpFile threw an IOException
+                PigLogger.getLogger().error(
+                    "Unable to create tmp file to spill to disk", ioe);
+                return 0;
+            }
+            try {
                 Iterator<Tuple> i = mContents.iterator();
                 while (i.hasNext()) {
                     i.next().write(out);
@@ -82,6 +91,14 @@ public class DefaultDataBag extends DataBag {
                 PigLogger.getLogger().error(
                     "Unable to spill contents to disk", ioe);
                 return 0;
+            } finally {
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        PigLogger.getLogger().error("Error closing spill", e);
+                    }
+                }
             }
             mContents.clear();
         }
