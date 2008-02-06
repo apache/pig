@@ -87,3 +87,5 @@ Trunk (unreleased changes)
 	PIG-89: Fix DefaultDataBag, DistinctDataBag, SortedDataBag to close spill
 	files when they are done spilling (contributions by craigm, breed, and
 	gates, committed by gates).
+
+	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).

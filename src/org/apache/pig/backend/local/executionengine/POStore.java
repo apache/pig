@@ -119,9 +119,9 @@ public class POStore extends PhysicalOperator {
     @Override
 	public int getOutputType(){
     	System.err.println("No one should be asking my output type");
-    	new RuntimeException().printStackTrace();
-    	System.exit(1);
-    	return -1;
+    	RuntimeException runtimeException = new RuntimeException();
+		runtimeException.printStackTrace();
+		throw runtimeException;
     }
 
     @Override
