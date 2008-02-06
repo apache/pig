@@ -314,7 +314,7 @@ public class HExecutionEngine implements ExecutionEngine {
         NOTHING, HDFSUI, MAPREDUI, HDFS, MAPRED, HADOOPCONF
     };
     
-    private String[] doHod(String server) {
+    private String[] doHod(String server) throws ExecException {
         if (hodMapRed != null) {
             return new String[] {hodHDFS, hodMapRed};
         }
@@ -442,10 +442,10 @@ public class HExecutionEngine implements ExecutionEngine {
             return new String[] {hdfs, mapred};
         } 
         catch (Exception e) {
-            logger.fatal("Could not connect to HOD", e);
-            System.exit(4);
+            ExecException ee = new ExecException("Could not connect to HOD");
+            ee.initCause(e);
+            throw ee;
         }
-        throw new RuntimeException("Could not scrape needed information.");
     }
 
     private String fixUpDomain(String hostPort) throws UnknownHostException {
