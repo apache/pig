@@ -26,21 +26,21 @@ import org.apache.pig.data.Tuple;
 
 public class PigDump implements StoreFunc {
 
-	public static String recordDelimiter = "\n";
-	
+    public static String recordDelimiter = "\n";
+    
 
     OutputStream os;
 
-	public void bindTo(OutputStream os) throws IOException {
-		this.os = os;
-	}
+    public void bindTo(OutputStream os) throws IOException {
+        this.os = os;
+    }
 
-	public void finish() throws IOException {
-		
-	}
+    public void finish() throws IOException {
+        
+    }
 
-	public void putNext(Tuple f) throws IOException {
-		os.write((f.toString() + recordDelimiter).getBytes());
-	}
+    public void putNext(Tuple f) throws IOException {
+        os.write((f.toString() + recordDelimiter).getBytes());
+    }
 
 }

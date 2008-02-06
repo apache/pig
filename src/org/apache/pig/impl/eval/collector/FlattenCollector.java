@@ -21,22 +21,22 @@ import org.apache.pig.data.Datum;
 
 public class FlattenCollector extends DataCollector {
 
-	public FlattenCollector(DataCollector successor){
-		super(successor);
-	}
-	
-	@Override
-	public void add(Datum d) {
-		if (checkDelimiter(d))
-			return;
-		else
-			successor.add(d);
-	}
+    public FlattenCollector(DataCollector successor){
+        super(successor);
+    }
+    
+    @Override
+    public void add(Datum d) {
+        if (checkDelimiter(d))
+            return;
+        else
+            successor.add(d);
+    }
 
-	@Override
-	protected boolean needFlatteningLocally() {
-		return true;
-	}
-	
+    @Override
+    protected boolean needFlatteningLocally() {
+        return true;
+    }
+    
 
 }

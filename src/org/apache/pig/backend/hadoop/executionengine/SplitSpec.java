@@ -30,41 +30,41 @@ import org.apache.pig.impl.io.FileLocalizer;
 
 
 public class SplitSpec implements Serializable{
-	private static final long serialVersionUID = 1L;
-	
-	public ArrayList<Cond> conditions;
-	public List<String> tempFiles;
-   	
-	private static String getTempFile(PigContext pigContext) throws IOException {
-	    return FileLocalizer.getTemporaryPath(null, pigContext).toString();
-	}
-	
-	public SplitSpec(LOSplit lo, PigContext pigContext){
-		this.conditions = lo.getConditions();
-		tempFiles = new ArrayList<String>();
-   	try{
-			for (int i=0; i<conditions.size(); i++){
-				tempFiles.add(getTempFile(pigContext));
-			}
-		}catch (IOException e){
-			e.printStackTrace();
-		}
-	}
-		
-	@Override
-	public String toString(){
-		StringBuilder sb = new StringBuilder();
-		for (int i=0; i<conditions.size(); i++){
-			if (i!=0) sb.append(";");
-			sb.append(conditions.get(i).toString());
-			sb.append(";");
-			sb.append(tempFiles.get(i));
-		}
-		return sb.toString();
-	}
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-		throws IOException {
-		for(Cond condition : conditions)
-			condition.instantiateFunc(instantiaor);		
-	}
+    private static final long serialVersionUID = 1L;
+    
+    public ArrayList<Cond> conditions;
+    public List<String> tempFiles;
+       
+    private static String getTempFile(PigContext pigContext) throws IOException {
+        return FileLocalizer.getTemporaryPath(null, pigContext).toString();
+    }
+    
+    public SplitSpec(LOSplit lo, PigContext pigContext){
+        this.conditions = lo.getConditions();
+        tempFiles = new ArrayList<String>();
+       try{
+            for (int i=0; i<conditions.size(); i++){
+                tempFiles.add(getTempFile(pigContext));
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+        
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<conditions.size(); i++){
+            if (i!=0) sb.append(";");
+            sb.append(conditions.get(i).toString());
+            sb.append(";");
+            sb.append(tempFiles.get(i));
+        }
+        return sb.toString();
+    }
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+        throws IOException {
+        for(Cond condition : conditions)
+            condition.instantiateFunc(instantiaor);        
+    }
 }

@@ -72,7 +72,7 @@ public class FileLocalizer {
         }
 
         @Override
-		public int read() throws IOException {
+        public int read() throws IOException {
             while (!isEOF()) {
                 int rc = current.read();
                 if (rc != -1)
@@ -83,14 +83,14 @@ public class FileLocalizer {
         }
 
         @Override
-		public int available() throws IOException {
+        public int available() throws IOException {
             if (isEOF())
                 return 0;
             return current.available();
         }
 
         @Override
-		public void close() throws IOException {
+        public void close() throws IOException {
             if (current != null) {
                 current.close();
                 current = null;
@@ -99,7 +99,7 @@ public class FileLocalizer {
         }
 
         @Override
-		public int read(byte[] b, int off, int len) throws IOException {
+        public int read(byte[] b, int off, int len) throws IOException {
             int count = 0;
             while (!isEOF() && len > 0) {
                 int rc = current.read(b, off, len);
@@ -115,12 +115,12 @@ public class FileLocalizer {
         }
 
         @Override
-		public int read(byte[] b) throws IOException {
+        public int read(byte[] b) throws IOException {
             return read(b, 0, b.length);
         }
 
         @Override
-		public long skip(long n) throws IOException {
+        public long skip(long n) throws IOException {
             while (!isEOF() && n > 0) {
                 n -= current.skip(n);
             }
@@ -143,13 +143,13 @@ public class FileLocalizer {
      */
     
     public static InputStream openDFSFile(String fileName) throws IOException{
-    	PigRecordReader prr = PigInputFormat.PigRecordReader.getPigRecordReader();
-		
-		if (prr == null)
-			throw new RuntimeException("can't open DFS file while executing locally");
-	
-		return openDFSFile(fileName, prr.getJobConf());
-		
+        PigRecordReader prr = PigInputFormat.PigRecordReader.getPigRecordReader();
+        
+        if (prr == null)
+            throw new RuntimeException("can't open DFS file while executing locally");
+    
+        return openDFSFile(fileName, prr.getJobConf());
+        
     }
 
     public static InputStream openDFSFile(String fileName, JobConf conf) throws IOException{
@@ -172,13 +172,13 @@ public class FileLocalizer {
         if (elem.exists()) {
             try {
                 if(! elem.getDataStorage().isContainer(elem.toString())) {
-        		    return elem.open();
-        		}
+                    return elem.open();
+                }
             }
             catch (DataStorageException e) {
-            	IOException ioe = new IOException("Failed to determine if elem=" + elem + " is container");
-            	ioe.initCause(e);
-            	throw ioe;
+                IOException ioe = new IOException("Failed to determine if elem=" + elem + " is container");
+                ioe.initCause(e);
+                throw ioe;
             }
             
             ArrayList<ElementDescriptor> arrayList = 
@@ -194,11 +194,11 @@ public class FileLocalizer {
             arrayList.toArray(elements);
         
         } else {
-			// It might be a glob
-			if (!globMatchesFiles(elem, elem.getDataStorage())) {
-			    throw new IOException(elem.toString() + " does not exist");
-			}
-		}
+            // It might be a glob
+            if (!globMatchesFiles(elem, elem.getDataStorage())) {
+                throw new IOException(elem.toString() + " does not exist");
+            }
+        }
         
         return new DataStorageInputStreamIterator(elements);
     }
@@ -226,7 +226,7 @@ public class FileLocalizer {
     }
     
     static public OutputStream create(String fileSpec, PigContext pigContext) throws IOException{
-    	return create(fileSpec,false,pigContext);
+        return create(fileSpec,false,pigContext);
     }
 
     static public OutputStream create(String fileSpec, boolean append, PigContext pigContext) throws IOException {
@@ -246,12 +246,12 @@ public class FileLocalizer {
         else {
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
 
-        	// TODO probably this should be replaced with the local file system
-        	File f = (new File(fileSpec)).getParentFile();
-        	if (f!=null){
-        		f.mkdirs();
-        	}
-        	
+            // TODO probably this should be replaced with the local file system
+            File f = (new File(fileSpec)).getParentFile();
+            if (f!=null){
+                f.mkdirs();
+            }
+            
             return new FileOutputStream(fileSpec,append);
         }
     }
@@ -377,30 +377,30 @@ public class FileLocalizer {
         }
     }
 
-	private static boolean globMatchesFiles(ElementDescriptor elem,
-	                                        DataStorage fs)
-		    throws IOException
-	{
-	    try {
-    		// Currently, if you give a glob with non-special glob characters, hadoop
-    		// returns an array with your file name in it.  So check for that.
-    		ElementDescriptor[] elems = fs.asCollection(elem.toString());
-    		switch (elems.length) {
-    		case 0:
-    			return false;
+    private static boolean globMatchesFiles(ElementDescriptor elem,
+                                            DataStorage fs)
+            throws IOException
+    {
+        try {
+            // Currently, if you give a glob with non-special glob characters, hadoop
+            // returns an array with your file name in it.  So check for that.
+            ElementDescriptor[] elems = fs.asCollection(elem.toString());
+            switch (elems.length) {
+            case 0:
+                return false;
     
-    		case 1:
-    			return !elems[0].equals(elem);
+            case 1:
+                return !elems[0].equals(elem);
     
-    		default:
-    			return true;
-    		}
-	    }
-	    catch (DataStorageException e) {
-	        IOException ioe = new IOException("Unable to get collect for pattern " + elem.toString());
-	        ioe.initCause(e);
-	        throw ioe;
-	    }
-	}
+            default:
+                return true;
+            }
+        }
+        catch (DataStorageException e) {
+            IOException ioe = new IOException("Unable to get collect for pattern " + elem.toString());
+            ioe.initCause(e);
+            throw ioe;
+        }
+    }
 
 }

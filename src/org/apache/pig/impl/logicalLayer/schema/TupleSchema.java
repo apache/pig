@@ -33,30 +33,30 @@ import java.util.Map;
  *
  */
 public class TupleSchema extends Schema implements Serializable {
-	
-	private static final long serialVersionUID = 1L;
-	private static final String QUALIFIER = "::";
-	
-	public List<Schema>        fields  = new ArrayList<Schema>();
+    
+    private static final long serialVersionUID = 1L;
+    private static final String QUALIFIER = "::";
+    
+    public List<Schema>        fields  = new ArrayList<Schema>();
     public Map<String, Integer> mapping = new HashMap<String, Integer>();
     private boolean                isBag   = false;
     
     
-				@Override
-	public int colFor(String alias) {        
-        if (mapping.containsKey(alias)) {        	
+                @Override
+    public int colFor(String alias) {        
+        if (mapping.containsKey(alias)) {            
             return mapping.get(alias);
         }
         else if(alias.matches(".*::.*")) {
-        	String[] temp = alias.split("::");
-        	if(mapping.containsKey(temp[temp.length-1]))
-        		return mapping.get(temp[temp.length-1]);
+            String[] temp = alias.split("::");
+            if(mapping.containsKey(temp[temp.length-1]))
+                return mapping.get(temp[temp.length-1]);
         }
         return -1;
     }
 
     @Override
-	public Schema schemaFor(int col) {
+    public Schema schemaFor(int col) {
         if (col < fields.size()) {
             return fields.get(col);
         }
@@ -65,7 +65,7 @@ public class TupleSchema extends Schema implements Serializable {
 
     
     public void add(Schema sc){
-    	add(sc,false);
+        add(sc,false);
     }
     
     
@@ -77,11 +77,11 @@ public class TupleSchema extends Schema implements Serializable {
      
         for (String alias: sc.aliases){
             if (mapping.containsKey(alias)){
-            	if (!ignoreConflicts)
-            		throw new RuntimeException("Duplicate alias: " + sc.getAlias());
-            	else
-            		mapping.remove(alias);
-            		
+                if (!ignoreConflicts)
+                    throw new RuntimeException("Duplicate alias: " + sc.getAlias());
+                else
+                    mapping.remove(alias);
+                    
             }else{
                 mapping.put(alias, pos);
             }
@@ -93,11 +93,11 @@ public class TupleSchema extends Schema implements Serializable {
     }
 
     @Override
-	public String toString() {
+    public String toString() {
         StringBuilder buf = new StringBuilder();
         if (getAlias()!=null){
-        	buf.append(getAlias());
-        	buf.append(": ");
+            buf.append(getAlias());
+            buf.append(": ");
         }
         
         buf.append( "(" );
@@ -114,25 +114,25 @@ public class TupleSchema extends Schema implements Serializable {
     }
 
     @Override
-	public TupleSchema copy(){
-    	return (TupleSchema)super.copy();
+    public TupleSchema copy(){
+        return (TupleSchema)super.copy();
     }
     
     @Override
-	public List<Schema> flatten(){
-    	for (Schema item: fields){
-    		for (String parentAlias: aliases){
-    			String[] childAliases = item.aliases.toArray(new String[0]);
-    			for (String childAlias: childAliases){
-    				item.aliases.add(parentAlias+QUALIFIER+childAlias);
-    			}
-    		}
-    	}
-    	return fields;
+    public List<Schema> flatten(){
+        for (Schema item: fields){
+            for (String parentAlias: aliases){
+                String[] childAliases = item.aliases.toArray(new String[0]);
+                for (String childAlias: childAliases){
+                    item.aliases.add(parentAlias+QUALIFIER+childAlias);
+                }
+            }
+        }
+        return fields;
     }
     
     public List<Schema> getFields(){
-    	return fields;
+        return fields;
     }
     
     

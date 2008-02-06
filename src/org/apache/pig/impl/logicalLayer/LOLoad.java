@@ -120,7 +120,7 @@ public class LOLoad extends LogicalOperator {
         return funcs;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitLoad(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitLoad(this);
+    }
 }

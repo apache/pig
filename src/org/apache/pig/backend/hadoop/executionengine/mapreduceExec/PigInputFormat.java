@@ -49,8 +49,8 @@ import org.apache.tools.bzip2r.CBZip2InputStream;
 public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable {
 
     public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    	
-    	ArrayList<FileSpec> inputs = (ArrayList<FileSpec>) ObjectSerializer.deserialize(job.get("pig.inputs"));    	
+        
+        ArrayList<FileSpec> inputs = (ArrayList<FileSpec>) ObjectSerializer.deserialize(job.get("pig.inputs"));        
         ArrayList<EvalSpec> mapFuncs = (ArrayList<EvalSpec>) ObjectSerializer.deserialize(job.get("pig.mapFuncs",""));        
         ArrayList<EvalSpec> groupFuncs = (ArrayList<EvalSpec>) ObjectSerializer.deserialize(job.get("pig.groupFuncs", ""));        
         PigContext pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
@@ -75,25 +75,25 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
         
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
-        	Path path = new Path(inputs.get(i).getFileName());
+            Path path = new Path(inputs.get(i).getFileName());
             String parser = inputs.get(i).getFuncSpec();
             FileSystem fs = path.getFileSystem(job);
 
             fs.setWorkingDirectory(new Path("/user", job.getUser()));
             ArrayList<Path> paths = new ArrayList<Path>();
-			// If you give a non-glob name, globPaths returns a single
-			// element with just that name.
-			Path[] globPaths = fs.globPaths(path); 
-			for (int m = 0; m < globPaths.length; m++) paths.add(globPaths[m]);
+            // If you give a non-glob name, globPaths returns a single
+            // element with just that name.
+            Path[] globPaths = fs.globPaths(path); 
+            for (int m = 0; m < globPaths.length; m++) paths.add(globPaths[m]);
             //paths.add(path);
             for (int j = 0; j < paths.size(); j++) {
                 Path fullPath = new Path(fs.getWorkingDirectory(), paths.get(j));
                 if (fs.getFileStatus(fullPath).isDir()) {
-                	FileStatus children[] = fs.listStatus(fullPath);
-                	for(int k = 0; k < children.length; k++) {
-                		paths.add(children[k].getPath());
-                	}
-                	continue;
+                    FileStatus children[] = fs.listStatus(fullPath);
+                    for(int k = 0; k < children.length; k++) {
+                        paths.add(children[k].getPath());
+                    }
+                    continue;
                 }
                 long bs = fs.getFileStatus(fullPath).getBlockSize();
                 long size = fs.getFileStatus(fullPath).getLen();
@@ -158,22 +158,22 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
             fs.setWorkingDirectory(new Path("/user/" + job.getUser()));
             CompressionCodec codec = compressionFactory.getCodec(split.getPath());
             long start = split.getStart();
-        	fsis = fs.open(split.getPath());
-        	fsis.seek(start);
+            fsis = fs.open(split.getPath());
+            fsis.seek(start);
 
             if (codec != null) {
                 is = codec.createInputStream(fsis);
                 end = Long.MAX_VALUE;
                 
             } else{
-            	end = start + split.getLength();	
-            	
-            	if (split.file.getName().endsWith(".bz") ||
-            			split.file.getName().endsWith(".bz2")) {
-            		is = new CBZip2InputStream(fsis,9);
-            	}else{
-            		is = fsis;
-            	}
+                end = start + split.getLength();    
+                
+                if (split.file.getName().endsWith(".bz") ||
+                        split.file.getName().endsWith(".bz2")) {
+                    is = new CBZip2InputStream(fsis,9);
+                }else{
+                    is = fsis;
+                }
             }
             myReader.set(this);
             loader.bindTo(split.getPath().toString(), new BufferedPositionedInputStream(is, start), start, end);
@@ -181,7 +181,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
         }
 
         public JobConf getJobConf(){
-        	return job;
+            return job;
         }
 
         public boolean next(Text key, Tuple value) throws IOException {
@@ -196,7 +196,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
         }
 
         public long getPos() throws IOException {
-        	return fsis.getPos();
+            return fsis.getPos();
         }
 
         public void close() throws IOException {
@@ -215,11 +215,11 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
             return new Tuple();
         }
 
-	public float getProgress() throws IOException {
-	    float progress = getPos() - split.getStart();
-	    float finish = split.getLength();
-	    return progress/finish;
-	}
+    public float getProgress() throws IOException {
+        float progress = getPos() - split.getStart();
+        float finish = split.getLength();
+        return progress/finish;
+    }
     }
 
     public void validateInput(JobConf arg0) throws IOException {

@@ -34,46 +34,46 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  */
 
 public class CompositeEvalSpec extends EvalSpec {
-	private static final long serialVersionUID = 1L;
-	
-	private List<EvalSpec> specs = new ArrayList<EvalSpec>();
-	
-	public CompositeEvalSpec(EvalSpec spec){
-		specs.add(spec);
-	}
-		
+    private static final long serialVersionUID = 1L;
+    
+    private List<EvalSpec> specs = new ArrayList<EvalSpec>();
+    
+    public CompositeEvalSpec(EvalSpec spec){
+        specs.add(spec);
+    }
+        
     @Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe){
-    	for (int i=specs.size()-1; i>=0; i--){
-    		endOfPipe = specs.get(i).setupDefaultPipe(endOfPipe);
-    	}
-    	return endOfPipe;
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe){
+        for (int i=specs.size()-1; i>=0; i--){
+            endOfPipe = specs.get(i).setupDefaultPipe(endOfPipe);
+        }
+        return endOfPipe;
     }
 
     @Override
-	public List<String> getFuncs(){
-    	List<String> funcs = new ArrayList<String>();
-    	for(EvalSpec spec: specs){
-    		funcs.addAll(spec.getFuncs());
-    	}
-    	return funcs;
+    public List<String> getFuncs(){
+        List<String> funcs = new ArrayList<String>();
+        for(EvalSpec spec: specs){
+            funcs.addAll(spec.getFuncs());
+        }
+        return funcs;
     }
     
     @Override
     public EvalSpec addSpec(EvalSpec spec){
-    	specs.add(spec);
-    	return this;
+        specs.add(spec);
+        return this;
     }
     
     @Override
-	public String toString() {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         int i=0;
         for (EvalSpec spec: specs){
-	        sb.append(spec.toString());
-        	i++;
-	        if (i != specs.size())
-	        	sb.append("->");
+            sb.append(spec.toString());
+            i++;
+            if (i != specs.size())
+                sb.append("->");
         }
         return sb.toString();
     }
@@ -81,35 +81,35 @@ public class CompositeEvalSpec extends EvalSpec {
     
     @Override
     public boolean isAsynchronous() {
-    	for (EvalSpec spec: specs)
-    		if (spec.isAsynchronous())
-    			return true;
-    	return false;
+        for (EvalSpec spec: specs)
+            if (spec.isAsynchronous())
+                return true;
+        return false;
     }
 
     @Override
-	protected Schema mapInputSchema(Schema schema) {
-    	for (EvalSpec spec: specs)
-    		schema = spec.mapInputSchema(schema);
-    	return schema;
+    protected Schema mapInputSchema(Schema schema) {
+        for (EvalSpec spec: specs)
+            schema = spec.mapInputSchema(schema);
+        return schema;
     }
     
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator fInstantiaor)
-			throws IOException {
-		for (EvalSpec spec: specs)
-    		spec.instantiateFunc(fInstantiaor);
-		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator fInstantiaor)
+            throws IOException {
+        for (EvalSpec spec: specs)
+            spec.instantiateFunc(fInstantiaor);
+        
+    }
 
-	public List<EvalSpec> getSpecs() {
-		return specs;
-	}
+    public List<EvalSpec> getSpecs() {
+        return specs;
+    }
     
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitCompositeEval(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitCompositeEval(this);
+    }
     
 }

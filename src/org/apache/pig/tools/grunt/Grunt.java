@@ -27,34 +27,34 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 public class Grunt 
 {
-	BufferedReader in;
-	PigServer pig;
-	GruntParser parser;	
+    BufferedReader in;
+    PigServer pig;
+    GruntParser parser;    
 
-	public Grunt(BufferedReader in, PigContext pigContext) throws ExecException
-	{
-		this.in = in;
-		this.pig = new PigServer(pigContext);
-		
-		if (in != null)
-		{
-			parser = new GruntParser(in);
-			parser.setParams(pig);	
-		}
-	}
+    public Grunt(BufferedReader in, PigContext pigContext) throws ExecException
+    {
+        this.in = in;
+        this.pig = new PigServer(pigContext);
+        
+        if (in != null)
+        {
+            parser = new GruntParser(in);
+            parser.setParams(pig);    
+        }
+    }
 
     public void run() {
-	parser.setInteractive(true);
-	parser.parseContOnError();
+    parser.setInteractive(true);
+    parser.parseContOnError();
     }
 
     public void exec() {
         try {
-		parser.setInteractive(false);
-		parser.parseStopOnError();
+        parser.setInteractive(false);
+        parser.parseStopOnError();
         } catch (Throwable e) {
             System.err.println(e.getMessage());
-	}
-	
+    }
+    
     }
 }

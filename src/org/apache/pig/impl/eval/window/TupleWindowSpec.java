@@ -25,54 +25,54 @@ import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.eval.EvalSpecVisitor;
 
 public class TupleWindowSpec extends WindowSpec {
-	private static final long serialVersionUID = 1L;
-	   
-	int numTuples;
+    private static final long serialVersionUID = 1L;
+       
+    int numTuples;
     transient List<Datum> window;
-	
-	public TupleWindowSpec(windowType type, int numTuples){
-		super(type);
-		this.numTuples = numTuples;
+    
+    public TupleWindowSpec(windowType type, int numTuples){
+        super(type);
+        this.numTuples = numTuples;
         window = new LinkedList<Datum>();
-	}
-	
-	@Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-	    return new DataCollector(endOfPipe) {
+    }
+    
+    @Override
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+        return new DataCollector(endOfPipe) {
 
-	        @Override
-			public void add(Datum d) {
-	        	if (d!=null){
-	        	
-		        	if (d instanceof TimestampedTuple){
-		        		if (((TimestampedTuple) d).isHeartBeat()) return;
-		        	}
-		        	
-	                window.add(d);
-	                while (window.size() > numTuples) {
-	                    window.remove(0);
-	                }
-	        	}
-	        	
-	        	// emit entire window content to output collector
+            @Override
+            public void add(Datum d) {
+                if (d!=null){
+                
+                    if (d instanceof TimestampedTuple){
+                        if (((TimestampedTuple) d).isHeartBeat()) return;
+                    }
+                    
+                    window.add(d);
+                    while (window.size() > numTuples) {
+                        window.remove(0);
+                    }
+                }
+                
+                // emit entire window content to output collector
                 for (Iterator<Datum> it = window.iterator(); it.hasNext(); ) {
                     addToSuccessor(it.next());
                 }
-	        }
-	        
-	       
-	    };
+            }
+            
+           
+        };
     }
-	
+    
     @Override
     public String toString() {
-    	StringBuilder sb = new StringBuilder();
-    	sb.append("[WINDOW ");
-    	sb.append(type);
-    	sb.append(" TUPLES ");
-    	sb.append(numTuples);
-    	sb.append("]");
-    	return sb.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append("[WINDOW ");
+        sb.append(type);
+        sb.append(" TUPLES ");
+        sb.append(numTuples);
+        sb.append("]");
+        return sb.toString();
     }
 
     public void visit(EvalSpecVisitor v) {

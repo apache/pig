@@ -32,14 +32,14 @@ import org.apache.pig.data.Tuple;
 */
 
 public interface StoreFunc {
-	
-	/**
-	 * Specifies the OutputStream to write to. This will be called before
-	 * store(Tuple) is invoked.
-	 * 
-	 * @param os The stream to write tuples to.
-	 * @throws IOException
-	 */
+    
+    /**
+     * Specifies the OutputStream to write to. This will be called before
+     * store(Tuple) is invoked.
+     * 
+     * @param os The stream to write tuples to.
+     * @throws IOException
+     */
     public abstract void bindTo(OutputStream os) throws IOException;
 
     /**
@@ -51,7 +51,7 @@ public interface StoreFunc {
      */
     public abstract void putNext(Tuple f) throws IOException;
 
-	/**
+    /**
      * Do any kind of post processing because the last tuple has been
      * stored. DO NOT CLOSE THE STREAM in this method. The stream will be
      * closed later outside of this function.

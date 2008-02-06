@@ -34,10 +34,10 @@ private static boolean mHaveSetAppenders = false;
  */ 
 public static Logger getLogger()
 {
-	if (mLogger == null) {
-		mLogger = Logger.getLogger("org.apache.pig");
-	}
-	return mLogger;
+    if (mLogger == null) {
+        mLogger = Logger.getLogger("org.apache.pig");
+    }
+    return mLogger;
 }
 
 /**
@@ -46,15 +46,15 @@ public static Logger getLogger()
  */
 public static void setAppenderForJunit()
 {
-	if (!mHaveSetAppenders) {
-		Logger log = getLogger();
-		log.setLevel(Level.INFO);
-		ConsoleAppender screen = new ConsoleAppender(new PatternLayout());
-		screen.setThreshold(Level.INFO);
-		screen.setTarget(ConsoleAppender.SYSTEM_ERR);
-		log.addAppender(screen);
-		mHaveSetAppenders = true;
-	}
+    if (!mHaveSetAppenders) {
+        Logger log = getLogger();
+        log.setLevel(Level.INFO);
+        ConsoleAppender screen = new ConsoleAppender(new PatternLayout());
+        screen.setThreshold(Level.INFO);
+        screen.setTarget(ConsoleAppender.SYSTEM_ERR);
+        log.addAppender(screen);
+        mHaveSetAppenders = true;
+    }
 }
 
 

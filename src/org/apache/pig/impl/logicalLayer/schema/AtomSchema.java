@@ -27,36 +27,36 @@ import java.util.List;
  *
  */
 public class AtomSchema extends Schema {
-	private static final long serialVersionUID = 1L;
-	
+    private static final long serialVersionUID = 1L;
+    
     public AtomSchema(String alias) {
         getAliases().add(alias);
     }
     
-	@Override
-	public int colFor(String alias) {
-    	return -1;
+    @Override
+    public int colFor(String alias) {
+        return -1;
     }
     
     @Override
-	public Schema schemaFor(int col) {
+    public Schema schemaFor(int col) {
         return null;
     }
     
     @Override
-	public AtomSchema copy(){
-    	return (AtomSchema)super.copy();
+    public AtomSchema copy(){
+        return (AtomSchema)super.copy();
     }
     
     @Override
-	public List<Schema> flatten(){
-    	List<Schema> ret = new ArrayList<Schema>();
-    	ret.add(this);
-    	return ret;
+    public List<Schema> flatten(){
+        List<Schema> ret = new ArrayList<Schema>();
+        ret.add(this);
+        return ret;
     }
     
     @Override
-	public String toString(){
-    	return getAlias();
+    public String toString(){
+        return getAlias();
     }
 }

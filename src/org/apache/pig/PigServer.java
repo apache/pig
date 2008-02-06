@@ -110,7 +110,7 @@ public class PigServer {
     }
     
     public PigServer() throws ExecException {
-    	this(ExecType.MAPREDUCE);
+        this(ExecType.MAPREDUCE);
     }
     
     public PigServer(ExecType execType) throws ExecException {
@@ -124,7 +124,7 @@ public class PigServer {
     }
 
     public PigContext getPigContext(){
-    	return pigContext;
+        return pigContext;
     }
     
     public void debugOn() {
@@ -145,7 +145,7 @@ public class PigServer {
      * It should have the form: classname('arg1', 'arg2', ...)
      */
     public void registerFunction(String function, String functionSpec) {
-    	pigContext.registerFunction(function, functionSpec);
+        pigContext.registerFunction(function, functionSpec);
     }
     
     private URL locateJarFromResources(String jarName) throws IOException {
@@ -153,7 +153,7 @@ public class PigServer {
         URL resourceLocation = null;
         
         if (urls.hasMoreElements()) {
-        	resourceLocation = urls.nextElement();
+            resourceLocation = urls.nextElement();
         }
         
         if (pigContext.debug && urls.hasMoreElements()) {
@@ -161,7 +161,7 @@ public class PigServer {
                 + jarName + ": " + resourceLocation;
             
             while (urls.hasMoreElements()) {
-            	logMessage += (logMessage + urls.nextElement() + "; ");
+                logMessage += (logMessage + urls.nextElement() + "; ");
             }
             
             PigLogger.getLogger().debug(logMessage);
@@ -185,7 +185,7 @@ public class PigServer {
         // first try to locate jar via system resources
         // if this fails, try by using "name" as File (this preserves 
         // compatibility with case when user passes absolute path or path 
-    	// relative to current working directory.)    	
+        // relative to current working directory.)        
         if (name != null) {
             URL resource = locateJarFromResources(name);
 
@@ -199,7 +199,7 @@ public class PigServer {
                 resource = f.toURI().toURL();
             }
 
-            pigContext.addJar(resource);    	
+            pigContext.addJar(resource);        
         }
     }
     
@@ -213,7 +213,7 @@ public class PigServer {
      * @throws IOException
      */
     public void registerQuery(String query) throws IOException {
-    	// Bugzilla Bug 1006706 -- ignore empty queries
+        // Bugzilla Bug 1006706 -- ignore empty queries
         //=============================================
         if(query != null) {
             query = query.trim();
@@ -236,13 +236,13 @@ public class PigServer {
     }
       
     public void dumpSchema(String alias) throws IOException{
-	LogicalPlan lp = aliases.get(alias);
-	if (lp == null)
-		throw new IOException("Invalid alias - " + alias);
+    LogicalPlan lp = aliases.get(alias);
+    if (lp == null)
+        throw new IOException("Invalid alias - " + alias);
 
-	TupleSchema schema = lp.getOpTable().get(lp.getRoot()).outputSchema();
+    TupleSchema schema = lp.getOpTable().get(lp.getRoot()).outputSchema();
 
-	System.out.println(schema.toString());	
+    System.out.println(schema.toString());    
     }
 
     public void setJobName(String name){
@@ -282,7 +282,7 @@ public class PigServer {
             ioe.initCause(e);
             throw ioe;
         }
-	}
+    }
     
     /**
      * Store an alias into a file
@@ -291,24 +291,24 @@ public class PigServer {
      * @throws IOException
      */
 
-	public void store(String id, String filename) throws IOException {
-		store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
-	}
-		
-	/**
-	 *  forces execution of query (and all queries from which it reads), in order to store result in file
-	 */
-	public void store(String id, String filename, String func) throws IOException{
+    public void store(String id, String filename) throws IOException {
+        store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
+    }
+        
+    /**
+     *  forces execution of query (and all queries from which it reads), in order to store result in file
+     */
+    public void store(String id, String filename, String func) throws IOException{
         if (!aliases.containsKey(id))
             throw new IOException("Invalid alias: " + id);
         
         if (FileLocalizer.fileExists(filename, pigContext))
-        	throw new IOException("Output file " + filename + " already exists. Can't overwrite.");
+            throw new IOException("Output file " + filename + " already exists. Can't overwrite.");
 
         LogicalPlan readFrom = aliases.get(id);
         
         store(readFrom,filename,func);
-	}
+    }
         
     public void store(LogicalPlan readFrom, String filename, String func) throws IOException {
         LogicalPlan storePlan = QueryParser.generateStorePlan(readFrom.getOpTable(),
@@ -493,16 +493,16 @@ public class PigServer {
         return MapReduceLauncher.totalHadoopTimeSpent;
     }
   
-	public Map<String, LogicalPlan> getAliases() {
-		return this.aliases;
-	}
-	
-	public void shutdown() {
-	    // clean-up activities
+    public Map<String, LogicalPlan> getAliases() {
+        return this.aliases;
+    }
+    
+    public void shutdown() {
+        // clean-up activities
             // TODO: reclaim scope to free up resources. Currently
-	    // this is not implemented and throws an exception
+        // this is not implemented and throws an exception
             // hence, for now, we won't call it.
-	    //
-	    // pigContext.getExecutionEngine().reclaimScope(this.scope);
-	}
+        //
+        // pigContext.getExecutionEngine().reclaimScope(this.scope);
+    }
 }

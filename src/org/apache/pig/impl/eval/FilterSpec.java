@@ -29,44 +29,44 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 public class FilterSpec extends EvalSpec {
-	private static final long serialVersionUID = 1L;
-	
-	public Cond cond;
+    private static final long serialVersionUID = 1L;
+    
+    public Cond cond;
 
-	public FilterSpec(Cond cond) {
+    public FilterSpec(Cond cond) {
         this.cond = cond;
     }
     
     @Override
     public List<String> getFuncs() {
-    	return cond.getFuncs();
+        return cond.getFuncs();
     }
     
     @Override
-	protected Schema mapInputSchema(Schema schema) {
-    	return schema;
+    protected Schema mapInputSchema(Schema schema) {
+        return schema;
     }
     
     @Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
         return new DataCollector(endOfPipe) {
 
             @Override
-			public void add(Datum d){
-            	if (checkDelimiter(d))
-            		addToSuccessor(d);
-            	else if (cond.eval(d)) 
-            		addToSuccessor(d);
+            public void add(Datum d){
+                if (checkDelimiter(d))
+                    addToSuccessor(d);
+                else if (cond.eval(d)) 
+                    addToSuccessor(d);
             }
             
             @Override
             protected boolean needFlatteningLocally() {
-	            return true;
+                return true;
             }
             
             @Override
             protected void finish() {
-            	cond.finish();
+                cond.finish();
             }
             
         };
@@ -74,23 +74,23 @@ public class FilterSpec extends EvalSpec {
     
     @Override
     public String toString() {
-    	StringBuilder sb = new StringBuilder();
-    	sb.append("[FILTER BY ");
-    	sb.append(cond.toString());
-    	sb.append("]");
-    	return sb.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append("[FILTER BY ");
+        sb.append(cond.toString());
+        sb.append("]");
+        return sb.toString();
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-		cond.instantiateFunc(instantiaor);		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        cond.instantiateFunc(instantiaor);        
+    }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitFilter(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitFilter(this);
+    }
     
    
     

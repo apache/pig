@@ -48,7 +48,7 @@ final public class DataAtom extends Datum {
     }
     
     public DataAtom(byte[] valIn){
-    	setValue(valIn);
+        setValue(valIn);
     }
 
     public DataAtom(double valIn) {
@@ -61,9 +61,9 @@ final public class DataAtom extends Datum {
     }
     
     public void setValue(byte[] valIn) {
-    	binaryVal = valIn;
-    	stringVal = null;
-    	doubleVal = Double.POSITIVE_INFINITY;
+        binaryVal = valIn;
+        stringVal = null;
+        doubleVal = Double.POSITIVE_INFINITY;
     }
 
     public void setValue(int valIn) {
@@ -104,20 +104,20 @@ final public class DataAtom extends Datum {
     }
 
     @Override
-	public String toString() {
+    public String toString() {
         return stringVal;
     }
 
     
     @Override
-	public boolean equals(Object other) {
+    public boolean equals(Object other) {
         
-    	return compareTo(other) == 0;
+        return compareTo(other) == 0;
     }    
     
     public int compareTo(Object other) {
-    	if (!(other instanceof DataAtom))
-    		return -1;
+        if (!(other instanceof DataAtom))
+            return -1;
         DataAtom dOther = (DataAtom) other;
         
         return stringVal.compareTo(dOther.stringVal);
@@ -125,8 +125,8 @@ final public class DataAtom extends Datum {
     }
 
     @Override
-	public void write(DataOutput out) throws IOException {
-    	 out.write(ATOM);
+    public void write(DataOutput out) throws IOException {
+         out.write(ATOM);
          byte[] data;
          try {
              data = strval().getBytes("UTF-8");
@@ -135,7 +135,7 @@ final public class DataAtom extends Datum {
              throw new RuntimeException("Error dealing with DataAtom of size " + size);
          }
          Tuple.encodeInt(out, data.length);
-         out.write(data);	
+         out.write(data);    
     }
     
     static DataAtom read(DataInput in) throws IOException {
@@ -149,7 +149,7 @@ final public class DataAtom extends Datum {
 
     
     @Override
-	public int hashCode() {
+    public int hashCode() {
         return stringVal.hashCode();
     }
 

@@ -29,21 +29,21 @@ import org.apache.pig.impl.eval.EvalSpec;
 
 
 public class CompCond extends Cond {
-	private static final long serialVersionUID = 1L;
-	
+    private static final long serialVersionUID = 1L;
+    
     public String op;   // one of "<", ">", "==", etc.
     public EvalSpec left, right;
     
     
 
 
-	public CompCond(EvalSpec left, String op, EvalSpec right) throws IOException{
+    public CompCond(EvalSpec left, String op, EvalSpec right) throws IOException{
         this.op = op.toLowerCase();
         this.left = left;
         this.right = right;
         
         if (left.isAsynchronous() || right.isAsynchronous()){
-        	throw new IOException("Can't compare the output of an asynchronous function");
+            throw new IOException("Can't compare the output of an asynchronous function");
         }
     } 
    
@@ -54,18 +54,18 @@ public class CompCond extends Cond {
 
     @Override
     public boolean eval(Datum input) {
-    	
-    	Datum d1 = left.simpleEval(input);
-    	Datum d2 = right.simpleEval(input);
-    	
-    	if (!(d1 instanceof DataAtom) || !(d2 instanceof DataAtom)){
-    		throw new RuntimeException("Builtin functions cannot be used to compare non-atomic values. Use a filter function instead.");
-    	}
-    	
-    	DataAtom da1 = (DataAtom)d1;
-    	DataAtom da2 = (DataAtom)d2;
-    	
-    	
+        
+        Datum d1 = left.simpleEval(input);
+        Datum d2 = right.simpleEval(input);
+        
+        if (!(d1 instanceof DataAtom) || !(d2 instanceof DataAtom)){
+            throw new RuntimeException("Builtin functions cannot be used to compare non-atomic values. Use a filter function instead.");
+        }
+        
+        DataAtom da1 = (DataAtom)d1;
+        DataAtom da2 = (DataAtom)d2;
+        
+        
         char op1 = op.charAt(0);
         char op2 = op.length() >= 2 ? op.charAt(1) : '0';
         char op3 = op.length() == 3 ? op.charAt(2) : '0';
@@ -127,21 +127,21 @@ public class CompCond extends Cond {
     }
         
     @Override
-	public String toString() {
+    public String toString() {
         return "(" + left + " " + op + " " + right + ")";
     }
     
     @Override
     public void finish() {
-    	left.finish();
-    	right.finish();
+        left.finish();
+        right.finish();
     }
 
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-    	left.instantiateFunc(instantiaor);
-    	right.instantiateFunc(instantiaor);		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        left.instantiateFunc(instantiaor);
+        right.instantiateFunc(instantiaor);        
+    }
 }

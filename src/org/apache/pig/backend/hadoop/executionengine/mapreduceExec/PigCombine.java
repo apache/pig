@@ -123,17 +123,17 @@ public class PigCombine implements Reducer {
 
         public CombineDataOutputCollector(OutputCollector oc) {
             super(null);
-        	this.oc = oc;
+            this.oc = oc;
         }
 
         @Override
-		public void add(Datum d){
+        public void add(Datum d){
             if (d == null) return;  // EOF marker from eval pipeline; ignore
             try{
-            	// oc.collect(group, new IndexedTuple(((Tuple)d).getTupleField(0),index));
+                // oc.collect(group, new IndexedTuple(((Tuple)d).getTupleField(0),index));
                 oc.collect(group, new IndexedTuple(((Tuple)d),index));
             }catch (IOException e){
-            	throw new RuntimeException(e);
+                throw new RuntimeException(e);
             }
         }
     }

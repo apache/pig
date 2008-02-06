@@ -48,8 +48,8 @@ public class LOCogroup extends LogicalOperator {
 
     @Override
     public String name() {
-    	if (inputs.size() == 1) return "Group " + scope + "-" + id;
-    	else return "CoGroup " + scope + "-" + id;
+        if (inputs.size() == 1) return "Group " + scope + "-" + id;
+        else return "CoGroup " + scope + "-" + id;
     }
     @Override
     public String arguments() {
@@ -180,8 +180,8 @@ public class LOCogroup extends LogicalOperator {
         return specs;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitCogroup(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitCogroup(this);
+    }
 
 }

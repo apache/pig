@@ -33,17 +33,17 @@ package org.apache.pig;
  *
  */
 public interface Algebraic{
-	
-	/**
-	 * 
-	 * @return A string to instatiate f_init. f_init should be an eval func 
-	 */
-	public String getInitial();
+    
+    /**
+     * 
+     * @return A string to instatiate f_init. f_init should be an eval func 
+     */
+    public String getInitial();
 
-	/**
-	 * 
-	 * @return A string to instantiate f_intermed. f_intermed should be an eval func
-	 */
+    /**
+     * 
+     * @return A string to instantiate f_intermed. f_intermed should be an eval func
+     */
     public String getIntermed();
 
     /**

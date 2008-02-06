@@ -89,3 +89,5 @@ Trunk (unreleased changes)
 	gates, committed by gates).
 
 	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
+
+	PIG-65: convert tabs to spaces (groves via olgan)

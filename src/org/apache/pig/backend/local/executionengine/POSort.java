@@ -33,42 +33,42 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 
 
 public class POSort extends PhysicalOperator {
-	static final long serialVersionUID = 1L; 
-	EvalSpec sortSpec;
-	transient Iterator<Tuple> iter;
-	
-	
-	public POSort(String scope, 
-				  long id, 
-				  Map<OperatorKey, ExecPhysicalOperator> opTable, 
-				  EvalSpec sortSpec, 
-				  int outputType) {
-		super(scope, id, opTable, outputType);
-		this.sortSpec = sortSpec;
-		this.inputs = new OperatorKey[1];
-	}
+    static final long serialVersionUID = 1L; 
+    EvalSpec sortSpec;
+    transient Iterator<Tuple> iter;
+    
+    
+    public POSort(String scope, 
+                  long id, 
+                  Map<OperatorKey, ExecPhysicalOperator> opTable, 
+                  EvalSpec sortSpec, 
+                  int outputType) {
+        super(scope, id, opTable, outputType);
+        this.sortSpec = sortSpec;
+        this.inputs = new OperatorKey[1];
+    }
 
-	@Override
-	public boolean open() throws IOException {
-		if (!super.open())
-			return false;
-		DataBag bag = BagFactory.getInstance().newSortedBag(sortSpec);
-		
-		Tuple t;
-		while((t = ((PhysicalOperator)opTable.get(inputs[0])).getNext())!=null){
-			bag.add(t);
-		}
-		iter = bag.iterator();
-		return true;
-	}
-	
-	@Override
-	public Tuple getNext() throws IOException {
-		if (iter.hasNext())
-			return iter.next();
-		else
-			return null;
-	}
+    @Override
+    public boolean open() throws IOException {
+        if (!super.open())
+            return false;
+        DataBag bag = BagFactory.getInstance().newSortedBag(sortSpec);
+        
+        Tuple t;
+        while((t = ((PhysicalOperator)opTable.get(inputs[0])).getNext())!=null){
+            bag.add(t);
+        }
+        iter = bag.iterator();
+        return true;
+    }
+    
+    @Override
+    public Tuple getNext() throws IOException {
+        if (iter.hasNext())
+            return iter.next();
+        else
+            return null;
+    }
 
     @Override
     public void visit(POVisitor v, String prefix) {

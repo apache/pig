@@ -53,13 +53,13 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
 
     static public class Initial extends EvalFunc<Tuple> {
         @Override
-		public void exec(Tuple input, Tuple output) throws IOException {
+        public void exec(Tuple input, Tuple output) throws IOException {
             output.appendField(new DataAtom(sum(input)));
         }
     }
     static public class Final extends EvalFunc<DataAtom> {
         @Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
+        public void exec(Tuple input, DataAtom output) throws IOException {
             output.setValue(sum(input));
         }
     }
@@ -68,18 +68,18 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
         DataBag values = input.getBagField(0);
 
         double sum = 0;
-	int i = 0;
+    int i = 0;
         Tuple t = null;
         for (Iterator it = values.iterator(); it.hasNext();) {
             try {
             t = (Tuple) it.next();
-	    i++;
+        i++;
             sum += t.getAtomField(0).numval();
             }catch(RuntimeException exp) {
-		String msg = "iteration = " + i + "bag size = " + values.size() + " partial sum = " + sum + "\n";
-		if (t != null)
-			msg += "previous tupple = " + t.toString();
-		throw new RuntimeException(exp.getMessage() + " additional info: " + msg);
+        String msg = "iteration = " + i + "bag size = " + values.size() + " partial sum = " + sum + "\n";
+        if (t != null)
+            msg += "previous tupple = " + t.toString();
+        throw new RuntimeException(exp.getMessage() + " additional info: " + msg);
                 //throw new RuntimeException(exp.getMessage() + " error processing: " + t.toString());
             }
         }

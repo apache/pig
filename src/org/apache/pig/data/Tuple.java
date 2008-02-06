@@ -104,8 +104,8 @@ public class Tuple extends Datum implements WritableComparable {
     }
 
     @Override
-	public String toString() {
-    	StringBuffer sb = new StringBuffer();
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
         sb.append('(');
         for (Iterator<Datum> it = fields.iterator(); it.hasNext();) {
             Datum d = it.next();
@@ -156,7 +156,7 @@ public class Tuple extends Datum implements WritableComparable {
         } else if (field instanceof Tuple) {
             Tuple t = (Tuple) field;
             if (t.arity() == 1) {
-            	System.err.println("Warning: Asked for an atom field but found a tuple with one field.");
+                System.err.println("Warning: Asked for an atom field but found a tuple with one field.");
                 return t.getAtomField(0);
             }
         } else if (field instanceof DataBag) {
@@ -233,9 +233,9 @@ public class Tuple extends Datum implements WritableComparable {
     }
     
     @Override
-	public boolean equals(Object other){
-    		return compareTo(other)==0;
-    }	
+    public boolean equals(Object other){
+            return compareTo(other)==0;
+    }    
     
     public int compareTo(Tuple other) {
         if (other.fields.size() != this.fields.size())
@@ -257,11 +257,11 @@ public class Tuple extends Datum implements WritableComparable {
         else if (other instanceof Tuple)
             return compareTo((Tuple) other);
         else
-        	return -1;
+            return -1;
     }
 
     @Override
-	public int hashCode() {
+    public int hashCode() {
         int hash = 1;
         for (Iterator<Datum> it = fields.iterator(); it.hasNext();) {
             hash = 31 * hash + it.next().hashCode();
@@ -272,37 +272,37 @@ public class Tuple extends Datum implements WritableComparable {
     // WritableComparable methods:
    
     @Override
-	public void write(DataOutput out) throws IOException {
+    public void write(DataOutput out) throws IOException {
         out.write(TUPLE);
         int n = arity();
         encodeInt(out, n);
         for (int i = 0; i < n; i++) {
-        	Datum d = getField(i);
-        	if (d!=null){
-        		d.write(out);
-        	}else{
-        		throw new RuntimeException("Null field in tuple");
-        	}
+            Datum d = getField(i);
+            if (d!=null){
+                d.write(out);
+            }else{
+                throw new RuntimeException("Null field in tuple");
+            }
         }
     }
 
     //This method is invoked when the beginning 'TUPLE' is still on the stream
     public void readFields(DataInput in) throws IOException {
-    	byte[] b = new byte[1];
+        byte[] b = new byte[1];
         in.readFully(b);
         if (b[0]!=TUPLE)
-        	throw new IOException("Unexpected data while reading tuple from binary file");
-    	Tuple t = read(in);
-    	fields = t.fields;
+            throw new IOException("Unexpected data while reading tuple from binary file");
+        Tuple t = read(in);
+        fields = t.fields;
     }
     
     //This method is invoked when the beginning 'TUPLE' has been read off the stream
     public static Tuple read(DataInput in) throws IOException {
         // nuke the old contents of the tuple
         Tuple ret = new Tuple();
-    	ret.fields = new ArrayList<Datum>();
+        ret.fields = new ArrayList<Datum>();
 
-    	int size = decodeInt(in);
+        int size = decodeInt(in);
         
         for (int i = 0; i < size; i++) {
             ret.appendField(readDatum(in));
@@ -313,20 +313,20 @@ public class Tuple extends Datum implements WritableComparable {
     }
     
     public static Datum readDatum(DataInput in) throws IOException{
-    	byte[] b = new byte[1];
-    	in.readFully(b);
-    	switch (b[0]) {
-	        case TUPLE:
-	            return Tuple.read(in);
-	        case BAG:
-	        	return DataBag.read(in);
-	        case MAP:
-	        	return DataMap.read(in);
-	        case ATOM:
-	            return DataAtom.read(in);
-	        default:
-	        	throw new IOException("Invalid data while reading Datum from binary file");
-    	}
+        byte[] b = new byte[1];
+        in.readFully(b);
+        switch (b[0]) {
+            case TUPLE:
+                return Tuple.read(in);
+            case BAG:
+                return DataBag.read(in);
+            case MAP:
+                return DataMap.read(in);
+            case ATOM:
+                return DataAtom.read(in);
+            default:
+                throw new IOException("Invalid data while reading Datum from binary file");
+        }
     }
 
     //  Encode the integer so that the high bit is set on the last
@@ -358,7 +358,7 @@ public class Tuple extends Datum implements WritableComparable {
         return i;
     }
 
-	@Override
+    @Override
     public long getMemorySize() {
         long used = 0;
         try {

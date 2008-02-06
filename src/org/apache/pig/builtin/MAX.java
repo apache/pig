@@ -34,58 +34,58 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  */
 public class MAX extends EvalFunc<DataAtom> implements Algebraic {
 
-	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(max(input));
-	}
+    @Override
+    public void exec(Tuple input, DataAtom output) throws IOException {
+        output.setValue(max(input));
+    }
 
-	public String getInitial() {
-		return Initial.class.getName();
-	}
+    public String getInitial() {
+        return Initial.class.getName();
+    }
 
-	public String getIntermed() {
-		return Initial.class.getName();
-	}
+    public String getIntermed() {
+        return Initial.class.getName();
+    }
 
-	public String getFinal() {
-		return Final.class.getName();
-	}
+    public String getFinal() {
+        return Final.class.getName();
+    }
 
-	static public class Initial extends EvalFunc<Tuple> {
-		@Override
-		public void exec(Tuple input, Tuple output) throws IOException {
-			output.appendField(new DataAtom(max(input)));
-		}
-	}
-	static public class Final extends EvalFunc<DataAtom> {
-		@Override
-		public void exec(Tuple input, DataAtom output) throws IOException {
-			output.setValue(max(input));
-		}
-	}
+    static public class Initial extends EvalFunc<Tuple> {
+        @Override
+        public void exec(Tuple input, Tuple output) throws IOException {
+            output.appendField(new DataAtom(max(input)));
+        }
+    }
+    static public class Final extends EvalFunc<DataAtom> {
+        @Override
+        public void exec(Tuple input, DataAtom output) throws IOException {
+            output.setValue(max(input));
+        }
+    }
 
-	static protected double max(Tuple input) throws IOException {
-		DataBag values = input.getBagField(0);
+    static protected double max(Tuple input) throws IOException {
+        DataBag values = input.getBagField(0);
 
-		double curMax = Double.NEGATIVE_INFINITY;
-		for (Iterator it = values.iterator(); it.hasNext();) {
-			Tuple t = (Tuple) it.next();
-			try {
-				curMax = java.lang.Math.max(curMax, t.getAtomField(0).numval());
-			}catch(RuntimeException exp) {
-				IOException newE = new IOException("Error processing: " + t.toString() + exp.getMessage());
+        double curMax = Double.NEGATIVE_INFINITY;
+        for (Iterator it = values.iterator(); it.hasNext();) {
+            Tuple t = (Tuple) it.next();
+            try {
+                curMax = java.lang.Math.max(curMax, t.getAtomField(0).numval());
+            }catch(RuntimeException exp) {
+                IOException newE = new IOException("Error processing: " + t.toString() + exp.getMessage());
                                 newE.initCause(exp);
                                 throw newE;
 
-			}
-		}
+            }
+        }
 
-		return curMax;
-	}
-	@Override
-	public Schema outputSchema(Schema input) {
-		return new AtomSchema("max" + count++);
-	}
+        return curMax;
+    }
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new AtomSchema("max" + count++);
+    }
 
-	private static int count = 1;
+    private static int count = 1;
 }

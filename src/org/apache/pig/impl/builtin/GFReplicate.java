@@ -28,19 +28,19 @@ import org.apache.pig.data.Tuple;
 
 public class GFReplicate extends EvalFunc<DataBag> {
 
-	int numGroups = GFAny.defaultNumGroups;
-	
-	public GFReplicate(){}
-	
-	public GFReplicate(int numGroups){
-		this.numGroups = numGroups;
-	}
-	
-	@Override
-	public void exec(Tuple input, DataBag output) throws IOException{
-		for (int i=0; i<numGroups; i++){
-			output.add(new Tuple(new DataAtom(i)));
-		}
-	}
+    int numGroups = GFAny.defaultNumGroups;
+    
+    public GFReplicate(){}
+    
+    public GFReplicate(int numGroups){
+        this.numGroups = numGroups;
+    }
+    
+    @Override
+    public void exec(Tuple input, DataBag output) throws IOException{
+        for (int i=0; i<numGroups; i++){
+            output.add(new Tuple(new DataAtom(i)));
+        }
+    }
 
 }

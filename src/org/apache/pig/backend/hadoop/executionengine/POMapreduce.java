@@ -40,8 +40,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PigLogger;
 
 public class POMapreduce extends PhysicalOperator {
-	private static final long serialVersionUID = 1L;
-	
+    private static final long serialVersionUID = 1L;
+    
     public ArrayList<EvalSpec> toMap             = new ArrayList<EvalSpec>();
     public EvalSpec     toCombine         = null;
     public EvalSpec    toReduce          = null;
@@ -71,11 +71,11 @@ public class POMapreduce extends PhysicalOperator {
     }
     
     public boolean doesSplitting() {
-    	return toSplit !=null;
+        return toSplit !=null;
     }
     
     public boolean doesSorting() {
-    	return quantilesFile!=null;
+        return quantilesFile!=null;
     }
 
     public int numInputFiles() {
@@ -105,7 +105,7 @@ public class POMapreduce extends PhysicalOperator {
                        OperatorKey[] inputsIn) {
         super(scope, id, opTable, LogicalOperator.FIXED);
         this.sourceLogicalKey = sourceLogicalKey;
-    	this.pigContext = pigContext;
+        this.pigContext = pigContext;
         inputs = inputsIn;
     }
 
@@ -117,7 +117,7 @@ public class POMapreduce extends PhysicalOperator {
                        OperatorKey inputIn) {
         super(scope, id, opTable, LogicalOperator.FIXED);
         this.sourceLogicalKey = sourceLogicalKey;
-    	this.pigContext = pigContext;
+        this.pigContext = pigContext;
         inputs = new OperatorKey[1];
         inputs[0] = inputIn;
     }
@@ -129,7 +129,7 @@ public class POMapreduce extends PhysicalOperator {
                        PigContext pigContext) {
         super(scope, id, opTable, LogicalOperator.FIXED);
         this.sourceLogicalKey = sourceLogicalKey;
-    	this.pigContext = pigContext;
+        this.pigContext = pigContext;
         inputs = new OperatorKey[0];
     }
 
@@ -148,17 +148,17 @@ public class POMapreduce extends PhysicalOperator {
     }
     
     public void addInputFile(FileSpec fileSpec){
-    	addInputFile(fileSpec, new StarSpec());
+        addInputFile(fileSpec, new StarSpec());
     }
     
     public void addInputFile(FileSpec fileSpec, EvalSpec evalSpec){
-    	inputFileSpecs.add(fileSpec);
-    	toMap.add(evalSpec);
+        inputFileSpecs.add(fileSpec);
+        toMap.add(evalSpec);
     }
     
     
     @Override
-	public boolean open() throws IOException {
+    public boolean open() throws IOException {
         // first, call open() on all inputs
         if (inputs != null) {
             for (int i = 0; i < inputs.length; i++) {
@@ -178,7 +178,7 @@ public class POMapreduce extends PhysicalOperator {
     }
 
     @Override
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         // drain all inputs
         for (int i = 0; i < inputs.length; i++) {
             while (((PhysicalOperator)opTable.get(inputs[i])).getNext() != null)
@@ -200,56 +200,56 @@ public class POMapreduce extends PhysicalOperator {
     }
 
     void print() {
-    	Logger log = PigLogger.getLogger();
-    	log.info("----- MapReduce Job -----");
-    	log.info("Input: " + inputFileSpecs);
-    	log.info("Map: " + toMap);
-		log.info("Group: " + groupFuncs);
-		log.info("Combine: " + toCombine);
-		log.info("Reduce: " + toReduce);
-		log.info("Output: " + outputFileSpec);
-		log.info("Split: " + toSplit);
-		log.info("Map parallelism: " + mapParallelism);
-		log.info("Reduce parallelism: " + reduceParallelism);
+        Logger log = PigLogger.getLogger();
+        log.info("----- MapReduce Job -----");
+        log.info("Input: " + inputFileSpecs);
+        log.info("Map: " + toMap);
+        log.info("Group: " + groupFuncs);
+        log.info("Combine: " + toCombine);
+        log.info("Reduce: " + toReduce);
+        log.info("Output: " + outputFileSpec);
+        log.info("Split: " + toSplit);
+        log.info("Map parallelism: " + mapParallelism);
+        log.info("Reduce parallelism: " + reduceParallelism);
     }
     
     public POMapreduce copy(long id){
-    	try{
-    		Map<OperatorKey, ExecPhysicalOperator> srcOpTable = this.opTable;
-    		this.opTable = null;
-    		
-    		POMapreduce copy = ((POMapreduce)ObjectSerializer.deserialize(ObjectSerializer.serialize(this)));
-    		
-    		copy.pigContext = pigContext;
-    		copy.inputs = inputs;
-    		copy.opTable = srcOpTable;
-    		copy.id = id;
-    		return copy;
-    	}catch(IOException e){
-    		throw new RuntimeException(e);
-    	}
+        try{
+            Map<OperatorKey, ExecPhysicalOperator> srcOpTable = this.opTable;
+            this.opTable = null;
+            
+            POMapreduce copy = ((POMapreduce)ObjectSerializer.deserialize(ObjectSerializer.serialize(this)));
+            
+            copy.pigContext = pigContext;
+            copy.inputs = inputs;
+            copy.opTable = srcOpTable;
+            copy.id = id;
+            return copy;
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
     }
     
     public EvalSpec getEvalSpec(int i){
-    	return toMap.get(i);
+        return toMap.get(i);
     }
     
     public FileSpec getFileSpec(int i){
-    	return inputFileSpecs.get(i);
+        return inputFileSpecs.get(i);
     }
     
     public void addMapSpec(int i, EvalSpec spec){
-    	if (toMap.get(i) == null)
-    		toMap.set(i, spec);
-    	else
-    		toMap.set(i, toMap.get(i).addSpec(spec));
+        if (toMap.get(i) == null)
+            toMap.set(i, spec);
+        else
+            toMap.set(i, toMap.get(i).addSpec(spec));
     }
     
     public void addReduceSpec(EvalSpec spec){
-    	if (toReduce == null)
-    		toReduce = spec;
-    	else
-    		toReduce = toReduce.addSpec(spec);
+        if (toReduce == null)
+            toReduce = spec;
+        else
+            toReduce = toReduce.addSpec(spec);
     }
     
     public void visit(POVisitor v, String prefix) {

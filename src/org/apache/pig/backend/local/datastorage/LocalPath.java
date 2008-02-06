@@ -18,17 +18,17 @@ public abstract class LocalPath implements ElementDescriptor {
     protected File path;
 
     protected File getCurPath() {
-    	File path;
-    	
-    	if (this.path.isAbsolute()) {
-    		path = this.path;
-    	}
-    	else {
-    		path = new File(fs.getActiveContainer().toString(),
-    						this.path.getPath());
-    	}
-    	
-    	return path;
+        File path;
+        
+        if (this.path.isAbsolute()) {
+            path = this.path;
+        }
+        else {
+            path = new File(fs.getActiveContainer().toString(),
+                            this.path.getPath());
+        }
+        
+        return path;
     }
     
     public LocalPath(LocalDataStorage fs, String path) {
@@ -49,7 +49,7 @@ public abstract class LocalPath implements ElementDescriptor {
     public LocalPath(LocalDataStorage fs, File parent, File child) {
         this.fs = fs;
         this.path = new File(parent.getPath(),
-        		             child.getPath());
+                             child.getPath());
     }
     
     public LocalPath(LocalDataStorage fs, File parent, String child) {

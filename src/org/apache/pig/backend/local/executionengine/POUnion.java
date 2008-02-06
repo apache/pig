@@ -30,43 +30,43 @@ import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 
 class POUnion extends PhysicalOperator {
     /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	int currentInput;
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    int currentInput;
 
     public POUnion(String scope, 
                    long id, 
                    Map<OperatorKey, ExecPhysicalOperator> opTable, 
                    OperatorKey[] inputsIn, 
                    int outputType) {
-    	super(scope, id, opTable, outputType);
+        super(scope, id, opTable, outputType);
         inputs = inputsIn;
         currentInput = 0;
     }
 
     public POUnion(String scope, 
-    		       long id, 
-    		       Map<OperatorKey, ExecPhysicalOperator> opTable, 
-    		       int numInputs, 
-    		       int outputType) {
-    	super(scope, id, opTable, outputType);
+                   long id, 
+                   Map<OperatorKey, ExecPhysicalOperator> opTable, 
+                   int numInputs, 
+                   int outputType) {
+        super(scope, id, opTable, outputType);
         inputs = new OperatorKey[numInputs];
         for (int i = 0; i < inputs.length; i++)
             inputs[i] = null;
     }
     
     @Override
-	public boolean open() throws IOException{
-    	if (!super.open()){
-    		return false;
-    	}
-    	currentInput = 0;
-    	return true;
+    public boolean open() throws IOException{
+        if (!super.open()){
+            return false;
+        }
+        currentInput = 0;
+        return true;
     }
 
     @Override
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         while (currentInput < inputs.length) {
             Tuple t = ((PhysicalOperator)opTable.get(inputs[currentInput])).getNext();
 

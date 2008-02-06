@@ -32,10 +32,10 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 // unary, non-blocking operator.
 class POEval extends PhysicalOperator {
     /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	EvalSpec spec;
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    EvalSpec spec;
     private DataBuffer buf = null;
     private DataCollector evalPipeline = null;
     private boolean inputDrained;
@@ -47,8 +47,8 @@ class POEval extends PhysicalOperator {
                   OperatorKey input, 
                   EvalSpec specIn, 
                   int outputType) {
-    	super(scope, id, opTable, outputType);
-    	inputs = new OperatorKey[1];
+        super(scope, id, opTable, outputType);
+        inputs = new OperatorKey[1];
         inputs[0] = input;
 
         spec = specIn;
@@ -59,7 +59,7 @@ class POEval extends PhysicalOperator {
                   Map<OperatorKey, ExecPhysicalOperator> opTable,
                   EvalSpec specIn, 
                   int outputType) {
-    	super(scope, id, opTable, outputType);
+        super(scope, id, opTable, outputType);
         inputs = new OperatorKey[1];
         inputs[0] = null;
 
@@ -67,13 +67,13 @@ class POEval extends PhysicalOperator {
     }
 
     @Override
-	public boolean open() throws IOException {
+    public boolean open() throws IOException {
         if (!super.open()) return false;
     
         if (buf==null)
-        	buf = new DataBuffer();
+            buf = new DataBuffer();
         if (evalPipeline == null)
-        	evalPipeline = spec.setupPipe(buf);
+            evalPipeline = spec.setupPipe(buf);
             
         inputDrained = false;
         
@@ -81,32 +81,32 @@ class POEval extends PhysicalOperator {
     }
 
     @Override
-	public Tuple getNext() throws IOException {
-    	while (true) {        	
-        	if (buf.isEmpty()){
+    public Tuple getNext() throws IOException {
+        while (true) {            
+            if (buf.isEmpty()){
                 // no pending outputs, so look to input to provide more food
                 
                 if (inputDrained){
                     return null;
                 }
-                	                
+                                    
                 Tuple nextTuple = ((PhysicalOperator)opTable.get(inputs[0])).getNext();
                 
                 if (nextTuple == null){
                     inputDrained = true;
                     evalPipeline.finishPipe();
                 }else{
-                	evalPipeline.add(nextTuple);
-                	lastAdded = nextTuple;   // for lineage bookkeeping
+                    evalPipeline.add(nextTuple);
+                    lastAdded = nextTuple;   // for lineage bookkeeping
                 }
-        	}else{
-        		Tuple output = (Tuple)buf.removeFirst();
-        		if (lineageTracer != null) {
-        		    lineageTracer.insert(output);
-        		    if (lastAdded != null) lineageTracer.union(lastAdded, output);   // update lineage (assumes one-to-many relationship between tuples added to pipeline and output!!)
-        		}
-        		return output;
-        	}            
+            }else{
+                Tuple output = (Tuple)buf.removeFirst();
+                if (lineageTracer != null) {
+                    lineageTracer.insert(output);
+                    if (lastAdded != null) lineageTracer.union(lastAdded, output);   // update lineage (assumes one-to-many relationship between tuples added to pipeline and output!!)
+                }
+                return output;
+            }            
         }
     }
        

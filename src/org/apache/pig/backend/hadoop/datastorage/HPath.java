@@ -54,26 +54,26 @@ public abstract class HPath implements ElementDescriptor {
              throws IOException;
     
     public void copy(ElementDescriptor dstName,
-    				 Properties dstConfiguration,
+                     Properties dstConfiguration,
                      boolean removeSrc)
-        	throws IOException {
-    	FileSystem srcFS = this.fs.getHFS();
-    	FileSystem dstFS = ((HPath)dstName).fs.getHFS();
-    	
-    	Path srcPath = this.path;
-    	Path dstPath = ((HPath)dstName).path;
-    	
-    	boolean result = FileUtil.copy(srcFS,
-    								   srcPath,
-    								   dstFS,
-    								   dstPath,
-    								   false,
-    								   new Configuration());
-    	
-    	if (!result) {
-    		throw new IOException("Failed to copy from: " + this.toString() +
-    							  " to: " + dstName.toString());
-    	}
+            throws IOException {
+        FileSystem srcFS = this.fs.getHFS();
+        FileSystem dstFS = ((HPath)dstName).fs.getHFS();
+        
+        Path srcPath = this.path;
+        Path dstPath = ((HPath)dstName).path;
+        
+        boolean result = FileUtil.copy(srcFS,
+                                       srcPath,
+                                       dstFS,
+                                       dstPath,
+                                       false,
+                                       new Configuration());
+        
+        if (!result) {
+            throw new IOException("Failed to copy from: " + this.toString() +
+                                  " to: " + dstName.toString());
+        }
     }
     
     public abstract InputStream open() throws IOException;
@@ -92,7 +92,7 @@ public abstract class HPath implements ElementDescriptor {
     }
 
     public void delete() throws IOException {
-    	// the file is removed and not placed in the trash bin
+        // the file is removed and not placed in the trash bin
         fs.getHFS().delete(path);
     }
 

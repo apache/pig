@@ -52,15 +52,15 @@ public class PigSplit implements InputSplit {
     public PigSplit() {}
 
     public PigSplit(PigContext pigContext, FileSystem fs, Path path, String parser, EvalSpec groupbySpec, EvalSpec evalSpec, int index, long start, long length) {
-		this.fs = fs;
-		this.file = path;
-		this.start = start;
-		this.length = length;
-		this.groupbySpec = groupbySpec;
-		this.evalSpec = evalSpec;
-		this.index = index;
-		this.parser = parser;
-		this.pigContext = pigContext;
+        this.fs = fs;
+        this.file = path;
+        this.start = start;
+        this.length = length;
+        this.groupbySpec = groupbySpec;
+        this.evalSpec = evalSpec;
+        this.index = index;
+        this.parser = parser;
+        this.pigContext = pigContext;
     }
 
     public String getParser() {
@@ -68,11 +68,11 @@ public class PigSplit implements InputSplit {
     }
 
     public long getStart() {
-	return start;
+    return start;
     }
     
     public long getLength() {
-	return length;
+    return length;
     }
     public EvalSpec getGroupbySpec() {
         return groupbySpec;
@@ -106,65 +106,65 @@ public class PigSplit implements InputSplit {
 
 
     public String[] getLocations() throws IOException {
-		String hints[][] = fs.getFileCacheHints(file, start, length);
-		int total = 0;
-		for(int i = 0; i < hints.length; i++) {
-		    total += hints[i].length;
-		}
-		String locations[] = new String[total];
-		int count = 0;
-		for(int i = 0; i < hints.length; i++) {
-		    for(int j = 0; j < hints[i].length; j++) {
-			locations[count++] = hints[i][j];
-		    }
-		}
-		return locations;
+        String hints[][] = fs.getFileCacheHints(file, start, length);
+        int total = 0;
+        for(int i = 0; i < hints.length; i++) {
+            total += hints[i].length;
+        }
+        String locations[] = new String[total];
+        int count = 0;
+        for(int i = 0; i < hints.length; i++) {
+            for(int j = 0; j < hints[i].length; j++) {
+            locations[count++] = hints[i][j];
+            }
+        }
+        return locations;
     }
 
     public void readFields(DataInput is) throws IOException {
-	file = new Path(is.readUTF());
-	start = is.readLong();
-	length = is.readLong();
-	pigContext = (PigContext)readObject(is);
-	groupbySpec = (EvalSpec)readObject(is);
-	if(groupbySpec != null ) groupbySpec.instantiateFunc(pigContext);
-	evalSpec = (EvalSpec) readObject(is);
-	if(evalSpec != null) evalSpec.instantiateFunc(pigContext);
-	index = is.readInt();
-	parser = is.readUTF();
+    file = new Path(is.readUTF());
+    start = is.readLong();
+    length = is.readLong();
+    pigContext = (PigContext)readObject(is);
+    groupbySpec = (EvalSpec)readObject(is);
+    if(groupbySpec != null ) groupbySpec.instantiateFunc(pigContext);
+    evalSpec = (EvalSpec) readObject(is);
+    if(evalSpec != null) evalSpec.instantiateFunc(pigContext);
+    index = is.readInt();
+    parser = is.readUTF();
     }
 
     public void write(DataOutput os) throws IOException {
-	os.writeUTF(file.toString());
-	os.writeLong(start);
-	os.writeLong(length);
-	writeObject(pigContext, os);
-	writeObject(groupbySpec, os);
-	writeObject(evalSpec, os);
-	os.writeInt(index);
-	os.writeUTF(parser);
+    os.writeUTF(file.toString());
+    os.writeLong(start);
+    os.writeLong(length);
+    writeObject(pigContext, os);
+    writeObject(groupbySpec, os);
+    writeObject(evalSpec, os);
+    os.writeInt(index);
+    os.writeUTF(parser);
     }
     
     private void writeObject(Serializable obj, DataOutput os) throws IOException{
-    	ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    	ObjectOutputStream oos = new ObjectOutputStream(baos);
-    	oos.writeObject(obj);
-    	byte[] bytes = baos.toByteArray();
-    	os.writeInt(bytes.length);
-    	os.write(bytes);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(obj);
+        byte[] bytes = baos.toByteArray();
+        os.writeInt(bytes.length);
+        os.write(bytes);
     }
     
     private Object readObject(DataInput is) throws IOException{
-    	byte[] bytes = new byte[is.readInt()];
-    	is.readFully(bytes);
-    	ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
-    	try{
-    		return ois.readObject();
-    	}catch (ClassNotFoundException cnfe){
-    		IOException newE = new IOException(cnfe.getMessage());
+        byte[] bytes = new byte[is.readInt()];
+        is.readFully(bytes);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
+        try{
+            return ois.readObject();
+        }catch (ClassNotFoundException cnfe){
+            IOException newE = new IOException(cnfe.getMessage());
                 newE.initCause(cnfe);
                 throw newE;
-    	}
+        }
     }
     
 }

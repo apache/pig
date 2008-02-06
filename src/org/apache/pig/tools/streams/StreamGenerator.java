@@ -96,42 +96,42 @@ public class StreamGenerator implements ActionListener {
     public void actionPerformed(ActionEvent event) {
         
         if (out == null){
-        	
-        	try{
-        		String fileName = fileField.getText();
+            
+            try{
+                String fileName = fileField.getText();
                 String format = formatField.getText();
-        		out = new PrintWriter(fileName);
-        		String[] formats = format.split(",");
-        		this.formats = new int[formats.length];
-        		for (int i=0; i<formats.length; i++){
-        			this.formats[i] = (int)Math.pow(10,Integer.parseInt(formats[i]));
-        		}
-        	}catch(Exception e){
-        		new Dialog(generatorFrame,"Input not well formed");
-        	}
-        	
-        	//First time
-        	fileField.setEditable(false);
-        	formatField.setEditable(false);
+                out = new PrintWriter(fileName);
+                String[] formats = format.split(",");
+                this.formats = new int[formats.length];
+                for (int i=0; i<formats.length; i++){
+                    this.formats[i] = (int)Math.pow(10,Integer.parseInt(formats[i]));
+                }
+            }catch(Exception e){
+                new Dialog(generatorFrame,"Input not well formed");
+            }
+            
+            //First time
+            fileField.setEditable(false);
+            formatField.setEditable(false);
 
         }
 
         int numTuples=0;
         
         try{
-        	numTuples = Integer.parseInt(numberField.getText()); 
+            numTuples = Integer.parseInt(numberField.getText()); 
         }catch(Exception e){
-    		new Dialog(generatorFrame,"Input not well formed");
-    	}
+            new Dialog(generatorFrame,"Input not well formed");
+        }
 
         for (int i=0; i<numTuples; i++){
-        	for (int j=0; j<formats.length; j++){
-        		out.print(random.nextInt(formats[j]));
-        		if (j==formats.length-1)
-        			out.println("");
-        		else
-        			out.print("\t");
-        	}
+            for (int j=0; j<formats.length; j++){
+                out.print(random.nextInt(formats[j]));
+                if (j==formats.length-1)
+                    out.println("");
+                else
+                    out.print("\t");
+            }
         }
         
         out.flush();

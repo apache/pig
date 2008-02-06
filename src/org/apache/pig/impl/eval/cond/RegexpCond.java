@@ -28,18 +28,18 @@ import org.apache.pig.impl.eval.EvalSpec;
 
 
 public class RegexpCond extends Cond {
-	private static final long serialVersionUID = 1L;
-	
-	public EvalSpec left;
-	public String re;
+    private static final long serialVersionUID = 1L;
+    
+    public EvalSpec left;
+    public String re;
     
 
-	public RegexpCond(EvalSpec left, String re) throws IOException{
+    public RegexpCond(EvalSpec left, String re) throws IOException{
         this.left = left;
         this.re = re;
         
         if (left.isAsynchronous())
-        	throw new IOException("Can't compare the output of an asynchronous function.");
+            throw new IOException("Can't compare the output of an asynchronous function.");
     }
     
     @Override
@@ -49,30 +49,30 @@ public class RegexpCond extends Cond {
 
     @Override
     public boolean eval(Datum input){
-    	
-    	Datum d = left.simpleEval(input);
-    	
-    	if (!(d instanceof DataAtom))
-    		throw new RuntimeException("Cannot match non-atomic value against a regular expression. Use a filter function instead.");
+        
+        Datum d = left.simpleEval(input);
+        
+        if (!(d instanceof DataAtom))
+            throw new RuntimeException("Cannot match non-atomic value against a regular expression. Use a filter function instead.");
 
-    	return ((DataAtom)d).strval().matches(re);
+        return ((DataAtom)d).strval().matches(re);
     }
       
     @Override
-	public String toString() {
+    public String toString() {
         return "(" + left + " MATCHES " + "'" + re + "')";
     }
     
     @Override
     public void finish() {
-    	left.finish();
+        left.finish();
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-		left.instantiateFunc(instantiaor);
-		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        left.instantiateFunc(instantiaor);
+        
+    }
 
 }

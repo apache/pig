@@ -52,7 +52,7 @@ public class HFile extends HPath {
     }
 
     public SeekableInputStream sopen(Properties configuration) throws IOException {
-    	return sopen();
+        return sopen();
     }
     
     public SeekableInputStream sopen() throws IOException {

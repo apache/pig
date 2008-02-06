@@ -89,7 +89,7 @@ public class LOEval extends LogicalOperator {
         return spec;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitEval(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitEval(this);
+    }
 }

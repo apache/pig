@@ -101,7 +101,7 @@ public class HJob implements ExecJob {
     }
 
     public Map<String, Object> getStatistics() {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     public void completionNotification(Object cookie) {
@@ -113,14 +113,14 @@ public class HJob implements ExecJob {
     }
     
     public void getLogs(OutputStream log) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     public void getSTDOut(OutputStream out) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     public void getSTDError(OutputStream error) throws ExecException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 }

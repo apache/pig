@@ -37,7 +37,7 @@ public class LocalDataStorage implements DataStorage {
     }
     
     public Map<String, Object> getStatistics() throws IOException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
             
     public LocalPath asElement(String name) 
@@ -113,7 +113,7 @@ public class LocalDataStorage implements DataStorage {
     }
     
     public void setActiveContainer(ContainerDescriptor container) {
-    	this.workingDir = new File(container.toString());
+        this.workingDir = new File(container.toString());
     }
     
     public ContainerDescriptor getActiveContainer() {
@@ -121,7 +121,7 @@ public class LocalDataStorage implements DataStorage {
     }
     
     public LocalPath[] asCollection(String pattern) throws DataStorageException {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
     
     public File getWorkingDir() {

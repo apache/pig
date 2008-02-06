@@ -31,68 +31,68 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class ConstSpec extends SimpleEvalSpec {
-	private static final long serialVersionUID = 1L;
-	public String constant;
-	transient public DataAtom atom;
-	
-	
-	public ConstSpec(String constant){
-		this.constant = constant;
-		init();
-	}
-	
-	public ConstSpec(Integer constant){
-		this.constant = constant.toString();
-		init();
-	}
-	
-	private void init(){
-		atom = new DataAtom(constant);
-	}
-	
-	/**
+    private static final long serialVersionUID = 1L;
+    public String constant;
+    transient public DataAtom atom;
+    
+    
+    public ConstSpec(String constant){
+        this.constant = constant;
+        init();
+    }
+    
+    public ConstSpec(Integer constant){
+        this.constant = constant.toString();
+        init();
+    }
+    
+    private void init(){
+        atom = new DataAtom(constant);
+    }
+    
+    /**
      * Extend the default deserialization
      * @param in
      * @throws IOException
      * @throws ClassNotFoundException
      */
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
-    	in.defaultReadObject();
-    	init();
+        in.defaultReadObject();
+        init();
     }
-	
-	@Override
-	public List<String> getFuncs() {
-		return new ArrayList<String>();
-	}
+    
+    @Override
+    public List<String> getFuncs() {
+        return new ArrayList<String>();
+    }
 
-	@Override
-	protected Schema mapInputSchema(Schema schema) {
-		return new TupleSchema();
-	}
+    @Override
+    protected Schema mapInputSchema(Schema schema) {
+        return new TupleSchema();
+    }
 
-	@Override
-	protected Datum eval(Datum d) {
-		return atom;
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		sb.append("'");
-		sb.append(constant);
-		sb.append("'");
-		sb.append("]");
-		return sb.toString();
-	}
+    @Override
+    protected Datum eval(Datum d) {
+        return atom;
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        sb.append("'");
+        sb.append(constant);
+        sb.append("'");
+        sb.append("]");
+        return sb.toString();
+    }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitConst(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitConst(this);
+    }
 
-	public String value() { return constant; }
+    public String value() { return constant; }
     
 
 }

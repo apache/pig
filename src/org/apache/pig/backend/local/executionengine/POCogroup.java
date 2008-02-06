@@ -41,10 +41,10 @@ import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 // n-ary, blocking operator. Output has schema: < group_label, { <1>, <2>, ... }, { <a>, <b>, ... } >
 class POCogroup extends PhysicalOperator {
     /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	List<Datum[]>[] sortedInputs;
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    List<Datum[]>[] sortedInputs;
     List<EvalSpec>       specs;
         
     public POCogroup(String scope, 
@@ -52,14 +52,14 @@ class POCogroup extends PhysicalOperator {
                      Map<OperatorKey, ExecPhysicalOperator> opTable,
                      List<EvalSpec> specs, 
                      int outputType) {
-    	super(scope, id, opTable, outputType);
+        super(scope, id, opTable, outputType);
         this.inputs = new OperatorKey[specs.size()];
         this.specs = specs;
     }
 
     // drain all inputs, and sort each by group (remember, this is a blocking operator!)
     @Override
-	@SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     public boolean open() throws IOException {
         if (!super.open())
             return false;
@@ -67,15 +67,15 @@ class POCogroup extends PhysicalOperator {
         sortedInputs = new ArrayList[inputs.length];
 
         for (int i = 0; i < inputs.length; i++) {
-        	
-        	final int finalI = i;
+            
+            final int finalI = i;
             sortedInputs[i] = new ArrayList<Datum[]>();
             
             DataCollector outputFromSpec = new DataCollector(null){
-            	@Override
-            	public void add(Datum d) {
-            		sortedInputs[finalI].add(LOCogroup.getGroupAndTuple(d));
-            	}
+                @Override
+                public void add(Datum d) {
+                    sortedInputs[finalI].add(LOCogroup.getGroupAndTuple(d));
+                }
             };
             
             DataCollector inputToSpec = specs.get(i).setupPipe(outputFromSpec);
@@ -97,7 +97,7 @@ class POCogroup extends PhysicalOperator {
     }
 
     @Override
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         
         while (true) { // loop until we find a tuple we're allowed to output (or we hit the end)
 

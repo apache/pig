@@ -26,30 +26,30 @@ import org.apache.pig.data.Tuple;
 
 
 public class FindQuantiles extends EvalFunc<DataBag>{
-	
-	/**
-	 * first field in the input tuple is the number of quantiles to generate
-	 * second field is the *sorted* bag of samples
-	 */
-	
-	@Override
-	public void exec(Tuple input, DataBag output) throws IOException {
-		int numQuantiles = input.getAtomField(0).numval().intValue();
-		DataBag samples = input.getBagField(1);
-		
-		long numSamples = samples.size();
-		
-		long toSkip = numSamples / numQuantiles;
-		
-		long i=0, nextQuantile = 0;
-		Iterator<Tuple> iter = samples.iterator();
-		while (iter.hasNext()){
-			Tuple t = iter.next();
-			if (i==nextQuantile){
-				output.add(t);
-				nextQuantile+=toSkip+1;
-			}
-			i++;
-		}
-	}
+    
+    /**
+     * first field in the input tuple is the number of quantiles to generate
+     * second field is the *sorted* bag of samples
+     */
+    
+    @Override
+    public void exec(Tuple input, DataBag output) throws IOException {
+        int numQuantiles = input.getAtomField(0).numval().intValue();
+        DataBag samples = input.getBagField(1);
+        
+        long numSamples = samples.size();
+        
+        long toSkip = numSamples / numQuantiles;
+        
+        long i=0, nextQuantile = 0;
+        Iterator<Tuple> iter = samples.iterator();
+        while (iter.hasNext()){
+            Tuple t = iter.next();
+            if (i==nextQuantile){
+                output.add(t);
+                nextQuantile+=toSkip+1;
+            }
+            i++;
+        }
+    }
 }

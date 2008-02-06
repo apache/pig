@@ -28,93 +28,93 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class ProjectSpec extends SimpleEvalSpec {
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	protected List<Integer> cols;
-	protected boolean wrapInTuple;
-	
+    protected List<Integer> cols;
+    protected boolean wrapInTuple;
+    
 
-	public List<Integer> getCols() {
-		return cols;
-	}
+    public List<Integer> getCols() {
+        return cols;
+    }
 
-	public ProjectSpec(List<Integer> cols){		
-		this.cols = cols;
-	}
-	
-	public ProjectSpec(int col){		
-		cols = new ArrayList<Integer>();
-		cols.add(col);
-	}
-		
-	@Override
-	public List<String> getFuncs() {
-		return new ArrayList<String>();
-	}
+    public ProjectSpec(List<Integer> cols){        
+        this.cols = cols;
+    }
+    
+    public ProjectSpec(int col){        
+        cols = new ArrayList<Integer>();
+        cols.add(col);
+    }
+        
+    @Override
+    public List<String> getFuncs() {
+        return new ArrayList<String>();
+    }
 
-	@Override
-	protected Schema mapInputSchema(Schema schema) {
-		if (!wrapInTuple && cols.size()==1){
-			return maskNullSchema(schema.schemaFor(cols.get(0)));
-		}else{
-			TupleSchema output = new TupleSchema();
-			for (int i: cols){
-				output.add(maskNullSchema(schema.schemaFor(i)));
-			}
-			return output;
-		}
-	}
-	
-	private Schema maskNullSchema(Schema s){
-		if (s == null)
-			return new TupleSchema();
-		else
-			return s;
-		
-	}
-	
-	@Override
-	protected Datum eval(Datum d){
-		if (!(d instanceof Tuple)){
-			throw new RuntimeException("Project operator expected a Tuple, found a " + d.getClass().getSimpleName());
-		}
-		Tuple t = (Tuple)d;
-		
-		try{
-			if (!wrapInTuple && cols.size() == 1){
-				return t.getField(cols.get(0));
-			}else{
-				Tuple out = new Tuple();
-				for (int i: cols){
-					out.appendField(t.getField(i));
-				}
-				return out;
-			}
-		}catch (IOException e){
-			//TODO: Based on a strictness level, insert null values here
-				throw new RuntimeException(e);		
-		}
-	}
+    @Override
+    protected Schema mapInputSchema(Schema schema) {
+        if (!wrapInTuple && cols.size()==1){
+            return maskNullSchema(schema.schemaFor(cols.get(0)));
+        }else{
+            TupleSchema output = new TupleSchema();
+            for (int i: cols){
+                output.add(maskNullSchema(schema.schemaFor(i)));
+            }
+            return output;
+        }
+    }
+    
+    private Schema maskNullSchema(Schema s){
+        if (s == null)
+            return new TupleSchema();
+        else
+            return s;
+        
+    }
+    
+    @Override
+    protected Datum eval(Datum d){
+        if (!(d instanceof Tuple)){
+            throw new RuntimeException("Project operator expected a Tuple, found a " + d.getClass().getSimpleName());
+        }
+        Tuple t = (Tuple)d;
+        
+        try{
+            if (!wrapInTuple && cols.size() == 1){
+                return t.getField(cols.get(0));
+            }else{
+                Tuple out = new Tuple();
+                for (int i: cols){
+                    out.appendField(t.getField(i));
+                }
+                return out;
+            }
+        }catch (IOException e){
+            //TODO: Based on a strictness level, insert null values here
+                throw new RuntimeException(e);        
+        }
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		if (isFlattened)
-			sb.append("FLATTEN ");
-		sb.append("PROJECT ");
-		boolean first = true;
-		for (int i: cols){
-			if (!first)
-				sb.append(",");
-			else
-				first = false;
-			sb.append("$");
-			sb.append(i);
-		}
-		sb.append("]");
-		return sb.toString();
-	}
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        if (isFlattened)
+            sb.append("FLATTEN ");
+        sb.append("PROJECT ");
+        boolean first = true;
+        for (int i: cols){
+            if (!first)
+                sb.append(",");
+            else
+                first = false;
+            sb.append("$");
+            sb.append(i);
+        }
+        sb.append("]");
+        return sb.toString();
+    }
     
     public int numCols() {
         return cols.size();
@@ -125,21 +125,21 @@ public class ProjectSpec extends SimpleEvalSpec {
             throw new RuntimeException("Internal error: improper use of getColumn in " + ProjectSpec.class.getName());
         else return cols.get(i);
     }
-	
-	public int getCol(){
-		if (cols.size()!=1)
-			throw new RuntimeException("Internal error: improper use of getColumn in " + ProjectSpec.class.getName());
-		return cols.get(0);
-	}
+    
+    public int getCol(){
+        if (cols.size()!=1)
+            throw new RuntimeException("Internal error: improper use of getColumn in " + ProjectSpec.class.getName());
+        return cols.get(0);
+    }
 
-	public void setWrapInTuple(boolean wrapInTuple) {
-		this.wrapInTuple = wrapInTuple;
-	}
+    public void setWrapInTuple(boolean wrapInTuple) {
+        this.wrapInTuple = wrapInTuple;
+    }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitProject(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitProject(this);
+    }
     
 
 }
