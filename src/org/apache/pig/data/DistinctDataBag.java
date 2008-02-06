@@ -102,8 +102,17 @@ public class DistinctDataBag extends DataBag {
         // trying to read while I'm mucking with the container.
         long spilled = 0;
         synchronized (mContents) {
+            DataOutputStream out = null;
             try {
-                DataOutputStream out = getSpillFile();
+                out = getSpillFile();
+            }  catch (IOException ioe) {
+                // Do not remove last file from spilled array. It was not
+                // added as File.createTmpFile threw an IOException
+                PigLogger.getLogger().error(
+                    "Unable to create tmp file to spill to disk", ioe);
+                return 0;
+            }
+            try {
                 // If we've already started reading, then it will already be
                 // sorted into an array list.  If not, we need to sort it
                 // before writing.
@@ -134,6 +143,14 @@ public class DistinctDataBag extends DataBag {
                 PigLogger.getLogger().error(
                     "Unable to spill contents to disk", ioe);
                 return 0;
+            } finally {
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        PigLogger.getLogger().error("Error closing spill", e);
+                    }
+                }
             }
             mContents.clear();
         }
