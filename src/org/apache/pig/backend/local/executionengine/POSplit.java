@@ -26,9 +26,10 @@ import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.cond.Cond;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 
-class POSplit extends PhysicalOperator {
+public class POSplit extends PhysicalOperator {
     static final long serialVersionUID = 1L; 
     protected ArrayList<Cond> conditions;
     protected int readFromCond;
@@ -73,10 +74,7 @@ class POSplit extends PhysicalOperator {
         return nextTuple;
     }
 
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-
-        ps.println(prefix + "POSplit (" + this + "): scope id: " + this.scope +
-                   ", outputType: " + this.outputType + ", readFromCond: " + this.readFromCond);
+    public void visit(POVisitor v) {
+        v.visitSplit(this);
     }
 }

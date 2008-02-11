@@ -91,3 +91,6 @@ Trunk (unreleased changes)
 	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
 
 	PIG-65: convert tabs to spaces (groves via olgan)
+
+	PIG-97: Turn off combiner in the case of Cogroup, as it doesn't work when
+	more than one bag is involved (gates).

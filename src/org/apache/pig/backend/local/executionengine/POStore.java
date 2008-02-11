@@ -32,6 +32,7 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 
 
 public class POStore extends PhysicalOperator {
@@ -125,12 +126,8 @@ public class POStore extends PhysicalOperator {
     }
 
     @Override
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POStore (" + this + "): scope id: " + this.scope +
-                   ", ouutputType: " + this.outputType + ", " + this.f + ", funcSpec: " + 
-                   this.funcSpec + ", append: " + this.append);
+    public void visit(POVisitor v) {
+        v.visitStore(this);
     }
 
 }

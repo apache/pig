@@ -278,10 +278,9 @@ public class MapreducePlanCompiler {
             mro.mapParallelism = Math.max(mro.mapParallelism, lo.getRequestedParallelism());
 
         } else { // push into "reduce" phase
-            
             EvalSpec spec = lo.getSpec();
 
-            if (mro.toReduce == null && shouldCombine(spec)) {
+            if (mro.toReduce == null && shouldCombine(spec, mro)) {
                 // Push this spec into the combiner.  But we also need to
                 // create a new spec with a changed expected projection to
                 // push into the reducer.
@@ -413,10 +412,16 @@ public class MapreducePlanCompiler {
         return sortJob;
     }
 
-    private boolean shouldCombine(EvalSpec spec) {
+    private boolean shouldCombine(EvalSpec spec, POMapreduce mro) {
         // Determine whether this something we can combine or not.
         // First, it must be a generate spec.
         if (!(spec instanceof GenerateSpec)) {
+            return false;
+        }
+
+        // Can only combine if there is a single file being grouped,
+        // cogroups can't use the combiner at this point.
+        if (mro.groupFuncs.size() > 1) {
             return false;
         }
 

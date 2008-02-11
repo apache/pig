@@ -37,9 +37,10 @@ import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 
 // n-ary, blocking operator. Output has schema: < group_label, { <1>, <2>, ... }, { <a>, <b>, ... } >
-class POCogroup extends PhysicalOperator {
+public class POCogroup extends PhysicalOperator {
     /**
      * 
      */
@@ -160,12 +161,8 @@ class POCogroup extends PhysicalOperator {
 
     }
 
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POUnion (" + this + "): scope id: " + this.scope + 
-                   ", outputType: " + this.outputType);
-
+    public void visit(POVisitor v) {
+        v.visitCogroup(this);
     }
 
 }

@@ -26,11 +26,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.util.DataBuffer;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 
 // unary, non-blocking operator.
-class POEval extends PhysicalOperator {
+public class POEval extends PhysicalOperator {
     /**
      * 
      */
@@ -110,13 +111,8 @@ class POEval extends PhysicalOperator {
         }
     }
        
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POEval (" + this + "): scope id: " + this.scope + 
-                   ", outputType: " + this.outputType + ", spec: " + this.spec +
-                   ", inputDrained: " + this.inputDrained + ", lastAdded: " + this.lastAdded);
-
+    public void visit(POVisitor v) {
+        v.visitEval(this);
     }
 
 }

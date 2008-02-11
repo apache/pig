@@ -29,6 +29,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 
 
@@ -71,12 +72,8 @@ public class POSort extends PhysicalOperator {
     }
 
     @Override
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POSort (" + this + "): scope id: " + this.scope + 
-                   ", outputType: " + this.outputType);
-
+    public void visit(POVisitor v) {
+        v.visitSort(this);
     }
 
 }

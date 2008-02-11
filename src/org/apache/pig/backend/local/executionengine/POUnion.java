@@ -26,9 +26,10 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 
 
-class POUnion extends PhysicalOperator {
+public class POUnion extends PhysicalOperator {
     /**
      * 
      */
@@ -86,11 +87,8 @@ class POUnion extends PhysicalOperator {
         return null;
     }
 
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POUnion (" + this + "): scope id: " + this.scope + 
-                   ", outputType: " + this.outputType + ", curInput: " + this.currentInput);
+    public void visit(POVisitor v) {
+        v.visitUnion(this);
     }
 
 }
