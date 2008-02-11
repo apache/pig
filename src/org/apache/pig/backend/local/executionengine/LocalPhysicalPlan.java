@@ -9,6 +9,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
+import org.apache.pig.impl.physicalLayer.POPrinter;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 
 public class LocalPhysicalPlan implements ExecPhysicalPlan {
@@ -33,9 +35,9 @@ public class LocalPhysicalPlan implements ExecPhysicalPlan {
     }
              
     public void explain(OutputStream out) {
-        POVisitor lprinter = new POVisitor(new PrintStream(out));
+        POVisitor lprinter = new POPrinter(opTable, new PrintStream(out));
         
-        ((PhysicalOperator)opTable.get(root)).visit(lprinter, "");
+        ((PhysicalOperator)opTable.get(root)).visit(lprinter);
     }
     
     public Map<OperatorKey, ExecPhysicalOperator> getOpTable() {

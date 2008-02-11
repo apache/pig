@@ -27,7 +27,6 @@ import org.apache.log4j.Logger;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.backend.local.executionengine.POVisitor;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
@@ -36,6 +35,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PigLogger;
 
@@ -252,10 +252,8 @@ public class POMapreduce extends PhysicalOperator {
             toReduce = toReduce.addSpec(spec);
     }
     
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POMapReduce (" + this + "): scope id: " + this.scope);
+    public void visit(POVisitor v) {
+        v.visitMapreduce(this);
     }
 }
 

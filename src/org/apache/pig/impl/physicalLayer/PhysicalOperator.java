@@ -26,7 +26,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.util.LineageTracer;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
-import org.apache.pig.backend.local.executionengine.POVisitor;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 
 public abstract class PhysicalOperator implements Serializable, ExecPhysicalOperator {
 
@@ -89,5 +89,5 @@ public abstract class PhysicalOperator implements Serializable, ExecPhysicalOper
         return outputType;
     }
 
-    public abstract void visit(POVisitor v, String prfix);
+    public abstract void visit(POVisitor v);
 }

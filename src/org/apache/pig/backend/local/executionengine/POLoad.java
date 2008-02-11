@@ -29,6 +29,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 
 
@@ -82,12 +83,8 @@ public class POLoad extends PhysicalOperator {
     }
 
     @Override
-    public void visit(POVisitor v, String prefix) {
-        PrintStream ps = v.getPrintStream();
-        
-        ps.println(prefix + "POLoad (" + this + "): scope id: " + this.scope + 
-                   ", outputType: " + this.outputType + ", filename: " + this.filename +
-                   ", lf: " + this.lf + ", bound: " + this.bound);
+    public void visit(POVisitor v) {
+        v.visitLoad(this);
    }
 
 }
