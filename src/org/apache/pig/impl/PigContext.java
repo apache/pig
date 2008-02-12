@@ -67,7 +67,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     private ExecType execType;;    
 
     //  configuration for connecting to hadoop
-    transient private Properties conf = null;        
+    transient private Properties conf = new Properties();
     
     //  extra jar files that are needed to run a job
     transient public List<URL> extraJars = new LinkedList<URL>();              
@@ -164,8 +164,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
             switch (execType) {
             case LOCAL:
             {
-                conf = new Properties();
-
                 lfs = new HDataStorage(URI.create("file:///"),
                                        new Configuration());
                 
