@@ -115,11 +115,11 @@ public class JarManager {
         Iterator<JarListEntry> it = jarList.iterator();
         while (it.hasNext()) {
             JarListEntry jarEntry = it.next();
-            // System.err.println("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
+            // log.error("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
             mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
         }
         for (int i = 0; i < pigContext.extraJars.size(); i++) {
-            // System.err.println("Adding extra " + pigContext.extraJars.get(i));
+            // log.error("Adding extra " + pigContext.extraJars.get(i));
             mergeJar(jarFile, pigContext.extraJars.get(i), null, contents);
         }
         if (pigContext != null) {

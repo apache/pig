@@ -17,9 +17,9 @@
  */
 package org.apache.pig.impl;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
@@ -35,26 +35,30 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.hadoop.fs.FileSystem;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-
-import org.apache.pig.backend.datastorage.*;
-import org.apache.pig.backend.executionengine.*;
-import org.apache.pig.backend.local.executionengine.*;
-import org.apache.pig.backend.hadoop.datastorage.*;
-import org.apache.pig.backend.hadoop.executionengine.*;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
-
-import org.apache.log4j.Logger;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.pig.Main;
 import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+import org.apache.pig.backend.local.executionengine.LocalExecutionEngine;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
-import org.apache.pig.impl.util.PigLogger;
 
 public class PigContext implements Serializable, FunctionInstantiator {
     private static final long serialVersionUID = 1L;
+    
+    private transient final Log log = LogFactory.getLog(getClass());
+    
     private static final String JOB_NAME_PREFIX= "PigLatin";
     
     /* NOTE: we only serialize some of the stuff 
@@ -83,8 +87,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
     
     // handle to the back-end
     transient private ExecutionEngine executionEngine;
-    
-    transient private Logger                mLogger;
    
     private String jobName = JOB_NAME_PREFIX;    // can be overwritten by users
   
@@ -103,8 +105,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
         
     public PigContext(ExecType execType){
         this.execType = execType;
-        
-    mLogger = PigLogger.getLogger(); 
 
         initProperties();
         
@@ -151,10 +151,10 @@ public class PigContext implements Serializable, FunctionInstantiator {
         //Now set these as system properties only if they are not already defined.
         for (Object o: fileProperties.keySet()){
             String propertyName = (String)o;
-            mLogger.debug("Found system property " + propertyName + " in .pigrc"); 
+            log.debug("Found system property " + propertyName + " in .pigrc"); 
             if (System.getProperty(propertyName) == null){
                 System.setProperty(propertyName, fileProperties.getProperty(propertyName));
-                mLogger.debug("Setting system property " + propertyName);
+                log.debug("Setting system property " + propertyName);
             }
         }
     }    
@@ -175,7 +175,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
             case MAPREDUCE:
             {
-                executionEngine = new HExecutionEngine (this, mLogger);
+                executionEngine = new HExecutionEngine (this);
 
                 executionEngine.init();
                 
@@ -213,7 +213,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             executionEngine.updateConfiguration(trackerLocation);
         }
         catch (ExecException e) {
-            mLogger.error("Failed to set tracker at: " + newLocation);
+            log.error("Failed to set tracker at: " + newLocation);
         }
     }
     

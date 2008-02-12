@@ -267,7 +267,7 @@ public class GenerateSpec extends EvalSpec {
         
         public void exec(){
             specs.get(driver).setupPipe(this).add(cpiInput);
-            //System.err.println(Thread.currentThread().getName() + ": Executing driver on " + cpiInput);
+            //log.error(Thread.currentThread().getName() + ": Executing driver on " + cpiInput);
             successor.markStale(false);
         }
         

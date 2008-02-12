@@ -22,9 +22,10 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.log4j.Logger;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.data.Tuple;
@@ -37,10 +38,11 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.PigLogger;
 
 public class POMapreduce extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
+
+	private final Log log = LogFactory.getLog(getClass());
     
     public ArrayList<EvalSpec> toMap             = new ArrayList<EvalSpec>();
     public EvalSpec     toCombine         = null;
@@ -200,7 +202,6 @@ public class POMapreduce extends PhysicalOperator {
     }
 
     void print() {
-        Logger log = PigLogger.getLogger();
         log.info("----- MapReduce Job -----");
         log.info("Input: " + inputFileSpecs);
         log.info("Map: " + toMap);

@@ -26,11 +26,16 @@ import java.util.zip.GZIPOutputStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.DIFF;
 import junit.framework.TestCase;
 
 public class TestCompressedFiles extends TestCase {
+    
+    private final Log log = LogFactory.getLog(getClass());
+
     File datFile;
     File gzFile;
     @Override
@@ -72,7 +77,7 @@ public class TestCompressedFiles extends TestCase {
         boolean success = true;
         while(it.hasNext()) {
             success = false;
-            System.out.println(it.next());
+            log.info(it.next());
         }
         assertTrue(success);
     }

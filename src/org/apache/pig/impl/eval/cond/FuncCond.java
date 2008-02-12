@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FilterFunc;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
@@ -30,6 +32,8 @@ import org.apache.pig.impl.eval.EvalSpec;
 
 
 public class FuncCond extends Cond {
+    
+    private final Log log = LogFactory.getLog(getClass());
 
     private static final long serialVersionUID = 1L;
     
@@ -72,7 +76,7 @@ public class FuncCond extends Cond {
             
             return func.exec((Tuple)d);
         } catch (IOException e) {
-            System.out.println("Warning: filter function " + funcName + " failed. Substituting default value \'false\'.");
+            log.error("Warning: filter function " + funcName + " failed. Substituting default value \'false\'.", e);
             return false;
         }
     }

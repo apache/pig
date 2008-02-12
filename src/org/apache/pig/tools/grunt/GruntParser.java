@@ -5,30 +5,27 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileUtil;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
-
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.DataStorageException;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.backend.datastorage.ContainerDescriptor;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 
 public class GruntParser extends PigScriptParser {
 
+    private final Log log = LogFactory.getLog(getClass());
 
     public GruntParser(Reader stream) {
         super(stream);
@@ -73,7 +70,7 @@ public class GruntParser extends PigScriptParser {
             }
             catch(Exception e)
             {
-                System.err.println(e.getMessage());
+                log.error(e.getMessage());
             }
     }
 
@@ -253,7 +250,7 @@ public class GruntParser extends PigScriptParser {
             else
             {    
                 job.killJob();
-                System.err.println("kill submited.");
+                log.error("kill submited.");
             }
         }
     }
@@ -319,20 +316,20 @@ public class GruntParser extends PigScriptParser {
 
     protected void printHelp() 
     {
-        System.err.println("Commands:");
-        System.err.println("<pig latin statement>;");
-        System.err.println("store <alias> into <filename> [using <functionSpec>]");
-        System.err.println("dump <alias>");
-        System.err.println("describe <alias>");
-        System.err.println("kill <job_id>");
-        System.err.println("ls <path>\r\ndu <path>\r\nmv <src> <dst>\r\ncp <src> <dst>\r\nrm <src>");
-        System.err.println("copyFromLocal <localsrc> <dst>\r\ncd <dir>\r\npwd");
-        System.err.println("cat <src>\r\ncopyToLocal <src> <localdst>\r\nmkdir <path>");
-        System.err.println("cd <path>");
-        System.err.println("define <functionAlias> <functionSpec>");
-        System.err.println("register <udfJar>");
-        System.err.println("set key value");
-        System.err.println("quit");
+        System.out.println("Commands:");
+        System.out.println("<pig latin statement>;");
+        System.out.println("store <alias> into <filename> [using <functionSpec>]");
+        System.out.println("dump <alias>");
+        System.out.println("describe <alias>");
+        System.out.println("kill <job_id>");
+        System.out.println("ls <path>\r\ndu <path>\r\nmv <src> <dst>\r\ncp <src> <dst>\r\nrm <src>");
+        System.out.println("copyFromLocal <localsrc> <dst>\r\ncd <dir>\r\npwd");
+        System.out.println("cat <src>\r\ncopyToLocal <src> <localdst>\r\nmkdir <path>");
+        System.out.println("cd <path>");
+        System.out.println("define <functionAlias> <functionSpec>");
+        System.out.println("register <udfJar>");
+        System.out.println("set key value");
+        System.out.println("quit");
     }
 
     protected void processMove(String src, String dst) throws IOException

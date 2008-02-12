@@ -21,8 +21,13 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 public class TimestampedTuple extends Tuple {
 
+    private final Log log = LogFactory.getLog(getClass());
+    
     protected double timestamp = 0;      // timestamp of this tuple
     protected boolean heartbeat = false;  // true iff this is a heartbeat (i.e. purpose is just to convey new timestamp; carries no data)
     
@@ -54,7 +59,7 @@ public class TimestampedTuple extends Tuple {
                 try{
                     timestamp = dateFormat.parse(splitString[i]).getTime()/1000.0;
                 }catch(ParseException e){
-                    System.err.println("Could not parse timestamp " + splitString[i]);
+                    log.error("Could not parse timestamp " + splitString[i]);
                 }
             }else{
                 fields.add(new DataAtom(splitString[i]));

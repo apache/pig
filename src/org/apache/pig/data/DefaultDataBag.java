@@ -17,17 +17,18 @@
  */
 package org.apache.pig.data;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.io.DataOutputStream;
-import java.io.DataInputStream;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.EOFException;
-import java.io.FileNotFoundException;
 
-import org.apache.pig.impl.util.PigLogger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 
 /**
@@ -36,6 +37,8 @@ import org.apache.pig.impl.util.PigLogger;
  * distinctness.
  */
 public class DefaultDataBag extends DataBag {
+
+    private final Log log = LogFactory.getLog(getClass());
 
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
@@ -71,7 +74,7 @@ public class DefaultDataBag extends DataBag {
             }  catch (IOException ioe) {
                 // Do not remove last file from spilled array. It was not
                 // added as File.createTmpFile threw an IOException
-                PigLogger.getLogger().error(
+                log.error(
                     "Unable to create tmp file to spill to disk", ioe);
                 return 0;
             }
@@ -88,7 +91,7 @@ public class DefaultDataBag extends DataBag {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
-                PigLogger.getLogger().error(
+                log.error(
                     "Unable to spill contents to disk", ioe);
                 return 0;
             } finally {
@@ -96,7 +99,7 @@ public class DefaultDataBag extends DataBag {
                     try {
                         out.close();
                     } catch (IOException e) {
-                        PigLogger.getLogger().error("Error closing spill", e);
+                        log.error("Error closing spill", e);
                     }
                 }
             }
@@ -175,7 +178,7 @@ public class DefaultDataBag extends DataBag {
                 } catch (FileNotFoundException fnfe) {
                     // We can't find our own spill file?  That should never
                     // happen.
-                    PigLogger.getLogger().fatal(
+                    log.fatal(
                         "Unable to find our spill file", fnfe);
                     throw new RuntimeException(fnfe);
                 }
@@ -186,11 +189,11 @@ public class DefaultDataBag extends DataBag {
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
-                        PigLogger.getLogger().fatal(
+                        log.fatal(
                             "Ran out of tuples too soon.", eof);
                         throw new RuntimeException("Ran out of tuples to read prematurely.");
                     } catch (IOException ioe) {
-                        PigLogger.getLogger().fatal(
+                        log.fatal(
                             "Unable to read our spill file", ioe);
                         throw new RuntimeException(ioe);
                     }
@@ -220,7 +223,7 @@ public class DefaultDataBag extends DataBag {
                     // Fall through to the next case where we find the
                     // next file, or go to memory
                 } catch (IOException ioe) {
-                    PigLogger.getLogger().fatal(
+                    log.fatal(
                         "Unable to read our spill file", ioe);
                     throw new RuntimeException(ioe);
                 }
@@ -249,7 +252,7 @@ public class DefaultDataBag extends DataBag {
             } catch (FileNotFoundException fnfe) {
                 // We can't find our own spill file?  That should never
                 // happen.
-                PigLogger.getLogger().fatal("Unable to find our spill file",
+                log.fatal("Unable to find our spill file",
                     fnfe);
                 throw new RuntimeException(fnfe);
             }

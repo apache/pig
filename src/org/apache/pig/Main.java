@@ -277,19 +277,19 @@ public static void main(String args[])
     
 public static void usage()
 {
-    System.err.println("USAGE: Pig [options] [-] : Run interactively in grunt shell.");
-    System.err.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
-    System.err.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
-    System.err.println("  options include:");
-    System.err.println("    -4, -log4jconf log4j configuration file, overrides log conf");
-    System.err.println("    -b, -brief brief logging (no timestamps)");
-    System.err.println("    -c, -cluster clustername, kryptonite is default");
-    System.err.println("    -d, -debug debug level, INFO is default");
-    System.err.println("    -h, -help display this message");
-    System.err.println("    -j, -jar jarfile load jarfile"); 
-    System.err.println("    -o, -hod read hod server from system property ssh.gateway");
-    System.err.println("    -v, -verbose print all log messages to screen (default to print only INFO and above to screen)");
-    System.err.println("    -x, -exectype local|mapreduce, mapreduce is default");
+    System.out.println("USAGE: Pig [options] [-] : Run interactively in grunt shell.");
+    System.out.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
+    System.out.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
+    System.out.println("  options include:");
+    System.out.println("    -4, -log4jconf log4j configuration file, overrides log conf");
+    System.out.println("    -b, -brief brief logging (no timestamps)");
+    System.out.println("    -c, -cluster clustername, kryptonite is default");
+    System.out.println("    -d, -debug debug level, INFO is default");
+    System.out.println("    -h, -help display this message");
+    System.out.println("    -j, -jar jarfile load jarfile"); 
+    System.out.println("    -o, -hod read hod server from system property ssh.gateway");
+    System.out.println("    -v, -verbose print all log messages to screen (default to print only INFO and above to screen)");
+    System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
 }
         
         

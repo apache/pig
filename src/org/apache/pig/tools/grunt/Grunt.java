@@ -19,6 +19,8 @@ package org.apache.pig.tools.grunt;
 
 import java.io.BufferedReader;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -27,6 +29,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 public class Grunt 
 {
+    private final Log log = LogFactory.getLog(getClass());
+    
     BufferedReader in;
     PigServer pig;
     GruntParser parser;    
@@ -53,7 +57,7 @@ public class Grunt
         parser.setInteractive(false);
         parser.parseStopOnError();
         } catch (Throwable e) {
-            System.err.println(e.getMessage());
+            log.error(e.getMessage());
     }
     
     }

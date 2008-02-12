@@ -16,39 +16,36 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapreduceExec;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.io.File;
-import java.io.FileOutputStream;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.mapred.TaskReport;
 import org.apache.log4j.Logger;
-import org.apache.pig.impl.util.PigLogger;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.POMapreduce;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DataBag;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.backend.datastorage.DataStorageException;
-
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.TaskReport;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.RunningJob; 
 
 
 /**
@@ -59,6 +56,8 @@ import org.apache.hadoop.mapred.RunningJob;
  * 
  */
 public class MapReduceLauncher {
+    
+    private final Log log = LogFactory.getLog(getClass());
     
     public static long totalHadoopTimeSpent = 0;
     public static int numMRJobs;
@@ -115,7 +114,6 @@ public class MapReduceLauncher {
      * @throws IOException
      */
     public boolean launchPig(POMapreduce pom) throws IOException {
-        Logger log = PigLogger.getLogger();
         JobConf conf = new JobConf(config);
         conf.setJobName(pom.pigContext.getJobName());
         boolean success = false;
@@ -273,9 +271,9 @@ public class MapReduceLauncher {
             if (!success) {
                 // go find the error messages
                 getErrorMessages(jobClient.getMapTaskReports(status.getJobID()),
-                        "map", log);
+                        "map");
                 getErrorMessages(jobClient.getReduceTaskReports(status.getJobID()),
-                        "reduce", log);
+                        "reduce");
             }
             else {
                 long timeSpent = 0;
@@ -303,7 +301,7 @@ public class MapReduceLauncher {
         return success;
     }
 
-private void getErrorMessages(TaskReport reports[], String type, Logger log)
+private void getErrorMessages(TaskReport reports[], String type)
 {
     for (int i = 0; i < reports.length; i++) {
         String msgs[] = reports[i].getDiagnostics();

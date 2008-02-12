@@ -63,6 +63,9 @@ package org.apache.tools.bzip2r;
 import java.io.OutputStream;
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * An output stream that compresses into the BZip2 format (without the file
  * header chars) into another stream.
@@ -72,6 +75,9 @@ import java.io.IOException;
  * TODO:    Update to BZip2 1.0.1
  */
 public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
+
+    private final static Log log = LogFactory.getLog(CBZip2OutputStream.class);
+    
     protected static final int SETMASK = (1 << 21);
     protected static final int CLEARMASK = (~SETMASK);
     protected static final int GREATER_ICOST = 15;
@@ -90,7 +96,7 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
     protected static final int QSORT_STACK_SIZE = 1000;
 
     private static void panic() {
-        System.out.println("panic");
+        log.info("panic");
         //throw new CError();
     }
 

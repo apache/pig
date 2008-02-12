@@ -17,15 +17,20 @@
  */
 package org.apache.pig;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
-import org.apache.pig.backend.executionengine.ExecException;
-
 public class StandAloneParser {
+    
+    private static final Log log = LogFactory.getLog(StandAloneParser.class);
     
     static PigServer pig;
     
@@ -68,7 +73,7 @@ public class StandAloneParser {
                 else System.out.print("\n");
             }
         } catch (IOException e) {
-            System.err.println(e);
+            log.error(e);
         }
     }
 }

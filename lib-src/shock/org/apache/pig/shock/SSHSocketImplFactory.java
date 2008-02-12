@@ -38,6 +38,9 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.jcraft.jsch.ChannelDirectTCPIP;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
@@ -67,6 +70,9 @@ import com.jcraft.jsch.UserInfo;
  *
  */
 public class SSHSocketImplFactory implements SocketImplFactory, Logger {
+    
+    private static final Log log = LogFactory.getLog(SSHSocketImplFactory.class);
+
 	Session session;
 
 	public static SSHSocketImplFactory getFactory() throws JSchException, IOException {
@@ -136,7 +142,7 @@ public class SSHSocketImplFactory implements SocketImplFactory, Logger {
 	}
 
 	public void log(int arg0, String arg1) {
-		System.err.println(arg0 + ": " + arg1);
+		log.error(arg0 + ": " + arg1);
 	}
 
 	class SSHProcess extends Process {
@@ -226,6 +232,8 @@ public class SSHSocketImplFactory implements SocketImplFactory, Logger {
  */
 class SSHSocketFactory implements SocketFactory {
 
+    private final static Log log = LogFactory.getLog(SSHSocketFactory.class);
+    
 	public Socket createSocket(String host, int port) throws IOException,
 			UnknownHostException {
 		String socksHost = System.getProperty("socksProxyHost");
@@ -237,7 +245,7 @@ class SSHSocketFactory implements SocketFactory {
 			s = new Socket(proxy);
 			s.connect(addr);
 		} else {
-			System.err.println(addr);
+			log.error(addr);
 			SocketChannel sc = SocketChannel.open(addr);
 			s = sc.socket();
 		}
@@ -302,6 +310,9 @@ class ChannelInputStream extends InputStream {
  * things to SSH.
  */
 class SSHSocketImpl extends SocketImpl {
+    
+    private static final Log log = LogFactory.getLog(SSHSocketImpl.class);
+
 	Session session;
 
 	ChannelDirectTCPIP channel;
@@ -384,10 +395,10 @@ class SSHSocketImpl extends SocketImpl {
 							(PipedInputStream) is));
 			channel.connect();
 			if (!channel.isConnected()) {
-				System.err.println("Not connected");
+				log.error("Not connected");
 			}
 			if (channel.isEOF()) {
-				System.err.println("EOF");
+				log.error("EOF");
 			}
 		} catch (JSchException e) {
 			e.printStackTrace();
@@ -445,9 +456,9 @@ class SSHSocketImpl extends SocketImpl {
 					@Override
 					public void run() {
 						try {
-							System.err.println("Starting " + this);
+							log.error("Starting " + this);
 							connectTest("www.yahoo.com");
-							System.err.println("Finished " + this);
+							log.error("Finished " + this);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -456,15 +467,15 @@ class SSHSocketImpl extends SocketImpl {
 			}
 			Thread.sleep(1000000);
 			connectTest("www.news.com");
-			System.out.println("******** Starting PART II");
+			log.info("******** Starting PART II");
 			for (int i = 0; i < 10; i++) {
 				new Thread() {
 					@Override
 					public void run() {
 						try {
-							System.err.println("Starting " + this);
+							log.error("Starting " + this);
 							connectTest("www.flickr.com");
-							System.err.println("Finished " + this);
+							log.error("Finished " + this);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

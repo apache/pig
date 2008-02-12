@@ -161,7 +161,7 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
             if (c == recordDelim) {
                 inRecord = false;
                 Tuple t = new Tuple(baos.toString(), fieldDelimString);
-                // System.err.println(Thread.currentThread().getName() + ": Adding tuple " + t + " to collector " + output);
+                // log.error(Thread.currentThread().getName() + ": Adding tuple " + t + " to collector " + output);
                 output.add(t);
                 baos = new ByteArrayOutputStream();
                 continue;

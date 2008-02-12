@@ -37,12 +37,16 @@ import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 /*
  * Testcase aimed at testing pig with large file sizes and filter and group functions
 */
 public class TestPi extends TestCase {
 	
+    private final Log log = LogFactory.getLog(getClass());
+
 	File datFile;
 	private long defaultBlockSize = (new Configuration()).getLong("dfs.block.size", 0);
 	
@@ -61,9 +65,9 @@ public class TestPi extends TestCase {
 	@Before
     protected void setUp() throws Exception{
 
-        System.out.println("Generating test data...");
-        System.out.println("Default block size = " + defaultBlockSize);
-        System.out.println("Total no. of iterations to run for test data = " + total);
+        log.info("Generating test data...");
+        log.info("Default block size = " + defaultBlockSize);
+        log.info("Total no. of iterations to run for test data = " + total);
         datFile = File.createTempFile("PiTest", ".dat");
         
         FileOutputStream dat = new FileOutputStream(datFile);
@@ -140,8 +144,8 @@ public class TestPi extends TestCase {
 		int totalPoints = Total.next().getAtomField(0).numval().intValue();
 		int inCirclePoints = InCircle.next().getAtomField(0).numval().intValue();
 
-		System.out.println("Value of PI = " + 4 * (double)inCircle / (double)total);
-		System.out.println("Value of PI (From Test data) = " + 4 * (double)inCirclePoints / (double)totalPoints);
+		log.info("Value of PI = " + 4 * (double)inCircle / (double)total);
+		log.info("Value of PI (From Test data) = " + 4 * (double)inCirclePoints / (double)totalPoints);
 		
 		
 		Iterator <Tuple> lengthTest = pig.openIterator("D");

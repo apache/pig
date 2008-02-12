@@ -24,12 +24,17 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
  * an ordered list of Datums
  */
 public class Tuple extends Datum implements WritableComparable {
+    
+    private final Log log = LogFactory.getLog(getClass());
+    
     protected ArrayList<Datum> fields;
     static String              defaultDelimiter = "[,\t]";
     static String              NULL = "__PIG_NULL__";
@@ -156,7 +161,7 @@ public class Tuple extends Datum implements WritableComparable {
         } else if (field instanceof Tuple) {
             Tuple t = (Tuple) field;
             if (t.arity() == 1) {
-                System.err.println("Warning: Asked for an atom field but found a tuple with one field.");
+                log.error("Warning: Asked for an atom field but found a tuple with one field.");
                 return t.getAtomField(0);
             }
         } else if (field instanceof DataBag) {

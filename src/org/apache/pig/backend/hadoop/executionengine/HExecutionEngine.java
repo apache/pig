@@ -8,42 +8,44 @@ import java.net.SocketException;
 import java.net.SocketImplFactory;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Enumeration;
 
-import org.apache.pig.impl.PigContext;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobSubmissionProtocol;
+import org.apache.hadoop.mapred.JobTracker;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.ExecLogicalPlan;
+import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
+import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.backend.executionengine.*;
-import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.backend.local.executionengine.LocalResult;
-import org.apache.pig.data.Tuple;
-
-import org.apache.log4j.Logger;
-
 import org.apache.pig.shock.SSHSocketImplFactory;
-import org.apache.hadoop.mapred.JobTracker;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.mapred.JobSubmissionProtocol;
-import org.apache.hadoop.mapred.JobClient;
 
 
 public class HExecutionEngine implements ExecutionEngine {
     
+    private final Log log = LogFactory.getLog(getClass());
+    
     protected PigContext pigContext;
     
-    protected Logger logger;
     protected DataStorage ds;
     protected HConfiguration conf;
     
@@ -60,10 +62,8 @@ public class HExecutionEngine implements ExecutionEngine {
     protected Map<OperatorKey, MapRedResult> materializedResults;
     
     public HExecutionEngine(PigContext pigContext,
-                            Logger logger,
                             HConfiguration conf) {
         this.pigContext = pigContext;
-        this.logger = logger;
         this.conf = conf;
         this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
         this.physicalOpTable = new HashMap<OperatorKey, ExecPhysicalOperator>();
@@ -84,8 +84,8 @@ public class HExecutionEngine implements ExecutionEngine {
         return this.materializedResults;
     }
     
-    public HExecutionEngine(PigContext pigContext, Logger logger) {
-        this(pigContext, logger, new HConfiguration(new JobConf()));
+    public HExecutionEngine(PigContext pigContext) {
+        this(pigContext, new HConfiguration(new JobConf()));
     }
                             
     public Map<OperatorKey, ExecPhysicalOperator> getPhysicalOpTable() {
@@ -134,7 +134,7 @@ public class HExecutionEngine implements ExecutionEngine {
             }
         }
      
-        logger.info("Connecting to hadoop file system at: " + conf.get("fs.default.name"));
+        log.info("Connecting to hadoop file system at: " + conf.get("fs.default.name"));
 
         try {
             ds = new HDataStorage(conf);
@@ -143,7 +143,7 @@ public class HExecutionEngine implements ExecutionEngine {
             throw new ExecException("Failed to create DataStorage", e);
         }
             
-        logger.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
+        log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
         
         try {
             jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
@@ -354,8 +354,8 @@ public class HExecutionEngine implements ExecutionEngine {
             
             InputStream is = p.getInputStream();
 
-            logger.info("Connecting to HOD...");
-            logger.debug("sending HOD command " + cmd.toString());
+            log.info("Connecting to HOD...");
+            log.debug("sending HOD command " + cmd.toString());
 
             StringBuffer sb = new StringBuffer();
             int c;
@@ -372,23 +372,23 @@ public class HExecutionEngine implements ExecutionEngine {
                     switch(current) {
                     case HDFSUI:
                         hdfsUI = sb.toString().trim();
-                        logger.info("HDFS Web UI: " + hdfsUI);
+                        log.info("HDFS Web UI: " + hdfsUI);
                         break;
                     case HDFS:
                         hdfs = sb.toString().trim();
-                        logger.info("HDFS: " + hdfs);
+                        log.info("HDFS: " + hdfs);
                         break;
                     case MAPREDUI:
                         mapredUI = sb.toString().trim();
-                        logger.info("JobTracker Web UI: " + mapredUI);
+                        log.info("JobTracker Web UI: " + mapredUI);
                         break;
                     case MAPRED:
                         mapred = sb.toString().trim();
-                        logger.info("JobTracker: " + mapred);
+                        log.info("JobTracker: " + mapred);
                         break;
                     case HADOOPCONF:
                         hadoopConf = sb.toString().trim();
-                        logger.info("HadoopConf: " + hadoopConf);
+                        log.info("HadoopConf: " + hadoopConf);
                         break;
                     }
                     current = ParsingState.NOTHING;

@@ -24,6 +24,8 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
@@ -31,6 +33,8 @@ import org.apache.pig.data.Tuple;
 import junit.framework.TestCase;
 
 public class TestInfixArithmetic extends TestCase {
+
+    private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;    
     private String initString = "mapreduce";
@@ -45,7 +49,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -67,7 +71,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -88,7 +92,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -110,7 +114,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A =  foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();

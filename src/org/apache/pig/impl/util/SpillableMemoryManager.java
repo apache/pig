@@ -5,10 +5,10 @@ import java.lang.management.MemoryNotificationInfo;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
 import java.lang.ref.WeakReference;
-import java.util.LinkedList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.management.Notification;
@@ -16,7 +16,8 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * This class Tracks the tenured pool and a list of Spillable objects. When memory gets low, this
@@ -28,6 +29,9 @@ import org.apache.log4j.Logger;
  *
  */
 public class SpillableMemoryManager implements NotificationListener {
+    
+    private final Log log = LogFactory.getLog(getClass());
+    
     List<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
     
     public SpillableMemoryManager() {
@@ -36,7 +40,7 @@ public class SpillableMemoryManager implements NotificationListener {
         MemoryPoolMXBean biggestHeap = null;
         long biggestSize = 0;
         for (MemoryPoolMXBean b: mpbeans) {
-            PigLogger.getLogger().debug("Found heap (" + b.getName() +
+            log.debug("Found heap (" + b.getName() +
                 ") of type " + b.getType());
             if (b.getType() == MemoryType.HEAP) {
                 /* Here we are making the leap of faith that the biggest
@@ -52,7 +56,7 @@ public class SpillableMemoryManager implements NotificationListener {
         if (biggestHeap == null) {
             throw new RuntimeException("Couldn't find heap");
         }
-        PigLogger.getLogger().debug("Selected heap to monitor (" +
+        log.debug("Selected heap to monitor (" +
             biggestHeap.getName() + ")");
         /* We set the threshold to be 50% of tenured since that is where
          * the GC starts to dominate CPU time according to Sun doc */
@@ -62,10 +66,10 @@ public class SpillableMemoryManager implements NotificationListener {
     public void handleNotification(Notification n, Object o) {
         CompositeData cd = (CompositeData) n.getUserData();
         MemoryNotificationInfo info = MemoryNotificationInfo.from(cd);
-        PigLogger.getLogger().info("low memory handler called " + info.getUsage());
+        log.info("low memory handler called " + info.getUsage());
         long toFree = info.getUsage().getUsed() - (long)(info.getUsage().getMax()*.5);
         if (toFree < 0) {
-            PigLogger.getLogger().debug("low memory handler returning " + 
+            log.debug("low memory handler returning " + 
                 "because there is nothing to free");
             return;
         }
