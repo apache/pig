@@ -30,6 +30,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
@@ -40,6 +42,8 @@ import org.apache.pig.impl.PigContext;
 
 public class TestPigFile extends TestCase {
 
+    private final Log log = LogFactory.getLog(getClass());
+
     DataBag bag          = BagFactory.getInstance().newDefaultBag();
     Random rand = new Random();
     
@@ -47,7 +51,7 @@ public class TestPigFile extends TestCase {
 	@Before
     protected void setUp() throws Exception {
 
-        System.out.println("Generating PigFile test data...");
+        log.info("Generating PigFile test data...");
 
         Random rand = new Random();
 
@@ -62,7 +66,7 @@ public class TestPigFile extends TestCase {
             t.setField(j, r);
 
         }
-        System.out.println("Done.");
+        log.info("Done.");
     }
 
     @Override
@@ -74,16 +78,16 @@ public class TestPigFile extends TestCase {
     public void testStoreAndLoadText() throws IOException {
         PigContext pigContext = new PigContext(ExecType.LOCAL);
         
-        System.out.println("Running Store...");
+        log.info("Running Store...");
         String initialdata = File.createTempFile("pig-tmp", "").getAbsolutePath();
         PigFile store = new PigFile(initialdata);
         store.store(bag, new PigStorage(), pigContext);
-        System.out.println("Done.");
+        log.info("Done.");
 
-        System.out.println("Running Load...");
+        log.info("Running Load...");
         PigFile load = new PigFile(initialdata);
         DataBag loaded = load.load(new PigStorage(), pigContext);
-        System.out.println("Done.");
+        log.info("Done.");
 
         assertTrue(bag.size() == loaded.size());
 
@@ -147,22 +151,22 @@ public class TestPigFile extends TestCase {
 
     @Test
     public void testStoreAndLoadBin() throws IOException {
-        System.out.println("Generating Data ...");
+        log.info("Generating Data ...");
         bag = getRandomBag(5000,0);
-        System.out.println("Done.");
+        log.info("Done.");
         
         PigContext pigContext = new PigContext(ExecType.LOCAL);
         
-        System.out.println("Running Store...");
+        log.info("Running Store...");
         String storeFile = File.createTempFile("pig-tmp", "").getAbsolutePath();
         PigFile store = new PigFile(storeFile);
         store.store(bag, new BinStorage(), pigContext);
-        System.out.println("Done.");
+        log.info("Done.");
 
-        System.out.println("Running Load...");
+        log.info("Running Load...");
         PigFile load = new PigFile(storeFile);
         DataBag loaded = load.load(new BinStorage(), pigContext);
-        System.out.println("Done.");
+        log.info("Done.");
 
         assertTrue(bag.size() == loaded.size());
 

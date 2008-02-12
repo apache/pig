@@ -53,13 +53,13 @@ public class LOEval extends LogicalOperator {
     @Override
     public TupleSchema outputSchema() {
         if (schema == null) {
-            //System.out.println("LOEval input: " + inputs[0].outputSchema());
-            //System.out.println("LOEval spec: " + spec);
+            //log.info("LOEval input: " + inputs[0].outputSchema());
+            //log.info("LOEval spec: " + spec);
             schema =
                 (TupleSchema) spec.getOutputSchemaForPipe(opTable.get(getInputs().get(0)).
                                                           outputSchema());
 
-            //System.out.println("LOEval output: " + schema);
+            //log.info("LOEval output: " + schema);
         }
         schema.setAlias(alias);
         return schema;

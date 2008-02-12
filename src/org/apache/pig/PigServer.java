@@ -20,32 +20,38 @@ package org.apache.pig;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Enumeration;
-import java.net.URL;
-import java.util.Date;
 import java.util.Properties;
-import java.util.Collection;
-import java.util.ArrayList;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
+import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-import org.apache.pig.backend.executionengine.*;
-import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.backend.datastorage.*;
-import org.apache.pig.impl.util.PigLogger;
 
 
 /**
@@ -56,6 +62,8 @@ import org.apache.pig.impl.util.PigLogger;
  * 
  */
 public class PigServer {
+    
+    private final Log log = LogFactory.getLog(getClass());
     
     /**
      * The type of query execution
@@ -164,7 +172,7 @@ public class PigServer {
                 logMessage += (logMessage + urls.nextElement() + "; ");
             }
             
-            PigLogger.getLogger().debug(logMessage);
+            log.debug(logMessage);
         }
     
         return resourceLocation;
@@ -344,7 +352,7 @@ public class PigServer {
         stream.println("Logical Plan:");
         LogicalPlan lp = aliases.get(alias);
         if (lp == null) {
-            PigLogger.getLogger().error("Invalid alias: " + alias);
+            log.error("Invalid alias: " + alias);
             stream.println("Invalid alias: " + alias);
             throw new IOException("Invalid alias: " + alias);
         }
@@ -360,7 +368,7 @@ public class PigServer {
             pp.explain(stream);
         }
         catch (ExecException e) {
-            PigLogger.getLogger().error("Failed to compile to physical plan: " + alias);
+            log.error("Failed to compile to physical plan: " + alias);
             stream.println("Failed to compile the logical plan for " + alias + " into a physical plan");
             IOException ioe = new IOException("Failed to compile to phyiscal plan: " + alias);
             ioe.initCause(e);

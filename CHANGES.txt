@@ -97,3 +97,8 @@ Trunk (unreleased changes)
 
 	PIG-92: Fix NullPointerException in PIgContext due to uninitialized conf
 	reference. (francisoud via gates)
+
+	PIG-83: Change everything except grunt and Main (PigServer on down) to use
+	common logging abstraction instead of log4j.  By default in grunt, log4j
+	still used as logging layer.  Also converted all System.out/err.println
+	statements to use logging instead. (francisoud via gates)

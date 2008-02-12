@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.data.DataBag;
@@ -36,10 +38,10 @@ import org.apache.pig.impl.physicalLayer.POVisitor;
 
 
 public class POStore extends PhysicalOperator {
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
+    
+    private final Log log = LogFactory.getLog(getClass());
+    
     private PigFile f;
     private String funcSpec;
     boolean append = false;
@@ -119,7 +121,7 @@ public class POStore extends PhysicalOperator {
     
     @Override
     public int getOutputType(){
-        System.err.println("No one should be asking my output type");
+        log.error("No one should be asking my output type");
         RuntimeException runtimeException = new RuntimeException();
         runtimeException.printStackTrace();
         throw runtimeException;

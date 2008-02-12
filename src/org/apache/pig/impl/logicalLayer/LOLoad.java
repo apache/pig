@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -31,6 +33,8 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 public class LOLoad extends LogicalOperator {
     private static final long serialVersionUID = 1L;
+    
+    private final Log log = LogFactory.getLog(getClass());
 
     protected FileSpec inputFileSpec;
 
@@ -52,7 +56,7 @@ public class LOLoad extends LogicalOperator {
             while (cause != null
                    && cause.getClass().getName() !=
                    "java.lang.ClassNotFoundException") {
-                System.out.println("cause = " + cause.getClass().getName());
+                log.error("cause = " + cause.getClass().getName(), e);
                 cause = cause.getCause();
             } if (cause != null) {
                 throw new ParseException("Load function " +
