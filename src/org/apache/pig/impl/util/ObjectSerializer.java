@@ -25,8 +25,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 public class ObjectSerializer {
 
+    private static final Log log = LogFactory.getLog(ObjectSerializer.class);
+    
     public static String serialize(Serializable obj) throws IOException {
         if (obj == null) return "";
         try {

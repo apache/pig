@@ -46,7 +46,7 @@ public class StandAloneParser {
             try {
                 line = in.readLine();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e);
                 return;
             }
             

@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
@@ -41,6 +43,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigCombine implements Reducer {
 
+    private final Log log = LogFactory.getLog(getClass());
+    
     private JobConf         job;
     private CombineDataOutputCollector finalout;
     private DataCollector   evalPipe;
@@ -96,7 +100,7 @@ public class PigCombine implements Reducer {
             evalPipe.add(t);
             // evalPipe.add(null); // EOF marker
         } catch (Throwable tr) {
-            tr.printStackTrace();
+            log.error(tr);
             RuntimeException exp = new RuntimeException(tr.getMessage());
             exp.setStackTrace(tr.getStackTrace());
             throw exp;

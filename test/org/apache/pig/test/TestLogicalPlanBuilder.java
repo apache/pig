@@ -26,6 +26,8 @@ import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
@@ -44,6 +46,8 @@ import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
+    private final Log log = LogFactory.getLog(getClass());
+    
     @Test
     public void testQuery1() {
         String query = "foreach (load 'a') generate $1,$2;";
@@ -550,10 +554,10 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             assertTrue(lp != null);
             return lp;
         } catch (IOException e) {
-            // e.printStackTrace();
+            // log.error(e);
             fail("IOException: " + e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e);
             fail(e.getClass().getName() + ": " + e.getMessage() + " -- " + query);
         }
         return null;

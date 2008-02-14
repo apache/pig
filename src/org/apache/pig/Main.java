@@ -23,6 +23,8 @@ import java.util.*;
 import java.util.jar.*;
 import java.text.ParseException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.HadoopExe;
 
 import org.apache.log4j.BasicConfigurator;
@@ -42,6 +44,7 @@ import org.apache.pig.tools.timer.PerformanceTimerFactory;
 public class Main
 {
 
+    private final static Log log = LogFactory.getLog(Main.class);
     
 private enum ExecMode {STRING, FILE, SHELL, UNKNOWN};
                 
@@ -268,7 +271,7 @@ public static void main(String args[])
         usage();
         rc = 1;
     } catch (Throwable e) {
-        recursivePrintStackTrace(e);
+        log.error(e);
     } finally {
         PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         System.exit(rc);
@@ -291,18 +294,4 @@ public static void usage()
     System.out.println("    -v, -verbose print all log messages to screen (default to print only INFO and above to screen)");
     System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
 }
-        
-        
-    /**
-     * Prints a stack trace of an exception followed by any exceptions that are the causes of that
-     * exception.
-     */
-    private static void recursivePrintStackTrace(Throwable e) {
-        while (e != null) {
-            e.printStackTrace();
-            e = e.getCause();
-        }
-    }
-
-
 }

@@ -123,7 +123,7 @@ public class POStore extends PhysicalOperator {
     public int getOutputType(){
         log.error("No one should be asking my output type");
         RuntimeException runtimeException = new RuntimeException();
-        runtimeException.printStackTrace();
+        log.error(runtimeException);
         throw runtimeException;
     }
 

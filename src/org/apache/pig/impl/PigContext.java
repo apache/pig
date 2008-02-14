@@ -145,7 +145,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 fileProperties.load(pis);
             }
         }catch (IOException e){
-            e.printStackTrace();
+            log.error(e);
             throw new RuntimeException(e);
         }
         

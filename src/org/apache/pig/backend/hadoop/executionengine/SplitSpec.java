@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.cond.Cond;
@@ -32,6 +34,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 public class SplitSpec implements Serializable{
     private static final long serialVersionUID = 1L;
     
+    private final Log log = LogFactory.getLog(getClass());
     public ArrayList<Cond> conditions;
     public List<String> tempFiles;
        
@@ -47,7 +50,7 @@ public class SplitSpec implements Serializable{
                 tempFiles.add(getTempFile(pigContext));
             }
         }catch (IOException e){
-            e.printStackTrace();
+            log.error(e);
         }
     }
         

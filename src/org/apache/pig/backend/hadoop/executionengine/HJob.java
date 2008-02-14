@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.Tuple;
@@ -18,6 +20,8 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
 public class HJob implements ExecJob {
 
+    private final Log log = LogFactory.getLog(getClass());
+    
     protected JOB_STATUS status;
     protected PigContext pigContext;
     protected FileSpec outFileSpec;
@@ -65,7 +69,7 @@ public class HJob implements ExecJob {
                     if (t == null)
                         atEnd = true;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error(e);
                     t = null;
                     atEnd = true;
                 }
@@ -81,7 +85,7 @@ public class HJob implements ExecJob {
                 try {
                     next = p.getNext();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error(e);
                 }
                 if (next == null)
                     atEnd = true;
