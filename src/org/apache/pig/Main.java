@@ -154,7 +154,7 @@ public static void main(String args[])
                    try {
                        exectype = PigServer.parseExecType(opts.getValStr());
                    } catch (IOException e) {
-                       throw new RuntimeException("ERROR: Unrecognized exectype.");
+                       throw new RuntimeException("ERROR: Unrecognized exectype.", e);
                    }
                    pigContext.setExecType(exectype);
                 break;

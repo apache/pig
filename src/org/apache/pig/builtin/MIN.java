@@ -27,6 +27,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -72,15 +73,13 @@ public class MIN extends EvalFunc<DataAtom> implements Algebraic {
             Tuple t = (Tuple) it.next();
             try {
                 curMin = java.lang.Math.min(curMin, t.getAtomField(0).numval());
-            }catch(RuntimeException exp) {
-                IOException newE =  new IOException("Error processing: " + t.toString() + exp.getMessage());
-                                newE.initCause(exp);
-                                throw newE;
+            } catch(RuntimeException exp) {
+                throw WrappedIOException.wrap("Error processing: " + t.toString() + exp.getMessage(), exp);
+            }
         }
+        return curMin;
     }
-
-    return curMin;
-}
+    
     @Override
     public Schema outputSchema(Schema input) {
         return new AtomSchema("min" + count++);

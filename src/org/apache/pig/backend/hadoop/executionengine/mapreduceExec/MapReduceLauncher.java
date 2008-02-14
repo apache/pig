@@ -46,6 +46,7 @@ import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -263,9 +264,7 @@ public class MapReduceLauncher {
                 }
             }
             catch (DataStorageException e) {
-                IOException ioe = new IOException("Failed to obtain descriptor for " + outputFile.toString());
-                ioe.initCause(e);
-                throw ioe;
+                throw WrappedIOException.wrap("Failed to obtain descriptor for " + outputFile.toString(), e);
             }
 
             if (!success) {
@@ -292,8 +291,7 @@ public class MapReduceLauncher {
         }
         catch (Exception e) {
             // Do we need different handling for different exceptions
-            e.printStackTrace();
-            throw new IOException(e.getMessage());
+            throw WrappedIOException.wrap(e);
         }
         finally {
             submitJarFile.delete();

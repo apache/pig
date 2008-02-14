@@ -29,6 +29,7 @@ import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Generates the count of the values of the first field of a tuple. This class is Algebraic in
@@ -92,7 +93,7 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
             try {
                 sum += t.getAtomField(0).longVal();
             } catch (NumberFormatException exp) {
-                throw new IOException(exp.getClass().getName() + ":" + exp.getMessage());
+                throw WrappedIOException.wrap(exp.getClass().getName() + ":" + exp.getMessage(), exp);
             }
         }
         return sum;

@@ -1,11 +1,14 @@
 package org.apache.pig.backend.datastorage;
 
-public class DataStorageException extends Exception {
+import java.io.IOException;
+
+public class DataStorageException extends IOException {
 
     static final long serialVersionUID = 1;
     
     public DataStorageException(String message, Throwable cause) {
-        super(message, cause);
+        super(message);
+        initCause(cause);
     }
 
     public DataStorageException() {

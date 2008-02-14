@@ -67,7 +67,7 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
             output.appendField(new DataAtom(count(input)));
             // output.appendField(new DataAtom("processed by initial"));
             } catch(RuntimeException t) {
-                throw new RuntimeException(t.getMessage() + ": " + input);
+                throw new RuntimeException(t.getMessage() + ": " + input, t);
             }
         }
     }

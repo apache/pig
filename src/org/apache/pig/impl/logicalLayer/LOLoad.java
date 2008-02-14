@@ -59,9 +59,11 @@ public class LOLoad extends LogicalOperator {
                 log.error("cause = " + cause.getClass().getName(), e);
                 cause = cause.getCause();
             } if (cause != null) {
-                throw new ParseException("Load function " +
+                ParseException pe = new ParseException("Load function " +
                                          inputFileSpec.getFuncSpec() +
                                          " not found");
+                pe.initCause(e);
+                throw pe;
             } else {
                 throw e;
             }

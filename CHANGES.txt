@@ -102,3 +102,8 @@ Trunk (unreleased changes)
 	common logging abstraction instead of log4j.  By default in grunt, log4j
 	still used as logging layer.  Also converted all System.out/err.println
 	statements to use logging instead. (francisoud via gates)
+
+	PIG-80: In a number of places stack trace information was being lost by an
+	exception being caught, and a different exception then thrown.  All those
+	locations have been changed so that the new exception now wraps the old.
+	(francisoud via gates).

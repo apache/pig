@@ -13,6 +13,7 @@ import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ImmutableOutputStream;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public class LocalDir extends LocalPath
                       implements ContainerDescriptor {
@@ -64,9 +65,7 @@ public class LocalDir extends LocalPath
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to get container for " + dstName.toString());
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to get container for " + dstName.toString(), e);
         }
 
         copy((ContainerDescriptor) dstName,
@@ -122,9 +121,7 @@ public class LocalDir extends LocalPath
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to copy " + this + " to " + dstName);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to copy " + this + " to " + dstName, e);
         }
 
         if (removeSrc) {

@@ -36,8 +36,7 @@ public class ObjectSerializer {
             objStream.close();
             return encodeBytes(serialObj.toByteArray());
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException("Serialization error: " + e.getMessage());
+            throw WrappedIOException.wrap("Serialization error: " + e.getMessage(), e);
         }
     }
     
@@ -48,8 +47,7 @@ public class ObjectSerializer {
             ObjectInputStream objStream = new ObjectInputStream(serialObj);
             return objStream.readObject();
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException("Deserialization error: " + e.getMessage());
+            throw WrappedIOException.wrap("Deserialization error: " + e.getMessage(), e);
         }
     }
     

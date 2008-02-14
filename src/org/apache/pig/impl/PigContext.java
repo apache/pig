@@ -53,6 +53,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.backend.local.executionengine.LocalExecutionEngine;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public class PigContext implements Serializable, FunctionInstantiator {
     private static final long serialVersionUID = 1L;
@@ -246,9 +247,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             src = dfs.asElement(oldName);            
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to rename " + oldName + " to " + newName);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Unable to rename " + oldName + " to " + newName, e);
         }
 
         if (dst.exists()) {
@@ -274,9 +273,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException ("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""));
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""), e);
         }
         
         srcElement.copy(dstElement, conf,false);
@@ -380,9 +377,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
         // create ClassNotFoundException exception and attach to IOException
         // so that we don't need to buble interface changes throughout the code
         ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
-        IOException newE = new IOException(e.getMessage());
-                newE.initCause(e);
-                throw newE;
+        throw WrappedIOException.wrap(e.getMessage(), e);
     }
     
     private static List<String> parseArguments(String argString){
@@ -424,9 +419,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 ret = objClass.newInstance();
             }
         }catch(Throwable e){
-            IOException newE = new IOException(e.getMessage());
-                newE.initCause(e);
-                throw newE;
+            throw WrappedIOException.wrap(e.getMessage(), e);
         }
         return ret;
     }

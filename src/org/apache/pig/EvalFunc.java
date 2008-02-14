@@ -98,7 +98,7 @@ public abstract class EvalFunc<T extends Datum>  {
         }catch (IOException e){
             throw new RuntimeException(e);
         }catch (ClassCastException e){
-            throw new RuntimeException(funcSpec + " does not specify an eval func");
+            throw new RuntimeException(funcSpec + " does not specify an eval func", e);
         }
     }
     

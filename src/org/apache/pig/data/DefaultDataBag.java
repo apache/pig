@@ -191,7 +191,7 @@ public class DefaultDataBag extends DataBag {
                         // didn't dump all of our tuples to disk.
                         log.fatal(
                             "Ran out of tuples too soon.", eof);
-                        throw new RuntimeException("Ran out of tuples to read prematurely.");
+                        throw new RuntimeException("Ran out of tuples to read prematurely.", eof);
                     } catch (IOException ioe) {
                         log.fatal(
                             "Unable to read our spill file", ioe);

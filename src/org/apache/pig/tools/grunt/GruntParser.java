@@ -19,6 +19,7 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
@@ -192,9 +193,7 @@ public class GruntParser extends PigScriptParser {
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to Cat: " + path);
-            ioe.initCause(e);
-            throw ioe; 
+            throw WrappedIOException.wrap("Failed to Cat: " + path, e);
         }
     }
 
@@ -223,11 +222,9 @@ public class GruntParser extends PigScriptParser {
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to change working directory to " + 
+            throw WrappedIOException.wrap("Failed to change working directory to " + 
                                   ((path == null) ? ("/user/" + System.getProperty("user.name")) 
-                                                     : (path)));
-            ioe.initCause(e);
-            throw ioe;
+                                                     : (path)), e);
         }
     }
 
@@ -303,9 +300,7 @@ public class GruntParser extends PigScriptParser {
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to LS on " + path);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to LS on " + path, e);
         }
     }
     
@@ -345,9 +340,7 @@ public class GruntParser extends PigScriptParser {
             srcPath.rename(dstPath);
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to move " + src + " to " + dst);
-            ioe.initCause(e);
-            throw ioe;        
+            throw WrappedIOException.wrap("Failed to move " + src + " to " + dst, e);
         }
     }
     
@@ -360,9 +353,7 @@ public class GruntParser extends PigScriptParser {
             srcPath.copy(dstPath, mConf, false);
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to copy " + src + " to " + dst);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to copy " + src + " to " + dst, e);
         }
     }
     
@@ -375,9 +366,7 @@ public class GruntParser extends PigScriptParser {
             srcPath.copy(dstPath, false);
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to copy " + src + "to (locally) " + dst);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to copy " + src + "to (locally) " + dst, e);
         }
     }
 
@@ -390,24 +379,14 @@ public class GruntParser extends PigScriptParser {
             srcPath.copy(dstPath, false);
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to copy (loally) " + src + "to " + dst);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to copy (loally) " + src + "to " + dst, e);
         }
     }
     
     protected void processMkdir(String dir) throws IOException
     {
-        try {
-            ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
-            
-            dirDescriptor.create();
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to create dir: " + dir);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
+        dirDescriptor.create();
     }
     
     protected void processPig(String cmd) throws IOException
@@ -420,20 +399,13 @@ public class GruntParser extends PigScriptParser {
 
     protected void processRemove(String path) throws IOException
     {
-        try {
-            ElementDescriptor dfsPath = mDfs.asElement(path);
+        ElementDescriptor dfsPath = mDfs.asElement(path);
         
-            if (!dfsPath.exists()) {
-                throw new IOException("File or directory " + path + " does not exist.");            
-            }
+        if (!dfsPath.exists()) {
+            throw new IOException("File or directory " + path + " does not exist.");            
+        }
             
-            dfsPath.delete();
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to get descriptor for " + path);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        dfsPath.delete();
     }
 
     private PigServer mPigServer;
