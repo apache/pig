@@ -24,6 +24,8 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
@@ -77,6 +79,8 @@ import org.apache.pig.tools.timer.PerformanceTimerFactory;
  */
 public class PigMapReduce implements MapRunnable, Reducer {
 
+    private final Log log = LogFactory.getLog(getClass());
+    
     public static Reporter reporter = null;
 
     JobConf                           job;
@@ -147,7 +151,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
             
             evalPipe.add(t);
         } catch (Throwable tr) {
-            tr.printStackTrace();
+            log.error(tr);
             RuntimeException exp = new RuntimeException(tr.getMessage());
             exp.setStackTrace(tr.getStackTrace());
             throw exp;
@@ -278,7 +282,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
             try{
                 writer.close(reporter);
             }catch(IOException e){
-                e.printStackTrace();
+                log.error(e);
             }
         }
     }

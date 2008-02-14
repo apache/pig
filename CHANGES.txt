@@ -107,3 +107,6 @@ Trunk (unreleased changes)
 	exception being caught, and a different exception then thrown.  All those
 	locations have been changed so that the new exception now wraps the old.
 	(francisoud via gates).
+
+	PIG-84: Converted printStackTrace calls to calls to the logger.
+	(francisoud via gates).

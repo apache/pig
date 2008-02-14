@@ -31,6 +31,8 @@ import java.util.Stack;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -46,6 +48,8 @@ import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputForma
 import java.util.Properties;
 
 public class FileLocalizer {
+    private static final Log log = LogFactory.getLog(FileLocalizer.class);
+    
     static public final String LOCAL_PREFIX  = "file:";
 
     public static class DataStorageInputStreamIterator extends InputStream {
@@ -252,7 +256,7 @@ public class FileLocalizer {
                             elem.delete();
                         } 
                         catch (IOException e) {
-                            e.printStackTrace();
+                            log.error(e);
                         }
                     }
                 }

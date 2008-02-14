@@ -24,19 +24,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 
 
 public abstract class Schema implements Serializable {
 
+    private final Log log = LogFactory.getLog(getClass());
+    
     protected Set<String> aliases = new HashSet<String>();    
 
     public Schema copy(){
         try{
             return (Schema)ObjectSerializer.deserialize(ObjectSerializer.serialize(this));
         }catch (IOException e){
-            e.printStackTrace();
+            log.error(e);
             throw new RuntimeException(e);
         }
     }

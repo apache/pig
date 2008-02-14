@@ -401,7 +401,7 @@ class SSHSocketImpl extends SocketImpl {
 				log.error("EOF");
 			}
 		} catch (JSchException e) {
-			e.printStackTrace();
+			log.error(e);
 			IOException newE = new IOException(e.getMessage());
 			newE.setStackTrace(e.getStackTrace());
 			throw newE;
@@ -460,7 +460,7 @@ class SSHSocketImpl extends SocketImpl {
 							connectTest("www.yahoo.com");
 							log.error("Finished " + this);
 						} catch (Exception e) {
-							e.printStackTrace();
+							log.error(e);
 						}
 					}
 				}.start();
@@ -477,13 +477,13 @@ class SSHSocketImpl extends SocketImpl {
 							connectTest("www.flickr.com");
 							log.error("Finished " + this);
 						} catch (Exception e) {
-							e.printStackTrace();
+							log.error(e);
 						}
 					}
 				}.start();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error(e);
 		}
 	}
 
