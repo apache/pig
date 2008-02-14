@@ -27,6 +27,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -73,9 +74,7 @@ public class MAX extends EvalFunc<DataAtom> implements Algebraic {
             try {
                 curMax = java.lang.Math.max(curMax, t.getAtomField(0).numval());
             }catch(RuntimeException exp) {
-                IOException newE = new IOException("Error processing: " + t.toString() + exp.getMessage());
-                                newE.initCause(exp);
-                                throw newE;
+                throw WrappedIOException.wrap("Error processing: " + t.toString() + exp.getMessage(), exp);
 
             }
         }

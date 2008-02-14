@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.util.Properties;
 
 import org.apache.pig.backend.datastorage.*;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public class LocalFile extends LocalPath {
 
@@ -72,10 +73,8 @@ public class LocalFile extends LocalPath {
                                                 path.getName());
                 }
                 catch (DataStorageException e) {
-                    IOException ioe = new IOException("Unable to generate element name (src: " + 
-                                           this + ", dst: " + dstName + ")");
-                    ioe.initCause(e);
-                    throw ioe;
+                    throw WrappedIOException.wrap("Unable to generate element name (src: " + 
+                                           this + ", dst: " + dstName + ")", e);
                 }
             }
         }
@@ -116,9 +115,7 @@ public class LocalFile extends LocalPath {
             return new LocalSeekableInputStream(this.path);
         }
         catch (FileNotFoundException e) {
-            IOException ioe = new IOException("Unable to find " + this.path);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Unable to find " + this.path, e);
         }
     }
 }

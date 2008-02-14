@@ -11,6 +11,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileStatus;
 
 import org.apache.pig.backend.datastorage.*;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public class HDirectory extends HPath
                         implements ContainerDescriptor {
@@ -94,9 +95,7 @@ public class HDirectory extends HPath
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to copy " + this + " to " + dstName);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to copy " + this + " to " + dstName, e);
         }
 
         if (removeSrc) {
@@ -137,8 +136,6 @@ public class HDirectory extends HPath
             }
         }
         catch (IOException e) {
-        }
-        catch (DataStorageException e) {
         }
 
 /*        

@@ -272,7 +272,7 @@ public class DistinctDataBag extends DataBag {
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
-                        throw new RuntimeException("Ran out of tuples to read prematurely.");
+                        throw new RuntimeException("Ran out of tuples to read prematurely.", eof);
                     } catch (IOException ioe) {
                         log.fatal(
                             "Unable to read our spill file", ioe);

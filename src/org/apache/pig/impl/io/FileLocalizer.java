@@ -36,6 +36,7 @@ import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.WrappedIOException;
 
 import org.apache.pig.backend.datastorage.*;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
@@ -153,17 +154,9 @@ public class FileLocalizer {
     }
 
     public static InputStream openDFSFile(String fileName, JobConf conf) throws IOException{
-        try {
-            DataStorage dds = new HDataStorage(conf);
-            ElementDescriptor elem = dds.asElement(fileName);
-            
-            return openDFSFile(elem);
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to obtain descriptor for " + fileName);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        DataStorage dds = new HDataStorage(conf);
+        ElementDescriptor elem = dds.asElement(fileName);
+        return openDFSFile(elem);
     }
     
     private static InputStream openDFSFile(ElementDescriptor elem) throws IOException{
@@ -176,9 +169,7 @@ public class FileLocalizer {
                 }
             }
             catch (DataStorageException e) {
-                IOException ioe = new IOException("Failed to determine if elem=" + elem + " is container");
-                ioe.initCause(e);
-                throw ioe;
+                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
             }
             
             ArrayList<ElementDescriptor> arrayList = 
@@ -206,17 +197,10 @@ public class FileLocalizer {
     static public InputStream open(String fileSpec, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
-            try {
-                init(pigContext);
-                ElementDescriptor elem = pigContext.getDfs().
-                                                    asElement(fullPath(fileSpec, pigContext));
-                return openDFSFile(elem);
-            }
-            catch (DataStorageException e) {
-                IOException ioe = new IOException("Failed to open " + fileSpec);
-                ioe.initCause(e);
-                throw ioe;
-            }
+            init(pigContext);
+            ElementDescriptor elem = pigContext.getDfs().
+            asElement(fullPath(fileSpec, pigContext));
+            return openDFSFile(elem);
         }
         else {
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
@@ -232,16 +216,9 @@ public class FileLocalizer {
     static public OutputStream create(String fileSpec, boolean append, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
-            try {
-                init(pigContext);
-                ElementDescriptor elem = pigContext.getDfs().asElement(fileSpec);
-                return elem.create();
-            }
-            catch (DataStorageException e) {
-                IOException ioe = new IOException("Failed to create " + fileSpec);
-                ioe.initCause(e);
-                throw ioe;
-            }
+            init(pigContext);
+            ElementDescriptor elem = pigContext.getDfs().asElement(fileSpec);
+            return elem.create();
         }
         else {
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
@@ -286,24 +263,17 @@ public class FileLocalizer {
     public static synchronized ElementDescriptor 
         getTemporaryPath(ElementDescriptor relative, 
                          PigContext pigContext) throws IOException {
-        try {
-            init(pigContext);
-            if (relative == null) {
-                relative = relativeRoot;
-            }
-            if (!relativeRoot.exists()) {
-                relativeRoot.create();
-            }
-            ElementDescriptor elem= 
-                pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt());
-            toDelete.push(elem);
-            return elem;
+        init(pigContext);
+        if (relative == null) {
+            relative = relativeRoot;
         }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get elem descriptor for " + relative.toString());
-            ioe.initCause(e);
-            throw ioe;
+        if (!relativeRoot.exists()) {
+            relativeRoot.create();
         }
+        ElementDescriptor elem= 
+            pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt());
+        toDelete.push(elem);
+        return elem;
     }
 
     public static String hadoopify(String filename, PigContext pigContext) throws IOException {
@@ -311,37 +281,30 @@ public class FileLocalizer {
             filename = filename.substring(LOCAL_PREFIX.length());
         }
         
-        try {
-            ElementDescriptor localElem =
-                pigContext.getLfs().asElement(filename);
+        ElementDescriptor localElem =
+            pigContext.getLfs().asElement(filename);
             
-            if (!localElem.exists()) {
-                throw new FileNotFoundException(filename);
-            }
-            
-            ElementDescriptor distribElem = 
-                getTemporaryPath(null, pigContext);
-    
-            int suffixStart = filename.lastIndexOf('.');
-            if (suffixStart != -1) {
-                distribElem = pigContext.getDfs().asElement(distribElem.toString() +
-                                                            filename.substring(suffixStart));
-            }
-            
-            // TODO: currently the copy method in Data Storage does not allow to specify overwrite
-            //       so the work around is to delete the dst file first, if it exists
-            if (distribElem.exists()) {
-                distribElem.delete();
-            }
-            localElem.copy(distribElem, null, false);
-            
-            return distribElem.toString();
+        if (!localElem.exists()) {
+            throw new FileNotFoundException(filename);
         }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Failed to hadoopify " + filename);
-            ioe.initCause(e);
-            throw ioe;
-        }        
+            
+        ElementDescriptor distribElem = 
+            getTemporaryPath(null, pigContext);
+    
+        int suffixStart = filename.lastIndexOf('.');
+        if (suffixStart != -1) {
+            distribElem = pigContext.getDfs().asElement(distribElem.toString() +
+                    filename.substring(suffixStart));
+        }
+            
+        // TODO: currently the copy method in Data Storage does not allow to specify overwrite
+        //       so the work around is to delete the dst file first, if it exists
+        if (distribElem.exists()) {
+            distribElem.delete();
+        }
+        localElem.copy(distribElem, null, false);
+            
+        return distribElem.toString();
     }
 
     public static String fullPath(String filename, PigContext pigContext) throws IOException {
@@ -397,9 +360,7 @@ public class FileLocalizer {
             }
         }
         catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get collect for pattern " + elem.toString());
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Unable to get collect for pattern " + elem.toString(), e);
         }
     }
 

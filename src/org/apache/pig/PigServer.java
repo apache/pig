@@ -52,6 +52,7 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -286,9 +287,7 @@ public class PigServer {
             }
         }
         catch (ExecException e) {
-            IOException ioe = new IOException("Unable to open iterator for alias: " + id);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Unable to open iterator for alias: " + id, e);
         }
     }
     
@@ -333,9 +332,7 @@ public class PigServer {
             pigContext.getExecutionEngine().execute(pp);
         }
         catch (ExecException e) {
-            IOException ioe = new IOException("Unable to store alias " + readFrom.getAlias());
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Unable to store alias " + readFrom.getAlias(), e);
         }
     }
 
@@ -370,9 +367,7 @@ public class PigServer {
         catch (ExecException e) {
             log.error("Failed to compile to physical plan: " + alias);
             stream.println("Failed to compile the logical plan for " + alias + " into a physical plan");
-            IOException ioe = new IOException("Failed to compile to phyiscal plan: " + alias);
-            ioe.initCause(e);
-            throw ioe;
+            throw WrappedIOException.wrap("Failed to compile to phyiscal plan: " + alias, e);
         }
     }
 
@@ -415,48 +410,26 @@ public class PigServer {
      * @throws IOException
      */
     public long fileSize(String filename) throws IOException {
-        try {
-            DataStorage dfs = pigContext.getDfs();
-            ElementDescriptor elem = dfs.asElement(filename);
-            Map<String, Object> elemProps = elem.getStatistics();
-            String length = (String) elemProps.get(ElementDescriptor.LENGTH_KEY);
+        DataStorage dfs = pigContext.getDfs();
+        ElementDescriptor elem = dfs.asElement(filename);
+        Map<String, Object> elemProps = elem.getStatistics();
+        String length = (String) elemProps.get(ElementDescriptor.LENGTH_KEY);
+        
+        Properties dfsProps = dfs.getConfiguration();
+        String replication = dfsProps.getProperty(DataStorage.DEFAULT_REPLICATION_FACTOR_KEY);
             
-            Properties dfsProps = dfs.getConfiguration();
-            String replication = dfsProps.getProperty(DataStorage.DEFAULT_REPLICATION_FACTOR_KEY);
-            
-            return (new Long(length)).longValue() *
-                   (new Integer(replication)).intValue();
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get element descriptor for " + filename);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        return (new Long(length)).longValue() * (new Integer(replication)).intValue();
     }
     
     public boolean existsFile(String filename) throws IOException {
-        try {
-            ElementDescriptor elem = pigContext.getDfs().asElement(filename);
-            return elem.exists();
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get element descriptor for " + filename);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        ElementDescriptor elem = pigContext.getDfs().asElement(filename);
+        return elem.exists();
     }
     
     public boolean deleteFile(String filename) throws IOException {
-        try {
-            ElementDescriptor elem = pigContext.getDfs().asElement(filename);
-            elem.delete();
-            return true;
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get element descriptor for " + filename);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        ElementDescriptor elem = pigContext.getDfs().asElement(filename);
+        elem.delete();
+        return true;
     }
     
     public boolean renameFile(String source, String target) throws IOException {
@@ -465,36 +438,22 @@ public class PigServer {
     }
     
     public boolean mkdirs(String dirs) throws IOException {
-        try {
-            ContainerDescriptor container = pigContext.getDfs().asContainer(dirs);
-            container.create();
-            return true;
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get container descriptor for " + dirs);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        ContainerDescriptor container = pigContext.getDfs().asContainer(dirs);
+        container.create();
+        return true;
     }
     
     public String[] listPaths(String dir) throws IOException {
-        try {
-            Collection<String> allPaths = new ArrayList<String>();
-            ContainerDescriptor container = pigContext.getDfs().asContainer(dir);
-            Iterator<ElementDescriptor> iter = container.iterator();
+        Collection<String> allPaths = new ArrayList<String>();
+        ContainerDescriptor container = pigContext.getDfs().asContainer(dir);
+        Iterator<ElementDescriptor> iter = container.iterator();
             
-            while (iter.hasNext()) {
-                ElementDescriptor elem = iter.next();
-                allPaths.add(elem.toString());
-            }
+        while (iter.hasNext()) {
+            ElementDescriptor elem = iter.next();
+            allPaths.add(elem.toString());
+        }
             
-            return (String[])(allPaths.toArray());
-        }
-        catch (DataStorageException e) {
-            IOException ioe = new IOException("Unable to get container descriptor for " + dir);
-            ioe.initCause(e);
-            throw ioe;
-        }
+        return (String[])(allPaths.toArray());
     }
     
     public long totalHadoopTimeSpent() {

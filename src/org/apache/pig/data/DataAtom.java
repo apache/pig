@@ -132,7 +132,7 @@ final public class DataAtom extends Datum {
              data = strval().getBytes("UTF-8");
          } catch (Exception e) {
              long size = strval().length();
-             throw new RuntimeException("Error dealing with DataAtom of size " + size);
+             throw new RuntimeException("Error dealing with DataAtom of size " + size, e);
          }
          Tuple.encodeInt(out, data.length);
          out.write(data);    

@@ -36,6 +36,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 public class PigSplit implements InputSplit {
@@ -98,7 +99,7 @@ public class PigSplit implements InputSplit {
             try {
                 loader = (LoadFunc) PigContext.instantiateFuncFromSpec(this.parser);
             }catch(Exception exp) {
-                throw new RuntimeException("can't instantiate " + parser);
+                throw new RuntimeException("can't instantiate " + parser, exp);
             }
         }
         return loader;
@@ -161,9 +162,7 @@ public class PigSplit implements InputSplit {
         try{
             return ois.readObject();
         }catch (ClassNotFoundException cnfe){
-            IOException newE = new IOException(cnfe.getMessage());
-                newE.initCause(cnfe);
-                throw newE;
+            throw WrappedIOException.wrap(cnfe.getMessage(), cnfe);
         }
     }
     
