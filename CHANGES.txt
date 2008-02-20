@@ -110,3 +110,5 @@ Trunk (unreleased changes)
 
 	PIG-84: Converted printStackTrace calls to calls to the logger.
 	(francisoud via gates).
+
+	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
