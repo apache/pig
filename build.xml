@@ -108,6 +108,7 @@
 		<mkdir dir="test/reports"/>
                 <junit printsummary="on" haltonfailure="no"
                        errorProperty="tests.failed" failureProperty="tests.failed">
+                    <jvmarg line="-Xmx512m -XX:PermSize=128m -XX:MaxPermSize=512m"/>
 			<sysproperty key="ssh.gateway" value="${ssh.gateway}"/>
 			<sysproperty key="hod.server" value="${hod.server}"/>
 			<!-- <sysproperty key="hod.command" value="${hod.command}"/>
