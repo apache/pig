@@ -112,3 +112,6 @@ Trunk (unreleased changes)
 	(francisoud via gates).
 
 	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
+
+	PIG-99: Fix to make unit tests not run out of memory. (francisoud via
+	gates).
