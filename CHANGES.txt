@@ -117,3 +117,6 @@ Trunk (unreleased changes)
 	gates).
 
     PIG-107: enabled several tests. (francisoud via olgan)
+
+    PIG-46: abort processing on error for non-interactive mode (olston via
+    olgan)
