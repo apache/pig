@@ -115,3 +115,5 @@ Trunk (unreleased changes)
 
 	PIG-99: Fix to make unit tests not run out of memory. (francisoud via
 	gates).
+
+    PIG-107: enabled several tests. (francisoud via olgan)

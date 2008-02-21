@@ -404,18 +404,21 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("a = FILTER (load 'a') BY (IsEmpty($2) AND ($3 == $2));");
     }
     
+    @Test
     public void testQuery41() {
     	buildPlan("a = load 'a';");
     	buildPlan("b = a as (host,url);");
     	buildPlan("foreach b generate host;");
     }
     
+    @Test
     public void testQuery42() {
     	buildPlan("a = load 'a';");
     	buildPlan("b = foreach a generate $0 as url, $1 as rank;");
     	buildPlan("foreach b generate url;");
     }
 
+    @Test
     public void testQuery43() {
     	buildPlan("a = load 'a' as (url,hitCount);");
     	buildPlan("b = load 'a' as (url,rank);");
@@ -424,6 +427,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     	buildPlan("e = foreach d generate group, a::url, b::url, b::rank, rank;");
     }
 
+    @Test
     public void testQuery44() {
     	buildPlan("a = load 'a' as (url, pagerank);");
     	buildPlan("b = load 'b' as (url, query, rank);");
@@ -431,7 +435,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     	buildPlan("foreach c generate group.url;");
     }
 
-    
+    @Test
     public void testQueryFail44() throws Throwable {
         PigServer pig = null;
         try {
