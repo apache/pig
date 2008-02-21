@@ -378,7 +378,7 @@ void parse() throws IOException:
 	{}
 	|
 	// handle invalid token
-	skip_invalid_command(EOL)
+	handle_invalid_command(EOL)
 	{prompt();}
 	)
 }
@@ -490,12 +490,17 @@ Token GetReserved () :
 
 
 JAVACODE 
-void skip_invalid_command(int kind) 
+void handle_invalid_command(int kind) 
 {
 	ParseException e = generateParseException();  // generate the exception object.
-	System.out.println(e.toString());  // print the error message
-	Token t = getNextToken();
+	
+	if (mInteractive) {
+		System.out.println(e.toString());  // print the error message
+		Token t = getNextToken();
 
-	while (t.kind != kind)
-		t = getNextToken();
+		while (t.kind != kind)
+			t = getNextToken();
+	} else {
+		throw e;
+	}
 }
