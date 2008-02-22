@@ -19,6 +19,7 @@ import junit.framework.TestCase;
 
 public class TestPigServer extends TestCase {
     private PigServer pig = null;
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     private void initPigServer() throws Throwable {
         if (pig == null) {

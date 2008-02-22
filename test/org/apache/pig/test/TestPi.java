@@ -53,6 +53,7 @@ public class TestPi extends TestCase {
 	private long total = ((defaultBlockSize >> 20) / 10) << 20;
 	private int inCircle = 0;
 	private String initString = "mapreduce";
+	MiniCluster cluster = MiniCluster.buildCluster();
 
 	private long totalLength = 0, totalLengthTest = 0;
 

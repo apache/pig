@@ -33,6 +33,7 @@ import org.apache.pig.data.Tuple;
 public class TestAlgebraicEval extends TestCase {
     
 	private String initString = "mapreduce";
+	MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testSimpleCount() throws Throwable {
         int LOOP_COUNT = 1024;

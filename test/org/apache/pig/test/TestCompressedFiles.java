@@ -35,6 +35,7 @@ import junit.framework.TestCase;
 public class TestCompressedFiles extends TestCase {
     
     private final Log log = LogFactory.getLog(getClass());
+    MiniCluster cluster = MiniCluster.buildCluster();
 
     File datFile;
     File gzFile;

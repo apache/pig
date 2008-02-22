@@ -48,6 +48,7 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 public class TestMapReduce extends TestCase {
 
 	private String initString = "mapreduce";
+	MiniCluster cluster = MiniCluster.buildCluster();
 
 	@Test
     public void testBigGroupAll() throws Throwable {

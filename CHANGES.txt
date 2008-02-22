@@ -122,3 +122,6 @@ Trunk (unreleased changes)
     olgan)
 
     PIG-109: improved exception handling (oae via olgan)
+
+	PIG-72: Move unit tests to use MiniDFS and MiniMR so that unit tests can
+	be run w/o access to a hadoop cluster. (xuzh via gates)
