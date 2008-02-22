@@ -253,7 +253,6 @@ public abstract class DefaultAbstractBag implements DataBag {
         // using the iterator to write it will guarantee those things come
         // correctly.  And on the other end there'll be no reason to waste
         // time re-sorting or re-applying distinct.
-        out.write(DataType.BAG);
         out.writeLong(size());
         Iterator<Tuple> it = iterator();
         while (it.hasNext()) {

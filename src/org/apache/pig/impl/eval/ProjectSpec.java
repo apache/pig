@@ -33,9 +33,6 @@ public class ProjectSpec extends SimpleEvalSpec {
 	protected List<Integer> cols;
 	protected boolean wrapInTuple;
 
-    private TupleFactory mTupleFactory = TupleFactory.getInstance();
-	
-
 	public List<Integer> getCols() {
 		return cols;
 	}
@@ -86,7 +83,7 @@ public class ProjectSpec extends SimpleEvalSpec {
 			if (!wrapInTuple && cols.size() == 1){
 				return t.get(cols.get(0));
 			}else{
-				Tuple out = mTupleFactory.newTuple(cols.size());
+				Tuple out = TupleFactory.getInstance().newTuple(cols.size());
 				for (int i: cols){
 					out.set(i, t.get(i));
 				}

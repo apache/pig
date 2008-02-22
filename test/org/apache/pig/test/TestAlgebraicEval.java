@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 public class TestAlgebraicEval extends TestCase {
@@ -67,7 +68,7 @@ public class TestAlgebraicEval extends TestCase {
     
     @Test
     public void testSimpleCount() throws Exception {
-        int LOOP_COUNT = 1024;
+        long LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -81,14 +82,13 @@ public class TestAlgebraicEval extends TestCase {
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        DataByteArray a = (DataByteArray)t.get(0);
-        Double count = Double.valueOf(a.toString());
-        assertEquals(count, (double)LOOP_COUNT);
+        Long count = DataType.toLong(t.get(0));
+        assertEquals(count.longValue(), LOOP_COUNT);
     }
 
     @Test
     public void testGroupCount() throws Exception {
-        int LOOP_COUNT = 1024;
+        long LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -102,16 +102,15 @@ public class TestAlgebraicEval extends TestCase {
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        DataByteArray a = (DataByteArray)t.get(1);
-        Double count = Double.valueOf(a.toString());
-        assertEquals(count, (double)LOOP_COUNT);
+        Long count = DataType.toLong(t.get(1));
+        assertEquals(count.longValue(), LOOP_COUNT);
     }
     
     
     
     @Test
     public void testGroupReorderCount() throws Exception {
-        int LOOP_COUNT = 1024;
+        long LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -125,9 +124,8 @@ public class TestAlgebraicEval extends TestCase {
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        DataByteArray a = (DataByteArray)t.get(0);
-        Double count = Double.valueOf(a.toString());
-        assertEquals(count, (double)LOOP_COUNT);
+        Long count = DataType.toLong(t.get(0));
+        assertEquals(count.longValue(), LOOP_COUNT);
     }
 
 
@@ -138,7 +136,7 @@ public class TestAlgebraicEval extends TestCase {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        int groupsize = 0;
+        long groupsize = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i%10 == 0) groupsize++;
             ps.println(i%10 + ":" + i);
@@ -151,12 +149,11 @@ public class TestAlgebraicEval extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            DataByteArray a = (DataByteArray)t.get(0);
+            String a = t.get(0).toString();
             Double group = Double.valueOf(a.toString());
             if(group == 0.0) {
-                DataByteArray b = (DataByteArray)t.get(1);
-                Double count = Double.valueOf(b.toString());
-                assertEquals(count, (double)groupsize);
+                Long count = DataType.toLong(t.get(1));
+                assertEquals(count.longValue(), groupsize);
                 break;
             }
         }   
@@ -168,7 +165,7 @@ public class TestAlgebraicEval extends TestCase {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        int groupsize = 0;
+        long groupsize = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i%10 == 0) groupsize++;
             ps.println(i%10 + ":" + i);
@@ -181,12 +178,11 @@ public class TestAlgebraicEval extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            DataByteArray a = (DataByteArray)t.get(0);
+            String a = t.get(0).toString();
             Double group = Double.valueOf(a.toString());
             if(group == 0.0) {
-                DataByteArray b = (DataByteArray)t.get(1);
-                Double count = Double.valueOf(b.toString());
-                assertEquals(count, (double)groupsize);
+                Long count = DataType.toLong(t.get(1));
+                assertEquals(count.longValue(), groupsize);
                 break;
             }
         }

@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 import junit.framework.TestCase;
@@ -51,8 +52,8 @@ public class TestInfixArithmetic extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = DataType.toDouble(t.get(0));
+            Double second = DataType.toDouble(t.get(1));
             assertTrue(second.equals(first + first));
         }
     }
@@ -73,7 +74,7 @@ public class TestInfixArithmetic extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double second = t.getAtomField(1).numval();
+            Double second = DataType.toDouble(t.get(1));
             assertTrue(second.equals(0.0));
         }
     }
@@ -94,8 +95,8 @@ public class TestInfixArithmetic extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = DataType.toDouble(t.get(0));
+            Double second = DataType.toDouble(t.get(1));
             assertTrue(second.equals(first * first));
         }
     }
@@ -116,7 +117,7 @@ public class TestInfixArithmetic extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double second = t.getAtomField(1).numval();
+            Double second = DataType.toDouble(t.get(1));
             assertTrue(second.equals(1.0));
         }
     }

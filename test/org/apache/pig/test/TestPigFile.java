@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -51,16 +52,17 @@ public class TestPigFile extends TestCase {
         System.out.println("Generating PigFile test data...");
 
         Random rand = new Random();
+        byte[] r = new byte[10];
 
-        Tuple t = new Tuple(10);
+        Tuple t = TupleFactory.getInstance().newTuple(10);
         for (int i = 0, j = 0; i < 10000; i++, j++) {
-            int r = rand.nextInt();
+            rand.nextBytes(r);
             if (j == 10) {
                 bag.add(t);
-                t = new Tuple(10);
+                t = TupleFactory.getInstance().newTuple(10);
                 j = 0;
             }
-            t.setField(j, r);
+            t.set(j, new DataByteArray(r));
 
         }
         System.out.println("Done.");
@@ -112,17 +114,32 @@ public class TestPigFile extends TestCase {
     	
     	throw new RuntimeException("Shouldn't reach here.");
     }
+
+    private char[] letters = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+        'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 
+        'x', 'y', 'z'};
     
-    private Integer getRandomDataAtom(){
-    	return new Integer(rand.nextInt());
+    private DataByteArray getRandomDataAtom(){
+        /*
+        byte[] bytes = new byte[10];
+    	rand.nextBytes(bytes);
+    	//return new DataByteArray(bytes);
+    	return new DataByteArray("Abc");
+        */
+        String s = new String();
+        for (int i = 0; i < 10; i++) {
+            s += letters[rand.nextInt(26)];
+        }
+        return new DataByteArray(s);
+
     }
     
     private Tuple getRandomTuple(int nestingLevel) throws IOException{
     	
     	int cardinality = rand.nextInt(2)+1;
-    	Tuple t = new Tuple(cardinality);
+    	Tuple t = TupleFactory.getInstance().newTuple(cardinality);
     	for (int i=0; i<cardinality; i++)
-    		t.setField(i, getRandomDatum(nestingLevel+1));
+    		t.set(i, getRandomDatum(nestingLevel+1));
     	return t;
     }
     
@@ -139,9 +156,9 @@ public class TestPigFile extends TestCase {
     
     private Map<Object, Object> getRandomMap(int nestingLevel) throws IOException{
     	int cardinality = rand.nextInt(2)+1;
-    	Map<Object, Object> m = new Map<Object, Object>();
+    	Map<Object, Object> m = new HashMap<Object, Object>();
     	for (int i=0; i<cardinality; i++){
-    		m.put(getRandomDataAtom().strval(),getRandomDatum(nestingLevel+1));
+    		m.put(getRandomDataAtom().toString(),getRandomDatum(nestingLevel+1));
     	}
     	return m;
     }

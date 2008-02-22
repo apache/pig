@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
@@ -77,7 +78,9 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
         for (Iterator it = values.iterator(); it.hasNext();) {
             Tuple t = (Tuple)it.next();
             try {
-                curMax = java.lang.Math.max(curMax, (Double)t.get(0));
+                Double d = DataType.toDouble(t.get(0));
+                if (d == null) continue;
+                curMax = java.lang.Math.max(curMax, d);
             } catch (RuntimeException exp) {
                 IOException newE = new IOException("Error processing: " +
                     t.toString() + exp.getMessage());

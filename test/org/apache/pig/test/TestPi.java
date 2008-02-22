@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import org.apache.pig.PigServer;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 import org.apache.pig.impl.io.FileLocalizer;
@@ -126,8 +127,8 @@ public class TestPi extends TestCase {
 		Iterator <Tuple> InCircle = pig.openIterator("K");
 
 		
-		int totalPoints = Total.next().getAtomField(0).numval().intValue();
-		int inCirclePoints = InCircle.next().getAtomField(0).numval().intValue();
+		int totalPoints = DataType.toInteger(Total.next().get(0));
+		int inCirclePoints = DataType.toInteger(InCircle.next().get(0));
 
 		System.out.println("Value of PI = " + 4 * (double)inCircle / (double)total);
 		System.out.println("Value of PI (From Test data) = " + 4 * (double)inCirclePoints / (double)totalPoints);
@@ -137,7 +138,7 @@ public class TestPi extends TestCase {
 		
 		while(lengthTest.hasNext()) {
 			Tuple temp = lengthTest.next();
-			totalLengthTest += temp.getAtomField(0).toString().length();
+			totalLengthTest += temp.get(0).toString().length();
 		}
 		
 		assertEquals(totalPoints, total);

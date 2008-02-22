@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import org.apache.pig.PigServer;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 import org.apache.pig.impl.io.FileLocalizer;
@@ -112,8 +113,8 @@ public class TestLargeFile extends TestCase {
 		
 		while(B.hasNext()) {
 			Tuple temp = B.next();
-			int index = temp.getAtomField(0).numval().intValue();
-			int value = temp.getAtomField(1).numval().intValue();
+			int index = DataType.toInteger(temp.get(0));
+			int value = DataType.toInteger(temp.get(1));
 			System.out.println("COUNT [" + index + "] = " + COUNT[index] + " B[" + index + "] = " + value);
 			
 			assertEquals(COUNT[index].intValue(), value);
@@ -132,12 +133,12 @@ public class TestLargeFile extends TestCase {
 		Iterator <Tuple> B = pig.openIterator("B");
 		
 		if(B.hasNext()) {
-			N = B.next().getAtomField(0).numval().intValue();
+			N = DataType.toInteger(B.next().get(0));
 		}
 		
 		while(B.hasNext()) {
 			int flag = 0;
-			Nplus1 = B.next().getAtomField(0).numval().intValue();
+			Nplus1 = DataType.toInteger(B.next().get(0));
 			if(Nplus1 >= N) {
 				flag = 1;
 			}
@@ -171,7 +172,7 @@ public class TestLargeFile extends TestCase {
         }
 		
 		while(B.hasNext()) {
-			int temp = B.next().getAtomField(0).numval().intValue();
+			int temp = DataType.toInteger(B.next().get(0));
 			COUNT_Test[temp] ++;
 		}
 		

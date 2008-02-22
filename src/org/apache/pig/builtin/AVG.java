@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
@@ -66,8 +67,8 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         public Tuple exec(Tuple input) throws IOException {
             try {
                 Tuple t = mTupleFactory.newTuple(2);
-                t.set(0, sum(input));
-                t.set(1, count(input));
+                t.set(0, new Double(sum(input)));
+                t.set(1, new Long(count(input)));
                 return t;
             } catch(RuntimeException t) {
                 throw new RuntimeException(t.getMessage() + ": " + input);
@@ -128,7 +129,9 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         double sum = 0;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
-            sum += (Double)t.get(0);
+            Double d = DataType.toDouble(t.get(0));
+            if (d == null) continue;
+            sum += d;
         }
 
         return sum;

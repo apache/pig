@@ -126,6 +126,9 @@
 				<fileset dir="test">
 					<include name="**/*Test*.java" />
 					<exclude name="**/TestLargeFile.java" />
+                    <exclude name="**/TestOrderBy.java" />
+                    <exclude name="**/TestPi.java" />
+
 					<exclude name="**/nightly/**" />
 				</fileset>
 			</batchtest>

@@ -22,7 +22,9 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
@@ -57,7 +59,7 @@ public class TestBuiltin extends TestCase {
             Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
         Double output = avg.exec(tup);
         
-        assertTrue(actual == expected);
+        assertTrue(output == expected);
     }
 
     @Test
@@ -68,25 +70,23 @@ public class TestBuiltin extends TestCase {
         Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
         Tuple output = avg.exec(tup);
 
-        DataByteArray a = output.get(0);
-        Double f1 = Double.valueOf(a.toString());
+        Double f1 = DataType.toDouble(output.get(0));
         assertEquals("Expected sum to be 55.0", 55.0, f1);
-        a = output.get(1);
-        Long f2 = Long.valueOf(a.toString());
-        assertEquals("Expected count to be 10", 10, f2);
+        Long f2 = DataType.toLong(output.get(1));
+        assertEquals("Expected count to be 10", 10, f2.longValue());
     }
 
     @Test
     public void testAVGFinal() throws Exception {
         Tuple t1 = TupleFactory.getInstance().newTuple(2);
         t1.set(0, 55.0);
-        t1.set(1, 10);
+        t1.set(1, 10L);
         Tuple t2 = TupleFactory.getInstance().newTuple(2);
         t2.set(0, 28.0);
-        t2.set(1, 7);
+        t2.set(1, 7L);
         Tuple t3 = TupleFactory.getInstance().newTuple(2);
         t3.set(0, 82.0);
-        t3.set(1, 17);
+        t3.set(1, 17L);
         DataBag bag = BagFactory.getInstance().newDefaultBag();
         bag.add(t1);
         bag.add(t2);
@@ -111,12 +111,12 @@ public class TestBuiltin extends TestCase {
         Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
         Long output = count.exec(tup);
 
-        assertTrue(actual == expected);
+        assertTrue(output == expected);
     }
 
     @Test
     public void testCOUNTMap() throws Exception {
-        Map<Object, Object> map = new Map<Object, Object>();
+        Map<Object, Object> map = new HashMap<Object, Object>();
         
         Tuple tup = TupleFactory.getInstance().newTuple();
         tup.append(map);
@@ -135,11 +135,11 @@ public class TestBuiltin extends TestCase {
         assertTrue(output == 1);
 
         
-        map.put("b", Tuple.getInstance().newTuple());
+        map.put("b", TupleFactory.getInstance().newTuple());
 
         assertFalse(isEmpty.exec(tup));
         output = count.exec(tup);
-        assertTrue(output.numval() == 2);
+        assertTrue(output == 2);
         
     }
 
@@ -151,20 +151,19 @@ public class TestBuiltin extends TestCase {
         Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
         Tuple output = count.exec(tup);
 
-        DataByteArray a = output.get(0);
-        Long f1 = Long.valueOf(a.toString());
-        assertEquals("Expected count to be 10", 10, f1);
+        Long f1 = DataType.toLong(output.get(0));
+        assertEquals("Expected count to be 10", 10, f1.longValue());
     }
 
     @Test
     public void testCOUNTFinal() throws Exception {
-        int input[] = { 23, 38, 39 };
+        long input[] = { 23, 38, 39 };
         Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
 
-        EvalFunc<DataAtom> count = new COUNT.Final();
+        EvalFunc<Long> count = new COUNT.Final();
         Long output = count.exec(tup);
 
-        assertEquals("Expected count to be 100", 100, output);
+        assertEquals("Expected count to be 100", 100, output.longValue());
     }
 
     @Test
@@ -172,14 +171,11 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         double expected = 55;
 
-        EvalFunc<DataAtom> sum = new SUM();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        DataAtom output = new DataAtom();
-        sum.exec(tup, output);
+        EvalFunc<Double> sum = new SUM();
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Double output = sum.exec(tup);
 
-        double actual = (new Double(output.strval())).doubleValue();
-
-        assertTrue(actual == expected);
+        assertTrue(output == expected);
     }
 
     @Test
@@ -187,36 +183,32 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
         EvalFunc<Tuple> sum = new SUM.Initial();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        Tuple output = new Tuple();
-        sum.exec(tup, output);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Tuple output = sum.exec(tup);
 
-        assertEquals("Expected sum to be 55.0", 55.0,
-            output.getAtomField(0).numval());
+        assertEquals("Expected sum to be 55.0", 55.0, DataType.toDouble(output.get(0)));
     }
 
     @Test
     public void testSUMFinal() throws Exception {
         int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
 
-        EvalFunc<DataAtom> sum = new SUM.Final();
-        DataAtom output = new DataAtom();
-        sum.exec(tup, output);
+        EvalFunc<Double> sum = new SUM.Final();
+        Double output = sum.exec(tup);
 
-        assertEquals("Expected sum to be 100.0", 100.0, output.numval());
+        assertEquals("Expected sum to be 100.0", 100.0, output);
     }
 
     @Test
     public void testMIN() throws Exception {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
-        EvalFunc<DataAtom> min = new MIN();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        DataAtom output = new DataAtom();
-        min.exec(tup, output);
+        EvalFunc<Double> min = new MIN();
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Double output = min.exec(tup);
 
-        assertEquals("Expected min to be 1.0", 1.0, output.numval());
+        assertEquals("Expected min to be 1.0", 1.0, output);
     }
 
 
@@ -225,36 +217,32 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
         EvalFunc<Tuple> min = new MIN.Initial();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        Tuple output = new Tuple();
-        min.exec(tup, output);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Tuple output = min.exec(tup);
 
-        assertEquals("Expected min to be 1.0", 1.0,
-            output.getAtomField(0).numval());
+        assertEquals("Expected min to be 1.0", 1.0, DataType.toDouble(output.get(0)));
     }
 
     @Test
     public void testMINFinal() throws Exception {
         int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
 
-        EvalFunc<DataAtom> min = new MIN.Final();
-        DataAtom output = new DataAtom();
-        min.exec(tup, output);
+        EvalFunc<Double> min = new MIN.Final();
+        Double output = min.exec(tup);
 
-        assertEquals("Expected sum to be 23.0", 23.0, output.numval());
+        assertEquals("Expected sum to be 23.0", 23.0, output);
     }
 
     @Test
     public void testMAX() throws Exception {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
-        EvalFunc<DataAtom> max = new MAX();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        DataAtom output = new DataAtom();
-        max.exec(tup, output);
+        EvalFunc<Double> max = new MAX();
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Double output = max.exec(tup);
 
-        assertEquals("Expected max to be 10.0", 10.0, output.numval());
+        assertEquals("Expected max to be 10.0", 10.0, output);
     }
 
 
@@ -263,24 +251,21 @@ public class TestBuiltin extends TestCase {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
         EvalFunc<Tuple> max = new MAX.Initial();
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
-        Tuple output = new Tuple();
-        max.exec(tup, output);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Tuple output = max.exec(tup);
 
-        assertEquals("Expected max to be 10.0", 10.0,
-            output.getAtomField(0).numval());
+        assertEquals("Expected max to be 10.0", 10.0, DataType.toDouble(output.get(0)));
     }
 
     @Test
     public void testMAXFinal() throws Exception {
         int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(new Tuple(1), input);
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
 
-        EvalFunc<DataAtom> max = new MAX.Final();
-        DataAtom output = new DataAtom();
-        max.exec(tup, output);
+        EvalFunc<Double> max = new MAX.Final();
+        Double output = max.exec(tup);
 
-        assertEquals("Expected sum to be 39.0", 39.0, output.numval());
+        assertEquals("Expected sum to be 39.0", 39.0, output);
     }
 
 
@@ -301,7 +286,7 @@ public class TestBuiltin extends TestCase {
         FakeFSInputStream ffis1 = new FakeFSInputStream(input1.getBytes());
         p1.bindTo(null, new BufferedPositionedInputStream(ffis1), 0, input1.getBytes().length);
         Tuple f1 = p1.getNext();
-        assertTrue(f1.arity() == arity1);
+        assertTrue(f1.size() == arity1);
 
         String input2 = ":this:has:a:leading:colon\n";
         int arity2 = 6;
@@ -310,7 +295,7 @@ public class TestBuiltin extends TestCase {
         FakeFSInputStream ffis2 = new FakeFSInputStream(input2.getBytes());
         p2.bindTo(null, new BufferedPositionedInputStream(ffis2), 0, input2.getBytes().length);
         Tuple f2 = p2.getNext();
-        assertTrue(f2.arity() == arity2);
+        assertTrue(f2.size() == arity2);
 
         String input3 = "this:has:a:trailing:colon:\n";
         int arity3 = 6;
@@ -319,7 +304,7 @@ public class TestBuiltin extends TestCase {
         FakeFSInputStream ffis3 = new FakeFSInputStream(input3.getBytes());
         p3.bindTo(null, new BufferedPositionedInputStream(ffis3), 0, input1.getBytes().length);
         Tuple f3 = p3.getNext();
-        assertTrue(f3.arity() == arity3);
+        assertTrue(f3.size() == arity3);
     }
 
     /*
@@ -399,7 +384,8 @@ public class TestBuiltin extends TestCase {
         text1.bindTo(null, new BufferedPositionedInputStream(ffis1), 0, input1.getBytes().length);
         Tuple f1 = text1.getNext();
         Tuple f2 = text1.getNext();
-        assertTrue(expected1.equals(f1.getAtomField(0).strval()) && expected2.equals(f2.getAtomField(0).strval()));
+        assertTrue(expected1.equals(f1.get(0).toString()) &&
+            expected2.equals(f2.get(0).toString()));
 
         String input2 = "";
         FakeFSInputStream ffis2 = new FakeFSInputStream(input2.getBytes());
@@ -416,8 +402,11 @@ public class TestBuiltin extends TestCase {
         StoreFunc sfunc = new PigStorage("\t");
         sfunc.bindTo(os);
 
-        int[] input = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        Tuple f1 = Util.loadFlatTuple(new Tuple(input.length), input);
+        DataByteArray[] input = { new DataByteArray("amy"),
+            new DataByteArray("bob"), new DataByteArray("charlene"),
+            new DataByteArray("david"), new DataByteArray("erin"),
+            new DataByteArray("frank") };
+        Tuple f1 = Util.loadTuple(TupleFactory.getInstance().newTuple(input.length), input);
 
         sfunc.putNext(f1);
         sfunc.finish();
@@ -450,10 +439,10 @@ public class TestBuiltin extends TestCase {
     	
     	assertTrue(iter.hasNext());
     	t = iter.next();
-    	assertEquals("f00", t.getAtomField(0).strval());
+    	assertEquals("{(f00)}", t.get(0).toString());
     	assertTrue(iter.hasNext());
     	t = iter.next();
-    	assertEquals("b00", t.getAtomField(0).strval());
+    	assertEquals("{(b00)}", t.get(0).toString());
     	assertFalse(iter.hasNext());
     	tempFile.delete();
     }
@@ -479,8 +468,12 @@ public class TestBuiltin extends TestCase {
     	
     	for (int i=0; i< numTimes; i++){
     		Tuple t = iter.next();
-    		assertEquals(i+"AA", t.getBagField(0).iterator().next().getAtomField(0).strval());
-    		assertEquals(i+"BB", t.getBagField(1).iterator().next().getAtomField(0).strval());
+            DataBag b = DataType.toBag(t.get(0));
+            Tuple t1 = b.iterator().next();
+    		assertEquals(i+"AA", t1.get(0).toString());
+            b = DataType.toBag(t.get(1));
+            t1 = b.iterator().next();
+    		assertEquals(i+"BB", t1.get(0).toString());
     	}
     	
     	assertFalse(iter.hasNext());

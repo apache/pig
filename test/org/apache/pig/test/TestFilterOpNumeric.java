@@ -59,12 +59,12 @@ public class TestFilterOpNumeric extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.equals(second));
         
-            String sfirst = t.getAtomField(0).strval();
-            String ssecond = t.getAtomField(1).strval();
+            String sfirst = t.get(0).toString();
+            String ssecond = t.get(1).toString();
             assertFalse(sfirst.equals(ssecond));
         }
     }
@@ -91,8 +91,8 @@ public class TestFilterOpNumeric extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertFalse(first.equals(second));
         }
     }
@@ -120,8 +120,8 @@ public class TestFilterOpNumeric extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) > 0);
         }
     }
@@ -145,14 +145,14 @@ public class TestFilterOpNumeric extends TestCase {
         int count =0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
+            Double first = Double.valueOf(t.get(0).toString());
             if (first == 1)
             	count++;
             else
             	assertTrue(first == 0);
             
         }
-        assertTrue(count == 10);
+        assertEquals("expected count of 10", 10, count);
     }
     
     
@@ -175,12 +175,12 @@ public class TestFilterOpNumeric extends TestCase {
         int count =0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
+            Double first = Double.valueOf(t.get(0).toString());
             count+=first;
            	assertTrue(first == 1 || first == 2 || first == 0);
             
         }
-        assertTrue(count == 15);
+        assertEquals("expected count of 15", 15, count);
     }
     
     
@@ -208,8 +208,8 @@ public class TestFilterOpNumeric extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) < 0);
         }
     	
@@ -241,8 +241,8 @@ public class TestFilterOpNumeric extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) >= 0);
         }
     }
@@ -272,8 +272,8 @@ public class TestFilterOpNumeric extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) <= 0);
         }
     }

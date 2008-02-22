@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.FunctionInstantiator;
@@ -39,9 +40,6 @@ public class GenerateSpec extends EvalSpec {
 	protected List<EvalSpec> specs = new ArrayList<EvalSpec>();
 
 	protected int driver;
-
-    private TupleFactory mTupleFactory = TupleFactory.getInstance();
-
 
     public GenerateSpec(List<EvalSpec> specs){
     	this.specs = specs;
@@ -70,7 +68,6 @@ public class GenerateSpec extends EvalSpec {
     		
     		@Override
     		public void add(Object d) {
-    			
     			if (checkDelimiter(d))
         			throw new RuntimeException("Internal error: not expecting a delimiter tuple");
     			
@@ -108,6 +105,8 @@ public class GenerateSpec extends EvalSpec {
     }
                  
     private class DatumBag extends DataCollector{
+        private TupleFactory tf = TupleFactory.getInstance();
+
     	DataBag bag;
     	public DatumBag(){
     		super(null);
@@ -116,7 +115,7 @@ public class GenerateSpec extends EvalSpec {
     	
     	@Override
 		public void add(Object d){
-    		bag.add(mTupleFactory.newTuple(d));
+    		bag.add(tf.newTuple(d));
     	}
     	
     	public Iterator<Object> content(){
@@ -146,6 +145,8 @@ public class GenerateSpec extends EvalSpec {
     private class CrossProductItem extends DataCollector{
     	DatumBag[] toBeCrossed;
     	Object cpiInput;    	
+        private TupleFactory tf = TupleFactory.getInstance();
+
     	
     	public CrossProductItem(Object driverInput, DataCollector successor){
     		super(successor);
@@ -220,7 +221,7 @@ public class GenerateSpec extends EvalSpec {
                    }
                }
 
-               Tuple outTuple = mTupleFactory.newTuple();
+               Tuple outTuple = tf.newTuple();
                
                for (int i=0; i< numItems; i++){
             	   if (specs.get(i).isFlattened() && outData[i] instanceof Tuple){

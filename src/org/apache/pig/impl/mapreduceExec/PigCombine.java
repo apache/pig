@@ -29,6 +29,7 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -55,12 +56,6 @@ public class PigCombine implements Reducer {
             throws IOException {
 
         try {
-            /*
-            tmpdir = new File(job.get("mapred.task.id"));
-            tmpdir.mkdirs();
-
-            BagFactory.init(tmpdir);
-            */
             PigContext pigContext = (PigContext) ObjectSerializer.deserialize(job.get("pig.pigContext"));
             if (evalPipe == null) {
                 inputCount = ((ArrayList<FileSpec>)ObjectSerializer.deserialize(job.get("pig.inputs"))).size();
@@ -70,7 +65,6 @@ public class PigCombine implements Reducer {
                 EvalSpec esp = (EvalSpec)ObjectSerializer.deserialize(evalSpec);
                 if(esp != null) esp.instantiateFunc(pigContext);
                 evalPipe = esp.setupPipe(finalout);
-                //throw new RuntimeException("combine spec: " + evalSpec + " combine pipe: " + esp.toString());
                 
                 bags = new DataBag[inputCount];
                 for (int i = 0; i < inputCount; i++) {
@@ -81,7 +75,7 @@ public class PigCombine implements Reducer {
             PigSplit split = PigInputFormat.PigRecordReader.getPigRecordReader().getPigFileSplit();
             index = split.getIndex();
 
-            String groupName = (String)((Tuple) key).get(0);
+            String groupName = ((Tuple) key).get(0).toString();
             finalout.group = ((Tuple) key);
             finalout.index = index;
             
@@ -100,9 +94,8 @@ public class PigCombine implements Reducer {
                 if (((DataBag)t.get(1 + i)).size() == 0)
                     return;
             }
-//          throw new RuntimeException("combine input: " + t.toString());
+ 
             evalPipe.add(t);
-            // evalPipe.add(null); // EOF marker
         } catch (Throwable tr) {
             tr.printStackTrace();
             RuntimeException exp = new RuntimeException(tr.getMessage());

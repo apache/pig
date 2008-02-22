@@ -48,8 +48,8 @@ public class PigStorage implements LoadFunc, StoreFunc {
     long                end            = Long.MAX_VALUE;
     private byte recordDel = '\n';
     private byte fieldDel = '\t';
-    private ByteArrayOutputStream mBuf;
-    private ArrayList<Object> mProtoTuple;
+    private ByteArrayOutputStream mBuf = null;
+    private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
     
     public PigStorage() {
@@ -64,8 +64,8 @@ public class PigStorage implements LoadFunc, StoreFunc {
      */
     public PigStorage(String delimiter) {
         this.fieldDel = (byte)delimiter.charAt(0);
-        mBuf = new ByteArrayOutputStream(4096);
-        mProtoTuple = new ArrayList<Object>();
+        //mBuf = new ByteArrayOutputStream(4096);
+        //mProtoTuple = new ArrayList<Object>();
     }
 
     public Tuple getNext() throws IOException {
@@ -73,6 +73,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
             return null;
         }
 
+        if (mBuf == null) mBuf = new ByteArrayOutputStream(4096);
         mBuf.reset();
         while (true) {
             // Hadoop's FSDataInputStream (which my input stream is based
@@ -177,6 +178,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
     }
 
     private void readField() {
+        if (mProtoTuple == null) mProtoTuple = new ArrayList<Object>();
         if (mBuf.size() == 0) {
             // NULL value
             mProtoTuple.add(null);

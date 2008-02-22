@@ -77,7 +77,7 @@ public class LOCogroup extends LogicalOperator {
                 groupAndTuple[0] = output.get(0);
                 groupAndTuple[1] = output.get(1);
             } else {
-                Tuple group = TupleFactory.getInstance().newTuple(output.size());
+                Tuple group = TupleFactory.getInstance().newTuple(output.size() - 1);
                 for (int j = 0; j < output.size() - 1; j++) {
                     group.set(j, output.get(j));
                 }

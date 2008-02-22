@@ -30,6 +30,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.builtin.ShellBagEvalFunc;
@@ -186,8 +187,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     static public class TestApplyFunc extends org.apache.pig.EvalFunc<Tuple> {
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendTuple(input);
+        public Tuple exec(Tuple input) throws IOException {
+            Tuple output = TupleFactory.getInstance().newTuple(input.getAll());
+            return output;
         }
     }
 

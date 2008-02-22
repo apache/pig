@@ -51,6 +51,9 @@ import org.apache.pig.impl.physicalLayer.SplitSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 
+import java.io.FileOutputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 
 /**
  * This class is a wrapper of sorts for Pig Map/Reduce jobs. Both the Mapper and the Reducer are
@@ -128,20 +131,13 @@ public class PigMapReduce implements MapRunnable, Reducer {
         PigMapReduce.reporter = reporter;
         
         try {
-            /*
-            tmpdir = new File(job.get("mapred.task.id"));
-            tmpdir.mkdirs();
-
-            BagFactory.init(tmpdir);
-            */
-
             oc = output;
             if (evalPipe == null) {
                 setupReducePipe();
             }
 
             DataBag[] bags = new DataBag[inputCount];
-            String groupName = (String)((Tuple) key).get(0);
+            String groupName = ((Tuple) key).get(0).toString();
             Tuple t = mTupleFactory.newTuple(1 + inputCount);
             t.set(0, groupName);
             for (int i = 1; i < 1 + inputCount; i++) {
@@ -298,10 +294,10 @@ public class PigMapReduce implements MapRunnable, Reducer {
     }
 
     class MapDataOutputCollector extends DataCollector {
-    	
+   	
     	public MapDataOutputCollector(){
     		super(null);
-    	}
+     	}
     	
         @Override
 		public void add(Object d){

@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
@@ -74,9 +75,11 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         Tuple t = null;
         for (Iterator it = values.iterator(); it.hasNext();) {
             try {
-            t = (Tuple) it.next();
-            i++;
-            sum += (Double)t.get(0);
+                t = (Tuple) it.next();
+                i++;
+                Double d = DataType.toDouble(t.get(0));
+                if (d == null) continue;
+                sum += d;
             }catch(RuntimeException exp) {
                 String msg = "iteration = " + i + "bag size = " +
                     values.size() + " partial sum = " + sum + "\n";

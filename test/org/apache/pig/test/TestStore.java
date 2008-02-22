@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import java.util.Iterator;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 
@@ -29,86 +30,86 @@ import junit.framework.TestCase;
 
 public class TestStore extends TestCase {
 
-	private String initString = "mapreduce";
-	private int LOOP_COUNT = 1024;
-	
-	String fileName;
-	String tmpFile1, tmpFile2;
-	PigServer pig;
-	
-	public void testSingleStore() throws Exception{
-		pig.registerQuery("A = load " + fileName + ";");
-		
-		pig.store("A", tmpFile1);
-		
-		pig.registerQuery("B = load " + tmpFile1 + ";");
-		Iterator<Tuple> iter  = pig.openIterator("B");
-		
-		int i =0;
-		while (iter.hasNext()){
-			Tuple t = iter.next();
-			assertEquals(t.getAtomField(0).numval().intValue(),i);
-			assertEquals(t.getAtomField(1).numval().intValue(),i);
-			i++;
-		}
-	}
-	
-	public void testMultipleStore() throws Exception{
-		pig.registerQuery("A = load " + fileName + ";");
-		
-		pig.store("A", tmpFile1);
-		
-		pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
-		pig.store("B", tmpFile2);
-		pig.registerQuery("C = load " + tmpFile2 + ";");
-		Iterator<Tuple> iter  = pig.openIterator("C");
-		
-		int i =0;
-		while (iter.hasNext()){
-			Tuple t = iter.next();
-			i++;
-			
-		}
-		
-		assertEquals(LOOP_COUNT, i);
-		
-	}
-	
-	public void testStoreWithMultipleMRJobs() throws Exception{
-		pig.registerQuery("A = load " + fileName + ";");		
-		pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
-		pig.registerQuery("C = foreach (group B by $0) generate $0, SUM($1);");
-		pig.registerQuery("D = foreach (group C by $0) generate $0, SUM($1);");
+    private String initString = "mapreduce";
+    private int LOOP_COUNT = 1024;
+    
+    String fileName;
+    String tmpFile1, tmpFile2;
+    PigServer pig;
+    
+    public void testSingleStore() throws Exception{
+        pig.registerQuery("A = load " + fileName + ";");
+        
+        pig.store("A", tmpFile1);
+        
+        pig.registerQuery("B = load " + tmpFile1 + ";");
+        Iterator<Tuple> iter  = pig.openIterator("B");
+        
+        int i =0;
+        while (iter.hasNext()){
+            Tuple t = iter.next();
+            assertEquals(DataType.toInteger(t.get(0)).intValue(),i);
+            assertEquals(DataType.toInteger(t.get(1)).intValue(),i);
+            i++;
+        }
+    }
+    
+    public void testMultipleStore() throws Exception{
+        pig.registerQuery("A = load " + fileName + ";");
+        
+        pig.store("A", tmpFile1);
+        
+        pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
+        pig.store("B", tmpFile2);
+        pig.registerQuery("C = load " + tmpFile2 + ";");
+        Iterator<Tuple> iter  = pig.openIterator("C");
+        
+        int i =0;
+        while (iter.hasNext()){
+            Tuple t = iter.next();
+            i++;
+            
+        }
+        
+        assertEquals(LOOP_COUNT, i);
+        
+    }
+    
+    public void testStoreWithMultipleMRJobs() throws Exception{
+        pig.registerQuery("A = load " + fileName + ";");        
+        pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
+        pig.registerQuery("C = foreach (group B by $0) generate $0, SUM($1);");
+        pig.registerQuery("D = foreach (group C by $0) generate $0, SUM($1);");
 
-		pig.store("D", tmpFile2);
-		pig.registerQuery("E = load " + tmpFile2 + ";");
-		Iterator<Tuple> iter  = pig.openIterator("E");
-		
-		int i =0;
-		while (iter.hasNext()){
-			Tuple t = iter.next();
-			i++;
-		}
-		
-		assertEquals(LOOP_COUNT, i);
-		
-	}
+        pig.store("D", tmpFile2);
+        pig.registerQuery("E = load " + tmpFile2 + ";");
+        Iterator<Tuple> iter  = pig.openIterator("E");
+        
+        int i =0;
+        while (iter.hasNext()){
+            Tuple t = iter.next();
+            i++;
+        }
+        
+        assertEquals(LOOP_COUNT, i);
+        
+    }
 
-	
-	@Override
-	protected void setUp() throws Exception {
-		super.setUp();
-		File f = File.createTempFile("tmp", "");
-		PrintWriter pw = new PrintWriter(f);
-		for (int i=0;i<LOOP_COUNT; i++){
-			pw.println(i + "\t" + i);
-		}
-		pw.close();
-		pig = new PigServer(initString);
-		fileName = "'" + FileLocalizer.hadoopify(f.toString(), pig.getPigContext()) + "'";
-		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
-		tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
-		f.delete();
-	}
-	
+    
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        File f = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(f);
+        for (int i=0;i<LOOP_COUNT; i++){
+            pw.println(i + "\t" + i);
+        }
+        pw.close();
+        pig = new PigServer(initString);
+        fileName = "'" + FileLocalizer.hadoopify(f.toString(), pig.getPigContext()) + "'";
+        tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
+        tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
+        f.delete();
+    }
+    
 }

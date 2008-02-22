@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
@@ -73,7 +74,9 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
         for (Iterator it = values.iterator(); it.hasNext();) {
             Tuple t = (Tuple) it.next();
             try {
-                curMin = java.lang.Math.min(curMin, (Double)t.get(0));
+                Double d = DataType.toDouble(t.get(0));
+                if (d == null) continue;
+                curMin = java.lang.Math.min(curMin, d);
             } catch (RuntimeException exp) {
                 IOException newE =  new IOException("Error processing: " +
                     t.toString() + exp.getMessage());

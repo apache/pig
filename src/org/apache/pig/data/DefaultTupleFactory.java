@@ -18,6 +18,7 @@
 package org.apache.pig.data;
 
 import java.io.IOException;
+import java.lang.Class;
 import java.util.List;
 
 /**
@@ -49,6 +50,10 @@ public class DefaultTupleFactory extends TupleFactory {
                 "allocated tuple of size 1!", e);
         }
         return t;
+    }
+
+    public Class tupleClass() {
+        return DefaultTuple.class;
     }
 
     DefaultTupleFactory() {

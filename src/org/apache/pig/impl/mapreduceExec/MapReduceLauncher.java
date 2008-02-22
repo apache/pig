@@ -30,6 +30,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.physicalLayer.POMapreduce;
@@ -40,7 +41,7 @@ import org.apache.pig.impl.util.PigLogger;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskReport;
@@ -67,13 +68,22 @@ public class MapReduceLauncher {
     }
 
     public static class PigWritableComparator extends WritableComparator {
+        // TupleFactory mTupleFactory = TupleFactory.getInstance();
+
         public PigWritableComparator() {
-            super(Tuple.class);
+            super(TupleFactory.getInstance().tupleClass());
         }
 
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
 	    }
+
+        @Override
+        public WritableComparable newKey() {
+            //return mTupleFactory.newTuple();
+            return TupleFactory.getInstance().newTuple();
+        }
+
     }
 
     static Random rand = new Random();
@@ -162,7 +172,7 @@ public class MapReduceLauncher {
             	conf.setOutputFormat(PigOutputFormat.class);
             	// not used starting with 0.15 conf.setInputKeyClass(Text.class);
             	// not used starting with 0.15 conf.setInputValueClass(Tuple.class);
-            	conf.setOutputKeyClass(Tuple.class);
+            	conf.setOutputKeyClass(TupleFactory.getInstance().tupleClass());
             	if (pom.userComparator != null)
                 	conf.setOutputKeyComparatorClass(pom.userComparator);
             	conf.setOutputValueClass(IndexedTuple.class);

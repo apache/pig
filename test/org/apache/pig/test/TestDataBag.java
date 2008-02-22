@@ -97,7 +97,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -125,7 +125,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -155,7 +155,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = new Tuple(new DataAtom(i));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -185,14 +185,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -220,14 +220,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -262,7 +262,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -290,7 +290,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -319,7 +319,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -349,14 +349,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -383,14 +383,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -424,7 +424,7 @@ public class TestDataBag extends junit.framework.TestCase {
         PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(20);
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -461,7 +461,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 373; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -491,7 +491,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -519,7 +519,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -549,7 +549,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 50; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -579,14 +579,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -614,14 +614,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -658,7 +658,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 321; j++) {
             for (int i = 0; i < 50; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
                 b.add(t);
                 rightAnswer.add(t);
             }

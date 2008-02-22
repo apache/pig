@@ -20,6 +20,7 @@ package org.apache.pig.impl.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -29,8 +30,10 @@ public class ADD extends EvalFunc<Double> {
 
     @Override
     public Double exec(Tuple input) throws IOException {
-        double v1 = (Double)input.get(0);
-        double v2 = (Double)input.get(1);
+        Double v1 = DataType.toDouble(input.get(0));
+        Double v2 = DataType.toDouble(input.get(1));
+
+        if (v1 == null || v2 == null) return null;
 
         return new Double(v1 + v2);
     }

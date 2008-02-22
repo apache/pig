@@ -59,8 +59,8 @@ public class TestFilterOpString extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.equals(second));
         }
     }
@@ -88,8 +88,8 @@ public class TestFilterOpString extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertFalse(first.equals(second));
         }
     }
@@ -117,8 +117,8 @@ public class TestFilterOpString extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) > 0);
         }
     }
@@ -151,8 +151,8 @@ public class TestFilterOpString extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) >= 0);
         }
     }
@@ -181,8 +181,8 @@ public class TestFilterOpString extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) < 0);
         }
     }
@@ -213,8 +213,8 @@ public class TestFilterOpString extends TestCase {
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) <= 0);
         }
     }

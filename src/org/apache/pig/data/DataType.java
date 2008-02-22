@@ -17,10 +17,12 @@
  */
 package org.apache.pig.data;
 
+import java.io.IOException;
 import java.lang.Class;
 import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A class of static final values used to encode data type.  This could be
@@ -31,7 +33,7 @@ public class DataType {
     // IMPORTANT! This list can be used to record values of data on disk,
     // so do not change the values.  You may strand user data.
     // IMPORTANT! Order matters here, as compare() below uses the order to
-    // order unlink datatypes.  Don't change this ordering.
+    // order unlike datatypes.  Don't change this ordering.
     // Spaced unevenly to leave room for new entries without changing
     // values or creating order issues.  
     public static final byte UNKNOWN   =   0;
@@ -113,7 +115,15 @@ public class DataType {
      * @return type name, as a String.
      */
     public static String findTypeName(Object o) {
-        byte dt = findType(o);
+        return findTypeName(findType(o));
+    }
+
+    /**
+     * Get the type name from the type byte code
+     * @param dt Type byte code
+     * @return type name, as a String.
+     */
+    public static String findTypeName(byte dt) {
         switch (dt) {
         case NULL:      return "NULL";
         case BOOLEAN:   return "boolean";
@@ -223,17 +233,15 @@ public class DataType {
                 } else if (sz1 > sz2) { 
                     return 1;
                 } else {
+                    // This is bad, but we have to sort the keys of the maps in order
+                    // to be commutative.
+                    TreeMap<Object, Object> tm1 = new TreeMap<Object, Object>(m1);
+                    TreeMap<Object, Object> tm2 = new TreeMap<Object, Object>(m2);
                     Iterator<Map.Entry<Object, Object> > i1 =
-                        m1.entrySet().iterator();
+                        tm1.entrySet().iterator();
                     Iterator<Map.Entry<Object, Object> > i2 =
-                        m2.entrySet().iterator();
+                        tm2.entrySet().iterator();
                     while (i1.hasNext()) {
-                        // This isn't real meaningful, as there are no
-                        // guarantees on iteration order in a map.  But it
-                        // makes more sense than iterating through one and
-                        // probing the other, which will almost always
-                        // result in missing keys in the second and thus
-                        // not provide communativity.
                         Map.Entry<Object, Object> entry1 = i1.next();
                         Map.Entry<Object, Object> entry2 = i2.next();
                         int c = compare(entry1.getKey(), entry2.getKey());
@@ -267,4 +275,254 @@ public class DataType {
         }
     }
 
+    /**
+     * Force a data object to an Integer, if possible.  Any numeric type
+     * can be forced to an Integer (though precision may be lost), as well
+     * as CharArray, ByteArray, or Boolean.  Complex types cannot be
+     * forced to an Integer.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is an Integer you
+     * should just cast it.
+     * @return The object as a Integer.
+     * @throws IOException if the type can't be forced to an Integer.
+     */
+    public static Integer toInteger(Object o) throws IOException {
+        switch (findType(o)) {
+        case BOOLEAN:
+            if (((Boolean)o) == true) return new Integer(1);
+            else return new Integer(0);
+
+        case INTEGER:
+            return (Integer)o;
+
+        case LONG:
+            return new Integer(((Long)o).intValue());
+
+        case FLOAT:
+            return new Integer(((Float)o).intValue());
+
+        case DOUBLE:
+            return new Integer(((Double)o).intValue());
+
+        case BYTEARRAY:
+            return new Integer(Integer.valueOf(((DataByteArray)o).toString()));
+
+        case CHARARRAY:
+            return new Integer(Integer.valueOf((String)o));
+
+        case NULL:
+            return null;
+
+        case MAP:
+        case TUPLE:
+        case BAG:
+        case UNKNOWN:
+        default:
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to an Integer");
+        }
+    }
+
+    /**
+     * Force a data object to a Long, if possible.  Any numeric type
+     * can be forced to a Long (though precision may be lost), as well
+     * as CharArray, ByteArray, or Boolean.  Complex types cannot be
+     * forced to a Long.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Long you
+     * should just cast it.
+     * @return The object as a Long.
+     * @throws IOException if the type can't be forced to a Long.
+     */
+    public static Long toLong(Object o) throws IOException {
+        switch (findType(o)) {
+        case BOOLEAN:
+            if (((Boolean)o) == true) return new Long(1);
+            else return new Long(0);
+
+        case INTEGER:
+            return new Long(((Integer)o).longValue());
+
+        case LONG:
+            return (Long)o;
+
+        case FLOAT:
+            return new Long(((Float)o).longValue());
+
+        case DOUBLE:
+            return new Long(((Double)o).longValue());
+
+        case BYTEARRAY:
+            return new Long(Long.valueOf(((DataByteArray)o).toString()));
+
+        case CHARARRAY:
+            return new Long(Long.valueOf((String)o));
+
+        case NULL:
+            return null;
+
+        case MAP:
+        case TUPLE:
+        case BAG:
+        case UNKNOWN:
+        default:
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to a Long");
+        }
+    }
+
+    /**
+     * Force a data object to a Float, if possible.  Any numeric type
+     * can be forced to a Float (though precision may be lost), as well
+     * as CharArray, ByteArray.  Complex types cannot be
+     * forced to a Float.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Float you
+     * should just cast it.
+     * @return The object as a Float.
+     * @throws IOException if the type can't be forced to a Float.
+     */
+    public static Float toFloat(Object o) throws IOException {
+        switch (findType(o)) {
+        case INTEGER:
+            return new Float(((Integer)o).floatValue());
+
+        case LONG:
+            return new Float(((Long)o).floatValue());
+
+        case FLOAT:
+            return (Float)o;
+
+        case DOUBLE:
+            return new Float(((Double)o).floatValue());
+
+        case BYTEARRAY:
+            return new Float(Float.valueOf(((DataByteArray)o).toString()));
+
+        case CHARARRAY:
+            return new Float(Float.valueOf((String)o));
+
+        case NULL:
+            return null;
+
+        case BOOLEAN:
+        case MAP:
+        case TUPLE:
+        case BAG:
+        case UNKNOWN:
+        default:
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to a Float");
+        }
+    }
+
+    /**
+     * Force a data object to a Double, if possible.  Any numeric type
+     * can be forced to a Double, as well
+     * as CharArray, ByteArray.  Complex types cannot be
+     * forced to a Double.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Double you
+     * should just cast it.
+     * @return The object as a Double.
+     * @throws IOException if the type can't be forced to a Double.
+     */
+    public static Double toDouble(Object o) throws IOException {
+        switch (findType(o)) {
+        case INTEGER:
+            return new Double(((Integer)o).doubleValue());
+
+        case LONG:
+            return new Double(((Long)o).doubleValue());
+
+        case FLOAT:
+            return new Double(((Float)o).doubleValue());
+
+        case DOUBLE:
+            return (Double)o;
+
+        case BYTEARRAY:
+            return new Double(Double.valueOf(((DataByteArray)o).toString()));
+
+        case CHARARRAY:
+            return new Double(Double.valueOf((String)o));
+
+        case NULL:
+            return null;
+
+        case BOOLEAN:
+        case MAP:
+        case TUPLE:
+        case BAG:
+        case UNKNOWN:
+        default:
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to a Double");
+        }
+    }
+
+    /**
+     * If this object is a map, return it as a map.
+     * This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Map you
+     * should just cast it.
+     * @return The object as a Double.
+     * @throws IOException if the type can't be forced to a Double.
+     */
+    public static Map<Object, Object> toMap(Object o) throws IOException {
+        if (o == null) return null;
+
+        if (o instanceof Map) {
+            return (Map<Object, Object>)o;
+        } else {
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to a Map");
+        }
+    }
+
+    /**
+     * If this object is a tuple, return it as a tuple.
+     * This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Tuple you
+     * should just cast it.
+     * @return The object as a Double.
+     * @throws IOException if the type can't be forced to a Double.
+     */
+    public static Tuple toTuple(Object o) throws IOException {
+        if (o == null) return null;
+
+        if (o instanceof Tuple) {
+            return (Tuple)o;
+        } else {
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to a Tuple");
+        }
+    }
+
+    /**
+     * If this object is a bag, return it as a bag.
+     * This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a bag you
+     * should just cast it.
+     * @return The object as a Double.
+     * @throws IOException if the type can't be forced to a Double.
+     */
+    public static DataBag toBag(Object o) throws IOException {
+        if (o == null) return null;
+
+        if (o instanceof DataBag) {
+            return (DataBag)o;
+        } else {
+            throw new IOException("Cannot convert a " + findTypeName(o) +
+                " to a DataBag");
+        }
+    }
+
+    /**
+     * Purely for debugging
+     */
+    public static void spillTupleContents(Tuple t, String label) {
+        System.out.print("Tuple " + label + " ");
+        Iterator<Object> i = t.getAll().iterator();
+        for (int j = 0; i.hasNext(); j++) {
+            System.out.print(j + ":" + i.next().getClass().getName() + " ");
+        }
+        System.out.println(t.toString());
+    }
 }

@@ -83,7 +83,8 @@ public abstract class TupleFactory {
     /**
      * Create a tuple with size fields.  Whenever possible this is prefered
      * over the nullary constructor, as the constructor can preallocate the
-     * size of the container holding the fields.
+     * size of the container holding the fields.  Once this is called, it
+     * is legal to call Tuple.set(x, object), where x &lt; size.
      * @param size Number of fields in the tuple.
      */
     public abstract Tuple newTuple(int size);
@@ -101,6 +102,16 @@ public abstract class TupleFactory {
      * @param datum Datum to put in the tuple.
      */
     public abstract Tuple newTuple(Object datum);
+
+    /**
+     * Return the actual class representing a tuple that the implementing
+     * factory will be returning.  This is needed because hadoop (and
+     * possibly other systems) we use need to know the exact class we will
+     * be using for input and output.
+     * @return Class that implements tuple.
+     */
+    public abstract Class tupleClass();
+ 
 
     protected TupleFactory() {
     }

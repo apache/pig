@@ -28,6 +28,7 @@ import junit.framework.TestCase;
 import org.junit.Test;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 public class TestOrderBy extends TestCase {
@@ -66,7 +67,7 @@ public class TestOrderBy extends TestCase {
         int col = (descending ? 1 : 0);
         for(int i = 0; i < DATALEN; i++) {
             Tuple t = (Tuple)it.next();
-            int value = t.getAtomField(1).numval().intValue();
+            int value = DataType.toInteger(t.get(1));
 //            System.out.println("" + i + "," + DATA[0][i] + "," + DATA[1][i] + "," + value);
             assertEquals(Integer.parseInt(DATA[col][i]), value);
         }

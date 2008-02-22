@@ -38,8 +38,11 @@ import org.apache.pig.PigServer;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.builtin.COUNT;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.PigContext;
@@ -64,7 +67,7 @@ public class TestMapReduce extends TestCase {
         Iterator it = pig.openIterator("asdf_id");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        Double count = t.getAtomField(0).numval();
+        Double count = DataType.toDouble(t.get(0));
         assertEquals(count, (double)LOOP_COUNT);
     }
     
@@ -75,22 +78,26 @@ public class TestMapReduce extends TestCase {
     		this.field0 = field0;
     	}
         @Override
-		public void exec(Tuple input, DataBag output) throws IOException {
-            Iterator<Tuple> it = (input.getBagField(0)).iterator();
+		public DataBag exec(Tuple input) throws IOException {
+            DataBag output = BagFactory.getInstance().newDefaultBag();
+            Iterator<Tuple> it = (DataType.toBag(input.get(0))).iterator();
             while(it.hasNext()) {
                 Tuple t = it.next();
-                Tuple newT = new Tuple(2);
-                newT.setField(0, field0);
-                newT.setField(1, t.getField(0).toString());
+                Tuple newT = TupleFactory.getInstance().newTuple(2);
+                newT.set(0, field0);
+                newT.set(1, t.get(0).toString());
                 output.add(newT);
             }
-          
+
+            return output;
         }
     }
     static public class MyGroup extends EvalFunc<Tuple> {
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException{
-            output.appendField(new DataAtom("g"));
+        public Tuple exec(Tuple input) throws IOException{
+            Tuple output = TupleFactory.getInstance().newTuple(1);
+            output.set(0, new String("g"));
+            return output;
         }
     }
     static public class MyStorage implements LoadFunc, StoreFunc {
@@ -100,7 +107,7 @@ public class TestMapReduce extends TestCase {
         }
 		public Tuple getNext() throws IOException {
             if (count < COUNT) {
-                Tuple t = new Tuple(Integer.toString(count++));
+                Tuple t = TupleFactory.getInstance().newTuple(Integer.toString(count++));
                 return t;
             }
             return null;
@@ -161,8 +168,8 @@ public class TestMapReduce extends TestCase {
         int count = 0;
         while(it.hasNext()) {
             t = (Tuple) it.next();
-            assertEquals(t.getField(0).toString(), "Got");
-            Integer.parseInt(t.getField(1).toString());
+            assertEquals(t.get(0).toString(), "Got");
+            Integer.parseInt(t.get(1).toString());
             count++;
         }
         assertEquals(count, MyStorage.COUNT);
@@ -187,8 +194,8 @@ public class TestMapReduce extends TestCase {
         int count = 0;
         while(it.hasNext()) {
             t = (Tuple) it.next();
-            assertEquals("foo", t.getField(0).toString());
-            Integer.parseInt(t.getField(1).toString());
+            assertEquals("foo", t.get(0).toString());
+            Integer.parseInt(t.get(1).toString());
             count++;
         }
         assertEquals(count, MyStorage.COUNT);
@@ -219,7 +226,7 @@ public class TestMapReduce extends TestCase {
 		pig.deleteFile("/tmp/test_createNewRelation");
         System.out.println("testing create new relation");
         pig.newRelation("new_rel");
-        pig.insertTuple("new_rel", new Tuple("hello"));
+        pig.insertTuple("new_rel", TupleFactory.getInstance().newTuple("hello"));
         pig.store("new_rel", "/tmp/test_createNewRelation");
         assertTrue(pig.existsFile("/tmp/test_createNewRelation"));
     }
