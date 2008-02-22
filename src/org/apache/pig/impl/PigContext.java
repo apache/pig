@@ -403,7 +403,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
     
     @SuppressWarnings("unchecked")
-    private static Object instantiateFunc(String className, String argString) throws IOException {
+    private static Object instantiateFunc(String className, String argString)  {
         Object ret;
         List<String> args = parseArguments(argString);
         try{
@@ -419,12 +419,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 ret = objClass.newInstance();
             }
         }catch(Throwable e){
-            throw WrappedIOException.wrap(e.getMessage(), e);
+            throw new RuntimeException("could not instantiate '" + className
+                    + "' with arguments '" + args + "'", e);
         }
         return ret;
     }
     
-    public static Object instantiateFuncFromSpec(String funcSpec) throws IOException{
+    public static Object instantiateFuncFromSpec(String funcSpec) {
         return instantiateFunc(getClassNameFromSpec(funcSpec), getArgStringFromSpec(funcSpec));
     }
     

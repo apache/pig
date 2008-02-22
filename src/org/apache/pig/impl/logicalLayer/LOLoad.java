@@ -47,30 +47,12 @@ public class LOLoad extends LogicalOperator {
                   FileSpec inputFileSpec) throws IOException, ParseException {
         super(opTable, scope, id);
         this.inputFileSpec = inputFileSpec;
-        try {
-            LoadFunc storageFunc =
-                (LoadFunc) PigContext.instantiateFuncFromSpec(inputFileSpec.
-                                                              getFuncSpec());
-        } catch(IOException e) {
-            Throwable cause = e.getCause();
-            while (cause != null
-                   && cause.getClass().getName() !=
-                   "java.lang.ClassNotFoundException") {
-                log.error("cause = " + cause.getClass().getName(), e);
-                cause = cause.getCause();
-            } if (cause != null) {
-                ParseException pe = new ParseException("Load function " +
-                                         inputFileSpec.getFuncSpec() +
-                                         " not found");
-                pe.initCause(e);
-                throw pe;
-            } else {
-                throw e;
-            }
+        
+        // check if we can instantiate load func
+        LoadFunc storageFunc = (LoadFunc) PigContext
+                .instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
 
-        }
-
-        //TODO: Handle Schemas defined by Load Functions
+        // TODO: Handle Schemas defined by Load Functions
         schema = new TupleSchema();
     }
 
