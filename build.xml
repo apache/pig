@@ -6,6 +6,7 @@
 	<property name="src.dir" value="${basedir}/src" />
 	<property name="doc.dir" value="${basedir}/doc" />
         <property name="test.reports.dir" value="${basedir}/test/reports" />
+    <property name="test.log.dir" value="${basedir}/test/logs"/>
 	<property name="shock.src.dir" value="${basedir}/lib-src/shock" />
 	<property name="bzip2.src.dir" value="${basedir}/lib-src/bzip2" />
 	<property name="test.src.dir" value="${basedir}/test" />
@@ -16,7 +17,7 @@
 	<property name="hod.command" value=""/>
 	<property name="hod.param" value=""/>
 	<property name="test.junit.output.format" value="plain"/>
-	<property name="junit.hadoop.conf" value=""/>
+	<property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
         	
 	<!-- setup the classpath -->
 	<path id="classpath">
@@ -105,6 +106,8 @@
 	</target>
 
 	<target name="test">
+	    <delete dir="${test.log.dir}"/>
+	    <mkdir dir="${test.log.dir}"/>
 		<mkdir dir="test/reports"/>
                 <junit printsummary="on" haltonfailure="no"
                        errorProperty="tests.failed" failureProperty="tests.failed">
@@ -113,6 +116,7 @@
 			<sysproperty key="hod.server" value="${hod.server}"/>
 			<!-- <sysproperty key="hod.command" value="${hod.command}"/>
 			<sysproperty key="hod.param" value="${hod.param}"/> -->
+		    <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
 			<classpath>
 				<pathelement location="${output.jarfile}"/>
 				<pathelement location="${junit.hadoop.conf}"/>

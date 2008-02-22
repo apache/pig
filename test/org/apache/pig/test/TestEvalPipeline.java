@@ -48,6 +48,7 @@ import junit.framework.TestCase;
 public class TestEvalPipeline extends TestCase {
 	
 	String initString = "mapreduce";
+	MiniCluster cluster = MiniCluster.buildCluster();
 	
 	
 	static public class MyBagFunction extends EvalFunc<DataBag>{

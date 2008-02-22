@@ -34,6 +34,7 @@ public class TestOrderBy extends TestCase {
     private String initString = "mapreduce";
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     private PigServer pig;
     private File tmpFile;

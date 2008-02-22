@@ -38,6 +38,7 @@ public class TestFilterOpString extends TestCase {
 
     private static int LOOP_COUNT = 1024;    
     private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     @Test
     public void testStringEq() throws Throwable {

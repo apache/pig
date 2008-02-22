@@ -52,6 +52,7 @@ public class TestLargeFile extends TestCase {
 	private int max_rand = 500;
 	private String initString = "mapreduce";
 //	private double sum = 0.0, sumIn = 0.0;
+	MiniCluster cluster = MiniCluster.buildCluster();
 	
 	Integer [] COUNT = new Integer[max_rand];
 

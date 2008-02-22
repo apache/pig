@@ -33,6 +33,7 @@ public class TestStore extends TestCase {
 
 	private String initString = "mapreduce";
 	private int LOOP_COUNT = 1024;
+	MiniCluster cluster = MiniCluster.buildCluster();
 	
 	String fileName;
 	String tmpFile1, tmpFile2;

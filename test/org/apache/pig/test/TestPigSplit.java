@@ -35,6 +35,7 @@ import junit.framework.TestCase;
 
 public class TestPigSplit extends TestCase {
 	PigServer pig;
+	MiniCluster cluster = MiniCluster.buildCluster();
 	
 	@Override
 	protected void setUp() throws Exception {
