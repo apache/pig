@@ -120,3 +120,5 @@ Trunk (unreleased changes)
 
     PIG-46: abort processing on error for non-interactive mode (olston via
     olgan)
+
+    PIG-109: improved exception handling (oae via olgan)

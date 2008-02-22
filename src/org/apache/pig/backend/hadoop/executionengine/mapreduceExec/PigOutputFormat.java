@@ -54,13 +54,7 @@ public class PigOutputFormat implements OutputFormat {
         if (storeFunc.length() == 0) {
             store = new PigStorage();
         } else {
-            try {
             store = (StoreFunc) PigContext.instantiateFuncFromSpec(storeFunc);
-            } catch (Exception e) {
-            RuntimeException re = new RuntimeException(e.getClass().getName() + ": " + e.getMessage());
-            re.setStackTrace(e.getStackTrace());
-            throw re;
-            }
         }
         String parentName = outputDir.getParent().getName();
         int suffixStart = parentName.lastIndexOf('.');

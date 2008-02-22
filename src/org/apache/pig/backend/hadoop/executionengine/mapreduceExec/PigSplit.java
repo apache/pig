@@ -96,15 +96,10 @@ public class PigSplit implements InputSplit {
         if (this.parser == null) {
             loader = new PigStorage();
         } else {
-            try {
-                loader = (LoadFunc) PigContext.instantiateFuncFromSpec(this.parser);
-            }catch(Exception exp) {
-                throw new RuntimeException("can't instantiate " + parser, exp);
-            }
+            loader = (LoadFunc) PigContext.instantiateFuncFromSpec(this.parser);
         }
         return loader;
     }
-
 
     public String[] getLocations() throws IOException {
         String hints[][] = fs.getFileCacheHints(file, start, length);

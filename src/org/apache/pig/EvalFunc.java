@@ -93,13 +93,8 @@ public abstract class EvalFunc<T extends Datum>  {
     
 
     private Type getReturnTypeFromSpec(String funcSpec){
-        try{
-            return ((EvalFunc)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
-        }catch (IOException e){
-            throw new RuntimeException(e);
-        }catch (ClassCastException e){
-            throw new RuntimeException(funcSpec + " does not specify an eval func", e);
-        }
+        return ((EvalFunc) PigContext.instantiateFuncFromSpec(funcSpec))
+                .getReturnType();
     }
     
     public Type getReturnType(){
