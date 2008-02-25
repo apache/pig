@@ -127,3 +127,6 @@ Trunk (unreleased changes)
 	be run w/o access to a hadoop cluster. (xuzh via gates)
 
     PIG-68: improvements to build.xml (joa23 via olgan)
+
+	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
+	flattening the combiner case. (gates and oae)
