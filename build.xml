@@ -45,6 +45,8 @@
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
+    <!-- Maintain old pig.jar in top level directory. -->
+    <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
 
     <!-- test properties -->
     <property name="test.src.dir" value="${basedir}/test" />
@@ -187,6 +189,7 @@
             <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
             <zipfileset src="${lib.dir}/jsch-0.1.33.jar" />
         </jar>
+        <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
 
     <!-- ================================================================== -->
