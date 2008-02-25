@@ -125,3 +125,5 @@ Trunk (unreleased changes)
 
 	PIG-72: Move unit tests to use MiniDFS and MiniMR so that unit tests can
 	be run w/o access to a hadoop cluster. (xuzh via gates)
+
+    PIG-68: improvements to build.xml (joa23 via olgan)
