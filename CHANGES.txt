@@ -130,3 +130,6 @@ Trunk (unreleased changes)
 
 	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
 	flattening the combiner case. (gates and oae)
+
+    PIG-68 broke the build process by hardwiring hadoop15 jar for the purpose
+    of compile. Fixed that (olgan)
