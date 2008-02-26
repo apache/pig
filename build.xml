@@ -68,7 +68,7 @@
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
-        <fileset file="${lib.dir}/hadoop15.jar" />
+        <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/javacc.jar" />
         <fileset file="${lib.dir}/jsch-0.1.33.jar" />
         <fileset file="${lib.dir}/junit-4.1.jar" />
