@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
 
 
 /**
@@ -32,22 +31,19 @@ import org.apache.pig.impl.physicalLayer.IntermedResult;
  * 
  */
 public class LogicalPlanBuilder {
-	public static ClassLoader classloader = LogicalPlanBuilder.class.getClassLoader();
-	private PigContext pigContext;
+    public static ClassLoader classloader = LogicalPlanBuilder.class.getClassLoader();
+    private PigContext pigContext;
     public LogicalPlanBuilder(PigContext pigContext) {
-		this.pigContext = pigContext;
-	}
+        this.pigContext = pigContext;
+    }
 
-	public LogicalPlan parse(String query, Map<String, IntermedResult> aliases)
-		throws IOException, ParseException {
-		/*
-		if(query.matches(".*select.*")) { 
-			query = sqlToPigLatin(query);
-			//System.err.println(query);
-		}
-		*/
-		ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes());		
-		QueryParser parser = new QueryParser(in, pigContext, aliases);
-		return parser.Parse();		
-	}
+    public LogicalPlan parse(String scope, 
+                             String query, 
+                             Map<String, LogicalPlan> aliases,
+                             Map<OperatorKey, LogicalOperator> opTable)
+        throws IOException, ParseException {
+        ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes());        
+        QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable);
+        return parser.Parse();        
+    }
 }

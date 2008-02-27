@@ -17,18 +17,24 @@
  */
 package org.apache.pig;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer.ExecType;
-import org.apache.pig.impl.physicalLayer.IntermedResult;
-
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
 public class StandAloneParser {
     
+    private static final Log log = LogFactory.getLog(StandAloneParser.class);
+    
     static PigServer pig;
     
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws IOException, ExecException {
         
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         pig = new PigServer(ExecType.LOCAL);
@@ -40,7 +46,7 @@ public class StandAloneParser {
             try {
                 line = in.readLine();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e);
                 return;
             }
             
@@ -54,20 +60,20 @@ public class StandAloneParser {
     }
     
     private static void tryParse(String query) {
-    	if (query.trim().equals(""))
-    		return;
+        if (query.trim().equals(""))
+            return;
         try{        
-        	pig.registerQuery(query);
-        	System.out.print("Current aliases: ");
-            for (Iterator<String> it = pig.getQueryResults().keySet().iterator(); it.hasNext(); ) {
+            pig.registerQuery(query);
+            System.out.print("Current aliases: ");
+            for (Iterator<String> it = pig.getAliases().keySet().iterator(); it.hasNext(); ) {
                 String alias = it.next();
-                IntermedResult ir = pig.getQueryResults().get(alias);
-                System.out.print(alias + "->" + ir.lp.getRoot().outputSchema());
+                LogicalPlan lp = pig.getAliases().get(alias);
+                System.out.print(alias + "->" + lp.getOpTable().get(lp.getRoot()).outputSchema());
                 if (it.hasNext()) System.out.print(", \n");
                 else System.out.print("\n");
             }
         } catch (IOException e) {
-            System.err.println(e);
+            log.error(e);
         }
     }
 }

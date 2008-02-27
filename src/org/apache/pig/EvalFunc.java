@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,74 +44,67 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
  *
  */
 public abstract class EvalFunc<T>  {
-	
-	protected Type returnType;
-	
-	public EvalFunc(){
-		
-		//Figure out what the return type is by following the object hierarchy upto the EvalFunc
-		
-		Class<?> superClass = getClass();
-		Type superType = getClass();
-		
-		while (!superClass.isAssignableFrom(EvalFunc.class)){
-			superType = superClass.getGenericSuperclass();
-			superClass = superClass.getSuperclass();
-		}
-		String errMsg = getClass() + "extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.";
-		
-		if (!(superType instanceof ParameterizedType))
-			throw new RuntimeException(errMsg);
-		
-		Type[] parameters  = ((ParameterizedType)superType).getActualTypeArguments();
-		
-		if (parameters.length != 1)
-				throw new RuntimeException(errMsg);
-		
-		returnType = parameters[0];
-		
-        /*
-		if (returnType == Datum.class){
-			throw new RuntimeException("Eval function must return a specific type of Datum");
-		}
-        */
-		
-		
-		//Type check the initial, intermediate, and final functions
-		if (this instanceof Algebraic){
-			Algebraic a = (Algebraic)this;
-			
-			errMsg = "function of " + getClass().getName() + " is not of the expected type.";
-			if (getReturnTypeFromSpec(a.getInitial()) != Tuple.class)
-				throw new RuntimeException("Initial " + errMsg);
-			if (getReturnTypeFromSpec(a.getIntermed()) != Tuple.class)
-					throw new RuntimeException("Intermediate " + errMsg);
-			if (getReturnTypeFromSpec(a.getFinal()) != returnType)
-					throw new RuntimeException("Final " + errMsg);
-		}
-		
-	}
-	
+    
+    protected Type returnType;
+    
+    public EvalFunc(){
+        
+        //Figure out what the return type is by following the object hierarchy upto the EvalFunc
+        
+        Class<?> superClass = getClass();
+        Type superType = getClass();
+        
+        while (!superClass.isAssignableFrom(EvalFunc.class)){
+            superType = superClass.getGenericSuperclass();
+            superClass = superClass.getSuperclass();
+        }
+        String errMsg = getClass() + "extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.";
+        
+        if (!(superType instanceof ParameterizedType))
+            throw new RuntimeException(errMsg);
+        
+        Type[] parameters  = ((ParameterizedType)superType).getActualTypeArguments();
+        
+        if (parameters.length != 1)
+                throw new RuntimeException(errMsg);
+        
+        returnType = parameters[0];
+        
+        
+        
+        //Type check the initial, intermediate, and final functions
+        if (this instanceof Algebraic){
+            Algebraic a = (Algebraic)this;
+            
+            errMsg = "function of " + getClass().getName() + " is not of the expected type.";
+            if (getReturnTypeFromSpec(a.getInitial()) != Tuple.class)
+                throw new RuntimeException("Initial " + errMsg);
+            if (getReturnTypeFromSpec(a.getIntermed()) != Tuple.class)
+                    throw new RuntimeException("Intermediate " + errMsg);
+            if (getReturnTypeFromSpec(a.getFinal()) != returnType)
+                    throw new RuntimeException("Final " + errMsg);
+        }
+        
+    }
+    
 
-	private Type getReturnTypeFromSpec(String funcSpec){
-		try{
-			return ((EvalFunc)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
-		}catch (IOException e){
-			throw new RuntimeException(e);
-		}catch (ClassCastException e){
-			throw new RuntimeException(funcSpec + " does not specify an eval func");
-		}
-	}
-	
-	public Type getReturnType(){
-		return returnType;
-	}
-		
+    private Type getReturnTypeFromSpec(String funcSpec){
+        try{
+            return ((EvalFunc)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
+        }catch (ClassCastException e){
+            throw new RuntimeException(funcSpec + " does not specify an eval func", e);
+        }
+    }
+    
+    public Type getReturnType(){
+        return returnType;
+    }
+        
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
     protected void progress() { 
         //This part appears to be unused and is causing problems due to changing hadoop signature
-    	/*
-    	if (PigMapReduce.reporter != null) {
+        /*
+        if (PigMapReduce.reporter != null) {
             try {
                 PigMapReduce.reporter.progress();
             } catch (IOException ignored) {
@@ -155,6 +149,6 @@ public abstract class EvalFunc<T>  {
      * @return
      */
     public boolean isAsynchronous(){
-    	return false;
+        return false;
     }
 }

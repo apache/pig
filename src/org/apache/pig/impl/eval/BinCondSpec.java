@@ -29,20 +29,20 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class BinCondSpec extends EvalSpec {
-	private static final long serialVersionUID = 1L;
-	
-	protected Cond cond;
+    private static final long serialVersionUID = 1L;
+    
+    protected Cond cond;
     protected EvalSpec ifTrue;
     protected EvalSpec ifFalse;
     
 
-	public BinCondSpec(Cond cond, EvalSpec ifTrue, EvalSpec ifFalse) throws IOException{
+    public BinCondSpec(Cond cond, EvalSpec ifTrue, EvalSpec ifFalse) throws IOException{
         this.cond = cond;
         this.ifTrue = ifTrue;
         this.ifFalse = ifFalse;
         
         if (ifTrue.isAsynchronous() || ifFalse.isAsynchronous())
-        	throw new IOException("Can't use the output of an asynchronous function as one of the branches of a bincond");
+            throw new IOException("Can't use the output of an asynchronous function as one of the branches of a bincond");
     
     }
     
@@ -55,41 +55,41 @@ public class BinCondSpec extends EvalSpec {
     }
     
     @Override
-	public void instantiateFunc(FunctionInstantiator fInstantiaor) throws IOException{
-    	cond.instantiateFunc(fInstantiaor);
-    	ifTrue.instantiateFunc(fInstantiaor);
-    	ifFalse.instantiateFunc(fInstantiaor);
+    public void instantiateFunc(FunctionInstantiator fInstantiaor) throws IOException{
+        cond.instantiateFunc(fInstantiaor);
+        ifTrue.instantiateFunc(fInstantiaor);
+        ifFalse.instantiateFunc(fInstantiaor);
     };
 
     @Override
-	protected Schema mapInputSchema(Schema schema) {
-    	return new TupleSchema();
+    protected Schema mapInputSchema(Schema schema) {
+        return new TupleSchema();
     }
     
     @Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-    	return new DataCollector(endOfPipe){
-    		@Override
-    		public void add(Object d) {
-    			if (cond.eval(d)){
-    				addToSuccessor(ifTrue.simpleEval(d));
-    			}else{
-    				addToSuccessor(ifFalse.simpleEval(d));
-    			}
-    		}
-    		
-    		@Override
-    		protected void finish(){
-    			cond.finish();
-    	    	ifTrue.finish();
-    	    	ifFalse.finish();
-    		}
-    	};
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+        return new DataCollector(endOfPipe){
+            @Override
+            public void add(Object d) {
+                if (cond.eval(d)){
+                    addToSuccessor(ifTrue.simpleEval(d));
+                }else{
+                    addToSuccessor(ifFalse.simpleEval(d));
+                }
+            }
+            
+            @Override
+            protected void finish(){
+                cond.finish();
+                ifTrue.finish();
+                ifFalse.finish();
+            }
+        };
     }
 
     @Override
     public String toString() {
-    	StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         sb.append("[(");
         sb.append(cond);
         sb.append(" ? ");
@@ -100,12 +100,12 @@ public class BinCondSpec extends EvalSpec {
         return sb.toString();
     }
 
-	public EvalSpec ifTrue() { return ifTrue; }
-	public EvalSpec ifFalse() { return ifFalse; }
+    public EvalSpec ifTrue() { return ifTrue; }
+    public EvalSpec ifFalse() { return ifFalse; }
     
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitBinCond(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitBinCond(this);
+    }
     
 }

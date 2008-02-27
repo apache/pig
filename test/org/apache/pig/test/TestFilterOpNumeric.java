@@ -24,22 +24,24 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.util.PigLogger;
 
 import junit.framework.TestCase;
 
 public class TestFilterOpNumeric extends TestCase {
 
-    
+    private final Log log = LogFactory.getLog(getClass());
+
     private static int LOOP_COUNT = 1024;
     private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     @Test
-    public void testNumericEq() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testNumericEq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -53,7 +55,7 @@ public class TestFilterOpNumeric extends TestCase {
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by $0 == $1;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -70,8 +72,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testNumericNeq() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testNumericNeq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -85,7 +86,7 @@ public class TestFilterOpNumeric extends TestCase {
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -98,8 +99,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testNumericGt() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testNumericGt() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -114,7 +114,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 > $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -127,8 +127,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testBinCond() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testBinCond() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -138,7 +137,7 @@ public class TestFilterOpNumeric extends TestCase {
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "';");
         String query = "A = foreach A generate ($1 >= '"+ LOOP_COUNT+"'-'10'?'1':'0');";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -147,9 +146,9 @@ public class TestFilterOpNumeric extends TestCase {
             Tuple t = (Tuple)it.next();
             Double first = Double.valueOf(t.get(0).toString());
             if (first == 1)
-            	count++;
+                count++;
             else
-            	assertTrue(first == 0);
+                assertTrue(first == 0);
             
         }
         assertEquals("expected count of 10", 10, count);
@@ -157,8 +156,7 @@ public class TestFilterOpNumeric extends TestCase {
     
     
     @Test
-    public void testNestedBinCond() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testNestedBinCond() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -168,7 +166,7 @@ public class TestFilterOpNumeric extends TestCase {
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "';");
         String query = "A = foreach A generate ($0 < '10'?($1 >= '5' ? '2': '1') : '0');";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -177,7 +175,7 @@ public class TestFilterOpNumeric extends TestCase {
             Tuple t = (Tuple)it.next();
             Double first = Double.valueOf(t.get(0).toString());
             count+=first;
-           	assertTrue(first == 1 || first == 2 || first == 0);
+               assertTrue(first == 1 || first == 2 || first == 0);
             
         }
         assertEquals("expected count of 15", 15, count);
@@ -186,11 +184,10 @@ public class TestFilterOpNumeric extends TestCase {
     
     
     @Test 
-    public void testNumericLt() throws Exception {
-		PigLogger.setAppenderForJunit();
-    	PigServer pig = new PigServer(initString);
-    	File tmpFile = File.createTempFile("test", "txt");
-    	PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+    public void testNumericLt() throws Throwable {
+        PigServer pig = new PigServer(initString);
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println(i + ":" + (double)i);
@@ -202,7 +199,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 < $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -212,13 +209,12 @@ public class TestFilterOpNumeric extends TestCase {
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) < 0);
         }
-    	
+        
     }
 
     
     @Test
-    public void testNumericGte() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testNumericGte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -235,7 +231,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 >= $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -248,8 +244,7 @@ public class TestFilterOpNumeric extends TestCase {
     }
 
     @Test
-    public void testNumericLte() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testNumericLte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -266,7 +261,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 <= $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();

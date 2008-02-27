@@ -29,7 +29,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 import org.apache.pig.impl.util.Spillable;
-import org.apache.pig.impl.mapreduceExec.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 
 /**
  * A collection of Tuples.  A DataBag may or may not fit into memory.

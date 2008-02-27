@@ -26,36 +26,36 @@ import java.io.IOException;
  */
 public class IndexedTuple extends DefaultTuple {
 
-	public int index = -1;
-	
-	public IndexedTuple() {
-	}
-	
-	public IndexedTuple(Tuple t, int indexIn) {
+    public int index = -1;
+    
+    public IndexedTuple() {
+    }
+    
+    public IndexedTuple(Tuple t, int indexIn) {
         // Have to do it like this because Tuple is an interface, we don't
         // have access to its internal structures.
         super(t.getAll());
-		index = indexIn;
-	}
+        index = indexIn;
+    }
 
-	@Override
-	public String toString() {
-		return super.toString() + "[" + index + "]";
-	}
+    @Override
+    public String toString() {
+        return super.toString() + "[" + index + "]";
+    }
 
-	// Writable methods:
-	@Override
-	public void write(DataOutput out) throws IOException {
-		super.write(out);
+    // Writable methods:
+    @Override
+    public void write(DataOutput out) throws IOException {
+        super.write(out);
         out.writeInt(index);
-	}
-	@Override
-	public void readFields(DataInput in) throws IOException {
-		super.readFields(in);
-		index = in.readInt();
-	}
-	
-	public Tuple toTuple(){
+    }
+    @Override
+    public void readFields(DataInput in) throws IOException {
+        super.readFields(in);
+        index = in.readInt();
+    }
+    
+    public Tuple toTuple(){
         return TupleFactory.getInstance().newTuple(mFields);
-	}
+    }
 }

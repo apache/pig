@@ -18,8 +18,16 @@ import junit.framework.TestCase;
 
 
 public class TestPigServer extends TestCase {
-    private PigServer pig = new PigServer();
-
+    private PigServer pig = null;
+    MiniCluster cluster = MiniCluster.buildCluster();
+    
+    private void initPigServer() throws Throwable {
+        if (pig == null) {
+            pig = new PigServer();
+        }
+    }
+    
+    
     private final static String FILE_SEPARATOR = System.getProperty("file.separator");
     
     // make sure that name is included or not (depending on flag "included") 
@@ -79,12 +87,13 @@ public class TestPigServer extends TestCase {
      * The jar file to register is not present
      */
     @Test
-    public void testRegisterJarFileNotPresent() throws Exception {
+    public void testRegisterJarFileNotPresent() throws Throwable {
         // resister a jar file that does not exist
         
         String jarName = "BadFileNameTestJarNotPresent.jar";
         
         // jar name is not present to start with
+        initPigServer();
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
 
         boolean exceptionRaised = false;
@@ -103,12 +112,14 @@ public class TestPigServer extends TestCase {
      * in this case name of jar file is relative to current working dir
      */
     @Test
-    public void testRegisterJarLocalDir() throws Exception {
+    public void testRegisterJarLocalDir() throws Throwable {
         String dir1 = "test1_register_jar_local";
         String dir2 = "test2_register_jar_local";
         String jarLocation = dir1 + FILE_SEPARATOR +
                               dir2 + FILE_SEPARATOR;
         String jarName = "TestRegisterJarLocal.jar";
+        
+        initPigServer();
         
         createFakeJarFile(jarLocation, jarName);
         
@@ -136,13 +147,15 @@ public class TestPigServer extends TestCase {
      * only one of them is registered.
      */
     @Test
-    public void testRegisterJarFromResources () throws Exception {
+    public void testRegisterJarFromResources () throws Throwable {
         String dir = "test_register_jar_res_dir";
         String subDir1 = "test_register_jar_res_sub_dir1";
         String subDir2 = "test_register_jar_res_sub_dir2";
         String jarName = "TestRegisterJarFromRes.jar";
         String jarLocation1 = dir + FILE_SEPARATOR + subDir1 + FILE_SEPARATOR;
         String jarLocation2 = dir + FILE_SEPARATOR + subDir2 + FILE_SEPARATOR;
+        
+        initPigServer();
         
         createFakeJarFile(jarLocation1, jarName);
         createFakeJarFile(jarLocation2, jarName);
@@ -176,13 +189,15 @@ public class TestPigServer extends TestCase {
      * @throws Exception
      */
     @Test
-    public void testRegisterJarResourceInJar() throws Exception {
+    public void testRegisterJarResourceInJar() throws Throwable {
         String dir = "test_register_jar_res_in_jar";
         String subDir = "sub_dir";
         String jarName = "TestRegisterJarNonEmpty.jar";
         String className = "TestRegisterJar";
         String javaSrc = "package " + subDir + "; class " + className + " { }";
 
+        initPigServer();
+        
         // create dirs
         (new File(dir + FILE_SEPARATOR + subDir)).mkdirs();
 

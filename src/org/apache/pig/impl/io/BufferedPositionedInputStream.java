@@ -20,28 +20,34 @@ package org.apache.pig.impl.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 
 import org.apache.tools.bzip2r.CBZip2InputStream;
 
 public class BufferedPositionedInputStream extends InputStream {
-	long pos;
+    long pos;
     InputStream in;
     
-	public BufferedPositionedInputStream(InputStream in, long pos) {
-		this.in = in;
-		this.pos = pos;
-	}
-	
-	public BufferedPositionedInputStream(InputStream in){
-		this(in,0);
-	}
-	
-	@Override
-	public int read() throws IOException {
+    public BufferedPositionedInputStream(InputStream in, long pos) {
+        this.in = in;
+        this.pos = pos;
+    }
+    
+    public BufferedPositionedInputStream(InputStream in){
+        this(in,0);
+    }
+    
+    @Override
+    public int read() throws IOException {
         int c = in.read();
         pos++;
         return c;
-	}
+    }
 
     @Override
     public int read(byte b[], int off, int len) throws IOException {
@@ -49,9 +55,9 @@ public class BufferedPositionedInputStream extends InputStream {
         pos += read;
         return read;
     }
-	
+    
     @Override
-	public long skip(long n) throws IOException {
+    public long skip(long n) throws IOException {
         long rc = in.skip(n);
         pos += rc;
         return rc;
@@ -62,9 +68,96 @@ public class BufferedPositionedInputStream extends InputStream {
      */
     public long getPosition() throws IOException{
         if (in instanceof CBZip2InputStream)
-        	return ((CBZip2InputStream)in).getPos();
-    	return pos;
+            return ((CBZip2InputStream)in).getPos();
+        return pos;
     }
 
+    /*
+     * Preallocated array for readline buffering
+     */
+    private byte barray[] = new byte[1024];
 
+    /*
+     * Preallocated ByteBuffer for readline buffering
+     */
+    private ByteBuffer bbuff = ByteBuffer.wrap(barray);
+
+    /*
+     * Preallocated char array for decoding bytes
+     */
+    private char carray[] = new char[1024];
+
+    /*
+     * Preallocated CharBuffer for decoding bytes
+     */
+    private CharBuffer cbuff = CharBuffer.wrap(carray);
+
+    public String readLine(Charset charset, byte delimiter) throws IOException {
+        CharsetDecoder decoder = charset.newDecoder();
+        decoder.onMalformedInput(CodingErrorAction.REPLACE);
+        decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+        int delim = delimiter&0xff;
+        int rc;
+        int offset = 0;
+        StringBuilder sb = null;
+        CoderResult res;
+        while ((rc = read())!=-1) {
+            if (rc == delim) {
+                break;
+            }
+            barray[offset++] = (byte)rc;
+            if (barray.length == offset) {
+                bbuff.position(0);
+                bbuff.limit(barray.length);
+                cbuff.position(0);
+                cbuff.limit(carray.length);
+                res = decoder.decode(bbuff, cbuff, false);
+                if (res.isError()) {
+                    throw new IOException("Decoding error: " + res.toString());
+                }
+                offset = bbuff.remaining();
+                switch (offset) {
+                default:
+                    System.arraycopy(barray, bbuff.position(), barray, 0, bbuff
+                            .remaining());
+                    break;
+                case 2:
+                    barray[1] = barray[barray.length - 1];
+                    barray[0] = barray[barray.length - 2];
+                    break;
+                case 1:
+                    barray[0] = barray[barray.length - 1];
+                    break;
+                case 0:
+                }
+                if (sb == null) {
+                    sb = new StringBuilder(cbuff.position());
+                }
+                sb.append(carray, 0, cbuff.position());
+            }
+        }
+        if (sb == null) {
+            if (rc == -1 && offset == 0) {
+                // We are at EOF with nothing read
+                return null;
+            }
+            sb = new StringBuilder();
+        }
+        bbuff.position(0);
+        bbuff.limit(offset);
+        cbuff.position(0);
+        cbuff.limit(carray.length);
+        res = decoder.decode(bbuff, cbuff, true);
+        if (res.isError()) {
+            System.out.println("Error");
+        }
+        sb.append(carray, 0, cbuff.position());
+        cbuff.position(0);
+        res = decoder.flush(cbuff);
+        if (res.isError()) {
+            System.out.println("Error");
+        }
+        sb.append(carray, 0, cbuff.position());
+        return sb.toString();
+    }
 }

@@ -20,16 +20,31 @@ package org.apache.pig.impl.physicalLayer;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Iterator;
 
+import org.apache.pig.backend.hadoop.executionengine.POMapreduce;
+import org.apache.pig.backend.local.executionengine.POCogroup;
+import org.apache.pig.backend.local.executionengine.POEval;
+import org.apache.pig.backend.local.executionengine.POLoad;
+import org.apache.pig.backend.local.executionengine.POSort;
+import org.apache.pig.backend.local.executionengine.POSplit;
+import org.apache.pig.backend.local.executionengine.POStore;
+import org.apache.pig.backend.local.executionengine.POUnion;
+import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.impl.eval.EvalSpec;
+import org.apache.pig.impl.eval.EvalSpecPrinter;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.eval.*;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
+
 
 public class POPrinter extends POVisitor {
 
     private PrintStream mStream = null;
 
-    public POPrinter(PrintStream ps) {
+    public POPrinter(Map<OperatorKey, ExecPhysicalOperator> opTable,
+                     PrintStream ps) {
+        super(opTable);
         mStream = ps;
     }
 
@@ -78,16 +93,6 @@ public class POPrinter extends POVisitor {
         }
 
         super.visitMapreduce(mr);
-    }
-        
-    /**
-     * Only PORead.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitRead(PORead r) {
-        mStream.println("READ");
-        printHeader(r);
-        super.visitRead(r);
     }
         
     /**

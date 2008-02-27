@@ -24,21 +24,25 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 
 
 public abstract class Schema implements Serializable {
 
-	protected Set<String> aliases = new HashSet<String>();    
+    private final Log log = LogFactory.getLog(getClass());
+    
+    protected Set<String> aliases = new HashSet<String>();    
 
-	public Schema copy(){
-    	try{
-    		return (Schema)ObjectSerializer.deserialize(ObjectSerializer.serialize(this));
-    	}catch (IOException e){
-    		e.printStackTrace();
-    		throw new RuntimeException(e);
-    	}
+    public Schema copy(){
+        try{
+            return (Schema)ObjectSerializer.deserialize(ObjectSerializer.serialize(this));
+        }catch (IOException e){
+            log.error(e);
+            throw new RuntimeException(e);
+        }
     }
     public abstract int colFor(String alias);
     public abstract Schema schemaFor(int col);
@@ -47,25 +51,25 @@ public abstract class Schema implements Serializable {
     public abstract List<Schema> flatten();
 
     public void setAlias(String alias) {
-		if (alias!=null)
-			aliases.add(alias);
-	}
+        if (alias!=null)
+            aliases.add(alias);
+    }
     
     public void removeAlias(String alias){
-    	aliases.remove(alias);
+        aliases.remove(alias);
     }
     
     public void removeAllAliases(){
-    	aliases.clear();
+        aliases.clear();
     }
     public Set<String> getAliases() {
-    	return aliases;
+        return aliases;
     }
-	public String getAlias() {
-		Iterator<String> iter = aliases.iterator();
-		if (iter.hasNext())
-			return iter.next();
-		else
-			return null;
-	}
+    public String getAlias() {
+        Iterator<String> iter = aliases.iterator();
+        if (iter.hasNext())
+            return iter.next();
+        else
+            return null;
+    }
 }

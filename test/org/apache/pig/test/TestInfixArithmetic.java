@@ -24,6 +24,8 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
@@ -33,11 +35,14 @@ import junit.framework.TestCase;
 
 public class TestInfixArithmetic extends TestCase {
 
+    private final Log log = LogFactory.getLog(getClass());
+
     private static int LOOP_COUNT = 1024;    
     private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     @Test
-    public void testAdd() throws Exception {
+    public void testAdd() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -46,7 +51,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -59,7 +64,7 @@ public class TestInfixArithmetic extends TestCase {
     }
  
     @Test
-    public void testSubtract() throws Exception {
+    public void testSubtract() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -68,7 +73,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -80,7 +85,7 @@ public class TestInfixArithmetic extends TestCase {
     }
  
     @Test
-    public void testMultiply() throws Exception {
+    public void testMultiply() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -89,7 +94,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -102,7 +107,7 @@ public class TestInfixArithmetic extends TestCase {
     }
     
     @Test
-    public void testDivide() throws Exception {
+    public void testDivide() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -111,7 +116,7 @@ public class TestInfixArithmetic extends TestCase {
         }
         ps.close();
         String query = "A =  foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1;";
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();

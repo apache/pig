@@ -28,6 +28,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 
 
 public class PigFile {
@@ -40,7 +41,7 @@ public class PigFile {
     }
     
     public PigFile(String filename){
-    	file = filename;
+        file = filename;
     }
     
     public DataBag load(LoadFunc lfunc, PigContext pigContext) throws IOException {
@@ -66,4 +67,7 @@ public class PigFile {
         bos.close();
     }
 
+    public String toString() {
+        return "PigFile: file: " + this.file + ", append: " + this.append;
+    }
 }

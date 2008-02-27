@@ -42,10 +42,10 @@ public class PerformanceTimerFactory
  */
 public static PerformanceTimerFactory getPerfTimerFactory()
 {
-	if (self == null) {
-		self = new PerformanceTimerFactory();
-	}
-	return self;
+    if (self == null) {
+        self = new PerformanceTimerFactory();
+    }
+    return self;
 }
 
 /**
@@ -56,12 +56,12 @@ public static PerformanceTimerFactory getPerfTimerFactory()
  */
 public PerformanceTimer getTimer(String name)
 {
-	PerformanceTimer timer = mTimers.get(name);
-	if (timer == null) {
-		timer = new PerformanceTimer(name);
-		mTimers.put(name, timer);
-	} 
-	return timer;
+    PerformanceTimer timer = mTimers.get(name);
+    if (timer == null) {
+        timer = new PerformanceTimer(name);
+        mTimers.put(name, timer);
+    } 
+    return timer;
 }
 
 /**
@@ -70,23 +70,23 @@ public PerformanceTimer getTimer(String name)
  */
 public void dumpTimers(PrintStream out)
 {
-	Collection<PerformanceTimer> c = mTimers.values();
-	Iterator<PerformanceTimer> i = c.iterator();
-	while (i.hasNext()) {
-		i.next().print(out);
-	}
+    Collection<PerformanceTimer> c = mTimers.values();
+    Iterator<PerformanceTimer> i = c.iterator();
+    while (i.hasNext()) {
+        i.next().print(out);
+    }
 }
 
 public void dumpTimers()
 {
-	dumpTimers(System.out);
+    dumpTimers(System.out);
 }
 
 private static PerformanceTimerFactory self = null;
 
 private PerformanceTimerFactory()
 {
-	mTimers = new HashMap<String, PerformanceTimer>();
+    mTimers = new HashMap<String, PerformanceTimer>();
 }
 
 HashMap<String, PerformanceTimer> mTimers;

@@ -17,13 +17,6 @@
  */
 package org.apache.pig.data;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.PriorityQueue;
-import java.util.Iterator;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -32,16 +25,24 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.PriorityQueue;
+  
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.apache.pig.impl.eval.EvalSpec;
-import org.apache.pig.impl.util.PigLogger;
 
 
 
 /**
  * An ordered collection of Tuples (possibly) with multiples.  Data is
- * stored unsorted in an ArrayList as it comes in, and only sorted when it
- * is time to dump
+ * stored unsorted as it comes in, and only sorted when it is time to dump
  * it to a file or when the first iterator is requested.  Experementation
  * found this to be the faster than storing it sorted to begin with.
  * 
@@ -50,6 +51,8 @@ import org.apache.pig.impl.util.PigLogger;
  */
 public class SortedDataBag extends DefaultAbstractBag {
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
+
+    private final Log log = LogFactory.getLog(getClass());
 
     private Comparator<Tuple> mComp;
     private boolean mReadStarted = false;
@@ -104,8 +107,17 @@ public class SortedDataBag extends DefaultAbstractBag {
         // trying to read while I'm mucking with the container.
         long spilled = 0;
         synchronized (mContents) {
+            DataOutputStream out = null;
             try {
-                DataOutputStream out = getSpillFile();
+                out = getSpillFile();
+            } catch (IOException ioe) {
+                // Do not remove last file from spilled array. It was not
+                // added as File.createTmpFile threw an IOException
+                log.error(
+                    "Unable to create tmp file to spill to disk", ioe);
+                return 0;
+            }
+            try {
                 // Have to sort the data before we can dump it.  It's bogus
                 // that we have to do this under the lock, but there's no way
                 // around it.  If the reads alread started, then we've
@@ -128,9 +140,17 @@ public class SortedDataBag extends DefaultAbstractBag {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
-                PigLogger.getLogger().error(
+                log.error(
                     "Unable to spill contents to disk", ioe);
                 return 0;
+            } finally {
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        log.error("Error closing spill", e);
+                    }
+                }
             }
             mContents.clear();
         }
@@ -239,7 +259,7 @@ public class SortedDataBag extends DefaultAbstractBag {
                 } catch (FileNotFoundException fnfe) {
                     // We can't find our own spill file?  That should never
                     // happen.
-                    PigLogger.getLogger().fatal(
+                    log.fatal(
                         "Unable to find our spill file", fnfe);
                     throw new RuntimeException(fnfe);
                 }
@@ -253,11 +273,11 @@ public class SortedDataBag extends DefaultAbstractBag {
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
-                        PigLogger.getLogger().fatal(
+                        log.fatal(
                             "Ran out of tuples too soon.", eof);
-                        throw new RuntimeException("Ran out of tuples to read prematurely.");
+                        throw new RuntimeException("Ran out of tuples to read prematurely.", eof);
                     } catch (IOException ioe) {
-                        PigLogger.getLogger().fatal(
+                        log.fatal(
                             "Unable to read our spill file", ioe);
                         throw new RuntimeException(ioe);
                     }
@@ -304,7 +324,7 @@ public class SortedDataBag extends DefaultAbstractBag {
                     } catch (FileNotFoundException fnfe) {
                         // We can't find our own spill file?  That should
                         // never happen.
-                        PigLogger.getLogger().fatal(
+                        log.fatal(
                             "Unable to find our spill file", fnfe);
                         throw new RuntimeException(fnfe);
                     }
@@ -363,7 +383,7 @@ public class SortedDataBag extends DefaultAbstractBag {
                     // this file.
                     mStreams.set(fileNum, null);
                 } catch (IOException ioe) {
-                    PigLogger.getLogger().fatal(
+                    log.fatal(
                         "Unable to read our spill file", ioe);
                     throw new RuntimeException(ioe);
                 }
@@ -427,7 +447,7 @@ public class SortedDataBag extends DefaultAbstractBag {
                         } catch (FileNotFoundException fnfe) {
                             // We can't find our own spill file?  That should
                             // neer happen.
-                            PigLogger.getLogger().fatal(
+                            log.fatal(
                                 "Unable to find our spill file", fnfe);
                             throw new RuntimeException(fnfe);
                         }
@@ -446,7 +466,7 @@ public class SortedDataBag extends DefaultAbstractBag {
                         }
                         out.flush();
                     } catch (IOException ioe) {
-                        PigLogger.getLogger().fatal(
+                        log.fatal(
                             "Unable to read our spill file", ioe);
                         throw new RuntimeException(ioe);
                     }

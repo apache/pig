@@ -31,6 +31,7 @@ import junit.framework.TestCase;
 public class TestStore extends TestCase {
 
     private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
     private int LOOP_COUNT = 1024;
     
     String fileName;

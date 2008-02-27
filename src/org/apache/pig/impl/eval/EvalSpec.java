@@ -37,57 +37,57 @@ import org.apache.pig.impl.util.ObjectSerializer;
 
 
 public abstract class EvalSpec implements Serializable{
-	boolean isFlattened; 
-	Schema schema;
-	transient DataBuffer simpleEvalOutput;
-	transient DataCollector simpleEvalInput; 
-	protected boolean inner = false; //used only if this generate spec is used in a group by
+    boolean isFlattened; 
+    Schema schema;
+    transient DataBuffer simpleEvalOutput;
+    transient DataCollector simpleEvalInput; 
+    protected boolean inner = false; //used only if this generate spec is used in a group by
 
-	private String comparatorFuncName;
-	private transient Comparator<Tuple> comparator;
-	
-	/*
-	 * Keep a precomputed pipeline ready if we do simple evals
-	 * No separate code path for simple evals as earlier 
-	 */
-	private void init(){
-		simpleEvalOutput = new DataBuffer();
-		simpleEvalInput = setupPipe(simpleEvalOutput);
-	}
-	
-	public class UserComparator implements Comparator<Tuple> {
-		Comparator<Tuple> nested;
+    private String comparatorFuncName;
+    private transient Comparator<Tuple> comparator;
+    
+    /*
+     * Keep a precomputed pipeline ready if we do simple evals
+     * No separate code path for simple evals as earlier 
+     */
+    private void init(){
+        simpleEvalOutput = new DataBuffer();
+        simpleEvalInput = setupPipe(simpleEvalOutput);
+    }
+    
+    public class UserComparator implements Comparator<Tuple> {
+        Comparator<Tuple> nested;
         TupleFactory mTupleFactory = TupleFactory.getInstance();
-		
-		UserComparator(Comparator<Tuple> nested) {
-			this.nested = nested;
-		}
-    	public int compare(Tuple t1, Tuple t2) {
-    		Object d1 = simpleEval(t1);
-    		Object d2 = simpleEval(t2);
-    		if (d1 instanceof Tuple) {
-    			return nested.compare((Tuple)d1, (Tuple)d2);
-    		} else {
-    			return nested.compare(mTupleFactory.newTuple(d1),
-                    mTupleFactory.newTuple(d2));
-    		}
+        
+        UserComparator(Comparator<Tuple> nested) {
+            this.nested = nested;
         }
-	}
-	
-	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
-		if (comparatorFuncName != null) {
-			Comparator<Tuple> userComparator = 
-				(ComparisonFunc)instantiaor.instantiateFuncFromAlias(comparatorFuncName);
-			comparator = new UserComparator(userComparator);
-		} else {
-			comparator = new Comparator<Tuple>() {
-		    	public int compare(Tuple t1, Tuple t2) {
+        public int compare(Tuple t1, Tuple t2) {
+            Object d1 = simpleEval(t1);
+            Object d2 = simpleEval(t2);
+            if (d1 instanceof Tuple) {
+                return nested.compare((Tuple)d1, (Tuple)d2);
+            } else {
+                return nested.compare(mTupleFactory.newTuple(d1),
+                    mTupleFactory.newTuple(d2));
+            }
+        }
+    }
+    
+    public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
+        if (comparatorFuncName != null) {
+            Comparator<Tuple> userComparator = 
+                (ComparisonFunc)instantiaor.instantiateFuncFromAlias(comparatorFuncName);
+            comparator = new UserComparator(userComparator);
+        } else {
+            comparator = new Comparator<Tuple>() {
+                public int compare(Tuple t1, Tuple t2) {
                     return DataType.compare(simpleEval(t1), simpleEval(t2));
-		        }
-		    };
-		}
-	};
-	
+                }
+            };
+        }
+    };
+    
     /**
      * set up a default data processing pipe for processing by this spec
      * This pipe does not include unflattening/flattening at the end
@@ -105,19 +105,19 @@ public abstract class EvalSpec implements Serializable{
      * @return The collector where input tuples should be put
      */
     public DataCollector setupPipe(DataCollector endOfPipe){
-    	/*
-    	 * By default tuples flow through the eval pipeline in a flattened fashion
-    	 * Thus if flatten is true, we use the default setup pipe method, otherwise we add 
-    	 * an unflatten at the end
-     	 */
+        /*
+         * By default tuples flow through the eval pipeline in a flattened fashion
+         * Thus if flatten is true, we use the default setup pipe method, otherwise we add 
+         * an unflatten at the end
+          */
     
-    	if (isFlattened){
-    		FlattenCollector fc = new FlattenCollector(endOfPipe);
-    		return setupDefaultPipe(fc);
-    	}else{
-    		UnflattenCollector uc = new UnflattenCollector(endOfPipe);
-    		return setupDefaultPipe(uc);
-    	}
+        if (isFlattened){
+            FlattenCollector fc = new FlattenCollector(endOfPipe);
+            return setupDefaultPipe(fc);
+        }else{
+            UnflattenCollector uc = new UnflattenCollector(endOfPipe);
+            return setupDefaultPipe(uc);
+        }
     }
     
     
@@ -127,9 +127,9 @@ public abstract class EvalSpec implements Serializable{
      * @return
      */
     public EvalSpec addSpec(EvalSpec spec){
-    	CompositeEvalSpec ces = new CompositeEvalSpec(this);
-    	ces.addSpec(spec);
-    	return ces;
+        CompositeEvalSpec ces = new CompositeEvalSpec(this);
+        ces.addSpec(spec);
+        return ces;
     }
     
     /**
@@ -140,10 +140,10 @@ public abstract class EvalSpec implements Serializable{
     
     
     public Schema getOutputSchemaForPipe(Schema input){
-    	if (schema!=null)
-    		return schema;
-    	else
-    		return mapInputSchema(input);
+        if (schema!=null)
+            return schema;
+        else
+            return mapInputSchema(input);
     }
     
     /**
@@ -159,9 +159,9 @@ public abstract class EvalSpec implements Serializable{
      *
      */
     public void finish(){
-    	if (simpleEvalInput == null)
-    		init();
-    	simpleEvalInput.finishPipe();
+        if (simpleEvalInput == null)
+            init();
+        simpleEvalInput.finishPipe();
     }
 
     /**
@@ -169,7 +169,7 @@ public abstract class EvalSpec implements Serializable{
      * The default value is false, may be overridden to return true
      */
     public boolean isAsynchronous(){
-    	return false;
+        return false;
     }
     
     public void setComparatorName(String name) {
@@ -185,9 +185,9 @@ public abstract class EvalSpec implements Serializable{
      * @return
      */
     public Comparator<Tuple> getComparator() {
-		if (comparator != null)
+        if (comparator != null)
             return comparator;
-		else
+        else
         {
             comparator = new Comparator<Tuple>() {
                 public int compare(Tuple t1, Tuple t2) {
@@ -199,11 +199,11 @@ public abstract class EvalSpec implements Serializable{
     }
     
     public void setFlatten(boolean isFlattened){
-    	this.isFlattened = isFlattened;
+        this.isFlattened = isFlattened;
     }
     
     public boolean isFlattened(){
-    	return isFlattened;
+        return isFlattened;
     }
    
     /**
@@ -214,40 +214,40 @@ public abstract class EvalSpec implements Serializable{
      * @return
      */
     public Object simpleEval(Object input){
-    	if (simpleEvalInput == null)
-    		init();
-    	simpleEvalInput.add(input);
-    	return simpleEvalOutput.removeFirstAndAssertEmpty();
+        if (simpleEvalInput == null)
+            init();
+        simpleEvalInput.add(input);
+        return simpleEvalOutput.removeFirstAndAssertEmpty();
     }
    
     public EvalSpec getCombiner(){
-    	//TODO
-    	return null;
+        //TODO
+        return null;
     }
     
     public EvalSpec copy(PigContext pigContext){
-    	try{
-    		EvalSpec es = (EvalSpec) ObjectSerializer.deserialize(ObjectSerializer.serialize(this));
-    		es.instantiateFunc(pigContext);
-    		return es;
-    	}catch(IOException e){
-    		throw new RuntimeException(e);
-    	}
+        try{
+            EvalSpec es = (EvalSpec) ObjectSerializer.deserialize(ObjectSerializer.serialize(this));
+            es.instantiateFunc(pigContext);
+            return es;
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
     }
     
     public void setSchema(Schema schema){
-    	this.schema = schema;
+        this.schema = schema;
     }
     
 
-	public boolean isInner() {
-		return inner;
-	}
+    public boolean isInner() {
+        return inner;
+    }
 
-	public void setInner(boolean inner) {
-		this.inner = inner;
-	}
+    public void setInner(boolean inner) {
+        this.inner = inner;
+    }
 
-	public abstract void visit(EvalSpecVisitor v);
+    public abstract void visit(EvalSpecVisitor v);
     
 }

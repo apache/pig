@@ -35,129 +35,129 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class FuncEvalSpec extends EvalSpec {
-	private static final long serialVersionUID = 1L;
-	
-	String funcName;
-	EvalSpec args;
-	transient EvalFunc func;
+    private static final long serialVersionUID = 1L;
+    
+    String funcName;
+    EvalSpec args;
+    transient EvalFunc func;
 
-	public FuncEvalSpec(FunctionInstantiator fInstantiaor, String funcName, EvalSpec args) throws IOException{		
-		this.funcName = funcName;
-		this.args = args;
-		
-		if (args!=null && args.isAsynchronous())
-			throw new IOException("Can't have the output of an asynchronous function as the argument to an eval function");
-		instantiateFunc(fInstantiaor);
-	}
-	
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
-		if(instantiaor != null) {
-			func = (EvalFunc) instantiaor.instantiateFuncFromAlias(funcName);
+    public FuncEvalSpec(FunctionInstantiator fInstantiaor, String funcName, EvalSpec args) throws IOException{        
+        this.funcName = funcName;
+        this.args = args;
+        
+        if (args!=null && args.isAsynchronous())
+            throw new IOException("Can't have the output of an asynchronous function as the argument to an eval function");
+        instantiateFunc(fInstantiaor);
+    }
+    
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
+        if(instantiaor != null) {
+            func = (EvalFunc) instantiaor.instantiateFuncFromAlias(funcName);
         }
-		args.instantiateFunc(instantiaor);
-	}
-	
-	@Override
-	public List<String> getFuncs() {
-		List<String> funcs = new ArrayList<String>();
-		funcs.add(funcName);
-		return funcs;
-	}
+        args.instantiateFunc(instantiaor);
+    }
+    
+    @Override
+    public List<String> getFuncs() {
+        List<String> funcs = new ArrayList<String>();
+        funcs.add(funcName);
+        return funcs;
+    }
 
-	@Override
-	protected Schema mapInputSchema(Schema schema) {
-		Schema inputToFunction;
-		if (args!=null){
-			inputToFunction = args.mapInputSchema(schema);
-		}else{
-			inputToFunction = new TupleSchema();
-		}
-		
-		return func.outputSchema(inputToFunction);
-	}
+    @Override
+    protected Schema mapInputSchema(Schema schema) {
+        Schema inputToFunction;
+        if (args!=null){
+            inputToFunction = args.mapInputSchema(schema);
+        }else{
+            inputToFunction = new TupleSchema();
+        }
+        
+        return func.outputSchema(inputToFunction);
+    }
 
-	@Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-		return new DataCollector(endOfPipe){
+    @Override
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+        return new DataCollector(endOfPipe){
             /*
-			private Object getPlaceHolderForFuncOutput(){
-				Type returnType = func.getReturnType();
-				if (returnType == DataAtom.class)
-					return new DataAtom();
-				else if (returnType == Tuple.class)
-					return new Tuple();
-				else if (returnType == DataBag.class)
-					return new FakeDataBag(successor);
-				else if (returnType == DataMap.class)
-					return new DataMap();
-				else throw new RuntimeException("Internal error: Unknown return type of eval function");
-			}
+            private Object getPlaceHolderForFuncOutput(){
+                Type returnType = func.getReturnType();
+                if (returnType == DataAtom.class)
+                    return new DataAtom();
+                else if (returnType == Tuple.class)
+                    return new Tuple();
+                else if (returnType == DataBag.class)
+                    return new FakeDataBag(successor);
+                else if (returnType == DataMap.class)
+                    return new DataMap();
+                else throw new RuntimeException("Internal error: Unknown return type of eval function");
+            }
             */
 
-			@Override
-			public void add(Object d) {
-				if (checkDelimiter(d))
-					addToSuccessor(d);
-				
-				Object argsValue = null;
-				if (args!=null)
-					argsValue = args.simpleEval(d);
-				
-				if (argsValue!=null && !(argsValue instanceof Tuple))
-	        		throw new RuntimeException("Internal error: Non-tuple returned on evaluation of arguments.");
-	            
-				Object funcOutput;
-				try{
-					funcOutput = func.exec((Tuple)argsValue);
-				}catch (IOException e){
-					RuntimeException re = new RuntimeException(e);
-					re.setStackTrace(e.getStackTrace());
-					throw re;
-				}
-				
-				if (funcOutput instanceof FakeDataBag){
-					FakeDataBag fBag = (FakeDataBag)funcOutput;
-					synchronized(fBag){
-						if (!fBag.isStale())
-							fBag.addDelimiters();
-					}
-				}else{
-					addToSuccessor(funcOutput);
-				}
-			}
-			
-			@Override
-			protected void finish() {
-				if (args!=null) 
-					args.finish();
-				func.finish();
-			}			
-		};
-	}
+            @Override
+            public void add(Object d) {
+                if (checkDelimiter(d))
+                    addToSuccessor(d);
+                
+                Object argsValue = null;
+                if (args!=null)
+                    argsValue = args.simpleEval(d);
+                
+                if (argsValue!=null && !(argsValue instanceof Tuple))
+                    throw new RuntimeException("Internal error: Non-tuple returned on evaluation of arguments.");
+                
+                Object funcOutput;
+                try{
+                    funcOutput = func.exec((Tuple)argsValue);
+                }catch (IOException e){
+                    RuntimeException re = new RuntimeException(e);
+                    re.setStackTrace(e.getStackTrace());
+                    throw re;
+                }
+                
+                if (funcOutput instanceof FakeDataBag){
+                    FakeDataBag fBag = (FakeDataBag)funcOutput;
+                    synchronized(fBag){
+                        if (!fBag.isStale())
+                            fBag.addDelimiters();
+                    }
+                }else{
+                    addToSuccessor(funcOutput);
+                }
+            }
+            
+            @Override
+            protected void finish() {
+                if (args!=null) 
+                    args.finish();
+                func.finish();
+            }            
+        };
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		sb.append(funcName);
-		sb.append("(");
-		sb.append(args);
-		sb.append(")");
-		sb.append("]");
-		return sb.toString();
-	}
-	
-	
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        sb.append(funcName);
+        sb.append("(");
+        sb.append(args);
+        sb.append(")");
+        sb.append("]");
+        return sb.toString();
+    }
+    
+    
 
-	private class FakeDataBag extends DefaultAbstractBag {
-		int staleCount = 0;
-		DataCollector successor;
-		boolean startAdded = false, endAdded = false;
-		
-		public FakeDataBag(DataCollector successor){
-			this.successor = successor;
-		}
+    private class FakeDataBag extends DefaultAbstractBag {
+        int staleCount = 0;
+        DataCollector successor;
+        boolean startAdded = false, endAdded = false;
+        
+        public FakeDataBag(DataCollector successor){
+            this.successor = successor;
+        }
 
         // To satisfy abstract functions in DataBag.
         public boolean isSorted() { return false; }
@@ -165,89 +165,89 @@ public class FuncEvalSpec extends EvalSpec {
         public Iterator<Tuple> iterator() { return null; }
         public long spill() { return 0; }
 
-		
-		void addStart(){
-			successor.add(DefaultAbstractBag.startBag);
-			startAdded = true;	
-		}
-		
-		void addEnd(){
-			successor.add(DefaultAbstractBag.endBag);
-			endAdded = true;
-		}
-		
-		void addDelimiters(){
-			if (!startAdded)
-				addStart();
-			if (!endAdded)
-				addEnd();	
-		}
-		
-		@Override
-		public void add(Tuple t) {
-			synchronized(this){
-				if (!startAdded)
-					addStart();
-			}
-			successor.add(t);
-		}
-		
-		@Override
-		public void markStale(boolean stale) {
-			synchronized (this){
-				if (stale)
-					staleCount++;
-				else{
-					if (staleCount>0){
-						addDelimiters();
-						staleCount--;
-					}
-				}
-				super.markStale(stale);
-			}
-		}
-		
-		public boolean isStale(){
-			synchronized(this){
-				return staleCount > 0;
-			}
-		}
-	}
-	
-	
-	/**
+        
+        void addStart(){
+            successor.add(DefaultAbstractBag.startBag);
+            startAdded = true;    
+        }
+        
+        void addEnd(){
+            successor.add(DefaultAbstractBag.endBag);
+            endAdded = true;
+        }
+        
+        void addDelimiters(){
+            if (!startAdded)
+                addStart();
+            if (!endAdded)
+                addEnd();    
+        }
+        
+        @Override
+        public void add(Tuple t) {
+            synchronized(this){
+                if (!startAdded)
+                    addStart();
+            }
+            successor.add(t);
+        }
+        
+        @Override
+        public void markStale(boolean stale) {
+            synchronized (this){
+                if (stale)
+                    staleCount++;
+                else{
+                    if (staleCount>0){
+                        addDelimiters();
+                        staleCount--;
+                    }
+                }
+                super.markStale(stale);
+            }
+        }
+        
+        public boolean isStale(){
+            synchronized(this){
+                return staleCount > 0;
+            }
+        }
+    }
+    
+    
+    /**
      * Extend the default deserialization
      * @param in
      * @throws IOException
      * @throws ClassNotFoundException
      */
-	/*
+    /*
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
-    	in.defaultReadObject();
-    	instantiateFunc();
+        in.defaultReadObject();
+        instantiateFunc();
     }
-	*/
-	public EvalFunc getFunc() {
-		return func;
-	}
-	
-	public Type getReturnType(){
-		return func.getReturnType();
-	}
-	
-	@Override
-	public boolean isAsynchronous() {
-		return func.isAsynchronous();
-	}
+    */
+    public EvalFunc getFunc() {
+        return func;
+    }
+    
+    public Type getReturnType(){
+        return func.getReturnType();
+    }
+    
+    @Override
+    public boolean isAsynchronous() {
+        return func.isAsynchronous();
+    }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitFuncEval(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitFuncEval(this);
+    }
 
-	public String getFuncName() { return funcName; }
+    public String getFuncName() { return funcName; }
 
-	public EvalSpec getArgs() { return args; }
+    public EvalSpec getArgs() { return args; }
 
     public void setArgs(EvalSpec a) { args = a; }
 
@@ -300,5 +300,5 @@ public class FuncEvalSpec extends EvalSpec {
         if (func != null) return (func instanceof Algebraic);
         else return false;
     }
-	
+    
 }

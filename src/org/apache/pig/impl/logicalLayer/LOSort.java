@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.Map;
 
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
@@ -33,15 +34,19 @@ public class LOSort extends LogicalOperator {
         return spec;
     }
     
-    public LOSort(LogicalOperator input, EvalSpec sortSpec) {
-        super(input);
+    public LOSort(Map<OperatorKey, LogicalOperator> opTable,
+                  String scope, 
+                  long id, 
+                  OperatorKey input, 
+                  EvalSpec sortSpec) {
+        super(opTable, scope, id, input);
         this.sortSpec = sortSpec;
         getOutputType();
     }
 
     @Override
     public String name() {
-        return "SORT";
+        return "SORT " + scope + "-" + id;
     }
 
     @Override
@@ -51,7 +56,7 @@ public class LOSort extends LogicalOperator {
 
     @Override
     public int getOutputType() {
-        switch (getInputs().get(0).getOutputType()) {
+        switch (opTable.get(getInputs().get(0)).getOutputType()) {
         case FIXED:
             return FIXED;
         default:
@@ -63,7 +68,7 @@ public class LOSort extends LogicalOperator {
     @Override
     public TupleSchema outputSchema() {
         if (schema == null)
-            schema = getInputs().get(0).outputSchema().copy();
+            schema = opTable.get(getInputs().get(0)).outputSchema().copy();
 
         schema.setAlias(alias);
         return schema;
@@ -74,8 +79,8 @@ public class LOSort extends LogicalOperator {
         return sortSpec;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitSort(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitSort(this);
+    }
 
 }

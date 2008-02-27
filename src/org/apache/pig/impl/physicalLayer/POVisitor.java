@@ -17,9 +17,22 @@
  */
 package org.apache.pig.impl.physicalLayer;
 
+import java.util.Map;
+
+import org.apache.pig.backend.hadoop.executionengine.POMapreduce;
+import org.apache.pig.backend.local.executionengine.POCogroup;
+import org.apache.pig.backend.local.executionengine.POEval;
+import org.apache.pig.backend.local.executionengine.POLoad;
+import org.apache.pig.backend.local.executionengine.POSort;
+import org.apache.pig.backend.local.executionengine.POSplit;
+import org.apache.pig.backend.local.executionengine.POStore;
+import org.apache.pig.backend.local.executionengine.POUnion;
+import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
+
 /**
  * A visitor mechanism for navigating and operating on a tree of Physical
- * Operators.  This class contains the logic to navigate thre tree, but does
+ * Operators.  This class contains the logic to navigate the tree, but does
  * not do anything with or to the tree.  In order to operate on or extract
  * information from the tree, extend this class.  You only need to implement
  * the methods dealing with the physical operators you are concerned
@@ -40,20 +53,21 @@ package org.apache.pig.impl.physicalLayer;
  */
 abstract public class POVisitor {
 
+    protected Map<OperatorKey, ExecPhysicalOperator> mOpTable;
+
+    /**
+     * @param opTable Operator table for the physical plan.
+     */
+    protected POVisitor(Map<OperatorKey, ExecPhysicalOperator> opTable) {
+        mOpTable = opTable;
+    }
+
     /**
      * Only POMapreduce.visit() and subclass implementations of this function
      * should ever call this method.
      */
     public void visitMapreduce(POMapreduce mr) {
         basicVisit(mr);
-    }
-        
-    /**
-     * Only PORead.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitRead(PORead r) {
-        basicVisit(r);
     }
         
     /**
@@ -97,14 +111,6 @@ abstract public class POVisitor {
     }
 
     /**
-     * Only POSplitMaster.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitSplitMaster(POSplitMaster sm) {
-        basicVisit(sm);
-    }
-
-    /**
      * Only POSplit.visit() and subclass implementations of this function
      * should ever call this method.
      */
@@ -122,9 +128,10 @@ abstract public class POVisitor {
 
     private void basicVisit(PhysicalOperator po) {
         for (int i = 0; i < po.inputs.length; i++) {
-            po.inputs[i].visit(this);
+            ((PhysicalOperator)mOpTable.get(po.inputs[i])).visit(this);
         }
     }
+
 }
 
         

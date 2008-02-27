@@ -46,6 +46,7 @@ import junit.framework.TestCase;
 public class TestEvalPipeline extends TestCase {
     
     String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
 
     TupleFactory mTf = TupleFactory.getInstance();
     
@@ -136,7 +137,7 @@ public class TestEvalPipeline extends TestCase {
     
     
     @Test
-    public void testMapLookup() throws IOException{
+    public void testMapLookup() throws Exception {
         PigServer pigServer = new PigServer(initString);
         DataBag b = BagFactory.getInstance().newDefaultBag();
         Map<Object, Object> colors = new HashMap<Object, Object>();

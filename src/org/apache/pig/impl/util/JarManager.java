@@ -38,8 +38,8 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 
 public class JarManager {
@@ -64,7 +64,7 @@ public class JarManager {
         }
 
         @Override
-		public boolean equals(Object obj) {
+        public boolean equals(Object obj) {
             if (!(obj instanceof JarListEntry))
                 return false;
             JarListEntry other = (JarListEntry) obj;
@@ -76,7 +76,7 @@ public class JarManager {
         }
 
         @Override
-		public int hashCode() {
+        public int hashCode() {
             return jar.hashCode() + (prefix == null ? 1 : prefix.hashCode());
         }
     }
@@ -97,16 +97,16 @@ public class JarManager {
     public static void createJar(OutputStream os, List<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
         for(String toSend: pigPackagesToSend) {
-        	addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
+            addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
         }
         ClassLoader pigClassLoader = PigMapReduce.class.getClassLoader();
         
         for (String func: funcs) {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
-            	if (pigClassLoader == clazz.getClassLoader()) {
-            		continue;
-            	}
+                if (pigClassLoader == clazz.getClassLoader()) {
+                    continue;
+                }
                 addContainingJar(jarList, clazz, null, pigContext);
             }
         }
@@ -115,11 +115,11 @@ public class JarManager {
         Iterator<JarListEntry> it = jarList.iterator();
         while (it.hasNext()) {
             JarListEntry jarEntry = it.next();
-            // System.err.println("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
+            // log.error("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
             mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
         }
         for (int i = 0; i < pigContext.extraJars.size(); i++) {
-        	// System.err.println("Adding extra " + pigContext.extraJars.get(i));
+            // log.error("Adding extra " + pigContext.extraJars.get(i));
             mergeJar(jarFile, pigContext.extraJars.get(i), null, contents);
         }
         if (pigContext != null) {

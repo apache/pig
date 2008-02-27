@@ -47,12 +47,12 @@ public class BinStorage implements LoadFunc, StoreFunc {
     public BinStorage() {
     }
 
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         
         byte b = 0;
 //      skip to next record
         while (true) {
-        	if (in == null || in.getPosition() >=end) {
+            if (in == null || in.getPosition() >=end) {
                 return null;
             }
             b = (byte) in.read();
@@ -75,7 +75,7 @@ public class BinStorage implements LoadFunc, StoreFunc {
         return (Tuple)DataReaderWriter.readDatum(inData);
     }
 
-	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
+    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
         inData = new DataInputStream(in);
         this.end = end;

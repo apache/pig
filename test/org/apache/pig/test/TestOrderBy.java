@@ -35,11 +35,12 @@ public class TestOrderBy extends TestCase {
     private String initString = "mapreduce";
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     private PigServer pig;
     private File tmpFile;
 
-    public TestOrderBy() throws Exception {
+    public TestOrderBy() throws Throwable {
         DecimalFormat myFormatter = new DecimalFormat("0000000");
         for (int i = 0; i < DATALEN; i++) {
             DATA[0][i] = myFormatter.format(i);
@@ -68,7 +69,6 @@ public class TestOrderBy extends TestCase {
         for(int i = 0; i < DATALEN; i++) {
             Tuple t = (Tuple)it.next();
             int value = DataType.toInteger(t.get(1));
-//            System.out.println("" + i + "," + DATA[0][i] + "," + DATA[1][i] + "," + value);
             assertEquals(Integer.parseInt(DATA[col][i]), value);
         }
         assertFalse(it.hasNext());

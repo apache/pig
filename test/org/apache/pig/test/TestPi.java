@@ -25,43 +25,51 @@ import org.apache.pig.data.Tuple;
 
 import org.apache.pig.impl.io.FileLocalizer;
 
+import org.apache.pig.backend.executionengine.ExecException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import junit.framework.TestCase;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 /*
  * Testcase aimed at testing pig with large file sizes and filter and group functions
 */
 public class TestPi extends TestCase {
-	
-	File datFile;
-	private long defaultBlockSize = (new Configuration()).getLong("dfs.block.size", 0);
-	
-	private long total = ((defaultBlockSize >> 20) / 10) << 20;
-	private int inCircle = 0;
-	private String initString = "mapreduce";
+    
+    private final Log log = LogFactory.getLog(getClass());
 
-	private long totalLength = 0, totalLengthTest = 0;
+    File datFile;
+    private long defaultBlockSize = (new Configuration()).getLong("dfs.block.size", 0);
+    
+    private long total = ((defaultBlockSize >> 20) / 10) << 20;
+    private int inCircle = 0;
+    private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
 
-	
-	
-	PigServer pig;
-	String fileName, tmpFile1;
-	
-	@Override
-	@Before
+    private long totalLength = 0, totalLengthTest = 0;
+
+    
+    
+    PigServer pig;
+    String fileName, tmpFile1;
+    
+    @Override
+    @Before
     protected void setUp() throws Exception{
 
-        System.out.println("Generating test data...");
-        System.out.println("Default block size = " + defaultBlockSize);
-        System.out.println("Total no. of iterations to run for test data = " + total);
+        log.info("Generating test data...");
+        log.info("Default block size = " + defaultBlockSize);
+        log.info("Total no. of iterations to run for test data = " + total);
         datFile = File.createTempFile("PiTest", ".dat");
         
         FileOutputStream dat = new FileOutputStream(datFile);
@@ -77,7 +85,7 @@ public class TestPi extends TestCase {
             double y1 = y.doubleValue() - 0.5;
             double sq_dist = (x1*x1) + (y1*y1); 
             if(sq_dist <= 0.25) {
-            	inCircle ++;
+                inCircle ++;
 
             }
 
@@ -91,63 +99,71 @@ public class TestPi extends TestCase {
         
         dat.close();
         
-        pig = new PigServer(initString);
-		fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
-		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
+        try {
+            pig = new PigServer(initString);
+        }
+        catch (ExecException e) {
+            IOException ioe = new IOException("Failed to create Pig Server");
+            ioe.initCause(e);
+            throw ioe;
+        }
+        
+        fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
+        tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
 
         datFile.delete();
     }
-	
-	@Override
-	@After
-	protected void tearDown() throws Exception {
-		
-	}
-	
-	@Test
-	public void testPi () throws Exception {
-		
-		pig.registerQuery("A = load " + fileName + " using PigStorage(':');");
-		pig.registerQuery("B = foreach A generate $0 - '0.5' as d1, $1 - '0.5' as d2;");
-		pig.registerQuery("C = foreach B generate $0 * $0 as m1, $1 * $1 as m2;");
-		pig.registerQuery("D = foreach C generate $0 + $1 as s1;");
-		pig.registerQuery("D = foreach D generate $0, ARITY($0);");
-		pig.store("D", tmpFile1);
+    
+    @Override
+    @After
+    protected void tearDown() throws Exception {
+        
+    }
+    
+    @Test
+    public void testPi () throws Exception {
+        
+        pig.registerQuery("A = load " + fileName + " using PigStorage(':');");
+        pig.registerQuery("B = foreach A generate $0 - '0.5' as d1, $1 - '0.5' as d2;");
+        pig.registerQuery("C = foreach B generate $0 * $0 as m1, $1 * $1 as m2;");
+        pig.registerQuery("D = foreach C generate $0 + $1 as s1;");
+        pig.registerQuery("D = foreach D generate $0, ARITY($0);");
+        pig.store("D", tmpFile1);
 
-		pig.registerQuery("E = filter D by $0 <= '0.25';");
+        pig.registerQuery("E = filter D by $0 <= '0.25';");
 
-		pig.registerQuery("F = group D by $1;");
-		pig.registerQuery("G = group E by $1;");
+        pig.registerQuery("F = group D by $1;");
+        pig.registerQuery("G = group E by $1;");
 
-		pig.registerQuery("J = foreach F generate COUNT($1);");
-		pig.registerQuery("K = foreach G generate COUNT($1);");
-		
+        pig.registerQuery("J = foreach F generate COUNT($1);");
+        pig.registerQuery("K = foreach G generate COUNT($1);");
+        
 
-		Iterator <Tuple> Total = pig.openIterator("J");
-		Iterator <Tuple> InCircle = pig.openIterator("K");
+        Iterator <Tuple> Total = pig.openIterator("J");
+        Iterator <Tuple> InCircle = pig.openIterator("K");
 
-		
-		int totalPoints = DataType.toInteger(Total.next().get(0));
-		int inCirclePoints = DataType.toInteger(InCircle.next().get(0));
+        
+        int totalPoints = DataType.toInteger(Total.next().get(0));
+        int inCirclePoints = DataType.toInteger(InCircle.next().get(0));
 
-		System.out.println("Value of PI = " + 4 * (double)inCircle / (double)total);
-		System.out.println("Value of PI (From Test data) = " + 4 * (double)inCirclePoints / (double)totalPoints);
-		
-		
-		Iterator <Tuple> lengthTest = pig.openIterator("D");
-		
-		while(lengthTest.hasNext()) {
-			Tuple temp = lengthTest.next();
-			totalLengthTest += temp.get(0).toString().length();
-		}
-		
-		assertEquals(totalPoints, total);
-		assertEquals(inCirclePoints, inCircle);
-		assertEquals(totalLengthTest, totalLength);
+        log.info("Value of PI = " + 4 * (double)inCircle / (double)total);
+        log.info("Value of PI (From Test data) = " + 4 * (double)inCirclePoints / (double)totalPoints);
+        
+        
+        Iterator <Tuple> lengthTest = pig.openIterator("D");
+        
+        while(lengthTest.hasNext()) {
+            Tuple temp = lengthTest.next();
+            totalLengthTest += temp.get(0).toString().length();
+        }
+        
+        assertEquals(totalPoints, total);
+        assertEquals(inCirclePoints, inCircle);
+        assertEquals(totalLengthTest, totalLength);
 
-		
+        
 
-			
-	}
+            
+    }
 
 }

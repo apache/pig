@@ -19,42 +19,46 @@ package org.apache.pig.tools.grunt;
 
 import java.io.BufferedReader;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
-
+import org.apache.pig.backend.executionengine.ExecException;
 
 
 public class Grunt 
 {
-	BufferedReader in;
-	PigServer pig;
-	GruntParser parser;	
+    private final Log log = LogFactory.getLog(getClass());
+    
+    BufferedReader in;
+    PigServer pig;
+    GruntParser parser;    
 
-	public Grunt(BufferedReader in, PigContext pigContext) 
-	{
-		this.in = in;
-		this.pig = new PigServer(pigContext);
-		
-		if (in != null)
-		{
-			parser = new GruntParser(in);
-			parser.setParams(pig);	
-		}
-	}
+    public Grunt(BufferedReader in, PigContext pigContext) throws ExecException
+    {
+        this.in = in;
+        this.pig = new PigServer(pigContext);
+        
+        if (in != null)
+        {
+            parser = new GruntParser(in);
+            parser.setParams(pig);    
+        }
+    }
 
     public void run() {
-	parser.setInteractive(true);
-	parser.parseContOnError();
+    parser.setInteractive(true);
+    parser.parseContOnError();
     }
 
     public void exec() {
         try {
-		parser.setInteractive(false);
-		parser.parseStopOnError();
+        parser.setInteractive(false);
+        parser.parseStopOnError();
         } catch (Throwable e) {
-            System.err.println(e.getMessage());
-	}
-	
+            log.error(e.getMessage());
+    }
+    
     }
 }

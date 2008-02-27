@@ -17,16 +17,10 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;

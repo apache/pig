@@ -26,7 +26,7 @@ import org.apache.pig.impl.FunctionInstantiator;
 
 public class FalseCond extends Cond {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
     @Override
     public boolean eval(Object input) {
@@ -42,11 +42,11 @@ public class FalseCond extends Cond {
         return new ArrayList<String>();
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
 
 }

@@ -25,6 +25,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -35,6 +37,7 @@ import org.apache.pig.data.TupleFactory;
 
 
 public class ShellBagEvalFunc extends EvalFunc<DataBag> {
+    private final Log log = LogFactory.getLog(getClass());
     byte groupDelim = '\n';
     byte recordDelim = '\n';
     byte fieldDelim = '\t';
@@ -84,7 +87,7 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
                         System.err.write(b, 0, rc);
                     }
                 } catch(Exception e) {
-                    e.printStackTrace();
+                    log.error(e);
                 }
             }
         }.start();
@@ -105,7 +108,7 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
                     try {
                         readBag(bag);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log.error(e);
                     }
                 }
             }
@@ -143,7 +146,7 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
                 bags.put(new EndOfQueue());
             }catch(InterruptedException e){}
         }catch(IOException e){
-            e.printStackTrace();
+            log.error(e);
         }
         while(true){
             try{

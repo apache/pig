@@ -24,21 +24,23 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.util.PigLogger;
 
 import junit.framework.TestCase;
 
 public class TestFilterOpString extends TestCase {
 
+    private final Log log = LogFactory.getLog(getClass());
     private static int LOOP_COUNT = 1024;    
     private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     @Test
-    public void testStringEq() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testStringEq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -53,7 +55,7 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -66,8 +68,7 @@ public class TestFilterOpString extends TestCase {
     }
     
     @Test
-    public void testStringNeq() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testStringNeq() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -82,7 +83,7 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -95,8 +96,7 @@ public class TestFilterOpString extends TestCase {
     }
 
     @Test
-    public void testStringGt() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testStringGt() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -111,7 +111,7 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -126,8 +126,7 @@ public class TestFilterOpString extends TestCase {
     
 
     @Test
-    public void testStringGte() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testStringGte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -145,7 +144,7 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -158,8 +157,7 @@ public class TestFilterOpString extends TestCase {
     }
 
     @Test
-    public void testStringLt() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testStringLt() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -175,7 +173,7 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
@@ -188,8 +186,7 @@ public class TestFilterOpString extends TestCase {
     }
 
     @Test
-    public void testStringLte() throws Exception {
-		PigLogger.setAppenderForJunit();
+    public void testStringLte() throws Throwable {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -207,7 +204,7 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 
-        System.out.println(query);
+        log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();

@@ -27,53 +27,57 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class MapLookupSpec extends SimpleEvalSpec {
-	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	protected String keyToLookup;
-	
-	public MapLookupSpec(String keyToLookup){
-		this.keyToLookup = keyToLookup;
-	}
-
-	@Override
-	protected Object eval(Object d) {
-		if (!(d instanceof Map))
-			throw new RuntimeException("Attempt to lookup on data of type "
-                + DataType.findTypeName(d));
-		return ((Map<Object, Object>)d).get(keyToLookup);
-	}
-	
-	@Override
-	public List<String> getFuncs() {
-		return new ArrayList<String>();
-	}
-	
-	@Override
-	protected Schema mapInputSchema(Schema schema) {
-		//TODO: until we have map schemas
-		return new TupleSchema();
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		sb.append("#'");
-		sb.append(keyToLookup);
-		sb.append("'");
-		sb.append("]");
-		return sb.toString();
-	}
-
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitMapLookup(this);
-	}
-
-	public String key() { return keyToLookup; }
     
-	
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    protected String keyToLookup;
+    
+    public MapLookupSpec(String keyToLookup){
+        this.keyToLookup = keyToLookup;
+    }
+
+    @Override
+    protected Object eval(Object d) {
+        /*
+        if (!(d instanceof Map))
+            throw new RuntimeException("Attempt to lookup on data of type "
+                + DataType.findTypeName(d));
+                */
+        // Don't bother checking before the cast, the type checker will have
+        // checked for us.
+        return ((Map<Object, Object>)d).get(keyToLookup);
+    }
+    
+    @Override
+    public List<String> getFuncs() {
+        return new ArrayList<String>();
+    }
+    
+    @Override
+    protected Schema mapInputSchema(Schema schema) {
+        //TODO: until we have map schemas
+        return new TupleSchema();
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        sb.append("#'");
+        sb.append(keyToLookup);
+        sb.append("'");
+        sb.append("]");
+        return sb.toString();
+    }
+
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitMapLookup(this);
+    }
+
+    public String key() { return keyToLookup; }
+    
+    
 }

@@ -3,6 +3,7 @@
 use strict;
 use File::Find;
 use English;
+use File::Basename;
 
 sub processClasspath();
 sub getJar($);
@@ -21,14 +22,24 @@ our $hodParam = "";
 our $ROOT = (defined($ENV{'ROOT'}) ? $ENV{'ROOT'} : "/home/y");
 my ($pigJarRoot, $hodRoot, $defaultCluster);
 
-open(CFG, "< $ROOT/conf/pigclient.conf") or
-	die "Can't open $ROOT/conf/pigclient.conf, $ERRNO\n";
+if ( -e "$ROOT/conf/pigclient.conf") {
+	open(CFG, "< $ROOT/conf/pigclient.conf") or
+		die "Can't open $ROOT/conf/pigclient.conf, $ERRNO\n";
+	my $cfgContents;
+	$cfgContents .= $_ while (<CFG>);
+	close(CFG);
+	eval("$cfgContents");
+} else {# use defaults for what can be set in pigclient.conf
+	#$pigJarRoot - assume the directory above this script
+	$pigJarRoot = dirname $0;
+	$pigJarRoot .= '/../';
+	#$defaultCluster - defined so processClasspath() will hunt around
+	#for a jar file
+	$defaultCluster = '';
+	#$hodRoot - leave this undefined - we assume that hod is not require
+	#by default
+}
 
-my $cfgContents;
-$cfgContents .= $_ while (<CFG>);
-close(CFG);
-
-eval("$cfgContents");
 
 for (my $i = 0; $i < @ARGV; ) {
 	if ($ARGV[$i] eq "-cp" || $ARGV[$i] eq "-classpath") {
@@ -88,8 +99,10 @@ if ($? != 0) {
 	# location.
 	if (-e "/usr/releng/tools/java/current/bin/java") {
 		$java = '/usr/releng/tools/java/current/bin/java';
+	} elsif (exists $ENV{JAVA_HOME}) {
+		$java = $ENV{JAVA_HOME}.'/bin/java';
 	} else {
-		die "I can't find java, please include it in your PATH.\n";
+		die "I can't find java, please include it in your PATH or set JAVA_HOME\n";
 	}
 }
 
@@ -153,7 +166,9 @@ sub processClasspath()
 			{
 				$classpath .= ":";
 			}
-			$classpath .= getJar("pig.jar") .":" . getConfigDir(); 
+			my $pigJar = getJar("pig.jar");
+			$pigJar = "$pigJarRoot/pig.jar" unless -e $pigJar;
+			$classpath .= $pigJar .":" . getConfigDir(); 
 			
 		}
 	}

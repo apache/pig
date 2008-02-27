@@ -45,10 +45,10 @@ public static final char EndOfOpts = '-';
  */
 public CmdLineParser(String[] args)
 {
-	mArgs = args;
-	mArgNum = 0;
-	mShort = new HashMap<Character, ValueExpected>();
-	mLong = new HashMap<String, Character>();
+    mArgs = args;
+    mArgNum = 0;
+    mShort = new HashMap<Character, ValueExpected>();
+    mLong = new HashMap<String, Character>();
 }
 
 /**
@@ -63,20 +63,20 @@ public CmdLineParser(String[] args)
  */
 public void registerOpt(char c, String s, ValueExpected ve)
 {
-	if (c == '-') {
-		throw new AssertionError("CmdLineParser:  '-' is not a legal single character designator.");
-	}
+    if (c == '-') {
+        throw new AssertionError("CmdLineParser:  '-' is not a legal single character designator.");
+    }
 
-	Character cc = new Character(c);
-	if (mShort.put(cc, ve) != null) {
-		throw new AssertionError("CmdLineParser:  You have already registered option " + cc.toString());
-	}
+    Character cc = new Character(c);
+    if (mShort.put(cc, ve) != null) {
+        throw new AssertionError("CmdLineParser:  You have already registered option " + cc.toString());
+    }
 
-	if (mLong != null) {
-		if (mLong.put(s, cc) != null) {
-			throw new AssertionError("CmdLineParser:  You have already registered option " + s);
-		}
-	}
+    if (mLong != null) {
+        if (mLong.put(s, cc) != null) {
+            throw new AssertionError("CmdLineParser:  You have already registered option " + s);
+        }
+    }
 }
 
 /**
@@ -89,75 +89,75 @@ public void registerOpt(char c, String s, ValueExpected ve)
  */
 public char getNextOpt() throws ParseException
 {
-	if (mArgNum >= mArgs.length) return EndOfOpts;
+    if (mArgNum >= mArgs.length) return EndOfOpts;
 
-	int offset = 1;
-	mVal = null;
-	try {
-		String arg = mArgs[mArgNum];
-		// If it doesn't start with a dash, we'll assume we've reached the end of the
-		// arguments.  We need to decrement mArgNum because the finally at the end is
-		// going to increment it.
-		if (arg.charAt(0) != '-') {
-			mArgNum--;
-			return EndOfOpts;
-		}
-	
-		// Strip any dashes off of the beginning
-		for (int i = 1; i < arg.length() && arg.charAt(i) == '-'; i++) offset++;
-	
-		// If they passed us a - or -- then quit
-		if (offset == arg.length()) return EndOfOpts;
+    int offset = 1;
+    mVal = null;
+    try {
+        String arg = mArgs[mArgNum];
+        // If it doesn't start with a dash, we'll assume we've reached the end of the
+        // arguments.  We need to decrement mArgNum because the finally at the end is
+        // going to increment it.
+        if (arg.charAt(0) != '-') {
+            mArgNum--;
+            return EndOfOpts;
+        }
+    
+        // Strip any dashes off of the beginning
+        for (int i = 1; i < arg.length() && arg.charAt(i) == '-'; i++) offset++;
+    
+        // If they passed us a - or -- then quit
+        if (offset == arg.length()) return EndOfOpts;
 
-		Character cc = null;
-		if (arg.substring(offset).length() == 1) {
-			cc = new Character(arg.substring(offset).charAt(0));
-		} else {
-			cc = mLong.get(arg.substring(offset));
-			if (cc == null) {
-				Integer ii = new Integer(mArgNum + 1);
-				String errMsg = "Found unknown option (" + arg + ") at position " +
-					ii.toString();
-				throw new ParseException(errMsg, mArgNum);
-			}
-		}
+        Character cc = null;
+        if (arg.substring(offset).length() == 1) {
+            cc = new Character(arg.substring(offset).charAt(0));
+        } else {
+            cc = mLong.get(arg.substring(offset));
+            if (cc == null) {
+                Integer ii = new Integer(mArgNum + 1);
+                String errMsg = "Found unknown option (" + arg + ") at position " +
+                    ii.toString();
+                throw new ParseException(errMsg, mArgNum);
+            }
+        }
 
-		ValueExpected ve = mShort.get(cc);
-		if (ve == null) {
-			Integer ii = new Integer(mArgNum + 1);
-			String errMsg = "Found unknown option (" + arg + ") at position " +
-				ii.toString();
-			throw new ParseException(errMsg, mArgNum);
-		}
+        ValueExpected ve = mShort.get(cc);
+        if (ve == null) {
+            Integer ii = new Integer(mArgNum + 1);
+            String errMsg = "Found unknown option (" + arg + ") at position " +
+                ii.toString();
+            throw new ParseException(errMsg, mArgNum);
+        }
 
-		switch (ve) {
-		case NOT_ACCEPTED: 
-			return cc.charValue();
+        switch (ve) {
+        case NOT_ACCEPTED: 
+            return cc.charValue();
 
-		case REQUIRED: 
-			// If it requires an option, make sure there is one.
-			if (mArgNum + 1 >= mArgs.length || mArgs[mArgNum + 1].charAt(0) == '-') {
-				String errMsg = "Option " + arg +
-					" requires a value but you did not provide one.";
-				throw new ParseException(errMsg, mArgNum);
-			}
-			mVal = new String(mArgs[++mArgNum]);
-			return cc.charValue();
+        case REQUIRED: 
+            // If it requires an option, make sure there is one.
+            if (mArgNum + 1 >= mArgs.length || mArgs[mArgNum + 1].charAt(0) == '-') {
+                String errMsg = "Option " + arg +
+                    " requires a value but you did not provide one.";
+                throw new ParseException(errMsg, mArgNum);
+            }
+            mVal = new String(mArgs[++mArgNum]);
+            return cc.charValue();
 
-		case OPTIONAL:
-			if (mArgNum + 1 < mArgs.length && mArgs[mArgNum + 1].charAt(0) != '-') {
-				mVal = new String(mArgs[++mArgNum]);
-			}
-			return cc.charValue();
+        case OPTIONAL:
+            if (mArgNum + 1 < mArgs.length && mArgs[mArgNum + 1].charAt(0) != '-') {
+                mVal = new String(mArgs[++mArgNum]);
+            }
+            return cc.charValue();
 
-		default:
-			throw new AssertionError("Unknown valueExpected state");
+        default:
+            throw new AssertionError("Unknown valueExpected state");
 
-		}
+        }
 
-	} finally {
-		mArgNum++;
-	}
+    } finally {
+        mArgNum++;
+    }
 }
 
 /**
@@ -168,11 +168,11 @@ public char getNextOpt() throws ParseException
  */
 public String[] getRemainingArgs()
 {
-	if (mArgNum == mArgs.length) return null;
+    if (mArgNum == mArgs.length) return null;
 
-	String[] remainders = new String[mArgs.length - mArgNum];
-	System.arraycopy(mArgs, mArgNum, remainders, 0, remainders.length);
-	return remainders;
+    String[] remainders = new String[mArgs.length - mArgNum];
+    System.arraycopy(mArgs, mArgNum, remainders, 0, remainders.length);
+    return remainders;
 }
 
 /**
@@ -182,7 +182,7 @@ public String[] getRemainingArgs()
  */
 public String getValStr()
 {
-	return mVal;
+    return mVal;
 }
 
 /**
@@ -193,8 +193,8 @@ public String getValStr()
  */
 public Integer getValInt() throws NumberFormatException
 {
-	if (mVal == null) return null;
-	else return new Integer(mVal);
+    if (mVal == null) return null;
+    else return new Integer(mVal);
 }
 
 private String[] mArgs;

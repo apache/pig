@@ -32,5 +32,3 @@ public interface Spillable {
      * @returns estimated in memory size. */
     long getMemorySize();
 }
-
-

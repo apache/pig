@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import org.apache.hadoop.io.WritableComparable;
 
 import org.apache.pig.impl.util.Spillable;
-import org.apache.pig.impl.mapreduceExec.PigMapReduce;
 
 /**
  * A collection of Tuples.  A DataBag may or may not fit into memory.

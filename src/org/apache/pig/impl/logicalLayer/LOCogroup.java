@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -35,17 +36,20 @@ public class LOCogroup extends LogicalOperator {
 
     protected ArrayList<EvalSpec> specs;
 
-    public LOCogroup(List<LogicalOperator> inputs,
+    public LOCogroup(Map<OperatorKey, LogicalOperator> opTable,
+                     String scope,
+                     long id,
+                     List<OperatorKey> inputs,
                      ArrayList<EvalSpec> specs) {
-        super(inputs);
+        super(opTable, scope, id, inputs);
         this.specs = specs;
         getOutputType();
     }
 
     @Override
     public String name() {
-    	if (inputs.size() == 1) return "Group";
-    	else return "CoGroup";
+        if (inputs.size() == 1) return "Group " + scope + "-" + id;
+        else return "CoGroup " + scope + "-" + id;
     }
     @Override
     public String arguments() {
@@ -97,7 +101,7 @@ public class LOCogroup extends LogicalOperator {
 
 
             Schema groupElementSchema =
-                specs.get(0).getOutputSchemaForPipe(getInputs().get(0).
+                specs.get(0).getOutputSchemaForPipe(opTable.get(getInputs().get(0)).
                                                     outputSchema());
             if (groupElementSchema == null) {
                 groupElementSchema = new TupleSchema();
@@ -131,7 +135,8 @@ public class LOCogroup extends LogicalOperator {
 
             schema.add(groupElementSchema);
 
-          for (LogicalOperator lo:getInputs()) {
+          for (OperatorKey key: getInputs()) {
+              LogicalOperator lo = opTable.get(key);
                 TupleSchema inputSchema = lo.outputSchema();
                 if (inputSchema == null)
                     inputSchema = new TupleSchema();
@@ -147,7 +152,7 @@ public class LOCogroup extends LogicalOperator {
     public int getOutputType() {
         int outputType = FIXED;
         for (int i = 0; i < getInputs().size(); i++) {
-            switch (getInputs().get(i).getOutputType()) {
+            switch (opTable.get(getInputs().get(i)).getOutputType()) {
             case FIXED:
                 continue;
             case MONOTONE:
@@ -175,8 +180,8 @@ public class LOCogroup extends LogicalOperator {
         return specs;
     }
 
-	public void visit(LOVisitor v) {
-		v.visitCogroup(this);
-	}
+    public void visit(LOVisitor v) {
+        v.visitCogroup(this);
+    }
 
 }

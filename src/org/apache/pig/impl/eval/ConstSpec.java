@@ -29,15 +29,15 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class ConstSpec extends SimpleEvalSpec {
-	private static final long serialVersionUID = 1L;
-	public Object mConst;
-	
-	
-	public ConstSpec(Object constant){
-		mConst = constant;
-	}
-	
-	/**
+    private static final long serialVersionUID = 1L;
+    public Object mConst;
+    
+    
+    public ConstSpec(Object constant){
+        mConst = constant;
+    }
+    
+    /**
      * Extend the default deserialization
      * @param in
      * @throws IOException
@@ -45,43 +45,43 @@ public class ConstSpec extends SimpleEvalSpec {
      */
      /* Why do I need this?
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
-    	in.defaultReadObject();
-    	init();
+        in.defaultReadObject();
+        init();
     }
     */
-	
-	@Override
-	public List<String> getFuncs() {
-		return new ArrayList<String>();
-	}
+    
+    @Override
+    public List<String> getFuncs() {
+        return new ArrayList<String>();
+    }
 
-	@Override
-	protected Schema mapInputSchema(Schema schema) {
-		return new TupleSchema();
-	}
+    @Override
+    protected Schema mapInputSchema(Schema schema) {
+        return new TupleSchema();
+    }
 
-	@Override
-	protected Object eval(Object d) {
-		return mConst;
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		sb.append("'");
-		sb.append(mConst);
-		sb.append("'");
-		sb.append("]");
-		return sb.toString();
-	}
+    @Override
+    protected Object eval(Object d) {
+        return mConst;
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        sb.append("'");
+        sb.append(mConst);
+        sb.append("'");
+        sb.append("]");
+        return sb.toString();
+    }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitConst(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitConst(this);
+    }
 
-	public String value() { return (String)mConst; }
+    public String value() { return (String)mConst; }
     
 
 }

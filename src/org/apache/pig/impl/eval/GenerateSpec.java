@@ -35,98 +35,98 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class GenerateSpec extends EvalSpec {
-	private static final long serialVersionUID = 1L;
-	
-	protected List<EvalSpec> specs = new ArrayList<EvalSpec>();
+    private static final long serialVersionUID = 1L;
+    
+    protected List<EvalSpec> specs = new ArrayList<EvalSpec>();
 
-	protected int driver;
+    protected int driver;
 
     public GenerateSpec(List<EvalSpec> specs){
-    	this.specs = specs;
-    	selectDriver();
+        this.specs = specs;
+        selectDriver();
     }  
     
     public GenerateSpec(EvalSpec col){
-    	specs.add(col);
+        specs.add(col);
     }
     
     public GenerateSpec getGroupBySpec(){
-    	
-    	//Adding a new start spec to get the group by spec. The new star spec that
-    	//we are adding should not contain a schema since that can cause conflicts.
-    	
-    	StarSpec ss = new StarSpec();
-    	ss.setSchema(new TupleSchema());
-    	specs.add(ss);
-    	return new GenerateSpec(specs);
+        
+        //Adding a new start spec to get the group by spec. The new star spec that
+        //we are adding should not contain a schema since that can cause conflicts.
+        
+        StarSpec ss = new StarSpec();
+        ss.setSchema(new TupleSchema());
+        specs.add(ss);
+        return new GenerateSpec(specs);
     }
     
     @Override
     protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-    	return new DataCollector(endOfPipe){
-    		LinkedList<CrossProductItem> pendingCrossProducts = new LinkedList<CrossProductItem>();
-    		
-    		@Override
-    		public void add(Object d) {
-    			if (checkDelimiter(d))
-        			throw new RuntimeException("Internal error: not expecting a delimiter tuple");
-    			
-    	        // general case (use driver method):
-    	        CrossProductItem cpi = new CrossProductItem(d, successor);
-    	    	
-    	    	pendingCrossProducts.addLast(cpi);
+        return new DataCollector(endOfPipe){
+            LinkedList<CrossProductItem> pendingCrossProducts = new LinkedList<CrossProductItem>();
+            
+            @Override
+            public void add(Object d) {
+                if (checkDelimiter(d))
+                    throw new RuntimeException("Internal error: not expecting a delimiter tuple");
+                
+                // general case (use driver method):
+                CrossProductItem cpi = new CrossProductItem(d, successor);
+                
+                pendingCrossProducts.addLast(cpi);
 
-    	        
-    	        //Since potentially can return without filling output, mark output as stale
-    	        //the exec method of CrossProductItem will mark output as not stale
-    	        successor.markStale(true);
-    	        while (!pendingCrossProducts.isEmpty() && pendingCrossProducts.peek().isReady()){
-    	        	pendingCrossProducts.remove().exec();
-    	        }
-    		}
-    		
-    		@Override
-    		protected void finish() {
-    		 	for (EvalSpec spec: specs){
-    	    		if (specs.get(driver)!=spec)
-    	    			spec.finish();
-    	    	}
-    	     	
-    	    	while (!pendingCrossProducts.isEmpty()){
-    	    		CrossProductItem cpi = pendingCrossProducts.remove();
-    	        	cpi.waitToBeReady();
-    	    		cpi.exec();
-    	    	}
-    	    	
-    	    	specs.get(driver).finish();
-    		}
-    		
-    	};
+                
+                //Since potentially can return without filling output, mark output as stale
+                //the exec method of CrossProductItem will mark output as not stale
+                successor.markStale(true);
+                while (!pendingCrossProducts.isEmpty() && pendingCrossProducts.peek().isReady()){
+                    pendingCrossProducts.remove().exec();
+                }
+            }
+            
+            @Override
+            protected void finish() {
+                 for (EvalSpec spec: specs){
+                    if (specs.get(driver)!=spec)
+                        spec.finish();
+                }
+                 
+                while (!pendingCrossProducts.isEmpty()){
+                    CrossProductItem cpi = pendingCrossProducts.remove();
+                    cpi.waitToBeReady();
+                    cpi.exec();
+                }
+                
+                specs.get(driver).finish();
+            }
+            
+        };
     }
                  
     private class DatumBag extends DataCollector{
         private TupleFactory tf = TupleFactory.getInstance();
 
-    	DataBag bag;
-    	public DatumBag(){
-    		super(null);
-    		bag = BagFactory.getInstance().newDefaultBag();
-    	}
-    	
-    	@Override
-		public void add(Object d){
-    		bag.add(tf.newTuple(d));
-    	}
-    	
-    	public Iterator<Object> content(){
-    		return new Iterator<Object>(){
-    			Iterator<Tuple> iter;
-    			{
-    				iter = bag.iterator();
-    			}
-    			public boolean hasNext() {
-    				return iter.hasNext();
-    			}
+        DataBag bag;
+        public DatumBag(){
+            super(null);
+            bag = BagFactory.getInstance().newDefaultBag();
+        }
+        
+        @Override
+        public void add(Object d){
+            bag.add(tf.newTuple(d));
+        }
+        
+        public Iterator<Object> content(){
+            return new Iterator<Object>(){
+                Iterator<Tuple> iter;
+                {
+                    iter = bag.iterator();
+                }
+                public boolean hasNext() {
+                    return iter.hasNext();
+                }
                 public Object next() {
                     try {
                         return iter.next().get(0);
@@ -134,25 +134,25 @@ public class GenerateSpec extends EvalSpec {
                         throw new RuntimeException(e);
                     }
                 }
-    			public void remove() {
-    				throw new RuntimeException("Can't remove from read-only iterator");
-    			}
-    		};
-    	}
-    	
+                public void remove() {
+                    throw new RuntimeException("Can't remove from read-only iterator");
+                }
+            };
+        }
+        
     }
 
     private class CrossProductItem extends DataCollector{
-    	DatumBag[] toBeCrossed;
-    	Object cpiInput;    	
+        DatumBag[] toBeCrossed;
+        Object cpiInput;        
         private TupleFactory tf = TupleFactory.getInstance();
 
-    	
-    	public CrossProductItem(Object driverInput, DataCollector successor){
-    		super(successor);
-    		this.cpiInput = driverInput;
-    		
-    		// materialize data for all to-be-crossed items
+        
+        public CrossProductItem(Object driverInput, DataCollector successor){
+            super(successor);
+            this.cpiInput = driverInput;
+            
+            // materialize data for all to-be-crossed items
             // (except driver, which is done in streaming fashion)
             toBeCrossed = new DatumBag[specs.size()];
             for (int i = 0; i < specs.size(); i++) {
@@ -162,22 +162,22 @@ public class GenerateSpec extends EvalSpec {
 
                 specs.get(i).setupPipe(toBeCrossed[i]).add(cpiInput);
             }
-    	}
-    	
-    	@Override
-    	public void add(Object d){
-    		if (checkDelimiter(d))
-    			throw new RuntimeException("Internal error: not expecting a delimiter tuple");
-    	   int numItems = specs.size();
-    	   
+        }
+        
+        @Override
+        public void add(Object d){
+            if (checkDelimiter(d))
+                throw new RuntimeException("Internal error: not expecting a delimiter tuple");
+           int numItems = specs.size();
+           
            // create one iterator per to-be-crossed bag
            Iterator<Object>[] its = new Iterator[numItems];
            for (int i = 0; i < numItems; i++) {
-        	   if (i != driver){
-        		   its[i] = toBeCrossed[i].content();
-        		   if (!its[i].hasNext())
-        			   return; // one of inputs is empty, so cross-prod yields empty result
-        	   }
+               if (i != driver){
+                   its[i] = toBeCrossed[i].content();
+                   if (!its[i].hasNext())
+                       return; // one of inputs is empty, so cross-prod yields empty result
+               }
            }
 
            Object[] lastOutput = null;
@@ -190,7 +190,7 @@ public class GenerateSpec extends EvalSpec {
                        if (i == driver)
                            outData[i] = d;
                        else 
-                    	   outData[i] = its[i].next();
+                           outData[i] = its[i].next();
                    }
                } else {
                    boolean needToAdvance = true;
@@ -224,55 +224,55 @@ public class GenerateSpec extends EvalSpec {
                Tuple outTuple = tf.newTuple();
                
                for (int i=0; i< numItems; i++){
-            	   if (specs.get(i).isFlattened() && outData[i] instanceof Tuple){
-        				Tuple t = (Tuple)outData[i];
+                   if (specs.get(i).isFlattened() && outData[i] instanceof Tuple){
+                        Tuple t = (Tuple)outData[i];
                         try {
-						    for (int j=0; j < t.size(); j++){
-		    			        outTuple.append(t.get(j));
-		    			    }
+                            for (int j=0; j < t.size(); j++){
+                                outTuple.append(t.get(j));
+                            }
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
-        		   }else{
-            		   outTuple.append(outData[i]);
-            	   }
+                   }else{
+                       outTuple.append(outData[i]);
+                   }
                }
                successor.add(outTuple);
 
                lastOutput = outData;
            }
-    	}    		
+        }            
        
        
-		public boolean isReady(){
-			for (int i=0; i<toBeCrossed.length; i++){
-				if (i!=driver && toBeCrossed[i].isStale())
-					return false;
-			}
-			return true;
-		}
-    	
-    	public void waitToBeReady(){
-    		for (int i=0; i<toBeCrossed.length; i++){
-    			if (i!=driver){
-    				synchronized(toBeCrossed[i]){
-    					while (toBeCrossed[i].isStale()){
-    						try{
-    							toBeCrossed[i].wait();
-    						}catch (InterruptedException e){}
-    					}
-    				}
-    			}
-    		}
-    		
-    	}
-    	
-    	public void exec(){
+        public boolean isReady(){
+            for (int i=0; i<toBeCrossed.length; i++){
+                if (i!=driver && toBeCrossed[i].isStale())
+                    return false;
+            }
+            return true;
+        }
+        
+        public void waitToBeReady(){
+            for (int i=0; i<toBeCrossed.length; i++){
+                if (i!=driver){
+                    synchronized(toBeCrossed[i]){
+                        while (toBeCrossed[i].isStale()){
+                            try{
+                                toBeCrossed[i].wait();
+                            }catch (InterruptedException e){}
+                        }
+                    }
+                }
+            }
+            
+        }
+        
+        public void exec(){
             specs.get(driver).setupPipe(this).add(cpiInput);
             //System.err.println(Thread.currentThread().getName() + ": Executing driver on " + cpiInput);
             successor.markStale(false);
-    	}
-    	
+        }
+        
     }
 
     /**
@@ -287,38 +287,38 @@ public class GenerateSpec extends EvalSpec {
         for (int i = 0; i < specs.size(); i++) {
             EvalSpec spec = specs.get(i);
             if (spec.isFlattened() || spec.isAsynchronous()){
-            	//This is just a heuristic that if its a flattened bag eval function, it should
-            	//be chosen as the driver
-            	if (spec instanceof CompositeEvalSpec)
-            		spec = ((CompositeEvalSpec)spec).getSpecs().get(0);
-            	if (spec instanceof FuncEvalSpec && ((FuncEvalSpec)spec).getFunc().getReturnType() == DataBag.class) { // trumps 'em all
+                //This is just a heuristic that if its a flattened bag eval function, it should
+                //be chosen as the driver
+                if (spec instanceof CompositeEvalSpec)
+                    spec = ((CompositeEvalSpec)spec).getSpecs().get(0);
+                if (spec instanceof FuncEvalSpec && ((FuncEvalSpec)spec).getFunc().getReturnType() == DataBag.class) { // trumps 'em all
                     driver = i;
                     return;
                 } 
-            	driver = i; // we'll use this as the driver, unless something better comes along
+                driver = i; // we'll use this as the driver, unless something better comes along
             }
         }
     }
  
     @Override
-	public String toString() {
+    public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("GENERATE ");
         sb.append("{");
         boolean first = true;
         for (EvalSpec spec: specs){
-        	if (!first)
-        		sb.append(",");
-        	else
-        		first = false;
-        	sb.append(spec);
+            if (!first)
+                sb.append(",");
+            else
+                first = false;
+            sb.append(spec);
         }
         sb.append("}");
         return sb.toString();
     }
 
     @Override
-	public List<String> getFuncs() {
+    public List<String> getFuncs() {
         List<String> funcs = new ArrayList<String>();
         for (EvalSpec spec: specs)
             funcs.addAll(spec.getFuncs());
@@ -326,50 +326,50 @@ public class GenerateSpec extends EvalSpec {
     }
 
     @Override
-	protected TupleSchema mapInputSchema(Schema input) {
+    protected TupleSchema mapInputSchema(Schema input) {
         TupleSchema output = new TupleSchema();
                 
         for (EvalSpec spec: specs) {
-        	Schema schema = spec.getOutputSchemaForPipe(input).copy();
-        	
-        	if (spec.isFlattened()){
-        		List<Schema> flattenedSchema = schema.flatten(); 
-        		if (flattenedSchema.size() == 0){
-        			output.add(new TupleSchema(),true);
-        			continue;
-        		}
-	        	for (Schema flattenedItem: flattenedSchema){
-	        		output.add(flattenedItem,true);
-	    		}
-        	}else{
-        		output.add(schema,false);
-        	}
+            Schema schema = spec.getOutputSchemaForPipe(input).copy();
+            
+            if (spec.isFlattened()){
+                List<Schema> flattenedSchema = schema.flatten(); 
+                if (flattenedSchema.size() == 0){
+                    output.add(new TupleSchema(),true);
+                    continue;
+                }
+                for (Schema flattenedItem: flattenedSchema){
+                    output.add(flattenedItem,true);
+                }
+            }else{
+                output.add(schema,false);
+            }
         }
         return output;
     }
 
     @Override
     public boolean isAsynchronous() {
-    	for (EvalSpec es: specs)
-    		if (es.isAsynchronous())
-    			return true;
-    	return false;
+        for (EvalSpec es: specs)
+            if (es.isAsynchronous())
+                return true;
+        return false;
     }
 
-	@Override
-	public void instantiateFunc(FunctionInstantiator instantiaor)
-			throws IOException {
-		for (EvalSpec es: specs)
-    		es.instantiateFunc(instantiaor);		
-	}
+    @Override
+    public void instantiateFunc(FunctionInstantiator instantiaor)
+            throws IOException {
+        for (EvalSpec es: specs)
+            es.instantiateFunc(instantiaor);        
+    }
 
-	public List<EvalSpec> getSpecs() {
-		return specs;
-	}
+    public List<EvalSpec> getSpecs() {
+        return specs;
+    }
 
-	@Override
-	public void visit(EvalSpecVisitor v) {
-		v.visitGenerate(this);
-	}
+    @Override
+    public void visit(EvalSpecVisitor v) {
+        v.visitGenerate(this);
+    }
     
 }

@@ -23,25 +23,25 @@ import org.apache.pig.impl.eval.collector.DataCollector;
 
 public abstract class SimpleEvalSpec extends EvalSpec {
 
-	@Override
-	protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-		return new DataCollector(endOfPipe){
-			@Override
-			public void add(Object d) {
-				if (checkDelimiter(d))
-					addToSuccessor(d);
-				else
-					addToSuccessor(eval(d));
-			}
-			
-			@Override
-			protected boolean needFlatteningLocally() {
-				return true;
-			}
-		};
-	}
-	
-	protected abstract Object eval(Object d);
+    @Override
+    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+        return new DataCollector(endOfPipe){
+            @Override
+            public void add(Object d) {
+                if (checkDelimiter(d))
+                    addToSuccessor(d);
+                else
+                    addToSuccessor(eval(d));
+            }
+            
+            @Override
+            protected boolean needFlatteningLocally() {
+                return true;
+            }
+        };
+    }
+    
+    protected abstract Object eval(Object d);
 
 
 }

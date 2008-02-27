@@ -34,10 +34,10 @@ import org.apache.pig.data.Tuple;
 
 public class TestAlgebraicEval extends TestCase {
     
-	private String initString = "mapreduce";
-    
+    private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
     @Test
-    public void testGroupCountWithMultipleFields() throws Exception {
+    public void testGroupCountWithMultipleFields() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -87,7 +87,7 @@ public class TestAlgebraicEval extends TestCase {
     }
 
     @Test
-    public void testGroupCount() throws Exception {
+    public void testGroupCount() throws Throwable {
         long LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -106,10 +106,8 @@ public class TestAlgebraicEval extends TestCase {
         assertEquals(count.longValue(), LOOP_COUNT);
     }
     
-    
-    
     @Test
-    public void testGroupReorderCount() throws Exception {
+    public void testGroupReorderCount() throws Throwable {
         long LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -131,7 +129,7 @@ public class TestAlgebraicEval extends TestCase {
 
 
     @Test
-    public void testGroupUniqueColumnCount() throws Exception {
+    public void testGroupUniqueColumnCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
@@ -160,7 +158,7 @@ public class TestAlgebraicEval extends TestCase {
     }
 
     @Test
-    public void testGroupDuplicateColumnCount() throws Exception {
+    public void testGroupDuplicateColumnCount() throws Throwable {
         int LOOP_COUNT = 1024;
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");

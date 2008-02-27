@@ -27,34 +27,34 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
 
 public class RandomSampleLoader extends BinStorage {
-	
-	public static int defaultNumSamples = 100;
-	int numSamples = defaultNumSamples;
-	private long skipInterval;
-	
-	@Override
-	public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
-		skipInterval = (end - offset)/numSamples;
-		super.bindTo(fileName, is, offset, end);
-	}
-	
-	@Override
-	public Tuple getNext() throws IOException {
-		long initialPos = in.getPosition();
-		Tuple t = super.getNext();
-		long finalPos = in.getPosition();
-		
-		long toSkip = skipInterval - (finalPos - initialPos);
-		if (toSkip > 0)
-			in.skip(toSkip);
-		return t;
-	}
-	
-	@Override
-	public void bindTo(OutputStream os) throws IOException {
-		throw new RuntimeException(this.getClass().getName() + " should not be used for writing");
-	}
-	
-	
-	
+    
+    public static int defaultNumSamples = 100;
+    int numSamples = defaultNumSamples;
+    private long skipInterval;
+    
+    @Override
+    public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
+        skipInterval = (end - offset)/numSamples;
+        super.bindTo(fileName, is, offset, end);
+    }
+    
+    @Override
+    public Tuple getNext() throws IOException {
+        long initialPos = in.getPosition();
+        Tuple t = super.getNext();
+        long finalPos = in.getPosition();
+        
+        long toSkip = skipInterval - (finalPos - initialPos);
+        if (toSkip > 0)
+            in.skip(toSkip);
+        return t;
+    }
+    
+    @Override
+    public void bindTo(OutputStream os) throws IOException {
+        throw new RuntimeException(this.getClass().getName() + " should not be used for writing");
+    }
+    
+    
+    
 }

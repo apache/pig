@@ -62,3 +62,71 @@ Trunk (unreleased changes)
 	PIG-30: Rewrote DataBags to better handle decisions of when to spill to
 	disk and to spill more intelligently. (gates)
 
+	PIG-61: Fixed MapreducePlanCompiler to use PigContext to load up the
+	comparator function instead of Class.forName.  (gates)
+
+	PIG-56: Made DataBag implement Iterable. (groves via gates)
+
+	PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)
+
+	PIG-77: Added eclipse specific files to svn:ignore
+
+	PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
+
+	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
+
+	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arun
+	via olgan)
+
+	PIG-32: ABstraction layer (olgan)
+
+	PIG-87: Fix pig.pl to find java via JAVA_HOME instead of hardcoded default
+	path.  Also fix it to not die if pigclient.conf is missing. (craigm via
+	gates).
+
+	PIG-89: Fix DefaultDataBag, DistinctDataBag, SortedDataBag to close spill
+	files when they are done spilling (contributions by craigm, breed, and
+	gates, committed by gates).
+
+	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
+
+	PIG-65: convert tabs to spaces (groves via olgan)
+
+	PIG-97: Turn off combiner in the case of Cogroup, as it doesn't work when
+	more than one bag is involved (gates).
+
+	PIG-92: Fix NullPointerException in PIgContext due to uninitialized conf
+	reference. (francisoud via gates)
+
+	PIG-83: Change everything except grunt and Main (PigServer on down) to use
+	common logging abstraction instead of log4j.  By default in grunt, log4j
+	still used as logging layer.  Also converted all System.out/err.println
+	statements to use logging instead. (francisoud via gates)
+
+	PIG-80: In a number of places stack trace information was being lost by an
+	exception being caught, and a different exception then thrown.  All those
+	locations have been changed so that the new exception now wraps the old.
+	(francisoud via gates).
+
+	PIG-84: Converted printStackTrace calls to calls to the logger.
+	(francisoud via gates).
+
+	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
+
+	PIG-99: Fix to make unit tests not run out of memory. (francisoud via
+	gates).
+
+    PIG-107: enabled several tests. (francisoud via olgan)
+
+    PIG-46: abort processing on error for non-interactive mode (olston via
+    olgan)
+
+    PIG-109: improved exception handling (oae via olgan)
+
+	PIG-72: Move unit tests to use MiniDFS and MiniMR so that unit tests can
+	be run w/o access to a hadoop cluster. (xuzh via gates)
+
+    PIG-68: improvements to build.xml (joa23 via olgan)
+
+	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
+	flattening the combiner case. (gates and oae)

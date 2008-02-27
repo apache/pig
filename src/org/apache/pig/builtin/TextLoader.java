@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.Tuple;
@@ -32,14 +33,13 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  * contains the line of text.
  */
 public class TextLoader implements LoadFunc{
-	BufferedPositionedInputStream in;
-	private BufferedReader inData = null;
-	long                end;
+    BufferedPositionedInputStream in;
+    final private static Charset utf8 = Charset.forName("UTF8");
+    long end;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-	public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
+    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
-        inData = new BufferedReader(new InputStreamReader(in, "UTF8"));
         this.end = end;
         // Since we are not block aligned we throw away the first
         // record and cound on a different instance to read it
@@ -47,11 +47,11 @@ public class TextLoader implements LoadFunc{
             getNext();
     }
 
-	public Tuple getNext() throws IOException {
+    public Tuple getNext() throws IOException {
         if (in == null || in.getPosition() > end)
             return null;
         String line;
-        if ((line = inData.readLine()) != null) {
+        if ((line = in.readLine(utf8, (byte)'\n')) != null) {
             return mTupleFactory.newTuple(new String(line));
         }
         return null;
