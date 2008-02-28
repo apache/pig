@@ -93,7 +93,7 @@
     <!-- ================================================================== -->
     <!-- Clean.  Delete the build files, and their directories              -->
     <!-- ================================================================== -->
-    <target name="clean">
+    <target name="clean" description="Cleanup build artifacts">
         <delete dir="${src.gen.dir}" />
         <delete dir="${build.dir}" />
     </target>
@@ -101,7 +101,7 @@
     <!-- ================================================================== -->
     <!-- Java Compiler Compiler, generate Parsers                           -->
     <!-- ================================================================== -->
-    <target name="cc-compile" depends="init">
+    <target name="cc-compile" depends="init" description="Create and Compile Parser">
         <jjtree target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.query.parser.dir}/QueryParser.jj" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
@@ -110,7 +110,7 @@
     <!-- ================================================================== -->
     <!-- Build sources                                          -->
     <!-- ================================================================== -->
-    <target name="compile" depends="init, cc-compile">
+    <target name="compile" depends="init, cc-compile" description="Compile all artifacts">
         <echo>*** Building Main Sources ***</echo>
         <antcall target="compile-sources">
             <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2" />
@@ -120,9 +120,6 @@
     </target>
 
     <target name="compile-test" depends="compile">
-       
-       
-        
         <echo>*** Building Test Sources ***</echo>
         <antcall target="compile-sources">
             <param name="sources" value="${test.src.dir}" />
@@ -141,7 +138,7 @@
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
     <!-- ================================================================== -->
-    <target name="javadoc" depends="init">
+    <target name="javadoc" depends="init" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -165,7 +162,7 @@
     <!-- ================================================================== -->
     <!-- TODO we should also exculte test here...                           -->
     <!-- ================================================================== -->
-    <target name="jar" depends="compile">
+    <target name="jar" depends="compile" description="Create pig jar">
         <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
@@ -196,7 +193,7 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test" depends="compile-test,jar">
+    <target name="test" depends="compile-test,jar" description="Run unit tests">
         <delete dir="${test.log.dir}"/>
         <mkdir dir="${test.log.dir}"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
@@ -231,7 +228,7 @@
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
-    <target name="package" depends="jar, javadoc">
+    <target name="package" depends="jar, javadoc" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
         <mkdir dir="${dist.dir}/scripts" />
@@ -275,7 +272,7 @@
     <!-- ================================================================== -->
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
-    <target name="tar" depends="package">
+    <target name="tar" depends="package" description="Create release tarball">
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
             <tarfileset dir="${dist.dir}" mode="664">
                 <exclude name="scripts/*" />
