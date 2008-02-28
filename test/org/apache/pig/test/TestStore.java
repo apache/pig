@@ -26,12 +26,12 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.backend.executionengine.ExecException;
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 
 import junit.framework.TestCase;
 
 public class TestStore extends TestCase {
 
-	private String initString = "mapreduce";
 	private int LOOP_COUNT = 1024;
 	MiniCluster cluster = MiniCluster.buildCluster();
 	
@@ -108,7 +108,7 @@ public class TestStore extends TestCase {
 		}
 		pw.close();
 		try {
-		    pig = new PigServer(initString);
+		    pig = new PigServer(MAPREDUCE);
 		}
 		catch (ExecException e) {
 			IOException ioe = new IOException("Failed to create Pig Server");

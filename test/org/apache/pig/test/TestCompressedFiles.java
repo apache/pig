@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Iterator;
@@ -72,7 +73,7 @@ public class TestCompressedFiles extends TestCase {
     
     @Test
     public void testCompressed1() throws Throwable {
-        PigServer pig = new PigServer("mapreduce");
+        PigServer pig = new PigServer(MAPREDUCE);
         pig.registerQuery("A = foreach (cogroup (load 'file:"+gzFile+"') by $1, (load 'file:"+datFile + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
         Iterator it = pig.openIterator("A");
         boolean success = true;

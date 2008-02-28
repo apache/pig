@@ -29,9 +29,9 @@ import org.junit.Test;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 
 public class TestOrderBy extends TestCase {
-    private String initString = "mapreduce";
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
     MiniCluster cluster = MiniCluster.buildCluster();
@@ -45,7 +45,7 @@ public class TestOrderBy extends TestCase {
             DATA[0][i] = myFormatter.format(i);
             DATA[1][i] = myFormatter.format(DATALEN - i - 1);
         }
-        pig = new PigServer(initString);
+        pig = new PigServer(MAPREDUCE);
     }
     
     protected void setUp() throws Exception {

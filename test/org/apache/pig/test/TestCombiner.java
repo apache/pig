@@ -1,5 +1,6 @@
 package org.apache.pig.test;
 
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,7 +28,7 @@ public class TestCombiner extends TestCase {
     public void testOnCluster() throws Exception {
         // run the test on cluster
         MiniCluster.buildCluster();
-        runTest(new PigServer("mapreduce"));
+        runTest(new PigServer(MAPREDUCE));
 
     }
 

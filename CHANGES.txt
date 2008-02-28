@@ -139,3 +139,5 @@ Trunk (unreleased changes)
 
     PIG-127: changes to build.xml to have description for each target
     (francisoud via olgan)
+
+    PIG-101: changes in tests to use enum type (francisoud via olgan)
