@@ -134,5 +134,8 @@ Trunk (unreleased changes)
     PIG-68 broke the build process by hardwiring hadoop15 jar for the purpose
     of compile. Fixed that (olgan)
     
-    PIG-124 only run one test (ant test -Dtestcase=TestMapReduce) not the 
+    PIG-124: only run one test (ant test -Dtestcase=TestMapReduce) not the 
     complete test suite (xuzh vi olgan)
+
+    PIG-127: changes to build.xml to have description for each target
+    (francisoud via olgan)
