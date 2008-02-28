@@ -1,0 +1,87 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.pig.impl.plan;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.lang.StringBuilder;
+
+import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+
+
+/**
+ * Base class for all types of operators.
+ */
+abstract public class Operator {
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * OperatorKey associated with this operator.  This key is used to find the
+     * operator in an OperatorPlan.
+     */
+    protected OperatorKey mKey;
+
+    /**
+     * @param - k Operator key to assign to this node.
+     */
+    public Operator(OperatorKey k) {
+        mKey = k;
+    }
+
+    /**
+     * Get the operator key for this operator.
+     */
+    public OperatorKey getOperatorKey() {
+        return mKey;
+    }
+
+    /**
+     * Visit this node with the provided visitor.  This should only be called by
+     * the visitor class itself, never directly.
+     * @param v Visitor to visit with.
+     * @throws ParseException if the visitor has a problem.
+     */
+    public abstract void visit(PlanVisitor v) throws ParseException;
+
+    /**
+     * Indicates whether this operator supports multiple inputs.
+     * @return true if it does, otherwise false.
+     */
+    public abstract boolean supportsMultipleInputs();
+
+    /**
+     * Indicates whether this operator supports multiple outputs.
+     * @return true if it does, otherwise false.
+     */
+    public abstract boolean supportsMultipleOutputs();
+    
+    public abstract String name();
+
+    public abstract String typeName();
+    
+    @Override
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+        
+        msg.append("(Name: " + name() + " Operator Key: " + mKey + ")");
+
+        return msg.toString();
+    }
+}

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+ // TODO Need to move this into the plan package.
+
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.Serializable;
