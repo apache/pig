@@ -40,6 +40,7 @@ import org.apache.pig.builtin.TextLoader;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 
 import org.apache.pig.backend.executionengine.ExecException;
 
@@ -47,7 +48,6 @@ import junit.framework.TestCase;
 
 public class TestEvalPipeline extends TestCase {
 	
-	String initString = "mapreduce";
 	MiniCluster cluster = MiniCluster.buildCluster();
 	
 	
@@ -73,7 +73,7 @@ public class TestEvalPipeline extends TestCase {
 
 	@Test
 	public void testFunctionInsideFunction() throws Throwable {
-		PigServer pigServer = new PigServer(initString);
+		PigServer pigServer = new PigServer(MAPREDUCE);
 		
 		File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 
@@ -89,7 +89,7 @@ public class TestEvalPipeline extends TestCase {
 	
 	@Test
 	public void testJoin() throws Throwable {
-		PigServer pigServer = new PigServer(initString);
+		PigServer pigServer = new PigServer(MAPREDUCE);
 		
 		File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 		File f2 = createFile(new String[]{"b","b","a"});
@@ -111,7 +111,7 @@ public class TestEvalPipeline extends TestCase {
 	
 	@Test
 	public void testDriverMethod() throws Throwable {
-		PigServer pigServer = new PigServer(initString);
+		PigServer pigServer = new PigServer(MAPREDUCE);
 		File f = File.createTempFile("tmp", "");
 		PrintWriter pw = new PrintWriter(f);
 		pw.println("a");
@@ -134,7 +134,7 @@ public class TestEvalPipeline extends TestCase {
 	
 	@Test
 	public void testMapLookup() throws Throwable {
-		PigServer pigServer = new PigServer(initString);
+		PigServer pigServer = new PigServer(MAPREDUCE);
 		DataBag b = BagFactory.getInstance().newDefaultBag();
 		DataMap colors = new DataMap();
 		colors.put("apple","red");
@@ -217,7 +217,7 @@ public class TestEvalPipeline extends TestCase {
 
 	@Test
 	public void testBagFunctionWithFlattening() throws Throwable {
-		PigServer pigServer = new PigServer(initString);
+		PigServer pigServer = new PigServer(MAPREDUCE);
 		File queryLogFile = createFile(
 					new String[]{ 
 						"stanford\tdeer\tsighting",
@@ -279,7 +279,7 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close(); 
 		
-		PigServer pig = new PigServer(initString);
+		PigServer pig = new PigServer(MAPREDUCE);
         String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString();
 		pig.registerQuery("A = LOAD 'file:" + tmpFile + "';");
 		if (eliminateDuplicates){

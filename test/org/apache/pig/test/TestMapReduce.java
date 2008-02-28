@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,13 +48,12 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class TestMapReduce extends TestCase {
 
-	private String initString = "mapreduce";
 	MiniCluster cluster = MiniCluster.buildCluster();
 
 	@Test
     public void testBigGroupAll() throws Throwable {
         int LOOP_COUNT = 4*1024;
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -120,7 +120,7 @@ public class TestMapReduce extends TestCase {
     }
     @Test
     public void testStoreFunction() throws Throwable {
-    	PigServer pig = new PigServer(initString);
+    	PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 10; i++) {
@@ -147,7 +147,7 @@ public class TestMapReduce extends TestCase {
     }
     @Test
     public void testQualifiedFuncions() throws Throwable {
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
@@ -172,7 +172,7 @@ public class TestMapReduce extends TestCase {
     
     @Test
     public void testDefinedFunctions() throws Throwable {
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
@@ -199,7 +199,7 @@ public class TestMapReduce extends TestCase {
     @Test
     public void testPigServer() throws Throwable {
         System.out.println("creating pig server");
-        PigContext pigContext = new PigContext(ExecType.MAPREDUCE);
+        PigContext pigContext = new PigContext(MAPREDUCE);
         PigServer pig = new PigServer(pigContext);
         System.out.println("testing capacity");
         long capacity = pig.capacity();

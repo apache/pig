@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -32,12 +34,11 @@ import org.apache.pig.data.Tuple;
 
 public class TestAlgebraicEval extends TestCase {
     
-	private String initString = "mapreduce";
 	MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testSimpleCount() throws Throwable {
         int LOOP_COUNT = 1024;
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -57,7 +58,7 @@ public class TestAlgebraicEval extends TestCase {
     @Test
     public void testGroupCount() throws Throwable {
         int LOOP_COUNT = 1024;
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -77,7 +78,7 @@ public class TestAlgebraicEval extends TestCase {
     @Test
     public void testGroupReorderCount() throws Throwable {
         int LOOP_COUNT = 1024;
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -99,7 +100,7 @@ public class TestAlgebraicEval extends TestCase {
     @Test
     public void testGroupUniqueColumnCount() throws Throwable {
         int LOOP_COUNT = 1024;
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         int groupsize = 0;
@@ -127,7 +128,7 @@ public class TestAlgebraicEval extends TestCase {
     @Test
     public void testGroupDuplicateColumnCount() throws Throwable {
         int LOOP_COUNT = 1024;
-        PigServer pig = new PigServer(initString);
+        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         int groupsize = 0;

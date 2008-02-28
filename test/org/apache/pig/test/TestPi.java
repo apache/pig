@@ -18,6 +18,7 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import org.apache.pig.PigServer;
 
 import org.apache.pig.data.Tuple;
@@ -52,7 +53,6 @@ public class TestPi extends TestCase {
 	
 	private long total = ((defaultBlockSize >> 20) / 10) << 20;
 	private int inCircle = 0;
-	private String initString = "mapreduce";
 	MiniCluster cluster = MiniCluster.buildCluster();
 
 	private long totalLength = 0, totalLengthTest = 0;
@@ -99,7 +99,7 @@ public class TestPi extends TestCase {
         dat.close();
         
         try {
-            pig = new PigServer(initString);
+            pig = new PigServer(MAPREDUCE);
         }
         catch (ExecException e) {
         	IOException ioe = new IOException("Failed to create Pig Server");

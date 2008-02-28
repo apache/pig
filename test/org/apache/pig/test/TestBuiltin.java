@@ -38,11 +38,10 @@ import org.apache.pig.data.DataMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.ShellBagEvalFunc;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import static org.apache.pig.PigServer.ExecType.LOCAL;
 
 public class TestBuiltin extends TestCase {
 	
-	private String initString = "local";
-    
     // Builtin MATH Functions
     // =======================
     @Test
@@ -458,7 +457,7 @@ public class TestBuiltin extends TestCase {
     @Test
     public void testShellFuncSingle() throws Throwable {
     	//ShellBagEvalFunc func = new ShellBagEvalFunc("tr o 0");
-    	PigServer pig = new PigServer(initString);
+    	PigServer pig = new PigServer(LOCAL);
     	
     	File tempFile = File.createTempFile("tmp", ".dat");
     	PrintWriter writer = new PrintWriter(tempFile);
@@ -486,7 +485,7 @@ public class TestBuiltin extends TestCase {
     @Test
     public void testShellFuncMultiple() throws Throwable {
 
-    	PigServer pig = new PigServer(initString);
+    	PigServer pig = new PigServer(LOCAL);
     	final int numTimes = 100;
     	
     	File tempFile = File.createTempFile("tmp", ".dat");
