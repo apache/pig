@@ -141,3 +141,7 @@ Trunk (unreleased changes)
     (francisoud via olgan)
 
     PIG-101: changes in tests to use enum type (francisoud via olgan)
+
+	PIG-125: Improve exception handling in cases when an attempt is made to
+	access a field as a tuple, and it turns out not to be a tuple (oae via
+	gates).
