@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,6 @@ import java.util.Map;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.EvalSpec;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
@@ -76,20 +74,16 @@ public class LOCogroup extends LogicalOperator {
         }
 
         Datum[]groupAndTuple = new Datum[2];
-        try {
-            if (output.arity() == 2) {
-                groupAndTuple[0] = output.getField(0);
-                groupAndTuple[1] = output.getField(1);
-            } else {
-                Tuple group = new Tuple();
-                for (int j = 0; j < output.arity() - 1; j++) {
-                    group.appendField(output.getField(j));
-                }
-                groupAndTuple[0] = group;
-                groupAndTuple[1] = output.getField(output.arity() - 1);
+        if (output.arity() == 2) {
+            groupAndTuple[0] = output.getField(0);
+            groupAndTuple[1] = output.getField(1);
+        } else {
+            Tuple group = new Tuple();
+            for (int j = 0; j < output.arity() - 1; j++) {
+                group.appendField(output.getField(j));
             }
-        } catch(IOException e) {
-            throw new RuntimeException(e);
+            groupAndTuple[0] = group;
+            groupAndTuple[1] = output.getField(output.arity() - 1);
         }
         return groupAndTuple;
     }

@@ -28,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparable;
 
+
 /**
  * an ordered list of Datums
  */
@@ -127,33 +128,33 @@ public class Tuple extends Datum implements WritableComparable {
         return s;
     }
 
-    public void setField(int i, Datum val) throws IOException {
+    public void setField(int i, Datum val) {
         getField(i); // throws exception if field doesn't exist
 
         fields.set(i, val);
     }
 
-    public void setField(int i, int val) throws IOException {
+    public void setField(int i, int val) {
         setField(i, new DataAtom(val));
     }
 
-    public void setField(int i, double val) throws IOException {
+    public void setField(int i, double val) {
         setField(i, new DataAtom(val));
     }
 
-    public void setField(int i, String val) throws IOException {
+    public void setField(int i, String val) {
         setField(i, new DataAtom(val));
     }
 
-    public Datum getField(int i) throws IOException {
+    public Datum getField(int i) {
         if (fields.size() >= i + 1)
             return fields.get(i);
-        else
-            throw new IOException("Column number out of range: " + i + " -- " + toString());
+
+        throw new IndexOutOfBoundsException("Requested index " + i + " from tuple " + toString());
     }
 
     // Get field i, if it is an Atom or can be coerced into an Atom
-    public DataAtom getAtomField(int i) throws IOException {
+    public DataAtom getAtomField(int i) {
         Datum field = getField(i); // throws exception if field doesn't exist
 
         if (field instanceof DataAtom) {
@@ -161,7 +162,7 @@ public class Tuple extends Datum implements WritableComparable {
         } else if (field instanceof Tuple) {
             Tuple t = (Tuple) field;
             if (t.arity() == 1) {
-                log.error("Warning: Asked for an atom field but found a tuple with one field.");
+                log.warn("Requested for an atom field but found a tuple with one field.");
                 return t.getAtomField(0);
             }
         } else if (field instanceof DataBag) {
@@ -174,11 +175,18 @@ public class Tuple extends Datum implements WritableComparable {
             }
         }
 
-        throw new IOException("Incompatible type for request getAtomField().");
+        throw newTupleAccessException(field, "atom", i);
+    }
+    
+    private RuntimeException newTupleAccessException(Datum field,
+            String requestedFieldType, int index) {
+        return new IllegalArgumentException("Requested " + requestedFieldType
+                + " field at index " + index + " but was '"
+                + field.getClass().getName() + "' in tuple: " + toString());
     }
 
     // Get field i, if it is a Tuple or can be coerced into a Tuple
-    public Tuple getTupleField(int i) throws IOException {
+    public Tuple getTupleField(int i) {
         Datum field = getField(i); // throws exception if field doesn't exist
 
         if (field instanceof Tuple) {
@@ -190,18 +198,18 @@ public class Tuple extends Datum implements WritableComparable {
             }
         }
 
-        throw new IOException("Incompatible type for request getTupleField().");
+        throw newTupleAccessException(field, "tuple", i);
     }
 
     // Get field i, if it is a Bag or can be coerced into a Bag
-    public DataBag getBagField(int i) throws IOException {
+    public DataBag getBagField(int i) {
         Datum field = getField(i); // throws exception if field doesn't exist
 
         if (field instanceof DataBag) {
             return (DataBag) field;
         }
 
-        throw new IOException("Incompatible type for request getBagField().");
+        throw newTupleAccessException(field, "bag", i);
     }
 
     public void appendTuple(Tuple other){
@@ -366,13 +374,10 @@ public class Tuple extends Datum implements WritableComparable {
     @Override
     public long getMemorySize() {
         long used = 0;
-        try {
-            int sz = fields.size();
-            for (int i = 0; i < sz; i++) used += getField(i).getMemorySize();
-            used += 2 * OBJECT_SIZE + REF_SIZE;
-        } catch (IOException ioe) {
-            // Not really much I can do here.
-        }
+        int sz = fields.size();
+        for (int i = 0; i < sz; i++)
+            used += getField(i).getMemorySize();
+        used += 2 * OBJECT_SIZE + REF_SIZE;
         return used;
     }
 }

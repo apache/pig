@@ -110,6 +110,8 @@ public class POStore extends PhysicalOperator {
             materializedResults.put(logicalKey, materializedResult);
         } catch(IOException e) {
             throw e;
+        } catch(RuntimeException e) {
+            throw e;
         } catch(Exception e) {
             IOException ne = new IOException(e.getClass().getName() + ": " + e.getMessage());
             ne.setStackTrace(e.getStackTrace());

@@ -128,11 +128,7 @@ public class GenerateSpec extends EvalSpec {
                     return iter.hasNext();
                 }
                 public Datum next() {
-                    try{
-                        return iter.next().getField(0);
-                    }catch(IOException e){
-                        throw new RuntimeException(e);
-                    }
+                    return iter.next().getField(0);
                 }
                 public void remove() {
                     throw new RuntimeException("Can't remove from read-only iterator");
@@ -224,12 +220,8 @@ public class GenerateSpec extends EvalSpec {
                for (int i=0; i< numItems; i++){
                    if (specs.get(i).isFlattened() && outData[i] instanceof Tuple){
                        Tuple t = (Tuple)outData[i];
-                       try{
-                           for (int j=0; j < t.arity(); j++){
-                               outTuple.appendField(t.getField(j));
-                           }
-                       }catch (IOException e){
-                           throw new RuntimeException(e);
+                       for (int j=0; j < t.arity(); j++){
+                           outTuple.appendField(t.getField(j));
                        }
                    }else{
                        outTuple.appendField(outData[i]);

@@ -133,7 +133,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
             
             pp.close();
         }
-        catch (IOException e) {
+        catch (Exception e) {
             throw new ExecException(e);
         }
         
