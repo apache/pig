@@ -35,6 +35,7 @@ import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
@@ -86,6 +87,7 @@ public static void main(String args[])
         opts.registerOpt('j', "jar", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('v', "verbose", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
@@ -160,7 +162,9 @@ public static void main(String args[])
                    }
                    pigContext.setExecType(exectype);
                 break;
-
+            case 'i':
+            	System.out.println(getVersionString());
+            	return;
             default: {
                 Character cc = new Character(opt);
                 throw new AssertionError("Unhandled option " + cc.toString());
@@ -277,8 +281,29 @@ public static void main(String args[])
     }
 }
     
+private static String getVersionString() {
+	String findContainingJar = JarManager.findContainingJar(Main.class);
+	  try { 
+		  StringBuffer buffer = new  StringBuffer();
+          JarFile jar = new JarFile(findContainingJar); 
+          final Manifest manifest = jar.getManifest(); 
+          final Map <String,Attributes> attrs = manifest.getEntries(); 
+          Attributes attr = attrs.get("org/apache/pig");
+          String version = (String) attr.getValue("Implementation-Version");
+          String svnRevision = (String) attr.getValue("Svn-Revision");
+          String buildTime = (String) attr.getValue("Build-TimeStamp");
+          // we use a version string similar to svn 
+          //svn, version 1.4.4 (r25188)
+          // compiled Sep 23 2007, 22:32:34
+          return "Apache Pig version " + version + " (r" + svnRevision + ") \ncompiled "+buildTime;
+      } catch (Exception e) { 
+          throw new RuntimeException("unable to read pigs manifest file", e); 
+      } 
+}
+
 public static void usage()
 {
+	System.out.println("\n"+getVersionString()+"\n");
     System.out.println("USAGE: Pig [options] [-] : Run interactively in grunt shell.");
     System.out.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
     System.out.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
@@ -292,5 +317,6 @@ public static void usage()
     System.out.println("    -o, -hod read hod server from system property ssh.gateway");
     System.out.println("    -v, -verbose print all log messages to screen (default to print only INFO and above to screen)");
     System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
+    System.out.println("    -i, -version display version information");
 }
 }
