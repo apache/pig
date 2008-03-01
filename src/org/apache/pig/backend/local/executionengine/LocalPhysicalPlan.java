@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
+import org.apache.pig.impl.physicalLayer.POTreePrinter;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POVisitor;
 import org.apache.pig.impl.physicalLayer.POPrinter;
@@ -35,8 +36,7 @@ public class LocalPhysicalPlan implements ExecPhysicalPlan {
     }
              
     public void explain(OutputStream out) {
-        POVisitor lprinter = new POPrinter(opTable, new PrintStream(out));
-        
+    	POVisitor lprinter = new POTreePrinter(opTable, new PrintStream(out));    	
         ((PhysicalOperator)opTable.get(root)).visit(lprinter);
     }
     

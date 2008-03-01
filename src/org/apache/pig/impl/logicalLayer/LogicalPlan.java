@@ -103,7 +103,7 @@ public class LogicalPlan implements Serializable, ExecLogicalPlan{
     }
     
     public void explain(OutputStream out) {
-        LOVisitor lprinter = new LOPrinter(new PrintStream(out));
+    	LOVisitor lprinter =  new LOTreePrinter(new PrintStream(out));   	
         
         opTable.get(root).visit(lprinter);
     }
