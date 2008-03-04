@@ -110,6 +110,8 @@ public class HExecutionEngine implements ExecutionEngine {
         setSSHFactory();
         
         String hodServer = System.getProperty("hod.server");
+        String cluster = System.getProperty("cluster");
+        String nameNode = System.getProperty("namenode");
     
         if (hodServer != null && hodServer.length() > 0) {
             String hdfsAndMapred[] = doHod(hodServer);
@@ -117,17 +119,15 @@ public class HExecutionEngine implements ExecutionEngine {
             setJobtrackerLocation(hdfsAndMapred[1]);
         }
         else {
-            String cluster = System.getProperty("cluster");
             if (cluster != null && cluster.length() > 0) {
-                if(cluster.indexOf(':') < 0) {
+                if(cluster.indexOf(':') < 0 && !cluster.equalsIgnoreCase("local")) {
                     cluster = cluster + ":50020";
                 }
                 setJobtrackerLocation(cluster);
             }
 
-            String nameNode = System.getProperty("namenode");
             if (nameNode!=null && nameNode.length() > 0) {
-                if(nameNode.indexOf(':') < 0) {
+                if(nameNode.indexOf(':') < 0 && !nameNode.equalsIgnoreCase("local")) {
                     nameNode = nameNode + ":8020";
                 }
                 setFilesystemLocation(nameNode);
@@ -143,16 +143,18 @@ public class HExecutionEngine implements ExecutionEngine {
             throw new ExecException("Failed to create DataStorage", e);
         }
             
-        log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
-        
-        try {
-            jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
-                                                              JobSubmissionProtocol.versionID, 
-                                                              JobTracker.getAddress(conf.getConfiguration()),
-                                                              conf.getConfiguration());
-        }
-        catch (IOException e) {
-            throw new ExecException("Failed to crate job tracker", e);
+        if(cluster != null && !cluster.equalsIgnoreCase("local")){
+	        log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
+	        
+	        try {
+	            jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
+	                                                              JobSubmissionProtocol.versionID, 
+	                                                              JobTracker.getAddress(conf.getConfiguration()),
+	                                                              conf.getConfiguration());
+	        }
+	        catch (IOException e) {
+	            throw new ExecException("Failed to crate job tracker", e);
+	        }
         }
 
         try {
