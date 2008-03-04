@@ -149,3 +149,7 @@ Trunk (unreleased changes)
     PIG-13: adding version to the system (joa23 via olgan)
 
 	PIG-113:  Make explain output more understandable (pi_song via gates)
+
+	PIG-120:  Support map reduce in local mode.  To do this user needs to
+	specify execution type as mapreduce and cluster name as local (joa23 via
+	gates).
