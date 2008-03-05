@@ -605,7 +605,7 @@ LogicalOperator CrossClause() : {LogicalOperator op; ArrayList<OperatorKey> inpu
 {
 	(
 	op = NestedExpr() { inputs.add(op.getOperatorKey()); }
-	("," op = NestedExpr() { inputs.add(op.getOperatorKey()); })*
+	("," op = NestedExpr() { inputs.add(op.getOperatorKey()); })+
 	)
 	{return rewriteCross(inputs);}
 }
@@ -613,14 +613,14 @@ LogicalOperator CrossClause() : {LogicalOperator op; ArrayList<OperatorKey> inpu
 LogicalOperator JoinClause() : {CogroupInput gi; ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>();}
 {
 	(gi = GroupItem() { gis.add(gi); }
-	("," gi = GroupItem() { gis.add(gi); })*)
+	("," gi = GroupItem() { gis.add(gi); })+)
 	{return rewriteJoin(gis);}
 }
 
 LogicalOperator UnionClause() : {LogicalOperator op; ArrayList<OperatorKey> inputs = new ArrayList<OperatorKey>();}
 {
 	(op = NestedExpr() { inputs.add(op.getOperatorKey()); }
-	("," op = NestedExpr() { inputs.add(op.getOperatorKey()); })*)
+	("," op = NestedExpr() { inputs.add(op.getOperatorKey()); })+)
 	{return new LOUnion(opTable, scope, getNextId(), inputs);}
 }
 

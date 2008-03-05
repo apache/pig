@@ -94,13 +94,12 @@
         <svnversion outputproperty="svn.revision"/>
     </target>
 
-
     <macrodef name="svnversion">
         <!-- the path needs to be small content otherwise it will take AGES ! -->
         <attribute name="wcpath" default="${basedir}" />
         <attribute name="outputproperty" />
         <sequential>
-            <exec executable="svnversion" outputproperty="@{outputproperty}" failonerror="true" failifexecutionfails="false">
+            <exec executable="svnversion" outputproperty="@{outputproperty}" failonerror="false" failifexecutionfails="false" >
                 <arg value="@{wcpath}" />
                 <redirector>
                     <outputfilterchain>
@@ -111,7 +110,6 @@
                     </outputfilterchain>
                 </redirector>
             </exec>
-            <fail unless="@{outputproperty}" message="Failed to retrieve svn revision. You need 'svnversion' in your path and connectivity to the repository" />
         </sequential>
     </macrodef>
 
@@ -189,6 +187,24 @@
     <!-- TODO we should also exculte test here...                           -->
     <!-- ================================================================== -->
     <target name="jar" depends="compile" description="Create pig jar">
+        <antcall target="jarWithSvn"/>
+        <antcall target="jarWithOutSvn"/>
+    </target>
+    
+    <target name="jarWithSvn" if="svn.revision">
+        <antcall target="buildJar">
+            <param name="svnString" value="${svn.revision}" />
+        </antcall>
+    </target>
+    
+    <target name="jarWithOutSvn" unless="svn.revision">
+        <antcall target="buildJar">
+            <param name="svnString" value=": unknown" />
+        </antcall>
+    </target>
+    
+    <target name="buildJar">
+        <echo>svnString ${svnString}</echo>
         <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
@@ -197,7 +213,7 @@
                     <attribute name="Implementation-Title" value="Pig" />
                     <attribute name="Implementation-Version" value="${version}" />
                     <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svn.revision}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
         </jar>
@@ -210,7 +226,7 @@
                     <attribute name="Implementation-Title" value="Pig" />
                     <attribute name="Implementation-Version" value="${version}" />
                     <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svn.revision}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
             <zipfileset src="${lib.dir}/junit-4.1.jar" />
