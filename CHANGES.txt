@@ -148,6 +148,10 @@ Trunk (unreleased changes)
 
     PIG-13: adding version to the system (joa23 via olgan)
 
+    PIG-13: make the code use svn only if available (joa23 via olgan)
+
+    PIG-118: make sure union/join/cross takes 2 params (pi_song vi olgan)
+
 	PIG-113:  Make explain output more understandable (pi_song via gates)
 
 	PIG-120:  Support map reduce in local mode.  To do this user needs to
