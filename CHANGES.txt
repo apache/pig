@@ -157,3 +157,6 @@ Trunk (unreleased changes)
 	PIG-120:  Support map reduce in local mode.  To do this user needs to
 	specify execution type as mapreduce and cluster name as local (joa23 via
 	gates).
+
+    PIG-94: M1 for streaming: maps and reduce side support with default
+    (de)serializer (acmurthy via olgan)

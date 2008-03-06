@@ -17,9 +17,13 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Iterator;
 
 import org.apache.pig.data.*;
+import org.junit.Assert;
 
 public class Util {
     // Helper Functions
@@ -68,4 +72,43 @@ public class Util {
         }
         return t;
     }
+
+    /**
+     * Helper to create a temporary file with given input data for use in test cases.
+     *  
+     * @param tmpFilenamePrefix file-name prefix
+     * @param tmpFilenameSuffix file-name suffix
+     * @param inputData input for test cases, each string in inputData[] is written
+     *                  on one line
+     * @return {@link File} handle to the created temporary file
+     * @throws IOException
+     */
+	static public File createInputFile(String tmpFilenamePrefix, 
+			                           String tmpFilenameSuffix, 
+			                           String[] inputData) 
+	throws IOException {
+		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
+		PrintWriter pw = new PrintWriter(f);
+		for (int i=0; i<inputData.length; i++){
+			pw.println(inputData[i]);
+		}
+		pw.close();
+		return f;
+	}
+
+	/**
+	 * Helper function to check if the result of a Pig Query is in line with 
+	 * expected results.
+	 * 
+	 * @param actualResults Result of the executed Pig query
+	 * @param expectedResults Expected results to validate against
+	 */
+	static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
+			                        Tuple[] expectedResults) {
+		for (Tuple expected : expectedResults) {
+			Tuple actual = actualResults.next();
+			Assert.assertEquals(expected, actual);
+		}
+	}
+
 }
