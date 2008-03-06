@@ -298,6 +298,9 @@ TOKEN : { <TUPLES : "tuples"> }
 TOKEN : { <GENERATE : "generate"> }
 TOKEN : { <FLATTEN : "flatten"> }
 TOKEN : { <EVAL : "eval"> }
+TOKEN : { <STREAM : "stream"> }
+TOKEN : { <THROUGH : "through"> }
+TOKEN : { <BACKTICK : "`"> }
 
 TOKEN:
 {
@@ -316,6 +319,7 @@ TOKEN :
 }
 
 TOKEN : { <QUOTEDSTRING : "'" (~["'"])* "'"> }
+TOKEN : { <EXECCOMMAND : "`" (~["`"])* "`"> }
 // Pig has special variables starting with $
 TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
 
@@ -411,6 +415,7 @@ LogicalOperator BaseExpr() : {LogicalOperator op; TupleSchema schema; Token t1, 
 |   (<JOIN> op = JoinClause())
 |	(<UNION> op = UnionClause())
 |	(<FOREACH> op = ForEachClause())
+|   (<STREAM> op = StreamClause() [<AS> schema = SchemaTuple() {op.setSchema(schema);} ])
 	)
     [<PARALLEL> t2=<NUMBER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
 	)	
@@ -1126,3 +1131,22 @@ EvalSpec AliasFieldOrSpec(Schema over, Map<String, EvalSpec> specs) : {Token t1;
 		return item;
 	}
 }
+
+LogicalOperator StreamClause(): {LogicalOperator input; String streamingCommand;}
+{
+	input = NestedExpr()	
+	
+	<THROUGH> streamingCommand = StreamingCommand()
+	{
+		return new LOEval(opTable, scope, getNextId(), input.getOperatorKey(), new StreamSpec(streamingCommand));
+	}
+}
+
+String StreamingCommand(): {Token t;}
+{
+	t = <EXECCOMMAND>
+	{
+		return unquote(t.image);
+	}
+}
+

@@ -143,7 +143,12 @@ abstract public class EvalSpecVisitor {
     public void visitTupleWindow(TupleWindowSpec tw) {
     }
 
-
+    /**
+     * Only StreamSpec.visit() and subclass implementations of this function 
+     * should ever call this method. 
+     */
+    public void visitStream(StreamSpec stream) {
+    }
 
 }
 
