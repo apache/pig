@@ -25,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.streaming.PigExecutableManager;
+import org.apache.pig.impl.streaming.PigExecutableManager;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Datum;
 import org.apache.pig.impl.PigContext;
