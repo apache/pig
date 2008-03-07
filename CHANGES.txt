@@ -160,3 +160,6 @@ Trunk (unreleased changes)
 
     PIG-94: M1 for streaming: maps and reduce side support with default
     (de)serializer (acmurthy via olgan)
+
+    PIG-129: making sure that temp files are stored in task's home dir and
+    cleaned up

@@ -30,7 +30,8 @@ import java.util.ArrayList;
 
 import org.apache.pig.impl.util.Spillable;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * A collection of Tuples.  A DataBag may or may not fit into memory.
@@ -67,6 +68,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
  * must be chosen up front, there is no way to convert a bag on the fly.
  */
 public abstract class DataBag extends Datum implements Spillable, Iterable<Tuple> {
+
+     private final Log log = LogFactory.getLog(getClass());
+
     // Container that holds the tuples. Actual object instantiated by
     // subclasses.
     protected Collection<Tuple> mContents;
@@ -364,6 +368,32 @@ public abstract class DataBag extends Datum implements Spillable, Iterable<Tuple
             mSpillFiles = new ArrayList<File>(1);
         }
 
+        String tmpDirName= System.getProperties().getProperty("java.io.tmpdir") ;                
+        File tmpDir = new File(tmpDirName);
+  
+        // if the directory does not exist, create it.
+        if (!tmpDir.exists()){
+            log.info("Temporary directory doesn't exists. Trying to create: " + tmpDir.getAbsolutePath());
+          // Create the directory and see if it was successful
+          if (tmpDir.mkdir()){
+            log.info("Successfully created temporary directory: " + tmpDir.getAbsolutePath());
+          } else {
+              // If execution reaches here, it means that we needed to create the directory but
+              // were not successful in doing so.
+              // 
+              // If this directory is created recently then we can simply 
+              // skip creation. This is to address a rare issue occuring in a cluster despite the
+              // the fact that spill() makes call to getSpillFile() in a synchronized 
+              // block. 
+              if (tmpDir.exists()) {
+                log.info("Temporary directory already exists: " + tmpDir.getAbsolutePath());
+              } else {
+                log.error("Unable to create temporary directory: " + tmpDir.getAbsolutePath());
+                throw new IOException("Unable to create temporary directory: " + tmpDir.getAbsolutePath() );                  
+              }
+          }
+        }
+        
         File f = File.createTempFile("pigbag", null);
         f.deleteOnExit();
         mSpillFiles.add(f);
