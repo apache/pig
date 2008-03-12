@@ -17,70 +17,91 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.impl.eval.EvalSpec;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOSort extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
-    private EvalSpec sortSpec;
+    private static final long serialVersionUID = 2L;
 
+    private List<Integer> mSortCols;
+    private List<Boolean> mAscCols;
+    private LOUserFunc mSortFunc;
 
-    protected EvalSpec spec;
+    /**
+     * @param plan LogicalPlan this operator is a part of.
+     * @param key OperatorKey for this operator
+     * @param sortCols Array of column numbers that will be used for sorting
+     * data.
+     * @param ascCols Array of booleans.  Should be same size as sortCols.  True
+     * indicates sort ascending (default), false sort descending.  If this array
+     * is null, then all columns will be sorted ascending.
+     * @param rp Requested level of parallelism to be used in the sort.
+     */
+    public LOSort(LogicalPlan plan,
+                  OperatorKey key,
+                  List<Integer> sortCols,
+                  List<Boolean> ascCols,
+                  LOUserFunc sortFunc,
+                  int rp) {
+        super(plan, key, rp);
+        mSortCols = sortCols;
+        mAscCols = ascCols;
+        mSortFunc = sortFunc;
+    }
 
-    public EvalSpec getSpec() {
-        return spec;
+    public List<Integer> getSortCols() {
+        return mSortCols;
+    }
+
+    public List<Boolean> getAscendingCols() {
+        return mAscCols;
+    }
+
+    public LOUserFunc getUserFunc() {
+        return mSortFunc;
     }
     
-    public LOSort(Map<OperatorKey, LogicalOperator> opTable,
-                  String scope, 
-                  long id, 
-                  OperatorKey input, 
-                  EvalSpec sortSpec) {
-        super(opTable, scope, id, input);
-        this.sortSpec = sortSpec;
-        getOutputType();
-    }
-
     @Override
     public String name() {
-        return "SORT " + scope + "-" + id;
+        return "SORT " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public String arguments() {
-        return sortSpec.toString();
+    public String typeName() {
+        return "LOSort";
     }
 
     @Override
-    public int getOutputType() {
-        switch (opTable.get(getInputs().get(0)).getOutputType()) {
-        case FIXED:
-            return FIXED;
-        default:
-            throw new RuntimeException
-                ("Blocking operator such as sort cannot handle streaming input");
+    public Schema getSchema() {
+        if (mSchema == null) {
+            // get our parent's schema
+            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            mSchema = s.iterator().next().getSchema();
         }
+        return mSchema;
     }
 
     @Override
-    public TupleSchema outputSchema() {
-        if (schema == null)
-            schema = opTable.get(getInputs().get(0)).outputSchema().copy();
-
-        schema.setAlias(alias);
-        return schema;
-
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
-    public EvalSpec getSortSpec() {
-        return sortSpec;
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return false;
     }
 
-    public void visit(LOVisitor v) {
-        v.visitSort(this);
+    public void visit(PlanVisitor v) throws ParseException {
+        if (!(v instanceof LOVisitor)) {
+            throw new RuntimeException("You can only visit LogicalOperators "
+                + "with an LOVisitor!");
+        }
+        ((LOVisitor)v).visitSort(this);
     }
-
 }

@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -32,28 +30,23 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class LOLoad extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
     
-    private final Log log = LogFactory.getLog(getClass());
+    private FileSpec mInput;
+    private LoadFunc mLoadFunc;
 
-    protected FileSpec inputFileSpec;
-
-    protected int outputType = FIXED;
-
-
-    public LOLoad(Map<OperatorKey, LogicalOperator> opTable, 
-                  String scope, 
-                  long id, 
-                  FileSpec inputFileSpec) throws IOException, ParseException {
-        super(opTable, scope, id);
-        this.inputFileSpec = inputFileSpec;
+    public LOLoad(OperatorKey k,
+                  FileSpec inputFileSpec,
+                  String loader) throws IOException, ParseException {
+        super(k);
+        this.mInput = inputFileSpec;
         
         // check if we can instantiate load func
-        LoadFunc storageFunc = (LoadFunc) PigContext
-                .instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
+        LoadFunc storageFunc =
+            (LoadFunc)PigContext.instantiateFuncFromSpec(loader);
 
         // TODO: Handle Schemas defined by Load Functions
-        schema = new TupleSchema();
+        //schema = new TupleSchema();
     }
 
     @Override
@@ -62,34 +55,12 @@ public class LOLoad extends LogicalOperator {
     }
 
     public FileSpec getInputFileSpec() {
-        return inputFileSpec;
-    }
-
-    public void setInputFileSpec(FileSpec spec) {
-        inputFileSpec = spec;
+        return mInput;
     }
 
     @Override
     public String arguments() {
-        return inputFileSpec.toString();
-    }
-
-    @Override
-    public TupleSchema outputSchema() {
-        schema.setAlias(alias);
-        return this.schema;
-    }
-
-    @Override
-    public int getOutputType() {
-        return outputType;
-    }
-
-    public void setOutputType(int type) {
-        if (type < FIXED || type > AMENDABLE) {
-            throw new RuntimeException("Illegal output type");
-        }
-        outputType = type;
+        return mInput.toString();
     }
 
     @Override
@@ -104,7 +75,7 @@ public class LOLoad extends LogicalOperator {
     @Override
     public List<String> getFuncs() {
         List<String> funcs = super.getFuncs();
-        funcs.add(inputFileSpec.getFuncName());
+        funcs.add(mInput.getFuncName());
         return funcs;
     }
 

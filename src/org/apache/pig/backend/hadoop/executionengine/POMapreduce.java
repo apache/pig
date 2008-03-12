@@ -105,7 +105,7 @@ public class POMapreduce extends PhysicalOperator {
                        OperatorKey sourceLogicalKey,
                        PigContext pigContext, 
                        OperatorKey[] inputsIn) {
-        super(scope, id, opTable, LogicalOperator.FIXED);
+        super(scope, id, opTable, 0);
         this.sourceLogicalKey = sourceLogicalKey;
         this.pigContext = pigContext;
         inputs = inputsIn;
@@ -117,7 +117,7 @@ public class POMapreduce extends PhysicalOperator {
                        OperatorKey sourceLogicalKey,
                        PigContext pigContext, 
                        OperatorKey inputIn) {
-        super(scope, id, opTable, LogicalOperator.FIXED);
+        super(scope, id, opTable, 0);
         this.sourceLogicalKey = sourceLogicalKey;
         this.pigContext = pigContext;
         inputs = new OperatorKey[1];
@@ -129,7 +129,7 @@ public class POMapreduce extends PhysicalOperator {
                        Map<OperatorKey, ExecPhysicalOperator> opTable,
                        OperatorKey sourceLogicalKey,
                        PigContext pigContext) {
-        super(scope, id, opTable, LogicalOperator.FIXED);
+        super(scope, id, opTable, 0);
         this.sourceLogicalKey = sourceLogicalKey;
         this.pigContext = pigContext;
         inputs = new OperatorKey[0];

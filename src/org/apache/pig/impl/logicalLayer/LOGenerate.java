@@ -17,31 +17,34 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
-
-public class LOCogroup extends LogicalOperator {
+public class LOGenerate extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-    public LOCogroup(LogicalPlan plan, OperatorKey k) { 
-        super(plan, k, -1);
+    /**
+     * The projection list of this generate.
+     */
+    private ArrayList<LogicalOperator> mProjections;
+
+    public LOGenerate(LogicalPlan plan, OperatorKey key) {
+        super(plan, key);
     }
 
     @Override
     public String name() {
-        return "CoGroup " + mKey.scope + "-" + mKey.id;
+        return "Generate " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public String typeName() {
-        return "LOCogroup";
+        return "LOGenerate";
     }
 
     @Override
@@ -56,8 +59,19 @@ public class LOCogroup extends LogicalOperator {
 
     @Override
     public Schema getSchema() {
-        // TODO create schema
-        return null;
+        if (mSchema == null) {
+            List<Schema.FieldSchema> fss =
+                new ArrayList<Schema.FieldSchema>(mProjections.size());
+            for (LogicalOperator op : mProjections) {
+                if (op.getType() == DataType.TUPLE) {
+                    fss.add(new Schema.FieldSchema(null, op.getSchema()));
+                } else {
+                    fss.add(new Schema.FieldSchema(null, op.getType()));
+                }
+            }
+            mSchema = new Schema(fss);
+        }
+        return mSchema;
     }
 
     @Override
@@ -66,7 +80,11 @@ public class LOCogroup extends LogicalOperator {
             throw new RuntimeException("You can only visit LogicalOperators "
                 + "with an LOVisitor!");
         }
-        ((LOVisitor)v).visitCogroup(this);
+        ((LOVisitor)v).visitGenerate(this);
+    }
+
+    public List<LogicalOperator> getProjections() {
+        return mProjections;
     }
 
 }

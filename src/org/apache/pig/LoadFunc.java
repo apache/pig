@@ -18,19 +18,23 @@
 package org.apache.pig;
 
 import java.io.IOException;
+import java.util.Map;
 
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
+/**
+ * This interface is used to implement functions to parse records
+ * from a dataset.  This also includes functions to cast raw byte data into various
+ * datatypes.  These are external functions because we want loaders, whenever
+ * possible, to delay casting of datatypes until the last possible moment (i.e.
+ * don't do it on load).  This means we need to expose the functionality so that
+ * other sections of the code can call back to the loader to do the cast.
+ */
 public interface LoadFunc {
-    /**
-     * This interface is used to implement functions to parse records
-     * from a dataset.
-     * 
-     * @author database-systems@research.yahoo
-     *
-     */
     /**
      * Specifies a portion of an InputStream to read tuples. Because the
      * starting and ending offsets may not be on record boundaries it is up to
@@ -53,13 +57,113 @@ public interface LoadFunc {
      * @param end the ending offset for reading.
      * @throws IOException
      */
-    public abstract void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException;
+    public void bindTo(String fileName,
+                       BufferedPositionedInputStream is,
+                       long offset,
+                       long end) throws IOException;
+
     /**
      * Retrieves the next tuple to be processed.
      * @return the next tuple to be processed or null if there are no more tuples
      * to be processed.
      * @throws IOException
      */
-    public abstract Tuple getNext() throws IOException;
+    public Tuple getNext() throws IOException;
     
+    /**
+     * Cast data from bytes to boolean value.  
+     * @param bytes byte array to be cast.
+     * @return Boolean value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Boolean bytesToBoolean(byte[] b) throws IOException;
+    
+    /**
+     * Cast data from bytes to integer value.  
+     * @param bytes byte array to be cast.
+     * @return Integer value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Integer bytesToInteger(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to long value.  
+     * @param bytes byte array to be cast.
+     * @return Long value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Long bytesToLong(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to float value.  
+     * @param bytes byte array to be cast.
+     * @return Float value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Float bytesToFloat(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to double value.  
+     * @param bytes byte array to be cast.
+     * @return Double value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Double bytesToDouble(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to chararray value.  
+     * @param bytes byte array to be cast.
+     * @return String value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public String bytesToCharArray(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to map value.  
+     * @param bytes byte array to be cast.
+     * @return Map value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Map<Object, Object> bytesToMap(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to tuple value.  
+     * @param bytes byte array to be cast.
+     * @return Tuple value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Tuple bytesToTuple(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytes to bag value.  
+     * @param bytes byte array to be cast.
+     * @return Bag value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public DataBag bytesToBag(byte[] b) throws IOException;
+
+    /**
+     * Indicate to the loader fields that will be needed.  This can be useful for
+     * loaders that access data that is stored in a columnar format where indicating
+     * columns to be accessed a head of time will save scans.  If the loader
+     * function cannot make use of this information, it is free to ignore it.
+     * @param schema Schema indicating which columns will be needed.
+     */
+    public void fieldsToRead(Schema schema);
+
+    /**
+     * Find the schema from the loader.  This function will be called at parse time
+     * (not run time) to see if the loader can provide a schema for the data.  The
+     * loader may be able to do this if the data is self describing (e.g. JSON).  If
+     * the loader cannot determine the schema, it can return a null.
+     * @param fileName Name of the file to be read.
+     * @param in inpu stream, so that the function can read enough of the
+     * data to determine the schema.
+     * @param end Function should not read past this position in the stream.
+     * @return a Schema describing the data if possible, or null otherwise.
+     * @throws IOException.
+     */
+    public Schema determineSchema(String fileName,
+                                  BufferedPositionedInputStream in,
+                                  long end) throws IOException;
 }

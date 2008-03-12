@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.Map;
 
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
 /**
  * This is the main interface that various execution engines
@@ -87,11 +88,11 @@ public interface ExecutionEngine {
      * @param properties
      * @return physical plan
      */
-    public ExecPhysicalPlan compile(ExecLogicalPlan plan,
+    public ExecPhysicalPlan compile(LogicalPlan plan,
                                     Properties properties)
         throws ExecException;
 
-    public ExecPhysicalPlan compile(ExecLogicalPlan[] plans,
+    public ExecPhysicalPlan compile(LogicalPlan[] plans,
                                     Properties properties)
         throws ExecException;
 

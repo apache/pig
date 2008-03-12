@@ -33,15 +33,16 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobSubmissionProtocol;
 import org.apache.hadoop.mapred.JobTracker;
+
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.executionengine.ExecLogicalPlan;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
@@ -54,10 +55,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.shock.SSHSocketImplFactory;
 
 
+/*
 public class HExecutionEngine implements ExecutionEngine {
     
     private final Log log = LogFactory.getLog(getClass());
@@ -208,15 +211,13 @@ public class HExecutionEngine implements ExecutionEngine {
         throw new UnsupportedOperationException();
     }
 
-    public ExecPhysicalPlan compile(ExecLogicalPlan plan,
-                                               Properties properties)
-            throws ExecException {
-        return compile(new ExecLogicalPlan[] { plan },
-                       properties);
+    public ExecPhysicalPlan compile(LogicalPlan plan,
+                                    Properties properties) throws ExecException {
+        return compile(new LogicalPlan[] { plan }, properties);
     }
 
-    public ExecPhysicalPlan compile(ExecLogicalPlan[] plans,
-                                               Properties properties)
+    public ExecPhysicalPlan compile(LogicalPlan[] plans,
+                                    Properties properties)
             throws ExecException {
         if (plans == null) {
             throw new ExecException("No Plans to compile");
@@ -224,7 +225,7 @@ public class HExecutionEngine implements ExecutionEngine {
 
         OperatorKey physicalKey = null;
         for (int i = 0; i < plans.length; ++i) {
-            ExecLogicalPlan curPlan = null;
+            LogicalPlan curPlan = null;
 
             curPlan = plans[ i ];
      
@@ -476,6 +477,7 @@ public class HExecutionEngine implements ExecutionEngine {
     }
     
 }
+*/
 
 
 

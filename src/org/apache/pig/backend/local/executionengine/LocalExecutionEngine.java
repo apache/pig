@@ -35,12 +35,12 @@ import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.executionengine.ExecLogicalPlan;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.eval.cond.Cond;
 import org.apache.pig.impl.io.FileSpec;
@@ -98,9 +98,8 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
 
     
-    public LocalPhysicalPlan compile(ExecLogicalPlan plan,
-                                     Properties properties)
-            throws ExecException {
+    public LocalPhysicalPlan compile(LogicalPlan plan,
+                                     Properties properties) throws ExecException {
         if (plan == null) {
             throw new ExecException("No Plan to compile");
         }
@@ -108,16 +107,15 @@ public class LocalExecutionEngine implements ExecutionEngine {
         return compile(new ExecLogicalPlan[]{ plan } , properties);
     }
 
-    public LocalPhysicalPlan compile(ExecLogicalPlan[] plans,
-                                     Properties properties)
-            throws ExecException {
+    public LocalPhysicalPlan compile(LogicalPlan[] plans,
+                                     Properties properties) throws ExecException {
         if (plans == null) {
             throw new ExecException("No Plans to compile");
         }
 
         OperatorKey physicalKey = null;
         for (int i = 0; i < plans.length; ++i) {
-            ExecLogicalPlan curPlan = null;
+            LogicalPlan curPlan = null;
 
             curPlan = plans[ i ];
      

@@ -17,31 +17,35 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
-
-public class LOCogroup extends LogicalOperator {
+public class LOUserFunc extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
-    public LOCogroup(LogicalPlan plan, OperatorKey k) { 
+    private List<ExpressionOperator> mArgs;
+
+    /**
+     * @param plan LogicalPlan this operator is a part of.
+     * @param k OperatorKey for this operator.
+     * @param args List of expressions that form the arguments for this
+     * function.
+     * @param returnType return type of this function.
+     */
+    public LOUserFunc(LogicalPlan plan,
+                      OperatorKey k,
+                      List<ExpressionOperator> args,
+                      byte returnType) {
         super(plan, k, -1);
+        mArgs = args;
+        mType = returnType;
     }
 
-    @Override
-    public String name() {
-        return "CoGroup " + mKey.scope + "-" + mKey.id;
-    }
-
-    @Override
-    public String typeName() {
-        return "LOCogroup";
+    public List<ExpressionOperator> getArguments() {
+        return mArgs;
     }
 
     @Override
@@ -53,11 +57,23 @@ public class LOCogroup extends LogicalOperator {
     public boolean supportsMultipleOutputs() {
         return false;
     }
+    
+    @Override
+    public String name() {
+        return "UserFunc " + mKey.scope + "-" + mKey.id;
+    }
+
+    @Override
+    public String typeName() {
+        return "LOUserFunc";
+    }
 
     @Override
     public Schema getSchema() {
-        // TODO create schema
-        return null;
+        if (mSchema == null) {
+            mSchema = new Schema(new Schema.FieldSchema(null, mType));
+        }
+        return mSchema;
     }
 
     @Override
@@ -66,7 +82,6 @@ public class LOCogroup extends LogicalOperator {
             throw new RuntimeException("You can only visit LogicalOperators "
                 + "with an LOVisitor!");
         }
-        ((LOVisitor)v).visitCogroup(this);
+        ((LOVisitor)v).visitUserFunc(this);
     }
-
 }

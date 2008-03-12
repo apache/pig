@@ -20,6 +20,9 @@ package org.apache.pig.impl.logicalLayer;
 import java.util.List;
 import java.util.Iterator;
 
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+
 
 /**
  * A visitor mechanism for navigating and operating on a tree of Logical
@@ -42,77 +45,36 @@ import java.util.Iterator;
  * WRONG:  LOEval myEval; MyVisitor v; v.visitEval(myEval);
  * These methods are only public to make them accessible to the LO* objects.
  */
-abstract public class LOVisitor {
+abstract public class LOVisitor extends PlanVisitor {
 
-    /**
-     * Only LOCogroup.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitCogroup(LOCogroup g) {
-        basicVisit(g);
-    }
-        
-    /**
-     * Only LOEval.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitEval(LOEval e) {
-        basicVisit(e);
-    }
-        
-    /**
-     * Only LOUnion.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitUnion(LOUnion u) {
-        basicVisit(u);
-    }
-        
-        
-    /**
-     * Only LOLoad.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitLoad(LOLoad load) {
-        basicVisit(load);
-    }
-        
-    /**
-     * Only LOSort.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitSort(LOSort s) {
-        basicVisit(s);
-    }
-        
-    /**
-     * Only LOSplit.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitSplit(LOSplit s) {
-        basicVisit(s);
-    }
-    
-    public void visitSplitOutput(LOSplitOutput s) {
-        basicVisit(s);
-    }
-    
-        
-    /**
-     * Only LOStore.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
-    public void visitStore(LOStore s) {
-        basicVisit(s);
+    public LOVisitor(LogicalPlan plan) {
+        super(plan);
     }
 
-    private void basicVisit(LogicalOperator lo) {
-        List<OperatorKey> inputs = lo.getInputs();
-        Iterator<OperatorKey> i = inputs.iterator();
-        
+    void visitCogroup(LOCogroup cg) throws ParseException {
+    }
+
+    void visitEval(LOEval e) throws ParseException {
+        // Don't worry about visiting the contained logical operators, as the logical
+        // operators in it are already contained in the outer plan.
+    }
+
+    void visitGenerate(LOGenerate g) throws ParseException {
+        // Visit each of generates projection elements.
+        Iterator<LogicalOperator> i = g.getProjections().iterator();
         while (i.hasNext()) {
-            LogicalOperator input = lo.getOpTable().get(i.next());
-            input.visit(this);
+            i.next().visit(this);
+        }
+    }
+        
+    void visitSort(LOSort s) throws ParseException {
+    }
+
+    void visitUserFunc(LOUserFunc func) throws ParseException {
+        // Visit each of the arguments
+        Iterator<ExpressionOperator> i = func.getArguments().iterator();
+        while (i.hasNext()) {
+            i.next().visit(this);
         }
     }
 }

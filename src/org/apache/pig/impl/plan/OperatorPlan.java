@@ -33,21 +33,21 @@ import org.apache.commons.collections.map.MultiValueMap;
 /**
  * A generic graphing class for use by LogicalPlan, PhysicalPlan, etc.
  */
-public abstract class OperatorPlan implements Iterable {
-    protected Map<Operator, OperatorKey> mOps;
-    protected Map<OperatorKey, Operator> mKeys;
+public abstract class OperatorPlan<E extends Operator> implements Iterable {
+    protected Map<E, OperatorKey> mOps;
+    protected Map<OperatorKey, E> mKeys;
     protected MultiValueMap mFromEdges;
     protected MultiValueMap mToEdges;
 
-    private List<Operator> mRoots;
-    private List<Operator> mLeaves;
+    private List<E> mRoots;
+    private List<E> mLeaves;
 
     
     public OperatorPlan() {
-        mRoots = new ArrayList<Operator>();
-        mLeaves = new ArrayList<Operator>();
-        mOps = new HashMap<Operator, OperatorKey>();
-        mKeys = new HashMap<OperatorKey, Operator>();
+        mRoots = new ArrayList<E>();
+        mLeaves = new ArrayList<E>();
+        mOps = new HashMap<E, OperatorKey>();
+        mKeys = new HashMap<OperatorKey, E>();
         mFromEdges = new MultiValueMap();
         mToEdges = new MultiValueMap();
     }
@@ -56,9 +56,9 @@ public abstract class OperatorPlan implements Iterable {
      * Get a list of all nodes in the graph that are roots.  A root is defined to
      * be a node that has no input.
      */
-    public List<Operator> getRoots() {
+    public List<E> getRoots() {
         if (mRoots.size() == 0 && mOps.size() > 0) {
-            for (Operator op : mOps.keySet()) {
+            for (E op : mOps.keySet()) {
                 if (mToEdges.getCollection(op) == null) {
                     mRoots.add(op);
                 }
@@ -71,9 +71,9 @@ public abstract class OperatorPlan implements Iterable {
      * Get a list of all nodes in the graph that are leaves.  A leaf is defined to
      * be a node that has no output.
      */
-    public List<Operator> getLeaves() {
+    public List<E> getLeaves() {
         if (mLeaves.size() == 0 && mOps.size() > 0) {
-            for (Operator op : mOps.keySet()) {
+            for (E op : mOps.keySet()) {
                 if (mFromEdges.getCollection(op) == null) {
                     mLeaves.add(op);
                 }
@@ -87,7 +87,7 @@ public abstract class OperatorPlan implements Iterable {
      * @param op Logical operator.
      * @return associated OperatorKey
      */
-    public OperatorKey getOperatorKey(Operator op) {
+    public OperatorKey getOperatorKey(E op) {
         return mOps.get(op);
     }
 
@@ -96,7 +96,7 @@ public abstract class OperatorPlan implements Iterable {
      * @param opKey OperatorKey
      * @return associated operator.
      */
-    public Operator getOperator(OperatorKey opKey) {
+    public E getOperator(OperatorKey opKey) {
         return mKeys.get(opKey);
     }
 
@@ -106,7 +106,7 @@ public abstract class OperatorPlan implements Iterable {
      * be done as a separate step using connect.
      * @param op Operator to add to the plan.
      */
-    public void add(Operator op) {
+    public void add(E op) {
         markDirty();
         mOps.put(op, op.getOperatorKey());
         mKeys.put(op.getOperatorKey(), op);
@@ -121,7 +121,7 @@ public abstract class OperatorPlan implements Iterable {
      * operator that does not support multiple inputs or create multiple outputs
      * for an operator that does not support multiple outputs.
      */
-    public void connect(Operator from, Operator to) throws IOException {
+    public void connect(E from, E to) throws IOException {
         markDirty();
 
         // Check that both nodes are in the plan.
@@ -157,7 +157,7 @@ public abstract class OperatorPlan implements Iterable {
      * @return true if the nodes were connected according to the specified data
      * flow, false otherwise.
      */
-    public boolean disconnect(Operator from, Operator to) {
+    public boolean disconnect(E from, E to) {
         markDirty();
 
         boolean sawNull = false;
@@ -172,7 +172,7 @@ public abstract class OperatorPlan implements Iterable {
      * be removed as well.
      * @param op Operator to remove.
      */
-    public void remove(Operator op) {
+    public void remove(E op) {
         markDirty();
 
         removeEdges(op, mFromEdges, mToEdges);
@@ -189,8 +189,8 @@ public abstract class OperatorPlan implements Iterable {
      * @param op Node to look to
      * @return Collection of nodes.
      */
-    public Collection<Operator> getPredecessors(Operator op) {
-        return (Collection<Operator>)mToEdges.getCollection(op);
+    public List<E> getPredecessors(E op) {
+        return (List<E>)mToEdges.getCollection(op);
     }
 
 
@@ -200,11 +200,11 @@ public abstract class OperatorPlan implements Iterable {
      * @param op Node to look from
      * @return Collection of nodes.
      */
-    public Collection<Operator> getSuccessors(Operator op) {
-        return (Collection<Operator>)mFromEdges.getCollection(op);
+    public List<E> getSuccessors(E op) {
+        return (List<E>)mFromEdges.getCollection(op);
     }
 
-    public Iterator<Operator> iterator() { 
+    public Iterator<E> iterator() { 
         return mOps.keySet().iterator();
     }
 
@@ -213,7 +213,7 @@ public abstract class OperatorPlan implements Iterable {
         mLeaves.clear();
     }
 
-    private void removeEdges(Operator op,
+    private void removeEdges(E op,
                              MultiValueMap fromMap,
                              MultiValueMap toMap) {
         // Find all of the from edges, as I have to remove all the associated to
@@ -225,13 +225,13 @@ public abstract class OperatorPlan implements Iterable {
         ArrayList al = new ArrayList(c);
         Iterator i = al.iterator();
         while (i.hasNext()) {
-            Operator to = (Operator)i.next();
+            E to = (E)i.next();
             toMap.remove(to, op);
             fromMap.remove(op, to);
         }
     }
 
-    private void checkInPlan(Operator op) throws IOException {
+    private void checkInPlan(E op) throws IOException {
         if (mOps.get(op) == null) {
             throw new IOException("Attempt to connect operator " +
                 op.name() + " which is not in the plan.");

@@ -152,7 +152,7 @@ public class MapreducePlanCompiler {
         else if (lo instanceof LOSplitOutput){
             POMapreduce child = (POMapreduce)execEngine.getPhysicalOpTable().get(compiledInputs[0]);
             String fileName = child.toSplit.tempFiles.get(((LOSplitOutput)lo).getReadFrom());
-            POMapreduce pom = new POMapreduce(lo.getScope(),
+            POMapreduce pom = new POMapreduce(lo.getOperatorKey().scope,
                                               nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
                                               execEngine.getPhysicalOpTable(),
                                               logicalKey,
@@ -181,7 +181,7 @@ public class MapreducePlanCompiler {
             return pom.getOperatorKey();
         }
         else if (lo instanceof LOLoad) {
-            POMapreduce pom = new POMapreduce(lo.getScope(),
+            POMapreduce pom = new POMapreduce(lo.getOperatorKey().scope,
                                               nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
                                               execEngine.getPhysicalOpTable(),
                                               logicalKey,
@@ -204,7 +204,7 @@ public class MapreducePlanCompiler {
             return compiledInputs[0];
         } 
         else if (lo instanceof LOUnion) {
-            POMapreduce pom = new POMapreduce(lo.getScope(), 
+            POMapreduce pom = new POMapreduce(lo.getOperatorKey().scope, 
                                               nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
                                               execEngine.getPhysicalOpTable(),
                                               logicalKey,
@@ -217,14 +217,14 @@ public class MapreducePlanCompiler {
         else if (lo instanceof LOSort) {
             LOSort loSort = (LOSort) lo;
             //must break up into 2 map reduce jobs, one for gathering quantiles, another for sorting
-            POMapreduce quantileJob = getQuantileJob(lo.getScope(), 
+            POMapreduce quantileJob = getQuantileJob(lo.getOperatorKey().scope, 
                                                      nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
                                                      execEngine.getPhysicalOpTable(),
                                                      logicalKey,
                                                      (POMapreduce) (execEngine.getPhysicalOpTable().get(compiledInputs[0])), 
                                                      loSort);
             
-            return getSortJob(lo.getScope(), 
+            return getSortJob(lo.getOperatorKey().scope, 
                               nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
                               execEngine.getPhysicalOpTable(),
                               logicalKey,

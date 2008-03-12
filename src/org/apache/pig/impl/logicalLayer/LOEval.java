@@ -18,78 +18,61 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
-import java.util.Map;
 
-import org.apache.pig.impl.eval.EvalSpec;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
-
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOEval extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    protected EvalSpec spec;
+    private LOGenerate mGen = null;
 
-    public LOEval(Map<OperatorKey, LogicalOperator> opTable,
-                  String scope, 
-                  long id, 
-                  OperatorKey input, 
-                  EvalSpec specIn) {
-        super(opTable, scope, id, input);
-        spec = specIn;
-        getOutputType();
+    public LOEval(LogicalPlan plan, OperatorKey key) {
+        super(plan, key);
+    }
+
+    public void setGenerate(LOGenerate gen) {
+        mGen = gen;
     }
 
     @Override
     public String name() {
-        return "Eval " + scope + "-" + id;
+        return "Eval " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public String arguments() {
-        return spec.toString();
+    public String typeName() {
+        return "LOEval";
     }
 
     @Override
-    public TupleSchema outputSchema() {
-        if (schema == null) {
-            //log.info("LOEval input: " + inputs[0].outputSchema());
-            //log.info("LOEval spec: " + spec);
-            schema =
-                (TupleSchema) spec.getOutputSchemaForPipe(opTable.get(getInputs().get(0)).
-                                                          outputSchema());
+    public boolean supportsMultipleInputs() {
+        return true;
+    }
 
-            //log.info("LOEval output: " + schema);
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return false;
+    }
+
+    @Override
+    public Schema getSchema() {
+        if (mSchema == null) {
+            // Ask the generate at the end of the plan for its schema,
+            // and return that.
+            mSchema = mGen.getSchema();
+            }
+        return mSchema;
+    }
+
+    @Override
+    public void visit(PlanVisitor v) throws ParseException {
+        if (!(v instanceof LOVisitor)) {
+            throw new RuntimeException("You can only visit LogicalOperators "
+                + "with an LOVisitor!");
         }
-        schema.setAlias(alias);
-        return schema;
+        ((LOVisitor)v).visitEval(this);
     }
 
-    @Override
-    public int getOutputType() {
-        switch (opTable.get(getInputs().get(0)).getOutputType()) {
-        case FIXED:
-            return FIXED;
-        case MONOTONE:
-        case AMENDABLE:
-            return MONOTONE;
-        default:
-            throw new RuntimeException("Wrong type of input to EVAL");
-        }
-    }
-
-    @Override
-    public List<String> getFuncs() {
-        List<String> funcs = super.getFuncs();
-        funcs.addAll(spec.getFuncs());
-        return funcs;
-    }
-
-    public EvalSpec getSpec() {
-        return spec;
-    }
-
-    public void visit(LOVisitor v) {
-        v.visitEval(this);
-    }
 }

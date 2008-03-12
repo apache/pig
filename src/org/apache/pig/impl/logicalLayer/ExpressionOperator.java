@@ -15,28 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.pig.impl.logicalLayer;
 
-package org.apache.pig.backend.executionengine;
 
-import java.io.OutputStream;
-import java.io.Serializable;
-import java.util.Map;
+public abstract class ExpressionOperator extends LogicalOperator {
 
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+    /**
+     * @param plan LogicalPlan this operator will be a part of.
+     * @param k OperatorKey of this operator
+     * @param rp requested level of parallelism, -1 for default.
+     */
+    public ExpressionOperator(LogicalPlan plan, OperatorKey k, int rp) {
+        super(plan, k, rp);
+    }
 
-/**
- * A logical plan has a root of the operator tree. 
- * A table of operators collects the set of operators making up a logical tree.
- * It is possible to navigate a logical tree by looking up the input operator 
- * keys of the logical operator in the operator table.
- *
- */
-public interface ExecLogicalPlan extends  Serializable {
-    
-    public OperatorKey getRoot();
-    
-    public Map<OperatorKey, LogicalOperator> getOpTable();
-    
-    public void explain(OutputStream out);
 }
+
