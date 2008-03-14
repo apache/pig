@@ -188,7 +188,8 @@ TOKEN_MGR_DECLS : {
 
 <IN_STRING> MORE :
 {
-	<"'"> { SwitchTo(prevState);}
+	<"\\'">
+|	<"'"> { SwitchTo(prevState);}
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
 |	<(~[])>
 }
@@ -248,7 +249,19 @@ TOKEN:
 
 TOKEN: {<IDENTIFIER: (<LETTER>)+(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>}
 TOKEN: {<PATH: (~["(", ")", ";", "\r", " ", "\t", "\n"])+>}
-TOKEN : { <QUOTEDSTRING : "'" (~["'"])* "'"> }
+TOKEN : { <QUOTEDSTRING :  "'"
+      (   (~["'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'"] )
+          )
+        | ("\\u"
+            ["0"-"9","A"-"F","a"-"f"]
+            ["0"-"9","A"-"F","a"-"f"]
+            ["0"-"9","A"-"F","a"-"f"]
+            ["0"-"9","A"-"F","a"-"f"]
+          )
+      )*
+      "'"> }
 void parse() throws IOException:
 {
 	Token t1, t2;

@@ -113,7 +113,7 @@ public class QueryParser {
     }
 
     static String unquote(String s) {
-		return s.substring(1, s.length()-1);
+		return StringUtils.unescapeInputString(s.substring(1, s.length()-1)) ;
 	}
 	
 	static int undollar(String s) {
@@ -245,6 +245,91 @@ public class QueryParser {
 
 }
 
+
+class StringUtils {
+    
+       public static String unescapeInputString(String input)  {
+
+            if (input == null) {
+                return new String() ;
+            }
+            
+            // Needed variables
+            // preset the size so our StringBuilders don't have to grow
+            int inputlength = input.length();       
+            StringBuilder unicode = new StringBuilder(4);
+            StringBuilder output = new StringBuilder(inputlength) ;
+            boolean hadSlash = false;
+            boolean inUnicode = false;
+            
+            // The main loop
+            for (int i = 0; i < inputlength; i++) {
+                char ch = input.charAt(i);
+                // currently doing unicode mode
+                if (inUnicode) {
+                    unicode.append(ch);
+                    if (unicode.length() == 4) {
+                        // unicode now contains the four hex digits
+                        try {
+                            int value = Integer.parseInt(unicode.toString(), 0x10);
+                            output.append((char) value) ;
+                            // reuse the StringBuilder
+                            unicode.setLength(0);
+                            inUnicode = false;
+                            hadSlash = false;
+                        } catch (NumberFormatException nfe) {
+                            throw new RuntimeException("Unable to parse unicode value: " + unicode, nfe);
+                        }
+                    }
+                    continue;
+                }
+                if (hadSlash) {
+                    // handle an escaped value
+                    hadSlash = false;
+                    switch (ch) {
+                        case '\\':
+                            output.append('\\');
+                            break;
+                        case '\'':
+                            output.append('\'');
+                            break;
+                        case 'r':
+                            output.append('\r');
+                            break;
+                        case 'f':
+                            output.append('\f');
+                            break;
+                        case 't':
+                            output.append('\t');
+                            break;
+                        case 'n':
+                            output.append('\n');
+                            break;
+                        case 'b':
+                            output.append('\b');
+                            break;
+                        case 'u':
+                            {
+                                // switch to unicode mode
+                                inUnicode = true;
+                                break;
+                            }
+                        default :
+                            output.append(ch);
+                            break;
+                    }
+                    continue;
+                } else if (ch == '\\') {
+                    hadSlash = true;
+                    continue;
+                }
+                output.append(ch);
+            }
+            
+            return output.toString() ;
+        }
+}
+
 	
 PARSER_END(QueryParser)
 
@@ -318,7 +403,20 @@ TOKEN :
 | 	< INTEGER: ( <DIGIT> )+ >
 }
 
-TOKEN : { <QUOTEDSTRING : "'" (~["'"])* "'"> }
+TOKEN : { <QUOTEDSTRING :  "'"
+      (   (~["'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'"] )
+          )
+        | ("\\u"
+            ["0"-"9","A"-"F","a"-"f"]
+            ["0"-"9","A"-"F","a"-"f"]
+            ["0"-"9","A"-"F","a"-"f"]
+	         ["0"-"9","A"-"F","a"-"f"]
+          )
+      )*
+      "'"> }
+     
 TOKEN : { <EXECCOMMAND : "`" (~["`"])* "`"> }
 // Pig has special variables starting with $
 TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
