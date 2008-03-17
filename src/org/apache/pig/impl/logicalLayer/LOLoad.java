@@ -58,7 +58,12 @@ public class LOLoad extends LogicalOperator {
 
     @Override
     public String name() {
-        return "Load " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Load ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
 
     public FileSpec getInputFileSpec() {
@@ -94,7 +99,7 @@ public class LOLoad extends LogicalOperator {
 
     @Override
     public String toString() {
-        StringBuffer result = new StringBuffer(super.toString());
+        StringBuilder result = new StringBuilder(super.toString());
         result.append(" (outputType: ");
         result.append(outputType);
         result.append(')');

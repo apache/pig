@@ -309,8 +309,13 @@ public class PigServer {
         if (!aliases.containsKey(id))
             throw new IOException("Invalid alias: " + id);
         
-        if (FileLocalizer.fileExists(filename, pigContext))
-            throw new IOException("Output file " + filename + " already exists. Can't overwrite.");
+        if (FileLocalizer.fileExists(filename, pigContext)) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Output file ");
+            sb.append(filename);
+            sb.append(" already exists. Can't overwrite.");
+            throw new IOException(sb.toString());
+        }
 
         LogicalPlan readFrom = aliases.get(id);
         
@@ -365,9 +370,18 @@ public class PigServer {
             pp.explain(stream);
         }
         catch (ExecException e) {
-            log.error("Failed to compile to physical plan: " + alias);
-            stream.println("Failed to compile the logical plan for " + alias + " into a physical plan");
-            throw WrappedIOException.wrap("Failed to compile to phyiscal plan: " + alias, e);
+            StringBuilder sbException = new StringBuilder();
+            sbException.append("Failed to compile to phyiscal plan: ");
+            sbException.append(alias);
+            if (log.isErrorEnabled()) {
+                log.error(sbException.toString());
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("Failed to compile the logical plan for ");
+            sb.append(alias);
+            sb.append(" into a physical plan");
+            stream.println(sb.toString());
+            throw WrappedIOException.wrap(sbException.toString(), e);
         }
     }
 

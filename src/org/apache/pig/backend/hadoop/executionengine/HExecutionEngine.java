@@ -224,8 +224,12 @@ public class HExecutionEngine implements ExecutionEngine {
                                                 this);
                 }
                 catch (IOException e) {
-                    throw new ExecException("Failed to compile plan (" + i + ") " + logicalKey,
-                                                       e);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Failed to compile plan (");
+                    sb.append(i);
+                    sb.append(") ");
+                    sb.append(logicalKey);
+                    throw new ExecException(sb.toString(), e);
                 }
                 
                 logicalToPhysicalKeys.put(logicalKey, physicalKey);
@@ -359,7 +363,7 @@ public class HExecutionEngine implements ExecutionEngine {
             log.info("Connecting to HOD...");
             log.debug("sending HOD command " + cmd.toString());
 
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             int c;
             String hdfsUI = null;
             String mapredUI = null;
@@ -394,28 +398,28 @@ public class HExecutionEngine implements ExecutionEngine {
                         break;
                     }
                     current = ParsingState.NOTHING;
-                    sb = new StringBuffer();
+                    sb = new StringBuilder();
                 }
                 sb.append((char)c);
                 if (sb.indexOf("hdfsUI:") != -1) {
                     current = ParsingState.HDFSUI;
-                    sb = new StringBuffer();
+                    sb = new StringBuilder();
                 } 
                 else if (sb.indexOf("hdfs:") != -1) {
                     current = ParsingState.HDFS;
-                    sb = new StringBuffer();
+                    sb = new StringBuilder();
                 } 
                 else if (sb.indexOf("mapredUI:") != -1) {
                     current = ParsingState.MAPREDUI;
-                    sb = new StringBuffer();
+                    sb = new StringBuilder();
                 } 
                 else if (sb.indexOf("mapred:") != -1) {
                     current = ParsingState.MAPRED;
-                    sb = new StringBuffer();
+                    sb = new StringBuilder();
                 } 
                 else if (sb.indexOf("hadoopConf:") != -1) {
                     current = ParsingState.HADOOPCONF;
-                    sb = new StringBuffer();
+                    sb = new StringBuilder();
                 }    
             }
             

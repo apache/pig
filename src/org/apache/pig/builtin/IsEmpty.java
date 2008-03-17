@@ -30,13 +30,18 @@ public class IsEmpty extends FilterFunc {
 
     @Override
     public boolean exec(Tuple input) throws IOException {
-        Datum values = input.getField(0);        
-        if (values instanceof DataBag)
+        Datum values = input.getField(0);
+        if (values instanceof DataBag) {
             return ((DataBag)values).size() == 0;
-        else if (values instanceof DataMap)
+        } else if (values instanceof DataMap) {
             return ((DataMap)values).cardinality() == 0;
-        else
-            throw new IOException("Cannot test a " + values.getClass().getSimpleName() + " for emptiness.");
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Cannot test a ");
+            sb.append(values.getClass().getSimpleName());
+            sb.append(" for emptiness.");
+            throw new IOException(sb.toString());
+        }
     }
 
 }

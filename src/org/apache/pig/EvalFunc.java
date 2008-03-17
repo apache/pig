@@ -59,15 +59,17 @@ public abstract class EvalFunc<T extends Datum>  {
             superType = superClass.getGenericSuperclass();
             superClass = superClass.getSuperclass();
         }
-        String errMsg = getClass() + "extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.";
+        StringBuilder errMsg = new StringBuilder();
+        errMsg.append(getClass());
+        errMsg.append("extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.");
         
         if (!(superType instanceof ParameterizedType))
-            throw new RuntimeException(errMsg);
+            throw new RuntimeException(errMsg.toString());
         
         Type[] parameters  = ((ParameterizedType)superType).getActualTypeArguments();
         
         if (parameters.length != 1)
-                throw new RuntimeException(errMsg);
+                throw new RuntimeException(errMsg.toString());
         
         returnType = parameters[0];
         
@@ -80,13 +82,16 @@ public abstract class EvalFunc<T extends Datum>  {
         if (this instanceof Algebraic){
             Algebraic a = (Algebraic)this;
             
-            errMsg = "function of " + getClass().getName() + " is not of the expected type.";
+            errMsg = new StringBuilder();
+            errMsg.append("function of ");
+            errMsg.append(getClass().getName());
+            errMsg.append(" is not of the expected type.");
             if (getReturnTypeFromSpec(a.getInitial()) != Tuple.class)
-                throw new RuntimeException("Initial " + errMsg);
+                throw new RuntimeException("Initial " + errMsg.toString());
             if (getReturnTypeFromSpec(a.getIntermed()) != Tuple.class)
-                    throw new RuntimeException("Intermediate " + errMsg);
+                    throw new RuntimeException("Intermediate " + errMsg.toString());
             if (getReturnTypeFromSpec(a.getFinal()) != returnType)
-                    throw new RuntimeException("Final " + errMsg);
+                    throw new RuntimeException("Final " + errMsg.toString());
         }
         
     }

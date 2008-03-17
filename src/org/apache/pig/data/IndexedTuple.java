@@ -38,7 +38,12 @@ public class IndexedTuple extends Tuple {
 
     @Override
     public String toString() {
-        return super.toString() + "[" + index + "]";
+        StringBuilder sb = new StringBuilder();
+        sb.append(super.toString());
+        sb.append("[");
+        sb.append(index);
+        sb.append("]");
+        return sb.toString();
     }
 
     // Writable methods:

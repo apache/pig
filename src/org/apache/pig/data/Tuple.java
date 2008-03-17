@@ -147,10 +147,16 @@ public class Tuple extends Datum implements WritableComparable {
     }
 
     public Datum getField(int i) {
-        if (fields.size() >= i + 1)
+        if (fields.size() >= i + 1) {
             return fields.get(i);
+        }
 
-        throw new IndexOutOfBoundsException("Requested index " + i + " from tuple " + toString());
+        StringBuilder sb = new StringBuilder();
+        sb.append("Requested index ");
+        sb.append(i);
+        sb.append(" from tuple ");
+        sb.append(toString());
+        throw new IndexOutOfBoundsException(sb.toString());
     }
 
     // Get field i, if it is an Atom or can be coerced into an Atom

@@ -128,7 +128,15 @@ public class CompCond extends Cond {
         
     @Override
     public String toString() {
-        return "(" + left + " " + op + " " + right + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        sb.append(left);
+        sb.append(" ");
+        sb.append(op);
+        sb.append(" ");
+        sb.append(right);
+        sb.append(")");
+        return sb.toString();
     }
     
     @Override

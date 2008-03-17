@@ -56,7 +56,12 @@ public class LOSplit extends LogicalOperator {
 
     @Override
     public String name() {
-        return "Split " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Split ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
     
     public void visit(LOVisitor v) {

@@ -46,12 +46,20 @@ public class LOCogroup extends LogicalOperator {
 
     @Override
     public String name() {
-        if (inputs.size() == 1) return "Group " + scope + "-" + id;
-        else return "CoGroup " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        if (inputs.size() == 1) {
+            sb.append("Group ");
+        } else {
+            sb.append("CoGroup ");
+        }
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
     @Override
     public String arguments() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < specs.size(); i++) {
             sb.append(specs.get(i));

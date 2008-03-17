@@ -78,13 +78,13 @@ public class LogicalPlan implements Serializable, ExecLogicalPlan{
     // indentation for root is 0
     @Override
     public String toString() {        
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(opTable.get(root).name() +"(" + opTable.get(root).arguments() +")\n");
         sb.append(appendChildren(root, 1));
         return sb.toString();
     }
     public String appendChildren(OperatorKey parent, int indentation) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         List<OperatorKey> children = opTable.get(parent).getInputs();
         for(int i=0; i != children.size(); i++) {
             for(int j=0; j != indentation; j++) {

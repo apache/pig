@@ -321,7 +321,7 @@ public abstract class DataBag extends Datum implements Spillable, Iterable<Tuple
      * Write the bag into a string. */
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append('{');
         Iterator<Tuple> it = iterator();
         while ( it.hasNext() ) {

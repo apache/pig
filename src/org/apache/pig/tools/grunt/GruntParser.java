@@ -135,8 +135,14 @@ public class GruntParser extends PigScriptParser {
                 mPigServer.debugOn();
             else if (value.equals("off") || value.equals("'off'"))
                 mPigServer.debugOff();
-            else
-                throw new ParseException("Invalid value " + value + " provided for " + key);
+            else {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Invalid value ");
+                sb.append(value);
+                sb.append(" provided for ");
+                sb.append(key);
+                throw new ParseException(sb.toString());
+            }
         }
         else if (key.equals("job.name"))
         {
@@ -163,8 +169,13 @@ public class GruntParser extends PigScriptParser {
             ElementDescriptor dfsPath = mDfs.asElement(path);
             int rc;
             
-            if (!dfsPath.exists())
-                throw new IOException("Directory " + path + " does not exist.");
+            if (!dfsPath.exists()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Directory ");
+                sb.append(path);
+                sb.append(" does not exist.");
+                throw new IOException(sb.toString());
+            }
     
             if (mDfs.isContainer(path)) {
                 ContainerDescriptor dfsDir = (ContainerDescriptor) dfsPath;
@@ -211,7 +222,11 @@ public class GruntParser extends PigScriptParser {
                 container = mDfs.asContainer(path);
     
                 if (!container.exists()) {
-                    throw new IOException("Directory " + path + " does not exist.");
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Directory ");
+                    sb.append(path);
+                    sb.append(" does not exist.");
+                    throw new IOException(sb.toString());
                 }
                 
                 if (!mDfs.isContainer(path)) {
@@ -242,10 +257,13 @@ public class GruntParser extends PigScriptParser {
     {
         if (mJobClient != null) {
             RunningJob job = mJobClient.getJob(jobid);
-            if (job == null)
-                System.out.println("Job with id " + jobid + " is not active");
-            else
-            {    
+            if (job == null) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Job with id ");
+                sb.append(jobid);
+                sb.append(" is not active");
+                System.out.println(sb.toString());
+            } else {
                 job.killJob();
                 log.error("kill submited.");
             }
@@ -265,7 +283,11 @@ public class GruntParser extends PigScriptParser {
             }
 
             if (!pathDescriptor.exists()) {
-                throw new IOException("File or directory " + path + " does not exist.");                
+                StringBuilder sb = new StringBuilder();
+                sb.append("File or directory ");
+                sb.append(path);
+                sb.append(" does not exist.");
+                throw new IOException(sb.toString());
             }
             
             if (mDfs.isContainer(pathDescriptor.toString())) {
@@ -276,7 +298,7 @@ public class GruntParser extends PigScriptParser {
                     ElementDescriptor curElem = elems.next();
                     
                     if (mDfs.isContainer(curElem.toString())) {
-                           System.out.println(curElem.toString() + "\t<dir>");                        
+                           System.out.println(curElem.toString() + "\t<dir>");
                     }
                     else {
                         Properties config = curElem.getConfiguration();
@@ -285,7 +307,13 @@ public class GruntParser extends PigScriptParser {
                         String strReplication = config.getProperty(ElementDescriptor.BLOCK_REPLICATION_KEY);
                         String strLen = (String) stats.get(ElementDescriptor.LENGTH_KEY);
 
-                        System.out.println(curElem.toString() + "<r " + strReplication + ">\t" + strLen);
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(curElem.toString());
+                        sb.append("<r ");
+                        sb.append(strReplication);
+                        sb.append(">\t");
+                        sb.append(strLen);
+                        System.out.println(sb.toString());
                     }
                 }
             }
@@ -296,7 +324,13 @@ public class GruntParser extends PigScriptParser {
                 String strReplication = (String) config.get(ElementDescriptor.BLOCK_REPLICATION_KEY);
                 String strLen = (String) stats.get(ElementDescriptor.LENGTH_KEY);
 
-                System.out.println(pathDescriptor.toString() + "<r " + strReplication + ">\t" + strLen);                
+                StringBuilder sb = new StringBuilder();
+                sb.append(pathDescriptor.toString());
+                sb.append("<r ");
+                sb.append(strReplication);
+                sb.append(">\t");
+                sb.append(strLen);
+                System.out.println(sb.toString());
             }
         }
         catch (DataStorageException e) {
@@ -334,13 +368,22 @@ public class GruntParser extends PigScriptParser {
             ElementDescriptor dstPath = mDfs.asElement(dst);
             
             if (!srcPath.exists()) {
-                throw new IOException("File or directory " + src + " does not exist.");                
+                StringBuilder sb = new StringBuilder();
+                sb.append("File or directory ");
+                sb.append(src);
+                sb.append(" does not exist.");
+                throw new IOException(sb.toString());
             }
             
             srcPath.rename(dstPath);
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Failed to move " + src + " to " + dst, e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Failed to move ");
+            sb.append(src);
+            sb.append(" to ");
+            sb.append(dst);
+            throw WrappedIOException.wrap(sb.toString(), e);
         }
     }
     
@@ -353,7 +396,12 @@ public class GruntParser extends PigScriptParser {
             srcPath.copy(dstPath, mConf, false);
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Failed to copy " + src + " to " + dst, e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Failed to copy ");
+            sb.append(src);
+            sb.append(" to ");
+            sb.append(dst);
+            throw WrappedIOException.wrap(sb.toString(), e);
         }
     }
     
@@ -366,7 +414,12 @@ public class GruntParser extends PigScriptParser {
             srcPath.copy(dstPath, false);
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Failed to copy " + src + "to (locally) " + dst, e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Failed to copy ");
+            sb.append(src);
+            sb.append("to (locally) ");
+            sb.append(dst);
+            throw WrappedIOException.wrap(sb.toString(), e);
         }
     }
 
@@ -379,7 +432,12 @@ public class GruntParser extends PigScriptParser {
             srcPath.copy(dstPath, false);
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Failed to copy (loally) " + src + "to " + dst, e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Failed to copy (loally) ");
+            sb.append(src);
+            sb.append(" to ");
+            sb.append(dst);
+            throw WrappedIOException.wrap(sb.toString(), e);
         }
     }
     
@@ -402,7 +460,11 @@ public class GruntParser extends PigScriptParser {
         ElementDescriptor dfsPath = mDfs.asElement(path);
         
         if (!dfsPath.exists()) {
-            throw new IOException("File or directory " + path + " does not exist.");            
+            StringBuilder sb = new StringBuilder();
+            sb.append("File or directory ");
+            sb.append(path);
+            sb.append(" does not exist.");
+            throw new IOException(sb.toString());
         }
             
         dfsPath.delete();

@@ -46,7 +46,11 @@ public class NotCond extends Cond {
     
     @Override
     public String toString() {
-        return "(NOT " + cond + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("(NOT ");
+        sb.append(cond);
+        sb.append(")");
+        return sb.toString();
     }
     
     @Override

@@ -152,10 +152,21 @@ public class PigContext implements Serializable, FunctionInstantiator {
         //Now set these as system properties only if they are not already defined.
         for (Object o: fileProperties.keySet()){
             String propertyName = (String)o;
-            log.debug("Found system property " + propertyName + " in .pigrc"); 
+            if (log.isDebugEnabled()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Found system property ");
+                sb.append(propertyName);
+                sb.append(" in .pigrc");
+                log.debug(sb.toString());
+            }
             if (System.getProperty(propertyName) == null){
                 System.setProperty(propertyName, fileProperties.getProperty(propertyName));
-                log.debug("Setting system property " + propertyName);
+                if (log.isDebugEnabled()) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Setting system property ");
+                    sb.append(propertyName);
+                    log.debug(sb.toString());
+                }
             }
         }
     }    
@@ -237,17 +248,28 @@ public class PigContext implements Serializable, FunctionInstantiator {
             return;
         }
         
-        System.out.println("Renaming " + oldName + " to " + newName);
+        if (log.isInfoEnabled()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Renaming ");
+            sb.append(oldName);
+            sb.append(" to ");
+            sb.append(newName);
+            log.info(sb.toString());
+        }
 
         ElementDescriptor dst = null;
-        ElementDescriptor src = null;            
+        ElementDescriptor src = null;
 
         try {
             dst = dfs.asElement(newName);
-            src = dfs.asElement(oldName);            
-        }
-        catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Unable to rename " + oldName + " to " + newName, e);
+            src = dfs.asElement(oldName);
+        } catch (DataStorageException e) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Unable to rename ");
+            sb.append(oldName);
+            sb.append(" to ");
+            sb.append(newName);
+            throw WrappedIOException.wrap(sb.toString(), e);
         }
 
         if (dst.exists()) {
@@ -273,7 +295,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""), e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Unable to copy ");
+            sb.append(src);
+            sb.append(" to ");
+            sb.append(dst);
+            sb.append((localDst ? "locally" : ""));
+            throw WrappedIOException.wrap(sb.toString(), e);
         }
         
         srcElement.copy(dstElement, conf,false);
@@ -376,7 +404,12 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
         // create ClassNotFoundException exception and attach to IOException
         // so that we don't need to buble interface changes throughout the code
-        ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Could not resolve ");
+        sb.append(name);
+        sb.append(" using imports: ");
+        sb.append(packageImportList);
+        ClassNotFoundException e = new ClassNotFoundException(sb.toString());
         throw WrappedIOException.wrap(e.getMessage(), e);
     }
     
@@ -419,8 +452,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 ret = objClass.newInstance();
             }
         }catch(Throwable e){
-            throw new RuntimeException("could not instantiate '" + className
-                    + "' with arguments '" + args + "'", e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("could not instantiate '");
+            sb.append(className);
+            sb.append("' with arguments '");
+            sb.append(args);
+            sb.append("'");
+            throw new RuntimeException(sb.toString(), e);
         }
         return ret;
     }

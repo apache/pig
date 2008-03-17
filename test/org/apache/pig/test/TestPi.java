@@ -76,7 +76,7 @@ public class TestPi extends TestCase {
         Random rand = new Random();
         
         for(int i = 0; i < total; i++) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             
             Double x = new Double(rand.nextDouble());
             Double y = new Double(rand.nextDouble());

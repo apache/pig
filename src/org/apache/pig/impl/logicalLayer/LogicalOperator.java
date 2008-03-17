@@ -110,7 +110,7 @@ abstract public class LogicalOperator implements Serializable, ExecScopedLogical
     }
 
     @Override public String toString() {
-        StringBuffer result = new StringBuffer(super.toString());
+        StringBuilder result = new StringBuilder(super.toString());
         result.append(" (alias: ");
         result.append(alias);
         result.append(", requestedParallelism: ");
@@ -122,7 +122,12 @@ abstract public class LogicalOperator implements Serializable, ExecScopedLogical
     public abstract TupleSchema outputSchema();
 
     public String name() {
-        return "ROOT " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("ROOT ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
 
     public List<OperatorKey> getInputs() {

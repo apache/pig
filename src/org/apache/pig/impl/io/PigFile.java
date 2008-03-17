@@ -68,6 +68,11 @@ public class PigFile {
     }
 
     public String toString() {
-        return "PigFile: file: " + this.file + ", append: " + this.append;
+        StringBuilder sb = new StringBuilder();
+        sb.append("PigFile: file: ");
+        sb.append(this.file);
+        sb.append(", append: ");
+        sb.append(this.append);
+        return sb.toString();
     }
 }

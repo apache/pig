@@ -72,14 +72,27 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
         Tuple t = null;
         for (Iterator it = values.iterator(); it.hasNext();) {
             try {
-            t = (Tuple) it.next();
-        i++;
-            sum += t.getAtomField(0).numval();
+                t = (Tuple) it.next();
+                i++;
+                sum += t.getAtomField(0).numval();
             }catch(RuntimeException exp) {
-        String msg = "iteration = " + i + "bag size = " + values.size() + " partial sum = " + sum + "\n";
-        if (t != null)
-            msg += "previous tupple = " + t.toString();
-        throw new RuntimeException(exp.getMessage() + " additional info: " + msg);
+                StringBuilder msg = new StringBuilder();
+                msg.append("iteration = ");
+                msg.append(i);
+                msg.append("bag size = ");
+                msg.append(values.size());
+                msg.append(" partial sum = ");
+                msg.append(sum);
+                msg.append("\n");
+                if (t != null) {
+                    msg.append("previous tupple = ");
+                    msg.append(t.toString());
+                }
+                StringBuilder errorMsg = new StringBuilder();
+                errorMsg.append(exp.getMessage());
+                errorMsg.append(" additional info: ");
+                errorMsg.append(msg.toString());
+                throw new RuntimeException(errorMsg.toString());
                 //throw new RuntimeException(exp.getMessage() + " error processing: " + t.toString());
             }
         }

@@ -28,13 +28,17 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
 public class TestAlgebraicEval extends TestCase {
     
-	MiniCluster cluster = MiniCluster.buildCluster();
+    private final Log log = LogFactory.getLog(getClass());
+    
+    MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testSimpleCount() throws Throwable {
         int LOOP_COUNT = 1024;
@@ -45,9 +49,14 @@ public class TestAlgebraicEval extends TestCase {
             ps.println(i);
         }
         ps.close();
-        String query = "myid =  foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1);";
-        System.out.println(query);
-        pig.registerQuery(query);
+        StringBuilder query = new StringBuilder();
+        query.append("myid =  foreach (group (load 'file:");
+        query.append(tmpFile);
+        query.append("') all) generate COUNT($1);");
+        if (log.isDebugEnabled()) {
+            log.debug(query.toString());
+        }
+        pig.registerQuery(query.toString());
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
@@ -65,9 +74,14 @@ public class TestAlgebraicEval extends TestCase {
             ps.println(i);
         }
         ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate group, COUNT($1) ;";
-        System.out.println(query);
-        pig.registerQuery(query);
+        StringBuilder query = new StringBuilder();
+        query.append("myid = foreach (group (load 'file:");
+        query.append(tmpFile);
+        query.append("') all) generate group, COUNT($1) ;");
+        if (log.isDebugEnabled()) {
+            log.debug(query.toString());
+        }
+        pig.registerQuery(query.toString());
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
@@ -85,9 +99,14 @@ public class TestAlgebraicEval extends TestCase {
             ps.println(i);
         }
         ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1), group ;";
-        System.out.println(query);
-        pig.registerQuery(query);
+        StringBuilder query = new StringBuilder();
+        query.append("myid = foreach (group (load 'file:");
+        query.append(tmpFile);
+        query.append("') all) generate COUNT($1), group ;");
+        if (log.isDebugEnabled()) {
+            log.debug(query.toString());
+        }
+        pig.registerQuery(query.toString());
         Iterator it = pig.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();

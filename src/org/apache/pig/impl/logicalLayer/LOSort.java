@@ -46,7 +46,12 @@ public class LOSort extends LogicalOperator {
 
     @Override
     public String name() {
-        return "SORT " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("SORT ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
 
     @Override

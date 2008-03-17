@@ -292,7 +292,7 @@ public class GenerateSpec extends EvalSpec {
  
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("GENERATE ");
         sb.append("{");
         boolean first = true;

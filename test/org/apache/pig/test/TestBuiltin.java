@@ -311,7 +311,12 @@ public class TestBuiltin extends TestCase {
         int LOOP_COUNT = 1024;
         for (int i = 0; i < LOOP_COUNT; i++) {
             for (int j = 0; j < LOOP_COUNT; j++) {
-                sb.append(i + "\t" + i + "\t" + j % 2 + "\n");
+                sb.append(i);
+                sb.append("\t");
+                sb.append(i);
+                sb.append("\t");
+                sb.append(j % 2);
+                sb.append("\n");
             }
         }
         byte bytes[] = sb.toString().getBytes();
