@@ -163,3 +163,6 @@ Trunk (unreleased changes)
 
     PIG-129: making sure that temp files are stored in task's home dir and
     cleaned up
+
+    PIG-115: Removed Yahoo specific scripts/pig.pl, replaced with generic
+    bash script bin/pig.  Moved startHOD.expect to bin (joa23 via gates).
