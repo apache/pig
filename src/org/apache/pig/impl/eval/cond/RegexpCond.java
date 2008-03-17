@@ -60,7 +60,13 @@ public class RegexpCond extends Cond {
       
     @Override
     public String toString() {
-        return "(" + left + " MATCHES " + "'" + re + "')";
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        sb.append(left);
+        sb.append(" MATCHES '");
+        sb.append(re);
+        sb.append("')");
+        return sb.toString();
     }
     
     @Override

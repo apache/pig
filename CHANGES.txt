@@ -166,3 +166,6 @@ Trunk (unreleased changes)
 
     PIG-115: Removed Yahoo specific scripts/pig.pl, replaced with generic
     bash script bin/pig.  Moved startHOD.expect to bin (joa23 via gates).
+
+	PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud
+	via gates).

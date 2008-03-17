@@ -23,7 +23,7 @@ public class LOSplitOutput extends LogicalOperator {
     
     @Override
     public String toString() {
-        StringBuffer result = new StringBuffer(super.toString());
+        StringBuilder result = new StringBuilder(super.toString());
         result.append(" (index: ");
         result.append(index);
         result.append(')');
@@ -33,7 +33,12 @@ public class LOSplitOutput extends LogicalOperator {
 
     @Override
     public String name() {
-        return "SplitOutput " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("SplitOutput ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
 
     @Override

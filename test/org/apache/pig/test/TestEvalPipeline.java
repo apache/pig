@@ -205,7 +205,7 @@ public class TestEvalPipeline extends TestCase {
 		}
 		
 		String makeString(List<String> list) {
-			StringBuffer sb = new StringBuffer();
+			StringBuilder sb = new StringBuilder();
 			for (Iterator<String> it = list.iterator(); it.hasNext(); ) {
 				sb.append(it.next());
 				if (it.hasNext())

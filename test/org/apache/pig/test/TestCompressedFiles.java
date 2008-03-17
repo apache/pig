@@ -49,7 +49,7 @@ public class TestCompressedFiles extends TestCase {
         GZIPOutputStream gz = new GZIPOutputStream(new FileOutputStream(gzFile));
         Random rand = new Random();
         for(int i = 0; i < 1024; i++) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             int x = rand.nextInt();
             int y = rand.nextInt();
             sb.append(x);

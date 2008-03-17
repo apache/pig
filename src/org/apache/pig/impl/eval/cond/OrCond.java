@@ -56,7 +56,7 @@ public class OrCond extends Cond {
 
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("(");
         for (Iterator<Cond> it = cList.iterator(); it.hasNext(); ) {
             sb.append(it.next());

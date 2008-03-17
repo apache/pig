@@ -116,18 +116,24 @@ public char getNextOpt() throws ParseException
             cc = mLong.get(arg.substring(offset));
             if (cc == null) {
                 Integer ii = new Integer(mArgNum + 1);
-                String errMsg = "Found unknown option (" + arg + ") at position " +
-                    ii.toString();
-                throw new ParseException(errMsg, mArgNum);
+                StringBuilder errMsg = new StringBuilder();
+                errMsg.append("Found unknown option (");
+                errMsg.append(arg);
+                errMsg.append(") at position ");
+                errMsg.append(ii.toString());
+                throw new ParseException(errMsg.toString(), mArgNum);
             }
         }
 
         ValueExpected ve = mShort.get(cc);
         if (ve == null) {
             Integer ii = new Integer(mArgNum + 1);
-            String errMsg = "Found unknown option (" + arg + ") at position " +
-                ii.toString();
-            throw new ParseException(errMsg, mArgNum);
+            StringBuilder errMsg = new StringBuilder();
+            errMsg.append("Found unknown option (");
+            errMsg.append(arg);
+            errMsg.append(") at position ");
+            errMsg.append(ii.toString());
+            throw new ParseException(errMsg.toString(), mArgNum);
         }
 
         switch (ve) {

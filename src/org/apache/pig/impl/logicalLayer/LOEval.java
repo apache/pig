@@ -42,7 +42,12 @@ public class LOEval extends LogicalOperator {
 
     @Override
     public String name() {
-        return "Eval " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Eval ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
 
     @Override

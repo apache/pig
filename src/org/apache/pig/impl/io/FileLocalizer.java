@@ -173,7 +173,11 @@ public class FileLocalizer {
                 }
             }
             catch (DataStorageException e) {
-                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
+                StringBuilder sb = new StringBuilder();
+                sb.append("Failed to determine if elem=");
+                sb.append(elem);
+                sb.append(" is container");
+                throw WrappedIOException.wrap(sb.toString(), e);
             }
             
             ArrayList<ElementDescriptor> arrayList = 

@@ -36,7 +36,12 @@ public class LOUnion extends LogicalOperator {
     
     @Override
     public String name() {
-        return "Union " + scope + "-" + id;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Union ");
+        sb.append(scope);
+        sb.append("-");
+        sb.append(id);
+        return sb.toString();
     }
 
     @Override

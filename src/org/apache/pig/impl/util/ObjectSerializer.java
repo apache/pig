@@ -57,7 +57,7 @@ public class ObjectSerializer {
     }
     
     public static String encodeBytes(byte[] bytes) {
-        StringBuffer strBuf = new StringBuffer();
+        StringBuilder strBuf = new StringBuilder();
     
         for (int i = 0; i < bytes.length; i++) {
             strBuf.append((char) (((bytes[i] >> 4) & 0xF) + ((int) 'a')));

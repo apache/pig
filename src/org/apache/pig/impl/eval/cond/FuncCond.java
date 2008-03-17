@@ -76,14 +76,23 @@ public class FuncCond extends Cond {
             
             return func.exec((Tuple)d);
         } catch (IOException e) {
-            log.error("Warning: filter function " + funcName + " failed. Substituting default value \'false\'.", e);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Warning: filter function ");
+            sb.append(funcName);
+            sb.append(" failed. Substituting default value \'false\'.");
+            log.error(sb.toString(), e);
             return false;
         }
     }
     
     @Override
     public String toString() {
-        return funcName + "(" + args + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append(funcName);
+        sb.append("(");
+        sb.append(args);
+        sb.append(")");
+        return sb.toString();
     }
     
     @Override

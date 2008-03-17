@@ -73,8 +73,13 @@ public class LocalFile extends LocalPath {
                                                 path.getName());
                 }
                 catch (DataStorageException e) {
-                    throw WrappedIOException.wrap("Unable to generate element name (src: " + 
-                                           this + ", dst: " + dstName + ")", e);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Unable to generate element name (src: ");
+                    sb.append(this);
+                    sb.append(", dst: ");
+                    sb.append(dstName);
+                    sb.append(")");
+                    throw WrappedIOException.wrap(sb.toString(), e);
                 }
             }
         }

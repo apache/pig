@@ -64,13 +64,23 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
         }
         
         if (inputs.size() != mapFuncs.size()) {
-            throw new IOException("number of inputs != number of map functions: " + inputs.size() + " != "
-                    + mapFuncs.size() + ": " + job.get("pig.mapFuncs", "missing"));
+            StringBuilder sb = new StringBuilder();
+            sb.append("number of inputs != number of map functions: ");
+            sb.append(inputs.size());
+            sb.append(" != ");
+            sb.append(mapFuncs.size());
+            sb.append(": ");
+            sb.append(job.get("pig.mapFuncs", "missing"));
+            throw new IOException(sb.toString());
         }
         
         if (groupFuncs!= null && inputs.size() != groupFuncs.size()) {
-            throw new IOException("number of inputs != number of group functions: " + inputs.size() + " != "
-                    + groupFuncs.size());
+            StringBuilder sb = new StringBuilder();
+            sb.append("number of inputs != number of group functions: ");
+            sb.append(inputs.size());
+            sb.append(" != ");
+            sb.append(groupFuncs.size());
+            throw new IOException(sb.toString());
         }
         
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();

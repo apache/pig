@@ -70,7 +70,11 @@ public class EvalSpecPrinter extends EvalSpecVisitor {
      */
     public void visitGenerate(GenerateSpec g) {
         indent();
-        mStream.println("Generate: has " + g.getSpecs().size() + " children");
+        StringBuilder sb = new StringBuilder();
+        sb.append("Generate: has ");
+        sb.append(g.getSpecs().size());
+        sb.append(" children");
+        mStream.println(sb.toString());
         mIndent++;
         super.visitGenerate(g);
         mIndent--;
@@ -124,7 +128,11 @@ public class EvalSpecPrinter extends EvalSpecVisitor {
      */
     public void visitFuncEval(FuncEvalSpec fe) {
         indent();
-        mStream.println("FuncEval: name: " + fe.getFuncName() + " args:");
+        StringBuilder sb = new StringBuilder();
+        sb.append("FuncEval: name: ");
+        sb.append(fe.getFuncName());
+        sb.append(" args:");
+        mStream.println(sb.toString());
         mIndent++;
         fe.getArgs().visit(this);
         mIndent--;
@@ -136,7 +144,11 @@ public class EvalSpecPrinter extends EvalSpecVisitor {
      */
     public void visitCompositeEval(CompositeEvalSpec ce) {
         indent();
-        mStream.println("Composite: has " + ce.getSpecs().size() + " children");
+        StringBuilder sb = new StringBuilder();
+        sb.append("Composite: has ");
+        sb.append(ce.getSpecs().size());
+        sb.append(" children");
+        mStream.println(sb.toString());
         mIndent++;
         super.visitCompositeEval(ce);
         mIndent--;

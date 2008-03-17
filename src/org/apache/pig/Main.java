@@ -222,7 +222,7 @@ public static void main(String args[])
         case STRING: {
             // Gather up all the remaining arguments into a string and pass them into
             // grunt.
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             String remainders[] = opts.getRemainingArgs();
             for (int i = 0; i < remainders.length; i++) {
                 if (i != 0) sb.append(' ');

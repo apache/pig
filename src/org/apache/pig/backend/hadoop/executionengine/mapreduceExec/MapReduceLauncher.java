@@ -211,13 +211,25 @@ public class MapReduceLauncher {
                     
                     if (status.isComplete()) {
                         success = status.isSuccessful();
-                        log.debug("Job finished " + (success ? "" : "un") + "successfully");
+                        if (log.isDebugEnabled()) {
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("Job finished ");
+                            sb.append((success ? "" : "un"));
+                            sb.append("successfully");
+                            log.debug(sb.toString());
+                        }
                         if (success) {
                             mrJobNumber++;
                         }
                         double queryProgress = ((double) mrJobNumber) / ((double) numMRJobs);
                         if (queryProgress > lastQueryProgress) {
-                            log.info("Pig progress = " + ((int) (queryProgress * 100)) + "%");
+                            if (log.isInfoEnabled()) {
+                                StringBuilder sbProgress = new StringBuilder();
+                                sbProgress.append("Pig progress = ");
+                                sbProgress.append(((int) (queryProgress * 100)));
+                                sbProgress.append("%");
+                                log.info(sbProgress.toString());
+                            }
                             lastQueryProgress = queryProgress;
                         }
                         break;
@@ -227,8 +239,15 @@ public class MapReduceLauncher {
                         double mapProgress = status.mapProgress();
                         double reduceProgress = status.reduceProgress();
                         if (lastMapProgress != mapProgress || lastReduceProgress != reduceProgress) {
-                            log.debug("Hadoop job progress: Map=" + (int) (mapProgress * 100) + "% Reduce="
-                                    + (int) (reduceProgress * 100) + "%");
+                            if (log.isDebugEnabled()) {
+                                StringBuilder sbProgress = new StringBuilder();
+                                sbProgress.append("Hadoop job progress: Map=");
+                                sbProgress.append((int) (mapProgress * 100));
+                                sbProgress.append("% Reduce=");
+                                sbProgress.append((int) (reduceProgress * 100));
+                                sbProgress.append("%");
+                                log.debug(sbProgress.toString());
+                            }
                             lastMapProgress = mapProgress;
                             lastReduceProgress = reduceProgress;
                         }
@@ -236,7 +255,13 @@ public class MapReduceLauncher {
                         double thisJobProgress = (mapProgress + reduceProgress) / 2.0;
                         double queryProgress = (numJobsCompleted + thisJobProgress) / ((double) numMRJobs);
                         if (queryProgress > lastQueryProgress) {
-                            log.info("Pig progress = " + ((int) (queryProgress * 100)) + "%");
+                            if (log.isInfoEnabled()) {
+                                StringBuilder sbProgress = new StringBuilder();
+                                sbProgress.append("Pig progress = ");
+                                sbProgress.append(((int) (queryProgress * 100)));
+                                sbProgress.append("%");
+                                log.info(sbProgress.toString());
+                            }
                             lastQueryProgress = queryProgress;
                         }
                     }
@@ -303,12 +328,16 @@ private void getErrorMessages(TaskReport reports[], String type)
 {
     for (int i = 0; i < reports.length; i++) {
         String msgs[] = reports[i].getDiagnostics();
-        StringBuilder sb = new StringBuilder("Error message from task (" + type + ") " +
-            reports[i].getTaskId());
+        StringBuilder sb = new StringBuilder("Error message from task (");
+        sb.append(type);
+        sb.append(") ");
+        sb.append(reports[i].getTaskId());
         for (int j = 0; j < msgs.length; j++) {
             sb.append(" " + msgs[j]);
         }
-        log.error(sb.toString());
+        if (log.isErrorEnabled()) {
+            log.error(sb.toString());
+        }
     }
 }
 
