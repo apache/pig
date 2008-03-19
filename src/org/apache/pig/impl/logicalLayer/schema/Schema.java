@@ -66,6 +66,18 @@ public class Schema {
             type = DataType.TUPLE;
             schema = s;
         }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof FieldSchema)) return false;
+            FieldSchema fs = (FieldSchema)other;
+            // Fields can have different names and still be equal.  But
+            // types and schemas (if they're a tuple) must match.
+            if (type != fs.type) return false;
+            if (schema != fs.schema) return false;
+
+            return true;
+        }
     }
 
     private List<FieldSchema> mFields;
@@ -152,7 +164,22 @@ public class Schema {
             if (otherFs.type != DataType.UNKNOWN) ourFs.type = otherFs.type; 
             if (otherFs.schema != null) ourFs.schema = otherFs.schema; 
         }
+    }
 
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof Schema)) return false;
+
+        Schema s = (Schema)other;
+
+        if (s.size() != size()) return false;
+
+        Iterator<FieldSchema> i = mFields.iterator();
+        Iterator<FieldSchema> j = s.mFields.iterator();
+        while (i.hasNext()) {
+            if (!(i.next().equals(j.next()))) return false;
+        }
+        return true;
     }
 }
 

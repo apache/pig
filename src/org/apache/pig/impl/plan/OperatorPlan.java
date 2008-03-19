@@ -28,16 +28,16 @@ import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 
-import org.apache.commons.collections.map.MultiValueMap;
+//import org.apache.commons.collections.map.MultiValueMap;
 
 /**
  * A generic graphing class for use by LogicalPlan, PhysicalPlan, etc.
  */
-public abstract class OperatorPlan<E extends Operator> implements Iterable {
+public abstract class OperatorPlan<E extends Operator> implements Iterable, Serializable {
     protected Map<E, OperatorKey> mOps;
     protected Map<OperatorKey, E> mKeys;
-    protected MultiValueMap mFromEdges;
-    protected MultiValueMap mToEdges;
+    protected MultiMap<E, E> mFromEdges;
+    protected MultiMap<E, E> mToEdges;
 
     private List<E> mRoots;
     private List<E> mLeaves;
@@ -48,8 +48,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
         mLeaves = new ArrayList<E>();
         mOps = new HashMap<E, OperatorKey>();
         mKeys = new HashMap<OperatorKey, E>();
-        mFromEdges = new MultiValueMap();
-        mToEdges = new MultiValueMap();
+        mFromEdges = new MultiMap<E, E>();
+        mToEdges = new MultiMap<E, E>();
     }
 
     /**
@@ -59,7 +59,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
     public List<E> getRoots() {
         if (mRoots.size() == 0 && mOps.size() > 0) {
             for (E op : mOps.keySet()) {
-                if (mToEdges.getCollection(op) == null) {
+                if (mToEdges.get(op) == null) {
                     mRoots.add(op);
                 }
             }
@@ -74,7 +74,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
     public List<E> getLeaves() {
         if (mLeaves.size() == 0 && mOps.size() > 0) {
             for (E op : mOps.keySet()) {
-                if (mFromEdges.getCollection(op) == null) {
+                if (mFromEdges.get(op) == null) {
                     mLeaves.add(op);
                 }
             }
@@ -130,7 +130,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
 
         // Check to see if the from operator already has outputs, and if so
         // whether it supports multiple outputs.
-        if (mFromEdges.getCollection(from) != null &&
+        if (mFromEdges.get(from) != null &&
                 !from.supportsMultipleOutputs()) {
             throw new IOException("Attempt to give operator of type " +
                 from.typeName() + " multiple outputs.  This operator does "
@@ -139,7 +139,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
 
         // Check to see if the to operator already has inputs, and if so
         // whether it supports multiple inputs.
-        if (mToEdges.getCollection(to) != null &&
+        if (mToEdges.get(to) != null &&
                 !to.supportsMultipleInputs()) {
             throw new IOException("Attempt to give operator of type " +
                 from.typeName() + " multiple inputs.  This operator does "
@@ -190,7 +190,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
      * @return Collection of nodes.
      */
     public List<E> getPredecessors(E op) {
-        return (List<E>)mToEdges.getCollection(op);
+        return (List<E>)mToEdges.get(op);
     }
 
 
@@ -201,7 +201,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
      * @return Collection of nodes.
      */
     public List<E> getSuccessors(E op) {
-        return (List<E>)mFromEdges.getCollection(op);
+        return (List<E>)mFromEdges.get(op);
     }
 
     public Iterator<E> iterator() { 
@@ -214,12 +214,12 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable {
     }
 
     private void removeEdges(E op,
-                             MultiValueMap fromMap,
-                             MultiValueMap toMap) {
+                             MultiMap<E, E> fromMap,
+                             MultiMap<E, E> toMap) {
         // Find all of the from edges, as I have to remove all the associated to
         // edges.  Need to make a copy so we can delete from the map without
         // screwing up our iterator.
-        Collection c = fromMap.getCollection(op);
+        Collection c = fromMap.get(op);
         if (c == null) return;
 
         ArrayList al = new ArrayList(c);

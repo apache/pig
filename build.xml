@@ -132,7 +132,7 @@
     </target>
 
     <target name="compile-sources">
-        <javac encoding="${build.encoding}" srcdir="${sources}" includes="**/plan/*.java, **/logicalLayer/LogicalPlan.java, **/logicalLayer/LOEval.java, **/logicalLayer/LOSort.java, **/logicalLayer/LOGenerate.java, **/logicalLayer/LOVisitor.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
+        <javac encoding="${build.encoding}" srcdir="${sources}" includes="**/plan/*.java, **/test/TestOperatorPlan.java, **/logicalLayer/LogicalPlan.java, **/logicalLayer/LOEval.java, **/logicalLayer/LOSort.java, **/logicalLayer/LOGenerate.java, **/logicalLayer/LOVisitor.java, **/logicalLayer/schema/Schema.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
             <!--

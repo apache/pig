@@ -105,26 +105,26 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
     }
 
-    class TPlan extends OperatorPlan {
+    class TPlan extends OperatorPlan<TOperator> {
 
         public String display() {
             StringBuilder buf = new StringBuilder();
 
             buf.append("Nodes: ");
-            for (Operator op : mOps.keySet()) {
+            for (TOperator op : mOps.keySet()) {
                 buf.append(op.name());
                 buf.append(' ');
             }
 
             buf.append("FromEdges: ");
-            Iterator i = mFromEdges.keySet().iterator();
+            Iterator<TOperator> i = mFromEdges.keySet().iterator();
             while (i.hasNext()) {
-                Operator from = (Operator)i.next();
-                Iterator j = mFromEdges.iterator(from);
+                TOperator from = i.next();
+                Iterator<TOperator> j = mFromEdges.get(from).iterator();
                 while (j.hasNext()) {
                     buf.append(from.name());
                     buf.append("->");
-                    buf.append(((Operator)j.next()).name());
+                    buf.append(j.next().name());
                     buf.append(' ');
                 }
             }
@@ -132,12 +132,12 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             buf.append("ToEdges: ");
             i = mToEdges.keySet().iterator();
             while (i.hasNext()) {
-                Operator from = (Operator)i.next();
-                Iterator j = mToEdges.iterator(from);
+                TOperator from = i.next();
+                Iterator<TOperator> j = mToEdges.get(from).iterator();
                 while (j.hasNext()) {
                     buf.append(from.name());
                     buf.append("->");
-                    buf.append(((Operator)j.next()).name());
+                    buf.append(j.next().name());
                     buf.append(' ');
                 }
             }
@@ -198,21 +198,21 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         // successors.
 
         TPlan plan = new TPlan();
-        Operator[] ops = new Operator[3];
+        TOperator[] ops = new TOperator[3];
         for (int i = 0; i < 3; i++) {
             ops[i] = new SingleOperator(Integer.toString(i));
             plan.add(ops[i]);
         }
 
         // All should be roots, as none are connected
-        List<Operator> roots = plan.getRoots();
+        List<TOperator> roots = plan.getRoots();
         for (int i = 0; i < 3; i++) {
             assertTrue("Roots should contain operator " + i,
                 roots.contains(ops[i]));
         }
 
         // All should be leaves, as none are connected
-        List<Operator> leaves = plan.getLeaves();
+        List<TOperator> leaves = plan.getLeaves();
         for (int i = 0; i < 3; i++) {
             assertTrue("Leaves should contain operator " + i,
                 leaves.contains(ops[i]));
@@ -223,8 +223,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertNull(plan.getPredecessors(ops[1]));
 
         // Make sure we find them all when we iterate through them.
-        Set<Operator> s = new HashSet<Operator>();
-        Iterator<Operator> j = plan.iterator();
+        Set<TOperator> s = new HashSet<TOperator>();
+        Iterator<TOperator> j = plan.iterator();
         while (j.hasNext()) {
             s.add(j.next());
         }
@@ -235,7 +235,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
 
         // Test that we can find an operator by its key.
-        Operator op = plan.getOperator(new OperatorKey("", 1));
+        TOperator op = plan.getOperator(new OperatorKey("", 1));
         assertEquals("Expected to get back ops[1]", ops[1], op);
 
         // Test that we can get an operator key by its operator
@@ -272,7 +272,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
     @Test
     public void testLinearGraph() throws Exception {
         TPlan plan = new TPlan();
-        Operator[] ops = new Operator[5];
+        TOperator[] ops = new TOperator[5];
         for (int i = 0; i < 5; i++) {
             ops[i] = new SingleOperator(Integer.toString(i));
             plan.add(ops[i]);
@@ -280,7 +280,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
 
         // Test that connecting a node not yet in the plan is detected.
-        Operator bogus = new SingleOperator("X");
+        TOperator bogus = new SingleOperator("X");
         boolean sawError = false;
         try {
             plan.connect(ops[2], bogus);
@@ -293,12 +293,12 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             + "node that was not in the plan", sawError);
 
         // Get roots should just return ops[0]
-        List<Operator> roots = plan.getRoots();
+        List<TOperator> roots = plan.getRoots();
         assertEquals(1, roots.size());
         assertEquals(roots.get(0), ops[0]);
 
         // Get leaves should just return ops[4]
-        List<Operator> leaves = plan.getLeaves();
+        List<TOperator> leaves = plan.getLeaves();
         assertEquals(1, leaves.size());
         assertEquals(leaves.get(0), ops[4]);
 
@@ -344,7 +344,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         i = p.iterator();
         assertEquals(ops[0], i.next());
 
-        assertEquals("Nodes: 2 1 4 0 3 FromEdges: 2->3 1->2 0->1 3->4 ToEdges: 2->1 1->0 4->3 3->2 ", plan.display());
+        assertEquals("Nodes: 2 0 1 3 4 FromEdges: 2->3 0->1 1->2 3->4 ToEdges: 2->1 1->0 3->2 4->3 ", plan.display());
 
         // Visit it depth first
         TVisitor visitor = new TDepthVisitor(plan);
@@ -358,17 +358,17 @@ public class TestOperatorPlan extends junit.framework.TestCase {
 
         // Test disconnect
         plan.disconnect(ops[2], ops[3]);
-        assertEquals("Nodes: 2 1 4 0 3 FromEdges: 1->2 0->1 3->4 ToEdges: 2->1 1->0 4->3 ", plan.display());
+        assertEquals("Nodes: 2 0 1 3 4 FromEdges: 0->1 1->2 3->4 ToEdges: 2->1 1->0 4->3 ", plan.display());
 
         // Test remove
         plan.remove(ops[1]);
-        assertEquals("Nodes: 2 4 0 3 FromEdges: 3->4 ToEdges: 4->3 ", plan.display());
+        assertEquals("Nodes: 2 0 3 4 FromEdges: 3->4 ToEdges: 4->3 ", plan.display());
     }
 
     @Test
     public void testDAG() throws Exception {
         TPlan plan = new TPlan();
-        Operator[] ops = new Operator[6];
+        TOperator[] ops = new TOperator[6];
         for (int i = 0; i < 6; i++) {
             ops[i] = new MultiOperator(Integer.toString(i));
             plan.add(ops[i]);
@@ -380,30 +380,30 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[3], ops[5]);
 
         // Get roots should return ops[0] and ops[1]
-        List<Operator> roots = plan.getRoots();
+        List<TOperator> roots = plan.getRoots();
         assertEquals(2, roots.size());
         assertTrue(roots.contains(ops[0]));
         assertTrue(roots.contains(ops[1]));
 
         // Get leaves should return ops[4] and ops[5]
-        List<Operator> leaves = plan.getLeaves();
+        List<TOperator> leaves = plan.getLeaves();
         assertEquals(2, leaves.size());
         assertTrue(leaves.contains(ops[4]));
         assertTrue(leaves.contains(ops[5]));
 
         // Successor for ops[3] should be ops[4] and ops[5]
-        List<Operator> s = new ArrayList<Operator>(plan.getSuccessors(ops[3]));
+        List<TOperator> s = new ArrayList<TOperator>(plan.getSuccessors(ops[3]));
         assertEquals(2, s.size());
         assertTrue(s.contains(ops[4]));
         assertTrue(s.contains(ops[5]));
         
         // Predecessor for ops[2] should be ops[0] and ops[1]
-        s = new ArrayList<Operator>(plan.getPredecessors(ops[2]));
+        s = new ArrayList<TOperator>(plan.getPredecessors(ops[2]));
         assertEquals(2, s.size());
         assertTrue(s.contains(ops[0]));
         assertTrue(s.contains(ops[1]));
 
-        assertEquals("Nodes: 0 3 5 1 4 2 FromEdges: 0->2 3->4 3->5 1->2 2->3 ToEdges: 3->2 5->3 4->3 2->0 2->1 ", plan.display());
+        assertEquals("Nodes: 4 5 0 2 1 3 FromEdges: 0->2 2->3 1->2 3->4 3->5 ToEdges: 4->3 5->3 2->0 2->1 3->2 ", plan.display());
 
         // Visit it depth first
         TVisitor visitor = new TDepthVisitor(plan);
@@ -413,15 +413,15 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         // Visit it dependency order
         visitor = new TDependVisitor(plan);
         visitor.visit();
-        assertEquals("0 1 2 3 5 4 ", visitor.getJournal());
+        assertEquals("0 1 2 3 4 5 ", visitor.getJournal());
 
         // Test disconnect
         plan.disconnect(ops[2], ops[3]);
-        assertEquals("Nodes: 0 3 5 1 4 2 FromEdges: 0->2 3->4 3->5 1->2 ToEdges: 5->3 4->3 2->0 2->1 ", plan.display());
+        assertEquals("Nodes: 4 5 0 2 1 3 FromEdges: 0->2 1->2 3->4 3->5 ToEdges: 4->3 5->3 2->0 2->1 ", plan.display());
 
         // Test remove
         plan.remove(ops[2]);
-        assertEquals("Nodes: 0 3 5 1 4 FromEdges: 3->4 3->5 ToEdges: 5->3 4->3 ", plan.display());
+        assertEquals("Nodes: 4 5 0 1 3 FromEdges: 3->4 3->5 ToEdges: 4->3 5->3 ", plan.display());
     }
 
 
