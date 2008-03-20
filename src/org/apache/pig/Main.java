@@ -36,6 +36,7 @@ import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
@@ -274,8 +275,12 @@ public static void main(String args[])
         usage();
         rc = 1;
     } catch (Throwable e) {
-        log.error(e);
+        //log.error(e);
+        // this is a hack to see full error till we resolve commons logging config
+        e.printStackTrace();
     } finally {
+        // clear temp files
+        FileLocalizer.deleteTempFiles();
         PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         System.exit(rc);
     }

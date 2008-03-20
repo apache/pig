@@ -40,7 +40,7 @@
     <property name="dist.dir" value="${build.dir}/${final.name}" />
     <property name="build.encoding" value="ISO-8859-1" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
-    <property name="hadoop.jarfile" value="hadoop15.jar" />
+    <property name="hadoop.jarfile" value="hadoop16.jar" />
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
