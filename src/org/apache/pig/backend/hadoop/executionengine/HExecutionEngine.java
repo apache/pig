@@ -1,7 +1,12 @@
 package org.apache.pig.backend.hadoop.executionengine;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.FileOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -43,6 +48,7 @@ import org.apache.pig.shock.SSHSocketImplFactory;
 public class HExecutionEngine implements ExecutionEngine {
     
     private final Log log = LogFactory.getLog(getClass());
+    private static final String LOCAL = "local";
     
     protected PigContext pigContext;
     
@@ -120,14 +126,14 @@ public class HExecutionEngine implements ExecutionEngine {
         }
         else {
             if (cluster != null && cluster.length() > 0) {
-                if(cluster.indexOf(':') < 0 && !cluster.equalsIgnoreCase("local")) {
+                if(cluster.indexOf(':') < 0 && !cluster.equalsIgnoreCase(LOCAL)) {
                     cluster = cluster + ":50020";
                 }
                 setJobtrackerLocation(cluster);
             }
 
             if (nameNode!=null && nameNode.length() > 0) {
-                if(nameNode.indexOf(':') < 0 && !nameNode.equalsIgnoreCase("local")) {
+                if(nameNode.indexOf(':') < 0 && !nameNode.equalsIgnoreCase(LOCAL)) {
                     nameNode = nameNode + ":8020";
                 }
                 setFilesystemLocation(nameNode);
@@ -143,7 +149,7 @@ public class HExecutionEngine implements ExecutionEngine {
             throw new ExecException("Failed to create DataStorage", e);
         }
             
-        if(cluster != null && !cluster.equalsIgnoreCase("local")){
+        if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
 	        log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
 	        
 	        try {
@@ -166,7 +172,7 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     public void close() throws ExecException {
-        ;
+            closeHod(System.getProperty("hod.server"));
     }
         
     public Properties getConfiguration() throws ExecException {
@@ -315,10 +321,15 @@ public class HExecutionEngine implements ExecutionEngine {
     //To prevent doing hod if the pig server is constructed multiple times
     private static String hodMapRed;
     private static String hodHDFS;
+    private String hodConfDir = null; 
+    private String remoteHodConfDir = null; 
+    private Process hodProcess = null;
 
-    private enum ParsingState {
-        NOTHING, HDFSUI, MAPREDUI, HDFS, MAPRED, HADOOPCONF
-    };
+    class ShutdownThread extends Thread{
+        public synchronized void run() {
+            closeHod(System.getProperty("hod.server"));
+        }
+    }
     
     private String[] doHod(String server) throws ExecException {
         if (hodMapRed != null) {
@@ -326,125 +337,69 @@ public class HExecutionEngine implements ExecutionEngine {
         }
         
         try {
-            Process p = null;
-            // Make the kryptonite released version the default if nothing
-            // else is specified.
-            StringBuilder cmd = new StringBuilder();
-            cmd.append(System.getProperty("hod.expect.root"));
-            cmd.append('/');
-            cmd.append("libexec/pig/");
-            cmd.append(System.getProperty("hod.expect.uselatest"));
-            cmd.append('/');
-            cmd.append(System.getProperty("hod.command"));
+            // first, create temp director to store the configuration
+            hodConfDir = createTempDir(server);
+			
+			// get the number of nodes out of the command or use default
+            StringBuilder hodParams = new StringBuilder(System.getProperty("hod.param", ""));
+			int nodes = getNumNodes(hodParams);
 
-            String cluster = System.getProperty("yinst.cluster");
-           
-            // TODO This is a Yahoo specific holdover, need to remove
-            // this.
-            if (cluster != null && cluster.length() > 0 && !cluster.startsWith("kryptonite")) {
-                cmd.append(" --config=");
-                cmd.append(System.getProperty("hod.config.dir"));
-                cmd.append('/');
-                cmd.append(cluster);
-            }
-
-            cmd.append(" " + System.getProperty("hod.param", ""));
-
-            if (server.equals("local")) {
-                p = Runtime.getRuntime().exec(cmd.toString());
-            } 
-            else {
-                SSHSocketImplFactory fac = SSHSocketImplFactory.getFactory(server);
-                p = fac.ssh(cmd.toString());
-            }
-            
-            InputStream is = p.getInputStream();
+            // command format: hod allocate - d <cluster_dir> -n <number_of_nodes> <other params>
+            String[] cmdarray = new String[7];
+            cmdarray[0] = "hod";
+            cmdarray[1] = "allocate";
+            cmdarray[2] = "-d";
+            cmdarray[3] = hodConfDir;
+            cmdarray[4] = "-n";
+            cmdarray[5] = Integer.toString(nodes);
+            cmdarray[6] = hodParams.toString();
 
             log.info("Connecting to HOD...");
-            log.debug("sending HOD command " + cmd.toString());
+            log.debug("sending HOD command " + cmdToString(cmdarray));
 
-            StringBuilder sb = new StringBuilder();
-            int c;
-            String hdfsUI = null;
-            String mapredUI = null;
+            // setup shutdown hook to make sure we tear down hod connection
+            Runtime.getRuntime().addShutdownHook(new ShutdownThread());
+
+            hodProcess = runCommand(server, cmdarray);
+
+            // print all the information provided by HOD
+            try {
+                BufferedReader br = new BufferedReader(new InputStreamReader(hodProcess.getErrorStream()));
+                String msg;
+                while ((msg = br.readLine()) != null)
+                    log.info(msg);
+                br.close();
+            } catch(IOException ioe) {}
+
+            // for remote connection we need to bring the file locally  
+            if (!server.equals(LOCAL))
+                hodConfDir = copyHadoopConfLocally(server);
+
             String hdfs = null;
             String mapred = null;
-            String hadoopConf = null;
+            String hadoopConf = hodConfDir + "/hadoop-site.xml";
 
-            ParsingState current = ParsingState.NOTHING;
+            log.info ("Hadoop configuration file: " + hadoopConf);
 
-            while((c = is.read()) != -1 && mapred == null) {
-                if (c == '\n' || c == '\r') {
-                    switch(current) {
-                    case HDFSUI:
-                        hdfsUI = sb.toString().trim();
-                        log.info("HDFS Web UI: " + hdfsUI);
-                        break;
-                    case HDFS:
-                        hdfs = sb.toString().trim();
-                        log.info("HDFS: " + hdfs);
-                        break;
-                    case MAPREDUI:
-                        mapredUI = sb.toString().trim();
-                        log.info("JobTracker Web UI: " + mapredUI);
-                        break;
-                    case MAPRED:
-                        mapred = sb.toString().trim();
-                        log.info("JobTracker: " + mapred);
-                        break;
-                    case HADOOPCONF:
-                        hadoopConf = sb.toString().trim();
-                        log.info("HadoopConf: " + hadoopConf);
-                        break;
-                    }
-                    current = ParsingState.NOTHING;
-                    sb = new StringBuilder();
-                }
-                sb.append((char)c);
-                if (sb.indexOf("hdfsUI:") != -1) {
-                    current = ParsingState.HDFSUI;
-                    sb = new StringBuilder();
-                } 
-                else if (sb.indexOf("hdfs:") != -1) {
-                    current = ParsingState.HDFS;
-                    sb = new StringBuilder();
-                } 
-                else if (sb.indexOf("mapredUI:") != -1) {
-                    current = ParsingState.MAPREDUI;
-                    sb = new StringBuilder();
-                } 
-                else if (sb.indexOf("mapred:") != -1) {
-                    current = ParsingState.MAPRED;
-                    sb = new StringBuilder();
-                } 
-                else if (sb.indexOf("hadoopConf:") != -1) {
-                    current = ParsingState.HADOOPCONF;
-                    sb = new StringBuilder();
-                }    
-            }
-            
-            hdfsUI = fixUpDomain(hdfsUI);
+            JobConf jobConf = new JobConf(hadoopConf);
+            jobConf.addResource("pig-cluster-hadoop-site.xml");
+            conf = new HConfiguration(jobConf);
+
+            hdfs = (String)conf.get("fs.default.name");
+            if (hdfs == null)
+                throw new ExecException("Missing fs.default.name from hadoop configuration");
+            log.info("HDFS: " + hdfs);
+
+            mapred = (String)conf.get("mapred.job.tracker");
+            if (mapred == null)
+                throw new ExecException("Missing mapred.job.tracker from hadoop configuration");
+            log.info("JobTracker: " + mapred);
+
             hdfs = fixUpDomain(hdfs);
-            mapredUI = fixUpDomain(mapredUI);
             mapred = fixUpDomain(mapred);
             hodHDFS = hdfs;
             hodMapRed = mapred;
 
-            if (hadoopConf != null) {
-                JobConf jobConf = new JobConf(hadoopConf);
-                jobConf.addResource("pig-cluster-hadoop-site.xml");
-                
-                conf = new HConfiguration(jobConf);
-                
-                // make sure that files on class path are used
-                System.out.println("Job Conf = " + conf);
-                System.out.println("dfs.block.size= " + conf.get("dfs.block.size"));
-                System.out.println("ipc.client.timeout= " + conf.get("ipc.client.timeout"));
-                System.out.println("mapred.child.java.opts= " + conf.get("mapred.child.java.opts"));
-            }
-            else {
-                throw new IOException("Missing Hadoop configuration file");
-            }
             return new String[] {hdfs, mapred};
         } 
         catch (Exception e) {
@@ -454,15 +409,240 @@ public class HExecutionEngine implements ExecutionEngine {
         }
     }
 
+    private synchronized void closeHod(String server){
+            if (hodProcess == null)
+                return;
+
+            // hod deallocate format: hod deallocate -d <conf dir>
+            String[] cmdarray = new String[4];
+			cmdarray[0] = "hod";
+            cmdarray[1] = "deallocate";
+            cmdarray[2] = "-d";
+            if (remoteHodConfDir != null)
+                cmdarray[3] = remoteHodConfDir;
+            else
+                cmdarray[3] = hodConfDir;
+
+            log.info("Disconnecting from HOD...");
+            log.debug("Disconnect command: " + cmdToString(cmdarray));
+
+            try {
+                Process p = runCommand(server, cmdarray);
+           } catch (Exception e) {
+                log.warn("Failed to disconnect from HOD; error: " + e.getMessage());
+           } finally {
+               if (remoteHodConfDir != null)
+                   deleteDir(server, remoteHodConfDir);
+               deleteDir(LOCAL, hodConfDir);
+           }
+
+           hodProcess = null;
+    }
+
+    private String copyHadoopConfLocally(String server) throws ExecException {
+        String localDir = createTempDir(LOCAL);
+        String remoteFile = new String(hodConfDir + "/hadoop-site.xml");
+        String localFile = new String(localDir + "/hadoop-site.xml");
+
+        remoteHodConfDir = hodConfDir;
+
+        String[] cmdarray = new String[2];
+        cmdarray[0] = "cat";
+        cmdarray[1] = remoteFile;
+
+        Process p = runCommand(server, cmdarray);
+
+        BufferedWriter bw;
+        try {
+            bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(localFile)));
+        } catch (Exception e){
+            throw new ExecException("Failed to create local hadoop file " + localFile, e);
+        }
+
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            while ((line = br.readLine()) != null){
+                bw.write(line, 0, line.length());
+                bw.newLine();
+            }
+            br.close();
+            bw.close();
+        } catch (Exception e){
+            throw new ExecException("Failed to copy data to local hadoop file " + localFile, e);
+        }
+
+        return localDir;
+    }
+
+    private String cmdToString(String[] cmdarray) {
+        StringBuilder cmd = new StringBuilder();
+
+        for (int i = 0; i < cmdarray.length; i++) {
+            cmd.append(cmdarray[i]);
+            cmd.append(' ');
+        }
+
+        return cmd.toString();
+    }
+    private Process runCommand(String server, String[] cmdarray) throws ExecException {
+        Process p;
+        try {
+            if (server.equals(LOCAL)) {
+                p = Runtime.getRuntime().exec(cmdarray);
+            } 
+            else {
+                SSHSocketImplFactory fac = SSHSocketImplFactory.getFactory(server);
+                p = fac.ssh(cmdToString(cmdarray));
+            }
+
+            //this should return as soon as connection is shutdown
+            int rc = p.waitFor();
+            if (rc != 0) {
+                String errMsg = new String();
+                try {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+                    errMsg = br.readLine();
+                    br.close();
+                } catch (IOException ioe) {}
+                StringBuilder msg = new StringBuilder("Failed to run command ");
+                msg.append(cmdToString(cmdarray));
+                msg.append(" on server ");
+                msg.append(server);
+                msg.append("; return code: ");
+                msg.append(rc);
+                msg.append("; error: ");
+                msg.append(errMsg);
+                throw new ExecException(msg.toString());
+            }
+        } catch (Exception e){
+            throw new ExecException(e);
+        }
+
+        return p;
+    }
+
+    private void deleteDir(String server, String dir) {
+        if (server.equals(LOCAL)){
+            File path = new File(dir);
+            deleteLocalDir(path);
+        }
+        else { 
+            // send rm command over ssh
+            String[] cmdarray = new String[3];
+			cmdarray[0] = "rm";
+            cmdarray[1] = "-rf";
+            cmdarray[2] = dir;
+
+            try{
+                Process p = runCommand(server, cmdarray);
+            }catch(Exception e){
+                    log.warn("Failed to remove HOD configuration directory - " + dir);
+            }
+        }
+    }
+
+    private void deleteLocalDir(File path){
+        File[] files = path.listFiles();
+        int i;
+        for (i = 0; i < files.length; i++){
+            if (files[i].isHidden())
+                continue;
+            if (files[i].isFile())
+                files[i].delete();
+            else if (files[i].isDirectory())
+                deleteLocalDir(files[i]);
+        }
+
+        path.delete();
+    }
+
     private String fixUpDomain(String hostPort) throws UnknownHostException {
         String parts[] = hostPort.split(":");
         if (parts[0].indexOf('.') == -1) {
-            parts[0] = parts[0] + ".inktomisearch.com";
+            String domain = System.getProperty("cluster.domain");
+            if (domain == null) 
+                throw new RuntimeException("Missing cluster.domain property!");
+            parts[0] = parts[0] + "." + domain;
         }
         InetAddress.getByName(parts[0]);
         return parts[0] + ":" + parts[1];
     }
-    
+
+    // create temp dir to store hod output; removed on exit
+    // format: <tempdir>/PigHod.<host name>.<user name>.<nanosecondts>
+    private String createTempDir(String server) throws ExecException {
+        StringBuilder tempDirPrefix  = new StringBuilder ();
+        
+        if (server.equals(LOCAL))
+            tempDirPrefix.append(System.getProperty("java.io.tmpdir"));
+        else
+            // for remote access we assume /tmp as temp dir
+            tempDirPrefix.append("/tmp");
+
+        tempDirPrefix.append("/PigHod.");
+        try {
+            tempDirPrefix.append(InetAddress.getLocalHost().getHostName());
+            tempDirPrefix.append(".");
+        } catch (UnknownHostException e) {}
+            
+        tempDirPrefix.append(System.getProperty("user.name"));
+        tempDirPrefix.append(".");
+        String path;
+        do {
+            path = tempDirPrefix.toString() + System.nanoTime();
+        } while (!createDir(server, path));
+
+        return path;
+    }
+
+    private boolean createDir(String server, String dir) throws ExecException{
+        if (server.equals(LOCAL)){ 
+            // create local directory
+            File tempDir = new File(dir);
+            boolean success = tempDir.mkdir();
+            if (!success)
+                log.warn("Failed to create HOD configuration directory - " + dir + ". Retrying ...");
+
+            return success;
+        }
+        else {
+            String[] cmdarray = new String[2];
+			cmdarray[0] = "mkdir ";
+            cmdarray[1] = dir;
+
+            try{
+                Process p = runCommand(server, cmdarray);
+            }
+            catch(ExecException e){
+                    log.warn("Failed to create HOD configuration directory - " + dir + "Retrying...");
+                    return false;
+            }
+
+            return true;
+        }
+    }
+
+    // returns number of nodes based on -m option in hodParams if present;
+    // otherwise, default is used; -m is removed from the params
+    int getNumNodes(StringBuilder hodParams) {
+        String val = hodParams.toString();
+        int startPos = val.indexOf("-m ");
+        if (startPos == -1)
+            startPos = val.indexOf("-m\t");
+        if (startPos != -1) {
+            int curPos = startPos + 3;
+            int len = val.length();
+            while (curPos < len && Character.isWhitespace(val.charAt(curPos))) curPos ++;
+            int numStartPos = curPos;
+            while (curPos < len && Character.isDigit(val.charAt(curPos))) curPos ++;
+            int nodes = Integer.parseInt(val.substring(numStartPos, curPos));
+            hodParams.delete(startPos, curPos);
+            return nodes;
+        } else {
+            return Integer.getInteger("hod.nodes", 15);
+        }
+    }
 }
 
 

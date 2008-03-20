@@ -251,20 +251,24 @@ public class FileLocalizer {
             initialized = true;
             relativeRoot = pigContext.getDfs().asContainer("/tmp/temp" + r.nextInt());
             toDelete.push(relativeRoot);
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    while (!toDelete.empty()) {
-                        try {
-                            ElementDescriptor elem = toDelete.pop();
-                            elem.delete();
-                        } 
-                        catch (IOException e) {
-                            log.error(e);
-                        }
-                    }
-                }
-            });
+            // Runtime.getRuntime().addShutdownHook(new Thread() {
+              //   @Override
+            //     public void run() {
+            //          deleteTempFiles();
+            //     }
+            //});
+        }
+    }
+
+    public static void deleteTempFiles() {
+        while (!toDelete.empty()) {
+            try {
+                ElementDescriptor elem = toDelete.pop();
+                elem.delete();
+            } 
+            catch (IOException e) {
+                log.error(e);
+            }
         }
     }
 

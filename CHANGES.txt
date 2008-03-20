@@ -5,6 +5,8 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
+  PIG-123: requires escape of '\' in chars and string
+
   NEW FEATURES
 
   OPTIMIZATIONS
@@ -169,6 +171,8 @@ Trunk (unreleased changes)
 
 	PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud
 	via gates).
+
+    PIG-18: changes to make pig work with Hadoop 0.16 and HOD 0.4 (olgan)
 
 	PIG-164:  Fix memory issue in SpillableMemoryManager to partially clean the list of
 	bags each time a new bag is added rather than waiting until the garbage
