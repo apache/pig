@@ -32,7 +32,7 @@ public class SpillableMemoryManager implements NotificationListener {
     
     private final Log log = LogFactory.getLog(getClass());
     
-    List<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
+    LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
     
     public SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
@@ -142,6 +142,13 @@ public class SpillableMemoryManager implements NotificationListener {
      */
     public void registerSpillable(Spillable s) {
         synchronized(spillables) {
+            // Cleaing the entire list is too expensive.  Just trim off the front while
+            // we can.
+            WeakReference<Spillable> first = spillables.peek();
+            while (first != null && first.get() == null) {
+                spillables.remove();
+                first = spillables.peek();
+            }
             spillables.add(new WeakReference<Spillable>(s));
         }
     }
