@@ -435,7 +435,7 @@ class SSHSocketImpl extends SocketImpl {
 	protected void sendUrgentData(int data) throws IOException {
 		throw new IOException("SSHSocketImpl does not implement sendUrgentData");
 	}
-    @Override
+
 	public Object getOption(int optID) throws SocketException {
         if (optID == SocketOptions.SO_SNDBUF)
             return new Integer(1024);
