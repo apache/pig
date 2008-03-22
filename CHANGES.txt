@@ -177,3 +177,5 @@ Trunk (unreleased changes)
 	PIG-164:  Fix memory issue in SpillableMemoryManager to partially clean the list of
 	bags each time a new bag is added rather than waiting until the garbage
 	collector tells us we are out of memory (gates).
+
+    PIG-154: moving parsing for DEFINE and STORE into QueryParser

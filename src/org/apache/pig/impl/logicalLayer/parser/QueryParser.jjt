@@ -122,7 +122,8 @@ public class QueryParser {
 	
 	
 	
-	String massageFilename(String filename, PigContext pigContext) throws IOException, ParseException {
+	String massageFilename(String filename, PigContext pigContext, boolean checkExists) 
+	throws IOException, ParseException {
 		if (pigContext.getExecType() != ExecType.LOCAL) {
 			if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
 					filename = FileLocalizer.hadoopify(filename, pigContext);
@@ -130,7 +131,7 @@ public class QueryParser {
 			else
 			{
 				// make sure that dfs file exists
-				if (!FileLocalizer.fileExists(filename, pigContext))
+				if (checkExists && !FileLocalizer.fileExists(filename, pigContext))
 				{
 					throw new ParseException(FileLocalizer.fullPath(filename, pigContext) + " does not exist");
 				}
@@ -347,6 +348,7 @@ TOKEN : { <#NUMFILTEROP : "==" | "<" | "<=" | ">" | ">=" | "!=" > }
 TOKEN : { <FILTEROP : <STRFILTEROP> | <NUMFILTEROP>  > }
 
 // List all the keywords in the language
+TOKEN : { <DEFINE : "define"> }
 TOKEN : { <LOAD : "load"> }
 TOKEN : { <FILTER : "filter"> }
 TOKEN : { <FOREACH : "foreach"> }
@@ -386,6 +388,7 @@ TOKEN : { <EVAL : "eval"> }
 TOKEN : { <STREAM : "stream"> }
 TOKEN : { <THROUGH : "through"> }
 TOKEN : { <BACKTICK : "`"> }
+TOKEN : { <STORE : "store"> }
 
 TOKEN:
 {
@@ -504,7 +507,8 @@ LogicalOperator BaseExpr() : {LogicalOperator op; TupleSchema schema; Token t1, 
 {
 	(
 	(
-	(<LOAD> op = LoadClause() [<AS> schema = SchemaTuple() {op.setSchema(schema);} ])
+	(<DEFINE> op = DefineClause()) 
+|	(<LOAD> op = LoadClause() [<AS> schema = SchemaTuple() {op.setSchema(schema);} ])
 |	((<GROUP> | <COGROUP>) op = CogroupClause())
 |	(<FILTER> op = FilterClause())
 |   (<ORDER> op = OrderClause())
@@ -514,6 +518,7 @@ LogicalOperator BaseExpr() : {LogicalOperator op; TupleSchema schema; Token t1, 
 |	(<UNION> op = UnionClause())
 |	(<FOREACH> op = ForEachClause())
 |   (<STREAM> op = StreamClause() [<AS> schema = SchemaTuple() {op.setSchema(schema);} ])
+|   (<STORE> op = StoreClause())
 	)
     [<PARALLEL> t2=<NUMBER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
 	)	
@@ -538,7 +543,7 @@ LogicalOperator LoadClause() : {Token t1, t2; String filename; String funcName,f
 			funcSpec += continuous ? "('\t','\n','0')" : "()";
 		}
 		 
-		lo = new LOLoad(opTable, scope, getNextId(), new FileSpec(massageFilename(filename, pigContext), funcSpec));	
+		lo = new LOLoad(opTable, scope, getNextId(), new FileSpec(massageFilename(filename, pigContext, true), funcSpec));	
 		if (continuous)
 			lo.setOutputType(LogicalOperator.MONOTONE);
 		return lo;
@@ -1248,3 +1253,45 @@ String StreamingCommand(): {Token t;}
 	}
 }
 
+LogicalOperator DefineClause() : {Token t; Token t1; String functionName, functionArgs;}
+{
+	t = <IDENTIFIER>
+	(
+        functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+        {
+        	pigContext.registerFunction(t.image, 
+        	                            (functionName + "(" + functionArgs + ")"));
+        }
+    )
+    {
+    	// Return the dummy LODefine
+    	return new LODefine(opTable, scope, getNextId());
+    }
+}
+
+LogicalOperator StoreClause() : {LogicalOperator lo; Token t; String fileName; String functionSpec = null; String functionName, functionArgs;}
+{   
+	t = <IDENTIFIER> <INTO> fileName = FileName()
+    (
+        <USING> functionName = QualifiedFunction()
+        {functionSpec = functionName;} 
+        (
+            "(" functionArgs = StringList() ")"
+            {functionSpec = functionSpec + "(" + functionArgs + ")";}
+        )?
+    )?
+    {
+        if (functionSpec == null){
+            functionSpec = PigStorage.class.getName();
+        }
+         
+        LogicalPlan readFrom = aliases.get(t.image);
+       
+        lo = new LOStore(opTable, scope, getNextId(), readFrom.getRoot(),
+                         new FileSpec(massageFilename(fileName, pigContext, false), 
+                                      functionSpec),
+                         false);
+            
+        return lo;
+    } 
+}

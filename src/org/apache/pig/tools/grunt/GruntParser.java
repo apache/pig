@@ -112,10 +112,6 @@ public class GruntParser extends PigScriptParser {
         mDone = true;
     }
     
-    protected void processRegisterFunc(String name, String expr) {
-        mPigServer.registerFunction(name, expr);
-    }
-    
     protected void processDescribe(String alias) throws IOException {
         mPigServer.dumpSchema(alias);
     }
@@ -158,10 +154,6 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
-    protected void processStore(String alias, String file, String func) throws IOException {
-        mPigServer.store(alias, file, func);
-    }
-        
     protected void processCat(String path) throws IOException
     {
         try {
