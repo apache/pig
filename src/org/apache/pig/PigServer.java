@@ -45,6 +45,8 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.LODefine;
+import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
@@ -233,14 +235,26 @@ public class PigServer {
             
         // parse the query into a logical plan
         LogicalPlan lp = null;
+        LogicalOperator op = null;
         try {
             lp = (new LogicalPlanBuilder(pigContext).parse(scope, query, aliases, opTable));
+            op = opTable.get(lp.getRoot());
         } catch (ParseException e) {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
         }
         
         if (lp.getAlias() != null) {
             aliases.put(lp.getAlias(), lp);
+        }
+        
+        // No need to do anything about DEFINE 
+        if (op instanceof LODefine) {
+            return;
+        }
+        
+        // Check if we just processed a LOStore i.e. STORE
+        if (op instanceof LOStore) {
+            runQuery(lp);
         }
     }
       
@@ -330,6 +344,10 @@ public class PigServer {
                                                               func,
                                                               pigContext);
 
+        runQuery(storePlan);
+    }
+
+    private void runQuery(LogicalPlan storePlan) throws IOException {
         try {
             ExecPhysicalPlan pp = 
                 pigContext.getExecutionEngine().compile(storePlan, null);
@@ -337,10 +355,10 @@ public class PigServer {
             pigContext.getExecutionEngine().execute(pp);
         }
         catch (ExecException e) {
-            throw WrappedIOException.wrap("Unable to store alias " + readFrom.getAlias(), e);
+            throw WrappedIOException.wrap("Unable to store alias " + 
+                                          storePlan.getAlias(), e);
         }
     }
-
     /**
      * Provide information on how a pig query will be executed.  For now
      * this information is very developer focussed, and probably not very
