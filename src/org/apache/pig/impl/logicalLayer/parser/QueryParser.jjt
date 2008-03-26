@@ -489,6 +489,22 @@ LogicalOperator Alias() : {Token t1; LogicalOperator op;}
 		LogicalOperator aliasOp;
 		String alias = t1.image;
 		
+		if (aliases == null) {
+			throw new RuntimeException("aliases var is not initialize.");
+		}
+		if (aliases.get(alias) == null) {
+			StringBuilder msg = new StringBuilder();
+			msg.append("Unable to find alias: '");
+			msg.append(alias);
+			msg.append("' - aliases: '");
+			for (String tmpAlias : aliases.keySet()) {
+				msg.append(tmpAlias);
+				msg.append(",");
+			}
+			msg.append("'");
+			throw new ParseException(msg.toString());
+		}
+		
 		aliasOp = opTable.get(aliases.get(alias).getRoot());
 		
 		if (aliasOp == null) {
@@ -1096,7 +1112,10 @@ String EvalFunction() : {String funcName;}
 		try{
 			EvalFunc ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
 		}catch (Exception e){
-			throw new ParseException(e.getMessage());
+			//throw new ParseException(e.getMessage());
+            ParseException pe = new ParseException(e.getMessage());
+            pe.initCause(e);
+			throw pe;
 		}
 		return funcName;
 	}

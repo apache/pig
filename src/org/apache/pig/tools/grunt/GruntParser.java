@@ -1,7 +1,9 @@
 package org.apache.pig.tools.grunt;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.Reader;
 import java.util.Iterator;
 import java.util.Map;
@@ -11,6 +13,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.fs.permission.AccessControlException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -71,7 +74,16 @@ public class GruntParser extends PigScriptParser {
             }
             catch(Exception e)
             {
-                log.error(e.getMessage());
+                Exception pe = Utils.getPermissionException(e);
+                if (pe != null)
+                    log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
+                else
+                {    
+                    ByteArrayOutputStream bs = new ByteArrayOutputStream();
+                    e.printStackTrace(new PrintStream(bs));
+                    log.error(bs.toString());
+                    log.error(e);
+                }
             }
     }
 
@@ -106,7 +118,7 @@ public class GruntParser extends PigScriptParser {
             System.err.flush();
         }
     }
-    
+
     protected void quit()
     {
         mDone = true;
