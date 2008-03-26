@@ -179,3 +179,5 @@ Trunk (unreleased changes)
 	collector tells us we are out of memory (gates).
 
     PIG-154: moving parsing for DEFINE and STORE into QueryParser
+
+    PIG-100: improved error handling

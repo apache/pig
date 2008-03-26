@@ -42,6 +42,7 @@ import org.apache.pig.impl.logicalLayer.LOEval;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -450,6 +451,39 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         	return;
         }
         assertTrue(false);
+    }
+
+    @Test
+    public void testRegressionPig100NoSuchAlias() throws Throwable {
+        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
+
+        boolean caughtIt = false;
+        try {
+            LogicalPlan lp = builder.parse("test",
+                "b = filter c by $0 > '5';", aliases, logicalOpTable);
+        } catch (ParseException e) {
+            caughtIt = true;
+			assertEquals("Unable to find alias:",
+				e.getMessage().substring(0, 21));
+        }
+        assertTrue(caughtIt);
+    }
+
+    @Test
+    public void testRegressionPig100NoAliases() throws Throwable {
+        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
+
+        boolean caughtIt = false;
+        try {
+            LogicalPlan lp = builder.parse("test",
+				"b = filter c by $0 > '5';", null, logicalOpTable);
+        } catch (RuntimeException e) {
+            caughtIt = true;
+			assertEquals("aliases var is not initialize.", e.getMessage());
+        }
+        assertTrue(caughtIt);
     }
 
 	/*

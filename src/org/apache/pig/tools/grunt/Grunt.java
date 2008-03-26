@@ -18,6 +18,8 @@
 package org.apache.pig.tools.grunt;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,8 +58,16 @@ public class Grunt
         try {
         parser.setInteractive(false);
         parser.parseStopOnError();
-        } catch (Throwable e) {
-            log.error(e.getMessage());
+        } catch (Exception e) {
+            Exception pe = Utils.getPermissionException(e);
+            if (pe != null)
+                log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
+            else {
+                ByteArrayOutputStream bs = new ByteArrayOutputStream();
+                e.printStackTrace(new PrintStream(bs));
+                log.error(bs.toString());
+                log.error(e.getMessage());
+           }
     }
     
     }
