@@ -37,7 +37,8 @@ public class TupleWindowSpec extends WindowSpec {
     }
     
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe) {
 
             @Override

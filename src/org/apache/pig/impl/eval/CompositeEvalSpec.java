@@ -20,6 +20,7 @@ package org.apache.pig.impl.eval;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.eval.collector.DataCollector;
@@ -43,9 +44,10 @@ public class CompositeEvalSpec extends EvalSpec {
     }
         
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe){
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe){
         for (int i=specs.size()-1; i>=0; i--){
-            endOfPipe = specs.get(i).setupDefaultPipe(endOfPipe);
+            endOfPipe = specs.get(i).setupDefaultPipe(properties, endOfPipe);
         }
         return endOfPipe;
     }

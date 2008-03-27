@@ -18,6 +18,8 @@
 package org.apache.pig.impl.eval;
 
 
+import java.util.Properties;
+
 import org.apache.pig.data.Datum;
 import org.apache.pig.impl.eval.collector.DataCollector;
 
@@ -25,7 +27,8 @@ import org.apache.pig.impl.eval.collector.DataCollector;
 public abstract class SimpleEvalSpec extends EvalSpec {
 
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe){
             @Override
             public void add(Datum d) {

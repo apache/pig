@@ -187,7 +187,11 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
             }
             myReader.set(this);
             loader.bindTo(split.getPath().toString(), new BufferedPositionedInputStream(is, start), start, end);
-            
+         
+            // Mimic FileSplit
+            job.set("map.input.file", split.getPath().toString());
+            job.setLong("map.input.start", split.getStart());
+            job.setLong("map.input.length", split.getLength());
         }
 
         public JobConf getJobConf(){

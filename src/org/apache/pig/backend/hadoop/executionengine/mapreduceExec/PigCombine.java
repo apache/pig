@@ -65,7 +65,7 @@ public class PigCombine implements Reducer {
                 String evalSpec = job.get("pig.combineFunc", "");
                 EvalSpec esp = (EvalSpec)ObjectSerializer.deserialize(evalSpec);
                 if(esp != null) esp.instantiateFunc(pigContext);
-                evalPipe = esp.setupPipe(finalout);
+                evalPipe = esp.setupPipe(null, finalout);
                 //throw new RuntimeException("combine spec: " + evalSpec + " combine pipe: " + esp.toString());
                 
                 bags = new DataBag[inputCount];

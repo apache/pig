@@ -157,6 +157,9 @@ public class GruntParser extends PigScriptParser {
             //mPigServer.setJobName(unquote(value));
             mPigServer.setJobName(value);
         }
+        else if (key.equals("stream.skippath")) {
+            mPigServer.addPathToSkip(value);
+        }
         else
         {
             // other key-value pairs can go there

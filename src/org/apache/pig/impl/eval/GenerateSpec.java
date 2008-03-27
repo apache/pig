@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -63,7 +64,8 @@ public class GenerateSpec extends EvalSpec {
     }
     
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe){
             LinkedList<CrossProductItem> pendingCrossProducts = new LinkedList<CrossProductItem>();
             
@@ -154,7 +156,7 @@ public class GenerateSpec extends EvalSpec {
                     continue;
                 toBeCrossed[i] = new DatumBag();
 
-                specs.get(i).setupPipe(toBeCrossed[i]).add(cpiInput);
+                specs.get(i).setupPipe(properties, toBeCrossed[i]).add(cpiInput);
             }
         }
         
@@ -258,7 +260,7 @@ public class GenerateSpec extends EvalSpec {
         }
         
         public void exec(){
-            specs.get(driver).setupPipe(this).add(cpiInput);
+            specs.get(driver).setupPipe(properties, this).add(cpiInput);
             //log.error(Thread.currentThread().getName() + ": Executing driver on " + cpiInput);
             successor.markStale(false);
         }

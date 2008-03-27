@@ -90,11 +90,15 @@ public class JarManager {
      * @param funcs
      *            the functions that will be used in a job and whose jar files need to be included
      *            in the final merged jar file.
+     * @param files files which will be used in the job and need to be shipped           
      * @return the temporary path to the merged jar file.
      * @throws ClassNotFoundException
      * @throws IOException
      */
-    public static void createJar(OutputStream os, List<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
+    public static void createJar(OutputStream os, 
+                                 List<String> funcs, List<String> files,
+                                 PigContext pigContext) 
+    throws ClassNotFoundException, IOException {
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
         for(String toSend: pigPackagesToSend) {
             addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
@@ -126,6 +130,11 @@ public class JarManager {
             jarFile.putNextEntry(new ZipEntry("pigContext"));
             new ObjectOutputStream(jarFile).writeObject(pigContext);
         }
+        
+        for (String file : files) {
+            addStream(jarFile, file, new FileInputStream(file), contents);
+        }
+        
         jarFile.close();
     }
 

@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -84,6 +85,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
     public static Reporter reporter = null;
 
     JobConf                           job;
+    private Properties                properties = new Properties();
     private DataCollector             evalPipe;
     private OutputCollector           oc;
     private EvalSpec                  group;
@@ -104,7 +106,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
 
         oc = output;
 
-        setupMapPipe(reporter);
+        setupMapPipe(properties, reporter);
 
         // allocate key & value instances that are re-used for all entries
         WritableComparable key = input.createKey();
@@ -127,7 +129,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
         try {
             oc = output;
             if (evalPipe == null) {
-                setupReducePipe();
+                setupReducePipe(properties);
             }
 
             DataBag[] bags = new DataBag[inputCount];
@@ -158,11 +160,29 @@ public class PigMapReduce implements MapRunnable, Reducer {
         }
     }
 
-    /**
-     * Just save off the PigJobConf for later use.
-     */
-    public void configure(JobConf job) {
-        this.job = job;
+    public void configure(JobConf jobConf) {
+        job = jobConf;
+        
+        // Set up the pigContext
+        try {
+            pigContext = 
+                (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+        } catch (IOException ioe) {
+            log.fatal("Failed to deserialize PigContext with: " + ioe);
+            throw new RuntimeException(ioe);
+        }
+        pigContext.setJobConf(job);
+        
+        // Get properties from the JobConf and save it in the 
+        // <code>properties</code> so that it can be used in the Eval pipeline 
+        properties.setProperty("pig.output.dir", 
+                               jobConf.get("pig.output.dir", ""));
+        properties.setProperty("pig.streaming.log.dir", 
+                               jobConf.get("pig.streaming.log.dir", "_logs"));
+        properties.setProperty("pig.streaming.task.id", 
+                               jobConf.get("mapred.task.id"));
+        properties.setProperty("pig.streaming.task.output.dir", 
+                               jobConf.getOutputPath().toString());
     }
 
     /**
@@ -191,9 +211,9 @@ public class PigMapReduce implements MapRunnable, Reducer {
         return taskidParts[taskidParts.length - 2];
     }
     
-    private void setupMapPipe(Reporter reporter) throws IOException {
+    private void setupMapPipe(Properties properties, Reporter reporter) 
+    throws IOException {
         PigSplit split = PigInputFormat.PigRecordReader.getPigRecordReader().getPigFileSplit();
-        pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
         index = split.getIndex();
         EvalSpec evalSpec = split.getEvalSpec();
         
@@ -216,11 +236,13 @@ public class PigMapReduce implements MapRunnable, Reducer {
             }else{
                 oc = getSplitCollector(splitSpec);    
             }
-            evalPipe = evalSpec.setupPipe(new MapDataOutputCollector());
+            evalPipe = evalSpec.setupPipe(properties, 
+                                          new MapDataOutputCollector());
         } else {
             group = groupSpec;
-            DataCollector groupInput = group.setupPipe(new MapDataOutputCollector());
-            evalPipe = evalSpec.setupPipe(groupInput);
+            DataCollector groupInput = 
+                group.setupPipe(properties, new MapDataOutputCollector());
+            evalPipe = evalSpec.setupPipe(properties, groupInput);
         }
         
     }
@@ -248,8 +270,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
         };
     }
     
-    private void setupReducePipe() throws IOException {
-        pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+    private void setupReducePipe(Properties properties) throws IOException {
         EvalSpec evalSpec = (EvalSpec)ObjectSerializer.deserialize(job.get("pig.reduceFunc", ""));
         
         if (evalSpec == null) 
@@ -271,7 +292,8 @@ public class PigMapReduce implements MapRunnable, Reducer {
             oc = getSplitCollector(splitSpec);
         }
     
-        evalPipe = evalSpec.setupPipe(new ReduceDataOutputCollector());
+        evalPipe = evalSpec.setupPipe(properties, 
+                                      new ReduceDataOutputCollector());
         
         inputCount = ((ArrayList<FileSpec>)ObjectSerializer.deserialize(job.get("pig.inputs"))).size();
 

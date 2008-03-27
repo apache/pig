@@ -18,6 +18,9 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,6 +28,9 @@ import org.junit.Test;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.*;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.FileLocalizer;
+
 import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 
 import junit.framework.TestCase;
@@ -36,7 +42,7 @@ public class TestStreaming extends TestCase {
 	private static final String simpleEchoStreamingCommand = 
 		"perl -ne 'chomp $_; print \"$_\n\"'";
 
-	private Tuple[] setupExpectedResults(String[] firstField, int[] secondField) {
+    private Tuple[] setupExpectedResults(String[] firstField, int[] secondField) {
 		Assert.assertEquals(firstField.length, secondField.length);
 		
 		Tuple[] expectedResults = new Tuple[firstField.length];
@@ -65,14 +71,14 @@ public class TestStreaming extends TestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("INPUT = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
 				                PigStorage.class.getName() + "(',');");
-		pigServer.registerQuery("FILTERED_DATA = filter INPUT by $1 > '3';");
-		pigServer.registerQuery("OUTPUT = stream FILTERED_DATA through `" +
+		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+		pigServer.registerQuery("OP = stream FILTERED_DATA through `" +
 				                simpleEchoStreamingCommand + "`;");
 		
 		// Run the query and check the results
-		Util.checkQueryOutputs(pigServer.openIterator("OUTPUT"), expectedResults);
+		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
 
 	@Test
@@ -91,15 +97,15 @@ public class TestStreaming extends TestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("INPUT = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
 				                PigStorage.class.getName() + "(',');");
-		pigServer.registerQuery("FILTERED_DATA = filter INPUT by $1 > '3';");
+		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
 		pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA through `" +
 				                simpleEchoStreamingCommand + "` as (f0, f1);");
-		pigServer.registerQuery("OUTPUT = filter STREAMED_DATA by f1 > '6';");
+		pigServer.registerQuery("OP = filter STREAMED_DATA by f1 > '6';");
 		
 		// Run the query and check the results
-		Util.checkQueryOutputs(pigServer.openIterator("OUTPUT"), expectedResults);
+		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
 
 	@Test
@@ -118,17 +124,17 @@ public class TestStreaming extends TestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("INPUT = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
 				                PigStorage.class.getName() + "(',');");
-		pigServer.registerQuery("FILTERED_DATA = filter INPUT by $1 > '3';");
+		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
 		pigServer.registerQuery("GROUPED_DATA = group FILTERED_DATA by $0;");
 		pigServer.registerQuery("FLATTENED_GROUPED_DATA = foreach GROUPED_DATA " +
 				                "generate flatten($1);");
-		pigServer.registerQuery("OUTPUT = stream FLATTENED_GROUPED_DATA through `" +
+		pigServer.registerQuery("OP = stream FLATTENED_GROUPED_DATA through `" +
 				                simpleEchoStreamingCommand + "`;");
 		
 		// Run the query and check the results
-		Util.checkQueryOutputs(pigServer.openIterator("OUTPUT"), expectedResults);
+		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
 
 	@Test
@@ -160,19 +166,206 @@ public class TestStreaming extends TestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("INPUT = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
 				                PigStorage.class.getName() + "(',');");
-		pigServer.registerQuery("FILTERED_DATA = filter INPUT by $1 > '3';");
-		pigServer.registerQuery("GROUPED_DATA = group INPUT by $0;");
+		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+		pigServer.registerQuery("GROUPED_DATA = group IP by $0;");
 		pigServer.registerQuery("ORDERED_DATA = foreach GROUPED_DATA { " +
-				                "  D = order INPUT BY $2, $3;" +
+				                "  D = order IP BY $2, $3;" +
                                 "  generate flatten(D);" +
                                 "};");
-		pigServer.registerQuery("OUTPUT = stream ORDERED_DATA through `" +
+		pigServer.registerQuery("OP = stream ORDERED_DATA through `" +
 				                simpleEchoStreamingCommand + "`;");
 		
 		// Run the query and check the results
-		Util.checkQueryOutputs(pigServer.openIterator("OUTPUT"), expectedResults);
+		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
+
+    @Test
+    public void testInputShipSpecs() throws Exception {
+        PigServer pigServer = new PigServer(MAPREDUCE);
+
+        File input = Util.createInputFile("tmp", "", 
+                                          new String[] {"A,1", "B,2", "C,3", 
+                                                        "D,2", "A,5", "B,5", 
+                                                        "C,8", "A,8", "D,8", 
+                                                        "A,9"});
+
+        // Perl script 
+        String[] script = 
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE,  $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          "  print STDOUT \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "}",
+                         };
+        File command = Util.createInputFile("script", "pl", script);
+        
+        // Expected results
+        String[] expectedFirstFields = 
+            new String[] {"A", "B", "C", "A", "D", "A"};
+        int[] expectedSecondFields = new int[] {5, 5, 8, 8, 8, 9};
+        Tuple[] expectedResults = 
+            setupExpectedResults(expectedFirstFields, expectedSecondFields);
+
+        // Pig query to run
+        pigServer.registerQuery(
+                "define CMD `." + command + " foo` " +
+                "ship ('" + command + "') " +
+                "input('foo' using " + PigStorage.class.getName() + "(',')) " +
+                "stderr();"); 
+
+        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+                                PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+        pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
+
+        String output = "/pig/out";
+        pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
+        
+        InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
+        PigStorage ps = new PigStorage(",");
+        ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
+        List<Tuple> outputs = new ArrayList<Tuple>();
+        Tuple t;
+        while ((t = ps.getNext()) != null) {
+            outputs.add(t);
+        }
+
+        // Run the query and check the results
+        Util.checkQueryOutputs(outputs.iterator(), expectedResults);
+        
+        // Cleanup
+        pigServer.deleteFile(output);
+    }
+
+    @Test
+	public void testOutputShipSpecs() throws Exception {
+	    PigServer pigServer = new PigServer(MAPREDUCE);
+
+	    File input = Util.createInputFile("tmp", "", 
+	                                      new String[] {"A,1", "B,2", "C,3", 
+	                                                    "D,2", "A,5", "B,5", 
+	                                                    "C,8", "A,8", "D,8", 
+	                                                    "A,9"});
+
+	    // Perl script 
+	    String[] script = 
+	        new String[] {
+	                      "#!/usr/bin/perl",
+                          "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
+                          "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[2].\"!: $!\";",
+                          "while (<STDIN>) {",
+                          "  print OUTFILE \"A,10\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "  print OUTFILE2 \"Secondary Output: $_\n\";",
+                          "}",
+	                     };
+	    File command = Util.createInputFile("script", "pl", script);
+	    
+        // Expected results
+        String[] expectedFirstFields = 
+            new String[] {"A", "A", "A", "A", "A", "A"};
+        int[] expectedSecondFields = new int[] {10, 10, 10, 10, 10, 10};
+        Tuple[] expectedResults = 
+            setupExpectedResults(expectedFirstFields, expectedSecondFields);
+
+        // Pig query to run
+        pigServer.registerQuery(
+                "define CMD `." + command + " foo bar` " +
+                "ship ('" + command + "') " +
+        		"output('foo' using " + PigStorage.class.getName() + "(','), " +
+        		"'bar' using " + PigStorage.class.getName() + "(',')) " +
+        		"stderr();"); 
+        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+                                PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+        pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
+        
+        String output = "/pig/out";
+        pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
+        
+        InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
+        PigStorage ps = new PigStorage(",");
+        ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
+        List<Tuple> outputs = new ArrayList<Tuple>();
+        Tuple t;
+        while ((t = ps.getNext()) != null) {
+            outputs.add(t);
+        }
+
+        // Run the query and check the results
+        Util.checkQueryOutputs(outputs.iterator(), expectedResults);
 	
+        // Cleanup
+        pigServer.deleteFile(output);
+    }
+
+    @Test
+    public void testInputOutputSpecsWithAutoShip() throws Exception {
+        PigServer pigServer = new PigServer(MAPREDUCE);
+
+        File input = Util.createInputFile("tmp", "", 
+                                          new String[] {"A,1", "B,2", "C,3", 
+                                                        "D,2", "A,5", "B,5", 
+                                                        "C,8", "A,8", "D,8", 
+                                                        "A,9"});
+
+        // Perl script 
+        String[] script = 
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE,  $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "open(OUTFILE, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
+                          "open(OUTFILE2, \">\", $ARGV[2]) or die \"Can't open \".$ARGV[2].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          "  print OUTFILE \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "  print OUTFILE2 \"Secondary Output: $_\n\";",
+                          "}",
+                         };
+        File command = Util.createInputFile("script", "pl", script);
+        
+        // Expected results
+        String[] expectedFirstFields = 
+            new String[] {"A", "B", "C", "A", "D", "A"};
+        int[] expectedSecondFields = new int[] {5, 5, 8, 8, 8, 9};
+        Tuple[] expectedResults = 
+            setupExpectedResults(expectedFirstFields, expectedSecondFields);
+
+        // Pig query to run
+        pigServer.registerQuery(
+                "define CMD `." + command + " foo bar foobar` " +
+                "ship ('" + command + "') " +
+                "input('foo' using " + PigStorage.class.getName() + "(',')) " +
+                "output('bar' using " + PigStorage.class.getName() + "(','), " +
+                "'foobar' using " + PigStorage.class.getName() + "(',')) " +
+                "stderr();"); 
+        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+                                PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+        pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
+        
+        String output = "/pig/out";
+        pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
+        
+        InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
+        PigStorage ps = new PigStorage(",");
+        ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
+        List<Tuple> outputs = new ArrayList<Tuple>();
+        Tuple t;
+        while ((t = ps.getNext()) != null) {
+            outputs.add(t);
+        }
+
+        // Run the query and check the results
+        Util.checkQueryOutputs(outputs.iterator(), expectedResults);
+        
+        // Cleanup
+        pigServer.deleteFile(output);
+    }
 }

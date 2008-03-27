@@ -79,7 +79,8 @@ public class POCogroup extends PhysicalOperator {
                 }
             };
             
-            DataCollector inputToSpec = specs.get(i).setupPipe(outputFromSpec);
+            DataCollector inputToSpec = specs.get(i).setupPipe(null, 
+                                                               outputFromSpec);
 
             Tuple t;            
             while ((t = (Tuple) ((PhysicalOperator)opTable.get(inputs[i])).getNext()) != null) {

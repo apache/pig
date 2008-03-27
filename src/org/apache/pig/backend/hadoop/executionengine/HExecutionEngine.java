@@ -112,6 +112,9 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     public void init() throws ExecException {
+        // Copy over necessary configuration from PigContext
+        updateConfiguration(pigContext.getConf());
+        
         //First set the ssh socket factory
         setSSHFactory();
         
@@ -164,6 +167,7 @@ public class HExecutionEngine implements ExecutionEngine {
         }
 
         try {
+            // Set job-specific configuration knobs
             jobClient = new JobClient(new JobConf(conf.getConfiguration()));
         }
         catch (IOException e) {

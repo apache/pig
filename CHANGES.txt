@@ -181,3 +181,6 @@ Trunk (unreleased changes)
     PIG-154: moving parsing for DEFINE and STORE into QueryParser
 
     PIG-100: improved error handling
+
+    PIG-94: changes for M2 of streaming: input/ouptut/ ship/cache error
+    handling
