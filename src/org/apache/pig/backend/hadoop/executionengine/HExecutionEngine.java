@@ -60,7 +60,6 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.shock.SSHSocketImplFactory;
 
 
-/*
 public class HExecutionEngine implements ExecutionEngine {
     
     private final Log log = LogFactory.getLog(getClass());
@@ -477,7 +476,6 @@ public class HExecutionEngine implements ExecutionEngine {
     }
     
 }
-*/
 
 
 

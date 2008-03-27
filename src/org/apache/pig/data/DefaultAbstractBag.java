@@ -29,7 +29,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 import org.apache.pig.impl.util.Spillable;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 
 /**
  * A collection of Tuples.  A DataBag may or may not fit into memory.
@@ -134,7 +134,6 @@ public abstract class DefaultAbstractBag implements DataBag {
     /**
      * Return the size of memory usage.
      */
-    @Override
     public long getMemorySize() {
         if (!mMemSizeChanged) return mMemSize;
 
@@ -209,7 +208,9 @@ public abstract class DefaultAbstractBag implements DataBag {
                     this instanceof DistinctDataBag) {
                 thisClone = this;
             } else {
-                thisClone = new SortedDataBag(null);
+                // TODO FIX
+                // thisClone = new SortedDataBag(null);
+                thisClone = new SortedDataBag();
                 Iterator<Tuple> i = iterator();
                 while (i.hasNext()) thisClone.add(i.next());
             }
@@ -217,7 +218,9 @@ public abstract class DefaultAbstractBag implements DataBag {
                     this instanceof DistinctDataBag) {
                 otherClone = bOther;
             } else {
-                otherClone = new SortedDataBag(null);
+                // TODO FIX
+                //otherClone = new SortedDataBag(null);
+                otherClone = new SortedDataBag();
                 Iterator<Tuple> i = bOther.iterator();
                 while (i.hasNext()) otherClone.add(i.next());
             }
@@ -247,7 +250,6 @@ public abstract class DefaultAbstractBag implements DataBag {
      * @param out DataOutput to write data to.
      * @throws IOException (passes it on from underlying calls).
      */
-    @Override
     public void write(DataOutput out) throws IOException {
         // We don't care whether this bag was sorted or distinct because
         // using the iterator to write it will guarantee those things come
@@ -345,9 +347,12 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Report progress to HDFS.
      */
     protected void reportProgress() {
+        // TODO FIX
+        /*
         if (PigMapReduce.reporter != null) {
             PigMapReduce.reporter.progress();
         }
+        */
     }
 
     public static abstract class BagDelimiterTuple extends DefaultTuple{}

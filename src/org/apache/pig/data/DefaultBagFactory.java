@@ -17,7 +17,6 @@
  */
 package org.apache.pig.data;
 
-import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
 /**
@@ -39,10 +38,14 @@ public class DefaultBagFactory extends BagFactory {
      * @param spec EvalSpec that controls how the data is sorted.
      * If null, default comparator will be used.
      */
-    public DataBag newSortedBag(EvalSpec spec) {
+    // TODO FIX Need to pass in comparator
+    public DataBag newSortedBag(/*EvalSpec spec*/) {
+        /*
         DataBag b = new SortedDataBag(spec);
         registerBag(b);
         return b;
+        */
+        return null;
     }
     
     /**

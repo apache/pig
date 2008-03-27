@@ -36,9 +36,6 @@ import java.util.PriorityQueue;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.apache.pig.impl.eval.EvalSpec;
-
-
 
 /**
  * An ordered collection of Tuples (possibly) with multiples.  Data is
@@ -73,27 +70,27 @@ public class SortedDataBag extends DefaultAbstractBag {
      * will be called to populate our mComp field.  If null,
      * DefaultComparator will be used.
      */
-    public SortedDataBag(EvalSpec spec) {
+    // TODO FIX Need to pass in comparator from somewhere.
+    public SortedDataBag(/*EvalSpec spec*/) {
+        /*
         if (spec == null) {
             mComp = new DefaultComparator();
         } else {
             mComp = spec.getComparator();
         }
+        */
 
         mContents = new ArrayList<Tuple>();
     }
 
-    @Override
     public boolean isSorted() {
         return true;
     }
     
-    @Override
     public boolean isDistinct() {
         return false;
     }
     
-    @Override
     public Iterator<Tuple> iterator() {
         return new SortedDataBagIterator();
     }

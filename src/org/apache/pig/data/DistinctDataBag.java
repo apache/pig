@@ -59,17 +59,14 @@ public class DistinctDataBag extends DefaultAbstractBag {
         mContents = new HashSet<Tuple>();
     }
 
-    @Override
     public boolean isSorted() {
         return false;
     }
     
-    @Override
     public boolean isDistinct() {
         return true;
     }
     
-    @Override
     public Iterator<Tuple> iterator() {
         return new DistinctDataBagIterator();
     }

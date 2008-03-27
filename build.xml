@@ -132,28 +132,9 @@
     </target>
 
     <target name="compile-sources">
-        <javac encoding="${build.encoding}" srcdir="${sources}" includes="**/plan/*.java, **/test/TestOperatorPlan.java, **/logicalLayer/LogicalPlan.java, **/logicalLayer/LOEval.java, **/logicalLayer/LOSort.java, **/logicalLayer/LOGenerate.java, **/logicalLayer/LOVisitor.java, **/logicalLayer/schema/Schema.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
+        <javac encoding="${build.encoding}" srcdir="${sources}" includes="**/plan/*.java, **/data/*.java, **/test/TestOperatorPlan.java, **/logicalLayer/LogicalPlan.java, **/logicalLayer/LOEval.java, **/logicalLayer/LOSort.java, **/logicalLayer/LOGenerate.java, **/logicalLayer/LOVisitor.java, **/logicalLayer/schema/Schema.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
-            <!--
-            <exclude name="**/StandAloneParser.java"/>
-            <exclude name="**/hadoop/executionengine/*.java"/>
-            <exclude name="**/local/executionengine/*.java"/>
-            <exclude name="**/physicalLayer/*.java"/>
-            <exclude name="**/builtin/*.java"/>
-            <exclude name="**/LOSplit.java"/>
-            <exclude name="**/LOCogroup.java"/>
-            <exclude name="**/LOLoad.java"/>
-            <exclude name="**/LOPrinter.java"/>
-            <exclude name="**/LOUserFunc.java"/>
-            <exclude name="**/LOSplitOutput.java"/>
-            <exclude name="**/LOStore.java"/>
-            <exclude name="**/LOUnion.java"/>
-            <exclude name="**/impl/parser/*.java"/>
-            <exclude name="**/tools/grunt/*.java"/>
-            <exclude name="**/Main.java"/>
-            <exclude name="**/PigServer.java"/>
-            -->
         </javac>
     </target>
 

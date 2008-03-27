@@ -46,17 +46,14 @@ public class DefaultDataBag extends DefaultAbstractBag {
         mContents = new ArrayList<Tuple>();
     }
 
-    @Override
     public boolean isSorted() {
         return false;
     }
     
-    @Override
     public boolean isDistinct() {
         return false;
     }
     
-    @Override
     public Iterator<Tuple> iterator() {
         return new DefaultDataBagIterator();
     }
