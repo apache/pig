@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,6 +56,7 @@ public class POMapreduce extends PhysicalOperator {
     public Class<WritableComparator> userComparator = null;
     public String quantilesFile = null;
     public PigContext pigContext;
+    public Properties properties = new Properties();
     
     public OperatorKey sourceLogicalKey;
     
@@ -244,6 +246,8 @@ public class POMapreduce extends PhysicalOperator {
             toMap.set(i, spec);
         else
             toMap.set(i, toMap.get(i).addSpec(spec));
+        
+        properties.putAll(spec.getProperties());
     }
     
     public void addReduceSpec(EvalSpec spec){
@@ -251,6 +255,8 @@ public class POMapreduce extends PhysicalOperator {
             toReduce = spec;
         else
             toReduce = toReduce.addSpec(spec);
+        
+        properties.putAll(spec.getProperties());
     }
     
     public void visit(POVisitor v) {

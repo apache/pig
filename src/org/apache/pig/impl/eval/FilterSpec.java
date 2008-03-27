@@ -19,6 +19,7 @@ package org.apache.pig.impl.eval;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.data.Datum;
 import org.apache.pig.impl.FunctionInstantiator;
@@ -48,7 +49,8 @@ public class FilterSpec extends EvalSpec {
     }
     
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe) {
 
             @Override

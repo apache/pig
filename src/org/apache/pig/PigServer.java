@@ -54,6 +54,7 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -147,6 +148,16 @@ public class PigServer {
     }
     
     /**
+     * Add a path to be skipped while automatically shipping binaries for 
+     * streaming.
+     *  
+     * @param path path to be skipped
+     */
+    public void addPathToSkip(String path) {
+        pigContext.addPathToSkip(path);
+    }
+    
+    /**
      * Defines an alias for the given function spec. This
      * is useful for functions that require arguments to the 
      * constructor.
@@ -157,6 +168,16 @@ public class PigServer {
      */
     public void registerFunction(String function, String functionSpec) {
         pigContext.registerFunction(function, functionSpec);
+    }
+    
+    /**
+     * Defines an alias for the given streaming command.
+     * 
+     * @param commandAlias - the new command alias to define
+     * @param command - streaming command to be executed
+     */
+    public void registerStreamingCommand(String commandAlias, StreamingCommand command) {
+        pigContext.registerStreamCmd(commandAlias, command);
     }
     
     private URL locateJarFromResources(String jarName) throws IOException {

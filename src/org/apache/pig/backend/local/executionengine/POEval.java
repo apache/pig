@@ -74,7 +74,7 @@ public class POEval extends PhysicalOperator {
         if (buf==null)
             buf = new DataBuffer();
         if (evalPipeline == null)
-            evalPipeline = spec.setupPipe(buf);
+            evalPipeline = spec.setupPipe(null, buf);
             
         inputDrained = false;
         

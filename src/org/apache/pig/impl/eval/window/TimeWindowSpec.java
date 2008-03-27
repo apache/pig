@@ -20,6 +20,7 @@ package org.apache.pig.impl.eval.window;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.TimestampedTuple;
@@ -40,7 +41,8 @@ public class TimeWindowSpec extends WindowSpec {
     }
     
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe) {
 
             @Override

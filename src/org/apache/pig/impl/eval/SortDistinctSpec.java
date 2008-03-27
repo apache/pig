@@ -20,6 +20,7 @@ package org.apache.pig.impl.eval;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -56,7 +57,8 @@ public class SortDistinctSpec extends EvalSpec {
     }
 
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe){
             
             @Override

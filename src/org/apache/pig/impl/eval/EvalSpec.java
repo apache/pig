@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.data.Datum;
@@ -45,13 +46,15 @@ public abstract class EvalSpec implements Serializable{
     private String comparatorFuncName;
     private transient Comparator<Tuple> comparator;
     
+    protected Properties properties = new Properties();
+    
     /*
      * Keep a precomputed pipeline ready if we do simple evals
      * No separate code path for simple evals as earlier 
      */
     private void init(){
         simpleEvalOutput = new DataBuffer();
-        simpleEvalInput = setupPipe(simpleEvalOutput);
+        simpleEvalInput = setupPipe(properties, simpleEvalOutput);
     }
     
     public class UserComparator implements Comparator<Tuple> {
@@ -88,20 +91,24 @@ public abstract class EvalSpec implements Serializable{
     /**
      * set up a default data processing pipe for processing by this spec
      * This pipe does not include unflattening/flattening at the end
+     * @param properties properties for the pipe
      * @param endOfPipe The collector where output is desired
      * @return The collector where input tuples should be put
      */
-    protected abstract DataCollector setupDefaultPipe(DataCollector endOfPipe);
+    protected abstract DataCollector setupDefaultPipe(Properties properties,
+                                                      DataCollector endOfPipe);
     
     
     /**
      * set up a data processing pipe with flattening/unflattening at the end
      * based on the isFlattened field
      * 
+     * @param properties properties for the <code>EvalSpec</code>
      * @param endOfPipe where the output is desired 
      * @return The collector where input tuples should be put
      */
-    public DataCollector setupPipe(DataCollector endOfPipe){
+    public DataCollector setupPipe(Properties properties, 
+                                   DataCollector endOfPipe){
         /*
          * By default tuples flow through the eval pipeline in a flattened fashion
          * Thus if flatten is true, we use the default setup pipe method, otherwise we add 
@@ -110,10 +117,10 @@ public abstract class EvalSpec implements Serializable{
     
         if (isFlattened){
             FlattenCollector fc = new FlattenCollector(endOfPipe);
-            return setupDefaultPipe(fc);
+            return setupDefaultPipe(properties, fc);
         }else{
             UnflattenCollector uc = new UnflattenCollector(endOfPipe);
-            return setupDefaultPipe(uc);
+            return setupDefaultPipe(properties, uc);
         }
     }
     
@@ -245,6 +252,15 @@ public abstract class EvalSpec implements Serializable{
         this.inner = inner;
     }
 
+    /**
+     * Get properties specific to a given <code>EvalSpec</code>.
+     * 
+     * @return properties specific to a given <code>EvalSpec</code>
+     */
+    public Properties getProperties() {
+        return properties;
+    }
+    
     public abstract void visit(EvalSpecVisitor v);
     
 }

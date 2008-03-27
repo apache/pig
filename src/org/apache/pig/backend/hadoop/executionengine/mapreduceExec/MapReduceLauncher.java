@@ -19,13 +19,22 @@ package org.apache.pig.backend.hadoop.executionengine.mapreduceExec;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
+import java.util.Map.Entry;
 
+import org.apache.commons.httpclient.URIException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobClient;
@@ -67,6 +76,8 @@ public class MapReduceLauncher {
     public static Configuration config = null;
     public static HExecutionEngine execEngine = null;
 
+    public static final String LOG_DIR = "_logs";
+    
     public static void setConf(Configuration configuration) {
         config = configuration;
     }
@@ -116,6 +127,7 @@ public class MapReduceLauncher {
      */
     public boolean launchPig(POMapreduce pom) throws IOException {
         JobConf conf = new JobConf(config);
+        setJobProperties(conf, pom);
         conf.setJobName(pom.pigContext.getJobName());
         boolean success = false;
         List<String> funcs = new ArrayList<String>();
@@ -132,11 +144,24 @@ public class MapReduceLauncher {
             funcs.addAll(pom.toReduce.getFuncs());
         }
         
+        String shipFiles = 
+            pom.properties.getProperty("pig.streaming.ship.files");
+        List<String> files = new ArrayList<String>(); 
+        if (shipFiles != null) {
+            String[] paths = shipFiles.split(",");
+            for (String path : paths) {
+                path = path.trim();
+                if (path.length() > 0) {
+                    files.add(path.trim());
+                }
+            }
+        }
+
         // create jobs.jar locally and pass it to hadoop
         File submitJarFile = File.createTempFile("Job", ".jar");    
         try {
             FileOutputStream fos = new FileOutputStream(submitJarFile);
-            JarManager.createJar(fos, funcs, pom.pigContext);
+            JarManager.createJar(fos, funcs, files, pom.pigContext);
             log.debug("Job jar size = " + submitJarFile.length());
             conf.setJar(submitJarFile.getPath());
             String user = System.getProperty("user.name");
@@ -193,6 +218,41 @@ public class MapReduceLauncher {
             conf.setOutputPath(new Path(pom.outputFileSpec.getFileName()));
             conf.set("pig.storeFunc", pom.outputFileSpec.getFuncSpec());
 
+            // Setup the DistributedCache for this job
+            DistributedCache.createSymlink(conf);
+            
+            String cacheFiles = 
+                pom.properties.getProperty("pig.streaming.cache.files");
+            if (cacheFiles != null) {
+                String[] paths = cacheFiles.split(",");
+                
+                for (String path : paths) {
+                    path = path.trim();
+                    if (path.length() != 0) {
+                        URI uri = null;
+                        try {
+                            uri = new URI(path);
+                        } catch (URISyntaxException ue) {
+                            throw new IOException("Invalid cache specification, file doesn't exist: " + path);
+                        }
+                        DistributedCache.addCacheFile(uri, conf);
+                    }
+                }
+            }
+
+            //TODO - Remove this
+            conf.setBoolean("keep.failed.task.files", true);
+            
+            // Setup the logs directory for this job
+            String jobOutputFileName = pom.pigContext.getJobOutputFile();
+            if (jobOutputFileName != null && jobOutputFileName.length() > 0) {
+                Path jobOutputFile = new Path(pom.pigContext.getJobOutputFile());
+                conf.set("pig.output.dir", 
+                        jobOutputFile.getParent().toString());
+                conf.set("pig.streaming.log.dir", 
+                        new Path(jobOutputFile, LOG_DIR).toString());
+            }
+            
             //
             // Now, actually submit the job (using the submit name)
             //
@@ -316,6 +376,7 @@ public class MapReduceLauncher {
         }
         catch (Exception e) {
             // Do we need different handling for different exceptions
+            e.printStackTrace();
             throw WrappedIOException.wrap(e);
         }
         finally {
@@ -324,6 +385,20 @@ public class MapReduceLauncher {
         return success;
     }
 
+    /**
+     * Copy job-specific configuration from the <code>Properties</code>
+     * of the given <code>POMapreduce</code>.
+     * 
+     * @param job job configuration
+     * @param pom <code>POMapreduce</code> to be executed
+     */
+    private static void setJobProperties(JobConf job, POMapreduce pom) 
+    throws IOException {
+        for (Map.Entry property : pom.properties.entrySet()) {
+            job.set((String)property.getKey(), (String)property.getValue());
+        }
+    }
+    
 private void getErrorMessages(TaskReport reports[], String type)
 {
     for (int i = 0; i < reports.length; i++) {

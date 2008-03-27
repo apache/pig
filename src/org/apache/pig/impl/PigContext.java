@@ -39,6 +39,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.Main;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -50,8 +51,11 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.backend.local.executionengine.LocalExecutionEngine;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.streaming.ExecutableManager;
+import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -91,14 +95,29 @@ public class PigContext implements Serializable, FunctionInstantiator {
    
     private String jobName = JOB_NAME_PREFIX;    // can be overwritten by users
   
+    // Pig Script Output
+    private String jobOutputFile = "";
+    
+    // JobConf of the currently executing Map-Reduce job
+    JobConf jobConf;
+    
     /**
      * a table mapping function names to function specs.
      */
     private Map<String, String> definedFunctions = new HashMap<String, String>();
     
+    /**
+     * a table mapping names to streaming commands.
+     */
+    private Map<String, StreamingCommand> definedCommands = 
+        new HashMap<String, StreamingCommand>();
+    
     private static ArrayList<String> packageImportList = new ArrayList<String>();
 
     public boolean                       debug       = true;
+    
+    // List of paths skipped for automatic shipping
+    List<String> skippedShipPaths = new ArrayList<String>();
     
     public PigContext() {
         this(ExecType.MAPREDUCE);
@@ -118,6 +137,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         }
         
         executionEngine = null;
+        
+        // Add the default paths to be skipped for auto-shipping of commands
+        skippedShipPaths.add("/bin");
+        skippedShipPaths.add("/usr/bin");
+        skippedShipPaths.add("/usr/local/bin");
+        skippedShipPaths.add("/sbin");
+        skippedShipPaths.add("/usr/sbin");
+        skippedShipPaths.add("/usr/local/sbin");
     }
 
     static{
@@ -341,6 +368,22 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
 
     /**
+     * Defines an alias for the given streaming command.
+     * 
+     * This is useful for complicated streaming command specs.
+     * 
+     * @param alias - the new command alias to define.
+     * @param command - the command 
+     */
+    public void registerStreamCmd(String alias, StreamingCommand command) {
+        if (command == null) {
+            definedCommands.remove(alias);
+        } else {
+            definedCommands.put(alias, command);
+        }
+    }
+
+    /**
      * Returns the type of execution currently in effect.
      * 
      * @return
@@ -489,7 +532,103 @@ public class PigContext implements Serializable, FunctionInstantiator {
             return instantiateFuncFromSpec(alias);
     }
 
+    /**
+     * Get the {@link StreamingCommand} for the given alias.
+     * 
+     * @param alias the alias for the <code>StreamingCommand</code>
+     * @return <code>StreamingCommand</code> for the alias
+     */
+    public StreamingCommand getCommandForAlias(String alias) {
+        return definedCommands.get(alias);
+    }
+    
     public void setExecType(ExecType execType) {
         this.execType = execType;
+    }
+    
+    /**
+     * Create a new {@link ExecutableManager} depending on the ExecType.
+     * 
+     * @return a new {@link ExecutableManager} depending on the ExecType
+     * @throws ExecException
+     */
+    public ExecutableManager createExecutableManager() throws ExecException {
+        ExecutableManager executableManager = null;
+
+        switch (execType) {
+            case LOCAL:
+            {
+                executableManager = new ExecutableManager();
+            }
+            break;
+            case MAPREDUCE: 
+            {
+                executableManager = new HadoopExecutableManager();
+            }
+            break;
+            default:
+            {
+                throw new ExecException("Unkown execType: " + execType);
+            }
+        }
+        
+        return executableManager;
+    }
+
+    /**
+     * Get the output file for the current Pig Script.
+     * 
+     * @return the output file for the current Pig Script
+     */
+    public String getJobOutputFile() {
+        return jobOutputFile;
+    }
+
+    /**
+     * Set the output file for the current Pig Script.
+     * 
+     * @param jobOutputFile the output file for the current Pig Script
+     */
+    public void setJobOutputFile(String jobOutputFile) {
+        this.jobOutputFile = jobOutputFile;
+    }
+
+    /**
+     * Get the <code>JobConf</code> of the current Map-Reduce job.
+     * 
+     * @return the <code>JobConf</code> of the current Map-Reduce job
+     */
+    public JobConf getJobConf() {
+        return jobConf;
+    }
+
+    /**
+     * Set the <code>JobConf</code> of the current Map-Reduce job.
+     * 
+     * @param jobConf the <code>JobConf</code> of the current Map-Reduce job
+     */
+    public void setJobConf(JobConf jobConf) {
+        this.jobConf = jobConf;
+    }
+    
+    /**
+     * Add a path to be skipped while automatically shipping binaries for 
+     * streaming.
+     *  
+     * @param path path to be skipped
+     */
+    public void addPathToSkip(String path) {
+        skippedShipPaths.add(path);
+    }
+    
+    /**
+     * Get paths which are to skipped while automatically shipping binaries for
+     * streaming.
+     * 
+     * @return paths which are to skipped while automatically shipping binaries 
+     *         for streaming
+     */
+    public List<String> getPathsToSkip() {
+        return skippedShipPaths;
     }
 }

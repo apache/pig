@@ -22,6 +22,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.Algebraic;
@@ -81,7 +82,8 @@ public class FuncEvalSpec extends EvalSpec {
     }
 
     @Override
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
         return new DataCollector(endOfPipe){
             private Datum getPlaceHolderForFuncOutput(){
                 Type returnType = func.getReturnType();

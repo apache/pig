@@ -44,6 +44,8 @@ import org.apache.pig.impl.io.*;
 import org.apache.pig.builtin.*;
 import org.apache.pig.impl.builtin.*;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 public class QueryParser {
 	private PigContext pigContext;
@@ -241,8 +243,120 @@ public class QueryParser {
 	 void addSplitOutput(LogicalPlan lp, LOSplit splitOp, String alias, Cond cond, int index){
 		splitOp.addCond(cond);
 		LOSplitOutput splitOut = new LOSplitOutput(opTable, scope, getNextId(), lp.getRoot(), index);
-		aliases.put(alias, new LogicalPlan(splitOut.getOperatorKey(), opTable, pigContext));
+	    aliases.put(alias, new LogicalPlan(splitOut.getOperatorKey(), opTable, pigContext));
 	 }
+
+     // Check and set files to be automatically shipped for the given StreamingCommand
+     // Auto-shipping rules:
+     // 1. If the command begins with either perl or python assume that the 
+     //    binary is the first non-quoted string it encounters that does not 
+     //    start with dash - subject to restrictions in (2).
+     // 2. Otherwise, attempt to ship the first string from the command line as 
+     //    long as it does not come from /bin, /user/bin, /user/local/bin. 
+     //    It will determine that by scanning the path if an absolute path is 
+     //    provided or by executing "which". The paths can be made configurable 
+     //    via "set stream.skippath <paths>" option.
+     private static final String PERL = "perl";
+     private static final String PYTHON = "python";
+     private void checkAutoShipSpecs(StreamingCommand command, String[] argv) {
+     	String arg0 = argv[0];
+     	// Check if command is perl or python ...
+        if (arg0.equalsIgnoreCase(PERL) || arg0.equalsIgnoreCase(PYTHON)) {
+            for (int i=1; i < argv.length; ++i) {
+            	if (!argv[i].startsWith("-") && !isQuotedString(argv[i])) {
+            		command.addPathToShip(argv[i]);
+            		command.setExecutable(argv[i]);
+            		break;
+            	}
+            }
+        } else {
+        	// Ship the first argument if it can be ...
+        	boolean absPath = arg0.startsWith("/");
+        	String filePath =  (absPath) ? arg0 : which(arg0);
+        	if (filePath.length() > 0 && checkAndShip(command, filePath)) {
+        		// Make it relative to task's cwd
+        		String runtimeExecutablePath = (absPath) ? ("." + filePath) : filePath; 
+        		argv[0] = runtimeExecutablePath;
+        		command.setCommandArgs(argv);
+        		command.setExecutable(runtimeExecutablePath);
+        		
+        		// Ship the file 
+                command.addPathToShip(filePath);
+        	}
+        }
+     }
+     
+     private boolean isQuotedString(String s) {
+     	return (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'');
+     }
+     
+     private boolean checkAndShip(StreamingCommand command, String file) {
+     	// Check if file is in the paths to be skipped 
+     	for (String skipPath : pigContext.getPathsToSkip()) {
+     		if (file.startsWith(skipPath)) {
+     			return false;
+     		}
+     	}
+        return true;
+     }
+
+
+     private static String which(String file) {
+        try {
+        	ProcessBuilder processBuilder = new ProcessBuilder(new String[] {"which", file});
+            Process process = processBuilder.start();
+    
+            BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String fullPath = stdout.readLine();
+
+            return (process.waitFor() == 0) ? fullPath : "";
+        } catch (Exception e) {}
+        return "";
+     }
+               
+     private static final char SINGLE_QUOTE = '\'';
+     private static final char DOUBLE_QUOTE = '"';
+     private static String[] splitArgs(String command) throws ParseException {
+        List<String> argv = new ArrayList<String>();
+
+        int beginIndex = 0;
+        
+        while (beginIndex < command.length()) {
+            // Skip spaces
+            while (Character.isWhitespace(command.charAt(beginIndex))) {
+                ++beginIndex;
+            }
+            
+            char delim = ' ';
+            char charAtIndex = command.charAt(beginIndex);
+            if (charAtIndex == SINGLE_QUOTE || charAtIndex == DOUBLE_QUOTE) {
+                delim = charAtIndex;
+            }
+            
+            int endIndex = command.indexOf(delim, beginIndex+1);
+            if (endIndex == -1) {
+                if (Character.isWhitespace(delim)) {
+                    // Reached end of command-line
+                    argv.add(command.substring(beginIndex));
+                    break;
+                } else {
+                    // Didn't find the ending quote/double-quote
+                    throw new ParseException("Illegal command: " + command);
+                }
+            }
+            
+            if (Character.isWhitespace(delim)) {
+                // Do not consume the space
+                argv.add(command.substring(beginIndex, endIndex));
+            } else {
+                argv.add(command.substring(beginIndex, endIndex+1));
+            }
+           
+            beginIndex = endIndex + 1;
+        }
+        
+        return argv.toArray(new String[argv.size()]);
+    }
 
 }
 
@@ -387,8 +501,15 @@ TOKEN : { <FLATTEN : "flatten"> }
 TOKEN : { <EVAL : "eval"> }
 TOKEN : { <STREAM : "stream"> }
 TOKEN : { <THROUGH : "through"> }
-TOKEN : { <BACKTICK : "`"> }
 TOKEN : { <STORE : "store"> }
+TOKEN : { <SHIP: "ship"> }
+TOKEN : { <CACHE: "cache"> }
+TOKEN : { <INPUT: "input"> }
+TOKEN : { <OUTPUT: "output"> }
+TOKEN : { <ERROR: "stderr"> }
+TOKEN : { <STDIN: "stdin"> }
+TOKEN : { <STDOUT: "stdout"> }
+TOKEN : { <LIMIT: "limit"> }
 
 TOKEN:
 {
@@ -1254,43 +1375,104 @@ EvalSpec AliasFieldOrSpec(Schema over, Map<String, EvalSpec> specs) : {Token t1;
 	}
 }
 
-LogicalOperator StreamClause(): {LogicalOperator input; String streamingCommand;}
+LogicalOperator StreamClause(): 
+{
+	LogicalOperator input; 
+	StreamingCommand command;
+}
 {
 	input = NestedExpr()	
 	
-	<THROUGH> streamingCommand = StreamingCommand()
+	<THROUGH> command = Command()
 	{
-		return new LOEval(opTable, scope, getNextId(), input.getOperatorKey(), new StreamSpec(streamingCommand));
+		return new LOEval(opTable, scope, getNextId(), input.getOperatorKey(), 
+		                  new StreamSpec(pigContext.createExecutableManager(),
+		                                 command)
+		                 );
 	}
 }
 
-String StreamingCommand(): {Token t;}
+StreamingCommand Command(): {Token t; StreamingCommand command;}
 {
 	t = <EXECCOMMAND>
 	{
-		return unquote(t.image);
+		String[] argv = splitArgs(unquote(t.image));
+		command = new StreamingCommand(argv);
+        checkAutoShipSpecs(command, argv);
+		return command;
+	}
+	|
+	t = <IDENTIFIER>
+	{
+		command = pigContext.getCommandForAlias(t.image);
+		if (command == null) {
+			throw new ParseException("Undefined command-alias: " + t.image + 
+			                         " used as stream operator");
+		}
+
+		return command;
 	}
 }
 
-LogicalOperator DefineClause() : {Token t; Token t1; String functionName, functionArgs;}
+LogicalOperator DefineClause() : {Token t; Token cmd; String functionName, functionArgs;}
 {
-	t = <IDENTIFIER>
-	(
-        functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+    t = <IDENTIFIER>
+    (
+    ( 
+        cmd = <EXECCOMMAND>
         {
-        	pigContext.registerFunction(t.image, 
-        	                            (functionName + "(" + functionArgs + ")"));
+            StreamingCommand command = 
+               new StreamingCommand(splitArgs(unquote(cmd.image)));
+            String[] paths;
+            StreamingCommand.HandleSpec[] handleSpecs;
+        }
+        (
+            <SHIP> "(" paths = PathList() ")" 
+            {
+                if (paths.length == 0) {
+                	command.setShipFiles(false);
+                } else {
+                    for (String path : paths) {
+                        command.addPathToShip(path);
+                    }
+                }
+            }
+            |
+            <CACHE> "(" paths = PathList() ")"
+            {
+                for (String path : paths) {
+                    command.addPathToCache(path);
+                }
+            }
+            |
+            <INPUT> "(" InputOutputSpec(command, StreamingCommand.Handle.INPUT) ")"
+            |
+            <OUTPUT> "(" InputOutputSpec(command, StreamingCommand.Handle.OUTPUT) ")"
+            |
+            <ERROR> "(" ErrorSpec(command, t.image) ")"
+        )*
+        {
+            pigContext.registerStreamCmd(t.image, command); 
         }
     )
+    |
+    (
+        functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+        {
+            pigContext.registerFunction(t.image, 
+                                        (functionName + "(" + functionArgs + ")"));
+        }
+    )
+    )
     {
-    	// Return the dummy LODefine
-    	return new LODefine(opTable, scope, getNextId());
+        // Return the dummy LODefine
+        return new LODefine(opTable, scope, getNextId());
     }
 }
 
 LogicalOperator StoreClause() : {LogicalOperator lo; Token t; String fileName; String functionSpec = null; String functionName, functionArgs;}
 {   
-	t = <IDENTIFIER> <INTO> fileName = FileName()
+    t = <IDENTIFIER> <INTO> fileName = FileName()
     (
         <USING> functionName = QualifiedFunction()
         {functionSpec = functionName;} 
@@ -1305,12 +1487,79 @@ LogicalOperator StoreClause() : {LogicalOperator lo; Token t; String fileName; S
         }
          
         LogicalPlan readFrom = aliases.get(t.image);
-       
+        String jobOutputFile = massageFilename(fileName, pigContext, false);
         lo = new LOStore(opTable, scope, getNextId(), readFrom.getRoot(),
-                         new FileSpec(massageFilename(fileName, pigContext, false), 
-                                      functionSpec),
+                         new FileSpec(jobOutputFile, functionSpec),
                          false);
-            
+        pigContext.setJobOutputFile(jobOutputFile);
+        
         return lo;
     } 
+}
+
+String[] PathList() : {Token t; List<String> pathList = new ArrayList<String>();}
+{
+    (
+    (
+    t = <QUOTEDSTRING> {pathList.add(unquote(t.image));}
+    ( "," t = <QUOTEDSTRING> {pathList.add(unquote(t.image));} )*
+    )
+    | {}
+    )
+    {return pathList.toArray(new String[pathList.size()]);}
+}
+
+void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
+{
+    String stream, deserializer;
+    StreamingCommand.HandleSpec[] handleSpecs;
+    String functionName, functionArgs;
+} 
+{
+    
+    stream = CommandStream() <USING> functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+    {
+        deserializer = functionName + "(" + functionArgs + ")";
+        command.addHandleSpec(handle, 
+                              new HandleSpec(stream, deserializer)
+                             );
+    }
+    (
+        "," 
+        stream = CommandStream() <USING> functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+        {
+        	deserializer = functionName + "(" + functionArgs + ")";
+            command.addHandleSpec(handle, 
+                                  new HandleSpec(stream, deserializer)
+                                 );
+        }
+    )* 
+}
+
+String CommandStream(): {Token t;}
+{
+    t = <STDIN>
+    {return "stdin";}
+    |
+    t = <STDOUT>
+    {return "stdout";}
+    |
+    t = <QUOTEDSTRING>
+    {return unquote(t.image);}
+}
+
+void ErrorSpec(StreamingCommand command, String alias): {Token t1, t2; int limit = StreamingCommand.MAX_TASKS;}
+{
+	(
+	t1 = <QUOTEDSTRING>
+	(<LIMIT> t2 = <NUMBER> {limit = Integer.parseInt(t2.image);})?
+	{
+		command.setLogDir(unquote(t1.image));
+		command.setLogFilesLimit(limit);
+	}
+	)
+	|
+	{
+        command.setLogDir(alias);
+	}
 }

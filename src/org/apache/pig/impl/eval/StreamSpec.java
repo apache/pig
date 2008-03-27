@@ -19,16 +19,16 @@ package org.apache.pig.impl.eval;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.StoreFunc;
-import org.apache.pig.impl.streaming.PigExecutableManager;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.Datum;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.streaming.ExecutableManager;
+import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.data.Datum;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -38,21 +38,35 @@ public class StreamSpec extends EvalSpec {
     private static final Log LOG = 
         LogFactory.getLog(StreamSpec.class.getName());
 
-    private String streamingCommand;                       // Actual command to be run
-    private String deserializer;                           // LoadFunc to be used
-    private String serializer;                             // StoreFunc to be used
+    private String executableManager;               // ExecutableManager to use
+    private StreamingCommand command;               // Actual command to be run
 
-    public StreamSpec(String streamingCommand) {
-        this.streamingCommand = streamingCommand;
-        this.deserializer = PigStorage.class.getName();
-        this.serializer = PigStorage.class.getName();
+    public StreamSpec(ExecutableManager executableManager, 
+                      StreamingCommand command) {
+        this.executableManager = executableManager.getClass().getName();
+        this.command = command;
+
+        // Setup streaming-specific properties
+        if (command.getShipFiles()) {
+            parseShipCacheSpecs(command.getShipSpecs(), 
+                                properties, "pig.streaming.ship.files");
+        }
+        parseShipCacheSpecs(command.getCacheSpecs(), 
+                            properties, "pig.streaming.cache.files");
     }
-
-    public StreamSpec(String streamingCommand, 
-                      String deserializer, String serializer) {
-        this.streamingCommand = streamingCommand;
-        this.deserializer = deserializer;
-        this.serializer = serializer;
+    
+    private static void parseShipCacheSpecs(List<String> specs, 
+            Properties properties, String property) {
+        // Setup streaming-specific properties
+        StringBuffer sb = new StringBuffer();
+        Iterator<String> i = specs.iterator();
+        while (i.hasNext()) {
+            sb.append(i.next());
+            if (i.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        properties.setProperty(property, sb.toString());        
     }
     
     @Override
@@ -66,15 +80,11 @@ public class StreamSpec extends EvalSpec {
         return null;
     }
 
-    protected DataCollector setupDefaultPipe(DataCollector endOfPipe) {
-        return new StreamDataCollector(streamingCommand,
-                                       (deserializer == null) ? new PigStorage() :
-                                         (LoadFunc)PigContext.instantiateFuncFromSpec(
-                                                                        deserializer),            
-                                       (serializer == null) ? new PigStorage() :
-                                         (StoreFunc)PigContext.instantiateFuncFromSpec(
-                                                                        serializer),
-                                      endOfPipe);
+    protected DataCollector setupDefaultPipe(Properties properties,
+                                             DataCollector endOfPipe) {
+        return new StreamDataCollector(properties,
+                                       (ExecutableManager)PigContext.instantiateFuncFromSpec(executableManager), 
+                                       command, endOfPipe);
     }
 
     public void visit(EvalSpecVisitor v) {
@@ -82,16 +92,18 @@ public class StreamSpec extends EvalSpec {
     }
 
     /**
-     * A simple {@link DataCollector} which wraps a {@link PigExecutableManager}
+     * A simple {@link DataCollector} which wraps a {@link ExecutableManager}
      * and lets it handle the input and the output to the managed executable.
      */
     private static class StreamDataCollector extends DataCollector {
-        PigExecutableManager executable;                          //Executable manager
+        ExecutableManager executableManager;            //Executable manager
         
-        public StreamDataCollector(String streamingCommand,
-                                   LoadFunc deserializer, StoreFunc serializer,
+        public StreamDataCollector(Properties properties,
+                                   ExecutableManager executableManager,
+                                   StreamingCommand command,
                                    DataCollector endOfPipe) {
             super(endOfPipe);
+            this.executableManager = executableManager;
 
             DataCollector successor = 
                 new DataCollector(endOfPipe) {
@@ -102,33 +114,32 @@ public class StreamSpec extends EvalSpec {
             };
 
             try {
-                // Create the PigExecutableManager
-                executable = new PigExecutableManager(streamingCommand, 
-                                                      deserializer, serializer, 
-                                                      successor);
-                
-                executable.configure();
+                // Setup the ExecutableManager
+                this.executableManager.configure(properties, command, successor);
                 
                 // Start the executable
-                executable.run();
+                this.executableManager.run();
             } catch (Exception e) {
-                LOG.fatal("Failed to create/start PigExecutableManager with: " + e);
+                LOG.fatal("Failed to create/start PigExecutableManager with: " + 
+                          e);
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
 
         public void add(Datum d) {
             try {
-                executable.add(d);
+                executableManager.add(d);
             } catch (IOException ioe) {
-                LOG.fatal("executable.add(" + d + ") failed with: " + ioe);
+                LOG.fatal("ExecutableManager.add(" + d + ") failed with: " + 
+                          ioe);
                 throw new RuntimeException(ioe);
             }
         }
 
         protected void finish() {
             try {
-                executable.close();
+                executableManager.close();
             }
             catch (Exception e) {
                 LOG.fatal("Failed to close PigExecutableManager with: " + e);
