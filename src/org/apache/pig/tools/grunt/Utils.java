@@ -21,7 +21,7 @@ class Utils {
     static Exception getPermissionException(Exception top){
         Throwable current = top;
 
-        while (current != null && current.getMessage().indexOf("Permission denied") == -1){
+        while (current != null && (current.getMessage() == null || current.getMessage().indexOf("Permission denied") == -1)){
             current = current.getCause();
         }
         return (Exception)current;

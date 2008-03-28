@@ -184,3 +184,5 @@ Trunk (unreleased changes)
 
     PIG-94: changes for M2 of streaming: input/ouptut/ ship/cache error
     handling
+
+    PIG-172: dealing with NULL error messages in exceptions
