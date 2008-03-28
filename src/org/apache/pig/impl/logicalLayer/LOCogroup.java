@@ -22,26 +22,46 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
-
 public class LOCogroup extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-    public LOCogroup(LogicalPlan plan, OperatorKey k) { 
-        super(plan, k, -1);
+    private ArrayList<String> mInputs;
+    private ArrayList<ExpressionOperator> mGroupByCols;
+
+    /**
+     * 
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param rp
+     *            Requested level of parallelism to be used
+     * @param groupByCols
+     *            the group by columns
+     */
+    public LOCogroup(LogicalPlan plan, OperatorKey k, int rp,
+            ArrayList<String> inputs, ArrayList<ExpressionOperator> groupByCols) {
+        super(plan, k, rp);
+        mInputs = inputs;
+        mGroupByCols = groupByCols;
+    }
+
+    public List<String> getInputs() {
+        return mInputs;
+    }
+
+    public List<ExpressionOperator> getGroupByCols() {
+        return mGroupByCols;
     }
 
     @Override
     public String name() {
         return "CoGroup " + mKey.scope + "-" + mKey.id;
-    }
-
-    @Override
-    public String typeName() {
-        return "LOCogroup";
     }
 
     @Override
@@ -55,18 +75,36 @@ public class LOCogroup extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() {
+    public Schema getSchema() throws IOException {
         // TODO create schema
-        return null;
+        /**
+         * Dumping my understanding of how the schema of a Group/CoGroup will
+         * look. The first field of the resulting tuple will have the alias
+         * 'group'. The schema for this field is a union of the group by columns
+         * for each input. The subsequent fields in the output tuple will have
+         * the alias of the input as the alias for a bag that contains the
+         * tuples from the input that match the grouping criterion
+         */
+        if (null == mSchema) {
+            List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
+                    mGroupByCols.size() + 1);
+            // one more to account for the "group"
+            // the alias of the first field is group and hence the
+            // string "group"
+            // TODO The type of the field named "group" requires
+            // type promotion and the like
+            fss.add(new Schema.FieldSchema("group", null));
+            for (String input : mInputs) {
+                fss.add(new Schema.FieldSchema(input, DataType.BAG));
+            }
+            mIsSchemaComputed = true;
+        }
+        return mSchema;
     }
 
     @Override
-    public void visit(PlanVisitor v) throws ParseException {
-        if (!(v instanceof LOVisitor)) {
-            throw new RuntimeException("You can only visit LogicalOperators "
-                + "with an LOVisitor!");
-        }
-        ((LOVisitor)v).visitCogroup(this);
+    public void visit(LOVisitor v) throws ParseException {
+        v.visit(this);
     }
 
 }

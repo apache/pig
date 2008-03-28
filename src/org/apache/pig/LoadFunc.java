@@ -18,6 +18,7 @@
 package org.apache.pig;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Map;
 
 import org.apache.pig.data.DataBag;
@@ -157,13 +158,8 @@ public interface LoadFunc {
      * loader may be able to do this if the data is self describing (e.g. JSON).  If
      * the loader cannot determine the schema, it can return a null.
      * @param fileName Name of the file to be read.
-     * @param in inpu stream, so that the function can read enough of the
-     * data to determine the schema.
-     * @param end Function should not read past this position in the stream.
      * @return a Schema describing the data if possible, or null otherwise.
      * @throws IOException.
      */
-    public Schema determineSchema(String fileName,
-                                  BufferedPositionedInputStream in,
-                                  long end) throws IOException;
+    public Schema determineSchema(URL fileName) throws IOException;
 }

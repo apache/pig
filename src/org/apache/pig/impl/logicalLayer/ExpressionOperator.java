@@ -17,17 +17,29 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.List;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 public abstract class ExpressionOperator extends LogicalOperator {
 
+    private static final long serialVersionUID = 2L;
+
     /**
-     * @param plan LogicalPlan this operator will be a part of.
-     * @param k OperatorKey of this operator
-     * @param rp requested level of parallelism, -1 for default.
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
+     * @param rp
+     *            degree of requested parallelism with which to execute this
+     *            node.
      */
     public ExpressionOperator(LogicalPlan plan, OperatorKey k, int rp) {
         super(plan, k, rp);
     }
 
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return false;
+    }
 }
 

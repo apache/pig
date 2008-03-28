@@ -17,15 +17,24 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 
-public class LOUnion extends LogicalOperator {
+public class LOForEach extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
+
+    /**
+     * The foreach operator supports nested query plans. At this point its one
+     * level of nesting. Foreach can have a list of operators that need to be
+     * applied over the input.
+     */
+
+    private ArrayList<LogicalOperator> mOperators;
 
     /**
      * @param plan
@@ -35,29 +44,46 @@ public class LOUnion extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
+     * @param operators
+     *            the list of operators that are applied for each input
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
+    public LOForEach(LogicalPlan plan, OperatorKey k, int rp,
+            ArrayList<LogicalOperator> operators) {
+
         super(plan, k, rp);
+        mOperators = operators;
+    }
+
+    public List<LogicalOperator> getOperators() {
+        return mOperators;
     }
 
     @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
+    public Schema getSchema() throws IOException {
+        if (mSchema == null) {
+            // Assuming that the last operator is the GENERATE
+            // foreach has to terminate with a GENERATE
+            LogicalOperator last = mOperators.get(mOperators.size() - 1);
+            try {
+                mSchema = last.getSchema();
+                mIsSchemaComputed = true;
+            } catch (IOException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
         }
         return mSchema;
     }
 
     @Override
     public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
+        return "Filter " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public boolean supportsMultipleInputs() {
-        return true;
+        return false;
     }
 
     @Override

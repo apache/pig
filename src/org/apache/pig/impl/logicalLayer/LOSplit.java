@@ -18,49 +18,88 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.io.IOException;
+import java.util.Set;
 
-import org.apache.pig.impl.eval.cond.Cond;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOSplit extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-      List<Cond> conditions = new ArrayList<Cond>();
+    private Map<String, ExpressionOperator> mOutputs;
 
-    public LOSplit(Map<OperatorKey, LogicalOperator> opTable,
-                   String scope, 
-                   long id, 
-                   OperatorKey input) {
-        super(opTable, scope, id, input);
-    }
-    
-    public void addCond(Cond cond) {
-        conditions.add(cond);
-    }
-
-    @Override
-    public int getOutputType() {
-        return opTable.get(getInputs().get(0)).getOutputType();
-    }
-
-    public ArrayList<Cond> getConditions() {
-        return new ArrayList<Cond> (conditions);
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param rp
+     *            Requested level of parallelism to be used in the sort.
+     * @param aliases
+     *            list of aliases that are the output of the split
+     * @param conditions
+     *            list of conditions for the split
+     */
+    public LOSplit(LogicalPlan plan, OperatorKey key, int rp,
+            Map<String, ExpressionOperator> outputs) {
+        super(plan, key, rp);
+        mOutputs = outputs;
     }
 
-    @Override
-    public TupleSchema outputSchema() {
-        return opTable.get(getInputs().get(0)).outputSchema().copy();
+    public Collection<ExpressionOperator> getConditions() {
+        return mOutputs.values();
+    }
+
+    public Set<String> getOutputAliases() {
+        return mOutputs.keySet();
+    }
+
+    public void addOutputAlias(String output, ExpressionOperator cond) {
+        mOutputs.put(output, cond);
     }
 
     @Override
     public String name() {
-        return "Split " + scope + "-" + id;
-    }
-    
-    public void visit(LOVisitor v) {
-        v.visitSplit(this);
+        return "Split " + mKey.scope + "-" + mKey.id;
     }
 
+    @Override
+    public Schema getSchema() throws IOException {
+        if (!mIsSchemaComputed && (null == mSchema)) {
+            // get our parent's schema
+            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            try {
+                LogicalOperator op = s.iterator().next();
+                if (null == op) {
+                    throw new IOException("Could not find operator in plan");
+                }
+                mSchema = s.iterator().next().getSchema();
+                mIsSchemaComputed = true;
+            } catch (IOException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
+        }
+        return mSchema;
+    }
+
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return true;
+    }
+
+    public void visit(LOVisitor v) throws ParseException {
+        v.visit(this);
+    }
 }

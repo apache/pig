@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -34,14 +35,20 @@ public class LOSort extends LogicalOperator {
     private LOUserFunc mSortFunc;
 
     /**
-     * @param plan LogicalPlan this operator is a part of.
-     * @param key OperatorKey for this operator
-     * @param sortCols Array of column numbers that will be used for sorting
-     * data.
-     * @param ascCols Array of booleans.  Should be same size as sortCols.  True
-     * indicates sort ascending (default), false sort descending.  If this array
-     * is null, then all columns will be sorted ascending.
-     * @param rp Requested level of parallelism to be used in the sort.
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param sortCols
+     *            Array of column numbers that will be used for sorting data.
+     * @param ascCols
+     *            Array of booleans. Should be same size as sortCols. True
+     *            indicates sort ascending (default), false sort descending. If
+     *            this array is null, then all columns will be sorted ascending.
+     * @param sorFunc
+     *            the user defined sorting function
+     * @param rp
+     *            Requested level of parallelism to be used in the sort.
      */
     public LOSort(LogicalPlan plan,
                   OperatorKey key,
@@ -78,11 +85,22 @@ public class LOSort extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() {
-        if (mSchema == null) {
+    public Schema getSchema() throws IOException {
+        if (!mIsSchemaComputed && (null == mSchema)) {
             // get our parent's schema
             Collection<LogicalOperator> s = mPlan.getSuccessors(this);
-            mSchema = s.iterator().next().getSchema();
+            try {
+                LogicalOperator op = s.iterator().next();
+                if(null == op) {
+                    throw new IOException("Could not find operator in plan");
+                }
+                mSchema = op.getSchema();
+                mIsSchemaComputed = true;
+            } catch (IOException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
         }
         return mSchema;
     }
@@ -97,11 +115,7 @@ public class LOSort extends LogicalOperator {
         return false;
     }
 
-    public void visit(PlanVisitor v) throws ParseException {
-        if (!(v instanceof LOVisitor)) {
-            throw new RuntimeException("You can only visit LogicalOperators "
-                + "with an LOVisitor!");
-        }
-        ((LOVisitor)v).visitSort(this);
+    public void visit(LOVisitor v) throws ParseException {
+        v.visit(this);
     }
 }

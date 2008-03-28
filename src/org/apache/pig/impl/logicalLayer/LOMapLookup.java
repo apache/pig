@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,13 +25,17 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
-public class LOGenerate extends LogicalOperator {
+public class LOMapLookup extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
     /**
-     * The projection list of this generate.
+     * The key to lookup along with the type and schema corresponding to the
+     * type and schema of the value linked to the key
      */
-    private ArrayList<ExpressionOperator> mProjections;
+    private ExpressionOperator mMap;
+    private Object mMapKey;
+    private DataType mValueType;
+    private Schema mValueSchema;
 
     /**
      * 
@@ -43,53 +46,63 @@ public class LOGenerate extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
-     * @param projections
-     *            the projection list of the generate
+     * @param map
+     *            the map expression
+     * @param mapKey
+     *            key to look up in the map. The key is of atomic type
+     * @param valueType
+     *            type of the value corresponding to the key
+     * @param valueSchema
+     *            schema of the value if the type is tuple
      */
-    public LOGenerate(LogicalPlan plan, OperatorKey key, int rp,
-            ArrayList<ExpressionOperator> projections) {
+    public LOMapLookup(LogicalPlan plan, OperatorKey key, int rp, ExpressionOperator map,
+            Object mapKey, DataType valueType, Schema valueSchema)
+            throws ParseException {
         super(plan, key, rp);
-        mProjections = projections;
+
+        if (!DataType.isAtomic(mapKey)) {
+            throw new ParseException("Map key" + mapKey.toString()
+                    + "is not atomic");
+        }
+        mMap = map;
+        mMapKey = mapKey;
+        mValueType = valueType;
+        mValueSchema = valueSchema;
     }
 
-    public List<ExpressionOperator> getProjections() {
-        return mProjections;
+    public ExpressionOperator getMap() {
+        return mMap;
+    }
+
+    public Object getKey() {
+        return mMapKey;
+    }
+
+    public DataType getValueType() {
+        return mValueType;
     }
 
     @Override
     public String name() {
-        return "Generate " + mKey.scope + "-" + mKey.id;
+        return "MapLookup " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public boolean supportsMultipleInputs() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
         return false;
     }
 
     @Override
-    public Schema getSchema() throws IOException {
-        if (mSchema == null) {
-            List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
-                    mProjections.size());
-            for (ExpressionOperator op : mProjections) {
-                String opAlias = op.getAlias();
-                if (op.getType() == DataType.TUPLE) {
-                    try {
-                        fss.add(new Schema.FieldSchema(opAlias, op.getSchema()));
-                    } catch (IOException ioe) {
-                        mSchema = null;
-                        mIsSchemaComputed = false;
-                        throw ioe;
-                    }
-                } else {
-                    fss.add(new Schema.FieldSchema(opAlias, op.getType()));
-                }
+    public Schema getSchema() {
+        if (!mIsSchemaComputed && (null == mSchema)) {
+            Schema.FieldSchema fss;
+            if (DataType.findType(mValueType) == DataType.TUPLE) {
+                fss = new Schema.FieldSchema(null, mValueSchema);
+            } else {
+                fss = new Schema.FieldSchema(null, DataType
+                        .findType(mValueType));
             }
+
             mSchema = new Schema(fss);
             mIsSchemaComputed = true;
         }

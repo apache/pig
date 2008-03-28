@@ -22,9 +22,7 @@ import java.util.List;
 import java.util.Iterator;
 import java.io.PrintStream;
 
-import org.apache.pig.impl.eval.*;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -32,6 +30,14 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  */
 public class LOPrinter extends LOVisitor {
 
+    public LOPrinter(LogicalPlan plan) {
+        super(plan);
+    }
+
+    public void visit() throws ParseException {}
+
+    // TODO FIX
+    /*
     private PrintStream mStream = null;
 
     public LOPrinter(PrintStream ps) {
@@ -41,6 +47,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOCogroup.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitCogroup(LOCogroup g) {
         print(g, g.name(), g.getSpecs());
@@ -50,6 +57,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOEval.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitEval(LOEval e) {
         List<EvalSpec> ls = new ArrayList<EvalSpec>();
@@ -61,6 +69,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOUnion.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitUnion(LOUnion u) {
         print(u, u.name());
@@ -70,6 +79,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOLoad.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitLoad(LOLoad l) {
         print(l, l.name());
@@ -79,6 +89,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOSort.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitSort(LOSort s) {
         List<EvalSpec> ls = new ArrayList<EvalSpec>();
@@ -90,6 +101,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOSplit.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitSplit(LOSplit s) {
         print(s, s.name());
@@ -99,6 +111,7 @@ public class LOPrinter extends LOVisitor {
     /**
      * Only LOStore.visit() should ever call this method.
      */
+    /*
     @Override
     public void visitStore(LOStore s) {
         print(s, s.name());
@@ -157,6 +170,7 @@ public class LOPrinter extends LOVisitor {
             throw new AssertionError("Unknown schema type.");
         }
     }
+    */
 }
 
         

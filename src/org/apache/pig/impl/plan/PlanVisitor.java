@@ -33,9 +33,9 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
  * LOVisitor).
  *
  */
-abstract public class PlanVisitor {
+abstract public class PlanVisitor <O extends Operator, P extends OperatorPlan<O>> {
 
-    protected OperatorPlan mPlan;
+    protected P mPlan;
 
     /**
      * Entry point for visiting the plan.
@@ -46,7 +46,7 @@ abstract public class PlanVisitor {
     /**
      * @param plan OperatorPlan this visitor will visit.
      */
-    protected PlanVisitor(OperatorPlan plan) {
+    protected PlanVisitor(P plan) {
         mPlan = plan;
     }
 
@@ -55,21 +55,21 @@ abstract public class PlanVisitor {
      * @throws ParseException if the underlying visitor has a problem.
      */
     protected void depthFirst() throws ParseException {
-        List<Operator> roots = mPlan.getRoots();
-        Set<Operator> seen = new HashSet<Operator>();
+        List<O> roots = mPlan.getRoots();
+        Set<O> seen = new HashSet<O>();
 
         depthFirst(null, roots, seen);
     }
 
-    private void depthFirst(Operator node,
-                            Collection<Operator> successors,
-                            Set<Operator> seen) throws ParseException {
+    private void depthFirst(O node,
+                            Collection<O> successors,
+                            Set<O> seen) throws ParseException {
         if (successors == null) return;
 
-        for (Operator suc : successors) {
+        for (O suc : successors) {
             if (seen.add(suc)) {
                 suc.visit(this);
-                Collection<Operator> newSuccessors = mPlan.getSuccessors(suc);
+                Collection<O> newSuccessors = mPlan.getSuccessors(suc);
                 depthFirst(suc, newSuccessors, seen);
             }
         }
@@ -82,7 +82,7 @@ abstract public class PlanVisitor {
      * @throws ParseException if the underlying visitor has a problem.
      */
     protected void dependencyOrder() throws ParseException {
-        // This is highly inneficient, but our graphs are small so it should be okay.
+        // This is highly inefficient, but our graphs are small so it should be okay.
         // The algorithm works by starting at any node in the graph, finding it's
         // predecessors and calling itself for each of those predecessors.  When it
         // finds a node that has no unfinished predecessors it puts that node in the
@@ -90,28 +90,28 @@ abstract public class PlanVisitor {
         // It keeps track of what nodes it's seen as it goes so it doesn't put any
         // nodes in the graph twice.
 
-        List<Operator> fifo = new ArrayList<Operator>();
-        Set<Operator> seen = new HashSet<Operator>();
-        List<Operator> leaves = mPlan.getLeaves();
+        List<O> fifo = new ArrayList<O>();
+        Set<O> seen = new HashSet<O>();
+        List<O> leaves = mPlan.getLeaves();
         if (leaves == null) return;
-        for (Operator op : leaves) {
+        for (O op : leaves) {
             doAllPredecessors(op, seen, fifo);
         }
 
-        for (Operator op: fifo) {
+        for (O op: fifo) {
             op.visit(this);
         }
     }
 
-    private void doAllPredecessors(Operator node,
-                                   Set<Operator> seen,
-                                   Collection<Operator> fifo) throws ParseException {
+    private void doAllPredecessors(O node,
+                                   Set<O> seen,
+                                   Collection<O> fifo) throws ParseException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            Collection<Operator> preds = mPlan.getPredecessors(node);
+            Collection<O> preds = mPlan.getPredecessors(node);
             if (preds != null && preds.size() > 0) {
                 // Do all our predecessors before ourself
-                for (Operator op : preds) {
+                for (O op : preds) {
                     doAllPredecessors(op, seen, fifo);
                 }
             }

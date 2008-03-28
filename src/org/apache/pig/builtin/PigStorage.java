@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -233,7 +234,7 @@ public class PigStorage implements LoadFunc, StoreFunc {
 		return null;
 	}
 
-	public Schema determineSchema(String fileName, BufferedPositionedInputStream in, long end) throws IOException {
+	public Schema determineSchema(URL fileName) throws IOException {
 		// TODO Auto-generated method stub
 		return null;
 	}

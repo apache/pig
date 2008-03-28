@@ -29,16 +29,17 @@ public class LOUserFunc extends ExpressionOperator {
     private List<ExpressionOperator> mArgs;
 
     /**
-     * @param plan LogicalPlan this operator is a part of.
-     * @param k OperatorKey for this operator.
-     * @param args List of expressions that form the arguments for this
-     * function.
-     * @param returnType return type of this function.
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param k
+     *            OperatorKey for this operator.
+     * @param args
+     *            List of expressions that form the arguments for this function.
+     * @param returnType
+     *            return type of this function.
      */
-    public LOUserFunc(LogicalPlan plan,
-                      OperatorKey k,
-                      List<ExpressionOperator> args,
-                      byte returnType) {
+    public LOUserFunc(LogicalPlan plan, OperatorKey k,
+            List<ExpressionOperator> args, byte returnType) {
         super(plan, k, -1);
         mArgs = args;
         mType = returnType;
@@ -54,18 +55,8 @@ public class LOUserFunc extends ExpressionOperator {
     }
 
     @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-    
-    @Override
     public String name() {
         return "UserFunc " + mKey.scope + "-" + mKey.id;
-    }
-
-    @Override
-    public String typeName() {
-        return "LOUserFunc";
     }
 
     @Override
@@ -77,11 +68,7 @@ public class LOUserFunc extends ExpressionOperator {
     }
 
     @Override
-    public void visit(PlanVisitor v) throws ParseException {
-        if (!(v instanceof LOVisitor)) {
-            throw new RuntimeException("You can only visit LogicalOperators "
-                + "with an LOVisitor!");
-        }
-        ((LOVisitor)v).visitUserFunc(this);
+    public void visit(LOVisitor v) throws ParseException {
+        v.visit(this);
     }
 }

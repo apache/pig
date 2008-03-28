@@ -51,7 +51,6 @@ import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -231,6 +230,7 @@ public class PigServer {
             return;
         }
             
+        // TODO FIX Need to change so that only syntax parsing is done here, and so that logical plan is additive.
         // parse the query into a logical plan
         LogicalPlan lp = null;
         try {
@@ -239,19 +239,24 @@ public class PigServer {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
         }
         
+        /*
         if (lp.getAlias() != null) {
             aliases.put(lp.getAlias(), lp);
         }
+        */
     }
       
     public void dumpSchema(String alias) throws IOException{
-    LogicalPlan lp = aliases.get(alias);
-    if (lp == null)
-        throw new IOException("Invalid alias - " + alias);
+        // TODO FIX Need to rework so we can get an appropriate output schema
+        /*
+        LogicalPlan lp = aliases.get(alias);
+        if (lp == null)
+            throw new IOException("Invalid alias - " + alias);
 
-    TupleSchema schema = lp.getOpTable().get(lp.getRoot()).outputSchema();
+        TupleSchema schema = lp.getOpTable().get(lp.getRoot()).outputSchema();
 
-    System.out.println(schema.toString());    
+        System.out.println(schema.toString());    
+        */
     }
 
     public void setJobName(String name){
@@ -272,6 +277,7 @@ public class PigServer {
         
         LogicalPlan readFrom = (LogicalPlan) aliases.get(id);
 
+        // TODO FIX Make this work
         try {
             ExecPhysicalPlan pp = 
                 pigContext.getExecutionEngine().compile(readFrom, null);
@@ -318,6 +324,8 @@ public class PigServer {
     }
         
     public void store(LogicalPlan readFrom, String filename, String func) throws IOException {
+        // TODO FIX
+        /*
         LogicalPlan storePlan = QueryParser.generateStorePlan(readFrom.getOpTable(),
                                                               scope,
                                                               readFrom,
@@ -334,6 +342,7 @@ public class PigServer {
         catch (ExecException e) {
             throw WrappedIOException.wrap("Unable to store alias " + readFrom.getAlias(), e);
         }
+        */
     }
 
     /**
@@ -356,6 +365,8 @@ public class PigServer {
 
         lp.explain(stream);
         
+        // TODO FIX
+        /*
         stream.println("-----------------------------------------------");
         stream.println("Physical Plan:");
         try {
@@ -369,6 +380,7 @@ public class PigServer {
             stream.println("Failed to compile the logical plan for " + alias + " into a physical plan");
             throw WrappedIOException.wrap("Failed to compile to phyiscal plan: " + alias, e);
         }
+        */
     }
 
     /**

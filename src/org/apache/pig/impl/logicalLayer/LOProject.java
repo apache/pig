@@ -26,13 +26,14 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
-public class LOGenerate extends LogicalOperator {
+public class LOProject extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
     /**
-     * The projection list of this generate.
+     * The expression and the column to be projected.
      */
-    private ArrayList<ExpressionOperator> mProjections;
+    private ExpressionOperator mExp;
+    private List<String> mProjection;
 
     /**
      * 
@@ -43,56 +44,60 @@ public class LOGenerate extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
-     * @param projections
-     *            the projection list of the generate
+     * @param exp
+     *            the expression which might contain the column to project
+     * @param projection
+     *            the list of columns to project
      */
-    public LOGenerate(LogicalPlan plan, OperatorKey key, int rp,
-            ArrayList<ExpressionOperator> projections) {
+    public LOProject(LogicalPlan plan, OperatorKey key, int rp,
+            ExpressionOperator exp, List<String> projection) {
         super(plan, key, rp);
-        mProjections = projections;
+        mExp = exp;
+        mProjection = projection;
     }
 
-    public List<ExpressionOperator> getProjections() {
-        return mProjections;
+    /**
+     * 
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
+     * @param rp
+     *            degree of requested parallelism with which to execute this
+     *            node.
+     * @param exp
+     *            the expression which might contain the column to project
+     * @param projection
+     *            the column to project
+     */
+    public LOProject(LogicalPlan plan, OperatorKey key, int rp,
+            ExpressionOperator exp, String projection) {
+        super(plan, key, rp);
+        mExp = exp;
+        mProjection = new ArrayList<String>(1);
+        mProjection.add(projection);
+    }
+
+    public ExpressionOperator getExpression() {
+        return mExp;
+    }
+
+    public List<String> getProjection() {
+        return mProjection;
     }
 
     @Override
     public String name() {
-        return "Generate " + mKey.scope + "-" + mKey.id;
+        return "Project " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public boolean supportsMultipleInputs() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
         return false;
     }
 
     @Override
-    public Schema getSchema() throws IOException {
-        if (mSchema == null) {
-            List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
-                    mProjections.size());
-            for (ExpressionOperator op : mProjections) {
-                String opAlias = op.getAlias();
-                if (op.getType() == DataType.TUPLE) {
-                    try {
-                        fss.add(new Schema.FieldSchema(opAlias, op.getSchema()));
-                    } catch (IOException ioe) {
-                        mSchema = null;
-                        mIsSchemaComputed = false;
-                        throw ioe;
-                    }
-                } else {
-                    fss.add(new Schema.FieldSchema(opAlias, op.getType()));
-                }
-            }
-            mSchema = new Schema(fss);
-            mIsSchemaComputed = true;
-        }
+    public Schema getSchema() {
         return mSchema;
     }
 

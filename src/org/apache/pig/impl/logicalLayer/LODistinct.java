@@ -17,17 +17,20 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.io.IOException;
+
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 
-public class LOUnion extends LogicalOperator {
+public class LODistinct extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
 
     /**
+     * 
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
@@ -36,28 +39,40 @@ public class LOUnion extends LogicalOperator {
      *            degree of requested parallelism with which to execute this
      *            node.
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
+    public LODistinct(LogicalPlan plan, OperatorKey k, int rp) {
+
         super(plan, k, rp);
     }
 
     @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
+    public Schema getSchema() throws IOException {
+        if (!mIsSchemaComputed && (null == mSchema)) {
+            // Get the schema of the parent
+            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            try {
+                LogicalOperator op = s.iterator().next();
+                if(null == op) {
+                    throw new IOException("Could not find operator in plan");
+                }
+                mSchema = s.iterator().next().getSchema();
+                mIsSchemaComputed = true;
+            } catch (IOException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
         }
         return mSchema;
     }
 
     @Override
     public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
+        return "Distinct " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public boolean supportsMultipleInputs() {
-        return true;
+        return false;
     }
 
     @Override

@@ -1,4 +1,4 @@
-/*
+/* 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,19 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-public class LOUnion extends LogicalOperator {
+public class LONotEqual extends BinaryExpressionOperator {
 
     private static final long serialVersionUID = 2L;
 
     /**
+     * 
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
@@ -35,34 +35,19 @@ public class LOUnion extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
+     * @param lhsOperand
+     *            the left hand side operand
+     * @param rhsOperand
+     *            the right hand side operand
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
-        super(plan, k, rp);
+    public LONotEqual(LogicalPlan plan, OperatorKey k, int rp,
+            ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
+        super(plan, k, rp, lhsOperand, rhsOperand);
     }
 
     @Override
     public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
-        }
         return mSchema;
-    }
-
-    @Override
-    public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
-    }
-
-    @Override
-    public boolean supportsMultipleInputs() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
     }
 
     @Override
@@ -70,4 +55,8 @@ public class LOUnion extends LogicalOperator {
         v.visit(this);
     }
 
+    @Override
+    public String name() {
+        return "NotEqual " + mKey.scope + "-" + mKey.id;
+    }
 }

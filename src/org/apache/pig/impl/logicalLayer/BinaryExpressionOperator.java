@@ -15,17 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.PlanVisitor;
 
-public class LOUnion extends LogicalOperator {
+/**
+ * This abstract class represents the logical Binary Expression Operator
+ * The binary operator has two operands and an operator. The format of
+ * the expression is lhs_operand operator rhs_operand. The operator name
+ * is assumed and can be inferred by the class name 
+ */
 
+public abstract class BinaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
+    private ExpressionOperator mLhsOperand; //left hand side operand
+    private ExpressionOperator mRhsOperand; //right hand side operand
 
     /**
      * @param plan
@@ -35,39 +41,34 @@ public class LOUnion extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
+     * @param lhsOperand
+     *            ExpressionOperator the left hand side operand
+     * @param rhsOperand
+     *            ExpressionOperator the right hand side operand
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
+    public BinaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp,
+            ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
         super(plan, k, rp);
+        mLhsOperand = lhsOperand;
+        mRhsOperand = rhsOperand;
     }
 
-    @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
-        }
-        return mSchema;
+    public ExpressionOperator getLhsOperand() {
+        return mLhsOperand;
     }
 
-    @Override
-    public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
+    public ExpressionOperator getRhsOperand() {
+        return mRhsOperand;
     }
-
-    @Override
-    public boolean supportsMultipleInputs() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-
+    
     @Override
     public void visit(LOVisitor v) throws ParseException {
         v.visit(this);
+    }
+    
+    @Override
+    public boolean supportsMultipleInputs() {
+        return true;
     }
 
 }

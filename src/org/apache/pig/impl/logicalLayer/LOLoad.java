@@ -18,68 +18,100 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.net.URL;
 
-import org.apache.pig.LoadFunc;
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.LoadFunc; // import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
-
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOLoad extends LogicalOperator {
     private static final long serialVersionUID = 2L;
-    
-    private FileSpec mInput;
+
+    private FileSpec mInputFileSpec;
     private LoadFunc mLoadFunc;
+    private URL mSchemaFile;
 
-    public LOLoad(OperatorKey k,
-                  FileSpec inputFileSpec,
-                  String loader) throws IOException, ParseException {
-        super(k);
-        this.mInput = inputFileSpec;
-        
-        // check if we can instantiate load func
-        LoadFunc storageFunc =
-            (LoadFunc)PigContext.instantiateFuncFromSpec(loader);
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param rp
+     *            Requested level of parallelism to be used in the sort.
+     * @param inputFileSpec
+     *            the file to be loaded
+     */
+    public LOLoad(LogicalPlan plan, OperatorKey key, int rp,
+            FileSpec inputFileSpec, URL schemaFile) throws IOException {
+        super(plan, key, rp);
 
-        // TODO: Handle Schemas defined by Load Functions
-        //schema = new TupleSchema();
+        mInputFileSpec = inputFileSpec;
+        mSchemaFile = schemaFile;
+
+        // TODO FIX
+        // The code below is commented out as PigContext pulls in
+        // HExecutionEngine which in turn is completely commented out
+        // Also remove the commented out import org.apache.pig.impl.PigContext
+
+        /*
+         * try { mLoadFunc = (LoadFunc)
+         * PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); }
+         * catch (Exception e){ IOException ioe = new
+         * IOException(e.getMessage()); ioe.setStackTrace(e.getStackTrace());
+         * throw ioe; }
+         */
+    }
+
+    public FileSpec getInputFile() {
+        return mInputFileSpec;
+    }
+
+    public URL getSchemaFile() {
+        return mSchemaFile;
+    }
+
+    public LoadFunc getLoadFunc() {
+        return mLoadFunc;
     }
 
     @Override
     public String name() {
-        return "Load " + scope + "-" + id;
-    }
-
-    public FileSpec getInputFileSpec() {
-        return mInput;
+        return "Load " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public String arguments() {
-        return mInput.toString();
+    public Schema getSchema() throws IOException {
+        if (!mIsSchemaComputed && (null == mSchema)) {
+            // get the schema of the load function
+            try {
+                mSchema = mLoadFunc.determineSchema(mSchemaFile);
+                mIsSchemaComputed = true;
+            } catch (Exception e) {
+                IOException ioe = new IOException(e.getMessage());
+                ioe.setStackTrace(e.getStackTrace());
+                throw ioe;
+            }
+        }
+        return mSchema;
     }
 
     @Override
-    public String toString() {
-        StringBuffer result = new StringBuffer(super.toString());
-        result.append(" (outputType: ");
-        result.append(outputType);
-        result.append(')');
-        return result.toString();
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
     @Override
-    public List<String> getFuncs() {
-        List<String> funcs = super.getFuncs();
-        funcs.add(mInput.getFuncName());
-        return funcs;
+    public boolean supportsMultipleOutputs() {
+        return false;
     }
 
-    public void visit(LOVisitor v) {
-        v.visitLoad(this);
+    public void visit(LOVisitor v) throws ParseException {
+        v.visit(this);
     }
 }

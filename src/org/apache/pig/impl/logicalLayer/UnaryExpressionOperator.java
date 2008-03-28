@@ -15,17 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.data.DataType;
 
-public class LOUnion extends LogicalOperator {
-
+/**
+ * This abstract class represents the logical Unary Expression Operator The
+ * unary operator has an operand and an operator. The format of the expression
+ * is operator operand. The operator is implicit and not recorded in the class
+ */
+public abstract class UnaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
+    private ExpressionOperator mOperand; // operand
 
     /**
      * @param plan
@@ -35,39 +39,29 @@ public class LOUnion extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
+     * @param operand
+     *            ExpressionOperator the left hand side operand
+     * @param operator
+     *            LogicalExperssion the actual operator
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
+    public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp,
+            ExpressionOperator operand) {
         super(plan, k, rp);
+        mOperand = operand;
     }
 
-    @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
-        }
-        return mSchema;
-    }
-
-    @Override
-    public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
-    }
-
-    @Override
-    public boolean supportsMultipleInputs() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
+    public ExpressionOperator getOperand() {
+        return mOperand;
     }
 
     @Override
     public void visit(LOVisitor v) throws ParseException {
         v.visit(this);
+    }
+
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
 }

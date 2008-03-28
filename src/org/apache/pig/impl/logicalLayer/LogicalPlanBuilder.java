@@ -17,6 +17,8 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+// TODO FIX
+/*
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
@@ -24,6 +26,7 @@ import java.util.Map;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+*/
 
 
 /**
@@ -31,6 +34,8 @@ import org.apache.pig.impl.logicalLayer.parser.QueryParser;
  * 
  */
 public class LogicalPlanBuilder {
+    // TODO FIX
+    /*
     public static ClassLoader classloader = LogicalPlanBuilder.class.getClassLoader();
     private PigContext pigContext;
     public LogicalPlanBuilder(PigContext pigContext) {
@@ -46,4 +51,5 @@ public class LogicalPlanBuilder {
         QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable);
         return parser.Parse();        
     }
+    */
 }

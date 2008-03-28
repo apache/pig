@@ -17,17 +17,20 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 
-public class LOUnion extends LogicalOperator {
+public class LOFilter extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
+    private ExpressionOperator mCond;
+    private LogicalOperator mInput;
 
     /**
+     * 
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
@@ -35,29 +38,50 @@ public class LOUnion extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
+     * @param cond
+     *            the filter condition
+     * @param input
+     *            the input that needs filtering
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
+    public LOFilter(LogicalPlan plan, OperatorKey k, int rp,
+            ExpressionOperator cond, LogicalOperator input) {
+
         super(plan, k, rp);
+        mCond = cond;
+        mInput = input;
+    }
+
+    public LogicalOperator getInput() {
+        return mInput;
+    }
+
+    public ExpressionOperator getCondition() {
+        return mCond;
     }
 
     @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
+    public Schema getSchema() throws IOException {
+        if (!mIsSchemaComputed && (null == mSchema)) {
+            try {
+                mSchema = mInput.getSchema();
+                mIsSchemaComputed = true;
+            } catch (IOException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
         }
         return mSchema;
     }
 
     @Override
     public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
+        return "Filter " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public boolean supportsMultipleInputs() {
-        return true;
+        return false;
     }
 
     @Override

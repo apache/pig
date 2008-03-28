@@ -18,98 +18,85 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.StoreFunc;
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.StoreFunc; // import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOStore extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    protected FileSpec outputFileSpec;
+    private FileSpec mOutputFile;
+    private StoreFunc mStoreFunc;
 
-    protected boolean append;
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param rp
+     *            Requested level of parallelism to be used in the sort.
+     * @param outputFileSpec
+     *            the file to be stored
+     * @param storeFunc
+     *            the store function, pre-defined or user defined
+     */
+    public LOStore(LogicalPlan plan, OperatorKey key, int rp,
+            FileSpec outputFileSpec) throws IOException {
+        super(plan, key, rp);
 
+        mOutputFile = outputFileSpec;
 
-    public LOStore(Map<OperatorKey, LogicalOperator> opTable,
-                   String scope,
-                   long id,
-                   OperatorKey input,
-                   FileSpec fileSpec,
-                   boolean append) throws IOException {
-        super(opTable, scope, id, input);
-        this.outputFileSpec = fileSpec;
-        this.append = append;
+        // TODO
+        // The code below is commented out as PigContext pulls in
+        // HExecutionEngine which in turn is completely commented out
+        // Also remove the commented out import org.apache.pig.impl.PigContext
 
-        //See if the store function spec is valid
-        try {
-            StoreFunc StoreFunc =
-                (StoreFunc) PigContext.instantiateFuncFromSpec(
-                    fileSpec.getFuncSpec());
-        } catch(Exception e) {
-            IOException ioe = new IOException(e.getMessage());
-            ioe.setStackTrace(e.getStackTrace());
-            throw ioe;
-        } getOutputType();
+        /*
+         * try { mStoreFunc = (StoreFunc)
+         * PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); }
+         * catch (Exception e) { IOException ioe = new
+         * IOException(e.getMessage()); ioe.setStackTrace(e.getStackTrace());
+         * throw ioe; }
+         */
     }
 
-
-    public FileSpec getOutputFileSpec() {
-        return outputFileSpec;
+    public FileSpec getOutputFile() {
+        return mOutputFile;
     }
 
-
-    @Override
-    public String toString() {
-        StringBuffer result = new StringBuffer(super.toString());
-        result.append(" (append: ");
-        result.append(append);
-        result.append(')');
-        return result.toString();
+    public StoreFunc getStoreFunc() {
+        return mStoreFunc;
     }
-
 
     @Override
     public String name() {
-        return "Store " + scope + "-" + id;
+        return "Store " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public TupleSchema outputSchema() {
-        throw new
-            RuntimeException
-            ("Internal error: Asking for schema of a store operator.");
+    public Schema getSchema() throws RuntimeException {
+        throw new RuntimeException("Internal error: Requested schema of a "
+                + "store operator.");
     }
 
     @Override
-    public int getOutputType() {
-        switch (opTable.get(getInputs().get(0)).getOutputType()) {
-        case FIXED:
-            return FIXED;
-        case MONOTONE:
-            return MONOTONE;
-        default:
-            throw new RuntimeException("Illegal input type for store operator");
-        }
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
     @Override
-    public List<String> getFuncs() {
-        List<String> funcs = super.getFuncs();
-        funcs.add(outputFileSpec.getFuncName());
-        return funcs;
+    public boolean supportsMultipleOutputs() {
+        return false;
     }
 
-
-    public boolean isAppend() {
-        return append;
-    }
-
-    public void visit(LOVisitor v) {
-        v.visitStore(this);
+    public void visit(LOVisitor v) throws ParseException {
+        v.visit(this);
     }
 }

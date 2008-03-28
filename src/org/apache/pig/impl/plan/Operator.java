@@ -25,21 +25,21 @@ import java.lang.StringBuilder;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 
-
 /**
  * Base class for all types of operators.
  */
-abstract public class Operator {
+abstract public class Operator<V extends PlanVisitor> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * OperatorKey associated with this operator.  This key is used to find the
+     * OperatorKey associated with this operator. This key is used to find the
      * operator in an OperatorPlan.
      */
     protected OperatorKey mKey;
 
     /**
-     * @param - k Operator key to assign to this node.
+     * @param -
+     *            k Operator key to assign to this node.
      */
     public Operator(OperatorKey k) {
         mKey = k;
@@ -53,33 +53,40 @@ abstract public class Operator {
     }
 
     /**
-     * Visit this node with the provided visitor.  This should only be called by
+     * Visit this node with the provided visitor. This should only be called by
      * the visitor class itself, never directly.
-     * @param v Visitor to visit with.
-     * @throws ParseException if the visitor has a problem.
+     * 
+     * @param v
+     *            Visitor to visit with.
+     * @throws ParseException
+     *             if the visitor has a problem.
      */
-    public abstract void visit(PlanVisitor v) throws ParseException;
+    public abstract void visit(V v) throws ParseException;
 
     /**
      * Indicates whether this operator supports multiple inputs.
+     * 
      * @return true if it does, otherwise false.
      */
     public abstract boolean supportsMultipleInputs();
 
     /**
      * Indicates whether this operator supports multiple outputs.
+     * 
      * @return true if it does, otherwise false.
      */
     public abstract boolean supportsMultipleOutputs();
-    
+
     public abstract String name();
 
-    public abstract String typeName();
-    
+    public String typeName() {
+        return this.getClass().getName();
+    }
+
     @Override
     public String toString() {
         StringBuilder msg = new StringBuilder();
-        
+
         msg.append("(Name: " + name() + " Operator Key: " + mKey + ")");
 
         return msg.toString();

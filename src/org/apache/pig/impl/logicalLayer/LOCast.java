@@ -15,19 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-public class LOUnion extends LogicalOperator {
+public class LOCast extends ExpressionOperator {
+
+    // Cast has an expression that has to be converted to a specified type
 
     private static final long serialVersionUID = 2L;
+    private ExpressionOperator mExpr;
 
     /**
+     * 
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
@@ -35,39 +38,40 @@ public class LOUnion extends LogicalOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
+     * @param expr
+     *            the expression whose type has to be cast
+     * @param type
+     *            the type to which the expression is cast
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
+    public LOCast(LogicalPlan plan, OperatorKey k, int rp,
+            ExpressionOperator expr, byte type) {
         super(plan, k, rp);
-    }
+        mExpr = expr;
+        mType = type;
+    }// End Constructor LOCast
 
-    @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
-        }
-        return mSchema;
-    }
-
-    @Override
-    public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
-    }
-
-    @Override
-    public boolean supportsMultipleInputs() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
+    public ExpressionOperator getExpression() {
+        return mExpr;
     }
 
     @Override
     public void visit(LOVisitor v) throws ParseException {
         v.visit(this);
+    }
+
+    @Override
+    public Schema getSchema() {
+        return mSchema;
+    }
+
+    @Override
+    public String name() {
+        return "Cast " + mKey.scope + "-" + mKey.id;
+    }
+
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
 }

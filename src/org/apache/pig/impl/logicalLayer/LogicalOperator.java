@@ -20,17 +20,17 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
 
-import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
-
+import org.apache.pig.data.DataType;
 
 /**
  * Parent for all Logical operators.
  */
-abstract public class LogicalOperator extends Operator {
+abstract public class LogicalOperator extends Operator<LOVisitor> {
     private static final long serialVersionUID = 2L;
 
     /**
@@ -38,6 +38,11 @@ abstract public class LogicalOperator extends Operator {
      */
     protected Schema mSchema = null;
 
+    /**
+     * A boolean variable to remember if the schema has been computed
+     */
+    protected boolean mIsSchemaComputed = false;
+  
     /**
      * Datatype of this output of this operator.  Operators start out with data type
      * set to UNKNOWN, and have it set for them by the type checker.
@@ -97,7 +102,11 @@ abstract public class LogicalOperator extends Operator {
     public final void setSchema(Schema schema) throws ParseException {
         // In general, operators don't generate their schema until they're
         // asked, so ask them to do it.
-        getSchema();
+        try {
+            getSchema();
+        } catch (IOException ioe) {
+            // It's fine, it just means we don't have a schema yet.
+        }
         if (mSchema == null) mSchema = schema;
         else mSchema.reconcile(schema);
     }
@@ -105,7 +114,7 @@ abstract public class LogicalOperator extends Operator {
     /**
      * Get a copy of the schema for the output of this operator.
      */
-    public abstract Schema getSchema();
+    public abstract Schema getSchema() throws IOException;
 
     /**
      * Set the type of this operator.  This should only be called by the type
@@ -161,5 +170,16 @@ abstract public class LogicalOperator extends Operator {
 
         // TODO
     }
+
+    /**
+     * Visit this node with the provided visitor. This should only be called by
+     * the visitor class itself, never directly.
+     * 
+     * @param v
+     *            Visitor to visit with.
+     * @throws ParseException
+     *             if the visitor has a problem.
+     */
+    public abstract void visit(LOVisitor v) throws ParseException;
 
 }
