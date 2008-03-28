@@ -26,7 +26,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -91,7 +90,9 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new AtomSchema("min" + count++);
+        // TODO FIX
+        // return new AtomSchema("min" + count++);
+        return null;
     }
 
     private static int count = 1;

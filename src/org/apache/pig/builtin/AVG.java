@@ -26,7 +26,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
@@ -139,7 +138,9 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
     
     @Override
     public Schema outputSchema(Schema input) {
-        return new AtomSchema("average");
+        // TODO FIX
+        // return new AtomSchema("average");
+        return null;
     }
 
 }

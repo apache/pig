@@ -21,11 +21,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Map;
 
 import org.apache.pig.LoadFunc;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
@@ -54,6 +57,87 @@ public class TextLoader implements LoadFunc{
         if ((line = in.readLine(utf8, (byte)'\n')) != null) {
             return mTupleFactory.newTuple(new String(line));
         }
+        return null;
+    }
+
+    /**
+     * TextLoader does not support conversion to Boolean.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Boolean bytesToBoolean(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Boolean");
+    }
+    
+    /**
+     * TextLoader does not support conversion to Integer
+     */
+    public Integer bytesToInteger(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Integer");
+    }
+
+    /**
+     * TextLoader does not support conversion to Long
+     */
+    public Long bytesToLong(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Long");
+    }
+
+    /**
+     * TextLoader does not support conversion to Float
+     */
+    public Float bytesToFloat(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Float");
+    }
+
+    /**
+     * TextLoader does not support conversion to Double
+     */
+    public Double bytesToDouble(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Double");
+    }
+
+    /**
+     * Cast data from bytes to chararray value.  
+     * @param bytes byte array to be cast.
+     * @return String value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public String bytesToCharArray(byte[] b) throws IOException {
+        return new String(b);
+    }
+
+    /**
+     * TextLoader does not support conversion to Map
+     */
+    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Map");
+    }
+
+    /**
+     * TextLoader does not support conversion to Tuple
+     */
+    public Tuple bytesToTuple(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Tuple");
+    }
+
+    /**
+     * TextLoader does not support conversion to Bag
+     */
+    public DataBag bytesToBag(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Bag");
+    }
+
+    /**
+     * TextLoader doesn't make use of this.
+     */
+    public void fieldsToRead(Schema schema) {}
+
+    /**
+     * TextLoader does not provide a schema.
+     */
+    public Schema determineSchema(String fileName,
+                                  BufferedPositionedInputStream in,
+                                  long end) throws IOException {
         return null;
     }
 

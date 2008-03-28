@@ -132,7 +132,8 @@
     </target>
 
     <target name="compile-sources">
-        <javac encoding="${build.encoding}" srcdir="${sources}" includes="**/plan/*.java, **/data/*.java, **/test/TestOperatorPlan.java, **/logicalLayer/LogicalPlan.java, **/logicalLayer/LOEval.java, **/logicalLayer/LOSort.java, **/logicalLayer/LOGenerate.java, **/logicalLayer/LOVisitor.java, **/logicalLayer/schema/Schema.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
+        <javac encoding="${build.encoding}" srcdir="${sources}"
+        includes="**/plan/*.java, **/data/*.java, **/pig/builtin/*.java, **/test/TestOperatorPlan.java, **/test/TestBuiltin.java, **/logicalLayer/LogicalPlan.java, **/logicalLayer/LOEval.java, **/logicalLayer/LOSort.java, **/logicalLayer/LOGenerate.java, **/logicalLayer/LOVisitor.java, **/logicalLayer/schema/Schema.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
         </javac>
@@ -214,11 +215,15 @@
             <formatter type="${test.junit.output.format}" />
             <batchtest fork="yes" todir="${test.log.dir}">
                 <fileset dir="test">
+                    <include name="**/TestBuiltin.java" />
+                    <include name="**/TestOperatorPlan.java" />
+                    <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />
                     <exclude name="**/TestOrderBy.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
+                    -->
                 </fileset>
             </batchtest>
         </junit>

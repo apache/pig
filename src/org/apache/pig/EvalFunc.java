@@ -23,9 +23,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
+// TODO FIX
+// import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 /**
@@ -73,6 +73,8 @@ public abstract class EvalFunc<T>  {
         
         
         //Type check the initial, intermediate, and final functions
+        // TODO FIX
+        /*
         if (this instanceof Algebraic){
             Algebraic a = (Algebraic)this;
             
@@ -84,13 +86,16 @@ public abstract class EvalFunc<T>  {
             if (getReturnTypeFromSpec(a.getFinal()) != returnType)
                     throw new RuntimeException("Final " + errMsg);
         }
+        */
         
     }
     
 
     private Type getReturnTypeFromSpec(String funcSpec){
         try{
-            return ((EvalFunc)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
+            // TODO FIX
+            // return ((EvalFunc)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
+            return null;
         }catch (ClassCastException e){
             throw new RuntimeException(funcSpec + " does not specify an eval func", e);
         }
@@ -140,7 +145,9 @@ public abstract class EvalFunc<T>  {
      * @return Schema of the output
      */
     public Schema outputSchema(Schema input) {
-        return new TupleSchema();
+        // TODO FIX
+        // return new TupleSchema();
+        return null;
     }
     
     /**

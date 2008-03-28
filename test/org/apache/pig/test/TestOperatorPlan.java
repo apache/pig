@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -40,18 +41,28 @@ public class TestOperatorPlan extends junit.framework.TestCase {
 
     private int mNextKey = 0;
 
-    abstract class TOperator extends Operator {
-        TOperator(OperatorKey key) {
-            super(key);
+    abstract class TOperator extends Operator implements Comparable {
+        protected String mName;
+
+        TOperator(String name) {
+            super(new OperatorKey("", mNextKey++));
+            mName = name;
+        }
+
+        public int compareTo(Object o) {
+            if (!(o instanceof TOperator)) {
+                return -1;
+            }
+
+            TOperator other = (TOperator)o;
+
+            return mName.compareTo(other.mName);
         }
     }
 
     class SingleOperator extends TOperator {
-        private String mName;
-
         SingleOperator(String name) {
-            super(new OperatorKey("", mNextKey++));
-            mName = name;
+            super(name);
         }
 
         public boolean supportsMultipleInputs() {
@@ -77,11 +88,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
     }
 
     class MultiOperator extends TOperator {
-        private String mName;
-
         MultiOperator(String name) {
-            super(new OperatorKey("", mNextKey++));
-            mName = name;
+            super(name);
         }
 
         public boolean supportsMultipleInputs() {
@@ -111,16 +119,20 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             StringBuilder buf = new StringBuilder();
 
             buf.append("Nodes: ");
-            for (TOperator op : mOps.keySet()) {
+            // Guarantee a sorting
+            TreeSet<TOperator> ts = new TreeSet(mOps.keySet());
+            for (TOperator op : ts) {
                 buf.append(op.name());
                 buf.append(' ');
             }
 
             buf.append("FromEdges: ");
-            Iterator<TOperator> i = mFromEdges.keySet().iterator();
+            ts = new TreeSet(mFromEdges.keySet());
+            Iterator<TOperator> i = ts.iterator();
             while (i.hasNext()) {
                 TOperator from = i.next();
-                Iterator<TOperator> j = mFromEdges.get(from).iterator();
+                TreeSet<TOperator> ts2 = new TreeSet(mFromEdges.get(from));
+                Iterator<TOperator> j = ts2.iterator();
                 while (j.hasNext()) {
                     buf.append(from.name());
                     buf.append("->");
@@ -130,10 +142,12 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             }
 
             buf.append("ToEdges: ");
-            i = mToEdges.keySet().iterator();
+            ts = new TreeSet(mToEdges.keySet());
+            i = ts.iterator();
             while (i.hasNext()) {
                 TOperator from = i.next();
-                Iterator<TOperator> j = mToEdges.get(from).iterator();
+                TreeSet<TOperator> ts2 = new TreeSet(mToEdges.get(from));
+                Iterator<TOperator> j = ts2.iterator();
                 while (j.hasNext()) {
                     buf.append(from.name());
                     buf.append("->");
@@ -344,7 +358,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         i = p.iterator();
         assertEquals(ops[0], i.next());
 
-        assertEquals("Nodes: 2 0 1 3 4 FromEdges: 2->3 0->1 1->2 3->4 ToEdges: 2->1 1->0 3->2 4->3 ", plan.display());
+        assertEquals("Nodes: 0 1 2 3 4 FromEdges: 0->1 1->2 2->3 3->4 ToEdges: 1->0 2->1 3->2 4->3 ", plan.display());
 
         // Visit it depth first
         TVisitor visitor = new TDepthVisitor(plan);
@@ -358,11 +372,11 @@ public class TestOperatorPlan extends junit.framework.TestCase {
 
         // Test disconnect
         plan.disconnect(ops[2], ops[3]);
-        assertEquals("Nodes: 2 0 1 3 4 FromEdges: 0->1 1->2 3->4 ToEdges: 2->1 1->0 4->3 ", plan.display());
+        assertEquals("Nodes: 0 1 2 3 4 FromEdges: 0->1 1->2 3->4 ToEdges: 1->0 2->1 4->3 ", plan.display());
 
         // Test remove
         plan.remove(ops[1]);
-        assertEquals("Nodes: 2 0 3 4 FromEdges: 3->4 ToEdges: 4->3 ", plan.display());
+        assertEquals("Nodes: 0 2 3 4 FromEdges: 3->4 ToEdges: 4->3 ", plan.display());
     }
 
     @Test
@@ -403,25 +417,32 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertTrue(s.contains(ops[0]));
         assertTrue(s.contains(ops[1]));
 
-        assertEquals("Nodes: 4 5 0 2 1 3 FromEdges: 0->2 2->3 1->2 3->4 3->5 ToEdges: 4->3 5->3 2->0 2->1 3->2 ", plan.display());
+        assertEquals("Nodes: 0 1 2 3 4 5 FromEdges: 0->2 1->2 2->3 3->4 3->5 ToEdges: 2->0 2->1 3->2 4->3 5->3 ", plan.display());
 
         // Visit it depth first
         TVisitor visitor = new TDepthVisitor(plan);
         visitor.visit();
-        assertEquals("0 2 3 4 5 1 ", visitor.getJournal());
+        // There are a number of valid patterns, make sure we found one of
+        // them.
+        String result = visitor.getJournal();
+        assertTrue(result.equals("1 2 3 4 5 0 ") ||
+            result.equals("1 2 3 5 4 0 ") || result.equals("0 2 3 4 5 1 ")
+            || result.equals("0 2 3 5 4 1 "));
 
         // Visit it dependency order
         visitor = new TDependVisitor(plan);
         visitor.visit();
-        assertEquals("0 1 2 3 4 5 ", visitor.getJournal());
+        result = visitor.getJournal();
+        assertTrue(result.equals("0 1 2 3 4 5 ") ||
+            result.equals("0 1 2 3 5 4 "));
 
         // Test disconnect
         plan.disconnect(ops[2], ops[3]);
-        assertEquals("Nodes: 4 5 0 2 1 3 FromEdges: 0->2 1->2 3->4 3->5 ToEdges: 4->3 5->3 2->0 2->1 ", plan.display());
+        assertEquals("Nodes: 0 1 2 3 4 5 FromEdges: 0->2 1->2 3->4 3->5 ToEdges: 2->0 2->1 4->3 5->3 ", plan.display());
 
         // Test remove
         plan.remove(ops[2]);
-        assertEquals("Nodes: 4 5 0 1 3 FromEdges: 3->4 3->5 ToEdges: 4->3 5->3 ", plan.display());
+        assertEquals("Nodes: 0 1 3 4 5 FromEdges: 3->4 3->5 ToEdges: 4->3 5->3 ", plan.display());
     }
 
 
