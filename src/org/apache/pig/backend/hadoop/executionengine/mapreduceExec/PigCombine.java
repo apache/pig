@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapreduceExec;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -48,23 +47,18 @@ public class PigCombine implements Reducer {
     private JobConf         job;
     private CombineDataOutputCollector finalout;
     private DataCollector   evalPipe;
-    private OutputCollector oc;
     private int             index;
     private int             inputCount;
     private DataBag         bags[];
+    private PigContext pigContext;
+    private EvalSpec esp;
 
     public void reduce(WritableComparable key, Iterator values, OutputCollector output, Reporter reporter)
             throws IOException {
 
         try {
-            PigContext pigContext = (PigContext) ObjectSerializer.deserialize(job.get("pig.pigContext"));
             if (evalPipe == null) {
-                inputCount = ((ArrayList<FileSpec>)ObjectSerializer.deserialize(job.get("pig.inputs"))).size();
-                oc = output;
-                finalout = new CombineDataOutputCollector(oc);
-                String evalSpec = job.get("pig.combineFunc", "");
-                EvalSpec esp = (EvalSpec)ObjectSerializer.deserialize(evalSpec);
-                if(esp != null) esp.instantiateFunc(pigContext);
+                finalout = new CombineDataOutputCollector(output);
                 evalPipe = esp.setupPipe(null, finalout);
                 //throw new RuntimeException("combine spec: " + evalSpec + " combine pipe: " + esp.toString());
                 
@@ -112,6 +106,17 @@ public class PigCombine implements Reducer {
      */
     public void configure(JobConf job) {
         this.job = job;
+        try {
+            this.pigContext = (PigContext) ObjectSerializer.deserialize(job.get("pig.pigContext"));
+            this.inputCount = ((ArrayList<FileSpec>)ObjectSerializer.deserialize(job.get("pig.inputs"))).size();
+            String evalSpec = job.get("pig.combineFunc", "");
+            this.esp = (EvalSpec)ObjectSerializer.deserialize(evalSpec);
+            if(esp != null) {
+              esp.instantiateFunc(pigContext);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("unable to deserialize data", e);
+        }
     }
 
     /**
