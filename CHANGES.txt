@@ -189,4 +189,6 @@ Trunk (unreleased changes)
 	reduce, but instead only do it once in the call to configure.  (joa23 via
 	gates).
 
-    PIG-172: dealing with NULL error messages in exceptions
+    PIG-172: dealing with NULL error messages in exceptions (olgan)
+
+    PIG-170: sort bags so that largest ones are released first
