@@ -184,5 +184,9 @@ Trunk (unreleased changes)
 
     PIG-94: changes for M2 of streaming: input/ouptut/ ship/cache error
     handling
+	
+	PIG-108: Fixed PigCombine to not do initialization on every call to 
+	reduce, but instead only do it once in the call to configure.  (joa23 via
+	gates).
 
     PIG-172: dealing with NULL error messages in exceptions
