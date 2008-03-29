@@ -96,10 +96,10 @@ public class SpillableMemoryManager implements NotificationListener {
                         return 0;
                     }
                     if (o1 == null) {
-                        return -1;
+                        return 1;
                     }
                     if (o2 == null) {
-                        return 1;
+                        return -1;
                     }
                     long o1Size = o1.getMemorySize();
                     long o2Size = o2.getMemorySize();
@@ -108,9 +108,9 @@ public class SpillableMemoryManager implements NotificationListener {
                         return 0;
                     }
                     if (o1Size < o2Size) {
-                        return -1;
+                        return 1;
                     }
-                    return 1;
+                    return -1;
                 }
             });
             long estimatedFreed = 0;
