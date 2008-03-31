@@ -132,7 +132,16 @@
     </target>
 
     <target name="compile-sources">
-        <javac encoding="${build.encoding}" srcdir="${sources}" includes="**/plan/*.java, **/data/*.java, **/pig/builtin/*.java, **/test/TestOperatorPlan.java, **/test/TestBuiltin.java, **/logicalLayer/*.java, **/logicalLayer/schema/*.java  " destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
+        <javac encoding="${build.encoding}" srcdir="${sources}"
+            includes="**/plan/*.java, **/data/*.java, **/pig/builtin/*.java,
+                **/test/TestOperatorPlan.java, **/test/TestBuiltin.java,
+                **/test/TestConstExpr.java, **/test/TestFilter.java, **/test/TestPhyOp.java,
+                **/test/TestProject.java, **/test/utils/*.java, **/logicalLayer/*.java,
+                **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
+                **/physicalLayer/topLevelOperator/**/*.java, **/physicalLayer/plans/*.java,
+                **/physicalLayer/util/*.java, **/physicalLayer/Result.java,
+                **/physicalLayer/POStatus.java"
+            destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
         </javac>
@@ -216,6 +225,10 @@
                 <fileset dir="test">
                     <include name="**/TestBuiltin.java" />
                     <include name="**/TestOperatorPlan.java" />
+                	<include name="**/TestPhyOp.java" />
+                	<include name="**/TestConstExpr.java" />
+                	<include name="**/TestProject.java" />
+                	<include name="**/TestFilter.java" />
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

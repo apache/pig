@@ -18,9 +18,10 @@
 
 package org.apache.pig.impl.plan;
 
+import java.io.Serializable;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import java.lang.StringBuilder;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -28,7 +29,7 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 /**
  * Base class for all types of operators.
  */
-abstract public class Operator<V extends PlanVisitor> {
+abstract public class Operator<V extends PlanVisitor> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**

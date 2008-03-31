@@ -1,0 +1,265 @@
+package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.Result;
+import org.apache.pig.backend.executionengine.ExecException;
+
+
+public class GreaterThanExpr extends ComparisonOperator {
+
+	private final Log log = LogFactory.getLog(getClass());
+	
+	public GreaterThanExpr(OperatorKey k) {
+		this(k,-1);
+	}
+
+	public GreaterThanExpr(OperatorKey k, int rp) {
+		super(k, rp);
+	}
+
+	@Override
+	public String name() {
+		return "Greater Than - " + mKey.toString();
+	}
+
+	@Override
+	public String typeName() {
+		return getClass().getName();
+	}
+
+	@Override
+	public void visit(ExprPlanVisitor v) throws ParseException {
+		v.visitGreaterThan(this);
+	}
+	
+	@Override
+	public Result getNext(DataByteArray ba) throws ExecException {
+		byte status;
+		Result res;
+		DataByteArray left=null, right=null;
+		res = lhs.getNext(left);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		left = (DataByteArray)res.result;
+		
+		
+		
+		res = rhs.getNext(right);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		right = (DataByteArray)res.result;
+		
+		int ret = left.compareTo(right);
+		if(ret==-1){
+			res.result = new Boolean(true);
+			//left = right = null;
+			return res;
+		}
+		else{
+			res.result = new Boolean(false);
+			//left = right = null;
+			return res;
+		}
+	}
+
+	@Override
+	public Result getNext(Double d) throws ExecException {
+		byte status;
+		Result res;
+		Double left=null, right=null;
+		res = lhs.getNext(left);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		left = (Double)res.result;
+		
+		
+		
+		res = rhs.getNext(right);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		right = (Double)res.result;
+		
+		if(left>right){
+			res.result = new Boolean(true);
+			//left = right = null;
+			return res;
+		}
+		else{
+			res.result = new Boolean(false);
+			//left = right = null;
+			return res;
+		}
+	}
+
+	@Override
+	public Result getNext(Float f) throws ExecException {
+		byte status;
+		Result res;
+		Float left=null, right=null;
+		res = lhs.getNext(left);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		left = (Float)res.result;
+		
+		
+		
+		res = rhs.getNext(right);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		right = (Float)res.result;
+		
+		if(left>right){
+			res.result = new Boolean(true);
+			//left = right = null;
+			return res;
+		}
+		else{
+			res.result = new Boolean(false);
+			//left = right = null;
+			return res;
+		}
+	}
+
+	@Override
+	public Result getNext(Integer i) throws ExecException {
+		byte status;
+		Result res;
+		Integer left=null, right=null;
+		res = lhs.getNext(left);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		left = (Integer)res.result;
+		
+		
+		
+		res = rhs.getNext(right);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		right = (Integer)res.result;
+		
+		if(left>right){
+			res.result = new Boolean(true);
+			//left = right = null;
+			return res;
+		}
+		else{
+			res.result = new Boolean(false);
+			//left = right = null;
+			return res;
+		}
+	}
+
+	@Override
+	public Result getNext(Long l) throws ExecException {
+		byte status;
+		Result res;
+		Long left=null, right=null;
+		res = lhs.getNext(left);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		left = (Long)res.result;
+		
+		
+		
+		res = rhs.getNext(right);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		right = (Long)res.result;
+		
+		if(left>right){
+			res.result = new Boolean(true);
+			//left = right = null;
+			return res;
+		}
+		else{
+			res.result = new Boolean(false);
+			//left = right = null;
+			return res;
+		}
+	}
+
+	@Override
+	public Result getNext(String s) throws ExecException {
+		byte status;
+		Result res;
+		String left=null, right=null;
+		
+		res = lhs.getNext(left);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		left = (String)res.result;
+		
+		
+		
+		res = rhs.getNext(right);
+		status = res.returnStatus;
+		if(status!=POStatus.STATUS_OK) { 
+			log.warn("\t\t Recieved an error or a null or an unexpected end of processing. Hence reporting a NULL back.");
+			res.returnStatus=POStatus.STATUS_NULL;
+			return res;
+		}
+		right = (String)res.result;
+		
+		int ret = left.compareTo(right);
+		if(ret>0){
+			res.result = new Boolean(true);
+			//left = right = null;
+			return res;
+		}
+		else{
+			res.result = new Boolean(false);
+			//left = right = null;
+			return res;
+		}
+	}
+}
