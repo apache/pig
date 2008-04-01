@@ -20,11 +20,19 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import org.apache.hadoop.io.WritableComparator;
 
 /**
- * The basic data unit. For now, we represent all atomic data objects as strings
+ * The basic data unit. 
+ * 
+ * We represent all atomic data objects as strings or raw-bytes.
  */
 final public class DataAtom extends Datum {
+    private enum Type {BINARY, STRING};
+    
+    Type type = Type.STRING;
     String stringVal = null;
     Double doubleVal = null;
     public static String EMPTY = "";
@@ -62,6 +70,8 @@ final public class DataAtom extends Datum {
     
     public void setValue(byte[] valIn) {
         binaryVal = valIn;
+        type = Type.BINARY;
+        
         stringVal = null;
         doubleVal = Double.POSITIVE_INFINITY;
     }
@@ -85,6 +95,22 @@ final public class DataAtom extends Datum {
         stringVal = Double.toString(valIn);
     }
 
+    public byte[] getValueBytes() {
+        byte[] data = null;
+        
+        if (type == Type.STRING) {
+            try {
+                data = stringVal.getBytes("UTF-8");
+            } catch (UnsupportedEncodingException uee) {
+                data = null;
+            }
+        } else {
+            data = binaryVal;
+        }
+
+        return data;
+    }
+    
     public String strval() {
         return stringVal;
     }
@@ -120,37 +146,52 @@ final public class DataAtom extends Datum {
             return -1;
         DataAtom dOther = (DataAtom) other;
         
-        return stringVal.compareTo(dOther.stringVal);
+        return (type == Type.STRING ) ? stringVal.compareTo(dOther.stringVal) : 
+            WritableComparator.compareBytes(binaryVal, 0, binaryVal.length, 
+                                            dOther.binaryVal, 0, 
+                                            dOther.binaryVal.length);
             
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
          out.write(ATOM);
+         out.writeUTF(type.toString());
          byte[] data;
-         try {
-             data = strval().getBytes("UTF-8");
-         } catch (Exception e) {
-             long size = strval().length();
-             throw new RuntimeException("Error dealing with DataAtom of size " + size, e);
+         if (type == Type.BINARY) {
+             data = binaryVal;
+         } else { 
+             try {
+                 data = strval().getBytes("UTF-8");
+             } catch (Exception e) {
+                 long size = strval().length();
+                 throw new RuntimeException("Error dealing with DataAtom of size " + size, e);
+             }
          }
          Tuple.encodeInt(out, data.length);
          out.write(data);    
     }
     
     static DataAtom read(DataInput in) throws IOException {
+        Type type = Type.valueOf(in.readUTF());
         int len = Tuple.decodeInt(in);
         DataAtom ret = new DataAtom();
         byte[] data = new byte[len];
         in.readFully(data);
-        ret.setValue(new String(data, "UTF-8"));
+        if (type == Type.STRING) {
+            ret.setValue(new String(data, "UTF-8"));
+        }
+        else {
+            ret.setValue(data);
+        }
         return ret;
     }
 
     
     @Override
     public int hashCode() {
-        return stringVal.hashCode();
+        return (type == Type.STRING) ? stringVal.hashCode() : 
+            WritableComparator.hashBytes(binaryVal, binaryVal.length);
     }
 
     @Override

@@ -26,6 +26,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -56,8 +57,18 @@ public class TestStreaming extends TestCase {
 	}
 	
 	@Test
-	public void testSimpleMapSideStreaming() throws Exception {
-		PigServer pigServer = new PigServer(MAPREDUCE);
+	public void testLocalSimpleMapSideStreaming() throws Exception {
+	    testSimpleMapSideStreaming(ExecType.LOCAL);
+	}
+	
+	@Test
+    public void testMRSimpleMapSideStreaming() throws Exception {
+        testSimpleMapSideStreaming(ExecType.MAPREDUCE);
+    }
+    
+	private void testSimpleMapSideStreaming(ExecType execType) 
+	throws Exception {
+		PigServer pigServer = new PigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
@@ -74,7 +85,9 @@ public class TestStreaming extends TestCase {
 		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
 				                PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
-		pigServer.registerQuery("OP = stream FILTERED_DATA through `" +
+        pigServer.registerQuery("S1 = stream FILTERED_DATA through `" +
+                                simpleEchoStreamingCommand + "`;");
+		pigServer.registerQuery("OP = stream S1 through `" +
 				                simpleEchoStreamingCommand + "`;");
 		
 		// Run the query and check the results
@@ -82,8 +95,20 @@ public class TestStreaming extends TestCase {
 	}
 
 	@Test
-	public void testSimpleMapSideStreamingWithOutputSchema() throws Exception {
-		PigServer pigServer = new PigServer(MAPREDUCE);
+    public void testLocalSimpleMapSideStreamingWithOutputSchema() 
+	throws Exception {
+	    testSimpleMapSideStreamingWithOutputSchema(ExecType.LOCAL);
+	}
+	
+    @Test
+    public void testMRSimpleMapSideStreamingWithOutputSchema() 
+    throws Exception {
+        testSimpleMapSideStreamingWithOutputSchema(ExecType.MAPREDUCE);
+    }
+    
+	private void testSimpleMapSideStreamingWithOutputSchema(ExecType execType) 
+	throws Exception {
+		PigServer pigServer = new PigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
@@ -109,8 +134,20 @@ public class TestStreaming extends TestCase {
 	}
 
 	@Test
-	public void testSimpleReduceSideStreamingAfterFlatten() throws Exception {
-		PigServer pigServer = new PigServer(MAPREDUCE);
+    public void testLocalSimpleReduceSideStreamingAfterFlatten() 
+	throws Exception {
+	    testSimpleReduceSideStreamingAfterFlatten(ExecType.LOCAL);
+	}
+	
+    @Test
+    public void testMRSimpleReduceSideStreamingAfterFlatten() 
+    throws Exception {
+        testSimpleReduceSideStreamingAfterFlatten(ExecType.MAPREDUCE);
+    }
+    
+	private void testSimpleReduceSideStreamingAfterFlatten(ExecType execType) 
+	throws Exception {
+		PigServer pigServer = new PigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
@@ -130,7 +167,9 @@ public class TestStreaming extends TestCase {
 		pigServer.registerQuery("GROUPED_DATA = group FILTERED_DATA by $0;");
 		pigServer.registerQuery("FLATTENED_GROUPED_DATA = foreach GROUPED_DATA " +
 				                "generate flatten($1);");
-		pigServer.registerQuery("OP = stream FLATTENED_GROUPED_DATA through `" +
+        pigServer.registerQuery("S1 = stream FLATTENED_GROUPED_DATA through `" +
+                                simpleEchoStreamingCommand + "`;");
+		pigServer.registerQuery("OP = stream S1 through `" +
 				                simpleEchoStreamingCommand + "`;");
 		
 		// Run the query and check the results
@@ -138,8 +177,20 @@ public class TestStreaming extends TestCase {
 	}
 
 	@Test
-	public void testSimpleOrderedReduceSideStreamingAfterFlatten() throws Exception {
-		PigServer pigServer = new PigServer(MAPREDUCE);
+    public void testLocalSimpleOrderedReduceSideStreamingAfterFlatten() 
+	throws Exception {
+	    testSimpleOrderedReduceSideStreamingAfterFlatten(ExecType.LOCAL);
+	}
+	
+    @Test
+    public void testMRSimpleOrderedReduceSideStreamingAfterFlatten() 
+    throws Exception {
+        testSimpleOrderedReduceSideStreamingAfterFlatten(ExecType.MAPREDUCE);
+    }
+    
+	private void testSimpleOrderedReduceSideStreamingAfterFlatten(
+	        ExecType execType) throws Exception {
+		PigServer pigServer = new PigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1,2,3", "B,2,4,5",
@@ -169,12 +220,18 @@ public class TestStreaming extends TestCase {
 		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
 				                PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+        pigServer.registerQuery("S1 = stream FILTERED_DATA through `" +
+                                simpleEchoStreamingCommand + "`;");
+        pigServer.registerQuery("S2 = stream S1 through `" +
+                                simpleEchoStreamingCommand + "`;");
 		pigServer.registerQuery("GROUPED_DATA = group IP by $0;");
 		pigServer.registerQuery("ORDERED_DATA = foreach GROUPED_DATA { " +
 				                "  D = order IP BY $2, $3;" +
                                 "  generate flatten(D);" +
                                 "};");
-		pigServer.registerQuery("OP = stream ORDERED_DATA through `" +
+        pigServer.registerQuery("S3 = stream ORDERED_DATA through `" +
+                                simpleEchoStreamingCommand + "`;");
+		pigServer.registerQuery("OP = stream S3 through `" +
 				                simpleEchoStreamingCommand + "`;");
 		
 		// Run the query and check the results
@@ -224,6 +281,7 @@ public class TestStreaming extends TestCase {
         pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
 
         String output = "/pig/out";
+        pigServer.deleteFile(output);
         pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
         
         InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
@@ -237,9 +295,6 @@ public class TestStreaming extends TestCase {
 
         // Run the query and check the results
         Util.checkQueryOutputs(outputs.iterator(), expectedResults);
-        
-        // Cleanup
-        pigServer.deleteFile(output);
     }
 
     @Test
@@ -286,6 +341,7 @@ public class TestStreaming extends TestCase {
         pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
         
         String output = "/pig/out";
+        pigServer.deleteFile(output);
         pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
         
         InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
@@ -299,9 +355,6 @@ public class TestStreaming extends TestCase {
 
         // Run the query and check the results
         Util.checkQueryOutputs(outputs.iterator(), expectedResults);
-	
-        // Cleanup
-        pigServer.deleteFile(output);
     }
 
     @Test
@@ -351,6 +404,7 @@ public class TestStreaming extends TestCase {
         pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
         
         String output = "/pig/out";
+        pigServer.deleteFile(output);
         pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
         
         InputStream op = FileLocalizer.open(output, pigServer.getPigContext());

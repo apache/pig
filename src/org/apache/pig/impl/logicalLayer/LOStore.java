@@ -62,6 +62,9 @@ public class LOStore extends LogicalOperator {
         return outputFileSpec;
     }
 
+    public void setOutputFileSpec(FileSpec spec) {
+        outputFileSpec = spec;
+    }
 
     @Override
     public String toString() {

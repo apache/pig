@@ -68,16 +68,22 @@ public class StreamSpec extends EvalSpec {
         }
         properties.setProperty(property, sb.toString());        
     }
+
+    /**
+     * Get the {@link StreamingCommand} for this <code>StreamSpec</code>.
+     * @return
+     */
+    public StreamingCommand getCommand() {
+        return command;
+    }
     
-    @Override
     public List<String> getFuncs() {
         // No user-defined functions here
         return new ArrayList<String>();
     }
 
     protected Schema mapInputSchema(Schema schema) {
-        // EvalSpec _has_ to have the schema if there is one...
-        return null;
+        return schema;
     }
 
     protected DataCollector setupDefaultPipe(Properties properties,
@@ -120,7 +126,7 @@ public class StreamSpec extends EvalSpec {
                 // Start the executable
                 this.executableManager.run();
             } catch (Exception e) {
-                LOG.fatal("Failed to create/start PigExecutableManager with: " + 
+                LOG.fatal("Failed to create/start ExecutableManager with: " + 
                           e);
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -142,7 +148,7 @@ public class StreamSpec extends EvalSpec {
                 executableManager.close();
             }
             catch (Exception e) {
-                LOG.fatal("Failed to close PigExecutableManager with: " + e);
+                LOG.fatal("Failed to close ExecutableManager with: " + e);
                 throw new RuntimeException(e);
             }
         }

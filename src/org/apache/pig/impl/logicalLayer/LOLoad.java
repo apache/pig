@@ -39,14 +39,17 @@ public class LOLoad extends LogicalOperator {
     protected FileSpec inputFileSpec;
 
     protected int outputType = FIXED;
-
+    
+    protected boolean splitable = true;
 
     public LOLoad(Map<OperatorKey, LogicalOperator> opTable, 
                   String scope, 
                   long id, 
-                  FileSpec inputFileSpec) throws IOException, ParseException {
+                  FileSpec inputFileSpec, boolean splitable) 
+    throws IOException, ParseException {
         super(opTable, scope, id);
         this.inputFileSpec = inputFileSpec;
+        this.splitable = splitable;
         
         // check if we can instantiate load func
         LoadFunc storageFunc = (LoadFunc) PigContext
@@ -113,6 +116,10 @@ public class LOLoad extends LogicalOperator {
         return funcs;
     }
 
+    public boolean isSplitable() {
+        return splitable;
+    }
+    
     public void visit(LOVisitor v) {
         v.visitLoad(this);
     }

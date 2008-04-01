@@ -111,35 +111,37 @@ public class HadoopExecutableManager extends ExecutableManager {
     }
 
     public void close() throws IOException, ExecException {
-        super.close();
-        
-        // Footer for stderr file of the task
-        writeDebugFooter();
-        
-        // Copy the secondary outputs of the task to HDFS
-        Path scriptOutputDir = new Path(this.scriptOutputDir);
-        FileSystem fs = scriptOutputDir.getFileSystem(job);
-        List<HandleSpec> outputSpecs = command.getHandleSpecs(Handle.OUTPUT);
-        if (outputSpecs != null) {
-            for (int i=1; i < outputSpecs.size(); ++i) {
-                String fileName = outputSpecs.get(i).getName();
-                try {
-                    fs.copyFromLocalFile(false, true, new Path(fileName), 
-                                         new Path(scriptOutputDir, 
-                                                  taskId+"-"+fileName)
-                                        );
-                } catch (IOException ioe) {
-                    System.err.println("Failed to save secondary output '" + 
-                                       fileName + "' of task: " + taskId +
-                                       " with " + ioe);
-                    throw new ExecException(ioe);
-                }
-            }
-        }
+        try {
+            super.close();
 
-        // Close the stderr file on HDFS
-        if (errorStream != null) {
-            errorStream.close();
+            // Copy the secondary outputs of the task to HDFS
+            Path scriptOutputDir = new Path(this.scriptOutputDir);
+            FileSystem fs = scriptOutputDir.getFileSystem(job);
+            List<HandleSpec> outputSpecs = command.getHandleSpecs(Handle.OUTPUT);
+            if (outputSpecs != null) {
+                for (int i=1; i < outputSpecs.size(); ++i) {
+                    String fileName = outputSpecs.get(i).getName();
+                    try {
+                        fs.copyFromLocalFile(false, true, new Path(fileName), 
+                                new Path(scriptOutputDir, 
+                                        taskId+"-"+fileName)
+                        );
+                    } catch (IOException ioe) {
+                        System.err.println("Failed to save secondary output '" + 
+                                           fileName + "' of task: " + taskId +
+                                           " with " + ioe);
+                        throw new ExecException(ioe);
+                    }
+                }
+        }
+        } finally {
+            // Footer for stderr file of the task
+            writeDebugFooter();
+            
+            // Close the stderr file on HDFS
+            if (errorStream != null) {
+                errorStream.close();
+            }
         }
     }
 
@@ -152,11 +154,14 @@ public class HadoopExecutableManager extends ExecutableManager {
      *         HDFS, <code>false</code> otherwise
      */
     private boolean writeErrorToHDFS(int limit, String taskId) {
-        // These are hard-coded begin/end offsets a Hadoop *taskid*
-        int beginIndex = 25, endIndex = 31;   
-        
-        int tipId = Integer.parseInt(taskId.substring(beginIndex, endIndex));
-        return command.getPersistStderr() && tipId < command.getLogFilesLimit();
+        if (command.getPersistStderr()) {
+            // These are hard-coded begin/end offsets a Hadoop *taskid*
+            int beginIndex = 25, endIndex = 31;   
+
+            int tipId = Integer.parseInt(taskId.substring(beginIndex, endIndex));
+            return tipId < command.getLogFilesLimit();
+        }
+        return false;
     }
     
     protected void processError(String error) {
@@ -175,7 +180,12 @@ public class HadoopExecutableManager extends ExecutableManager {
     private void writeDebugHeader() {
         processError("===== Task Information Header =====" );
 
-        processError("\nCommand: " + command.getExecutable());
+        StringBuffer sb = new StringBuffer();
+        for (String arg : command.getCommandArgs()) {
+            sb.append(arg);
+            sb.append(" ");
+        }
+        processError("\nCommand: " + sb.toString());
         processError("\nStart time: " + new Date(System.currentTimeMillis()));
         processError("\nInput-split file: " + job.get("map.input.file"));
         processError("\nInput-split start-offset: " + 
@@ -195,6 +205,7 @@ public class HadoopExecutableManager extends ExecutableManager {
         List<HandleSpec> inputSpecs = command.getHandleSpecs(Handle.INPUT);
         HandleSpec inputSpec = 
             (inputSpecs != null) ? inputSpecs.get(0) : null;
+        processError("\nInput records: " + inputRecords);
         processError("\nInput bytes: " + inputBytes + " bytes " +
                     ((inputSpec != null) ? 
                             "(" + inputSpec.getName() + " using " + 
@@ -204,6 +215,7 @@ public class HadoopExecutableManager extends ExecutableManager {
         List<HandleSpec> outputSpecs = command.getHandleSpecs(Handle.OUTPUT);
         HandleSpec outputSpec = 
             (outputSpecs != null) ? outputSpecs.get(0) : null;
+        processError("\nOutput records: " + outputRecords);
         processError("\nOutput bytes: " + outputBytes + " bytes " +
                      ((outputSpec != null) ? 
                          "(" + outputSpec.getName() + " using " + 

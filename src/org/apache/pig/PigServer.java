@@ -51,6 +51,9 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.optimizer.Optimizer;
+import org.apache.pig.impl.logicalLayer.optimizer.streaming.LoadOptimizer;
+import org.apache.pig.impl.logicalLayer.optimizer.streaming.StoreOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
@@ -275,7 +278,13 @@ public class PigServer {
         
         // Check if we just processed a LOStore i.e. STORE
         if (op instanceof LOStore) {
-            runQuery(lp);
+            try {
+                optimizeAndRunQuery(lp);
+            }
+            catch (ExecException e) {
+                throw WrappedIOException.wrap("Unable to store alias " + 
+                        lp.getAlias(), e);
+            }
         }
     }
       
@@ -306,12 +315,10 @@ public class PigServer {
         // execution.
         
         LogicalPlan readFrom = (LogicalPlan) aliases.get(id);
-
+        
+        // Run
         try {
-            ExecPhysicalPlan pp = 
-                pigContext.getExecutionEngine().compile(readFrom, null);
-            
-            ExecJob job = pigContext.getExecutionEngine().execute(pp);
+            ExecJob job = optimizeAndRunQuery(readFrom);
 
             // invocation of "execute" is synchronous!
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
@@ -365,21 +372,36 @@ public class PigServer {
                                                               func,
                                                               pigContext);
 
-        runQuery(storePlan);
-    }
+        // Optimize 
+        Optimizer optimizer = new LoadOptimizer();
+        optimizer.optimize(readFrom);
 
-    private void runQuery(LogicalPlan storePlan) throws IOException {
+
         try {
-            ExecPhysicalPlan pp = 
-                pigContext.getExecutionEngine().compile(storePlan, null);
-
-            pigContext.getExecutionEngine().execute(pp);
+            optimizeAndRunQuery(storePlan);
         }
         catch (ExecException e) {
             throw WrappedIOException.wrap("Unable to store alias " + 
-                                          storePlan.getAlias(), e);
+                    storePlan.getAlias(), e);
+
         }
     }
+
+    private ExecJob optimizeAndRunQuery(LogicalPlan root) throws ExecException {
+        // Optimize the LogicalPlan
+        Optimizer loadOptimizer = new LoadOptimizer();
+        loadOptimizer.optimize(root);
+
+        Optimizer storeOptimizer = new StoreOptimizer();
+        storeOptimizer.optimize(root);
+
+        // Execute
+        ExecPhysicalPlan pp = 
+            pigContext.getExecutionEngine().compile(root, null);
+
+        return pigContext.getExecutionEngine().execute(pp);
+    }
+    
     /**
      * Provide information on how a pig query will be executed.  For now
      * this information is very developer focussed, and probably not very

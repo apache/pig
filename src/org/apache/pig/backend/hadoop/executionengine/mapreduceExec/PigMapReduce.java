@@ -108,16 +108,23 @@ public class PigMapReduce implements MapRunnable, Reducer {
 
         setupMapPipe(properties, reporter);
 
-        // allocate key & value instances that are re-used for all entries
-        WritableComparable key = input.createKey();
-        Writable value = input.createValue();
-        while (input.next(key, value)) {
-            evalPipe.add((Tuple) value);
-        }
-        evalPipe.finishPipe();  // EOF marker
-        evalPipe= null;
-        if (pigWriter != null) {
-            pigWriter.close(reporter);
+        try {
+            // allocate key & value instances that are re-used for all entries
+            WritableComparable key = input.createKey();
+            Writable value = input.createValue();
+            while (input.next(key, value)) {
+                evalPipe.add((Tuple) value);
+            }
+        } finally {
+            try {
+                evalPipe.finishPipe();  // EOF marker
+                evalPipe = null;
+            } finally {
+                // Close the writer
+                if (pigWriter != null) {
+                    pigWriter.close(reporter);
+                }
+            }
         }
     }
 

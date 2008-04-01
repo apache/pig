@@ -259,6 +259,14 @@ public class POMapreduce extends PhysicalOperator {
         properties.putAll(spec.getProperties());
     }
     
+    public void setProperty(String key, String value) {
+        properties.setProperty(key, value);
+    }
+    
+    public String getProperty(String key) {
+        return properties.getProperty(key);
+    }
+    
     public void visit(POVisitor v) {
         v.visitMapreduce(this);
     }
