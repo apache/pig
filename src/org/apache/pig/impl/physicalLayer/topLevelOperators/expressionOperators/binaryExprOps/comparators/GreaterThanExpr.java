@@ -29,11 +29,6 @@ public class GreaterThanExpr extends ComparisonOperator {
 	}
 
 	@Override
-	public String typeName() {
-		return getClass().getName();
-	}
-
-	@Override
 	public void visit(ExprPlanVisitor v) throws ParseException {
 		v.visitGreaterThan(this);
 	}

@@ -145,11 +145,6 @@ public class POFilter extends PhysicalOperator<PhyPlanVisitor> {
 	}
 
 	@Override
-	public String typeName() {
-		return getClass().getName();
-	}
-
-	@Override
 	public void visit(PhyPlanVisitor v) throws ParseException {
 		v.visitFilter(this);
 	}

@@ -73,11 +73,6 @@ public class POProject extends ExpressionOperator {
 	}
 
 	@Override
-	public String typeName() {
-		return getClass().getName();
-	}
-
-	@Override
 	public void visit(ExprPlanVisitor v) throws ParseException {
 		v.visitProject(this);
 	}

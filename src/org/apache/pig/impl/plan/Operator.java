@@ -80,10 +80,6 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable {
 
     public abstract String name();
 
-    public String typeName() {
-        return this.getClass().getName();
-    }
-
     @Override
     public String toString() {
         StringBuilder msg = new StringBuilder();

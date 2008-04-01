@@ -133,7 +133,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         if (mFromEdges.get(from) != null &&
                 !from.supportsMultipleOutputs()) {
             throw new IOException("Attempt to give operator of type " +
-                from.typeName() + " multiple outputs.  This operator does "
+                from.getClass().getName() + " multiple outputs.  This operator does "
                 + "not support multiple outputs.");
         }
 
@@ -142,7 +142,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         if (mToEdges.get(to) != null &&
                 !to.supportsMultipleInputs()) {
             throw new IOException("Attempt to give operator of type " +
-                from.typeName() + " multiple inputs.  This operator does "
+                from.getClass().getName() + " multiple inputs.  This operator does "
                 + "not support multiple inputs.");
         }
 

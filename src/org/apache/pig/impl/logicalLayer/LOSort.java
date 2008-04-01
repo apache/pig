@@ -80,11 +80,6 @@ public class LOSort extends LogicalOperator {
     }
 
     @Override
-    public String typeName() {
-        return "LOSort";
-    }
-
-    @Override
     public Schema getSchema() throws IOException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get our parent's schema

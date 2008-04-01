@@ -82,9 +82,6 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             return mName;
         }
 
-        public String typeName() {
-            return "Single";
-        }
     }
 
     class MultiOperator extends TOperator {
@@ -108,9 +105,6 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             return mName;
         }
 
-        public String typeName() {
-            return "Multi";
-        }
     }
 
     class TPlan extends OperatorPlan<TOperator> {
@@ -323,7 +317,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         try {
             plan.connect(bogus, ops[1]);
         } catch (IOException ioe) {
-            assertEquals("Attempt to give operator of type Single " +
+            assertEquals("Attempt to give operator of type " +
+                "org.apache.pig.test.TestOperatorPlan$SingleOperator " +
                 "multiple inputs.  This operator does "
                 + "not support multiple inputs.", ioe.getMessage());
             sawError = true;
@@ -337,13 +332,15 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         try {
             plan.connect(ops[0], bogus);
         } catch (IOException ioe) {
-            assertEquals("Attempt to give operator of type Single " +
+            assertEquals("Attempt to give operator of type " +
+                "org.apache.pig.test.TestOperatorPlan$SingleOperator " +
                 "multiple outputs.  This operator does "
                 + "not support multiple outputs.", ioe.getMessage());
             sawError = true;
         }
         assertTrue("Should have caught an error when we tried to connect a "
-            + "second output to a Single", sawError);
+            + "second output to a " +
+            "org.apache.pig.test.TestOperatorPlan$SingleOperator", sawError);
         plan.remove(bogus);
 
         // Successor for ops[1] should be ops[2]
