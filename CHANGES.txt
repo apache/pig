@@ -195,3 +195,5 @@ Trunk (unreleased changes)
 
 	PIG-122: Added build and src-gen to the list of ignore files in
 	the top level directory (joa23 via gates).
+
+    PIG-94: M3 code update for streaming

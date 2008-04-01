@@ -49,6 +49,7 @@ import org.apache.tools.bzip2r.CBZip2InputStream;
 public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable {
 
     public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+        boolean isSplitable = job.getBoolean("pig.input.splitable", false);
         
         ArrayList<FileSpec> inputs = (ArrayList<FileSpec>) ObjectSerializer.deserialize(job.get("pig.inputs"));        
         ArrayList<EvalSpec> mapFuncs = (ArrayList<EvalSpec>) ObjectSerializer.deserialize(job.get("pig.mapFuncs",""));        
@@ -109,8 +110,9 @@ public class PigInputFormat implements InputFormat<Text, Tuple>, JobConfigurable
                 long size = fs.getFileStatus(fullPath).getLen();
                 long pos = 0;
                 String name = paths.get(j).getName();
-                if (name.endsWith(".gz")) {
-                    // Anything that ends with a ".gz" we must process as a complete file
+                if (name.endsWith(".gz") || !isSplitable) {
+                    // Anything that ends with a ".gz" or can't be split
+                    // we must process as a complete file
                     splits.add(new PigSplit(pigContext, fs, fullPath, parser, groupFuncs==null ? null : groupFuncs.get(i), mapFuncs.get(i), i, 0, size));
                 } else {
                     while (pos < size) {

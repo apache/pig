@@ -33,6 +33,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.collector.DataCollector;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.InputHandler.InputType;
 import org.apache.pig.impl.streaming.OutputHandler.OutputType;
 
@@ -74,11 +75,29 @@ public class ExecutableManager {
 
 	Properties properties;
 
+	// Statistics
+	protected long inputRecords = 0;
 	protected long inputBytes = 0;
+	protected long outputRecords = 0;
 	protected long outputBytes = 0;
 	
+	/**
+	 * Create a new {@link ExecutableManager}.
+	 */
 	public ExecutableManager() {}
 	
+	/**
+	 * Configure and initialize the {@link ExecutableManager}.
+	 * 
+	 * @param properties {@link Properties} for the 
+	 *                   <code>ExecutableManager</code>
+	 * @param command {@link StreamingCommand} to be run by the 
+	 *                <code>ExecutableManager</code>
+	 * @param endOfPipe {@link DataCollector} to be used to push results of the
+	 *                  <code>StreamingCommand</code> down
+	 * @throws IOException
+	 * @throws ExecException
+	 */
 	public void configure(Properties properties, StreamingCommand command, 
 	                      DataCollector endOfPipe) 
 	throws IOException, ExecException {
@@ -96,51 +115,82 @@ public class ExecutableManager {
 		this.endOfPipe = endOfPipe;
 	}
 	
+	/**
+	 * Close and cleanup the {@link ExecutableManager}.
+	 * 
+	 * @throws IOException
+	 * @throws ExecException
+	 */
 	public void close() throws IOException, ExecException {
-	    // Close the InputHandler, which in some cases lets the process
-	    // terminate
-		inputHandler.close();
-		
-		// Check if we need to start the process now ...
-		if (inputHandler.getInputType() == InputType.ASYNCHRONOUS) {
-		    exec();
-		}
-		
-		// Wait for the process to exit and the stdout/stderr threads to complete
-		try {
-			exitCode = process.waitFor();
-			
-			if (stdoutThread != null) {
-			    stdoutThread.join(0);
-			}
-			if (stderrThread != null) {
-				stderrThread.join(0);
-			}
+	    try {
+	        // Close the InputHandler, which in some cases lets the process
+	        // terminate
+	        inputHandler.close();
 
-		} catch (InterruptedException ie) {}
+	        // Check if we need to start the process now ...
+	        if (inputHandler.getInputType() == InputType.ASYNCHRONOUS) {
+	            exec();
+	        }
 
-		// Clean up the process
-		process.destroy();
-		
-        LOG.debug("Process exited with: " + exitCode);
-        if (exitCode != SUCCESS) {
-            throw new ExecException(command + " failed with exit status: " + 
-                                       exitCode);
-        }
-        
-        if (outputHandler.getOutputType() == OutputType.ASYNCHRONOUS) {
-            // Trigger the outputHandler
-            outputHandler.bindTo(null);
+	        // Wait for the process to exit 
+	        try {
+	            exitCode = process.waitFor();
+	        } catch (InterruptedException ie) {}
 
-            // Start the thread to process the output and wait for
-            // it to terminate
-            stdoutThread = new ProcessOutputThread(outputHandler);
-            stdoutThread.start();
-            
-            try {
-                stdoutThread.join(0);
-            } catch (InterruptedException ie) {}
-        }
+	        // Wait for stdout thread to complete
+	        try {
+	            if (stdoutThread != null) {
+	                stdoutThread.join(0);
+	            }
+	            stdoutThread = null;
+	        } catch (InterruptedException ie) {}
+	        
+            // Wait for stderr thread to complete
+	        try {
+	            if (stderrThread != null) {
+	                stderrThread.join(0);
+	            }
+	            stderrThread = null;
+	        } catch (InterruptedException ie) {}
+
+	        // Clean up the process
+	        process.destroy();
+	        process = null;
+
+	        LOG.debug("Process exited with: " + exitCode);
+	        if (exitCode != SUCCESS) {
+	            throw new ExecException(command + " failed with exit status: " + 
+	                    exitCode);
+	        }
+
+	        if (outputHandler.getOutputType() == OutputType.ASYNCHRONOUS) {
+	            // Trigger the outputHandler
+	            outputHandler.bindTo("", null, 0, -1);
+
+	            // Start the thread to process the output and wait for
+	            // it to terminate
+	            stdoutThread = new ProcessOutputThread(outputHandler);
+	            stdoutThread.start();
+
+	            try {
+	                stdoutThread.join(0);
+	            } catch (InterruptedException ie) {}
+	        }
+	    } finally {
+	        // Cleanup, release resources ...
+	        if (process != null) {
+	            process.destroy();
+	        }
+
+	        if (stdoutThread != null) {
+	            stdoutThread.interrupt();
+	        }
+	    
+	        if (stderrThread != null) {
+	            stderrThread.interrupt();
+	        }
+	    }
+	    
 
 	}
 
@@ -172,7 +222,8 @@ public class ExecutableManager {
                 new DataInputStream(new BufferedInputStream(process.getInputStream()));
             
             // Bind the stdout to the OutputHandler
-            outputHandler.bindTo(stdout);
+            outputHandler.bindTo("", new BufferedPositionedInputStream(stdout), 
+                                 0, Long.MAX_VALUE);
             
             // Start the thread to process the executable's stdout
             stdoutThread = new ProcessOutputThread(outputHandler);
@@ -180,6 +231,11 @@ public class ExecutableManager {
         }
 	}
 	
+	/**
+	 * Start execution of the {@link ExecutableManager}.
+	 * 
+	 * @throws IOException
+	 */
 	public void run() throws IOException {
 	    // Check if we need to exec the process NOW ...
 	    if (inputHandler.getInputType() == InputType.ASYNCHRONOUS) {
@@ -193,11 +249,19 @@ public class ExecutableManager {
 	    inputHandler.bindTo(stdin);
 	}
 
+	/**
+	 * Send the given {@link Datum} to the external command managed by the
+	 * {@link ExecutableManager}.
+	 * 
+	 * @param d <code>Datum</code> to be sent to the external command
+	 * @throws IOException
+	 */
 	public void add(Datum d) throws IOException {
 		// Pass the serialized tuple to the executable via the InputHandler
 	    Tuple t = (Tuple)d;
 	    inputHandler.putNext(t);
 	    inputBytes += t.getMemorySize();
+	    inputRecords++;
 	}
 
 	/**
@@ -210,6 +274,7 @@ public class ExecutableManager {
 	 */
 	protected void processOutput(Datum d) {
 		endOfPipe.add(d);
+		outputRecords++;
 	}
 	
 	class ProcessOutputThread extends Thread {

@@ -18,7 +18,6 @@
 package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.Tuple;
@@ -58,9 +57,10 @@ public abstract class OutputHandler {
      *           of the managed process
      * @throws IOException
      */
-    public void bindTo(InputStream is) throws IOException {
-        deserializer.bindTo("", new BufferedPositionedInputStream(is), 0, 
-                            Long.MAX_VALUE);
+    public void bindTo(String fileName, BufferedPositionedInputStream is,
+                       long offset, long end) throws IOException {
+        deserializer.bindTo(fileName, new BufferedPositionedInputStream(is), 
+                            offset, end);
     }
     
     /**

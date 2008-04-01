@@ -19,6 +19,8 @@ package org.apache.pig.impl.eval.collector;
 
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
@@ -31,6 +33,9 @@ import org.apache.pig.data.Tuple;
  * or a file.
  */
 public abstract class DataCollector {
+    private static final Log LOG = 
+        LogFactory.getLog(DataCollector.class.getName());
+    
     Integer staleCount = 0;
     protected boolean inTheMiddleOfBag = false;
     
@@ -121,10 +126,21 @@ public abstract class DataCollector {
         }
     }
     
-    public void finishPipe(){
-        finish();
-        if (successor!=null)
-            successor.finishPipe();
+    public final void finishPipe() {
+        try {
+            finish();
+        } finally {
+            try {
+                if (successor != null) {
+                    successor.finishPipe();
+                } 
+            } catch (Exception e) {
+                // Ignore this exception since the original is more relevant
+                LOG.debug(e);
+            } finally {
+                successor = null;
+            }
+        }
     }
     
     protected void finish(){}

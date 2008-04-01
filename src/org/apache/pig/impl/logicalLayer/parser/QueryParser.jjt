@@ -662,14 +662,23 @@ LogicalOperator BaseExpr() : {LogicalOperator op; TupleSchema schema; Token t1, 
 	{return op;}
 }
 
-LogicalOperator LoadClause() : {Token t1, t2; String filename; String funcName,funcArgs, funcSpec=null; 
-								LOLoad lo=null; boolean continuous=false;}
+LogicalOperator LoadClause() : {Token t1, t2, t3; String filename; String funcName,funcArgs, funcSpec=null; 
+								LOLoad lo=null; boolean continuous=false; String splitBy; boolean splitable = true;}
 {
 	(	filename = FileName()
 		(
 		<USING>  funcName = QualifiedFunction() "(" funcArgs = StringList() ")"
 		{
 			funcSpec = funcName + "(" + funcArgs + ")";
+		}
+		)?
+		(
+		<SPLIT> <BY> t3 = <QUOTEDSTRING>
+		{
+			splitBy = unquote(t3.image);
+			if (splitBy.equalsIgnoreCase("file")) {
+				splitable = false;
+			}
 		}
 		)?
 	)
@@ -680,22 +689,33 @@ LogicalOperator LoadClause() : {Token t1, t2; String filename; String funcName,f
 			funcSpec += continuous ? "('\t','\n','0')" : "()";
 		}
 		 
-		lo = new LOLoad(opTable, scope, getNextId(), new FileSpec(massageFilename(filename, pigContext, true), funcSpec));	
+		lo = new LOLoad(opTable, scope, getNextId(), new FileSpec(massageFilename(filename, pigContext, true), funcSpec), splitable);	
 		if (continuous)
 			lo.setOutputType(LogicalOperator.MONOTONE);
 		return lo;
 	} 
 }    
 
-String StringList() : {StringBuilder sb = new StringBuilder(); Token t;}
+String StringList() : {StringBuilder sb = new StringBuilder(); Token t; String arg;}
 {
 	(
+	LOOKAHEAD(2)
 	(
 	t = <QUOTEDSTRING> {sb.append(t.image);}
-	( "," t = <QUOTEDSTRING> {sb.append(",");sb.append(t.image);} )*
-	)
-	| {}
-	)
+	| 
+    t = <NUMBER> {sb.append(t.image);}
+    )
+    ( 
+        "," 
+        (
+        t = <QUOTEDSTRING> {sb.append(t.image);}
+        | 
+        t = <NUMBER> {sb.append(t.image);}
+        )
+    )*
+	| 
+	{}
+    )
 	{return sb.toString();}
 }
 

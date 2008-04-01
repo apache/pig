@@ -89,4 +89,12 @@ public class PigStorage implements LoadFunc, StoreFunc {
     public void finish() throws IOException {
     }
 
+    public boolean equals(Object obj) {
+        return equals((PigStorage)obj);
+    }
+
+    public boolean equals(PigStorage other) {
+        return this.fieldDel.equals(other.fieldDel);
+    }
+    
 }

@@ -95,4 +95,8 @@ public class BinStorage implements LoadFunc, StoreFunc {
         out.write(Tuple.RECORD_3);
         t.write(out);
     }
+
+    public boolean equals(Object obj) {
+        return true;
+    }
 }

@@ -20,11 +20,11 @@ package org.apache.pig.impl.streaming;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
@@ -35,7 +35,7 @@ import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 public class FileOutputHandler extends OutputHandler {
 
     String fileName;
-    InputStream fileInStream;
+    BufferedPositionedInputStream fileInStream;
     
     public FileOutputHandler(HandleSpec handleSpec) throws ExecException {
         fileName = handleSpec.name;
@@ -47,10 +47,15 @@ public class FileOutputHandler extends OutputHandler {
         return OutputType.ASYNCHRONOUS;
     }
     
-    public void bindTo(InputStream is) throws IOException {
+    public void bindTo(String fileName, BufferedPositionedInputStream is,
+            long offset, long end) throws IOException {
         // This is a trigger to start processing the output from the file ...
-        fileInStream = new FileInputStream(new File(fileName)); 
-        super.bindTo(fileInStream);
+        // ... however, we must ignore the input parameters and use ones
+        // provided during initialization
+        File file = new File(this.fileName);
+        this.fileInStream = 
+            new BufferedPositionedInputStream(new FileInputStream(file)); 
+        super.bindTo(this.fileName, this.fileInStream, 0, file.length());
     }
     
     public void close() throws IOException {

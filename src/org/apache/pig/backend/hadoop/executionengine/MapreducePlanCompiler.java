@@ -193,6 +193,8 @@ public class MapreducePlanCompiler {
             FileSpec fileSpec = new FileSpec(filename, loLoad.getInputFileSpec().getFuncSpec());
             pom.addInputFile(fileSpec);
             pom.mapParallelism = Math.max(pom.mapParallelism, lo.getRequestedParallelism());
+            pom.setProperty("pig.input.splitable", 
+                            Boolean.toString(loLoad.isSplitable()));
             return pom.getOperatorKey();
         } 
         else if (lo instanceof LOStore) {
