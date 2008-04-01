@@ -192,3 +192,6 @@ Trunk (unreleased changes)
     PIG-172: dealing with NULL error messages in exceptions (olgan)
 
     PIG-170: sort bags so that largest ones are released first
+
+	PIG-122: Added build and src-gen to the list of ignore files in
+	the top level directory (joa23 via gates).
