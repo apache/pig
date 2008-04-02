@@ -68,8 +68,7 @@ public class PigCombine implements Reducer {
                 }
             }
 
-            PigSplit split = PigInputFormat.PigRecordReader.getPigRecordReader().getPigFileSplit();
-            index = split.getIndex();
+            index = PigInputFormat.getActiveSplit().getIndex();
 
             Datum groupName = ((Tuple) key).getField(0);
             finalout.group = ((Tuple) key);

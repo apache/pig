@@ -35,20 +35,20 @@ public class HDataStorage implements DataStorage {
     public HDataStorage(HConfiguration conf) throws IOException {
         fs = FileSystem.get(conf.getConfiguration());
     }
-
+    
     public void init() { }
     
     public void close() throws IOException {
         fs.close();
     }
-    
+
     public Properties getConfiguration() {
         Properties props = new HConfiguration(fs.getConf());
-                
+
         short defaultReplication = fs.getDefaultReplication();
-        props.setProperty(DEFAULT_REPLICATION_FACTOR_KEY,
-                          (new Short(defaultReplication)).toString());
-        
+        props.setProperty(DEFAULT_REPLICATION_FACTOR_KEY, ""
+                + defaultReplication);
+
         return props;
     }
     

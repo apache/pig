@@ -124,20 +124,12 @@ public class QueryParser {
 	
 	
 	
-	String massageFilename(String filename, PigContext pigContext, boolean checkExists) 
+	String massageFilename(String filename, PigContext pigContext)
 	throws IOException, ParseException {
 		if (pigContext.getExecType() != ExecType.LOCAL) {
 			if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
 					filename = FileLocalizer.hadoopify(filename, pigContext);
 			} 
-			else
-			{
-				// make sure that dfs file exists
-				if (checkExists && !FileLocalizer.fileExists(filename, pigContext))
-				{
-					throw new ParseException(FileLocalizer.fullPath(filename, pigContext) + " does not exist");
-				}
-			}
 		}
 		return filename;
 	}
@@ -689,7 +681,13 @@ LogicalOperator LoadClause() : {Token t1, t2, t3; String filename; String funcNa
 			funcSpec += continuous ? "('\t','\n','0')" : "()";
 		}
 		 
-		lo = new LOLoad(opTable, scope, getNextId(), new FileSpec(massageFilename(filename, pigContext, true), funcSpec), splitable);	
+        try {
+            lo = new LOLoad(opTable, scope, getNextId(), 
+                        new ValidatingInputFileSpec(massageFilename(filename, pigContext), 
+                                               funcSpec, pigContext), splitable);	
+        } catch(IOException e) {
+            throw new ParseException(e.getMessage());
+        }
 		if (continuous)
 			lo.setOutputType(LogicalOperator.MONOTONE);
 		return lo;
@@ -1507,7 +1505,7 @@ LogicalOperator StoreClause() : {LogicalOperator lo; Token t; String fileName; S
         }
          
         LogicalPlan readFrom = aliases.get(t.image);
-        String jobOutputFile = massageFilename(fileName, pigContext, false);
+        String jobOutputFile = massageFilename(fileName, pigContext);
         lo = new LOStore(opTable, scope, getNextId(), readFrom.getRoot(),
                          new FileSpec(jobOutputFile, functionSpec),
                          false);

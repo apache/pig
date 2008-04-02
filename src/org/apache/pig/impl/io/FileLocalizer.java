@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.io;
 
-import java.lang.IllegalArgumentException;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,26 +25,24 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Random;
-import java.util.Stack;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
+import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.util.WrappedIOException;
-
-import org.apache.pig.backend.datastorage.*;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputFormat;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputFormat.PigRecordReader;
-
-import java.util.Properties;
+import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.SliceWrapper;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
@@ -141,19 +138,17 @@ public class FileLocalizer {
     }
 
     /**
-     * This function is meant to be used if the mappers/reducers want to access any HDFS file
-     * @param fileName
-     * @return
-     * @throws IOException
+     * This function is meant to be used if the mappers/reducers want to access
+     * any HDFS file
      */
-    
-    public static InputStream openDFSFile(String fileName) throws IOException{
-        PigRecordReader prr = PigInputFormat.PigRecordReader.getPigRecordReader();
-        
-        if (prr == null)
-            throw new RuntimeException("can't open DFS file while executing locally");
-    
-        return openDFSFile(fileName, prr.getJobConf());
+    public static InputStream openDFSFile(String fileName) throws IOException {
+        SliceWrapper wrapper = PigInputFormat.getActiveSplit();
+
+        if (wrapper == null)
+            throw new RuntimeException(
+                    "can't open DFS file while executing locally");
+
+        return openDFSFile(fileName, wrapper.getJobConf());
         
     }
 
@@ -335,21 +330,16 @@ public class FileLocalizer {
         }
     }
 
-    public static boolean fileExists(String filename, PigContext pigContext) throws IOException {
-        try
-        {
-            ElementDescriptor elem = pigContext.getDfs().asElement(filename);
+    public static boolean fileExists(String filename, PigContext context)
+            throws IOException {
+        return fileExists(filename, context.getDfs());
+    }
 
-            if (elem.exists()) {
-                return true;
-            }
-            else {
-                return globMatchesFiles(elem, pigContext.getDfs());
-            }
-        }
-        catch (DataStorageException e) {
-            return false;
-        }
+    public static boolean fileExists(String filename, DataStorage store)
+            throws IOException {
+        ElementDescriptor elem = store.asElement(filename);
+
+        return elem.exists() || globMatchesFiles(elem, store);
     }
 
     private static boolean globMatchesFiles(ElementDescriptor elem,

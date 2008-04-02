@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapreduceExec;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -52,7 +51,6 @@ import org.apache.pig.impl.eval.cond.Cond;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.tools.timer.PerformanceTimerFactory;
 
 
 /**
@@ -220,7 +218,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
     
     private void setupMapPipe(Properties properties, Reporter reporter) 
     throws IOException {
-        PigSplit split = PigInputFormat.PigRecordReader.getPigRecordReader().getPigFileSplit();
+        SliceWrapper split = PigInputFormat.getActiveSplit();
         index = split.getIndex();
         EvalSpec evalSpec = split.getEvalSpec();
         

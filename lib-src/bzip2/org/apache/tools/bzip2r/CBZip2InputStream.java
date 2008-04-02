@@ -59,15 +59,10 @@
  */
 package org.apache.tools.bzip2r;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
-import java.util.Random;
+import java.io.InputStream;
 
-import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.pig.backend.datastorage.SeekableInputStream;
 
 /**
  * An input stream that decompresses from the BZip2 format (without the file
@@ -142,7 +137,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     private int[][] perm = new int[N_GROUPS][MAX_ALPHA_SIZE];
     private int[] minLens = new int[N_GROUPS];
 
-    private FSDataInputStream innerBsStream;
+    private SeekableInputStream innerBsStream;
     long readLimit = Long.MAX_VALUE;
     public long getReadLimit() {
     	return readLimit;
@@ -182,8 +177,8 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     
     private long retPos, oldPos;
 
-    public CBZip2InputStream(FSDataInputStream zStream, int blockSize) throws IOException {
-        retPos = oldPos = zStream.getPos();
+    public CBZip2InputStream(SeekableInputStream zStream, int blockSize) throws IOException {
+        retPos = oldPos = zStream.tell();
     	ll8 = null;
         tt = null;
         checkComputedCombinedCRC = blockSize == -1;
@@ -193,7 +188,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         setupBlock();
     }
     
-    public CBZip2InputStream(FSDataInputStream zStream) throws IOException {
+    public CBZip2InputStream(SeekableInputStream zStream) throws IOException {
     	this(zStream, -1);
     }
 
@@ -231,7 +226,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     public long getPos() throws IOException{
     	if (innerBsStream == null)
     		return retPos;
-    	long newPos = innerBsStream.getPos();
+    	long newPos = innerBsStream.tell();
 	
 		if (newPos != oldPos){
 			retPos = oldPos;
@@ -364,7 +359,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         }
     }
 
-    private void bsSetStream(FSDataInputStream f) {
+    private void bsSetStream(SeekableInputStream f) {
         innerBsStream = f;
         bsLive = 0;
         bsBuff = 0;

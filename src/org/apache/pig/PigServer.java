@@ -28,13 +28,11 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -314,7 +312,7 @@ public class PigServer {
         // already submitted to the back-end for compilation and
         // execution.
         
-        LogicalPlan readFrom = (LogicalPlan) aliases.get(id);
+        LogicalPlan readFrom = aliases.get(id);
         
         // Run
         try {
@@ -351,7 +349,7 @@ public class PigServer {
         if (!aliases.containsKey(id))
             throw new IOException("Invalid alias: " + id);
         
-        if (FileLocalizer.fileExists(filename, pigContext)) {
+        if (FileLocalizer.fileExists(filename, pigContext.getDfs())) {
             StringBuilder sb = new StringBuilder();
             sb.append("Output file ");
             sb.append(filename);
@@ -481,19 +479,17 @@ public class PigServer {
     /**
      * Returns the length of a file in bytes which exists in the HDFS (accounts for replication).
      * @param filename
-     * @return
      * @throws IOException
      */
     public long fileSize(String filename) throws IOException {
         DataStorage dfs = pigContext.getDfs();
         ElementDescriptor elem = dfs.asElement(filename);
-        Map<String, Object> elemProps = elem.getStatistics();
-        String length = (String) elemProps.get(ElementDescriptor.LENGTH_KEY);
-        
-        Properties dfsProps = dfs.getConfiguration();
-        String replication = dfsProps.getProperty(DataStorage.DEFAULT_REPLICATION_FACTOR_KEY);
-            
-        return (new Long(length)).longValue() * (new Integer(replication)).intValue();
+        Map<String, Object> stats = elem.getStatistics();
+        long length = (Long) stats.get(ElementDescriptor.LENGTH_KEY);
+        int replication = (Short) stats
+                .get(ElementDescriptor.BLOCK_REPLICATION_KEY);
+
+        return length * replication;
     }
     
     public boolean existsFile(String filename) throws IOException {

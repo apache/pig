@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -40,20 +39,19 @@ public class LOLoad extends LogicalOperator {
 
     protected int outputType = FIXED;
     
-    protected boolean splitable = true;
+    protected boolean splittable = true;
 
     public LOLoad(Map<OperatorKey, LogicalOperator> opTable, 
                   String scope, 
                   long id, 
-                  FileSpec inputFileSpec, boolean splitable) 
+                  FileSpec inputFileSpec, boolean splittable) 
     throws IOException, ParseException {
         super(opTable, scope, id);
         this.inputFileSpec = inputFileSpec;
-        this.splitable = splitable;
+        this.splittable = splittable;
         
         // check if we can instantiate load func
-        LoadFunc storageFunc = (LoadFunc) PigContext
-                .instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
+        PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
 
         // TODO: Handle Schemas defined by Load Functions
         schema = new TupleSchema();
@@ -116,8 +114,8 @@ public class LOLoad extends LogicalOperator {
         return funcs;
     }
 
-    public boolean isSplitable() {
-        return splitable;
+    public boolean isSplittable() {
+        return splittable;
     }
     
     public void visit(LOVisitor v) {

@@ -19,13 +19,10 @@ package org.apache.pig.backend.hadoop.executionengine;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Iterator;
 
-import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.FunctionInstantiator;
 import org.apache.pig.impl.builtin.FindQuantiles;
@@ -38,7 +35,6 @@ import org.apache.pig.impl.eval.FuncEvalSpec;
 import org.apache.pig.impl.eval.GenerateSpec;
 import org.apache.pig.impl.eval.ProjectSpec;
 import org.apache.pig.impl.eval.CompositeEvalSpec;
-import org.apache.pig.impl.eval.MapLookupSpec;
 import org.apache.pig.impl.eval.SortDistinctSpec;
 import org.apache.pig.impl.eval.StarSpec;
 import org.apache.pig.impl.eval.EvalSpecVisitor;
@@ -53,16 +49,11 @@ import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOUnion;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.physicalLayer.PlanCompiler;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.SortPartitioner;
-import org.apache.pig.backend.hadoop.datastorage.HFile;
-import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 
 // compiler for mapreduce physical plans
 public class MapreducePlanCompiler {
@@ -98,9 +89,7 @@ public class MapreducePlanCompiler {
                                               logicalKey,
                                               pigContext);
 
-            String filename = FileLocalizer.fullPath(materializedResult.outFileSpec.getFileName(), pigContext);
-            FileSpec fileSpec = new FileSpec(filename, materializedResult.outFileSpec.getFuncSpec());
-            pom.addInputFile(fileSpec);
+            pom.addInputFile(materializedResult.outFileSpec);
             pom.mapParallelism = Math.max(pom.mapParallelism, materializedResult.parallelismRequest);
 
             return pom.getOperatorKey();            
@@ -188,13 +177,10 @@ public class MapreducePlanCompiler {
                                               logicalKey,
                                               pigContext,
                                               compiledInputs);
-            LOLoad loLoad = (LOLoad) lo;
-            String filename = FileLocalizer.fullPath(loLoad.getInputFileSpec().getFileName(), pigContext);
-            FileSpec fileSpec = new FileSpec(filename, loLoad.getInputFileSpec().getFuncSpec());
-            pom.addInputFile(fileSpec);
+            pom.addInputFile(((LOLoad) lo).getInputFileSpec());
             pom.mapParallelism = Math.max(pom.mapParallelism, lo.getRequestedParallelism());
-            pom.setProperty("pig.input.splitable", 
-                            Boolean.toString(loLoad.isSplitable()));
+            pom.setProperty("pig.input.splittable", 
+                            Boolean.toString(((LOLoad)lo).isSplittable()));
             return pom.getOperatorKey();
         } 
         else if (lo instanceof LOStore) {
@@ -407,7 +393,7 @@ public class MapreducePlanCompiler {
         String comparatorFuncName = loSort.getSortSpec().getComparatorName();
         if (comparatorFuncName != null) {
             sortJob.userComparator =
-                (Class<WritableComparator>)PigContext.resolveClassName(
+                PigContext.resolveClassName(
                     comparatorFuncName);
         }
 
