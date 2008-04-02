@@ -197,3 +197,5 @@ Trunk (unreleased changes)
 	the top level directory (joa23 via gates).
 
     PIG-94: M3 code update for streaming
+    
+    PIG-55: added custom splitter

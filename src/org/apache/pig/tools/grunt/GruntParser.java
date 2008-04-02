@@ -13,7 +13,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.fs.permission.AccessControlException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -306,43 +305,28 @@ public class GruntParser extends PigScriptParser {
                     
                     if (mDfs.isContainer(curElem.toString())) {
                            System.out.println(curElem.toString() + "\t<dir>");
-                    }
-                    else {
-                        Properties config = curElem.getConfiguration();
-                        Map<String, Object> stats = curElem.getStatistics();
-                        
-                        String strReplication = config.getProperty(ElementDescriptor.BLOCK_REPLICATION_KEY);
-                        String strLen = (String) stats.get(ElementDescriptor.LENGTH_KEY);
-
-                        StringBuilder sb = new StringBuilder();
-                        sb.append(curElem.toString());
-                        sb.append("<r ");
-                        sb.append(strReplication);
-                        sb.append(">\t");
-                        sb.append(strLen);
-                        System.out.println(sb.toString());
+                    } else {
+                        printLengthAndReplication(curElem);
                     }
                 }
-            }
-            else {
-                Properties config = pathDescriptor.getConfiguration();
-                Map<String, Object> stats = pathDescriptor.getStatistics();
-
-                String strReplication = (String) config.get(ElementDescriptor.BLOCK_REPLICATION_KEY);
-                String strLen = (String) stats.get(ElementDescriptor.LENGTH_KEY);
-
-                StringBuilder sb = new StringBuilder();
-                sb.append(pathDescriptor.toString());
-                sb.append("<r ");
-                sb.append(strReplication);
-                sb.append(">\t");
-                sb.append(strLen);
-                System.out.println(sb.toString());
+            } else {
+                printLengthAndReplication(pathDescriptor);
             }
         }
         catch (DataStorageException e) {
             throw WrappedIOException.wrap("Failed to LS on " + path, e);
         }
+    }
+
+    private void printLengthAndReplication(ElementDescriptor elem)
+            throws IOException {
+        Map<String, Object> stats = elem.getStatistics();
+
+        long replication = (Short) stats
+                .get(ElementDescriptor.BLOCK_REPLICATION_KEY);
+        long len = (Long) stats.get(ElementDescriptor.LENGTH_KEY);
+
+        System.out.println(elem.toString() + "<r " + replication + ">\t" + len);
     }
     
     protected void processPWD() throws IOException 

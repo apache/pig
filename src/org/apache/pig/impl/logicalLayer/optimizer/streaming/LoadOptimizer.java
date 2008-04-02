@@ -64,7 +64,7 @@ public class LoadOptimizer extends Optimizer {
 
         if (parentLoad) {
             EvalSpec spec = e.getSpec();
-            if (spec instanceof StreamSpec && !load.isSplitable()) {
+            if (spec instanceof StreamSpec && !load.isSplittable()) {
                 // Try and optimize if the load and stream input specs match
                 // and input files are to be processed as-is
                 StreamSpec streamSpec = (StreamSpec)spec;

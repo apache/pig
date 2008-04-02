@@ -16,9 +16,16 @@ import java.util.Map;
 public interface ElementDescriptor extends 
             Comparable<ElementDescriptor> {
     
+        /** Available from getConfiguration as a String and getStatistics as a Long. */
         public static final String BLOCK_SIZE_KEY = "pig.path.block.size";
+
+        /** Available from getConfiguration as a String and getStatistics as a Short. */
         public static final String BLOCK_REPLICATION_KEY = "pig.path.block.replication";
+        
+        /** Available from getStatistics as a Long. */
         public static final String LENGTH_KEY = "pig.path.length";
+        
+        /** Available from getStatistics as a Long. */
         public static final String MODIFICATION_TIME_KEY = "pig.path.modification.time";
         
         //
