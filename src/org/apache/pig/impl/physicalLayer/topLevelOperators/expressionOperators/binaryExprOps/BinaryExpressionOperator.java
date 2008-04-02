@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
@@ -11,35 +28,35 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.E
  *
  */
 public abstract class BinaryExpressionOperator extends ExpressionOperator {
-	protected ExpressionOperator lhs;
-	protected ExpressionOperator rhs;
-	
-	public BinaryExpressionOperator(OperatorKey k) {
-		this(k,-1);
-	}
+    protected ExpressionOperator lhs;
+    protected ExpressionOperator rhs;
+    
+    public BinaryExpressionOperator(OperatorKey k) {
+        this(k,-1);
+    }
 
-	public BinaryExpressionOperator(OperatorKey k, int rp) {
-		super(k, rp);
-	}
+    public BinaryExpressionOperator(OperatorKey k, int rp) {
+        super(k, rp);
+    }
 
-	public ExpressionOperator getLhs() {
-		return lhs;
-	}
-	
-	@Override
-	public boolean supportsMultipleInputs() {
-		return true;
-	}
+    public ExpressionOperator getLhs() {
+        return lhs;
+    }
+    
+    @Override
+    public boolean supportsMultipleInputs() {
+        return true;
+    }
 
-	public void setLhs(ExpressionOperator lhs) {
-		this.lhs = lhs;
-	}
+    public void setLhs(ExpressionOperator lhs) {
+        this.lhs = lhs;
+    }
 
-	public ExpressionOperator getRhs() {
-		return rhs;
-	}
+    public ExpressionOperator getRhs() {
+        return rhs;
+    }
 
-	public void setRhs(ExpressionOperator rhs) {
-		this.rhs = rhs;
-	}
+    public void setRhs(ExpressionOperator rhs) {
+        this.rhs = rhs;
+    }
 }
