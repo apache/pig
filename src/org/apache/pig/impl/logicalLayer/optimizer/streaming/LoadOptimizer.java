@@ -69,12 +69,7 @@ public class LoadOptimizer extends Optimizer {
                 // and input files are to be processed as-is
                 StreamSpec streamSpec = (StreamSpec)spec;
                 StreamingCommand command = streamSpec.getCommand();
-                List<HandleSpec> inputSpecs = 
-                    command.getHandleSpecs(Handle.INPUT); 
-                HandleSpec streamInputSpec = 
-                    (inputSpecs == null) ? 
-                            new HandleSpec("stdin" , "PigStorage()") :
-                            inputSpecs.get(0);
+                HandleSpec streamInputSpec = command.getInputSpec(); 
                 
                 FileSpec loadFileSpec = load.getInputFileSpec();
                 
@@ -91,7 +86,9 @@ public class LoadOptimizer extends Optimizer {
                     // Since they both are the same, we can flip them 
                     // for BinaryStorage
                     load.setInputFileSpec(new FileSpec(loadFileSpec.getFileName(), BinaryStorage.class.getName()));
+                    
                     streamInputSpec.setSpec(BinaryStorage.class.getName());
+                    command.setInputSpec(streamInputSpec);
                     
                     optimize = true;
                 }
