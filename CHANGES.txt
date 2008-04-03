@@ -196,6 +196,7 @@ Trunk (unreleased changes)
 	PIG-122: Added build and src-gen to the list of ignore files in
 	the top level directory (joa23 via gates).
 
-    PIG-94: M3 code update for streaming
+    PIG-94: M3 code update for streaming (arunc via olgan)
     
-    PIG-55: added custom splitter
+    PIG-55: added custom splitter (groves via olgan)
+    PIG-74,180: bug fixes in streaming (arunc via olgan)

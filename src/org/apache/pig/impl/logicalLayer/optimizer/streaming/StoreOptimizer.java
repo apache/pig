@@ -94,12 +94,7 @@ public class StoreOptimizer extends Optimizer {
                 // Try and optimize if the store and stream output specs match
                 StreamSpec streamSpec = (StreamSpec)spec;
                 StreamingCommand command = streamSpec.getCommand();
-                List<HandleSpec> outputSpecs = 
-                    command.getHandleSpecs(Handle.OUTPUT); 
-                HandleSpec streamOutputSpec = 
-                    (outputSpecs == null) ? 
-                            new HandleSpec("stdout" , "PigStorage()") :
-                            outputSpecs.get(0);
+                HandleSpec streamOutputSpec = command.getOutputSpec(); 
                 
                 FileSpec storeFileSpec = s.getOutputFileSpec();
                 
@@ -116,7 +111,9 @@ public class StoreOptimizer extends Optimizer {
                     // Since they both are the same, we can flip them 
                     // for BinaryStorage
                     s.setOutputFileSpec(new FileSpec(storeFileSpec.getFileName(), BinaryStorage.class.getName()));
+                    
                     streamOutputSpec.setSpec(BinaryStorage.class.getName());
+                    command.setOutputSpec(streamOutputSpec);
                     
                     optimize = true;
                 }

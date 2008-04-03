@@ -163,6 +163,64 @@ public class StreamingCommand implements Serializable {
     }
     
     /**
+     * Set the input specification for the <code>StreamingCommand</code>.
+     * 
+     * @param spec input specification
+     */
+    public void setInputSpec(HandleSpec spec) {
+        List<HandleSpec> inputSpecs = getHandleSpecs(Handle.INPUT);
+        if (inputSpecs == null || inputSpecs.size() == 0) {
+            addHandleSpec(Handle.INPUT, spec);
+        } else {
+            inputSpecs.set(0, spec);
+        }
+    }
+    
+    /**
+     * Get the input specification of the <code>StreamingCommand</code>.
+     * 
+     * @return input specification of the <code>StreamingCommand</code>
+     */
+    public HandleSpec getInputSpec() {
+        List<HandleSpec> inputSpecs = getHandleSpecs(Handle.INPUT);
+        if (inputSpecs == null || inputSpecs.size() == 0) {
+            addHandleSpec(Handle.INPUT, new HandleSpec("stdin", PigStorage.class.getName()));
+        }
+        return getHandleSpecs(Handle.INPUT).get(0);        
+    }
+    
+    /**
+     * Set the specification for the primary output of the 
+     * <code>StreamingCommand</code>.
+     * 
+     * @param spec specification for the primary output of the 
+     *             <code>StreamingCommand</code>
+     */
+    public void setOutputSpec(HandleSpec spec) {
+        List<HandleSpec> outputSpecs = getHandleSpecs(Handle.OUTPUT);
+        if (outputSpecs == null || outputSpecs.size() == 0) {
+            addHandleSpec(Handle.OUTPUT, spec);
+        } else {
+            outputSpecs.set(0, spec);
+        }
+    }
+    
+    /**
+     * Get the specification of the primary output of the 
+     * <code>StreamingCommand</code>.
+     * 
+     * @return specification of the primary output of the 
+     *         <code>StreamingCommand</code>
+     */
+    public HandleSpec getOutputSpec() {
+        List<HandleSpec> outputSpecs = getHandleSpecs(Handle.OUTPUT);
+        if (outputSpecs == null || outputSpecs.size() == 0) {
+            addHandleSpec(Handle.OUTPUT, new HandleSpec("stdout", PigStorage.class.getName()));
+        }
+        return getHandleSpecs(Handle.OUTPUT).get(0);
+    }
+    
+    /**
      * Get specifications for the given <code>Handle</code>.
      * 
      * @param handle <code>Handle</code> of the stream
