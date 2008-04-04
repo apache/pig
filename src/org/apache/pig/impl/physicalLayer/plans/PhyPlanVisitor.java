@@ -35,10 +35,10 @@ import org.apache.pig.impl.plan.PlanVisitor;
  * the visit() method to traverse the plan in a depth first
  * fashion.
  * 
- * This class can be used to visit only the top level 
- * relational operators. Classes extending this should
- * use the specific plans to visit the attribute plans
- * of each of the top level operators.
+ * This class also visits the nested plans inside the operators.
+ * One has to extend this class to modify the nature of each visit
+ * and to maintain any relevant state information between the visits
+ * to two different operators.
  *
  * @param <O>
  * @param <P>
@@ -62,8 +62,9 @@ public abstract class PhyPlanVisitor<O extends PhysicalOperator, P extends Physi
 //        //do nothing
 //    }
 //    
-    public void visitFilter(POFilter fl){
-        //do nothing
+    public void visitFilter(POFilter fl) throws ParseException{
+        ExprPlanVisitor epv = new ExprPlanVisitor(fl.getPlan());
+        epv.visit();
     }
 //    
 //    public void visitLocalRearrange(POLocalRearrange lr){

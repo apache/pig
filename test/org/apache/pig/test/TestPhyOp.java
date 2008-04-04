@@ -39,13 +39,15 @@ import org.junit.Test;
 
 public class TestPhyOp {
     PhysicalOperator<PhyPlanVisitor> op;
+
     PhysicalOperator<PhyPlanVisitor> inpOp;
+
     Tuple t;
 
     @Before
     public void setUp() throws Exception {
         op = GenPhyOp.topFilterOp();
-        inpOp = GenPhyOp.topFilterOpWithExPlan(25,10);
+        inpOp = GenPhyOp.topFilterOpWithExPlan(25, 10);
         t = GenRandomData.genRandSmallBagTuple(new Random(), 10, 100);
     }
 
@@ -55,7 +57,7 @@ public class TestPhyOp {
 
     @Test
     public void testProcessInput() throws ExecException {
-        //Stand-alone tests
+        // Stand-alone tests
         Result res = op.processInput();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
         op.attachInput(t);
@@ -65,14 +67,14 @@ public class TestPhyOp {
         op.detachInput();
         res = op.processInput();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
-        
-        //With input operator
-        List<PhysicalOperator<PhyPlanVisitor>> inp = new ArrayList<PhysicalOperator<PhyPlanVisitor>>();
+
+        // With input operator
+        List<PhysicalOperator> inp = new ArrayList<PhysicalOperator>();
         inp.add(inpOp);
         op.setInputs(inp);
         op.processInput();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
-        
+
         inpOp.attachInput(t);
         res = op.processInput();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);

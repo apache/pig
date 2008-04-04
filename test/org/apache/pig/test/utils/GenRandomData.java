@@ -108,6 +108,7 @@ public class GenRandomData {
         t.append(r.nextInt());
         t.append(r.nextLong());
         t.append(genRandMap(r, num));
+        t.append(genRandSmallTuple(r, 100));
         return t;
     }
     

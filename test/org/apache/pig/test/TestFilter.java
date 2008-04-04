@@ -19,13 +19,22 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.junit.After;
@@ -34,29 +43,65 @@ import org.junit.Test;
 
 public class TestFilter {
     POFilter pass;
+
     POFilter fail;
+
     Tuple t;
-    
+
+    DataBag inp;
+
+    POFilter projFil;
+
     @Before
     public void setUp() throws Exception {
+        Random r = new Random();
         pass = GenPhyOp.topFilterOpWithExPlan(50, 25);
         fail = GenPhyOp.topFilterOpWithExPlan(25, 50);
-        
-        t = GenRandomData.genRandSmallBagTuple(new Random(), 10, 100);
+        inp = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
+        t = GenRandomData.genRandSmallBagTuple(r, 10, 100);
+        projFil = GenPhyOp.topFilterOpWithProj(1, 50);
+        POProject inpPrj = GenPhyOp.exprProject();
+        Tuple tmpTpl = new DefaultTuple();
+        tmpTpl.append(inp);
+        inpPrj.setColumn(0);
+        inpPrj.setResultType(DataType.TUPLE);
+        inpPrj.setOverloaded(true);
+        List<PhysicalOperator> inputs = new ArrayList<PhysicalOperator>();
+        inputs.add(inpPrj);
+        projFil.setInputs(inputs);
     }
 
     @After
     public void tearDown() throws Exception {
     }
 
+    private boolean bagContains(DataBag db, Tuple t) {
+        Iterator<Tuple> iter = db.iterator();
+        for (Tuple tuple : db) {
+            if (tuple.compareTo(t) == 0)
+                return true;
+        }
+        return false;
+    }
+
     @Test
-    public void testGetNextTuple() throws ExecException {
+    public void testGetNextTuple() throws ExecException, IOException {
         pass.attachInput(t);
         Result res = pass.getNext(t);
         assertEquals(t, res.result);
         fail.attachInput(t);
         res = fail.getNext(t);
         assertEquals(res.returnStatus, POStatus.STATUS_EOP);
+
+        while (true) {
+            res = projFil.getNext(t);
+            if (res.returnStatus == POStatus.STATUS_EOP)
+                break;
+            assertEquals(POStatus.STATUS_OK, res.returnStatus);
+            Tuple output = (Tuple) res.result;
+            assertEquals(true, bagContains(inp, output));
+            assertEquals(true, (Integer) ((Tuple) res.result).get(1) > 50);
+        }
     }
 
 }

@@ -137,12 +137,13 @@
                 **/test/TestOperatorPlan.java, **/test/TestBuiltin.java,
                 **/test/TestConstExpr.java, **/test/TestFilter.java, **/test/TestPhyOp.java,
                 **/test/TestAdd.java, **/test/TestSubtract.java, **/test/TestMultiply.java,
-                **/test/TestDivide.java, **/test/TestMod.java,
+                **/test/TestDivide.java, **/test/TestMod.java, **/test/TestGreaterThan.java,
+        	    **/test/TestGTOrEqual.java,**/test/TestLessThan.java,**/test/TestLTOrEqual.java,
+        	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java
                 **/test/TestProject.java, **/test/utils/*.java, **/logicalLayer/*.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperator/**/*.java, **/physicalLayer/plans/*.java,
-                **/physicalLayer/util/*.java, **/physicalLayer/Result.java,
-                **/physicalLayer/POStatus.java"
+				**/physicalLayer/Result.java, **/physicalLayer/POStatus.java"
             destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
@@ -236,6 +237,12 @@
                 	<include name="**/TestMultiply.java" />
                 	<include name="**/TestDivide.java" />
                 	<include name="**/TestMod.java" />
+                	<include name="**/TestGreaterThan.java" />
+                	<include name="**/TestGTOrEqual.java" />
+                	<include name="**/TestLessThan.java" />
+                	<include name="**/TestLTOrEqual.java" />
+                	<include name="**/TestEqualTo.java" />
+                	<include name="**/TestNotEqualTo.java" />
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

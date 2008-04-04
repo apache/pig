@@ -45,6 +45,4 @@ public abstract class ExpressionOperator extends PhysicalOperator<ExprPlanVisito
     }
     
     public abstract void visit(ExprPlanVisitor v) throws ParseException;
-    
-    
 }

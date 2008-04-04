@@ -22,31 +22,31 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
+import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.backend.executionengine.ExecException;
 
-public class GreaterThanExpr extends ComparisonOperator {
+public class LessThanExpr extends ComparisonOperator {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    public GreaterThanExpr(OperatorKey k) {
+    public LessThanExpr(OperatorKey k) {
         this(k, -1);
     }
 
-    public GreaterThanExpr(OperatorKey k, int rp) {
+    public LessThanExpr(OperatorKey k, int rp) {
         super(k, rp);
     }
 
     @Override
-    public String name() {
-        return "Greater Than - " + mKey.toString();
+    public void visit(ExprPlanVisitor v) throws ParseException {
+        v.visitLessThan(this);
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws ParseException {
-        v.visitGreaterThan(this);
+    public String name() {
+        return "Less Than - " + mKey.toString();
     }
 
     @Override
@@ -71,13 +71,13 @@ public class GreaterThanExpr extends ComparisonOperator {
         right = (DataByteArray) res.result;
 
         int ret = left.compareTo(right);
-        if (ret == -1) {
+        if (ret == 1) {
             res.result = new Boolean(true);
-            // left = right = null;
+            //left = right = null;
             return res;
         } else {
             res.result = new Boolean(false);
-            // left = right = null;
+            //left = right = null;
             return res;
         }
     }
@@ -103,13 +103,13 @@ public class GreaterThanExpr extends ComparisonOperator {
         }
         right = (Double) res.result;
 
-        if (left > right) {
+        if (left < right) {
             res.result = new Boolean(true);
-            // left = right = null;
+            //left = right = null;
             return res;
         } else {
             res.result = new Boolean(false);
-            // left = right = null;
+            //left = right = null;
             return res;
         }
     }
@@ -135,13 +135,13 @@ public class GreaterThanExpr extends ComparisonOperator {
         }
         right = (Float) res.result;
 
-        if (left > right) {
+        if (left < right) {
             res.result = new Boolean(true);
-            // left = right = null;
+            //left = right = null;
             return res;
         } else {
             res.result = new Boolean(false);
-            // left = right = null;
+            //left = right = null;
             return res;
         }
     }
@@ -167,13 +167,13 @@ public class GreaterThanExpr extends ComparisonOperator {
         }
         right = (Integer) res.result;
 
-        if (left > right) {
+        if (left < right) {
             res.result = new Boolean(true);
-            // left = right = null;
+            //left = right = null;
             return res;
         } else {
             res.result = new Boolean(false);
-            // left = right = null;
+            //left = right = null;
             return res;
         }
     }
@@ -199,13 +199,13 @@ public class GreaterThanExpr extends ComparisonOperator {
         }
         right = (Long) res.result;
 
-        if (left > right) {
+        if (left < right) {
             res.result = new Boolean(true);
-            // left = right = null;
+            //left = right = null;
             return res;
         } else {
             res.result = new Boolean(false);
-            // left = right = null;
+            //left = right = null;
             return res;
         }
     }
@@ -215,7 +215,6 @@ public class GreaterThanExpr extends ComparisonOperator {
         byte status;
         Result res;
         String left = null, right = null;
-
         res = lhs.getNext(left);
         status = res.returnStatus;
         if (status != POStatus.STATUS_OK) {
@@ -233,9 +232,9 @@ public class GreaterThanExpr extends ComparisonOperator {
         right = (String) res.result;
 
         int ret = left.compareTo(right);
-        if (ret > 0) {
+        if (ret < 0) {
             res.result = new Boolean(true);
-            // left = right = null;
+            //left = right = null;
             return res;
         } else {
             res.result = new Boolean(false);

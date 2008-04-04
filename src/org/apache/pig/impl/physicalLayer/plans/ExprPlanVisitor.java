@@ -29,11 +29,12 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Mod;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Multiply;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Subtract;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.EqualToExpr;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.GTOrEqualToExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.GreaterThanExpr;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LTOrEqualToExpr;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LessThanExpr;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LTOrEqualToExpr;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LessThanExpr;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
 
 /**
  * The visitor to be used for visiting expression plans.
@@ -41,7 +42,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
  * Call the visit() method for a depth first traversal.
  *
  */
-public abstract class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan> {
+public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan> {
 
     private final Log log = LogFactory.getLog(getClass());
     
@@ -62,7 +63,7 @@ public abstract class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator,
         //do nothing
     }
     
-    /*public void visitLessThan(LessThanExpr lt){
+    public void visitLessThan(LessThanExpr lt){
         //do nothing
     }
     
@@ -80,7 +81,7 @@ public abstract class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator,
     
     public void visitNotEqualTo(NotEqualToExpr eq){
         //do nothing
-    }*/
+    }
     
     public void visitAdd(Add add) {
         //do nothing

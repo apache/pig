@@ -20,9 +20,11 @@ package org.apache.pig.test;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -35,18 +37,18 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestProject {
-    Tuple typFinder;
     Random r;
-    
+
     Tuple t;
+
     Result res;
+
     POProject proj;
-    
+
     @Before
     public void setUp() throws Exception {
         r = new Random();
-        typFinder = GenRandomData.genRandSmallBagTuple(r, 10, 100);
-        t = GenRandomData.genRandSmallBagTuple(r,10,100);
+        t = GenRandomData.genRandSmallBagTuple(r, 10, 100);
         res = new Result();
         proj = GenPhyOp.exprProject();
     }
@@ -58,7 +60,7 @@ public class TestProject {
     @Test
     public void testGetNext() throws ExecException, IOException {
         proj.attachInput(t);
-        for(int j=0;j<t.size();j++){
+        for (int j = 0; j < t.size(); j++) {
             proj.attachInput(t);
             proj.setColumn(j);
 
@@ -66,6 +68,44 @@ public class TestProject {
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(t.get(j), res.result);
         }
+    }
+
+    private boolean bagContains(DataBag db, Tuple t) {
+        Iterator<Tuple> iter = db.iterator();
+        for (Tuple tuple : db) {
+            if (tuple.compareTo(t) == 0)
+                return true;
+        }
+        return false;
+    }
+
+    @Test
+    public void testGetNextTuple() throws IOException, ExecException {
+        proj.attachInput(t);
+        proj.setColumn(0);
+        proj.setOverloaded(true);
+        DataBag inpBag = (DataBag) t.get(0);
+        int cntr = 0;
+        boolean contains = true;
+        while (true) {
+            res = proj.getNext(t);
+            if (res.returnStatus == POStatus.STATUS_EOP)
+                break;
+            if (!bagContains(inpBag, (Tuple) res.result)) {
+                contains = false;
+                break;
+            }
+            ++cntr;
+        }
+        assertEquals((float) (inpBag).size(), (float) cntr, 0.01f);
+        assertEquals(true, contains);
+
+        proj.attachInput(t);
+        proj.setColumn(9);
+        proj.setOverloaded(false);
+        res = proj.getNext(t);
+        assertEquals(POStatus.STATUS_OK, res.returnStatus);
+        assertEquals(t.get(9), res.result);
     }
 
 }

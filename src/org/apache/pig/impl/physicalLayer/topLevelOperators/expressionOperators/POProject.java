@@ -18,24 +18,20 @@
 package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.physicalLayer.util.operatorHelper;
 
 /**
  * Implements the overloaded form of the project operator.
@@ -58,8 +54,11 @@ public class POProject extends ExpressionOperator {
     //The bag iterator used while straeming tuple
     Iterator<Tuple> bagIterator = null;
     
-    //Temporary tuple
-    Tuple temp = null;
+    //Represents the fact that this instance of POProject
+    //is overloaded to stream tuples in the bag rather
+    //than passing the entire bag. It is the responsibility
+    //of the translator to set this.
+    boolean overloaded = false;
     
     public POProject(OperatorKey k) {
         this(k,-1,0);
@@ -115,19 +114,13 @@ public class POProject extends ExpressionOperator {
         Result res = processInput();
 
         if(res.returnStatus != POStatus.STATUS_OK){
-            if((res.returnStatus == POStatus.STATUS_ERR)){
-                res.returnStatus = POStatus.STATUS_NULL;
-            }
             return res;
         }
         try {
             res.result = ((Tuple)res.result).get(column);
         } catch (IOException e) {
-            //Instead of propagating ERR through the pipeline
-            //considering this a nullified operation and returning NULL 
-            //res.returnStatus = POStatus.STATUS_ERR;
-            res.returnStatus = POStatus.STATUS_NULL;
-            log.fatal(e.getMessage());
+            res.returnStatus = POStatus.STATUS_ERR;
+            log.warn(e.getMessage());
         }
         return res;
     }
@@ -197,7 +190,7 @@ public class POProject extends ExpressionOperator {
             
             try {
                 Object ret = inpValue.get(column);
-                if(ret instanceof DataBag){
+                if(overloaded){
                     DataBag retBag = (DataBag)ret;
                     bagIterator = retBag.iterator();
                     if(bagIterator.hasNext()){
@@ -232,6 +225,14 @@ public class POProject extends ExpressionOperator {
 
     public void setColumn(int column) {
         this.column = column;
+    }
+
+    public boolean isOverloaded() {
+        return overloaded;
+    }
+
+    public void setOverloaded(boolean overloaded) {
+        this.overloaded = overloaded;
     }
 
 }
