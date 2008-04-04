@@ -98,6 +98,19 @@ public class POTreePrinter extends POVisitor {
         }
     	mStream.println() ;
     	
+    	// properties
+    	adjustContentIdent();
+    	mStream.print("Properties : ");
+    	Iterator<Map.Entry<Object, Object>> pi = p.properties.entrySet().iterator();
+    	while (pi.hasNext()) {
+    	    Map.Entry<Object, Object> e = pi.next();
+    	    mStream.print((String)e.getKey() + ":" + (String)e.getValue());
+    	    if (pi.hasNext()) {
+    	        mStream.print(", ");
+    	    }
+    	}
+        mStream.println() ;
+
     	depthFirstSearchVisit(p) ;
     }
         
