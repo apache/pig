@@ -158,6 +158,7 @@ public class POMapreduce extends PhysicalOperator {
     public void addInputFile(FileSpec fileSpec, EvalSpec evalSpec){
         inputFileSpecs.add(fileSpec);
         toMap.add(evalSpec);
+        properties.putAll(evalSpec.getProperties());
     }
     
     
@@ -227,6 +228,7 @@ public class POMapreduce extends PhysicalOperator {
             copy.inputs = inputs;
             copy.opTable = srcOpTable;
             copy.id = id;
+            copy.properties = properties;
             return copy;
         }catch(IOException e){
             throw new RuntimeException(e);

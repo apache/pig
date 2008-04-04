@@ -41,6 +41,7 @@ public class CompositeEvalSpec extends EvalSpec {
     
     public CompositeEvalSpec(EvalSpec spec){
         specs.add(spec);
+        properties.putAll(spec.getProperties());
     }
         
     @Override
@@ -64,6 +65,7 @@ public class CompositeEvalSpec extends EvalSpec {
     @Override
     public EvalSpec addSpec(EvalSpec spec){
         specs.add(spec);
+        properties.putAll(spec.getProperties());
         return this;
     }
     
