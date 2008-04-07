@@ -19,6 +19,7 @@ package org.apache.pig.impl.physicalLayer.plans;
 
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
@@ -83,8 +84,8 @@ public abstract class PhyPlanVisitor<O extends PhysicalOperator, P extends Physi
 //        //do nothing
 //    }
     
-//    public void visitGenerate(POGenerate pogen) {
-//        //do nothing
-//    }
+    public void visitGenerate(POGenerate pogen) {
+        //do nothing
+    }
 
 }

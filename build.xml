@@ -139,7 +139,7 @@
                 **/test/TestAdd.java, **/test/TestSubtract.java, **/test/TestMultiply.java,
                 **/test/TestDivide.java, **/test/TestMod.java, **/test/TestGreaterThan.java,
         	    **/test/TestGTOrEqual.java,**/test/TestLessThan.java,**/test/TestLTOrEqual.java,
-        	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java
+        	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java, **/test/TestPOGenerate.java,
                 **/test/TestProject.java, **/test/utils/*.java, **/logicalLayer/*.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperator/**/*.java, **/physicalLayer/plans/*.java,
@@ -243,6 +243,7 @@
                 	<include name="**/TestLTOrEqual.java" />
                 	<include name="**/TestEqualTo.java" />
                 	<include name="**/TestNotEqualTo.java" />
+                	<include name="**/TestPOGenerate.java" />
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />
