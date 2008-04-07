@@ -107,7 +107,19 @@ public class StoreOptimizer extends Optimizer {
                 StoreFunc outputStorer = (StoreFunc)PigContext.instantiateFuncFromSpec(
                                                 storeFileSpec.getFuncSpec());
                 
-                if (streamStorer.equals(outputStorer)) {
+
+                // Check if both LoadFunc objects belong to the same type
+                boolean sameType = false;
+                try {
+                    streamStorer.getClass().cast(outputStorer);
+                    sameType = true;
+                } catch (ClassCastException cce) {
+                    sameType = false;
+                }
+                
+                // Check if both LoadFunc objects belong to the same type and
+                // are equivalent
+                if (sameType && streamStorer.equals(outputStorer)) {
                     // Since they both are the same, we can flip them 
                     // for BinaryStorage
                     s.setOutputFileSpec(new FileSpec(storeFileSpec.getFileName(), BinaryStorage.class.getName()));

@@ -51,7 +51,9 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -144,24 +146,11 @@ public class MapReduceLauncher {
             funcs.addAll(pom.toReduce.getFuncs());
         }
         
-        String shipFiles = 
-            pom.properties.getProperty("pig.streaming.ship.files");
-        List<String> files = new ArrayList<String>(); 
-        if (shipFiles != null) {
-            String[] paths = shipFiles.split(",");
-            for (String path : paths) {
-                path = path.trim();
-                if (path.length() > 0) {
-                    files.add(path.trim());
-                }
-            }
-        }
-
         // create jobs.jar locally and pass it to hadoop
         File submitJarFile = File.createTempFile("Job", ".jar");    
         try {
             FileOutputStream fos = new FileOutputStream(submitJarFile);
-            JarManager.createJar(fos, funcs, files, pom.pigContext);
+            JarManager.createJar(fos, funcs, null, pom.pigContext);
             log.debug("Job jar size = " + submitJarFile.length());
             conf.setJar(submitJarFile.getPath());
             String user = System.getProperty("user.name");
@@ -219,26 +208,10 @@ public class MapReduceLauncher {
             conf.set("pig.storeFunc", pom.outputFileSpec.getFuncSpec());
 
             // Setup the DistributedCache for this job
-            DistributedCache.createSymlink(conf);
-            
-            String cacheFiles = 
-                pom.properties.getProperty("pig.streaming.cache.files");
-            if (cacheFiles != null) {
-                String[] paths = cacheFiles.split(",");
-                
-                for (String path : paths) {
-                    path = path.trim();
-                    if (path.length() != 0) {
-                        URI uri = null;
-                        try {
-                            uri = new URI(path);
-                        } catch (URISyntaxException ue) {
-                            throw new IOException("Invalid cache specification, file doesn't exist: " + path);
-                        }
-                        DistributedCache.addCacheFile(uri, conf);
-                    }
-                }
-            }
+            setupDistributedCache(pom.pigContext, conf, pom.properties, 
+                                  "pig.streaming.ship.files", true);
+            setupDistributedCache(pom.pigContext, conf, pom.properties, 
+                                  "pig.streaming.cache.files", false);
 
             //TODO - Remove this
             conf.setBoolean("keep.failed.task.files", true);
@@ -396,6 +369,58 @@ public class MapReduceLauncher {
     throws IOException {
         for (Map.Entry property : pom.properties.entrySet()) {
             job.set((String)property.getKey(), (String)property.getValue());
+        }
+    }
+    
+    private static void setupDistributedCache(PigContext pigContext,
+                                              Configuration conf, 
+                                              Properties properties, String key, 
+                                              boolean shipToCluster) 
+    throws IOException {
+        // Turn on the symlink feature
+        DistributedCache.createSymlink(conf);
+
+        // Set up the DistributedCache for this job        
+        String fileNames = properties.getProperty(key);
+        if (fileNames != null) {
+            String[] paths = fileNames.split(",");
+            
+            for (String path : paths) {
+                path = path.trim();
+                if (path.length() != 0) {
+                    Path src = new Path(path);
+                    
+                    // Ensure that 'src' is a valid URI
+                    URI srcURI = null;
+                    try {
+                        srcURI = new URI(src.toString());
+                    } catch (URISyntaxException ue) {
+                        throw new IOException("Invalid cache specification, " +
+                        		              "file doesn't exist: " + src);
+                    }
+                    
+                    // Ship it to the cluster if necessary and add to the
+                    // DistributedCache
+                    if (shipToCluster) {
+                        Path dst = 
+                            new Path(FileLocalizer.getTemporaryPath(null, pigContext).toString());
+                        FileSystem fs = dst.getFileSystem(conf);
+                        fs.copyFromLocalFile(src, dst);
+                        
+                        // Construct the dst#srcName uri for DistributedCache
+                        URI dstURI = null;
+                        try {
+                            dstURI = new URI(dst.toString() + "#" + src.getName());
+                        } catch (URISyntaxException ue) {
+                            throw new IOException("Invalid ship specification, " +
+                                                  "file doesn't exist: " + dst);
+                        }
+                        DistributedCache.addCacheFile(dstURI, conf);
+                    } else {
+                        DistributedCache.addCacheFile(srcURI, conf);
+                    }
+                }
+            }
         }
     }
     
