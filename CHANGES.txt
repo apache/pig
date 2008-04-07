@@ -203,3 +203,5 @@ Trunk (unreleased changes)
     PIG-174,180: bug fixes in streaming (arunc via olgan)
 
     PIG-181: streaming bug fixing (arunc via olgan)
+
+    PIG-182: streaming bug fix (arunc via olgan)

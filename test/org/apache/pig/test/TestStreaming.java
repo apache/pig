@@ -270,7 +270,7 @@ public class TestStreaming extends TestCase {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `." + command + " foo` " +
+                "define CMD `" + command.getName() + " foo` " +
                 "ship ('" + command + "') " +
                 "input('foo' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
@@ -320,7 +320,7 @@ public class TestStreaming extends TestCase {
                           "}",
 	                     };
 	    File command = Util.createInputFile("script", "pl", script);
-	    
+
         // Expected results
         String[] expectedFirstFields = 
             new String[] {"A", "A", "A", "A", "A", "A"};
@@ -330,7 +330,7 @@ public class TestStreaming extends TestCase {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `." + command + " foo bar` " +
+                "define CMD `" + command.getName() + " foo bar` " +
                 "ship ('" + command + "') " +
         		"output('foo' using " + PigStorage.class.getName() + "(','), " +
         		"'bar' using " + PigStorage.class.getName() + "(',')) " +
@@ -358,7 +358,7 @@ public class TestStreaming extends TestCase {
     }
 
     @Test
-    public void testInputOutputSpecsWithAutoShip() throws Exception {
+    public void testInputOutputSpecs() throws Exception {
         PigServer pigServer = new PigServer(MAPREDUCE);
 
         File input = Util.createInputFile("tmp", "", 
@@ -382,7 +382,7 @@ public class TestStreaming extends TestCase {
                           "}",
                          };
         File command = Util.createInputFile("script", "pl", script);
-        
+
         // Expected results
         String[] expectedFirstFields = 
             new String[] {"A", "B", "C", "A", "D", "A"};
@@ -392,7 +392,7 @@ public class TestStreaming extends TestCase {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `." + command + " foo bar foobar` " +
+                "define CMD `" + command.getName() + " foo bar foobar` " +
                 "ship ('" + command + "') " +
                 "input('foo' using " + PigStorage.class.getName() + "(',')) " +
                 "output('bar' using " + PigStorage.class.getName() + "(','), " +

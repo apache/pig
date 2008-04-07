@@ -22,9 +22,13 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -51,7 +55,9 @@ public class ExecutableManager {
 	private static final Log LOG = 
 		LogFactory.getLog(ExecutableManager.class.getName());
     private static final int SUCCESS = 0;
-
+    private static final String PATH = "PATH";
+    private static final String BASH = "bash";
+    
 	protected StreamingCommand command;        // Streaming command to be run
 	String[] argv;                             // Parsed/split commands
 
@@ -190,21 +196,66 @@ public class ExecutableManager {
 	            stderrThread.interrupt();
 	        }
 	    }
-	    
-
 	}
 
+	/**
+	 * Set up the run-time environment of the managed process.
+	 * 
+	 * @param pb {@link ProcessBuilder} used to exec the process
+	 */
+	protected void setupEnvironment(ProcessBuilder pb) {
+	    String separator = ":";
+	    Map<String, String> env = pb.environment();
+	    
+	    // Add the current-working-directory to the $PATH
+	    File dir = pb.directory();
+	    String cwd = (dir != null) ? 
+	            dir.getAbsolutePath() : System.getProperty("user.dir");
+	    String envPath = env.get(PATH);
+	    if (envPath == null) {
+	        envPath = cwd;
+	    } else {
+	        envPath = envPath + separator + cwd;
+	    }
+	    env.put(PATH, envPath);
+	}
+	
+	/**
+	 * Start execution of the external process.
+	 * 
+	 * This takes care of setting up the environment of the process and also
+	 * starts {@link ProcessErrorThread} to process the <code>stderr</code> of
+	 * the managed process.
+	 * 
+	 * @throws IOException
+	 */
 	protected void exec() throws IOException {
-	    // Unquote command-line arguments ...
+	    // Set the actual command to run with 'bash -c exec ...'
+        List<String> cmdArgs = new ArrayList<String>();
+        cmdArgs.add(BASH);
+        cmdArgs.add("-c");
+        StringBuffer sb = new StringBuffer();
+        sb.append("exec ");
 	    for (int i=0; i < argv.length; ++i) {
+	        // Single-quote each component, however ensure that already
+	        // quoted args are handled right
+	        sb.append('\'');
+	        
 	        String arg = argv[i];
 	        if (arg.charAt(0) == '\'' && arg.charAt(arg.length()-1) == '\'') {
-	            argv[i] = arg.substring(1, arg.length()-1);
+	            arg = arg.substring(1, arg.length()-1);
 	        }
+	        sb.append(arg);
+	        
+            sb.append('\'');
+            sb.append(" ");
 	    }
+	    cmdArgs.add(sb.toString());
 	    
         // Start the external process
-        ProcessBuilder processBuilder = new ProcessBuilder(argv);
+        ProcessBuilder processBuilder = 
+            new ProcessBuilder(cmdArgs.toArray(new String[cmdArgs.size()]));
+        setupEnvironment(processBuilder);
         process = processBuilder.start();
         LOG.debug("Started the process for command: " + command);
         

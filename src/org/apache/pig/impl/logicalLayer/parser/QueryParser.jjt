@@ -251,59 +251,66 @@ public class QueryParser {
      private static final String PERL = "perl";
      private static final String PYTHON = "python";
      private void checkAutoShipSpecs(StreamingCommand command, String[] argv) {
+     	// Candidate for auto-ship
      	String arg0 = argv[0];
-     	// Check if command is perl or python ...
+     	
+     	// Check if command is perl or python ... if so use the first non-option
+     	// and non-quoted string as the candidate
         if (arg0.equalsIgnoreCase(PERL) || arg0.equalsIgnoreCase(PYTHON)) {
             for (int i=1; i < argv.length; ++i) {
             	if (!argv[i].startsWith("-") && !isQuotedString(argv[i])) {
-            		command.addPathToShip(argv[i]);
-            		command.setExecutable(argv[i]);
+            		checkAndShip(command, argv[i]);
             		break;
             	}
             }
         } else {
         	// Ship the first argument if it can be ...
-        	boolean absPath = arg0.startsWith("/");
-        	String filePath =  (absPath) ? arg0 : which(arg0);
-        	if (filePath.length() > 0 && checkAndShip(command, filePath)) {
-        		// Make it relative to task's cwd
-        		String runtimeExecutablePath = (absPath) ? ("." + filePath) : filePath; 
-        		argv[0] = runtimeExecutablePath;
-        		command.setCommandArgs(argv);
-        		command.setExecutable(runtimeExecutablePath);
-        		
-        		// Ship the file 
-                command.addPathToShip(filePath);
-        	}
+        	checkAndShip(command, arg0);
         }
+     }
+     
+     private void checkAndShip(StreamingCommand command, String arg) {
+     	// Don't auto-ship if it is an absolute path...
+     	if (arg.startsWith("/")) {
+     		return;
+     	}
+     	
+     	// $ which arg
+     	String argPath = which(arg);
+     	if (argPath != null && !inSkipPaths(argPath)) {
+     		command.addPathToShip(argPath);
+     	}
+     	 
      }
      
      private boolean isQuotedString(String s) {
      	return (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'');
      }
      
-     private boolean checkAndShip(StreamingCommand command, String file) {
-     	// Check if file is in the paths to be skipped 
+     // Check if file is in the list paths to be skipped 
+     private boolean inSkipPaths(String file) {
      	for (String skipPath : pigContext.getPathsToSkip()) {
      		if (file.startsWith(skipPath)) {
-     			return false;
+     			return true;
      		}
      	}
-        return true;
+        return false;
      }
 
 
      private static String which(String file) {
         try {
-        	ProcessBuilder processBuilder = new ProcessBuilder(new String[] {"which", file});
+        	ProcessBuilder processBuilder = 
+        	    new ProcessBuilder(new String[] {"which", file});
             Process process = processBuilder.start();
     
-            BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader stdout = 
+                new BufferedReader(new InputStreamReader(process.getInputStream()));
             String fullPath = stdout.readLine();
 
-            return (process.waitFor() == 0) ? fullPath : "";
+            return (process.waitFor() == 0) ? fullPath : null;
         } catch (Exception e) {}
-        return "";
+        return null;
      }
                
      private static final char SINGLE_QUOTE = '\'';
@@ -1505,6 +1512,10 @@ LogicalOperator StoreClause() : {LogicalOperator lo; Token t; String fileName; S
         }
          
         LogicalPlan readFrom = aliases.get(t.image);
+        if (readFrom == null) {
+            throw new ParseException("Undefined alias: " + t.image + 
+                                     " used in STORE");
+        }
         String jobOutputFile = massageFilename(fileName, pigContext);
         lo = new LOStore(opTable, scope, getNextId(), readFrom.getRoot(),
                          new FileSpec(jobOutputFile, functionSpec),

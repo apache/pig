@@ -162,9 +162,11 @@ public class PigMapReduce implements MapRunnable, Reducer {
             evalPipe.add(t);
         } catch (Throwable tr) {
             log.error(tr);
-            RuntimeException exp = new RuntimeException(tr.getMessage());
-            exp.setStackTrace(tr.getStackTrace());
-            throw exp;
+            
+            // Convert to IOException to ensure Hadoop handles it correctly ...
+            IOException ioe = new IOException(tr.getMessage());
+            ioe.setStackTrace(tr.getStackTrace());
+            throw ioe;
         }
     }
 
@@ -197,8 +199,17 @@ public class PigMapReduce implements MapRunnable, Reducer {
      * Nothing happens here.
      */
     public void close() throws IOException {
+        try {
         if (evalPipe!=null)
             evalPipe.finishPipe();
+        } catch (Throwable t) {
+            log.error(t);
+            
+            // Convert to IOException to ensure Hadoop handles it correctly ...
+            IOException ioe = new IOException(t.getMessage());
+            ioe.setStackTrace(t.getStackTrace());
+            throw ioe;
+        }
     }
 
     public static PigContext getPigContext() {
@@ -308,12 +319,22 @@ public class PigMapReduce implements MapRunnable, Reducer {
     }
     
     public void closeSideFiles(){
+        IOException ioe = null;
         for (PigRecordWriter writer: sideFileWriters){
             try{
                 writer.close(reporter);
             }catch(IOException e){
                 log.error(e);
+                
+                // Save the first IOException which occurred ...
+                if (ioe == null) {
+                    ioe = e;
+                }
             }
+        }
+        
+        if (ioe != null) {
+            throw new RuntimeException(ioe);
         }
     }
 
@@ -340,9 +361,26 @@ public class PigMapReduce implements MapRunnable, Reducer {
         
         @Override
         public void finish(){
-            closeSideFiles();
-            if (group != null)
-                group.finish();
+            try {
+                closeSideFiles();
+                
+                if (group != null) {
+                    group.finish();
+                    group = null;
+                }
+            } catch (Exception e) {
+                try {
+                    if (group != null) {
+                        group.finish();
+                        group = null;
+                    }
+                } catch (Exception innerE) {
+                    log.warn("Failed to cleanup groups with: " + innerE);
+                }
+                
+                // Propagate the original exception
+                throw new RuntimeException(e);
+            }
         }
     }
 

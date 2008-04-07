@@ -131,8 +131,10 @@ public class JarManager {
             new ObjectOutputStream(jarFile).writeObject(pigContext);
         }
         
-        for (String file : files) {
-            addStream(jarFile, file, new FileInputStream(file), contents);
+        if (files != null) {
+            for (String file : files) {
+                addStream(jarFile, file, new FileInputStream(file), contents);
+            }
         }
         
         jarFile.close();

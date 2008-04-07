@@ -129,17 +129,22 @@ public abstract class DataCollector {
     public final void finishPipe() {
         try {
             finish();
-        } finally {
+            
+            if (successor != null) {
+                successor.finishPipe();
+                successor = null;
+            }
+        } catch (Exception e) {
             try {
                 if (successor != null) {
                     successor.finishPipe();
                 } 
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // Ignore this exception since the original is more relevant
-                LOG.debug(e);
-            } finally {
-                successor = null;
+                LOG.debug(ignored);
             }
+            successor = null;
+            throw new RuntimeException(e);
         }
     }
     

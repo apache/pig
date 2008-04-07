@@ -81,8 +81,19 @@ public class LoadOptimizer extends Optimizer {
                 
                 LoadFunc inputLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(
                                                 loadFileSpec.getFuncSpec());
+
+                // Check if both LoadFunc objects belong to the same type
+                boolean sameType = false;
+                try {
+                    streamLoader.getClass().cast(inputLoader);
+                    sameType = true;
+                } catch (ClassCastException cce) {
+                    sameType = false;
+                }
                 
-                if (streamLoader.equals(inputLoader)) {
+                // Check if both LoadFunc objects belong to the same type and
+                // are equivalent
+                if (sameType && streamLoader.equals(inputLoader)) {
                     // Since they both are the same, we can flip them 
                     // for BinaryStorage
                     load.setInputFileSpec(new FileSpec(loadFileSpec.getFileName(), BinaryStorage.class.getName()));
