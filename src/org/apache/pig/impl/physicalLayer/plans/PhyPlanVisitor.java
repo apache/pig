@@ -22,10 +22,10 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.StartMap;
 import org.apache.pig.impl.plan.PlanVisitor;
@@ -55,14 +55,14 @@ public abstract class PhyPlanVisitor<O extends PhysicalOperator, P extends Physi
         depthFirst();
     }
     
-//    public void visitLoad(POLoad ld){
-//        //do nothing
-//    }
-//    
-//    public void visitStore(POStore st){
-//        //do nothing
-//    }
-//    
+    public void visitLoad(POLoad ld){
+        //do nothing
+    }
+ 
+    public void visitStore(POStore st){
+        //do nothing
+    }
+    
     public void visitFilter(POFilter fl) throws ParseException{
         ExprPlanVisitor epv = new ExprPlanVisitor(fl.getPlan());
         epv.visit();

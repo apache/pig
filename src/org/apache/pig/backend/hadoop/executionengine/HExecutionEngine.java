@@ -33,28 +33,20 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobSubmissionProtocol;
 import org.apache.hadoop.mapred.JobTracker;
-
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.shock.SSHSocketImplFactory;
@@ -218,7 +210,8 @@ public class HExecutionEngine implements ExecutionEngine {
     public ExecPhysicalPlan compile(LogicalPlan[] plans,
                                     Properties properties)
             throws ExecException {
-        if (plans == null) {
+        // TODO FIX Need to uncomment this with the right logic
+        /*if (plans == null) {
             throw new ExecException("No Plans to compile");
         }
 
@@ -248,13 +241,14 @@ public class HExecutionEngine implements ExecutionEngine {
             }            
         }
         
-        return new MapRedPhysicalPlan(physicalKey, physicalOpTable);
+        return new MapRedPhysicalPlan(physicalKey, physicalOpTable);*/
+        throw new ExecException("Unsupported Operation");
     }
 
     public ExecJob execute(ExecPhysicalPlan plan) 
             throws ExecException {
-
-        POMapreduce pom = (POMapreduce) physicalOpTable.get(plan.getRoot());
+        // TODO FIX Need to uncomment this with the right logic
+        /*POMapreduce pom = (POMapreduce) physicalOpTable.get(plan.getRoot());
 
         MapReduceLauncher.initQueryStatus(pom.numMRJobs());  // initialize status, for bookkeeping purposes.
         MapReduceLauncher.setConf(this.conf.getConfiguration());
@@ -290,7 +284,8 @@ public class HExecutionEngine implements ExecutionEngine {
             throw new ExecException(e);
         }
         
-        return new HJob(JOB_STATUS.COMPLETED, pigContext, pom.outputFileSpec);
+        return new HJob(JOB_STATUS.COMPLETED, pigContext, pom.outputFileSpec);*/
+        throw new ExecException("Unsupported Operation");
 
     }
 

@@ -39,7 +39,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.pig.Main;
+//TODO FIX Need to uncomment this with the right imports
+//import org.apache.pig.Main;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
@@ -48,10 +49,11 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
-import org.apache.pig.backend.local.executionengine.LocalExecutionEngine;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+//TODO FIX Need to uncomment this with the right imports
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+//import org.apache.pig.backend.local.executionengine.LocalExecutionEngine;
+//import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -108,8 +110,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
         this.execType = execType;
 
         initProperties();
-        
-        String pigJar = JarManager.findContainingJar(Main.class);
+        // TODO FIX Need to change this after Main starts working
+//        String pigJar = JarManager.findContainingJar(Main.class);
+        String pigJar = JarManager.findContainingJar(PigContext.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {
             skipJars.add(pigJar);
@@ -132,7 +135,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
             
         try{        
             // first read the properties in the jar file
-            InputStream pis = MapReduceLauncher.class.getClassLoader().getResourceAsStream("properties");
+            // TODO FIX Need to uncomment this with the right class
+//            InputStream pis = MapReduceLauncher.class.getClassLoader().getResourceAsStream("properties");
+            InputStream pis = PigContext.class.getClassLoader().getResourceAsStream("properties");
             if (pis != null) {
                 fileProperties.load(pis);
             }
@@ -163,7 +168,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public void connect() throws ExecException {
         try {
             switch (execType) {
-            case LOCAL:
+//          TODO FIX Need to uncomment this with the right logic
+            /*case LOCAL:
             {
                 lfs = new HDataStorage(URI.create("file:///"),
                                        new Configuration());
@@ -172,7 +178,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 
                 executionEngine = new LocalExecutionEngine(this);
             }
-            break;
+            break;*/
 
             case MAPREDUCE:
             {
@@ -228,7 +234,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public void addJar(URL resource) throws MalformedURLException{
         if (resource != null) {
             extraJars.add(resource);
-            LogicalPlanBuilder.classloader = createCl(null);
+//          TODO FIX Need to uncomment this with the right logic
+//            LogicalPlanBuilder.classloader = createCl(null);
         }
     }
 
@@ -344,7 +351,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
         for (int i = 0; i < extraJars.size(); i++) {
             urls[i + passedJar] = extraJars.get(i);
         }
-        return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
+//      TODO FIX Need to uncomment this with the right logic
+//        return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
+        return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
     
     public static String getClassNameFromSpec(String funcSpec){
@@ -368,7 +377,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
         for(String prefix: packageImportList) {
             Class c;
         try {
-            c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
+//          TODO FIX Need to uncomment this with the right logic
+//            c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
+            c = Class.forName(prefix+name,true, PigContext.class.getClassLoader());
             return c;
             } catch (ClassNotFoundException e) {
             } catch (LinkageError e) {}

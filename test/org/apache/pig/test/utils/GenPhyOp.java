@@ -26,10 +26,10 @@ import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.StartMap;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
@@ -94,10 +94,10 @@ public class GenPhyOp {
 //        return ret;
 //    }
 //    
-//    public static POLoad topLoadOp(){
-//        POLoad ret = new POLoad(new OperatorKey("",r.nextLong()));
-//        return ret;
-//    }
+   public static POLoad topLoadOp(){
+       POLoad ret = new POLoad(new OperatorKey("",r.nextLong()));
+       return ret;
+   }
     
     public static POFilter topFilterOp(){
         POFilter ret = new POFilter(new OperatorKey("",r.nextLong()));
@@ -132,14 +132,14 @@ public class GenPhyOp {
     }
     
     public static POFilter topFilterOpWithProj(int col, int rhsVal) throws IOException{
-    	POFilter ret = new POFilter(new OperatorKey("",r.nextLong()));
-    	
-    	POProject proj = exprProject();
-    	proj.setResultType(DataType.INTEGER);
-    	proj.setColumn(col);
-    	proj.setOverloaded(false);
-    	
-    	ConstantExpression ce2 = GenPhyOp.exprConst();
+        POFilter ret = new POFilter(new OperatorKey("",r.nextLong()));
+        
+        POProject proj = exprProject();
+        proj.setResultType(DataType.INTEGER);
+        proj.setColumn(col);
+        proj.setOverloaded(false);
+        
+        ConstantExpression ce2 = GenPhyOp.exprConst();
         ce2.setValue(rhsVal);
         
         GreaterThanExpr gr = GenPhyOp.compGreaterThanExpr();
@@ -170,10 +170,10 @@ public class GenPhyOp {
 //        return ret;
 //    }
 //    
-//    public static POStore topStoreOp(){
-//        POStore ret = new POStore(new OperatorKey("",r.nextLong()));
-//        return ret;
-//    }
+   public static POStore topStoreOp(){
+       POStore ret = new POStore(new OperatorKey("",r.nextLong()));
+       return ret;
+   }
 //    
 //    public static StartMap topStartMapOp(){
 //        StartMap ret = new StartMap(new OperatorKey("",r.nextLong()));

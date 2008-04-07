@@ -32,6 +32,7 @@ import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,15 +71,6 @@ public class TestProject {
         }
     }
 
-    private boolean bagContains(DataBag db, Tuple t) {
-        Iterator<Tuple> iter = db.iterator();
-        for (Tuple tuple : db) {
-            if (tuple.compareTo(t) == 0)
-                return true;
-        }
-        return false;
-    }
-
     @Test
     public void testGetNextTuple() throws IOException, ExecException {
         proj.attachInput(t);
@@ -91,7 +83,7 @@ public class TestProject {
             res = proj.getNext(t);
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
-            if (!bagContains(inpBag, (Tuple) res.result)) {
+            if (!TestHelper.bagContains(inpBag, (Tuple) res.result)) {
                 contains = false;
                 break;
             }

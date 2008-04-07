@@ -34,23 +34,20 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
+//TODO FIX Need to uncomment this with the right imports
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -233,11 +230,12 @@ public class PigServer {
         // TODO FIX Need to change so that only syntax parsing is done here, and so that logical plan is additive.
         // parse the query into a logical plan
         LogicalPlan lp = null;
-        try {
+//      TODO FIX Need to uncomment this with the right logic
+        /*try {
             lp = (new LogicalPlanBuilder(pigContext).parse(scope, query, aliases, opTable));
         } catch (ParseException e) {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
-        }
+        }*/
         
         /*
         if (lp.getAlias() != null) {
@@ -469,7 +467,9 @@ public class PigServer {
     }
     
     public long totalHadoopTimeSpent() {
-        return MapReduceLauncher.totalHadoopTimeSpent;
+//      TODO FIX Need to uncomment this with the right logic
+//        return MapReduceLauncher.totalHadoopTimeSpent;
+        return 0L;
     }
   
     public Map<String, LogicalPlan> getAliases() {

@@ -38,7 +38,7 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.impl.PigContext;
 
 
@@ -97,9 +97,12 @@ public class JarManager {
     public static void createJar(OutputStream os, List<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
         for(String toSend: pigPackagesToSend) {
-            addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
+//          TODO FIX Need to uncomment this with the right logic
+//            addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
         }
-        ClassLoader pigClassLoader = PigMapReduce.class.getClassLoader();
+//      TODO FIX Need to uncomment this with the right logic
+//        ClassLoader pigClassLoader = PigMapReduce.class.getClassLoader();
+        ClassLoader pigClassLoader = PigContext.class.getClassLoader();
         
         for (String func: funcs) {
             Class clazz = pigContext.getClassForAlias(func);
@@ -148,7 +151,9 @@ public class JarManager {
         for (int i = 0; i < pigContext.extraJars.size(); i++) {
             urls[i + passedJar] = new URL("file:" + pigContext.extraJars.get(i));
         }
-        return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
+//      TODO FIX Need to uncomment this with the right logic
+//        return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
+        return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
     
 

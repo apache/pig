@@ -37,6 +37,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,15 +76,6 @@ public class TestFilter {
     public void tearDown() throws Exception {
     }
 
-    private boolean bagContains(DataBag db, Tuple t) {
-        Iterator<Tuple> iter = db.iterator();
-        for (Tuple tuple : db) {
-            if (tuple.compareTo(t) == 0)
-                return true;
-        }
-        return false;
-    }
-
     @Test
     public void testGetNextTuple() throws ExecException, IOException {
         pass.attachInput(t);
@@ -99,7 +91,7 @@ public class TestFilter {
                 break;
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             Tuple output = (Tuple) res.result;
-            assertEquals(true, bagContains(inp, output));
+            assertEquals(true, TestHelper.bagContains(inp, output));
             assertEquals(true, (Integer) ((Tuple) res.result).get(1) > 50);
         }
     }
