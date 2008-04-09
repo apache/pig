@@ -280,7 +280,7 @@ public class HExecutionEngine implements ExecutionEngine {
             
             pom.close();
             
-            this.materializedResults.put(pom.sourceLogicalKey,
+            this.materializedResults.put(plan.getRoot(),
                                          new MapRedResult(pom.outputFileSpec,
                                                            pom.reduceParallelism));
         }
