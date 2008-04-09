@@ -28,7 +28,6 @@ import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
 
 import java.util.Hashtable;
-import java.io.Console;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
