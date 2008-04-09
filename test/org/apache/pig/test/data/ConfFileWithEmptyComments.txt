@@ -1,0 +1,7 @@
+date = '20080228'
+
+#this is a comment line
+
+key1 = 'value1'
+
+#this is also a comment line

@@ -20,6 +20,7 @@
     <!-- javacc properties -->
     <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
     <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
+    <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
 
     <property name="javacc.home" value="${basedir}/lib" />
 
@@ -85,6 +86,7 @@
     <target name="init">
         <mkdir dir="${src.gen.query.parser.dir}" />
         <mkdir dir="${src.gen.script.parser.dir}" />
+        <mkdir dir="${src.gen.param.parser.dir}" />
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
@@ -129,6 +131,8 @@
         <jjtree target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.query.parser.dir}/QueryParser.jj" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.dir}/org/apache/pig/tools/parameters/PigFileParser.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.dir}/org/apache/pig/tools/parameters/ParamLoader.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
     </target>
 
     <!-- ================================================================== -->

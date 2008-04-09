@@ -1,0 +1,2 @@
+destination='\'/user/kaleidoscope/pow_stats/20080228/acct/InactiveAcct\''
+date = 'this is to be skipped'
