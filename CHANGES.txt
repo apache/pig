@@ -210,3 +210,5 @@ Trunk (unreleased changes)
 
 	PIG-153: Incorrect result caused by dump in between statements (pi_song
 	via gates).
+
+    PIG-58: parameter substitution integration

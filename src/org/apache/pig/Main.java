@@ -40,7 +40,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
-
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 public class Main
 {
@@ -66,6 +66,7 @@ public static void main(String args[])
 
     try {
         BufferedReader in = null;
+        BufferedReader pin = null;
         ExecMode mode = ExecMode.UNKNOWN;
         int port = 0;
         String file = null;
@@ -73,6 +74,10 @@ public static void main(String args[])
         boolean brief = false;
         String log4jconf = null;
         boolean verbose = false;
+        boolean debug = false;
+        boolean dryrun = false;
+        ArrayList<String> params = new ArrayList<String>();
+        ArrayList<String> paramFiles = new ArrayList<String>();
 
         CmdLineParser opts = new CmdLineParser(args);
         // Don't use -l, --latest, -c, --cluster, -cp, -classpath, -D as these
@@ -89,6 +94,9 @@ public static void main(String args[])
         opts.registerOpt('v', "verbose", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);
+        opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
+        opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
+        opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
@@ -114,6 +122,7 @@ public static void main(String args[])
                       }
 
             case 'd':
+                debug = true;
                 logLevel = Level.toLevel(opts.getValStr(), Level.INFO);
                 break;
                 
@@ -140,6 +149,10 @@ public static void main(String args[])
                 break;
                       }
 
+            case 'm':
+                paramFiles.add(opts.getValStr());
+                break;
+                            
             case 'o': {
                    String gateway = System.getProperty("ssh.gateway");
                    if (gateway == null || gateway.length() == 0) {
@@ -150,6 +163,17 @@ public static void main(String args[])
                 break;
                       }
 
+            case 'p': 
+                String val = opts.getValStr();
+                params.add(opts.getValStr());
+                break;
+                            
+            case 'r': 
+                // currently only used for parameter substitition
+                // will be extended in the future
+                dryrun = true;
+                break;
+                            
             case 'v':
                 verbose = true;
                 break;
@@ -208,15 +232,26 @@ public static void main(String args[])
         // TODO Add a file appender for the logs
         // TODO Need to create a property in the properties file for it.
 
-        // Don't forget to undo all this for the port option.
-
-        // I might know what I want to do next, then again I might not.
+        // construct the parameter subsitution preprocessor
         Grunt grunt = null;
+        String substFile = null;
         switch (mode) {
         case FILE:
             // Run, using the provided file as a pig file
             in = new BufferedReader(new FileReader(file));
-            grunt = new Grunt(in, pigContext);
+
+            // run parameter substition preoprocessor first
+            substFile = file + ".substituted";
+            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
+            if (dryrun){
+                log.info("Dry run completed. Substitued pig script is at " + substFile);
+                return;
+            }
+
+            if (!debug)
+                new File(substFile).deleteOnExit();
+            
+            grunt = new Grunt(pin, pigContext);
             grunt.exec();
             return;
 
@@ -234,7 +269,7 @@ public static void main(String args[])
             grunt.exec();
             rc = 0;
             return;
-                     }
+            }
 
         default:
             break;
@@ -261,7 +296,19 @@ public static void main(String args[])
             }
             mode = ExecMode.FILE;
             in = new BufferedReader(new FileReader(remainders[0]));
-            grunt = new Grunt(in, pigContext);
+
+            // run parameter substition preoprocessor first
+            substFile = remainders[0] + ".substituted";
+            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
+            if (dryrun){
+                log.info("Dry run completed. Substitued pig script is at " + substFile);
+                return;
+            }
+
+            if (!debug)
+                new File(substFile).deleteOnExit();
+
+            grunt = new Grunt(pin, pigContext);
             grunt.exec();
             rc = 0;
             return;
@@ -283,6 +330,29 @@ public static void main(String args[])
         FileLocalizer.deleteTempFiles();
         PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         System.exit(rc);
+    }
+}
+
+// retruns the stream of final pig script to be passed to Grunt
+private static BufferedReader runParamPreprocessor(BufferedReader origPigScript, ArrayList<String> params,
+                                            ArrayList<String> paramFiles, String scriptFile, boolean createFile) 
+                                throws org.apache.pig.tools.parameters.ParseException, IOException{
+    ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
+    String[] type1 = new String[1];
+    String[] type2 = new String[1];
+
+    if (createFile){
+        BufferedWriter fw = new BufferedWriter(new FileWriter(scriptFile));
+        psp.genSubstitutedFile (origPigScript, fw, params.size() > 0 ? params.toArray(type1) : null, 
+                                paramFiles.size() > 0 ? paramFiles.toArray(type2) : null);
+        return new BufferedReader(new FileReader (scriptFile));
+
+    } else {
+        PipedWriter pw = new PipedWriter();
+        PipedReader pr = new PipedReader(pw);
+        psp.genSubstitutedFile (origPigScript, pw,  params.size() > 0 ? params.toArray(type1) : null, 
+                                paramFiles.size() > 0 ? paramFiles.toArray(type2) : null);
+        return new BufferedReader(pr);
     }
 }
     

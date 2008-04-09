@@ -1,0 +1,2 @@
+date = '20080228'
+this is an invalid line
