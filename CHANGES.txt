@@ -207,3 +207,6 @@ Trunk (unreleased changes)
     PIG-182: streaming bug fix (arunc via olgan)
 
     PIG-184: streaming bug fixes
+
+	PIG-153: Incorrect result caused by dump in between statements (pi_song
+	via gates).
