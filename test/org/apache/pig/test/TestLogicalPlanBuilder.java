@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.AssertionFailedError;
 
@@ -455,7 +456,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testRegressionPig100NoSuchAlias() throws Throwable {
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
 
         boolean caughtIt = false;
@@ -472,7 +473,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testRegressionPig100NoAliases() throws Throwable {
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
 
         boolean caughtIt = false;
@@ -573,7 +574,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     public LogicalPlan buildPlan(String query, ClassLoader cldr) {
         LogicalPlanBuilder.classloader = cldr;
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
 
         try {

@@ -33,9 +33,11 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
@@ -47,7 +49,13 @@ public class Main
 
     private final static Log log = LogFactory.getLog(Main.class);
     
-private enum ExecMode {STRING, FILE, SHELL, UNKNOWN};
+    private static final String LOG4J_CONF = "log4jconf";
+    private static final String BRIEF = "brief";
+    private static final String DEBUG = "debug";
+    private static final String JAR = "jar";
+    private static final String VERBOSE = "verbose";
+    
+    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN};
                 
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
@@ -62,26 +70,17 @@ private enum ExecMode {STRING, FILE, SHELL, UNKNOWN};
 public static void main(String args[])
 {
     int rc = 1;
-    PigContext pigContext = new PigContext();
+    Properties properties = new Properties();
+    PropertiesUtil.loadPropertiesFromFile(properties);
 
     try {
-        BufferedReader in = null;
         BufferedReader pin = null;
-        ExecMode mode = ExecMode.UNKNOWN;
-        int port = 0;
-        String file = null;
-        Level logLevel = Level.INFO;
-        boolean brief = false;
-        String log4jconf = null;
-        boolean verbose = false;
         boolean debug = false;
         boolean dryrun = false;
         ArrayList<String> params = new ArrayList<String>();
         ArrayList<String> paramFiles = new ArrayList<String>();
 
         CmdLineParser opts = new CmdLineParser(args);
-        // Don't use -l, --latest, -c, --cluster, -cp, -classpath, -D as these
-        // are masked by the startup perl script.
         opts.registerOpt('4', "log4jconf", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('b', "brief", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('c', "cluster", CmdLineParser.ValueExpected.REQUIRED);
@@ -98,32 +97,48 @@ public static void main(String args[])
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
 
+        ExecMode mode = ExecMode.UNKNOWN;
+        String file = null;
+        ExecType execType = ExecType.LOCAL;
+        String execTypeString = properties.getProperty("exectype");
+        if(execTypeString!=null && execTypeString.length()>0){
+            execType = PigServer.parseExecType(execTypeString);
+        }
+        String cluster = "local";
+        String clusterConfigured = properties.getProperty("cluster");
+        if(clusterConfigured != null && clusterConfigured.length() > 0){
+            cluster = clusterConfigured;
+        }
+
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
             switch (opt) {
             case '4':
-                log4jconf = opts.getValStr();
+                String log4jconf = opts.getValStr();
+                if(log4jconf != null){
+                    properties.setProperty(LOG4J_CONF, log4jconf);
+                }
                 break;
 
             case 'b':
-                brief = true;
+                properties.setProperty(BRIEF, "true");
                 break;
 
-            case 'c': {
+            case 'c': 
                 // Needed away to specify the cluster to run the MR job on
                 // Bug 831708 - fixed
-                   String cluster = opts.getValStr();
-                   System.out.println("Changing MR cluster to " + cluster);
-                   if(cluster.indexOf(':') < 0) {
-                       cluster = cluster + ":50020";
-                   }
-                   pigContext.setJobtrackerLocation(cluster);
+                String clusterParameter = opts.getValStr();
+                if (clusterParameter != null && clusterParameter.length() > 0) {
+                    cluster = clusterParameter;
+                }
                 break;
-                      }
 
             case 'd':
+                String logLevel = opts.getValStr();
+                if (logLevel != null) {
+                    properties.setProperty(DEBUG, logLevel);
+                }
                 debug = true;
-                logLevel = Level.toLevel(opts.getValStr(), Level.INFO);
                 break;
                 
             case 'e': 
@@ -139,29 +154,26 @@ public static void main(String args[])
                 usage();
                 return;
 
-            case 'j': {
-                   String splits[] = opts.getValStr().split(":", -1);
-                   for (int i = 0; i < splits.length; i++) {
-                       if (splits[i].length() > 0) {
-                        pigContext.addJar(splits[i]);
-                       }
-                   }
+            case 'j': 
+                String jarsString = opts.getValStr();
+                if(jarsString != null){
+                    properties.setProperty(JAR, jarsString);
+                }
                 break;
-                      }
 
             case 'm':
                 paramFiles.add(opts.getValStr());
                 break;
                             
-            case 'o': {
-                   String gateway = System.getProperty("ssh.gateway");
-                   if (gateway == null || gateway.length() == 0) {
-                       System.setProperty("hod.server", "local");
-                   } else {
-                       System.setProperty("hod.server", System.getProperty("ssh.gateway"));
-                   }
+            case 'o': 
+                // TODO sgroschupf using system properties is always a very bad idea
+                String gateway = System.getProperty("ssh.gateway");
+                if (gateway == null || gateway.length() == 0) {
+                    properties.setProperty("hod.server", "local");
+                } else {
+                    properties.setProperty("hod.server", System.getProperty("ssh.gateway"));
+                }
                 break;
-                      }
 
             case 'p': 
                 String val = opts.getValStr();
@@ -175,17 +187,15 @@ public static void main(String args[])
                 break;
                             
             case 'v':
-                verbose = true;
+                properties.setProperty(VERBOSE, ""+true);
                 break;
 
             case 'x':
-                ExecType exectype;
-                   try {
-                       exectype = PigServer.parseExecType(opts.getValStr());
-                   } catch (IOException e) {
-                       throw new RuntimeException("ERROR: Unrecognized exectype.", e);
-                   }
-                   pigContext.setExecType(exectype);
+                try {
+                    execType = PigServer.parseExecType(opts.getValStr());
+                    } catch (IOException e) {
+                        throw new RuntimeException("ERROR: Unrecognized exectype.", e);
+                    }
                 break;
             case 'i':
             	System.out.println(getVersionString());
@@ -196,44 +206,18 @@ public static void main(String args[])
                      }
             }
         }
+        // set the cluster
+        properties.setProperty(HExecutionEngine.JOB_TRACKER_LOCATION, cluster);
+        // configure logging
+        configureLog4J(properties);
+        // create the context with the parameter
+        PigContext pigContext = new PigContext(execType, properties);
 
         LogicalPlanBuilder.classloader = pigContext.createCl(null);
 
-        if (log4jconf != null) {
-            PropertyConfigurator.configure(log4jconf);
-        } else if (!brief) {
-            // non-brief logging - timestamps
-            Properties props = new Properties();
-            props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
-            props.setProperty("log4j.appender.PIGCONSOLE",
-                              "org.apache.log4j.ConsoleAppender");
-            props.setProperty("log4j.appender.PIGCONSOLE.layout",
-                              "org.apache.log4j.PatternLayout");
-            props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
-                              "%d [%t] %-5p %c - %m%n");
-            PropertyConfigurator.configure(props);
-            // Set the log level/threshold
-            Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
-        } else {
-            // brief logging - no timestamps
-            Properties props = new Properties();
-            props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
-            props.setProperty("log4j.appender.PIGCONSOLE",
-                              "org.apache.log4j.ConsoleAppender");
-            props.setProperty("log4j.appender.PIGCONSOLE.layout",
-                              "org.apache.log4j.PatternLayout");
-            props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
-                              "%m%n");
-            PropertyConfigurator.configure(props);
-            // Set the log level/threshold
-            Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
-        }
-
-        // TODO Add a file appender for the logs
-        // TODO Need to create a property in the properties file for it.
-
         // construct the parameter subsitution preprocessor
         Grunt grunt = null;
+        BufferedReader in;
         String substFile = null;
         switch (mode) {
         case FILE:
@@ -333,6 +317,54 @@ public static void main(String args[])
     }
 }
 
+//TODO jz: log4j.properties should be used instead
+private static void configureLog4J(Properties properties) {
+    // TODO Add a file appender for the logs
+    // TODO Need to create a property in the properties file for it.
+    // sgroschupf, 25Feb2008: this method will be obsolete with PIG-115.
+     
+    String log4jconf = properties.getProperty(LOG4J_CONF);
+    String trueString = "true";
+    boolean brief = trueString.equalsIgnoreCase(properties.getProperty(BRIEF));
+    boolean verbose = trueString.equalsIgnoreCase(properties.getProperty(VERBOSE));
+    Level logLevel = Level.INFO;
+
+    String logLevelString = properties.getProperty(DEBUG);
+    if (logLevelString != null){
+        logLevel = Level.toLevel(logLevelString, Level.INFO);
+    }
+    
+    if (log4jconf != null) {
+         PropertyConfigurator.configure(log4jconf);
+     } else if (!brief ) {
+         // non-brief logging - timestamps
+         Properties props = new Properties();
+         props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
+         props.setProperty("log4j.appender.PIGCONSOLE",
+                           "org.apache.log4j.ConsoleAppender");
+         props.setProperty("log4j.appender.PIGCONSOLE.layout",
+                           "org.apache.log4j.PatternLayout");
+         props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
+                           "%d [%t] %-5p %c - %m%n");
+         PropertyConfigurator.configure(props);
+         // Set the log level/threshold
+         Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
+     } else {
+         // brief logging - no timestamps
+         Properties props = new Properties();
+         props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
+         props.setProperty("log4j.appender.PIGCONSOLE",
+                           "org.apache.log4j.ConsoleAppender");
+         props.setProperty("log4j.appender.PIGCONSOLE.layout",
+                           "org.apache.log4j.PatternLayout");
+         props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
+                           "%m%n");
+         PropertyConfigurator.configure(props);
+         // Set the log level/threshold
+         Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
+     }
+}
+ 
 // retruns the stream of final pig script to be passed to Grunt
 private static BufferedReader runParamPreprocessor(BufferedReader origPigScript, ArrayList<String> params,
                                             ArrayList<String> paramFiles, String scriptFile, boolean createFile) 
@@ -356,6 +388,7 @@ private static BufferedReader runParamPreprocessor(BufferedReader origPigScript,
     }
 }
     
+   
 private static String getVersionString() {
 	String findContainingJar = JarManager.findContainingJar(Main.class);
 	  try { 

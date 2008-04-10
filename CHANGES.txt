@@ -212,3 +212,6 @@ Trunk (unreleased changes)
 	via gates).
 
     PIG-58: parameter substitution integration
+
+	PIG-111: Reworked configuration to be setable via properties.
+	(Contributions from joa23, pi_song, and oae via gates).

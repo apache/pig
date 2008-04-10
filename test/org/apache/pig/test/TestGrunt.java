@@ -4,6 +4,7 @@ import org.junit.Test;
 import junit.framework.TestCase;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
 
@@ -17,7 +18,7 @@ public class TestGrunt extends TestCase {
 	
 	@Test 
 	public void testCopyFromLocal() throws Throwable {
-        PigServer server = new PigServer("MAPREDUCE");
+		PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
         String strCmd = "copyFromLocal /tmp/TestMe;";

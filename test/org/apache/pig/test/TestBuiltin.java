@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.Iterator;
+import java.util.Properties;
 
 import junit.framework.TestCase;
 
@@ -462,7 +463,7 @@ public class TestBuiltin extends TestCase {
     @Test
     public void testShellFuncSingle() throws Throwable {
     	//ShellBagEvalFunc func = new ShellBagEvalFunc("tr o 0");
-    	PigServer pig = new PigServer(LOCAL);
+    	PigServer pig = new PigServer(LOCAL, new Properties());
     	
     	File tempFile = File.createTempFile("tmp", ".dat");
     	PrintWriter writer = new PrintWriter(tempFile);
@@ -490,7 +491,7 @@ public class TestBuiltin extends TestCase {
     @Test
     public void testShellFuncMultiple() throws Throwable {
 
-    	PigServer pig = new PigServer(LOCAL);
+    	PigServer pig = new PigServer(LOCAL, new Properties());
     	final int numTimes = 100;
     	
     	File tempFile = File.createTempFile("tmp", ".dat");

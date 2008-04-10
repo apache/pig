@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.commons.logging.Log;
@@ -37,12 +38,19 @@ public class TestFilterOpString extends TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private static int LOOP_COUNT = 1024;    
+    private static int LOOP_COUNT = 1024;
     MiniCluster cluster = MiniCluster.buildCluster();
     
+    private PigServer pig;
+    
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        pig = new PigServer(MAPREDUCE, cluster.getProperties());
+    }
+
     @Test
     public void testStringEq() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -70,7 +78,6 @@ public class TestFilterOpString extends TestCase {
     
     @Test
     public void testStringNeq() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -98,7 +105,6 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringGt() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -128,7 +134,6 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringGte() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -159,7 +164,6 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringLt() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -188,7 +192,6 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringLte() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {

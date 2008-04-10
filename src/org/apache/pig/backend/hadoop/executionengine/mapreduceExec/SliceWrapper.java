@@ -19,6 +19,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.pig.Slice;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -87,8 +88,8 @@ public class SliceWrapper implements InputSplit {
     }
 
     public RecordReader<Text, Tuple> makeReader(JobConf job) throws IOException {
-        lastConf = job;
-        DataStorage store = new HDataStorage(job);
+        lastConf = job;        
+        DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
         store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
         wrapped.init(store);
         return new RecordReader<Text, Tuple>() {

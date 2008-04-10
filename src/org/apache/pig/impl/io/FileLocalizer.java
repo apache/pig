@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Stack;
+import java.util.Properties ;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -43,6 +44,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputForma
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.SliceWrapper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 
 public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
@@ -147,13 +149,13 @@ public class FileLocalizer {
         if (wrapper == null)
             throw new RuntimeException(
                     "can't open DFS file while executing locally");
-
-        return openDFSFile(fileName, wrapper.getJobConf());
+        
+        return openDFSFile(fileName, ConfigurationUtil.toProperties(wrapper.getJobConf()));
         
     }
 
-    public static InputStream openDFSFile(String fileName, JobConf conf) throws IOException{
-        DataStorage dds = new HDataStorage(conf);
+    public static InputStream openDFSFile(String fileName, Properties properties) throws IOException{
+        DataStorage dds = new HDataStorage(properties);
         ElementDescriptor elem = dds.asElement(fileName);
         return openDFSFile(elem);
     }

@@ -1,10 +1,8 @@
 package org.apache.pig.backend.local.executionengine;
 
 import java.util.Collection;
-import java.util.Properties;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Map;
+import java.util.Properties;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -19,14 +17,10 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.executionengine.ExecLogicalPlan;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
-import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
-import org.apache.pig.impl.eval.cond.Cond;
-import org.apache.pig.impl.io.FileSpec;
-import java.util.Iterator;
 
 
 public class LocalExecutionEngine implements ExecutionEngine {
@@ -66,13 +60,12 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
         
     public Properties getConfiguration() throws ExecException {
-        Properties conf = new Properties();
-        return conf;
+        return this.pigContext.getProperties();
     }
         
     public void updateConfiguration(Properties newConfiguration) 
         throws ExecException {
-        ;
+        // there is nothing to do here.
     }
         
     public Map<String, Object> getStatistics() throws ExecException {
@@ -273,5 +266,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
         return compileInputs;
     }
 }
+
 
 

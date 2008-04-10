@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -68,8 +69,7 @@ public class TestStreaming extends TestCase {
     
 	private void testSimpleMapSideStreaming(ExecType execType) 
 	throws Exception {
-		PigServer pigServer = new PigServer(execType);
-
+	        PigServer pigServer = createPigServer(execType);
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
 				                                        "A,5", "B,5", "C,8", "A,8",
@@ -94,6 +94,16 @@ public class TestStreaming extends TestCase {
 		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
 
+    private PigServer createPigServer(ExecType execType) throws ExecException {
+        PigServer pigServer; 
+        if (execType == ExecType.MAPREDUCE) {
+            pigServer = new PigServer(execType, cluster.getProperties());
+        } else {
+            pigServer = new PigServer(execType);
+        }
+        return pigServer;
+    }
+
 	@Test
     public void testLocalSimpleMapSideStreamingWithOutputSchema() 
 	throws Exception {
@@ -108,7 +118,7 @@ public class TestStreaming extends TestCase {
     
 	private void testSimpleMapSideStreamingWithOutputSchema(ExecType execType) 
 	throws Exception {
-		PigServer pigServer = new PigServer(execType);
+		PigServer pigServer = createPigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
@@ -147,7 +157,7 @@ public class TestStreaming extends TestCase {
     
 	private void testSimpleReduceSideStreamingAfterFlatten(ExecType execType) 
 	throws Exception {
-		PigServer pigServer = new PigServer(execType);
+		PigServer pigServer = createPigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
@@ -190,7 +200,7 @@ public class TestStreaming extends TestCase {
     
 	private void testSimpleOrderedReduceSideStreamingAfterFlatten(
 	        ExecType execType) throws Exception {
-		PigServer pigServer = new PigServer(execType);
+	    PigServer pigServer = createPigServer(execType);
 
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1,2,3", "B,2,4,5",
@@ -240,7 +250,7 @@ public class TestStreaming extends TestCase {
 
     @Test
     public void testInputShipSpecs() throws Exception {
-        PigServer pigServer = new PigServer(MAPREDUCE);
+        PigServer pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
 
         File input = Util.createInputFile("tmp", "", 
                                           new String[] {"A,1", "B,2", "C,3", 
@@ -299,7 +309,7 @@ public class TestStreaming extends TestCase {
 
     @Test
 	public void testOutputShipSpecs() throws Exception {
-	    PigServer pigServer = new PigServer(MAPREDUCE);
+	    PigServer pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
 
 	    File input = Util.createInputFile("tmp", "", 
 	                                      new String[] {"A,1", "B,2", "C,3", 
@@ -359,7 +369,7 @@ public class TestStreaming extends TestCase {
 
     @Test
     public void testInputOutputSpecs() throws Exception {
-        PigServer pigServer = new PigServer(MAPREDUCE);
+        PigServer pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
 
         File input = Util.createInputFile("tmp", "", 
                                           new String[] {"A,1", "B,2", "C,3", 

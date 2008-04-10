@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 
 import junit.framework.TestCase;
@@ -76,7 +77,7 @@ public class TestPigFile extends TestCase {
 
     @Test
     public void testStoreAndLoadText() throws IOException {
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         
         log.info("Running Store...");
         String initialdata = File.createTempFile("pig-tmp", "").getAbsolutePath();
@@ -155,7 +156,7 @@ public class TestPigFile extends TestCase {
         bag = getRandomBag(5000,0);
         log.info("Done.");
         
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         
         log.info("Running Store...");
         String storeFile = File.createTempFile("pig-tmp", "").getAbsolutePath();

@@ -92,7 +92,7 @@ public class GruntParser extends PigScriptParser {
         
         mDfs = mPigServer.getPigContext().getDfs();
         mLfs = mPigServer.getPigContext().getLfs();
-        mConf = mPigServer.getPigContext().getConf();
+        mConf = mPigServer.getPigContext().getProperties();
         
         // TODO: this violates the abstraction layer decoupling between
         // front end and back end and needs to be changed.

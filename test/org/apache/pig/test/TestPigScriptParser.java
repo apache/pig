@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Properties;
 
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -26,7 +27,7 @@ public class TestPigScriptParser extends TestCase {
         // All the needed variables
         Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>() ;
         Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>() ;
-        PigContext pigContext = new PigContext(PigServer.ExecType.LOCAL) ;
+        PigContext pigContext = new PigContext(PigServer.ExecType.LOCAL, new Properties()) ;
         
         String tempFile = this.prepareTempFile() ;
         

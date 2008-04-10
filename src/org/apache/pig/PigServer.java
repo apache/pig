@@ -28,6 +28,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties ;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -57,6 +58,7 @@ import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.impl.util.PropertiesUtil;
 
 
 /**
@@ -118,21 +120,31 @@ public class PigServer {
         return user + "-" + date;
     }
     
-    public PigServer(String execType) throws ExecException, IOException {
-        this(parseExecType(execType));
-    }
-    
-    public PigServer() throws ExecException {
-        this(ExecType.MAPREDUCE);
+    public PigServer(String execTypeString) throws ExecException, IOException {
+        this(parseExecType(execTypeString));
     }
     
     public PigServer(ExecType execType) throws ExecException {
-        this.pigContext = new PigContext(execType);
+        this(execType, PropertiesUtil.loadPropertiesFromFile());
+    }
+
+    public PigServer() throws ExecException {
+        this(ExecType.MAPREDUCE, new Properties());
+    }
+
+    public PigServer(ExecType execType, Properties properties) throws ExecException {
+        this.pigContext = new PigContext(execType, properties);
+        if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
+            setJobName("DefaultJobName") ;
+        }
         pigContext.connect();
     }
     
     public PigServer(PigContext context) throws ExecException {
         this.pigContext = context;
+        if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
+            setJobName("DefaultJobName") ;
+        }
         pigContext.connect();
     }
 
@@ -297,7 +309,7 @@ public class PigServer {
     }
 
     public void setJobName(String name){
-        pigContext.setJobName(name);
+        pigContext.getProperties().setProperty(PigContext.JOB_NAME, PigContext.JOB_NAME_PREFIX + ":" + name);
     }
     
     /**
