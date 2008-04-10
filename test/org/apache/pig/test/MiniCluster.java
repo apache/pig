@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.io.*;
+import java.util.Properties;
 
 import org.apache.hadoop.dfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
@@ -25,6 +26,7 @@ import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 
 /**
  * This class builds a single instance of itself with the Singleton 
@@ -99,4 +101,8 @@ public class MiniCluster {
 		if (m_dfs != null) { m_dfs.shutdown(); }
 		if (m_mr != null) { m_mr.shutdown(); }		
 	}
+
+    public Properties getProperties() {
+        return ConfigurationUtil.toProperties(m_conf);
+    }
 }

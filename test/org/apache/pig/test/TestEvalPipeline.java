@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigServer;
+import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.TextLoader;
@@ -49,7 +50,12 @@ import junit.framework.TestCase;
 public class TestEvalPipeline extends TestCase {
 	
 	MiniCluster cluster = MiniCluster.buildCluster();
+    private PigServer pigServer;
 	
+	@Override
+    protected void setUp() throws Exception {
+	    pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
 	
 	static public class MyBagFunction extends EvalFunc<DataBag>{
 		@Override
@@ -73,10 +79,7 @@ public class TestEvalPipeline extends TestCase {
 
 	@Test
 	public void testFunctionInsideFunction() throws Throwable {
-		PigServer pigServer = new PigServer(MAPREDUCE);
-		
 		File f1 = createFile(new String[]{"a:1","b:1","a:1"});
-
 		pigServer.registerQuery("a = load 'file:" + f1 + "' using " + PigStorage.class.getName() + "(':');");
 		pigServer.registerQuery("b = foreach a generate '1'-'1'/'1';");
 		Iterator<Tuple> iter  = pigServer.openIterator("b");
@@ -89,8 +92,6 @@ public class TestEvalPipeline extends TestCase {
 	
 	@Test
 	public void testJoin() throws Throwable {
-		PigServer pigServer = new PigServer(MAPREDUCE);
-		
 		File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 		File f2 = createFile(new String[]{"b","b","a"});
 		
@@ -111,7 +112,6 @@ public class TestEvalPipeline extends TestCase {
 	
 	@Test
 	public void testDriverMethod() throws Throwable {
-		PigServer pigServer = new PigServer(MAPREDUCE);
 		File f = File.createTempFile("tmp", "");
 		PrintWriter pw = new PrintWriter(f);
 		pw.println("a");
@@ -134,7 +134,6 @@ public class TestEvalPipeline extends TestCase {
 	
 	@Test
 	public void testMapLookup() throws Throwable {
-		PigServer pigServer = new PigServer(MAPREDUCE);
 		DataBag b = BagFactory.getInstance().newDefaultBag();
 		DataMap colors = new DataMap();
 		colors.put("apple","red");
@@ -217,7 +216,6 @@ public class TestEvalPipeline extends TestCase {
 
 	@Test
 	public void testBagFunctionWithFlattening() throws Throwable {
-		PigServer pigServer = new PigServer(MAPREDUCE);
 		File queryLogFile = createFile(
 					new String[]{ 
 						"stanford\tdeer\tsighting",
@@ -279,18 +277,17 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close(); 
 		
-		PigServer pig = new PigServer(MAPREDUCE);
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString();
-		pig.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString();
+		pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
 		if (eliminateDuplicates){
-			pig.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
+			pigServer.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
 		}else{
-			pig.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
+			pigServer.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
 		}
-		pig.store("B", tmpOutputFile);
+		pigServer.store("B", tmpOutputFile);
 		
-		pig.registerQuery("A = load '" + tmpOutputFile + "';");
-		Iterator<Tuple> iter = pig.openIterator("A");
+		pigServer.registerQuery("A = load '" + tmpOutputFile + "';");
+		Iterator<Tuple> iter = pigServer.openIterator("A");
 		int last = -1;
 		while (iter.hasNext()){
 			Tuple t = iter.next();

@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,7 +38,7 @@ public class StandAloneParser {
     public static void main(String args[]) throws IOException, ExecException {
         
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        pig = new PigServer(ExecType.LOCAL);
+        pig = new PigServer(ExecType.LOCAL, new Properties());
         
         while (true) {
             System.out.print("> ");
@@ -55,14 +56,12 @@ public class StandAloneParser {
             else tryParse(line);
             
         }
-        
-           
     }
     
     private static void tryParse(String query) {
         if (query.trim().equals(""))
             return;
-        try{        
+        try{
             pig.registerQuery(query);
             System.out.print("Current aliases: ");
             for (Iterator<String> it = pig.getAliases().keySet().iterator(); it.hasNext(); ) {

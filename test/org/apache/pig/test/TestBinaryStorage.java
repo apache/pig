@@ -69,7 +69,8 @@ public class TestBinaryStorage extends TestCase {
     
     private void testBinaryStorage(File input) 
     throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
+			cluster.getProperties());
 
         // Get input data 
         byte[] inputData = new byte[MAX_DATA_SIZE];

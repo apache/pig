@@ -45,7 +45,7 @@ public class TestOrderBy extends TestCase {
             DATA[0][i] = myFormatter.format(i);
             DATA[1][i] = myFormatter.format(DATALEN - i - 1);
         }
-        pig = new PigServer(MAPREDUCE);
+        pig = new PigServer(MAPREDUCE, cluster.getProperties());
     }
     
     protected void setUp() throws Exception {

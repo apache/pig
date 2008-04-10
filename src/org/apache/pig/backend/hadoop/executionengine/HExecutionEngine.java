@@ -15,11 +15,13 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -33,7 +35,7 @@ import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.builtin.BinStorage;
@@ -47,13 +49,16 @@ import org.apache.pig.shock.SSHSocketImplFactory;
 
 public class HExecutionEngine implements ExecutionEngine {
     
+    private static final String HOD_SERVER = "hod.server";
+    public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
+    private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
+    
     private final Log log = LogFactory.getLog(getClass());
     private static final String LOCAL = "local";
     
     protected PigContext pigContext;
     
     protected DataStorage ds;
-    protected HConfiguration conf;
     
     protected JobSubmissionProtocol jobTracker;
     protected JobClient jobClient;
@@ -67,10 +72,8 @@ public class HExecutionEngine implements ExecutionEngine {
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, MapRedResult> materializedResults;
     
-    public HExecutionEngine(PigContext pigContext,
-                            HConfiguration conf) {
+    public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
-        this.conf = conf;
         this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
         this.physicalOpTable = new HashMap<OperatorKey, ExecPhysicalOperator>();
         this.materializedResults = new HashMap<OperatorKey, MapRedResult>();
@@ -90,10 +93,6 @@ public class HExecutionEngine implements ExecutionEngine {
         return this.materializedResults;
     }
     
-    public HExecutionEngine(PigContext pigContext) {
-        this(pigContext, new HConfiguration(new JobConf()));
-    }
-                            
     public Map<OperatorKey, ExecPhysicalOperator> getPhysicalOpTable() {
         return this.physicalOpTable;
     }
@@ -102,73 +101,61 @@ public class HExecutionEngine implements ExecutionEngine {
     public DataStorage getDataStorage() {
         return this.ds;
     }
-    
-    private void setJobtrackerLocation(String newLocation) {
-        conf.put("mapred.job.tracker", newLocation);
-    }
-
-    private void setFilesystemLocation(String newLocation) {
-        conf.put("fs.default.name", newLocation);
-    }
 
     public void init() throws ExecException {
-        // Copy over necessary configuration from PigContext
-        updateConfiguration(pigContext.getConf());
-        
+        init(this.pigContext.getProperties());
+    }
+    
+    public void init(Properties properties) throws ExecException {
         //First set the ssh socket factory
         setSSHFactory();
         
-        String hodServer = System.getProperty("hod.server");
-        String cluster = System.getProperty("cluster");
-        String nameNode = System.getProperty("namenode");
+        String hodServer = properties.getProperty(HOD_SERVER);
+        String cluster = properties.getProperty(JOB_TRACKER_LOCATION);
+        String nameNode = properties.getProperty( FILE_SYSTEM_LOCATION);
     
         if (hodServer != null && hodServer.length() > 0) {
-            String hdfsAndMapred[] = doHod(hodServer);
-            setFilesystemLocation(hdfsAndMapred[0]);
-            setJobtrackerLocation(hdfsAndMapred[1]);
+            String hdfsAndMapred[] = doHod(hodServer, properties);
+            properties.setProperty(FILE_SYSTEM_LOCATION, hdfsAndMapred[0]);
+            properties.setProperty(JOB_TRACKER_LOCATION, hdfsAndMapred[1]);
         }
         else {
             if (cluster != null && cluster.length() > 0) {
-                if(cluster.indexOf(':') < 0 && !cluster.equalsIgnoreCase(LOCAL)) {
+                if(!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
                     cluster = cluster + ":50020";
                 }
-                setJobtrackerLocation(cluster);
+                properties.setProperty(JOB_TRACKER_LOCATION, cluster);
             }
 
             if (nameNode!=null && nameNode.length() > 0) {
-                if(nameNode.indexOf(':') < 0 && !nameNode.equalsIgnoreCase(LOCAL)) {
+                if(!nameNode.contains(":")  && !nameNode.equalsIgnoreCase(LOCAL)) {
                     nameNode = nameNode + ":8020";
                 }
-                setFilesystemLocation(nameNode);
+                properties.setProperty(FILE_SYSTEM_LOCATION, nameNode);
             }
         }
      
-        log.info("Connecting to hadoop file system at: " + conf.get("fs.default.name"));
-
-        try {
-            ds = new HDataStorage(conf);
-        }
-        catch (IOException e) {
-            throw new ExecException("Failed to create DataStorage", e);
-        }
+        log.info("Connecting to hadoop file system at: " + properties.get(FILE_SYSTEM_LOCATION));
+        ds = new HDataStorage(properties);
             
+        Configuration configuration = ConfigurationUtil.toConfiguration(properties);
         if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
-	        log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
-	        
-	        try {
-	            jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
-	                                                              JobSubmissionProtocol.versionID, 
-	                                                              JobTracker.getAddress(conf.getConfiguration()),
-	                                                              conf.getConfiguration());
-	        }
-	        catch (IOException e) {
-	            throw new ExecException("Failed to crate job tracker", e);
-	        }
+                log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
+                if (!LOCAL.equalsIgnoreCase(cluster)) {
+                try {
+                    jobTracker = (JobSubmissionProtocol) RPC.getProxy(
+                            JobSubmissionProtocol.class,
+                            JobSubmissionProtocol.versionID, JobTracker
+                                    .getAddress(configuration), configuration);
+                } catch (IOException e) {
+                    throw new ExecException("Failed to crate job tracker", e);
+                }
+            }
         }
 
         try {
             // Set job-specific configuration knobs
-            jobClient = new JobClient(new JobConf(conf.getConfiguration()));
+            jobClient = new JobClient(new JobConf(configuration));
         }
         catch (IOException e) {
             throw new ExecException("Failed to create job client", e);
@@ -176,26 +163,16 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     public void close() throws ExecException {
-            closeHod(System.getProperty("hod.server"));
+        closeHod(pigContext.getProperties().getProperty("hod.server"));
     }
         
     public Properties getConfiguration() throws ExecException {
-        return this.conf;
+        return this.pigContext.getProperties();
     }
         
     public void updateConfiguration(Properties newConfiguration) 
             throws ExecException {
-        Enumeration keys = newConfiguration.propertyNames();
-        
-        while (keys.hasMoreElements()) {
-            Object obj = keys.nextElement();
-            
-            if (obj instanceof String) {
-                String str = (String) obj;
-                
-                conf.put(str, newConfiguration.get(str));
-            }
-        }
+        init(newConfiguration);
     }
         
     public Map<String, Object> getStatistics() throws ExecException {
@@ -255,7 +232,7 @@ public class HExecutionEngine implements ExecutionEngine {
         POMapreduce pom = (POMapreduce) physicalOpTable.get(plan.getRoot());
 
         MapReduceLauncher.initQueryStatus(pom.numMRJobs());  // initialize status, for bookkeeping purposes.
-        MapReduceLauncher.setConf(this.conf.getConfiguration());
+        MapReduceLauncher.setConf(ConfigurationUtil.toConfiguration(pigContext.getProperties()));
         MapReduceLauncher.setExecEngine(this);
         
         // if the final operator is a MapReduce with no output file, then send to a temp
@@ -309,7 +286,8 @@ public class HExecutionEngine implements ExecutionEngine {
     }
     
     private void setSSHFactory(){
-        String g = System.getProperty("ssh.gateway");
+        Properties properties = this.pigContext.getProperties();
+        String g = properties.getProperty("ssh.gateway");
         if (g == null || g.length() == 0) return;
         try {
             Class clazz = Class.forName("org.apache.pig.shock.SSHSocketImplFactory");
@@ -331,11 +309,11 @@ public class HExecutionEngine implements ExecutionEngine {
 
     class ShutdownThread extends Thread{
         public synchronized void run() {
-            closeHod(System.getProperty("hod.server"));
+            closeHod(pigContext.getProperties().getProperty("hod.server"));
         }
     }
     
-    private String[] doHod(String server) throws ExecException {
+    private String[] doHod(String server, Properties properties) throws ExecException {
         if (hodMapRed != null) {
             return new String[] {hodHDFS, hodMapRed};
         }
@@ -344,9 +322,11 @@ public class HExecutionEngine implements ExecutionEngine {
             // first, create temp director to store the configuration
             hodConfDir = createTempDir(server);
 			
-			// get the number of nodes out of the command or use default
-            StringBuilder hodParams = new StringBuilder(System.getProperty("hod.param", ""));
-			int nodes = getNumNodes(hodParams);
+            //jz: fallback to systemproperty cause this not handled in Main
+            StringBuilder hodParams = new StringBuilder(properties.getProperty(
+                    "hod.param", System.getProperty("hod.param", "")));
+            // get the number of nodes out of the command or use default
+            int nodes = getNumNodes(hodParams);
 
             // command format: hod allocate - d <cluster_dir> -n <number_of_nodes> <other params>
             String[] cmdarray = new String[7];
@@ -387,20 +367,30 @@ public class HExecutionEngine implements ExecutionEngine {
 
             JobConf jobConf = new JobConf(hadoopConf);
             jobConf.addResource("pig-cluster-hadoop-site.xml");
-            conf = new HConfiguration(jobConf);
 
-            hdfs = (String)conf.get("fs.default.name");
+			// We need to load the properties from the hadoop configuration
+			// file we just found in the hod dir.  We want these to override
+			// any existing properties we have.
+        	if (jobConf != null) {
+            	Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
+            	while (iter.hasNext()) {
+                	Map.Entry<String, String> entry = iter.next();
+                	properties.put(entry.getKey(), entry.getValue());
+            	}
+        	}
+
+            hdfs = properties.getProperty(FILE_SYSTEM_LOCATION);
             if (hdfs == null)
                 throw new ExecException("Missing fs.default.name from hadoop configuration");
             log.info("HDFS: " + hdfs);
 
-            mapred = (String)conf.get("mapred.job.tracker");
+            mapred = properties.getProperty(JOB_TRACKER_LOCATION);
             if (mapred == null)
                 throw new ExecException("Missing mapred.job.tracker from hadoop configuration");
             log.info("JobTracker: " + mapred);
 
-            hdfs = fixUpDomain(hdfs);
-            mapred = fixUpDomain(mapred);
+            hdfs = fixUpDomain(hdfs, properties);
+            mapred = fixUpDomain(mapred, properties);
             hodHDFS = hdfs;
             hodMapRed = mapred;
 
@@ -561,10 +551,11 @@ public class HExecutionEngine implements ExecutionEngine {
         path.delete();
     }
 
-    private String fixUpDomain(String hostPort) throws UnknownHostException {
+    private String fixUpDomain(String hostPort,Properties properties) throws UnknownHostException {
         String parts[] = hostPort.split(":");
         if (parts[0].indexOf('.') == -1) {
-            String domain = System.getProperty("cluster.domain");
+          //jz: fallback to systemproperty cause this not handled in Main 
+            String domain = properties.getProperty("cluster.domain",System.getProperty("cluster.domain"));
             if (domain == null) 
                 throw new RuntimeException("Missing cluster.domain property!");
             parts[0] = parts[0] + "." + domain;

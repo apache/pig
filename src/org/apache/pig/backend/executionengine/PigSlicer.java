@@ -77,7 +77,7 @@ public class PigSlicer implements Slicer {
             long size = (Long) (stats.get(ElementDescriptor.LENGTH_KEY));
             long pos = 0;
             String name = fullPath.toString();
-            System.out.println(size + " " + name);
+            // System.out.println(size + " " + name);
             if (name.endsWith(".gz") || !splittable) {
                 // Anything that ends with a ".gz" we must process as a complete
                 // file

@@ -32,6 +32,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.Slice;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.PigSlicer;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -87,7 +88,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
         FileSystem fs = FileSystem.get(job);
         List<SliceWrapper> splits = new ArrayList<SliceWrapper>();
         for (int i = 0; i < inputs.size(); i++) {
-            DataStorage store = new HDataStorage(job);
+            DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
             ValidatingInputFileSpec spec;
             if (inputs.get(i) instanceof ValidatingInputFileSpec) {
                 spec = (ValidatingInputFileSpec) inputs.get(i);

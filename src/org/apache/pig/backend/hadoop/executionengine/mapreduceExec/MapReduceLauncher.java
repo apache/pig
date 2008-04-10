@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.log4j.Logger;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
@@ -130,7 +132,9 @@ public class MapReduceLauncher {
     public boolean launchPig(POMapreduce pom) throws IOException {
         JobConf conf = new JobConf(config);
         setJobProperties(conf, pom);
-        conf.setJobName(pom.pigContext.getJobName());
+        Properties properties = pom.pigContext.getProperties();
+        String jobName = properties.getProperty(PigContext.JOB_NAME);
+        conf.setJobName(jobName);
         boolean success = false;
         List<String> funcs = new ArrayList<String>();
         

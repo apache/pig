@@ -99,7 +99,7 @@ public class TestPi extends TestCase {
         dat.close();
         
         try {
-            pig = new PigServer(MAPREDUCE);
+            pig = new PigServer(MAPREDUCE, cluster.getProperties());
         }
         catch (ExecException e) {
         	IOException ioe = new IOException("Failed to create Pig Server");

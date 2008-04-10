@@ -105,10 +105,27 @@ public class Util {
 	 */
 	static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
 			                        Tuple[] expectedResults) {
+	    
 		for (Tuple expected : expectedResults) {
 			Tuple actual = actualResults.next();
 			Assert.assertEquals(expected, actual);
 		}
 	}
+	
+	static public void printQueryOutput(Iterator<Tuple> actualResults, 
+               Tuple[] expectedResults) {
+
+	    System.out.println("Expected :") ;
+        for (Tuple expected : expectedResults) {
+            System.out.println(expected.toString()) ;
+        }
+	    System.out.println("---End----") ;
+	    
+        System.out.println("Actual :") ;
+        while (actualResults.hasNext()) {
+            System.out.println(actualResults.next().toString()) ;
+        }
+        System.out.println("---End----") ;
+    }
 
 }
