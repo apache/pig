@@ -64,4 +64,36 @@ public class TestPigSplit extends TestCase {
 		f.delete();
 	}
 	
+    @Test
+    public void testSchemaWithSplit() throws Exception {
+        File f = File.createTempFile("tmp", "");
+
+        PrintWriter pw = new PrintWriter(f);
+        pw.println("2");
+        pw.println("12");
+        pw.println("42");
+        pw.close();
+        pig.registerQuery("a = load 'file:" + f + "' as (value);");
+        pig.registerQuery("split a into b if value < 20, c if value > 10;");
+        pig.registerQuery("b1 = order b by value;");
+        pig.registerQuery("c1 = order c by value;");
+
+        // order in lexicographic, so 12 comes before 2
+        Iterator<Tuple> iter = pig.openIterator("b1");
+        assertTrue("b1 has an element", iter.hasNext());
+        assertEquals("first item in b1", iter.next().getAtomField(0).longVal(), 12);
+        assertTrue("b1 has an element", iter.hasNext());
+        assertEquals("second item in b1", iter.next().getAtomField(0).longVal(), 2);
+        assertFalse("b1 is over", iter.hasNext());
+
+        iter = pig.openIterator("c1");
+        assertTrue("c1 has an element", iter.hasNext());
+        assertEquals("first item in b1", iter.next().getAtomField(0).longVal(), 12);
+        assertTrue("c1 has an element", iter.hasNext());
+        assertEquals("second item in b1", iter.next().getAtomField(0).longVal(), 42);
+        assertFalse("c1 is over", iter.hasNext());
+
+        f.delete();
+    }
+
 }
