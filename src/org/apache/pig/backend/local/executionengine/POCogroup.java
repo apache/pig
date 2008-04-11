@@ -30,6 +30,7 @@ import org.apache.pig.data.AmendableTuple;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Datum;
+import org.apache.pig.data.ExampleTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.collector.DataCollector;
@@ -81,6 +82,7 @@ public class POCogroup extends PhysicalOperator {
             
             DataCollector inputToSpec = specs.get(i).setupPipe(null, 
                                                                outputFromSpec);
+            if(lineageTracer != null) specs.get(i).setLineageTracer(lineageTracer);
 
             Tuple t;            
             while ((t = (Tuple) ((PhysicalOperator)opTable.get(inputs[i])).getNext()) != null) {
@@ -121,13 +123,14 @@ public class POCogroup extends PhysicalOperator {
             // data into a single tuple
             
             Tuple output;
+            ExampleTuple tOut = new ExampleTuple();
             if (outputType == LogicalOperator.AMENDABLE) output = new AmendableTuple(1 + inputs.length, smallestGroup);
             else output = new Tuple(1 + inputs.length);
 
             // set first field to the group tuple
             output.setField(0, smallestGroup);
-            
-            if (lineageTracer != null) lineageTracer.insert(output);
+            tOut.copyFrom(output);
+            if (lineageTracer != null) lineageTracer.insert(tOut);
 
             boolean done = true;
             for (int i = 0; i < inputs.length; i++) {
@@ -142,7 +145,11 @@ public class POCogroup extends PhysicalOperator {
                         sortedInputs[i].remove(0); // discard this tuple
                     } else if (g.equals(smallestGroup)) {
                         b.add(t);
-                        if (lineageTracer != null) lineageTracer.union(t, output);   // update lineage
+                        //if (lineageTracer != null) lineageTracer.union(t, output);   // update lineage
+                        if (lineageTracer != null) {
+                        	if(((ExampleTuple)t).isSynthetic()) tOut.makeSynthetic();
+                        	lineageTracer.union(t, tOut);   // update lineage
+                        }
                         sortedInputs[i].remove(0);
                     } else {
                         break;
@@ -156,8 +163,14 @@ public class POCogroup extends PhysicalOperator {
                 output.setField(1 + i, b);
             }
 
-            if (done)
-                return output;
+            /*if (done)
+                return output;*/
+            if(done) {
+            	if(lineageTracer != null)
+            		return tOut;
+            	else
+            		return output;
+            }
         }
 
     }

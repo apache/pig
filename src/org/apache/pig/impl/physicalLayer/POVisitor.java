@@ -23,6 +23,7 @@ import org.apache.pig.backend.hadoop.executionengine.POMapreduce;
 import org.apache.pig.backend.local.executionengine.POCogroup;
 import org.apache.pig.backend.local.executionengine.POEval;
 import org.apache.pig.backend.local.executionengine.POLoad;
+import org.apache.pig.backend.local.executionengine.PORead;
 import org.apache.pig.backend.local.executionengine.POSort;
 import org.apache.pig.backend.local.executionengine.POSplit;
 import org.apache.pig.backend.local.executionengine.POStore;
@@ -124,6 +125,10 @@ abstract public class POVisitor {
      */
     public void visitUnion(POUnion u) {
         basicVisit(u);
+    }
+    
+    public void visitRead(PORead p) {
+    	basicVisit(p);
     }
 
     private void basicVisit(PhysicalOperator po) {

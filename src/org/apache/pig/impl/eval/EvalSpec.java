@@ -33,6 +33,7 @@ import org.apache.pig.impl.eval.collector.FlattenCollector;
 import org.apache.pig.impl.eval.collector.UnflattenCollector;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.DataBuffer;
+import org.apache.pig.impl.util.LineageTracer;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 
@@ -45,8 +46,17 @@ public abstract class EvalSpec implements Serializable{
 
     private String comparatorFuncName;
     private transient Comparator<Tuple> comparator;
+    private LineageTracer lineageTracer;
     
     protected Properties properties = new Properties();
+    
+    public void setLineageTracer(LineageTracer lineage) {
+    	this.lineageTracer = lineage;
+    }
+	
+	public LineageTracer getLineage() {
+		return lineageTracer;
+	}
     
     /*
      * Keep a precomputed pipeline ready if we do simple evals
