@@ -380,11 +380,10 @@ private static BufferedReader runParamPreprocessor(BufferedReader origPigScript,
         return new BufferedReader(new FileReader (scriptFile));
 
     } else {
-        PipedWriter pw = new PipedWriter();
-        PipedReader pr = new PipedReader(pw);
-        psp.genSubstitutedFile (origPigScript, pw,  params.size() > 0 ? params.toArray(type1) : null, 
+        StringWriter writer = new StringWriter();
+        psp.genSubstitutedFile (origPigScript, writer,  params.size() > 0 ? params.toArray(type1) : null, 
                                 paramFiles.size() > 0 ? paramFiles.toArray(type2) : null);
-        return new BufferedReader(pr);
+        return new BufferedReader(new StringReader(writer.toString()));
     }
 }
     
