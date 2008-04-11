@@ -110,7 +110,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
 
     public RecordReader<Text, Tuple> getRecordReader(InputSplit split,
             JobConf job, Reporter reporter) throws IOException {
-        activeSplit.set((SliceWrapper) split);
+        activeSplit = (SliceWrapper) split;
         return ((SliceWrapper) split).makeReader(job);
     }
 
@@ -118,16 +118,10 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
     }
 
     public static SliceWrapper getActiveSplit() {
-        return activeSplit.get();
+        return activeSplit;
     }
 
-    /**
-     * This is a tremendously ugly hack to get around the fact that mappers do
-     * not have access to their readers. We take advantage of the fact that
-     * RecordReader.next and Mapper.map is run on same the thread to share
-     * information through a thread local variable.
-     */
-    private static ThreadLocal<SliceWrapper> activeSplit = new ThreadLocal<SliceWrapper>();
+    private static SliceWrapper activeSplit;
 
     public void validateInput(JobConf arg0) throws IOException {
     }

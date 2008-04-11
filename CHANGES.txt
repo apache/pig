@@ -197,6 +197,9 @@ Trunk (unreleased changes)
 	the top level directory (joa23 via gates).
 
     PIG-94: M3 code update for streaming (arunc via olgan)
+
+	PIG-179: Changed PigRecordReader to be a static singleton rather than
+	thread local.  (gates).
     
     PIG-55: added custom splitter (groves via olgan)
 
