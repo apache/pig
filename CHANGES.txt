@@ -223,3 +223,6 @@ Trunk (unreleased changes)
 	IndexOutOfBoundsException (kali via gates).
 
 	PIG-59: Add a new ILLUSTRATE command (shubhamc via gates).
+
+	PIG-203: Fix bug in parameter substitution code where any pig script over
+	1k caused pig to freeze. (kali via gates)
