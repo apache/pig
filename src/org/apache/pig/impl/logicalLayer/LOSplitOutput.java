@@ -43,7 +43,7 @@ public class LOSplitOutput extends LogicalOperator {
 
     @Override
     public TupleSchema outputSchema() {
-        return opTable.get(inputs.get(index)).outputSchema();
+        return opTable.get(getInputs().get(0)).outputSchema();
     }
 
     @Override

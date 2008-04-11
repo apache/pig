@@ -218,3 +218,6 @@ Trunk (unreleased changes)
 
 	PIG-111: Reworked configuration to be setable via properties.
 	(Contributions from joa23, pi_song, and oae via gates).
+
+	PIG-178: Use of schema on secondary output of SPLIT throws
+	IndexOutOfBoundsException (kali via gates).
