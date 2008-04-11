@@ -132,7 +132,7 @@ public abstract class DataCollector {
             
             if (successor != null) {
                 successor.finishPipe();
-                successor = null;
+            //    successor = null;
             }
         } catch (Exception e) {
             try {
@@ -143,7 +143,7 @@ public abstract class DataCollector {
                 // Ignore this exception since the original is more relevant
                 LOG.debug(ignored);
             }
-            successor = null;
+            //successor = null;
             throw new RuntimeException(e);
         }
     }

@@ -19,9 +19,11 @@ package org.apache.pig.backend.local.executionengine;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.data.ExampleTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.collector.DataCollector;
@@ -77,9 +79,20 @@ public class POEval extends PhysicalOperator {
             evalPipeline = spec.setupPipe(null, buf);
             
         inputDrained = false;
+        if(lineageTracer != null) spec.setLineageTracer(lineageTracer);
         
         return true;
     }
+    
+    /*@Override
+    public void close() throws IOException {
+    	// call close() on all inputs
+        if (inputs != null)
+            for (int i = 0; i < inputs.length; i++)
+                ((PhysicalOperator)opTable.get(inputs[i])).close();
+        buf = null;
+        evalPipeline = null;
+    }*/
 
     @Override
     public Tuple getNext() throws IOException {
@@ -102,11 +115,31 @@ public class POEval extends PhysicalOperator {
                 }
             }else{
                 Tuple output = (Tuple)buf.removeFirst();
+                ExampleTuple tOut = new ExampleTuple();
+                tOut.copyFrom(output);
                 if (lineageTracer != null) {
+        			List<Tuple> children = lineageTracer.getFlattenChildren(output);
+        			if(children != null) {
+        				//the output tuple we get is not a example tuple. so we take it out and put in the converted exampletuple
+        				lineageTracer.removeFlattenMap(output);
+        				lineageTracer.addFlattenMap(tOut, children);
+        			}
+        		    lineageTracer.insert(tOut);
+        		    if (lastAdded != null) {
+        		    	if(((ExampleTuple)lastAdded).isSynthetic()) tOut.makeSynthetic();
+        		    	lineageTracer.union(lastAdded, tOut);   // update lineage (assumes one-to-many relationship between tuples added to pipeline and output!!)
+        		    	//lineageTracer.union(tOut, lastAdded);
+        		    }
+        		}
+                /*if (lineageTracer != null) {
                     lineageTracer.insert(output);
                     if (lastAdded != null) lineageTracer.union(lastAdded, output);   // update lineage (assumes one-to-many relationship between tuples added to pipeline and output!!)
-                }
-                return output;
+                }*/
+                //return output;
+                if(lineageTracer != null)
+                	return tOut;
+                else
+                	return output;
             }            
         }
     }

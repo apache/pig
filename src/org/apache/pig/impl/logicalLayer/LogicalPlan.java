@@ -54,6 +54,10 @@ public class LogicalPlan implements Serializable, ExecLogicalPlan{
         return this.opTable;
     }
     
+    public LogicalOperator getRootOperator() {
+    	return opTable.get(root);
+    }
+    
     public void setRoot(OperatorKey newRoot) {
         root = newRoot;
     }

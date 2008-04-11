@@ -46,6 +46,10 @@ public class LocalExecutionEngine implements ExecutionEngine {
         this.physicalOpTable = new HashMap<OperatorKey, ExecPhysicalOperator>();
         this.materializedResults = new HashMap<OperatorKey, LocalResult>();
     }
+    
+    public Map<OperatorKey, OperatorKey> getLogicalToPhysicalMap() {
+    	return logicalToPhysicalKeys;
+    }
 
     public DataStorage getDataStorage() {
         return this.ds;

@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.data.ExampleTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -79,7 +80,17 @@ public class POLoad extends PhysicalOperator {
     
     @Override
     public Tuple getNext() throws IOException {
-        return lf.getNext();
+    	Tuple t = lf.getNext();
+    	if(lineageTracer != null) {
+    		ExampleTuple tOut = new ExampleTuple();
+    		if(t != null) {
+    			tOut.copyFrom(t);
+    			return tOut;
+    		}
+    		return null;
+    	}
+    	return t;
+        //return lf.getNext();
     }
 
     @Override

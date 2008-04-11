@@ -41,6 +41,7 @@ import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -59,6 +60,8 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.pen.DisplayExamples;
+import org.apache.pig.pen.ExGen;
 
 
 /**
@@ -71,6 +74,8 @@ import org.apache.pig.impl.util.PropertiesUtil;
 public class PigServer {
     
     private final Log log = LogFactory.getLog(getClass());
+    
+    public String Result;
     
     /**
      * The type of query execution
@@ -555,4 +560,18 @@ public class PigServer {
         //
         // pigContext.getExecutionEngine().reclaimScope(this.scope);
     }
+    
+    public void showExamples(String id) throws IOException {
+		if(!aliases.containsKey(id))
+			throw new IOException("Invalid alias : " + id);
+		
+		LogicalPlan root = aliases.get(id);
+		showExamples(root);
+	}
+	
+	public void showExamples(LogicalPlan lp) throws IOException{
+		Map<LogicalOperator, DataBag> exampleData = ExGen.GenerateExamples(lp, pigContext);
+		this.Result = DisplayExamples.PrintTabular(lp, exampleData);
+		System.out.println(Result);
+	}
 }

@@ -221,3 +221,5 @@ Trunk (unreleased changes)
 
 	PIG-178: Use of schema on secondary output of SPLIT throws
 	IndexOutOfBoundsException (kali via gates).
+
+	PIG-59: Add a new ILLUSTRATE command (shubhamc via gates).

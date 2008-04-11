@@ -222,6 +222,7 @@ public class GenerateSpec extends EvalSpec {
                for (int i=0; i< numItems; i++){
                    if (specs.get(i).isFlattened() && outData[i] instanceof Tuple){
                        Tuple t = (Tuple)outData[i];
+                       if(getLineage() != null) getLineage().unionFlatten(t, outTuple);
                        for (int j=0; j < t.arity(); j++){
                            outTuple.appendField(t.getField(j));
                        }
