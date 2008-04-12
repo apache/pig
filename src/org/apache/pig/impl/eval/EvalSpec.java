@@ -243,6 +243,7 @@ public abstract class EvalSpec implements Serializable{
         try{
             EvalSpec es = (EvalSpec) ObjectSerializer.deserialize(ObjectSerializer.serialize(this));
             es.instantiateFunc(pigContext);
+            es.properties.putAll(properties);
             return es;
         }catch(IOException e){
             throw new RuntimeException(e);
