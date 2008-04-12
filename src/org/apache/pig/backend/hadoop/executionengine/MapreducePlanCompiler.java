@@ -233,21 +233,28 @@ public class MapreducePlanCompiler {
     private void connectInputs(OperatorKey[] compiledInputs, 
                                POMapreduce pom,
                                Map<OperatorKey, ExecPhysicalOperator> physicalOpTable) throws IOException {
-        // connect inputs (by merging operators, if possible; else connect via temp files)
+        // connect inputs (by merging operators, if possible; 
+        // else connect via temp files)
         for (int i = 0; i < compiledInputs.length; i++) {
-            if (okayToMergeWithBinaryOp((POMapreduce)physicalOpTable.get(compiledInputs[i]))) {
+            POMapreduce input = 
+                (POMapreduce)physicalOpTable.get(compiledInputs[i]);
+            
+            if (okayToMergeWithBinaryOp(input)) {
                 // can merge input i with this operator
-                pom.addInputFile(((POMapreduce)physicalOpTable.get(compiledInputs[i])).getFileSpec(0), 
-                                  ((POMapreduce)physicalOpTable.get(compiledInputs[i])).getEvalSpec(0));
-                pom.addInputOperators(((PhysicalOperator)physicalOpTable.get(compiledInputs[i])).inputs);
+                pom.addInputFile(input.getFileSpec(0), input.getEvalSpec(0));
+                pom.addInputOperators(input.inputs);
             } else {
                 // chain together via a temp file
                 String tempFile = getTempFile(pigContext);
-                FileSpec fileSpec = new FileSpec( tempFile, BinStorage.class.getName());
-                ((POMapreduce)physicalOpTable.get(compiledInputs[i])).outputFileSpec = fileSpec;
+                FileSpec fileSpec = new FileSpec(tempFile, 
+                                                 BinStorage.class.getName());
+                input.outputFileSpec = fileSpec;
                 pom.addInputFile(fileSpec);
                 pom.addInputOperator(compiledInputs[i]);
             }
+            
+            // propagate input properties
+            pom.properties.putAll(input.properties);
         }
     }
 

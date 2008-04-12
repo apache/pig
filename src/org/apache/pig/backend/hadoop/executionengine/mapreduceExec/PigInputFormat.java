@@ -47,7 +47,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
     @SuppressWarnings("unchecked")
     public InputSplit[] getSplits(JobConf job, int numSplits)
             throws IOException {
-        boolean isSplittable = job.getBoolean("pig.input.splittable", false);
+        boolean isSplittable = job.getBoolean("pig.input.splittable", true);
         ArrayList<FileSpec> inputs = (ArrayList<FileSpec>) ObjectSerializer
                 .deserialize(job.get("pig.inputs"));
         ArrayList<EvalSpec> mapFuncs = (ArrayList<EvalSpec>) ObjectSerializer

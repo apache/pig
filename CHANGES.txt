@@ -226,3 +226,5 @@ Trunk (unreleased changes)
 
 	PIG-203: Fix bug in parameter substitution code where any pig script over
 	1k caused pig to freeze. (kali via gates)
+
+	PIG-204: Repair broken input splits (acmurthy via gates).
