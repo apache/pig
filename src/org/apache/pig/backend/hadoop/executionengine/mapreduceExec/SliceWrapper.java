@@ -92,6 +92,15 @@ public class SliceWrapper implements InputSplit {
         DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
         store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
         wrapped.init(store);
+        
+        // Mimic org.apache.hadoop.mapred.FileSplit if feasible...
+        String[] locations = wrapped.getLocations();
+        if (locations.length > 0) {
+            job.set("map.input.file", locations[0]);    
+            job.setLong("map.input.start", wrapped.getStart());   
+            job.setLong("map.input.length", wrapped.getLength());
+        }
+        
         return new RecordReader<Text, Tuple>() {
 
             public void close() throws IOException {

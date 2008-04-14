@@ -41,6 +41,11 @@ public interface Slice extends Serializable {
     void init(DataStorage store) throws IOException;
 
     /**
+     * Returns the offset from which data in this Slice will be processed.
+     */
+    long getStart();
+    
+    /**
      * Returns the length in bytes of all of the data that will be processed by
      * this Slice.
      * <p>

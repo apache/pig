@@ -228,3 +228,6 @@ Trunk (unreleased changes)
 	1k caused pig to freeze. (kali via gates)
 
 	PIG-204: Repair broken input splits (acmurthy via gates).
+
+	PIG-188: Fix mismatches between pig slicer changes and new streaming
+	feature (acmurthy via gates).

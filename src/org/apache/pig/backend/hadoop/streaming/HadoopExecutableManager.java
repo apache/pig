@@ -187,12 +187,13 @@ public class HadoopExecutableManager extends ExecutableManager {
         }
         processError("\nCommand: " + sb.toString());
         processError("\nStart time: " + new Date(System.currentTimeMillis()));
-        processError("\nInput-split file: " + job.get("map.input.file"));
-        processError("\nInput-split start-offset: " + 
-                job.getLong("map.input.start", -1));
-        processError("\nInput-split length: " + 
-                job.getLong("map.input.length", -1));
-
+        if (job.getBoolean("mapred.task.is.map", false)) {
+            processError("\nInput-split file: " + job.get("map.input.file"));
+            processError("\nInput-split start-offset: " + 
+                         job.getLong("map.input.start", -1));
+            processError("\nInput-split length: " + 
+                         job.getLong("map.input.length", -1));
+        }
         processError("\n=====          * * *          =====\n");
     }
     

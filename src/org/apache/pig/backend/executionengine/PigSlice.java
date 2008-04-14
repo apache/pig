@@ -48,6 +48,10 @@ public class PigSlice implements Slice {
         return new String[] { file };
     }
 
+    public long getStart() {
+        return start;
+    }
+    
     public long getLength() {
         return length;
     }
