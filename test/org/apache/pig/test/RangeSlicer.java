@@ -68,6 +68,10 @@ public class RangeSlicer
             return new String[0];
         }
 
+        public long getStart() {
+            return 0;
+        }
+        
         public long getPos ()
             throws IOException
         {
