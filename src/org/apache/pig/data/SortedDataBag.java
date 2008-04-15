@@ -66,19 +66,11 @@ public class SortedDataBag extends DefaultAbstractBag {
     }
 
     /**
-     * @param spec EvalSpec to use to do the sorting. spec.getComparator()
-     * will be called to populate our mComp field.  If null,
+     * @param comp Comparator to use to do the sorting.  If null,
      * DefaultComparator will be used.
      */
-    // TODO FIX Need to pass in comparator from somewhere.
-    public SortedDataBag(/*EvalSpec spec*/) {
-        /*
-        if (spec == null) {
-            mComp = new DefaultComparator();
-        } else {
-            mComp = spec.getComparator();
-        }
-        */
+    public SortedDataBag(Comparator<Tuple> comp) {
+        mComp = (comp == null) ? new DefaultComparator() : comp;
 
         mContents = new ArrayList<Tuple>();
     }

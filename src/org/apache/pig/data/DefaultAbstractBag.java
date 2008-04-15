@@ -208,9 +208,7 @@ public abstract class DefaultAbstractBag implements DataBag {
                     this instanceof DistinctDataBag) {
                 thisClone = this;
             } else {
-                // TODO FIX
-                // thisClone = new SortedDataBag(null);
-                thisClone = new SortedDataBag();
+                thisClone = new SortedDataBag(null);
                 Iterator<Tuple> i = iterator();
                 while (i.hasNext()) thisClone.add(i.next());
             }
@@ -218,9 +216,7 @@ public abstract class DefaultAbstractBag implements DataBag {
                     this instanceof DistinctDataBag) {
                 otherClone = bOther;
             } else {
-                // TODO FIX
-                //otherClone = new SortedDataBag(null);
-                otherClone = new SortedDataBag();
+                otherClone = new SortedDataBag(null);
                 Iterator<Tuple> i = bOther.iterator();
                 while (i.hasNext()) otherClone.add(i.next());
             }

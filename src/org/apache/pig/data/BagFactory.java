@@ -21,6 +21,7 @@ import java.lang.Class;
 import java.lang.ClassLoader;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Comparator;
 
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
@@ -84,11 +85,10 @@ public abstract class BagFactory {
 
     /**
      * Get a sorted data bag.
-     * @param spec EvalSpec that controls how the data is sorted.
+     * @param comp Comparator that controls how the data is sorted.
      * If null, default comparator will be used.
      */
-    // TODO FIX Need to pass in comparator
-    public abstract DataBag newSortedBag(/*EvalSpec spec*/);
+    public abstract DataBag newSortedBag(Comparator<Tuple> comp);
     
     /**
      * Get a distinct data bag.
