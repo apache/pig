@@ -16,6 +16,7 @@
     <property name="src.dir" value="${basedir}/src/" />
     <property name="src.lib.dir" value="${basedir}/lib-src/" />
     <property name="src.gen.dir" value="${basedir}/src-gen/" />
+    <property name="src.docs.dir" value="${basedir}/docs/" />
 
     <!-- javacc properties -->
     <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
@@ -64,6 +65,9 @@
     <property name="test.log.dir" value="${basedir}/test/logs"/>
     <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
     <property name="test.output" value="no"/>
+	
+	<!-- javadoc properties  -->
+	<property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
 
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
@@ -166,14 +170,15 @@
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
     <!-- ================================================================== -->
-    <target name="javadoc" depends="init" description="Create documentation">
+    <target name="javadoc" depends="jar" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
-        <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+        <javadoc overview="${src.docs.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="classpath" />
                 <pathelement path="${java.class.path}" />
+            	<pathelement path="${output.jarfile}" />
             </classpath>
             <group title="pig" packages="org.apache.*" />
         </javadoc>

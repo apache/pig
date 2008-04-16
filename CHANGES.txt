@@ -231,3 +231,6 @@ Trunk (unreleased changes)
 
 	PIG-188: Fix mismatches between pig slicer changes and new streaming
 	feature (acmurthy via gates).
+
+	PIG-149, PIG-150:  Fix doc target so that ant can generate docs (xuzh via
+	gates).
