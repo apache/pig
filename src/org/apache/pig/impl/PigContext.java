@@ -444,11 +444,16 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public static Class resolveClassName(String name) throws IOException{
         for(String prefix: packageImportList) {
             Class c;
-        try {
-            c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
-            return c;
-            } catch (ClassNotFoundException e) {
-            } catch (LinkageError e) {}
+            try {
+                c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
+                return c;
+            } 
+            catch (ClassNotFoundException e) {
+                // do nothing
+            } 
+            catch (UnsupportedClassVersionError e) {
+                throw new RuntimeException(e) ;
+            }
         }
 
         // create ClassNotFoundException exception and attach to IOException

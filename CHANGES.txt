@@ -234,3 +234,6 @@ Trunk (unreleased changes)
 
 	PIG-149, PIG-150:  Fix doc target so that ant can generate docs (xuzh via
 	gates).
+
+	PIG-183:  Catch when a UDF has been compiled with the wrong version of
+	java and give a RuntimeException (pi_song via gates).
