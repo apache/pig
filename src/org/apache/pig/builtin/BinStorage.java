@@ -24,13 +24,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
 
-import org.apache.pig.LoadFunc;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
-
-public class BinStorage implements LoadFunc, StoreFunc {
+public class BinStorage implements ReversibleLoadStoreFunc {
     Iterator<Tuple>     i              = null;
     protected BufferedPositionedInputStream in = null;
     private DataInputStream inData = null;
