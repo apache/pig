@@ -21,8 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-import org.apache.pig.LoadFunc;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
@@ -32,7 +31,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
-public class PigStorage implements LoadFunc, StoreFunc {
+public class PigStorage implements ReversibleLoadStoreFunc {
     protected BufferedPositionedInputStream in = null;
     long                end            = Long.MAX_VALUE;
     private byte recordDel = (byte)'\n';

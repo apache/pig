@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.FunctionInstantiator;
@@ -83,16 +84,18 @@ public class MapreducePlanCompiler {
         MapRedResult materializedResult = materializedResults.get(logicalKey);
         
         if (materializedResult != null) {
-            POMapreduce pom = new POMapreduce(logicalKey.getScope(),
-                                              nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-                                              execEngine.getPhysicalOpTable(),
-                                              logicalKey,
-                                              pigContext);
+            if (PigContext.instantiateFuncFromSpec(materializedResult.outFileSpec.getFuncSpec()) 
+                    instanceof ReversibleLoadStoreFunc) {
+                POMapreduce pom = new POMapreduce(logicalKey.getScope(),
+                    nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
+                    execEngine.getPhysicalOpTable(), logicalKey,
+                    pigContext);
 
-            pom.addInputFile(materializedResult.outFileSpec);
-            pom.mapParallelism = Math.max(pom.mapParallelism, materializedResult.parallelismRequest);
+            	pom.addInputFile(materializedResult.outFileSpec);
+            	pom.mapParallelism = Math.max(pom.mapParallelism, materializedResult.parallelismRequest);
 
-            return pom.getOperatorKey();            
+            	return pom.getOperatorKey();            
+			}
         }
         
         // first, compile inputs into MapReduce operators

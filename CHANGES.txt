@@ -237,3 +237,6 @@ Trunk (unreleased changes)
 
 	PIG-183:  Catch when a UDF has been compiled with the wrong version of
 	java and give a RuntimeException (pi_song via gates).
+
+	PIG-114: store one alias/logicalPlan twice leads to instantiation of
+	StoreFunc as LoadFunc (pi_song via gates).

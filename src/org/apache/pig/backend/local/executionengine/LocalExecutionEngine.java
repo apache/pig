@@ -6,6 +6,7 @@ import java.util.Properties;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.BagFactory;
@@ -161,16 +162,20 @@ public class LocalExecutionEngine implements ExecutionEngine {
         LocalResult materializedResult = materializedResults.get(logicalKey);
         
         if (materializedResult != null) {
-            ExecPhysicalOperator pp = new POLoad(logicalKey.getScope(),
-                                             nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-                                             physicalOpTable,
-                                             pigContext, 
-                                             materializedResult.outFileSpec,
-                                             LogicalOperator.FIXED);
             
-            OperatorKey ppKey = new OperatorKey(pp.getScope(), pp.getId());
-            
-            return ppKey;
+            if (PigContext.instantiateFuncFromSpec(materializedResult.outFileSpec.getFuncSpec()) 
+                                                            instanceof ReversibleLoadStoreFunc) {
+                ExecPhysicalOperator pp = new POLoad(logicalKey.getScope(),
+                            nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
+                            physicalOpTable,
+                            pigContext, 
+                            materializedResult.outFileSpec,
+                            LogicalOperator.FIXED);
+
+               OperatorKey ppKey = new OperatorKey(pp.getScope(), pp.getId());
+               return ppKey;          
+            }
+
         }
 
         OperatorKey physicalKey = new OperatorKey();
