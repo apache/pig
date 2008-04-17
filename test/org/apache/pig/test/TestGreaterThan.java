@@ -162,10 +162,6 @@ public class TestGreaterThan {
         return true;
     }
 
-    public static void main(String[] args) throws ExecException {
-
-    }
-
     @Test
     public void testOperator() throws ExecException {
         int TRIALS = 10;

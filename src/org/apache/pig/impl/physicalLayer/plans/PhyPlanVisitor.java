@@ -22,12 +22,14 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
-//import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.StartMap;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.PlanVisitor;
 
 /**
@@ -44,7 +46,7 @@ import org.apache.pig.impl.plan.PlanVisitor;
  * @param <O>
  * @param <P>
  */
-public abstract class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O>> extends PlanVisitor<O,P> {
+public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O>> extends PlanVisitor<O,P> {
 
     public PhyPlanVisitor(P plan) {
         super(plan);
@@ -67,11 +69,17 @@ public abstract class PhyPlanVisitor<O extends PhysicalOperator, P extends Physi
         ExprPlanVisitor epv = new ExprPlanVisitor(fl.getPlan());
         epv.visit();
     }
-//    
-//    public void visitLocalRearrange(POLocalRearrange lr){
-//        //do nothing
-//    }
-//    
+    
+    public void visitLocalRearrange(POLocalRearrange lr) throws ParseException{
+        PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>> ppv = new PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>>(lr.getPlan());
+        ppv.visit();
+    }
+    
+    public void visitForEach(POForEach fe) throws ParseException{
+        PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>> ppv = new PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>>(fe.getPlan());
+        ppv.visit();
+    }
+    
 //    public void visitGlobalRearrange(POGlobalRearrange gr){
 //        //do nothing
 //    }
@@ -80,9 +88,9 @@ public abstract class PhyPlanVisitor<O extends PhysicalOperator, P extends Physi
 //        //do nothing
 //    }
 //    
-//    public void visitPackage(POPackage pkg){
-//        //do nothing
-//    }
+    public void visitPackage(POPackage pkg){
+        //do nothing
+    }
     
     public void visitGenerate(POGenerate pogen) {
         //do nothing

@@ -200,7 +200,7 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
         Result res = new Result();
         Tuple inpValue = null;
         if (input == null && inputs == null) {
-            log.warn("No inputs found. Signaling End of Processing.");
+//            log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
             return res;
         }

@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.physicalLayer.plans;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -31,7 +32,7 @@ import org.apache.pig.impl.plan.OperatorPlan;
  *
  * @param <E>
  */
-public abstract class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
+public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
 
     public PhysicalPlan() {
         super();
@@ -51,5 +52,12 @@ public abstract class PhysicalPlan<E extends PhysicalOperator> extends OperatorP
     public void explain(OutputStream out){
         //Use a plan visitor and output the current physical
         //plan into out
+    }
+    
+    @Override
+    public void connect(E from, E to)
+            throws IOException {
+        super.connect(from, to);
+        to.setInputs(getPredecessors(to));
     }
 }

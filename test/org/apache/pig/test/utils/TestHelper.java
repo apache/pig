@@ -17,9 +17,12 @@
  */
 package org.apache.pig.test.utils;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -35,5 +38,37 @@ public class TestHelper {
                 return true;
         }
         return false;
+    }
+    
+    public static boolean compareBags(DataBag db1, DataBag db2) {
+        if (db1.size() != db2.size())
+            return false;
+
+        boolean equal = true;
+        for (Tuple tuple : db2) {
+            boolean contains = false;
+            for (Tuple tuple2 : db1) {
+                if (tuple.compareTo(tuple2) == 0) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (!contains) {
+                equal = false;
+                break;
+            }
+        }
+        return equal;
+    }
+    
+    public static DataBag projectBag(DataBag db2, int i) throws IOException {
+        DataBag ret = DefaultBagFactory.getInstance().newDefaultBag();
+        for (Tuple tuple : db2) {
+            Object o = tuple.get(i);
+            Tuple t1 = new DefaultTuple();
+            t1.append(o);
+            ret.add(t1);
+        }
+        return ret;
     }
 }

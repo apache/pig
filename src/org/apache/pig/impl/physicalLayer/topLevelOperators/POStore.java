@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -50,6 +52,8 @@ public class POStore extends PhysicalOperator<PhyPlanVisitor> {
     OutputStream os;
     // PigContext passed to us by the operator creator
     PigContext pc;
+    
+    private final Log log = LogFactory.getLog(getClass());
     
     public POStore(OperatorKey k) {
         this(k, -1, null);
@@ -116,6 +120,12 @@ public class POStore extends PhysicalOperator<PhyPlanVisitor> {
     public Result store() throws ExecException{
         try{
             setUp();
+        }catch (IOException e) {
+            ExecException ee = new ExecException("Unable to setup the storer because of the exception: " + e.getMessage());
+            ee.initCause(e);
+            throw ee;
+        }
+        try{
             Result res;
             Tuple inpValue = null;
             while(true){
@@ -136,7 +146,7 @@ public class POStore extends PhysicalOperator<PhyPlanVisitor> {
             tearDown();
             return res;
         }catch(IOException e){
-            e.printStackTrace();
+            log.error("Received error from storer function: " + e);
             return new Result();
         }
     }

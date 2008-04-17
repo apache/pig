@@ -141,7 +141,8 @@
         	    **/test/TestGTOrEqual.java,**/test/TestLessThan.java,**/test/TestLTOrEqual.java,
         	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java, **/test/TestPOGenerate.java,
                 **/test/TestProject.java, **/test/TestLoad.java, **/test/TestStore.java,
-                 **/test/FakeFSOutputStream.java,
+                 **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
+        		**/test/TestLocalRearrange.java,
                 **/test/FakeFSInputStream.java, **/test/Util.java,
                 **/logicalLayer/*.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
@@ -249,6 +250,9 @@
                 	<include name="**/TestPOGenerate.java" />
                 	<include name="**/TestLoad.java" />
                 	<include name="**/TestStore.java" />
+                	<include name="**/TestPackage.java" />  
+                	<include name="**/TestLocalRearrange.java" /> 
+                	<include name="**/TestForEach.java" /> 
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

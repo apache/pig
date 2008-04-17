@@ -94,6 +94,7 @@ public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
      */
     private void tearDown() throws IOException{
         is.close();
+        setUpDone = false;
     }
     
     /**
@@ -128,7 +129,6 @@ public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
                 res.returnStatus = POStatus.STATUS_OK;
         } catch (IOException e) {
             log.error("Received error from loader function: " + e);
-            res.returnStatus = POStatus.STATUS_ERR; 
             return res;
         }
         return res;
