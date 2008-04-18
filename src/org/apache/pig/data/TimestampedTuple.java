@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 
 public class TimestampedTuple extends Tuple {
 
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(TimestampedTuple.class);
     
     protected double timestamp = 0;      // timestamp of this tuple
     protected boolean heartbeat = false;  // true iff this is a heartbeat (i.e. purpose is just to convey new timestamp; carries no data)

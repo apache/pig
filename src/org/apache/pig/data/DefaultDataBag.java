@@ -38,7 +38,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class DefaultDataBag extends DataBag {
 
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(DefaultDataBag.class);
 
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
