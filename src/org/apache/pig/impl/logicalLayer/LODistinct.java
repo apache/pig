@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class LODistinct extends LogicalOperator {
 
@@ -81,7 +81,7 @@ public class LODistinct extends LogicalOperator {
     }
 
     @Override
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 

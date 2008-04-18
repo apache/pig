@@ -20,7 +20,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
 
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -75,7 +75,7 @@ public class LOBinCond extends ExpressionOperator {
     }
 
     @Override
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 

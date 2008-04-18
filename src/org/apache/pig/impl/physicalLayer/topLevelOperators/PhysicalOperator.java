@@ -27,7 +27,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
@@ -213,8 +213,8 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
             return res;
         }
     }
-
-    public abstract void visit(V v) throws ParseException;
+    
+    public abstract void visit(V v) throws VisitorException ;
 
     public Result getNext(Integer i) throws ExecException {
         return res;

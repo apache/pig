@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -27,14 +28,15 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.*;
+import org.apache.pig.impl.plan.optimizer.*;
 
 import org.junit.Test;
 
 /**
  * Test the generic operator classes (Operator, OperatorPlan,
- * PlanVisitor).
+ * PlanVisitor).  Also includes tests for optimizer framework, since that
+ * can use the same generic test operators.
  */
 
 public class TestOperatorPlan extends junit.framework.TestCase {
@@ -74,7 +76,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
 
         @Override
-        public void visit(PlanVisitor v) throws ParseException {
+        public void visit(PlanVisitor v) throws VisitorException {
             ((TVisitor)v).visitSingleOperator(this);
         }
 
@@ -97,7 +99,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             return true;
         }
 
-        public void visit(PlanVisitor v) throws ParseException {
+        public void visit(PlanVisitor v) throws VisitorException {
             ((TVisitor)v).visitMultiOperator(this);
         }
 
@@ -153,20 +155,20 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
     }
 
-    abstract class TVisitor extends PlanVisitor {
+    abstract class TVisitor extends PlanVisitor<TOperator, TPlan> {
         protected StringBuilder mJournal;
 
-        TVisitor(TPlan plan) {
-            super(plan);
+        TVisitor(TPlan plan, PlanWalker<TOperator, TPlan> walker) {
+            super(plan, walker);
             mJournal = new StringBuilder();
         }
 
-        public void visitSingleOperator(SingleOperator so) throws ParseException {
+        public void visitSingleOperator(SingleOperator so) throws VisitorException {
             mJournal.append(so.name());
             mJournal.append(' ');
         }
 
-        public void visitMultiOperator(MultiOperator mo) throws ParseException {
+        public void visitMultiOperator(MultiOperator mo) throws VisitorException {
             mJournal.append(mo.name());
             mJournal.append(' ');
         }
@@ -179,22 +181,14 @@ public class TestOperatorPlan extends junit.framework.TestCase {
     class TDepthVisitor extends TVisitor {
 
         TDepthVisitor(TPlan plan) {
-            super(plan);
-        }
-
-        public void visit() throws ParseException {
-            depthFirst();
+            super(plan, new DepthFirstWalker(plan));
         }
     }
 
     class TDependVisitor extends TVisitor {
 
         TDependVisitor(TPlan plan) {
-            super(plan);
-        }
-
-        public void visit() throws ParseException {
-            dependencyOrder();
+            super(plan, new DependencyOrderWalker(plan));
         }
     }
 
@@ -441,6 +435,334 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.remove(ops[2]);
         assertEquals("Nodes: 0 1 3 4 5 FromEdges: 3->4 3->5 ToEdges: 4->3 5->3 ", plan.display());
     }
+
+    class AlwaysTransform extends Transformer<TOperator, TPlan> {
+        public boolean mTransformed = false;
+
+        AlwaysTransform(TPlan plan) {
+            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
+        }
+
+        public boolean check(List<TOperator> nodes) {
+            return true;
+        }
+
+        public void transform(List<TOperator> nodes) {
+            mTransformed = true;
+        }
+    }
+
+    // Test that we don't match when nodes don't match pattern.  Will give
+    // a pattern of S->S->M and a plan of S->M->S.
+    @Test
+    public void testOptimizerDifferentNodes() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new SingleOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(true);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertFalse(transformer.mTransformed);
+    }
+
+    // Test that we don't match when edges don't match pattern.  Will give
+    // a pattern of S->S->M and a plan of S->S M.
+    @Test
+    public void testOptimizerDifferentEdges() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(true);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertFalse(transformer.mTransformed);
+    }
+
+    // Test that we match when appropriate.  Will give
+    // a pattern of S->S->M and a plan of S->S->M.
+    @Test
+    public void testOptimizerMatches() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(true);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertTrue(transformer.mTransformed);
+    }
+
+    // Test that we match when the whole plan doesn't match.  Will give
+    // a pattern of S->S->M and a plan of S->S->S->M.
+    @Test
+    public void testOptimizerMatchesPart() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[4];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new SingleOperator("3");
+        plan.add(ops[2]);
+        ops[3] = new MultiOperator("4");
+        plan.add(ops[3]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+        plan.connect(ops[2], ops[3]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(true);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertTrue(transformer.mTransformed);
+    }
+
+    // Test that we match when a node is optional and the optional node is
+    // present.  Will give
+    // a pattern of S->S->M (with second S optional) and a plan of S->S->M.
+    @Test
+    public void testOptimizerOptionalMatches() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(false);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertTrue(transformer.mTransformed);
+    }
+
+    // Test that we match when a node is optional and the optional node is
+    // missing.  Will give
+    // a pattern of S->S->M (with second S optional) and a plan of S->M.
+    @Test
+    public void testOptimizerOptionalMissing() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[2];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        plan.connect(ops[0], ops[1]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(false);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertTrue(transformer.mTransformed);
+    }
+
+    class NeverTransform extends Transformer<TOperator, TPlan> {
+        public boolean mTransformed = false;
+
+        NeverTransform(TPlan plan) {
+            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
+        }
+
+        public boolean check(List<TOperator> nodes) {
+            return false;
+        }
+
+        public void transform(List<TOperator> nodes) {
+            mTransformed = true;
+        }
+    }
+
+    // Test that even if we match, if check returns false then the optimization
+    // is not done.
+    @Test
+    public void testCheck() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
+        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        edges.put(0, 1);
+        edges.put(1, 2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
+        required.add(true);
+        required.add(true);
+        required.add(true);
+        NeverTransform transformer = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        ArrayList<Rule> rules = new ArrayList<Rule>(1);
+        rules.add(r);
+
+        PlanOptimizer<TOperator, TPlan> optimizer =
+            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+
+        optimizer.optimize();
+        assertFalse(transformer.mTransformed);
+    }
+
 
 
 }

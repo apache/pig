@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class LOUnion extends LogicalOperator {
 
@@ -66,7 +66,7 @@ public class LOUnion extends LogicalOperator {
     }
 
     @Override
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 

@@ -33,13 +33,13 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class POGenerate extends PhysicalOperator {
     
@@ -79,7 +79,7 @@ public class POGenerate extends PhysicalOperator {
     }
 
     @Override
-    public void visit(PhyPlanVisitor v) throws ParseException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitGenerate(this);
     }
 
@@ -288,7 +288,7 @@ public class POGenerate extends PhysicalOperator {
     }
 
     @Override
-    public void visit(PlanVisitor v) throws ParseException {
+    public void visit(PlanVisitor v) throws VisitorException {
         ((PhyPlanVisitor)v).visitGenerate(this);
     }
 

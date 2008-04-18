@@ -35,6 +35,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LTOrEqualToExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LessThanExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
+import org.apache.pig.impl.plan.PlanWalker;
 
 /**
  * The visitor to be used for visiting expression plans.
@@ -46,8 +47,9 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
 
     private final Log log = LogFactory.getLog(getClass());
     
-    public ExprPlanVisitor(ExprPlan plan) {
-        super(plan);
+    public ExprPlanVisitor(ExprPlan plan,
+                           PlanWalker<ExpressionOperator, ExprPlan> walker) {
+        super(plan, walker);
         // TODO Auto-generated constructor stub
     }
     

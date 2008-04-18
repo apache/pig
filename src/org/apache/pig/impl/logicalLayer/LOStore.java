@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.pig.StoreFunc; // import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
@@ -96,7 +96,7 @@ public class LOStore extends LogicalOperator {
         return false;
     }
 
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 }

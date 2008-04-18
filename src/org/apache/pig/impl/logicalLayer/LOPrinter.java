@@ -22,8 +22,9 @@ import java.util.List;
 import java.util.Iterator;
 import java.io.PrintStream;
 
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * A visitor mechanism printing out the logical plan.
@@ -31,10 +32,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class LOPrinter extends LOVisitor {
 
     public LOPrinter(LogicalPlan plan) {
-        super(plan);
+        super(plan, new DepthFirstWalker(plan));
     }
-
-    public void visit() throws ParseException {}
 
     // TODO FIX
     /*

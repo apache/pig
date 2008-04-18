@@ -21,11 +21,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class LessThanExpr extends ComparisonOperator {
 
@@ -40,7 +40,7 @@ public class LessThanExpr extends ComparisonOperator {
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws ParseException {
+    public void visit(ExprPlanVisitor v) throws VisitorException {
         v.visitLessThan(this);
     }
 

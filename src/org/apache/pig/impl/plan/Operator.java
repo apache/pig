@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 
 /**
  * Base class for all types of operators.
@@ -59,10 +58,10 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable {
      * 
      * @param v
      *            Visitor to visit with.
-     * @throws ParseException
+     * @throws VisitorException
      *             if the visitor has a problem.
      */
-    public abstract void visit(V v) throws ParseException;
+    public abstract void visit(V v) throws VisitorException;
 
     /**
      * Indicates whether this operator supports multiple inputs.

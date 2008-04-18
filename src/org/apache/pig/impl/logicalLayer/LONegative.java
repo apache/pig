@@ -18,7 +18,7 @@
 
 package org.apache.pig.impl.logicalLayer;
 
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -49,7 +49,7 @@ public class LONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 

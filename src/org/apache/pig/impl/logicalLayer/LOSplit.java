@@ -24,7 +24,7 @@ import java.util.Map;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
@@ -99,7 +99,7 @@ public class LOSplit extends LogicalOperator {
         return true;
     }
 
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 }

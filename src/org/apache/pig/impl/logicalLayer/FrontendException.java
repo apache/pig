@@ -15,34 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators;
+package org.apache.pig.impl.logicalLayer;
 
+public class FrontendException extends Exception {
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
-
-/**
- * A base class for all types of expressions. All expression
- * operators must extend this class.
- *
- */
-
-public abstract class ExpressionOperator extends PhysicalOperator<ExprPlanVisitor> {
-    
-    public ExpressionOperator(OperatorKey k) {
-        this(k,-1);
+    public FrontendException (String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public ExpressionOperator(OperatorKey k, int rp) {
-        super(k, rp);
+    public FrontendException() {
+        this(null, null);
     }
     
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
+    public FrontendException(String message) {
+        this(message, null);
     }
     
-    public abstract void visit(ExprPlanVisitor v) throws VisitorException;
+    public FrontendException(Throwable cause) {
+        this(null, cause);
+    }
 }

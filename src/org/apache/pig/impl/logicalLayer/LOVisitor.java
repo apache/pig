@@ -22,7 +22,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.pig.impl.plan.PlanVisitor;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.PlanWalker;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * A visitor mechanism for navigating and operating on a tree of Logical
@@ -44,17 +45,18 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
  */
 abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan> {
 
-    public LOVisitor(LogicalPlan plan) {
-        super(plan);
+    public LOVisitor(LogicalPlan plan,
+                     PlanWalker<LogicalOperator, LogicalPlan> walker) {
+        super(plan, walker);
     }
 
     /**
      * @param lOp
      *            the logical operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
     void visit(LogicalOperator lOp)
-            throws ParseException {
+            throws VisitorException {
         //
         // Do Nothing
         //
@@ -63,10 +65,10 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
     /**
      * @param eOp
      *            the logical expression operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
     void visit(ExpressionOperator eOp)
-            throws ParseException {
+            throws VisitorException {
         //
         // Do Nothing
         //
@@ -75,10 +77,10 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
     /**
      * @param binOp
      *            the logical binary expression operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
     void visit(BinaryExpressionOperator binOp)
-            throws ParseException {
+            throws VisitorException {
         //
         // Visit the left hand side operand followed by the right hand side
         // operand
@@ -92,9 +94,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param uniOp
      *            the logical unary operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(UnaryExpressionOperator uniOp) throws ParseException {
+    void visit(UnaryExpressionOperator uniOp) throws VisitorException {
         // Visit the operand
 
         uniOp.getOperand().visit(this);
@@ -104,9 +106,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param cg
      *            the logical cogroup operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOCogroup cg) throws ParseException {
+    void visit(LOCogroup cg) throws VisitorException {
         // Visit each of the inputs of cogroup.
         Iterator<ExpressionOperator> i = cg.getGroupByCols().iterator();
         while (i.hasNext()) {
@@ -118,9 +120,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param g
      *            the logical generate operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOGenerate g) throws ParseException {
+    void visit(LOGenerate g) throws VisitorException {
         // Visit each of generates projection elements.
         Iterator<ExpressionOperator> i = g.getProjections().iterator();
         while (i.hasNext()) {
@@ -132,9 +134,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param s
      *            the logical sort operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOSort s) throws ParseException {
+    void visit(LOSort s) throws VisitorException {
         // Visit the sort function
         s.getUserFunc().visit(this);
     }
@@ -143,9 +145,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param filter
      *            the logical filter operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOFilter filter) throws ParseException {
+    void visit(LOFilter filter) throws VisitorException {
         // Visit the condition for the filter followed by the input
         filter.getCondition().visit(this);
     }
@@ -154,9 +156,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param split
      *            the logical split operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOSplit split) throws ParseException {
+    void visit(LOSplit split) throws VisitorException {
         // Visit each of split's conditions
         Iterator<ExpressionOperator> i = split.getConditions().iterator();
         while (i.hasNext()) {
@@ -168,9 +170,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param forEach
      *            the logical foreach operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOForEach forEach) throws ParseException {
+    void visit(LOForEach forEach) throws VisitorException {
         // Visit the operators that are part of the foreach
         Iterator<LogicalOperator> i = forEach.getOperators().iterator();
         while (i.hasNext()) {
@@ -183,9 +185,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param func
      *            the user defined function
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOUserFunc func) throws ParseException {
+    void visit(LOUserFunc func) throws VisitorException {
         // Visit each of the arguments
         Iterator<ExpressionOperator> i = func.getArguments().iterator();
         while (i.hasNext()) {
@@ -195,9 +197,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
 
     /**
      * @param binCond the logical binCond operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOBinCond binCond) throws ParseException {
+    void visit(LOBinCond binCond) throws VisitorException {
         /**
          * Visit the conditional expression followed by the left hand operator
          * and the right hand operator respectively
@@ -212,9 +214,9 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * 
      * @param cast
      *            the logical cast operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
-    void visit(LOCast cast) throws ParseException {
+    void visit(LOCast cast) throws VisitorException {
         // Visit the expression to be cast
 
         cast.getExpression().visit(this);

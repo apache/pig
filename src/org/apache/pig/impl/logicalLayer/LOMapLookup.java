@@ -24,6 +24,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class LOMapLookup extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
@@ -110,7 +111,7 @@ public class LOMapLookup extends ExpressionOperator {
     }
 
     @Override
-    public void visit(LOVisitor v) throws ParseException {
+    public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 

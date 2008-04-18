@@ -28,11 +28,11 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * The foreach operator 
@@ -69,7 +69,7 @@ public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
     }
 
     @Override
-    public void visit(PhyPlanVisitor v) throws ParseException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitForEach(this);
     }
 

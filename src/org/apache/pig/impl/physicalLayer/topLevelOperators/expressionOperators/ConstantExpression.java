@@ -25,7 +25,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
@@ -71,7 +71,7 @@ public class ConstantExpression extends ExpressionOperator {
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws ParseException {
+    public void visit(ExprPlanVisitor v) throws VisitorException {
         v.visitConstant(this);
     }
 

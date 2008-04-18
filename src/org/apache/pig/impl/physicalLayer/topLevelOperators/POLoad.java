@@ -31,10 +31,10 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * The load operator which is used in two ways:
@@ -150,7 +150,7 @@ public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
     }
 
     @Override
-    public void visit(PhyPlanVisitor v) throws ParseException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitLoad(this);
     }
 

@@ -133,7 +133,7 @@
 
     <target name="compile-sources">
         <javac encoding="${build.encoding}" srcdir="${sources}"
-            includes="**/plan/*.java, **/data/*.java, **/pig/builtin/*.java,
+            includes="**/plan/*.java, **/plan/optimizer/*.java, **/data/*.java, **/pig/builtin/*.java,
                 **/test/utils/*.java, **/test/TestOperatorPlan.java, **/test/TestBuiltin.java,
                 **/test/TestConstExpr.java, **/test/TestFilter.java, **/test/TestPhyOp.java,
                 **/test/TestAdd.java, **/test/TestSubtract.java, **/test/TestMultiply.java,
@@ -146,8 +146,9 @@
                 **/test/FakeFSInputStream.java, **/test/Util.java,
                 **/logicalLayer/*.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
-                **/physicalLayer/topLevelOperator/**/*.java, **/physicalLayer/plans/*.java,
-				**/physicalLayer/Result.java, **/physicalLayer/POStatus.java"
+                **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
+				**/physicalLayer/Result.java,
+                **/physicalLayer/POStatus.java, **/bzip2r/*.java"
             destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />

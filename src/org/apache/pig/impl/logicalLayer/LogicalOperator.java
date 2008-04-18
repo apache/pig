@@ -22,10 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
-import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * Parent for all Logical operators.
@@ -177,9 +178,9 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * 
      * @param v
      *            Visitor to visit with.
-     * @throws ParseException
+     * @throws VisitException
      *             if the visitor has a problem.
      */
-    public abstract void visit(LOVisitor v) throws ParseException;
+    public abstract void visit(LOVisitor v) throws VisitorException;
 
 }

@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.physicalLayer.plans;
 
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
@@ -28,9 +27,13 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.StartMap;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.PlanWalker;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * The visitor class for the Physical Plan. To use this,
@@ -48,15 +51,10 @@ import org.apache.pig.impl.plan.PlanVisitor;
  */
 public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O>> extends PlanVisitor<O,P> {
 
-    public PhyPlanVisitor(P plan) {
-        super(plan);
+    public PhyPlanVisitor(P plan, PlanWalker<O, P> walker) {
+        super(plan, walker);
     }
 
-    @Override
-    public void visit() throws ParseException {
-        depthFirst();
-    }
-    
     public void visitLoad(POLoad ld){
         //do nothing
     }
@@ -65,19 +63,26 @@ public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O
         //do nothing
     }
     
-    public void visitFilter(POFilter fl) throws ParseException{
-        ExprPlanVisitor epv = new ExprPlanVisitor(fl.getPlan());
+    public void visitFilter(POFilter fl) throws VisitorException{
+        ExprPlanVisitor epv = new ExprPlanVisitor(fl.getPlan(),
+            new DepthFirstWalker<ExpressionOperator, ExprPlan>(fl.getPlan()));
         epv.visit();
     }
     
-    public void visitLocalRearrange(POLocalRearrange lr) throws ParseException{
-        PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>> ppv = new PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>>(lr.getPlan());
-        ppv.visit();
+    public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException{
+        pushWalker(mCurrentWalker.spawnChildWalker((P)lr.getPlan()));
+        // this causes the current walker (the new one we created)
+        // to walk the nested plan
+        visit();
+        popWalker();
     }
     
-    public void visitForEach(POForEach fe) throws ParseException{
-        PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>> ppv = new PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>>(fe.getPlan());
-        ppv.visit();
+    public void visitForEach(POForEach fe) throws VisitorException{
+        pushWalker(mCurrentWalker.spawnChildWalker((P)fe.getPlan()));
+        // this causes the current walker (the new one we created)
+        // to walk the nested plan
+        visit();
+        popWalker();
     }
     
 //    public void visitGlobalRearrange(POGlobalRearrange gr){
@@ -97,3 +102,4 @@ public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O
     }
 
 }
+

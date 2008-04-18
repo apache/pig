@@ -23,8 +23,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import java.util.Stack;
 
 /**
  * A visitor mechanism for navigating and operating on a plan of 
@@ -38,86 +37,54 @@ abstract public class PlanVisitor <O extends Operator, P extends OperatorPlan<O>
     protected P mPlan;
 
     /**
-     * Entry point for visiting the plan.
-     * @throws ParseException if an error is encountered while visiting.
+     * Guaranteed to always point to the walker currently being used.
      */
-    public abstract void visit() throws ParseException;
+    protected PlanWalker<O, P> mCurrentWalker;
+
+    private Stack<PlanWalker<O, P>> mWalkers;
+
+    /**
+     * Entry point for visiting the plan.
+     * @throws VisitorException if an error is encountered while visiting.
+     */
+    public void visit() throws VisitorException {
+        mCurrentWalker.walk(this);
+    }
+
+    public P getPlan() {
+        return mPlan;
+    }
 
     /**
      * @param plan OperatorPlan this visitor will visit.
+     * @param walker PlanWalker this visitor will use to traverse the plan.
      */
-    protected PlanVisitor(P plan) {
+    protected PlanVisitor(P plan, PlanWalker<O, P> walker) {
         mPlan = plan;
+        mCurrentWalker = walker;
+        mWalkers = new Stack<PlanWalker<O, P>>();
     }
 
     /**
-     * Visit the graph in a depth first traversal.
-     * @throws ParseException if the underlying visitor has a problem.
+     * Push the current walker onto the stack of saved walkers and begin using
+     * the newly passed walker as the current walker.
+     * @param newWalker new walker to set as the current walker.
      */
-    protected void depthFirst() throws ParseException {
-        List<O> roots = mPlan.getRoots();
-        Set<O> seen = new HashSet<O>();
-
-        depthFirst(null, roots, seen);
-    }
-
-    private void depthFirst(O node,
-                            Collection<O> successors,
-                            Set<O> seen) throws ParseException {
-        if (successors == null) return;
-
-        for (O suc : successors) {
-            if (seen.add(suc)) {
-                suc.visit(this);
-                Collection<O> newSuccessors = mPlan.getSuccessors(suc);
-                depthFirst(suc, newSuccessors, seen);
-            }
-        }
+    protected void pushWalker(PlanWalker<O, P> walker) {
+        mWalkers.push(mCurrentWalker);
+        mCurrentWalker = walker;
     }
 
     /**
-     * Visit the graph in a way that guarantees that no node is visited before
-     * all the nodes it depends on (that is, all those giving it input) have
-     * already been visited.
-     * @throws ParseException if the underlying visitor has a problem.
+     * Pop the next to previous walker off of the stack and set it as the current
+     * walker.  This will drop the reference to the current walker.
+     * @throws VisitorException if there are no more walkers on the stack.  In
+     * this case the current walker is not reset.
      */
-    protected void dependencyOrder() throws ParseException {
-        // This is highly inefficient, but our graphs are small so it should be okay.
-        // The algorithm works by starting at any node in the graph, finding it's
-        // predecessors and calling itself for each of those predecessors.  When it
-        // finds a node that has no unfinished predecessors it puts that node in the
-        // list.  It then unwinds itself putting each of the other nodes in the list.
-        // It keeps track of what nodes it's seen as it goes so it doesn't put any
-        // nodes in the graph twice.
-
-        List<O> fifo = new ArrayList<O>();
-        Set<O> seen = new HashSet<O>();
-        List<O> leaves = mPlan.getLeaves();
-        if (leaves == null) return;
-        for (O op : leaves) {
-            doAllPredecessors(op, seen, fifo);
+    protected void popWalker() throws VisitorException {
+        if (mWalkers.empty()) {
+            throw new VisitorException("No more walkers to pop.");
         }
-
-        for (O op: fifo) {
-            op.visit(this);
-        }
-    }
-
-    private void doAllPredecessors(O node,
-                                   Set<O> seen,
-                                   Collection<O> fifo) throws ParseException {
-        if (!seen.contains(node)) {
-            // We haven't seen this one before.
-            Collection<O> preds = mPlan.getPredecessors(node);
-            if (preds != null && preds.size() > 0) {
-                // Do all our predecessors before ourself
-                for (O op : preds) {
-                    doAllPredecessors(op, seen, fifo);
-                }
-            }
-            // Now do ourself
-            seen.add(node);
-            fifo.add(node);
-        }
+        mCurrentWalker = mWalkers.pop();
     }
 }
