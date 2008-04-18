@@ -34,7 +34,7 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public class Tuple extends Datum implements WritableComparable {
     
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(Tuple.class);
     
     protected ArrayList<Datum> fields;
     static String              defaultDelimiter = "[,\t]";

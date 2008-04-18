@@ -51,7 +51,7 @@ import org.apache.pig.impl.eval.EvalSpec;
  */
 public class SortedDataBag extends DataBag {
 
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(SortedDataBag.class);
 
     private Comparator<Tuple> mComp;
     private boolean mReadStarted = false;

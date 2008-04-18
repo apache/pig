@@ -69,7 +69,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public abstract class DataBag extends Datum implements Spillable, Iterable<Tuple> {
 
-     private final Log log = LogFactory.getLog(getClass());
+     private static final Log log = LogFactory.getLog(DataBag.class);
 
     // Container that holds the tuples. Actual object instantiated by
     // subclasses.

@@ -240,3 +240,6 @@ Trunk (unreleased changes)
 
 	PIG-114: store one alias/logicalPlan twice leads to instantiation of
 	StoreFunc as LoadFunc (pi_song via gates).
+
+	PIG-213: Remove non-static references to logger from data bags and tuples,
+	as it causes significant overhead (vgeschel via gates).

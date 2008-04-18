@@ -51,7 +51,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class DistinctDataBag extends DataBag {
 
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(DistinctDataBag.class);
 
     public DistinctDataBag() {
         mContents = new HashSet<Tuple>();
