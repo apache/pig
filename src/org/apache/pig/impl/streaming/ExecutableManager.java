@@ -236,18 +236,8 @@ public class ExecutableManager {
         cmdArgs.add("-c");
         StringBuffer sb = new StringBuffer();
         sb.append("exec ");
-	    for (int i=0; i < argv.length; ++i) {
-	        // Single-quote each component, however ensure that already
-	        // quoted args are handled right
-	        sb.append('\'');
-	        
-	        String arg = argv[i];
-	        if (arg.charAt(0) == '\'' && arg.charAt(arg.length()-1) == '\'') {
-	            arg = arg.substring(1, arg.length()-1);
-	        }
-	        sb.append(arg);
-	        
-            sb.append('\'');
+	    for (String arg : argv) {
+            sb.append(arg);
             sb.append(" ");
 	    }
 	    cmdArgs.add(sb.toString());

@@ -243,3 +243,6 @@ Trunk (unreleased changes)
 
 	PIG-213: Remove non-static references to logger from data bags and tuples,
 	as it causes significant overhead (vgeschel via gates).
+
+	PIG-216 Fix streaming to work with commands that use unix pipes (acmurthy
+	via gates).

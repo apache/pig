@@ -432,4 +432,42 @@ public class TestStreaming extends TestCase {
         // Cleanup
         pigServer.deleteFile(output);
     }
+
+    @Test
+    public void testLocalSimpleMapSideStreamingWithUnixPipes() 
+    throws Exception {
+        testSimpleMapSideStreamingWithUnixPipes(ExecType.LOCAL);
+    }
+    
+    @Test
+    public void testMRSimpleMapSideStreamingWithUnixPipes() throws Exception {
+        testSimpleMapSideStreamingWithUnixPipes(ExecType.MAPREDUCE);
+    }
+    
+    private void testSimpleMapSideStreamingWithUnixPipes(ExecType execType) 
+    throws Exception {
+        PigServer pigServer = createPigServer(execType);
+        File input = Util.createInputFile("tmp", "", 
+                                          new String[] {"A,1", "B,2", "C,3", "D,2",
+                                                        "A,5", "B,5", "C,8", "A,8",
+                                                        "D,8", "A,9"});
+
+        // Expected results
+        String[] expectedFirstFields = 
+            new String[] {"A", "B", "C", "D", "A", "B", "C", "A", "D", "A"};
+        int[] expectedSecondFields = new int[] {1, 2, 3, 2, 5, 5, 8, 8, 8, 9};
+        Tuple[] expectedResults = 
+            setupExpectedResults(expectedFirstFields, expectedSecondFields);
+
+        // Pig query to run
+        pigServer.registerQuery("define CMD `" + simpleEchoStreamingCommand + 
+                                " | " + simpleEchoStreamingCommand + "`;");
+        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+                                PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery("OP = stream IP through CMD;");
+        
+        // Run the query and check the results
+        Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
+    }
+
 }
