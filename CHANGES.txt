@@ -246,3 +246,7 @@ Trunk (unreleased changes)
 
 	PIG-216 Fix streaming to work with commands that use unix pipes (acmurthy
 	via gates).
+
+	PIG-207 Fix illustrate command to work in mapreduce mode (shubhamc via
+	gates).
+

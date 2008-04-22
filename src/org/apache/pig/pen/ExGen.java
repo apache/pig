@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
@@ -45,14 +46,16 @@ public class ExGen {
     
     static Map<LOLoad, DataBag> GlobalBaseData = new HashMap<LOLoad, DataBag>();
     
-    public static Map<LogicalOperator, DataBag> GenerateExamples(LogicalPlan plan, PigContext pigContext) throws IOException {
+    public static Map<LogicalOperator, DataBag> GenerateExamples(LogicalPlan plan, PigContext hadoopPigContext) throws IOException {
         
     	long time = System.currentTimeMillis();
     	String Result;
+    	PigContext pigContext = new PigContext(ExecType.LOCAL, hadoopPigContext.getProperties());
     	
     	//compile the logical plan to get the physical plan once and for all
     	ExecPhysicalPlan PhyPlan = null;
     	try {
+    		pigContext.connect();
 			PhyPlan = pigContext.getExecutionEngine().compile(plan, null);
 		} catch (ExecException e1) {
 			// TODO Auto-generated catch block
@@ -62,7 +65,7 @@ public class ExGen {
 		Map<OperatorKey, ExecPhysicalOperator> physicalOpTable = PhyPlan.getOpTable();
     	    	
         // Acquire initial base data by sampling from input relations (this is idempotent)
-    	FetchBaseData.ReadBaseData(plan.getRootOperator(), GlobalBaseData, SAMPLE_SIZE, pigContext);
+    	FetchBaseData.ReadBaseData(plan.getRootOperator(), GlobalBaseData, SAMPLE_SIZE, hadoopPigContext);
     	    	
         /////// PASS 1: push data sample through query plan
         
