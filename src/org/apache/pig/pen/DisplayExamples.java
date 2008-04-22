@@ -38,7 +38,7 @@ import org.apache.pig.impl.util.IdentityHashSet;
 public class DisplayExamples {
 	
 	public static StringBuffer Result = new StringBuffer();
-	public static final int MAX_DATAATOM_LENGTH = 10;
+	public static final int MAX_DATAATOM_LENGTH = 15;
 	
     public static String PrintTabular(LogicalPlan lp, Map<LogicalOperator, DataBag> exampleData) {
     	StringBuffer output = new StringBuffer();
@@ -96,13 +96,13 @@ public class DisplayExamples {
     	}
     	
     	//Display the schema first
-    	output.append(AddSpaces(total + 3*cols + 9, false) + "\n");
+    	output.append(AddSpaces(total + 3*(cols +1) + aliasLength + 1, false) + "\n");
     	output.append("| " + op.getAlias() + AddSpaces(4, true) + " | ");
     	for(int i = 0; i < cols; ++i) {
     		String field = fields.get(i).toString();
     		output.append(field + AddSpaces(maxColSizes[i] - field.length(), true) + " | ");
     	}
-    	output.append("\n" + AddSpaces(total + 3*cols + 9, false) + "\n");
+    	output.append("\n" + AddSpaces(total + 3*(cols +1) + aliasLength + 1, false) + "\n");
     	//now start displaying the data
     	for(int i = 0; i < rows; ++i) {
     		output.append("| " + AddSpaces(aliasLength, true) + " | ");
@@ -113,7 +113,7 @@ public class DisplayExamples {
     		output.append("\n");
     	}
     	//now display the finish line
-    	output.append(AddSpaces(total + 3*cols + 9, false) + "\n");
+    	output.append(AddSpaces(total + 3*(cols +1) + aliasLength + 1, false) + "\n");
     }
     
     static String[][] MakeArray(LogicalOperator op, DataBag bag) {
@@ -144,7 +144,7 @@ public class DisplayExamples {
     static String ShortenField(DataAtom da) {
     	int length = da.toString().length();
     	if(length > MAX_DATAATOM_LENGTH) {
-    		return new String(da.toString().substring(0, 3) + " ... " + da.toString().substring(length - 4, length - 1)); 
+    		return new String(da.toString().substring(0, 4) + " ... " + da.toString().substring(length - 4, length - 1)); 
     	}
     	return da.toString();
     }
@@ -159,7 +159,7 @@ public class DisplayExamples {
     		while(it.hasNext()) {
     			Tuple t = it.next();
     			if(!it.hasNext()) {
-    				str.append(", ... " + ShortenField(t));
+    				str.append(", ..., " + ShortenField(t));
     			}
     		}
     	} else {
@@ -182,7 +182,7 @@ public class DisplayExamples {
     	if(noFields > 3) {
     		Datum d = t.getField(0);
 			
-			str.append(ShortenField(d) + ", ...");
+			str.append(ShortenField(d) + ", ..., ");
 			d = t.getField(noFields - 1);
 			
 			str.append(ShortenField(d));
