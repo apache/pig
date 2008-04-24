@@ -4,7 +4,7 @@ bb = filter aa by (ARITY == '16') and ( $4 eq '' or $4 eq 'NULL' or $4 eq 'ss') 
 a = foreach bb generate $0,$12,$7;
 
 --generate inactive accts
-inactiveAccounts = filter a by ($1 neq '$column1') and ($1 == '2') parallel 400;
+inactiveAccounts = filter a by ($1 neq '') and ($1 == '2') parallel 400;
 store inactiveAccounts into '/user/kaleidoscope/pow_stats/20080228/acct/InactiveAcct';
 grpInactiveAcct = group inactiveAccounts all;
 countInactiveAcct = foreach grpInactiveAcct { generate COUNT( inactiveAccounts ); }
