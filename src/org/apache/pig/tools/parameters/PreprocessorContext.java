@@ -142,7 +142,16 @@ public class PreprocessorContext {
         String streamError="";
         try {
             log.info("Executing command : " + cmd);
-            p = Runtime.getRuntime().exec(cmd,null);
+            // we can't use exec directly since it does not handle
+            // case like foo -c "bar bar" correctly. It splits on white spaces even in presents of quotes
+            String[] cmdArgs = new String[3];
+            cmdArgs[0] = "bash";
+            cmdArgs[1] = "-c";
+            StringBuffer sb  = new StringBuffer("exec ");
+            sb.append(cmd);
+            cmdArgs[2] = sb.toString();
+
+            p = Runtime.getRuntime().exec(cmdArgs);
 
         } catch (IOException e) {
             RuntimeException rte = new RuntimeException("IO Exception while executing shell command : "+e.getMessage() , e);

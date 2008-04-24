@@ -244,9 +244,11 @@ Trunk (unreleased changes)
 	PIG-213: Remove non-static references to logger from data bags and tuples,
 	as it causes significant overhead (vgeschel via gates).
 
-	PIG-216 Fix streaming to work with commands that use unix pipes (acmurthy
+	PIG-216: Fix streaming to work with commands that use unix pipes (acmurthy
 	via gates).
 
-	PIG-207 Fix illustrate command to work in mapreduce mode (shubhamc via
+	PIG-207: Fix illustrate command to work in mapreduce mode (shubhamc via
 	gates).
+
+    PIG-218: Fixed param generation to work with arbitrary commands
 

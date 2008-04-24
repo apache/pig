@@ -1185,4 +1185,53 @@ public class TestParamSubPreproc extends TestCase {
 
     }
         
+    /* Test case 31   
+     * Use of inline command
+     */
+    @Test
+    public void testCmdlineParamWithInlineCmd() throws Exception{
+        log.info("Starting test testCmdlineParam() ...");
+        try {
+            ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+            pigIStream = new BufferedReader(new FileReader(basedir + "/input1.pig"));
+            pigOStream = new FileWriter(basedir + "/output1.pig");
+
+            String[] arg = {"date=`/usr/local/bin/perl -e 'print \"20080228\n20070101\"' | head -n 1`"};
+            String[] argFiles = null;
+            ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+            FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
+            BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+
+            String exLine;
+            String resLine;
+            int lineNum=0;
+
+            while (true) {
+                lineNum++;
+                exLine = inExpected.readLine();
+                resLine = inResult.readLine();
+                if (exLine==null || resLine==null)
+                    break;
+                assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
+            }
+            if (!(exLine==null && resLine==null)) {
+                fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
+            }
+
+            inExpected.close();
+            inResult.close();
+        } catch (ParseException e) {
+            fail ("Got ParseException : " + e.getMessage());
+        } catch (RuntimeException e) {
+            fail ("Got RuntimeException : " + e.getMessage());
+        } catch (Error e) {
+            fail ("Got error : " + e.getMessage());
+        }
+
+        log.info("Done");
+
+    }
 }
