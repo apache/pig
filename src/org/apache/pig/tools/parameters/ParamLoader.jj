@@ -70,7 +70,8 @@ TOKEN:
 
 TOKEN :
 {
-    <IDENTIFIER: (<LETTER> | <SPECIALCHAR>) (<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
+//    <IDENTIFIER: (<LETTER> | <SPECIALCHAR>) (<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
+    <IDENTIFIER: (<SPECIALCHAR>)*<LETTER>(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
     |
     <ORD_LINE: ~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r"] (~["\n","\r"])* >
     |

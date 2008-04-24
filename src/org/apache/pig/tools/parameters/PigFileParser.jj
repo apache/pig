@@ -78,7 +78,7 @@ TOKEN :
 
 TOKEN : 
 {
-    <IDENTIFIER: (<LETTER> | <SPECIALCHAR>) (<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
+    <IDENTIFIER: (<SPECIALCHAR>)*<LETTER>(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
     |
     <LITERAL: ("\"" ((~["\""])*("\\\"")?)* "\"")|("'" ((~["'"])*("\\\'")?)* "'") >
     |
