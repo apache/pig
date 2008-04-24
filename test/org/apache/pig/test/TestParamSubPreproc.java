@@ -1190,7 +1190,7 @@ public class TestParamSubPreproc extends TestCase {
      */
     @Test
     public void testCmdlineParamWithInlineCmd() throws Exception{
-        log.info("Starting test testCmdlineParam() ...");
+        log.info("Starting test testCmdlineParamWithInlineCmd() ...");
         try {
             ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
             pigIStream = new BufferedReader(new FileReader(basedir + "/input1.pig"));
@@ -1202,6 +1202,56 @@ public class TestParamSubPreproc extends TestCase {
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
             pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
+            BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+
+            String exLine;
+            String resLine;
+            int lineNum=0;
+
+            while (true) {
+                lineNum++;
+                exLine = inExpected.readLine();
+                resLine = inResult.readLine();
+                if (exLine==null || resLine==null)
+                    break;
+                assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
+            }
+            if (!(exLine==null && resLine==null)) {
+                fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
+            }
+
+            inExpected.close();
+            inResult.close();
+        } catch (ParseException e) {
+            fail ("Got ParseException : " + e.getMessage());
+        } catch (RuntimeException e) {
+            fail ("Got RuntimeException : " + e.getMessage());
+        } catch (Error e) {
+            fail ("Got error : " + e.getMessage());
+        }
+
+        log.info("Done");
+
+    }
+
+    /* Test case 31   
+     * Use of inline command
+     */
+    @Test
+    public void testNoVars() throws Exception{
+        log.info("Starting test testNoVars() ...");
+        try {
+            ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+            pigIStream = new BufferedReader(new FileReader(basedir + "/inputNoVars.pig"));
+            pigOStream = new FileWriter(basedir + "/output1.pig");
+
+            String[] arg = null;
+            String[] argFiles = null;
+            ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+            FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+            pigExResultStream = new FileInputStream(basedir + "/inputNoVars.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 

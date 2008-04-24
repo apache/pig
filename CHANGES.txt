@@ -252,3 +252,4 @@ Trunk (unreleased changes)
 
     PIG-218: Fixed param generation to work with arbitrary commands
 
+    PIG-220: Fixed definition of parameter name for param substitution
