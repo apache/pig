@@ -27,6 +27,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
@@ -39,14 +40,20 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
 
     @Override
     public Double exec(Tuple input) throws IOException {
-        double sum = sum(input);
-        double count = count(input);
+        try {
+            double sum = sum(input);
+            double count = count(input);
 
-        double avg = 0;
-        if (count > 0)
-            avg = sum / count;
-
-        return new Double(avg);
+            double avg = 0;
+            if (count > 0)
+                avg = sum / count;
+    
+            return new Double(avg);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public String getInitial() {
@@ -71,36 +78,53 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
                 return t;
             } catch(RuntimeException t) {
                 throw new RuntimeException(t.getMessage() + ": " + input);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
             }
+                
         }
     }
 
     static public class Intermed extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            DataBag b = (DataBag)input.get(0);
-            return combine(b);
+            try {
+                DataBag b = (DataBag)input.get(0);
+                return combine(b);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
 
     static public class Final extends EvalFunc<Double> {
         @Override
         public Double exec(Tuple input) throws IOException {
-            DataBag b = (DataBag)input.get(0);
-            Tuple combined = combine(b);
+            try {
+                DataBag b = (DataBag)input.get(0);
+                Tuple combined = combine(b);
 
-            double sum = (Double)combined.get(0);
-            double count = (Long)combined.get(1);
+                double sum = (Double)combined.get(0);
+                double count = (Long)combined.get(1);
 
-            double avg = 0;
-            if (count > 0) {
-                avg = sum / count;
+                double avg = 0;
+                if (count > 0) {
+                    avg = sum / count;
+                }
+                return new Double(avg);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
             }
-            return new Double(avg);
         }
     }
 
-    static protected Tuple combine(DataBag values) throws IOException {
+    static protected Tuple combine(DataBag values) throws ExecException {
         double sum = 0;
         long count = 0;
 
@@ -117,12 +141,12 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         return output;
     }
 
-    static protected long count(Tuple input) throws IOException {
+    static protected long count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
         return values.size();
     }
 
-    static protected double sum(Tuple input) throws IOException {
+    static protected double sum(Tuple input) throws ExecException, IOException {
         DataBag values = (DataBag)input.get(0);
 
         double sum = 0;

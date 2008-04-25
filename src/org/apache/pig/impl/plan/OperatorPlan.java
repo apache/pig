@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.plan;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -117,11 +116,11 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
      * flow.
      * @param from Operator data will flow from.
      * @param to Operator data will flow to.
-     * @throws IOException if this edge will create multiple inputs for an
+     * @throws PlanException if this edge will create multiple inputs for an
      * operator that does not support multiple inputs or create multiple outputs
      * for an operator that does not support multiple outputs.
      */
-    public void connect(E from, E to) throws IOException {
+    public void connect(E from, E to) throws PlanException {
         markDirty();
 
         // Check that both nodes are in the plan.
@@ -132,7 +131,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         // whether it supports multiple outputs.
         if (mFromEdges.get(from) != null &&
                 !from.supportsMultipleOutputs()) {
-            throw new IOException("Attempt to give operator of type " +
+            throw new PlanException("Attempt to give operator of type " +
                 from.getClass().getName() + " multiple outputs.  This operator does "
                 + "not support multiple outputs.");
         }
@@ -141,7 +140,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         // whether it supports multiple inputs.
         if (mToEdges.get(to) != null &&
                 !to.supportsMultipleInputs()) {
-            throw new IOException("Attempt to give operator of type " +
+            throw new PlanException("Attempt to give operator of type " +
                 from.getClass().getName() + " multiple inputs.  This operator does "
                 + "not support multiple inputs.");
         }
@@ -231,9 +230,9 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         }
     }
 
-    private void checkInPlan(E op) throws IOException {
+    private void checkInPlan(E op) throws PlanException {
         if (mOps.get(op) == null) {
-            throw new IOException("Attempt to connect operator " +
+            throw new PlanException("Attempt to connect operator " +
                 op.name() + " which is not in the plan.");
         }
     }

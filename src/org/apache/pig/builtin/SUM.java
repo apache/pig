@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -36,7 +37,13 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
 
     @Override
     public Double exec(Tuple input) throws IOException {
-        return sum(input);
+        try {
+            return sum(input);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public String getInitial() {
@@ -56,17 +63,29 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            return tfact.newTuple(sum(input));
+            try {
+                return tfact.newTuple(sum(input));
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
     static public class Final extends EvalFunc<Double> {
         @Override
         public Double exec(Tuple input) throws IOException {
-            return sum(input);
+            try {
+                return sum(input);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
 
-    static protected double sum(Tuple input) throws IOException {
+    static protected double sum(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
 
         double sum = 0;

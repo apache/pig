@@ -17,35 +17,34 @@
  */
 package org.apache.pig.test;
 
-import java.io.IOException;
-
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
 
 public class Util {
     // Helper Functions
     // =================
-    static public Tuple loadFlatTuple(Tuple t, int[] input) throws IOException {
+    static public Tuple loadFlatTuple(Tuple t, int[] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             t.set(i, new Integer(input[i]));
         }
         return t;
     }
 
-    static public Tuple loadTuple(Tuple t, String[] input) throws IOException {
+    static public Tuple loadTuple(Tuple t, String[] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             t.set(i, input[i]);
         }
         return t;
     }
 
-    static public Tuple loadTuple(Tuple t, DataByteArray[] input) throws IOException {
+    static public Tuple loadTuple(Tuple t, DataByteArray[] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             t.set(i, input[i]);
         }
         return t;
     }
 
-    static public Tuple loadNestTuple(Tuple t, int[] input) throws IOException {
+    static public Tuple loadNestTuple(Tuple t, int[] input) throws ExecException {
         DataBag bag = BagFactory.getInstance().newDefaultBag();
         for(int i = 0; i < input.length; i++) {
             Tuple f = TupleFactory.getInstance().newTuple(1);
@@ -56,7 +55,7 @@ public class Util {
         return t;
     }
 
-    static public Tuple loadNestTuple(Tuple t, long[] input) throws IOException {
+    static public Tuple loadNestTuple(Tuple t, long[] input) throws ExecException {
         DataBag bag = BagFactory.getInstance().newDefaultBag();
         for(int i = 0; i < input.length; i++) {
             Tuple f = TupleFactory.getInstance().newTuple(1);
@@ -68,7 +67,7 @@ public class Util {
     }
 
 
-    static public Tuple loadNestTuple(Tuple t, int[][] input) throws IOException {
+    static public Tuple loadNestTuple(Tuple t, int[][] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             DataBag bag = BagFactory.getInstance().newDefaultBag();
             Tuple f = loadFlatTuple(TupleFactory.getInstance().newTuple(input[i].length), input[i]);
@@ -78,7 +77,7 @@ public class Util {
         return t;
     }
 
-    static public Tuple loadTuple(Tuple t, String[][] input) throws IOException {
+    static public Tuple loadTuple(Tuple t, String[][] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             DataBag bag = BagFactory.getInstance().newDefaultBag();
             Tuple f = loadTuple(TupleFactory.getInstance().newTuple(input[i].length), input[i]);

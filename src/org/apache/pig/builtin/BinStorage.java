@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
 import org.apache.pig.data.Tuple;
@@ -76,7 +77,13 @@ public class BinStorage implements LoadFunc, StoreFunc {
             if(b == -1) return null;
             break;
         }
-        return (Tuple)DataReaderWriter.readDatum(inData);
+        try {
+            return (Tuple)DataReaderWriter.readDatum(inData);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {

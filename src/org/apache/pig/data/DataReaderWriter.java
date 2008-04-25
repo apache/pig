@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.pig.backend.executionengine.ExecException;
+
 /**
  * A class to handle reading and writing of intermediate results of data
  * types.  This class could also be used for storing permanent results.
@@ -32,7 +34,7 @@ public class DataReaderWriter {
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
 
-    public static Object readDatum(DataInput in) throws IOException {
+    public static Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
         byte b = in.readByte();
         switch (b) {

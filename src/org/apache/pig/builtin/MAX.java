@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -37,7 +38,13 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
 
     @Override
     public Double exec(Tuple input) throws IOException {
-         return max(input);
+         try {
+            return max(input);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public String getInitial() {
@@ -57,20 +64,32 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            return tfact.newTuple(max(input));
+            try {
+                return tfact.newTuple(max(input));
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
     static public class Final extends EvalFunc<Double> {
         @Override
         public Double exec(Tuple input) throws IOException {
-            return max(input);
+            try {
+                return max(input);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
 
-    static protected Double max(Tuple input) throws IOException {
+    static protected Double max(Tuple input) throws ExecException {
         Object o = input.get(0);
         if (!(o instanceof DataBag)) {
-            throw new IOException("Input to sum function should be a bag");
+            throw new ExecException("Input to sum function should be a bag");
         }
         DataBag values = (DataBag)o;
 
@@ -82,7 +101,7 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
                 if (d == null) continue;
                 curMax = java.lang.Math.max(curMax, d);
             } catch (RuntimeException exp) {
-                IOException newE = new IOException("Error processing: " +
+                ExecException newE = new ExecException("Error processing: " +
                     t.toString() + exp.getMessage());
                 newE.initCause(exp);
                 throw newE;

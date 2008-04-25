@@ -23,6 +23,7 @@ import java.util.List;
 import java.io.IOException;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
@@ -105,7 +106,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         // asked, so ask them to do it.
         try {
             getSchema();
-        } catch (IOException ioe) {
+        } catch (FrontendException ioe) {
             // It's fine, it just means we don't have a schema yet.
         }
         if (mSchema == null) mSchema = schema;
@@ -115,7 +116,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     /**
      * Get a copy of the schema for the output of this operator.
      */
-    public abstract Schema getSchema() throws IOException;
+    public abstract Schema getSchema() throws FrontendException;
 
     /**
      * Set the type of this operator.  This should only be called by the type

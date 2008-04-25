@@ -17,14 +17,14 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class LOGenerate extends LogicalOperator {
     private static final long serialVersionUID = 2L;
@@ -72,7 +72,7 @@ public class LOGenerate extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws IOException {
+    public Schema getSchema() throws FrontendException {
         if (mSchema == null) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
                     mProjections.size());
@@ -81,7 +81,7 @@ public class LOGenerate extends LogicalOperator {
                 if (op.getType() == DataType.TUPLE) {
                     try {
                         fss.add(new Schema.FieldSchema(opAlias, op.getSchema()));
-                    } catch (IOException ioe) {
+                    } catch (FrontendException ioe) {
                         mSchema = null;
                         mIsSchemaComputed = false;
                         throw ioe;

@@ -17,9 +17,9 @@
  */
 package org.apache.pig.test.utils;
 
-import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
@@ -61,7 +61,7 @@ public class TestHelper {
         return equal;
     }
     
-    public static DataBag projectBag(DataBag db2, int i) throws IOException {
+    public static DataBag projectBag(DataBag db2, int i) throws ExecException {
         DataBag ret = DefaultBagFactory.getInstance().newDefaultBag();
         for (Tuple tuple : db2) {
             Object o = tuple.get(i);

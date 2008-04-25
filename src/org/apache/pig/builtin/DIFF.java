@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -50,27 +51,33 @@ public class DIFF extends EvalFunc<DataBag> {
             throw new IOException("DIFF must compare two fields not " +
                 input.size());
         }
-        DataBag output = mBagFactory.newDefaultBag();
-        Object o1 = input.get(0);
-        if (o1 instanceof DataBag) {
-            DataBag bag1 = (DataBag)o1;
-            DataBag bag2 = (DataBag)input.get(1);
-            computeDiff(bag1, bag2, output);
-        } else {
-            Object d1 = input.get(0);
-            Object d2 = input.get(1);
-            if (!d1.equals(d2)) {
-                output.add(mTupleFactory.newTuple(d1));
-                output.add(mTupleFactory.newTuple(d2));
+        try {
+            DataBag output = mBagFactory.newDefaultBag();
+            Object o1 = input.get(0);
+            if (o1 instanceof DataBag) {
+                DataBag bag1 = (DataBag)o1;
+                DataBag bag2 = (DataBag)input.get(1);
+                computeDiff(bag1, bag2, output);
+            } else {
+                Object d1 = input.get(0);
+                Object d2 = input.get(1);
+                if (!d1.equals(d2)) {
+                    output.add(mTupleFactory.newTuple(d1));
+                    output.add(mTupleFactory.newTuple(d2));
+                }
             }
+            return output;
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
         }
-        return output;
     }
 
     private void computeDiff(
             DataBag bag1,
             DataBag bag2,
-            DataBag emitTo) throws IOException {
+            DataBag emitTo) {
         // Create two distinct versions of the bag.  This will speed up
         // comparison, and provide us a sorted order so we don't have to do
         // an n^2 lookup.

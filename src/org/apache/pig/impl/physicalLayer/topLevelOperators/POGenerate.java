@@ -258,15 +258,7 @@ public class POGenerate extends PhysicalOperator {
             if(in instanceof Tuple) {
                 Tuple t = (Tuple)in;
                 for(int j = 0; j < t.size(); ++j) {
-                    try {
-                        out.append(t.get(j));
-                    } catch (IOException e) {
-                        ExecException ee =
-                            new ExecException("Unable to reference field "
-                            + j + " in tuple " + t);
-                        ee.initCause(e);
-                        throw ee;
-                    }
+                    out.append(t.get(j));
                 }
             } else
                 out.append(in);

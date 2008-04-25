@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.physicalLayer.topLevelOperators;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -184,7 +183,7 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
                 }
                 res.set(i+1,bag);
             }
-        }catch(IOException e){
+        }catch(ExecException e){
             log.error("Received error while constructing the output tuple");
             return new Result();
         }

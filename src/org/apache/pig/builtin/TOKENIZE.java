@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -34,13 +35,19 @@ public class TOKENIZE extends EvalFunc<DataBag> {
 
     @Override
     public DataBag exec(Tuple input) throws IOException {
-        DataBag output = mBagFactory.newDefaultBag();
-        String str = (String)input.get(0);
-        StringTokenizer tok = new StringTokenizer(str, " \",()*", false);
-        while (tok.hasMoreTokens()) {
-            output.add(mTupleFactory.newTuple(tok.nextToken()));
+        try {
+            DataBag output = mBagFactory.newDefaultBag();
+            String str = (String)input.get(0);
+            StringTokenizer tok = new StringTokenizer(str, " \",()*", false);
+            while (tok.hasMoreTokens()) {
+                output.add(mTupleFactory.newTuple(tok.nextToken()));
+            }
+            return output;
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
         }
-        return output;
     }
 
     @Override

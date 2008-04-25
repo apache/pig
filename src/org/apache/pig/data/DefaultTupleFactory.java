@@ -17,9 +17,10 @@
  */
 package org.apache.pig.data;
 
-import java.io.IOException;
 import java.lang.Class;
 import java.util.List;
+
+import org.apache.pig.backend.executionengine.ExecException;
 
 /**
  * A bag factory.  Can be used to generate different types of bags
@@ -43,7 +44,7 @@ public class DefaultTupleFactory extends TupleFactory {
         Tuple t = new DefaultTuple(1);
         try {
             t.set(0, datum);
-        } catch (IOException e) {
+        } catch (ExecException e) {
             // The world has come to an end, we just allocated a tuple with one slot
             // but we can't write to that slot.
             throw new RuntimeException("Unable to write to field 0 in newly " +

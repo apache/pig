@@ -17,13 +17,13 @@
  */
 package org.apache.pig.impl.physicalLayer.plans;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.plan.PlanException;
 
 /**
  * 
@@ -56,7 +56,7 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
     
     @Override
     public void connect(E from, E to)
-            throws IOException {
+            throws PlanException {
         super.connect(from, to);
         to.setInputs(getPredecessors(to));
     }

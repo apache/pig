@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -116,7 +117,12 @@ public class PigStorage implements LoadFunc, StoreFunc {
         // bytes, I don't get a string representation.
         int sz = f.size();
         for (int i = 0; i < sz; i++) {
-            Object field = f.get(i);
+            Object field;
+            try {
+                field = f.get(i);
+            } catch (ExecException ee) {
+                throw new RuntimeException(ee);
+            }
             switch (DataType.findType(field)) {
             case DataType.NULL:
                 break; // just leave it empty

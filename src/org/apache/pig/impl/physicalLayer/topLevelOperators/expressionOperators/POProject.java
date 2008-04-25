@@ -118,7 +118,7 @@ public class POProject extends ExpressionOperator {
         }
         try {
             res.result = ((Tuple)res.result).get(column);
-        } catch (IOException e) {
+        } catch (ExecException e) {
             res.returnStatus = POStatus.STATUS_ERR;
             log.warn(e.getMessage());
         }
@@ -202,7 +202,7 @@ public class POProject extends ExpressionOperator {
                     res.result = (Tuple)ret;
                 }
                 return res;
-            } catch (IOException e) {
+            } catch (ExecException e) {
                 res.returnStatus = POStatus.STATUS_ERR;
                 log.error(e.getMessage());
             }

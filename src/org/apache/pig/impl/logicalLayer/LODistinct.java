@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.io.IOException;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -45,18 +46,18 @@ public class LODistinct extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws IOException {
+    public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // Get the schema of the parent
             Collection<LogicalOperator> s = mPlan.getSuccessors(this);
             try {
                 LogicalOperator op = s.iterator().next();
                 if(null == op) {
-                    throw new IOException("Could not find operator in plan");
+                    throw new FrontendException("Could not find operator in plan");
                 }
                 mSchema = s.iterator().next().getSchema();
                 mIsSchemaComputed = true;
-            } catch (IOException ioe) {
+            } catch (FrontendException ioe) {
                 mSchema = null;
                 mIsSchemaComputed = false;
                 throw ioe;

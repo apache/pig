@@ -17,9 +17,9 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -59,7 +59,7 @@ public class LOForEach extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws IOException {
+    public Schema getSchema() throws FrontendException {
         if (mSchema == null) {
             // Assuming that the last operator is the GENERATE
             // foreach has to terminate with a GENERATE
@@ -67,7 +67,7 @@ public class LOForEach extends LogicalOperator {
             try {
                 mSchema = last.getSchema();
                 mIsSchemaComputed = true;
-            } catch (IOException ioe) {
+            } catch (FrontendException ioe) {
                 mSchema = null;
                 mIsSchemaComputed = false;
                 throw ioe;

@@ -17,10 +17,11 @@
  */
 package org.apache.pig.data;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.io.WritableComparable;
+
+import org.apache.pig.backend.executionengine.ExecException;
 
 /**
  * An ordered list of Data.  A tuple has fields, numbered 0 through
@@ -53,10 +54,10 @@ public interface Tuple extends WritableComparable {
      * Find out if a given field is null.
      * @param fieldNum Number of field to check for null.
      * @return true if the field is null, false otherwise.
-     * @throws IOException if the field number given is greater
+     * @throws ExecException if the field number given is greater
      * than or equal to the number of fields in the tuple.
      */
-    boolean isNull(int fieldNum) throws IOException;
+    boolean isNull(int fieldNum) throws ExecException;
 
     /**
      * Find the type of a given field.
@@ -64,19 +65,19 @@ public interface Tuple extends WritableComparable {
      * @return type, encoded as a byte value.  The values are taken from
      * the class DataType.  If the field is null, then DataType.UNKNOWN
      * will be returned.
-     * @throws IOException if the field number is greater than or equal to
+     * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    byte getType(int fieldNum) throws IOException;
+    byte getType(int fieldNum) throws ExecException;
 
     /**
      * Get the value in a given field.
      * @param fieldNum Number of the field to get the value for.
      * @return value, as an Object.
-     * @throws IOException if the field number is greater than or equal to
+     * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    Object get(int fieldNum) throws IOException;
+    Object get(int fieldNum) throws ExecException;
 
     /**
      * Get all of the fields in the tuple as a list.
@@ -89,10 +90,10 @@ public interface Tuple extends WritableComparable {
      * Set the value in a given field.
      * @param fieldNum Number of the field to set the value for.
      * @param val Object to put in the indicated field.
-     * @throws IOException if the field number is greater than or equal to
+     * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    void set(int fieldNum, Object val) throws IOException;
+    void set(int fieldNum, Object val) throws ExecException;
 
     /**
      * Append a field to a tuple.  This method is not efficient as it may
@@ -117,7 +118,7 @@ public interface Tuple extends WritableComparable {
      * tuple must be atomic (no bags, tuples, or maps).
      * @param delim Delimiter to use in the string.
      * @return A string containing the tuple.
-     * @throws IOException if a non-atomic value is found.
+     * @throws ExecException if a non-atomic value is found.
      */
-    String toDelimitedString(String delim) throws IOException;
+    String toDelimitedString(String delim) throws ExecException;
 }

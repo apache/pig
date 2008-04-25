@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.ArrayList;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.util.Spillable;
 //import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 
@@ -268,8 +269,12 @@ public abstract class DefaultAbstractBag implements DataBag {
         long size = in.readLong();
         
         for (long i = 0; i < size; i++) {
-            Object o = DataReaderWriter.readDatum(in);
-            add((Tuple)o);
+            try {
+                Object o = DataReaderWriter.readDatum(in);
+                add((Tuple)o);
+            } catch (ExecException ee) {
+                throw new RuntimeException(ee);
+            }
         }
     }
 

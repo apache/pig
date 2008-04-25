@@ -86,16 +86,16 @@ public class LOLoad extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws IOException {
+    public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get the schema of the load function
             try {
                 mSchema = mLoadFunc.determineSchema(mSchemaFile);
                 mIsSchemaComputed = true;
-            } catch (Exception e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.setStackTrace(e.getStackTrace());
-                throw ioe;
+            } catch (IOException ioe) {
+                FrontendException fee = new FrontendException(ioe.getMessage());
+                fee.initCause(ioe);
+                throw fee;
             }
         }
         return mSchema;

@@ -17,8 +17,8 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.List;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -60,12 +60,12 @@ public class LOFilter extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws IOException {
+    public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             try {
                 mSchema = mInput.getSchema();
                 mIsSchemaComputed = true;
-            } catch (IOException ioe) {
+            } catch (FrontendException ioe) {
                 mSchema = null;
                 mIsSchemaComputed = false;
                 throw ioe;

@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -37,7 +38,13 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
 
     @Override
     public Double exec(Tuple input) throws IOException {
-        return min(input);
+        try {
+            return min(input);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public String getInitial() {
@@ -57,17 +64,29 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            return tfact.newTuple(min(input));
+            try {
+                return tfact.newTuple(min(input));
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
     static public class Final extends EvalFunc<Double> {
         @Override
         public Double exec(Tuple input) throws IOException {
-            return min(input);
+            try {
+                return min(input);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                ee.initCause(ee);
+                throw oughtToBeEE;
+            }
         }
     }
 
-    static protected Double min(Tuple input) throws IOException {
+    static protected Double min(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
 
         double curMin = Double.POSITIVE_INFINITY;
@@ -78,7 +97,7 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
                 if (d == null) continue;
                 curMin = java.lang.Math.min(curMin, d);
             } catch (RuntimeException exp) {
-                IOException newE =  new IOException("Error processing: " +
+                ExecException newE =  new ExecException("Error processing: " +
                     t.toString() + exp.getMessage());
                 newE.initCause(exp);
                 throw newE;

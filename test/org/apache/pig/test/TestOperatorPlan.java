@@ -17,7 +17,6 @@
  */
 package org.apache.pig.test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -286,7 +285,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         boolean sawError = false;
         try {
             plan.connect(ops[2], bogus);
-        } catch (IOException ioe) {
+        } catch (PlanException ioe) {
             assertEquals("Attempt to connect operator X which is not in "
                 + "the plan.", ioe.getMessage());
             sawError = true;
@@ -310,7 +309,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         sawError = false;
         try {
             plan.connect(bogus, ops[1]);
-        } catch (IOException ioe) {
+        } catch (PlanException ioe) {
             assertEquals("Attempt to give operator of type " +
                 "org.apache.pig.test.TestOperatorPlan$SingleOperator " +
                 "multiple inputs.  This operator does "
@@ -325,7 +324,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         sawError = false;
         try {
             plan.connect(ops[0], bogus);
-        } catch (IOException ioe) {
+        } catch (PlanException ioe) {
             assertEquals("Attempt to give operator of type " +
                 "org.apache.pig.test.TestOperatorPlan$SingleOperator " +
                 "multiple outputs.  This operator does "

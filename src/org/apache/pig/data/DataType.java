@@ -17,13 +17,14 @@
  */
 package org.apache.pig.data;
 
-import java.io.IOException;
 import java.lang.Class;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.pig.backend.executionengine.ExecException;
 
 /**
  * A class of static final values used to encode data type.  This could be
@@ -310,9 +311,9 @@ public class DataType {
      * already <b>know</b> that the object you have is an Integer you
      * should just cast it.
      * @return The object as a Integer.
-     * @throws IOException if the type can't be forced to an Integer.
+     * @throws ExecException if the type can't be forced to an Integer.
      */
-    public static Integer toInteger(Object o) throws IOException {
+    public static Integer toInteger(Object o) throws ExecException {
         switch (findType(o)) {
         case BOOLEAN:
             if (((Boolean)o) == true) return new Integer(1);
@@ -344,7 +345,7 @@ public class DataType {
         case BAG:
         case UNKNOWN:
         default:
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to an Integer");
         }
     }
@@ -357,9 +358,9 @@ public class DataType {
      * already <b>know</b> that the object you have is a Long you
      * should just cast it.
      * @return The object as a Long.
-     * @throws IOException if the type can't be forced to a Long.
+     * @throws ExecException if the type can't be forced to a Long.
      */
-    public static Long toLong(Object o) throws IOException {
+    public static Long toLong(Object o) throws ExecException {
         switch (findType(o)) {
         case BOOLEAN:
             if (((Boolean)o) == true) return new Long(1);
@@ -391,7 +392,7 @@ public class DataType {
         case BAG:
         case UNKNOWN:
         default:
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to a Long");
         }
     }
@@ -404,9 +405,9 @@ public class DataType {
      * already <b>know</b> that the object you have is a Float you
      * should just cast it.
      * @return The object as a Float.
-     * @throws IOException if the type can't be forced to a Float.
+     * @throws ExecException if the type can't be forced to a Float.
      */
-    public static Float toFloat(Object o) throws IOException {
+    public static Float toFloat(Object o) throws ExecException {
         switch (findType(o)) {
         case INTEGER:
             return new Float(((Integer)o).floatValue());
@@ -435,7 +436,7 @@ public class DataType {
         case BAG:
         case UNKNOWN:
         default:
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to a Float");
         }
     }
@@ -448,9 +449,9 @@ public class DataType {
      * already <b>know</b> that the object you have is a Double you
      * should just cast it.
      * @return The object as a Double.
-     * @throws IOException if the type can't be forced to a Double.
+     * @throws ExecException if the type can't be forced to a Double.
      */
-    public static Double toDouble(Object o) throws IOException {
+    public static Double toDouble(Object o) throws ExecException {
         switch (findType(o)) {
         case INTEGER:
             return new Double(((Integer)o).doubleValue());
@@ -479,7 +480,7 @@ public class DataType {
         case BAG:
         case UNKNOWN:
         default:
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to a Double");
         }
     }
@@ -490,15 +491,15 @@ public class DataType {
      * already <b>know</b> that the object you have is a Map you
      * should just cast it.
      * @return The object as a Double.
-     * @throws IOException if the type can't be forced to a Double.
+     * @throws ExecException if the type can't be forced to a Double.
      */
-    public static Map<Object, Object> toMap(Object o) throws IOException {
+    public static Map<Object, Object> toMap(Object o) throws ExecException {
         if (o == null) return null;
 
         if (o instanceof Map) {
             return (Map<Object, Object>)o;
         } else {
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to a Map");
         }
     }
@@ -509,15 +510,15 @@ public class DataType {
      * already <b>know</b> that the object you have is a Tuple you
      * should just cast it.
      * @return The object as a Double.
-     * @throws IOException if the type can't be forced to a Double.
+     * @throws ExecException if the type can't be forced to a Double.
      */
-    public static Tuple toTuple(Object o) throws IOException {
+    public static Tuple toTuple(Object o) throws ExecException {
         if (o == null) return null;
 
         if (o instanceof Tuple) {
             return (Tuple)o;
         } else {
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to a Tuple");
         }
     }
@@ -528,15 +529,15 @@ public class DataType {
      * already <b>know</b> that the object you have is a bag you
      * should just cast it.
      * @return The object as a Double.
-     * @throws IOException if the type can't be forced to a Double.
+     * @throws ExecException if the type can't be forced to a Double.
      */
-    public static DataBag toBag(Object o) throws IOException {
+    public static DataBag toBag(Object o) throws ExecException {
         if (o == null) return null;
 
         if (o instanceof DataBag) {
             return (DataBag)o;
         } else {
-            throw new IOException("Cannot convert a " + findTypeName(o) +
+            throw new ExecException("Cannot convert a " + findTypeName(o) +
                 " to a DataBag");
         }
     }

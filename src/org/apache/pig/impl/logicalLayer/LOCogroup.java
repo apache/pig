@@ -17,13 +17,13 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 
@@ -75,7 +75,7 @@ public class LOCogroup extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws IOException {
+    public Schema getSchema() throws FrontendException {
         // TODO create schema
         /**
          * Dumping my understanding of how the schema of a Group/CoGroup will

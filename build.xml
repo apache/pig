@@ -148,7 +148,8 @@
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
 				**/physicalLayer/Result.java,
-                **/physicalLayer/POStatus.java, **/bzip2r/*.java"
+                **/physicalLayer/POStatus.java, **/bzip2r/*.java,
+                **/backend/executionengine/ExecException.java"
             destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />

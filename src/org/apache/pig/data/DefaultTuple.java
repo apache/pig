@@ -29,6 +29,8 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.io.WritableComparable;
 
+import org.apache.pig.backend.executionengine.ExecException;
+
 /**
  * A default implementation of Tuple.  This class will be created by the
  * DefaultTupleFactory.
@@ -90,10 +92,10 @@ public class DefaultTuple implements Tuple {
      * Find out if a given field is null.
      * @param fieldNum Number of field to check for null.
      * @return true if the field is null, false otherwise.
-     * @throws IOException if the field number given is greater
+     * @throws ExecException if the field number given is greater
      * than or equal to the number of fields in the tuple.
      */
-    public boolean isNull(int fieldNum) throws IOException {
+    public boolean isNull(int fieldNum) throws ExecException {
         checkBounds(fieldNum);
         return (mFields.get(fieldNum) == null);
     }
@@ -104,10 +106,10 @@ public class DefaultTuple implements Tuple {
      * @return type, encoded as a byte value.  The values are taken from
      * the class DataType.  If the field is null, then DataType.UNKNOWN
      * will be returned.
-     * @throws IOException if the field number is greater than or equal to
+     * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    public byte getType(int fieldNum) throws IOException {
+    public byte getType(int fieldNum) throws ExecException {
         checkBounds(fieldNum);
         return DataType.findType(mFields.get(fieldNum));
     }
@@ -116,10 +118,10 @@ public class DefaultTuple implements Tuple {
      * Get the value in a given field.
      * @param fieldNum Number of the field to get the value for.
      * @return value, as an Object.
-     * @throws IOException if the field number is greater than or equal to
+     * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    public Object get(int fieldNum) throws IOException {
+    public Object get(int fieldNum) throws ExecException {
         checkBounds(fieldNum);
         return mFields.get(fieldNum);
     }
@@ -137,10 +139,10 @@ public class DefaultTuple implements Tuple {
      * Set the value in a given field.
      * @param fieldNum Number of the field to set the value for.
      * @param val Object to put in the indicated field.
-     * @throws IOException if the field number is greater than or equal to
+     * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    public void set(int fieldNum, Object val) throws IOException {
+    public void set(int fieldNum, Object val) throws ExecException {
         checkBounds(fieldNum);
         mFields.set(fieldNum, val);
     }
@@ -177,14 +179,14 @@ public class DefaultTuple implements Tuple {
      * tuple must be atomic (no bags, tuples, or maps).
      * @param delim Delimiter to use in the string.
      * @return A string containing the tuple.
-     * @throws IOException if a non-atomic value is found.
+     * @throws ExecException if a non-atomic value is found.
      */
-    public String toDelimitedString(String delim) throws IOException {
+    public String toDelimitedString(String delim) throws ExecException {
         StringBuilder buf = new StringBuilder();
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object field = it.next();
             if (DataType.isComplex(field)) {
-                throw new IOException("Unable to convert non-flat tuple to string.");
+                throw new ExecException("Unable to convert non-flat tuple to string.");
             }
             buf.append(field.toString());
             if (it.hasNext())
@@ -228,7 +230,7 @@ public class DefaultTuple implements Tuple {
                         if (c != 0) {
                             return c;
                         }
-                    } catch (IOException e) {
+                    } catch (ExecException e) {
                         throw new RuntimeException("Unable to compare tuples", e);
                     }
                 }
@@ -261,7 +263,11 @@ public class DefaultTuple implements Tuple {
         int sz = size();
         out.writeInt(sz);
         for (int i = 0; i < sz; i++) {
-            Object d = get(i);
+            try {
+                Object d = get(i);
+            } catch (ExecException ee) {
+                throw new RuntimeException(ee);
+            }
             DataReaderWriter.writeDatum(out, mFields.get(i));
         }
     }
@@ -280,7 +286,11 @@ public class DefaultTuple implements Tuple {
         // Read the number of fields
         int sz = in.readInt();
         for (int i = 0; i < sz; i++) {
-            append(DataReaderWriter.readDatum(in));
+            try {
+                append(DataReaderWriter.readDatum(in));
+            } catch (ExecException ee) {
+                throw new RuntimeException(ee);
+            }
         }
     }
 
@@ -342,9 +352,9 @@ public class DefaultTuple implements Tuple {
         }
     }
 
-    private void checkBounds(int fieldNum) throws IOException {
+    private void checkBounds(int fieldNum) throws ExecException {
         if (fieldNum >= mFields.size()) {
-            throw new IOException("Request for field number " + fieldNum +
+            throw new ExecException("Request for field number " + fieldNum +
                 " exceeds tuple size of " + mFields.size());
         }
     }

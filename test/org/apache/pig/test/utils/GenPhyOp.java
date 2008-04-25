@@ -17,11 +17,11 @@
  */
 package org.apache.pig.test.utils;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
@@ -50,6 +50,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LTOrEqualToExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LessThanExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
+import org.apache.pig.impl.plan.PlanException;
 
 public class GenPhyOp {
     static Random r = new Random();
@@ -125,9 +126,9 @@ public class GenPhyOp {
      *                  result types and #projects for *
      * @return - The POGenerate operator which has the exprplan
      *              for generate grpCol, * set.
-     * @throws IOException
+     * @throws ExecException
      */
-    public static POGenerate topGenerateOpWithExPlan(int grpCol, Tuple sample) throws IOException {
+    public static POGenerate topGenerateOpWithExPlan(int grpCol, Tuple sample) throws ExecException {
         POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, grpCol);
         prj1.setResultType(sample.getType(grpCol));
         prj1.setOverloaded(false);
@@ -174,9 +175,9 @@ public class GenPhyOp {
      *                  result type
      * @return - The POGenerate operator which has the exprplan
      *              for 'generate field' set.
-     * @throws IOException
+     * @throws ExecException
      */
-    public static POGenerate topGenerateOpWithExPlanForFe(int field, Tuple sample) throws IOException {
+    public static POGenerate topGenerateOpWithExPlanForFe(int field, Tuple sample) throws ExecException {
         POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, field);
         prj1.setResultType(sample.getType(field));
         prj1.setOverloaded(false);
@@ -205,9 +206,9 @@ public class GenPhyOp {
      * @param grpCol - The column to be grouped on
      * @param sample - Sample tuple needed for topGenerateOpWithExPlan
      * @return - The POLocalRearrange operator
-     * @throws IOException
+     * @throws ExecException
      */
-    public static POLocalRearrange topLocalRearrangeOPWithPlan(int index, int grpCol, Tuple sample) throws IOException{
+    public static POLocalRearrange topLocalRearrangeOPWithPlan(int index, int grpCol, Tuple sample) throws ExecException{
         POGenerate gen = topGenerateOpWithExPlan(grpCol, sample);
         PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
         pp.add(gen);
@@ -225,9 +226,9 @@ public class GenPhyOp {
      * @param field - The column to be generated
      * @param sample - Sample tuple needed for topGenerateOpWithExPlanForFe
      * @return - The POForEach operator
-     * @throws IOException
+     * @throws ExecException
      */
-    public static POForEach topForEachOPWithPlan(int field, Tuple sample) throws IOException{
+    public static POForEach topForEachOPWithPlan(int field, Tuple sample) throws ExecException{
         POGenerate gen = topGenerateOpWithExPlanForFe(field, sample);
         PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
         pp.add(gen);
@@ -249,7 +250,7 @@ public class GenPhyOp {
     }
 
     public static POFilter topFilterOpWithExPlan(int lhsVal, int rhsVal)
-            throws IOException {
+            throws PlanException {
         POFilter ret = new POFilter(new OperatorKey("", r.nextLong()));
 
         ConstantExpression ce1 = GenPhyOp.exprConst();
@@ -277,7 +278,7 @@ public class GenPhyOp {
     }
 
     public static POFilter topFilterOpWithProj(int col, int rhsVal)
-            throws IOException {
+            throws PlanException {
         POFilter ret = new POFilter(new OperatorKey("", r.nextLong()));
 
         POProject proj = exprProject();
