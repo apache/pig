@@ -255,3 +255,5 @@ Trunk (unreleased changes)
     PIG-220: Fixed definition of parameter name for param substitution
 
     PIG-151: fixes to code that handles bzip files
+
+    PIG-222: fix build break

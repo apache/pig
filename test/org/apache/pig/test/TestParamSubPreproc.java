@@ -1196,7 +1196,7 @@ public class TestParamSubPreproc extends TestCase {
             pigIStream = new BufferedReader(new FileReader(basedir + "/input1.pig"));
             pigOStream = new FileWriter(basedir + "/output1.pig");
 
-            String[] arg = {"date=`/usr/local/bin/perl -e 'print \"20080228\n20070101\"' | head -n 1`"};
+            String[] arg = {"date=`perl -e 'print \"20080228\n20070101\"' | head -n 1`"};
             String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
@@ -1235,8 +1235,8 @@ public class TestParamSubPreproc extends TestCase {
 
     }
 
-    /* Test case 31   
-     * Use of inline command
+    /* Test case 32   
+     * No substitution
      */
     @Test
     public void testNoVars() throws Exception{
