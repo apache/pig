@@ -56,7 +56,12 @@ public class PigOutputFormat implements OutputFormat {
         } else {
             store = (StoreFunc) PigContext.instantiateFuncFromSpec(storeFunc);
         }
-        String parentName = outputDir.getParent().getName();
+        // The outputDir is going to be a temporary name we need to look at the
+        // real thing!
+        // XXX This is a wretched implementation dependent hack! Need to find
+        // out from the Hadoop guys if there is a better way.
+        String parentName = job.getOutputPath().getParent().getParent()
+                .getName();
         int suffixStart = parentName.lastIndexOf('.');
         if (suffixStart != -1) {
             String suffix = parentName.substring(suffixStart);

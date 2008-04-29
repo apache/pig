@@ -424,6 +424,11 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
         super.finalize();
     }
 
+    // The bytes to fillin an empty file
+    final private static byte emptyFileArray[] = {
+        0x39, 0x17, 0x72, 0x45, 0x38, 0x50, (byte) 0x90, 00, 00, 00, 00
+    };
+    
     public void close() throws IOException {
         if (closed) {
             return;
@@ -436,6 +441,8 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
         if (written){
         	endBlock();
         	endCompression();
+        } else {
+            bsStream.write(emptyFileArray);
         }
         closed = true;
         super.close();
