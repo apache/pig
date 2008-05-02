@@ -99,7 +99,7 @@ public static void main(String args[])
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
-        ExecType execType = ExecType.LOCAL;
+        ExecType execType = ExecType.MAPREDUCE ;
         String execTypeString = properties.getProperty("exectype");
         if(execTypeString!=null && execTypeString.length()>0){
             execType = PigServer.parseExecType(execTypeString);

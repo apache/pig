@@ -128,9 +128,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
         
     public PigContext(ExecType execType, Properties properties){
         this.execType = execType;
-        this.properties = properties;
-    
-        initProperties();
+        this.properties = properties;   
         
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
@@ -157,50 +155,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
         packageImportList.add("com.yahoo.pig.yst.sds.ULT.");
         packageImportList.add("org.apache.pig.impl.builtin.");        
     }
-
-    private void initProperties() {
-        Properties fileProperties = new Properties();
-            
-        try{        
-            // first read the properties in the jar file
-            InputStream pis = MapReduceLauncher.class.getClassLoader().getResourceAsStream("properties");
-            if (pis != null) {
-                fileProperties.load(pis);
-            }
-            
-            //then read the properties in the home directory
-            try{
-                pis = new FileInputStream(System.getProperty("user.home") + "/.pigrc");
-            }catch(IOException e){}
-            if (pis != null) {
-                fileProperties.load(pis);
-            }
-        }catch (IOException e){
-            log.error(e);
-            throw new RuntimeException(e);
-        }
-        
-        //Now set these as system properties only if they are not already defined.
-        for (Object o: fileProperties.keySet()){
-            String propertyName = (String)o;
-            if (log.isDebugEnabled()) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("Found system property ");
-                sb.append(propertyName);
-                sb.append(" in .pigrc");
-                log.debug(sb.toString());
-            }
-            if (System.getProperty(propertyName) == null){
-                System.setProperty(propertyName, fileProperties.getProperty(propertyName));
-                if (log.isDebugEnabled()) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Setting system property ");
-                    sb.append(propertyName);
-                    log.debug(sb.toString());
-                }
-            }
-        }
-    }    
     
     public void connect() throws ExecException {
 

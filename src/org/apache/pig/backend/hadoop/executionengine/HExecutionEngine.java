@@ -135,7 +135,7 @@ public class HExecutionEngine implements ExecutionEngine {
             }
         }
      
-        log.info("Connecting to hadoop file system at: " + properties.get(FILE_SYSTEM_LOCATION));
+        log.info("Connecting to hadoop file system at: "  + (nameNode==null? LOCAL: nameNode) )  ;
         ds = new HDataStorage(properties);
             
         Configuration configuration = ConfigurationUtil.toConfiguration(properties);
