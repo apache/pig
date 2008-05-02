@@ -185,7 +185,13 @@ public class ExecutableManager {
 	    } finally {
 	        // Cleanup, release resources ...
 	        if (process != null) {
-	            process.destroy();
+              // Get the exit code 
+              try {
+                  exitCode = process.waitFor();
+              } catch (InterruptedException ie) {}
+
+              // Cleanup the process 
+              process.destroy();
 	        }
 
 	        if (stdoutThread != null) {
