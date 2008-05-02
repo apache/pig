@@ -236,6 +236,11 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
                 op.name() + " which is not in the plan.");
         }
     }
+    
+    public boolean isSingleLeafPlan() {
+        List<E> tmpList = getLeaves() ;
+        return tmpList.size() == 1 ;
+    }
 
 
 }

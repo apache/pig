@@ -55,7 +55,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LogicalOperator lOp)
+    protected void visit(LogicalOperator lOp)
             throws VisitorException {
         //
         // Do Nothing
@@ -67,7 +67,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical expression operator that has to be visited
      * @throws VisitorException
      */
-    void visit(ExpressionOperator eOp)
+    protected void visit(ExpressionOperator eOp)
             throws VisitorException {
         //
         // Do Nothing
@@ -79,7 +79,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical binary expression operator that has to be visited
      * @throws VisitorException
      */
-    void visit(BinaryExpressionOperator binOp)
+    protected void visit(BinaryExpressionOperator binOp)
             throws VisitorException {
         //
         // Visit the left hand side operand followed by the right hand side
@@ -96,7 +96,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical unary operator that has to be visited
      * @throws VisitorException
      */
-    void visit(UnaryExpressionOperator uniOp) throws VisitorException {
+    protected void visit(UnaryExpressionOperator uniOp) throws VisitorException {
         // Visit the operand
 
         uniOp.getOperand().visit(this);
@@ -108,7 +108,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical cogroup operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOCogroup cg) throws VisitorException {
+    protected void visit(LOCogroup cg) throws VisitorException {
         // Visit each of the inputs of cogroup.
         Iterator<ExpressionOperator> i = cg.getGroupByCols().iterator();
         while (i.hasNext()) {
@@ -122,7 +122,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical generate operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOGenerate g) throws VisitorException {
+    protected void visit(LOGenerate g) throws VisitorException {
         // Visit each of generates projection elements.
         Iterator<ExpressionOperator> i = g.getProjections().iterator();
         while (i.hasNext()) {
@@ -136,7 +136,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical sort operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOSort s) throws VisitorException {
+    protected void visit(LOSort s) throws VisitorException {
         // Visit the sort function
         s.getUserFunc().visit(this);
     }
@@ -147,7 +147,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical filter operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOFilter filter) throws VisitorException {
+    protected void visit(LOFilter filter) throws VisitorException {
         // Visit the condition for the filter followed by the input
         filter.getCondition().visit(this);
     }
@@ -158,7 +158,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical split operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOSplit split) throws VisitorException {
+    protected void visit(LOSplit split) throws VisitorException {
         // Visit each of split's conditions
         Iterator<ExpressionOperator> i = split.getConditions().iterator();
         while (i.hasNext()) {
@@ -172,7 +172,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical foreach operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOForEach forEach) throws VisitorException {
+    protected void visit(LOForEach forEach) throws VisitorException {
         // Visit the operators that are part of the foreach
         Iterator<LogicalOperator> i = forEach.getOperators().iterator();
         while (i.hasNext()) {
@@ -187,7 +187,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the user defined function
      * @throws VisitorException
      */
-    void visit(LOUserFunc func) throws VisitorException {
+    protected void visit(LOUserFunc func) throws VisitorException {
         // Visit each of the arguments
         Iterator<ExpressionOperator> i = func.getArguments().iterator();
         while (i.hasNext()) {
@@ -199,7 +199,7 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      * @param binCond the logical binCond operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOBinCond binCond) throws VisitorException {
+    protected void visit(LOBinCond binCond) throws VisitorException {
         /**
          * Visit the conditional expression followed by the left hand operator
          * and the right hand operator respectively
@@ -216,10 +216,24 @@ abstract public class LOVisitor extends PlanVisitor<LogicalOperator, LogicalPlan
      *            the logical cast operator that has to be visited
      * @throws VisitorException
      */
-    void visit(LOCast cast) throws VisitorException {
+    protected void visit(LOCast cast) throws VisitorException {
         // Visit the expression to be cast
 
         cast.getExpression().visit(this);
+    }
+    
+    
+    protected void visit(LOLoad load) throws VisitorException{
+        
+        
+    }
+    
+    protected void visit(LOStore store) throws VisitorException{
+        
+    }
+    
+    protected void visit(LOConst store) throws VisitorException{
+        
     }
 
 }

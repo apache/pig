@@ -41,7 +41,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 //TODO FIX Need to uncomment this with the right imports
 //import org.apache.pig.Main;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
@@ -168,17 +168,17 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public void connect() throws ExecException {
         try {
             switch (execType) {
-//          TODO FIX Need to uncomment this with the right logic
-            /*case LOCAL:
+
+            case LOCAL:
             {
                 lfs = new HDataStorage(URI.create("file:///"),
                                        new Configuration());
                 
                 dfs = lfs;
-                
-                executionEngine = new LocalExecutionEngine(this);
+//              TODO FIX Need to uncomment this with the right logic                
+                //executionEngine = new LocalExecutionEngine(this);
             }
-            break;*/
+            break;
 
             case MAPREDUCE:
             {

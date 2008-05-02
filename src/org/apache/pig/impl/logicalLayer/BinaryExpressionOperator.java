@@ -61,6 +61,14 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
         return mRhsOperand;
     }
     
+    public void setLhsOperand(ExpressionOperator lhs) {
+        mLhsOperand = lhs ;
+    }
+
+    public void setRhsOperand(ExpressionOperator rhs) {
+        mRhsOperand = rhs ;
+    }
+    
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);

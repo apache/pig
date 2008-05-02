@@ -62,24 +62,6 @@ public class PigServer {
     
     private final Log log = LogFactory.getLog(getClass());
     
-    /**
-     * The type of query execution
-     */
-    static public enum ExecType {
-        /**
-         * Run everything on the local machine
-         */
-        LOCAL,
-        /**
-         * Use the Hadoop Map/Reduce framework
-         */
-        MAPREDUCE,
-        /**
-         * Use the Experimental Hadoop framework; not available yet.
-         */
-        PIG
-    }
-    
     public static ExecType parseExecType(String str) throws IOException {
         String normStr = str.toLowerCase();
         

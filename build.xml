@@ -147,8 +147,10 @@
                 **/logicalLayer/*.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
-				**/physicalLayer/Result.java,
+                **/physicalLayer/Result.java,
                 **/physicalLayer/POStatus.java, **/bzip2r/*.java,
+                **/validators/*.java , **/test/TestInputOutputFileValidator.java ,
+				**/test/TestTypeCheckingValidator.java, 
                 **/backend/executionengine/ExecException.java"
             destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
@@ -255,6 +257,8 @@
                 	<include name="**/TestPackage.java" />  
                 	<include name="**/TestLocalRearrange.java" /> 
                 	<include name="**/TestForEach.java" /> 
+                	<include name="**/TestInputOutputFileValidator.java" /> 
+                	<include name="**/TestTypeCheckingValidator.java" /> 
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

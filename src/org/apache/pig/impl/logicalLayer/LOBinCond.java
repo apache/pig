@@ -73,6 +73,14 @@ public class LOBinCond extends ExpressionOperator {
     public ExpressionOperator getRhsOp() {
         return mRhsOp;
     }
+    
+    public void setLhsOp(ExpressionOperator op) {
+        mLhsOp = op ;
+    }
+
+    public void setRhsOp(ExpressionOperator op) {
+        mRhsOp = op;
+    }
 
     @Override
     public void visit(LOVisitor v) throws VisitorException {

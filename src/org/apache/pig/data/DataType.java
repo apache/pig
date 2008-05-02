@@ -553,4 +553,23 @@ public class DataType {
         }
         System.out.println(t.toString());
     }
+    
+    public static boolean isNumberType(byte t) {
+        switch (t) {
+            case INTEGER:   return true ;
+            case LONG:      return true ;
+            case FLOAT:     return true ;
+            case DOUBLE:    return true ;
+            default: return false ;
+        }        
+    }
+    
+    public static boolean isUsableType(byte t) {
+        switch (t) {
+            case UNKNOWN:    return false ;
+            case NULL:       return false ;
+            case ERROR:      return false ;
+            default :return true ;
+        }
+    }
 }
