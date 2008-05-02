@@ -17,9 +17,8 @@
  */
 package org.apache.pig.impl.logicalLayer.optimizer.streaming;
 
-import java.util.List;
-
 import org.apache.pig.LoadFunc;
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.BinaryStorage;
 import org.apache.pig.impl.PigContext;
@@ -38,7 +37,6 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.optimizer.Optimizer;
 import org.apache.pig.impl.streaming.StreamingCommand;
-import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
@@ -83,14 +81,21 @@ public class LoadOptimizer extends Optimizer {
                                                 loadFileSpec.getFuncSpec());
 
                 // Check if the streaming command's inputSpec also implements 
-                // LoadFunc and if it does, are they of the same type?
+                // LoadFunc and if it does, are they of the same _reversible_ 
+                // type?
                 boolean sameType = false;
                 try {
-                    // TODO: We should actually check if the streamStorer
-                    // is _reversible_ as the inputLoader ...
+                    // Check if the streamStorer is _reversible_ as 
+                    // the inputLoader ...
                     if (streamStorer instanceof LoadFunc) {
+                        // Cast to check if they are of the same type...
                         streamStorer.getClass().cast(inputLoader);
-                        sameType = true;
+                        
+                        // Now check if they both are reversible...
+                        if (streamStorer instanceof ReversibleLoadStoreFunc &&
+                            inputLoader instanceof ReversibleLoadStoreFunc) {
+                            sameType = true;
+                        }
                     }
                 } catch (ClassCastException cce) {
                     sameType = false;

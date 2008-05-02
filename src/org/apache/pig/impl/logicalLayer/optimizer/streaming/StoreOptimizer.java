@@ -17,9 +17,8 @@
  */
 package org.apache.pig.impl.logicalLayer.optimizer.streaming;
 
-import java.util.List;
-
 import org.apache.pig.LoadFunc;
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.BinaryStorage;
 import org.apache.pig.impl.PigContext;
@@ -38,7 +37,6 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.optimizer.Optimizer;
 import org.apache.pig.impl.streaming.StreamingCommand;
-import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
@@ -109,14 +107,21 @@ public class StoreOptimizer extends Optimizer {
                 
 
                 // Check if the streaming command's outputSpec also implements 
-                // StoreFunc and if it does, are they of the same type?
+                // StoreFunc and if it does, are they of the same _reversible_ 
+                // type?
                 boolean sameType = false;
                 try {
-                    // TODO: We should actually check if the streamLoader
-                    // is _reversible_ as the outputStorer ...
+                    // Check if the streamLoader is _reversible_ as 
+                    // the outputStorer ...
                     if (streamLoader instanceof StoreFunc) {
+                        // Cast to check if they are of the same type...
                         streamLoader.getClass().cast(outputStorer);
-                        sameType = true;
+                        
+                        // Now check if they both are reversible...
+                        if (streamLoader instanceof ReversibleLoadStoreFunc &&
+                            outputStorer instanceof ReversibleLoadStoreFunc) {
+                            sameType = true;
+                        }
                     }
                 } catch (ClassCastException cce) {
                     sameType = false;

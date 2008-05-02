@@ -258,5 +258,5 @@ Trunk (unreleased changes)
 
     PIG-222: fix build break
 
-    PIG-226: fix for streaming optimization bug
+    PIG-226: fix for streaming optimization bug (acmurthy via olgan)
 
