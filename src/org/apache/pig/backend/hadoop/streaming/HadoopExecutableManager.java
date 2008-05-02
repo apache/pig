@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.streaming;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -45,6 +46,16 @@ import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
  * of the managed process and also persists the logs of the tasks on HDFS. 
  */
 public class HadoopExecutableManager extends ExecutableManager {
+    // The part-<partition> file name, similar to Hadoop's outputs
+    private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance();
+    static {
+      NUMBER_FORMAT.setMinimumIntegerDigits(5);
+      NUMBER_FORMAT.setGroupingUsed(false);
+    }
+
+    static String getOutputName(int partition) {
+      return "part-" + NUMBER_FORMAT.format(partition);
+    }
 
     JobConf job;
     
@@ -122,10 +133,13 @@ public class HadoopExecutableManager extends ExecutableManager {
                 for (int i=1; i < outputSpecs.size(); ++i) {
                     String fileName = outputSpecs.get(i).getName();
                     try {
+                        int partition = job.getInt("mapred.task.partition", -1);
                         fs.copyFromLocalFile(false, true, new Path(fileName), 
-                                new Path(scriptOutputDir, 
-                                        taskId+"-"+fileName)
-                        );
+                                             new Path(
+                                                     new Path(scriptOutputDir, 
+                                                              fileName), 
+                                                     getOutputName(partition))
+                                            );
                     } catch (IOException ioe) {
                         System.err.println("Failed to save secondary output '" + 
                                            fileName + "' of task: " + taskId +
