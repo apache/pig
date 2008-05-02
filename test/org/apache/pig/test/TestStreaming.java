@@ -470,4 +470,42 @@ public class TestStreaming extends TestCase {
         Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
     }
 
+    @Test
+    public void testLocalNegativeLoadStoreOptimization() throws Exception {
+        testNegativeLoadStoreOptimization(ExecType.LOCAL);
+    }
+    
+    @Test
+    public void testMRNegativeLoadStoreOptimization() throws Exception {
+        testNegativeLoadStoreOptimization(ExecType.MAPREDUCE);
+    }
+    
+    private void testNegativeLoadStoreOptimization(ExecType execType) 
+    throws Exception {
+            PigServer pigServer = createPigServer(execType);
+        File input = Util.createInputFile("tmp", "", 
+                                          new String[] {"A,1", "B,2", "C,3", "D,2",
+                                                        "A,5", "B,5", "C,8", "A,8",
+                                                        "D,8", "A,9"});
+
+        // Expected results
+        String[] expectedFirstFields = new String[] {"A", "B", "C", "A", "D", "A"};
+        int[] expectedSecondFields = new int[] {5, 5, 8, 8, 8, 9};
+        Tuple[] expectedResults = 
+            setupExpectedResults(expectedFirstFields, expectedSecondFields);
+
+        // Pig query to run
+        pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
+                                "` input(stdin using PigDump());");
+        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+                                PigStorage.class.getName() + "(',') " +
+                                "split by 'file';");
+        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
+        pigServer.registerQuery("OP = stream FILTERED_DATA through `" +
+                                simpleEchoStreamingCommand + "`;");
+        
+        // Run the query and check the results
+        Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
+    }
+
 }

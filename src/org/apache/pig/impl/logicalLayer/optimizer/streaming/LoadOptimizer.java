@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer.optimizer.streaming;
 import java.util.List;
 
 import org.apache.pig.LoadFunc;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.BinaryStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.eval.EvalSpec;
@@ -73,27 +74,31 @@ public class LoadOptimizer extends Optimizer {
                 
                 FileSpec loadFileSpec = load.getInputFileSpec();
                 
-                // Instantiate both LoadFunc objects to compare them for 
-                // equality
-                LoadFunc streamLoader = 
-                    (LoadFunc)PigContext.instantiateFuncFromSpec(
+                // Instantiate both to compare them for equality
+                StoreFunc streamStorer = 
+                    (StoreFunc)PigContext.instantiateFuncFromSpec(
                             streamInputSpec.getSpec());
                 
                 LoadFunc inputLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(
                                                 loadFileSpec.getFuncSpec());
 
-                // Check if both LoadFunc objects belong to the same type
+                // Check if the streaming command's inputSpec also implements 
+                // LoadFunc and if it does, are they of the same type?
                 boolean sameType = false;
                 try {
-                    streamLoader.getClass().cast(inputLoader);
-                    sameType = true;
+                    // TODO: We should actually check if the streamStorer
+                    // is _reversible_ as the inputLoader ...
+                    if (streamStorer instanceof LoadFunc) {
+                        streamStorer.getClass().cast(inputLoader);
+                        sameType = true;
+                    }
                 } catch (ClassCastException cce) {
                     sameType = false;
                 }
                 
                 // Check if both LoadFunc objects belong to the same type and
                 // are equivalent
-                if (sameType && streamLoader.equals(inputLoader)) {
+                if (sameType && streamStorer.equals(inputLoader)) {
                     // Since they both are the same, we can flip them 
                     // for BinaryStorage
                     load.setInputFileSpec(new FileSpec(loadFileSpec.getFileName(), BinaryStorage.class.getName()));

@@ -257,3 +257,6 @@ Trunk (unreleased changes)
     PIG-151: fixes to code that handles bzip files
 
     PIG-222: fix build break
+
+    PIG-226: fix for streaming optimization bug
+
