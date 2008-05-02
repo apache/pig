@@ -260,3 +260,5 @@ Trunk (unreleased changes)
 
     PIG-226: fix for streaming optimization bug (acmurthy via olgan)
 
+    PIG-228: make multiple streaming outputs adhere to spec (acmurthy via olgan)
+

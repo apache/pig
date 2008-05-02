@@ -324,9 +324,9 @@ public class TestStreaming extends TestCase {
                           "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
                           "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[2].\"!: $!\";",
                           "while (<STDIN>) {",
-                          "  print OUTFILE \"A,10\n\";",
+                          "  print OUTFILE \"$_\n\";",
                           "  print STDERR \"STDERR: $_\n\";",
-                          "  print OUTFILE2 \"Secondary Output: $_\n\";",
+                          "  print OUTFILE2 \"A,10\n\";",
                           "}",
 	                     };
 	    File command = Util.createInputFile("script", "pl", script);
@@ -354,7 +354,8 @@ public class TestStreaming extends TestCase {
         pigServer.deleteFile(output);
         pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
         
-        InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
+        InputStream op = FileLocalizer.open(output+"/bar", 
+                                            pigServer.getPigContext());
         PigStorage ps = new PigStorage(",");
         ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
         List<Tuple> outputs = new ArrayList<Tuple>();
@@ -388,7 +389,7 @@ public class TestStreaming extends TestCase {
                           "  chomp $_;",
                           "  print OUTFILE \"$_\n\";",
                           "  print STDERR \"STDERR: $_\n\";",
-                          "  print OUTFILE2 \"Secondary Output: $_\n\";",
+                          "  print OUTFILE2 \"$_\n\";",
                           "}",
                          };
         File command = Util.createInputFile("script", "pl", script);
@@ -417,7 +418,8 @@ public class TestStreaming extends TestCase {
         pigServer.deleteFile(output);
         pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
         
-        InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
+        InputStream op = FileLocalizer.open(output+"/foobar", 
+                                            pigServer.getPigContext());
         PigStorage ps = new PigStorage(",");
         ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
         List<Tuple> outputs = new ArrayList<Tuple>();
