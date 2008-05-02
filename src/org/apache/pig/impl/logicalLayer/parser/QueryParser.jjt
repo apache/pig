@@ -1542,11 +1542,16 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
 {
     String stream, deserializer;
     StreamingCommand.HandleSpec[] handleSpecs;
-    String functionName, functionArgs;
+    String functionName = "PigStorage", functionArgs="";
 } 
 {
-    
-    stream = CommandStream() <USING> functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+    stream = CommandStream() 
+    [
+        <USING> functionName = QualifiedFunction() 
+        [
+            "(" functionArgs = StringList() ")"
+        ]
+    ]
     {
         deserializer = functionName + "(" + functionArgs + ")";
         command.addHandleSpec(handle, 
@@ -1555,9 +1560,15 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
     }
     (
         "," 
-        stream = CommandStream() <USING> functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+        stream = CommandStream() 
+        [
+            <USING> functionName = QualifiedFunction() 
+            [
+                "(" functionArgs = StringList() ")"
+            ]
+        ] 
         {
-        	deserializer = functionName + "(" + functionArgs + ")";
+            deserializer = functionName + "(" + functionArgs + ")";
             command.addHandleSpec(handle, 
                                   new HandleSpec(stream, deserializer)
                                  );

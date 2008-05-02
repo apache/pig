@@ -406,7 +406,7 @@ public class TestStreaming extends TestCase {
                 "define CMD `" + command.getName() + " foo bar foobar` " +
                 "ship ('" + command + "') " +
                 "input('foo' using " + PigStorage.class.getName() + "(',')) " +
-                "output('bar' using " + PigStorage.class.getName() + "(','), " +
+                "output('bar', " +
                 "'foobar' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
         pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
@@ -498,7 +498,7 @@ public class TestStreaming extends TestCase {
 
         // Pig query to run
         pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
-                                "` input(stdin using PigDump());");
+                                "` input(stdin using PigDump);");
         pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
                                 PigStorage.class.getName() + "(',') " +
                                 "split by 'file';");

@@ -267,3 +267,6 @@ Trunk (unreleased changes)
 	PIG-176: Change bag spilling so that bags below a certain threshold are
 	not spilled, thus avoiding proliferation of small files (pi_song via
 	gates).
+    
+    PIG-227: making load/store function optional in stream input/output spec
+    (acmurthy via olgan)
