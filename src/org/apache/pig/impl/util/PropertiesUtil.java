@@ -41,10 +41,7 @@ public class PropertiesUtil {
             }
         } catch (Exception e) {
             log.error("unable to parse .pigrc :", e);
-        }
-        
-        // merge all keys/values
-        pigrcProps.putAll(properties) ;
+        }        
 		
 		// Now put all the entries from pigrcProps into properties, but
 		// only if they are not already set.  pig.properties takes
@@ -55,6 +52,19 @@ public class PropertiesUtil {
 				properties.put(entry.getKey(), entry.getValue());
 			}
 		}
+		
+        //Now set these as system properties only if they are not already defined.
+        if (log.isDebugEnabled()) {
+            for (Object o: properties.keySet()) {
+                String propertyName = (String) o ;
+                StringBuilder sb = new StringBuilder() ;
+                sb.append("Found property ") ;
+                sb.append(propertyName) ;
+                sb.append("=") ;
+                sb.append(properties.get(propertyName).toString()) ;
+                log.debug(sb.toString()) ;
+            }
+        }
 		
 		// For telling error fast when there are problems
 		ConfigurationValidator.validatePigProperties(properties) ;
