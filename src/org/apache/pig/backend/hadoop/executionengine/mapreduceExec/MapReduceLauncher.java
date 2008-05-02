@@ -60,6 +60,7 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.impl.util.ConfigurationValidator;
 
 
 /**
@@ -133,6 +134,7 @@ public class MapReduceLauncher {
         JobConf conf = new JobConf(config);
         setJobProperties(conf, pom);
         Properties properties = pom.pigContext.getProperties();
+        ConfigurationValidator.validatePigProperties(properties) ;
         String jobName = properties.getProperty(PigContext.JOB_NAME);
         conf.setJobName(jobName);
         boolean success = false;
@@ -160,6 +162,11 @@ public class MapReduceLauncher {
             String user = System.getProperty("user.name");
             conf.setUser(user != null ? user : "Pigster");
 
+            conf.set("pig.spill.size.threshold", 
+                     properties.getProperty("pig.spill.size.threshold")) ;           
+            conf.set("pig.spill.gc.activation.size", 
+                    properties.getProperty("pig.spill.gc.activation.size")) ;                      
+           
             if (pom.reduceParallelism != -1) {
                 conf.setNumReduceTasks(pom.reduceParallelism);
             }

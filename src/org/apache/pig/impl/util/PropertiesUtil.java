@@ -55,6 +55,9 @@ public class PropertiesUtil {
 				properties.put(entry.getKey(), entry.getValue());
 			}
 		}
+		
+		// For telling error fast when there are problems
+		ConfigurationValidator.validatePigProperties(properties) ;
     }
 
     public static Properties loadPropertiesFromFile() {
@@ -62,4 +65,5 @@ public class PropertiesUtil {
         loadPropertiesFromFile(properties);
         return properties;
     }
+    
 }

@@ -264,3 +264,6 @@ Trunk (unreleased changes)
 
     PIG-224: fix to error handling code to produce correct error code
 
+	PIG-176: Change bag spilling so that bags below a certain threshold are
+	not spilled, thus avoiding proliferation of small files (pi_song via
+	gates).

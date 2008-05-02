@@ -51,6 +51,7 @@ import org.apache.pig.impl.eval.cond.Cond;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.SpillableMemoryManager;
 
 
 /**
@@ -193,6 +194,12 @@ public class PigMapReduce implements MapRunnable, Reducer {
                                jobConf.get("mapred.task.id"));
         properties.setProperty("pig.streaming.task.output.dir", 
                                jobConf.getOutputPath().toString());
+        properties.setProperty("pig.spill.size.threshold", 
+                                jobConf.get("pig.spill.size.threshold"));
+        properties.setProperty("pig.spill.gc.activation.size", 
+                                jobConf.get("pig.spill.gc.activation.size"));
+ 
+        SpillableMemoryManager.configure(properties) ;
     }
 
     /**

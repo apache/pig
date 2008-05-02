@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -33,6 +34,9 @@ public class SpillableMemoryManager implements NotificationListener {
     private final Log log = LogFactory.getLog(getClass());
     
     LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
+    
+    private static long gcActivationSize = Long.MAX_VALUE ;
+    private static long spillFileSizeThreshold = 0L ;
     
     public SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
@@ -61,6 +65,21 @@ public class SpillableMemoryManager implements NotificationListener {
         /* We set the threshold to be 50% of tenured since that is where
          * the GC starts to dominate CPU time according to Sun doc */
         biggestHeap.setCollectionUsageThreshold((long)(biggestSize*.5));    
+    }
+    
+    public static void configure(Properties properties) {
+        
+        try {
+            spillFileSizeThreshold = Long.parseLong(
+                        (String) properties.getProperty("pig.spill.size.threshold") ) ;
+            gcActivationSize = Long.parseLong(
+                    (String) properties.getProperty("pig.spill.gc.activation.size") ) ;
+        } 
+        catch (NumberFormatException  nfe) {
+            throw new RuntimeException("Error while converting system configurations" +
+            		"spill.size.threshold, spill.gc.activation.size", nfe) ;
+        }
+          
     }
     
     public void handleNotification(Notification n, Object o) {
@@ -124,8 +143,21 @@ public class SpillableMemoryManager implements NotificationListener {
                     continue;
                 }
                 long toBeFreed = s.getMemorySize();
-                s.spill();
+                // Don't keep trying if the rest of files are too small
+                if (toBeFreed < spillFileSizeThreshold) {
+                    break ;
+                }
+                
+                s.spill();               
+                
+                // This should significantly reduce the number of small files
+                // in case that we have a lot of nested bags
+                if (toBeFreed > gcActivationSize) {
+                    System.gc();
+                }
+                
                 estimatedFreed += toBeFreed;
+                
                 if (estimatedFreed > toFree) {
                     break;
                 }

@@ -133,10 +133,6 @@ public class PigServer {
         this(execType, PropertiesUtil.loadPropertiesFromFile());
     }
 
-    public PigServer() throws ExecException {
-        this(ExecType.MAPREDUCE, new Properties());
-    }
-
     public PigServer(ExecType execType, Properties properties) throws ExecException {
         this.pigContext = new PigContext(execType, properties);
         if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
