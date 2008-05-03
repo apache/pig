@@ -273,3 +273,4 @@ Trunk (unreleased changes)
 
     PIG-215: Cleanup a few dangling ends left by PIG-111 (pi_song via gates).
     
+    PIG-229: Proper error handling in case of deserializer failure

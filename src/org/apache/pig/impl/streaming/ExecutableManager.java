@@ -87,6 +87,8 @@ public class ExecutableManager {
 	protected long outputRecords = 0;
 	protected long outputBytes = 0;
 	
+	protected volatile Throwable outerrThreadsError;
+
 	/**
 	 * Create a new {@link ExecutableManager}.
 	 */
@@ -202,6 +204,13 @@ public class ExecutableManager {
 	            stderrThread.interrupt();
 	        }
 	    }
+	    
+	    // Check if there was a problem with the managed process
+	    if (outerrThreadsError != null) {
+	        throw new IOException("Output/Error thread failed with: " +
+	                              outerrThreadsError);
+	    }
+ 
 	}
 
 	/**
@@ -304,6 +313,12 @@ public class ExecutableManager {
 	 * @throws IOException
 	 */
 	public void add(Datum d) throws IOException {
+        // Check if there was a problem with the managed process
+	    if (outerrThreadsError != null) {
+	        throw new IOException("Output/Error thread failed with: " +
+	                              outerrThreadsError);
+	    }
+	    
 		// Pass the serialized tuple to the executable via the InputHandler
 	    Tuple t = (Tuple)d;
 	    inputHandler.putNext(t);
@@ -344,6 +359,9 @@ public class ExecutableManager {
 
 				outputHandler.close();
 			} catch (Throwable t) {
+			    // Note that an error occurred 
+			    outerrThreadsError = t;
+
 				LOG.warn(t);
 				try {
 				    outputHandler.close();
@@ -387,16 +405,19 @@ public class ExecutableManager {
 					stderr.close();
 					LOG.debug("ProcessErrorThread done");
 				}
-			} catch (Throwable th) {
-				LOG.warn(th);
+			} catch (Throwable t) {
+			    // Note that an error occurred 
+			    outerrThreadsError = t;
+
+				LOG.warn(t);
 				try {
 					if (stderr != null) {
 						stderr.close();
 					}
 				} catch (IOException ioe) {
 					LOG.info(ioe);
-	                throw new RuntimeException(th);
 				}
+                throw new RuntimeException(t);
 			}
 		}
 	}
