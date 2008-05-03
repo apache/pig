@@ -160,4 +160,9 @@ public class BufferedPositionedInputStream extends InputStream {
         sb.append(carray, 0, cbuff.position());
         return sb.toString();
     }
+
+    public void close() throws IOException {
+        super.close();
+        in.close();
+    }
 }
