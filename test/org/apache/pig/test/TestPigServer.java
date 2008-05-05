@@ -18,16 +18,7 @@ import org.junit.Test;
 import junit.framework.TestCase;
 
 
-public class TestPigServer extends TestCase {
-    private PigServer pig = null;
-    MiniCluster cluster = MiniCluster.buildCluster();
-    
-    private void initPigServer() throws Throwable {
-        if (pig == null) {
-            pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        }
-    }
-    
+public class TestPigServer extends PigExecTestCase {
     
     private final static String FILE_SEPARATOR = System.getProperty("file.separator");
     
@@ -94,18 +85,17 @@ public class TestPigServer extends TestCase {
         String jarName = "BadFileNameTestJarNotPresent.jar";
         
         // jar name is not present to start with
-        initPigServer();
-        verifyStringContained(pig.getPigContext().extraJars, jarName, false);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, false);
 
         boolean exceptionRaised = false;
         try {
-            pig.registerJar(jarName);
+            pigServer.registerJar(jarName);
         }
         catch (IOException e) {
             exceptionRaised = true;
         }        
         assertTrue(exceptionRaised);
-        verifyStringContained(pig.getPigContext().extraJars, jarName, false);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, false);
     }
 
     /**
@@ -120,21 +110,19 @@ public class TestPigServer extends TestCase {
                               dir2 + FILE_SEPARATOR;
         String jarName = "TestRegisterJarLocal.jar";
         
-        initPigServer();
-        
         createFakeJarFile(jarLocation, jarName);
         
-        verifyStringContained(pig.getPigContext().extraJars, jarName, false);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, false);
         
         boolean exceptionRaised = false;
         try {
-            pig.registerJar(jarLocation + jarName);
+            pigServer.registerJar(jarLocation + jarName);
         }
         catch (IOException e) {
             exceptionRaised = true;
         }        
         assertFalse(exceptionRaised);
-        verifyStringContained(pig.getPigContext().extraJars, jarName, true);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, true);
 
         // clean-up
         assertTrue((new File(jarLocation + jarName)).delete());
@@ -156,25 +144,23 @@ public class TestPigServer extends TestCase {
         String jarLocation1 = dir + FILE_SEPARATOR + subDir1 + FILE_SEPARATOR;
         String jarLocation2 = dir + FILE_SEPARATOR + subDir2 + FILE_SEPARATOR;
         
-        initPigServer();
-        
         createFakeJarFile(jarLocation1, jarName);
         createFakeJarFile(jarLocation2, jarName);
         
-        verifyStringContained(pig.getPigContext().extraJars, jarName, false);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, false);
         
         registerNewResource(jarLocation1);
         registerNewResource(jarLocation2);
         
         boolean exceptionRaised = false;
         try {
-            pig.registerJar(jarName);
+            pigServer.registerJar(jarName);
         }
         catch (IOException e) {
             exceptionRaised = true;
         }
         assertFalse(exceptionRaised);
-        verifyStringContained(pig.getPigContext().extraJars, jarName, true);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, true);
 
         // clean-up
         assertTrue((new File(jarLocation1 + jarName)).delete());
@@ -197,8 +183,6 @@ public class TestPigServer extends TestCase {
         String className = "TestRegisterJar";
         String javaSrc = "package " + subDir + "; class " + className + " { }";
 
-        initPigServer();
-        
         // create dirs
         (new File(dir + FILE_SEPARATOR + subDir)).mkdirs();
 
@@ -234,7 +218,7 @@ public class TestPigServer extends TestCase {
         // load the specific resource
         boolean exceptionRaised = false;
         try {
-            pig.registerJar("sub_dir/TestRegisterJar.class");
+            pigServer.registerJar("sub_dir/TestRegisterJar.class");
         }
         catch (IOException e) {
             exceptionRaised = true;
@@ -242,7 +226,7 @@ public class TestPigServer extends TestCase {
         
         // verify proper jar file is located
         assertFalse(exceptionRaised);
-        verifyStringContained(pig.getPigContext().extraJars, jarName, true);
+        verifyStringContained(pigServer.getPigContext().extraJars, jarName, true);
 
         // clean up Jar file and test dir
         (new File(dir + FILE_SEPARATOR + jarName)).delete();

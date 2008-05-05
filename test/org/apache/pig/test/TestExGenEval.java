@@ -16,25 +16,21 @@ import org.junit.Test;
 
 import junit.framework.TestCase;
 
-public class TestExGenEval extends TestCase {
+public class TestExGenEval extends PigExecTestCase {
 	
 	String A, B, C, D;
 	private int MAX = 10;
 	
-	String initString = "mapreduce";
-	PigServer pig;
 	PigContext pigContext;
-	
-	MiniCluster cluster = MiniCluster.buildCluster();
 	
 	@Override
 	@Before
 	protected void setUp() throws Exception{
+	    super.setUp();
 		System.out.println("Generating test data...");
 		File fileA, fileB, fileC, fileD;
 		
-		pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-		pigContext = pig.getPigContext();
+		pigContext = pigServer.getPigContext();
 		fileA = File.createTempFile("dataA", ".dat");
 		fileB = File.createTempFile("dataB", ".dat");
 		fileC = File.createTempFile("dataC", ".dat");
@@ -47,10 +43,10 @@ public class TestExGenEval extends TestCase {
 		writeData(fileD);
 		
 		
-		A = "'" + FileLocalizer.hadoopify(fileA.toString(), pig.getPigContext()) + "'";
-		B = "'" + FileLocalizer.hadoopify(fileB.toString(), pig.getPigContext()) + "'";
-		C = "'" + FileLocalizer.hadoopify(fileC.toString(), pig.getPigContext()) + "'";
-		D = "'" + FileLocalizer.hadoopify(fileD.toString(), pig.getPigContext()) + "'";
+		A = "'" + FileLocalizer.hadoopify(fileA.toString(), pigServer.getPigContext()) + "'";
+		B = "'" + FileLocalizer.hadoopify(fileB.toString(), pigServer.getPigContext()) + "'";
+		C = "'" + FileLocalizer.hadoopify(fileC.toString(), pigServer.getPigContext()) + "'";
+		D = "'" + FileLocalizer.hadoopify(fileD.toString(), pigServer.getPigContext()) + "'";
 		
 		System.out.println("Test data created.");
 		fileA.delete();
@@ -79,34 +75,40 @@ public class TestExGenEval extends TestCase {
 	
 	@Test
 	public void testForeach() throws Exception {
-		//pig = new PigServer(initString);
-		System.out.println("Testing Foreach statement...");
-		pig.registerQuery("A = load " + A + " as (x, y);");
-		pig.registerQuery("B = foreach A generate x+y as sum;");
-		pig.showExamples("B");
+	    // FIXME : this should be tested in all modes
+        if(execType != ExecType.LOCAL)
+            return;
+	    System.out.println("Testing Foreach statement...");
+		pigServer.registerQuery("A = load " + A + " as (x, y);");
+		pigServer.registerQuery("B = foreach A generate x+y as sum;");
+		pigServer.showExamples("B");
 		assertEquals(1, 1);
 	}
 	
 	@Test 
 	public void testFilter() throws Exception {
-		//pig = new PigServer(initString);
-		pig.registerQuery("A = load " + A + " as (x, y);");
-		pig.registerQuery("B = filter A by x < 10.0;");
-		pig.showExamples("B");
+        // FIXME : this should be tested in all modes
+        if(execType != ExecType.LOCAL)
+            return;
+	    pigServer.registerQuery("A = load " + A + " as (x, y);");
+	    pigServer.registerQuery("B = filter A by x < 10.0;");
+	    pigServer.showExamples("B");
 		assertEquals(1, 1);
 	}
 	
 	@Test
 	public void testFlatten() throws Exception {
-		//pig = new PigServer(initString);
-		pig.registerQuery("A1 = load " + A + " as (x, y);");
-		pig.registerQuery("B1 = load " + B + " as (x, y);");
-		pig.registerQuery("C1 = load " + C + " as (x, y);");
-		pig.registerQuery("D1 = load " + D + " as (x, y);");
-		pig.registerQuery("E = join A1 by x, B1 by x;");
-		pig.registerQuery("F = join C1 by x, D1 by x;");
-		pig.registerQuery("G = join E by $0, F by $0;");
-		pig.showExamples("G");
+        // FIXME : this should be tested in all modes
+        if(execType != ExecType.LOCAL)
+            return;
+	    pigServer.registerQuery("A1 = load " + A + " as (x, y);");
+	    pigServer.registerQuery("B1 = load " + B + " as (x, y);");
+	    pigServer.registerQuery("C1 = load " + C + " as (x, y);");
+        pigServer.registerQuery("D1 = load " + D + " as (x, y);");
+	    pigServer.registerQuery("E = join A1 by x, B1 by x;");
+	    pigServer.registerQuery("F = join C1 by x, D1 by x;");
+	    pigServer.registerQuery("G = join E by $0, F by $0;");
+	    pigServer.showExamples("G");
 		assertEquals(1, 1);
 	}
 }

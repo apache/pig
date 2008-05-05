@@ -34,21 +34,12 @@ import org.apache.pig.data.Tuple;
 
 import junit.framework.TestCase;
 
-public class TestFilterOpNumeric extends TestCase {
+public class TestFilterOpNumeric extends PigExecTestCase {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
-    MiniCluster cluster = MiniCluster.buildCluster();
     
-    private PigServer pig;
-    
-    @Before
-    @Override
-    protected void setUp() throws Exception {
-        pig = new PigServer(MAPREDUCE, cluster.getProperties());
-    }
-
     @Test
     public void testNumericEq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -61,11 +52,11 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using "+PigStorage.class.getName() +"(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by $0 == $1;";
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -91,11 +82,11 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -117,12 +108,12 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 > $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -140,11 +131,11 @@ public class TestFilterOpNumeric extends TestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "';");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "';");
         String query = "A = foreach A generate ($1 >= '"+ LOOP_COUNT+"'-'10'?'1':'0');";
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
@@ -168,11 +159,11 @@ public class TestFilterOpNumeric extends TestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "';");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "';");
         String query = "A = foreach A generate ($0 < '10'?($1 >= '5' ? '2': '1') : '0');";
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
@@ -199,12 +190,12 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 < $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -229,12 +220,12 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 >= $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -258,12 +249,12 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 <= $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();

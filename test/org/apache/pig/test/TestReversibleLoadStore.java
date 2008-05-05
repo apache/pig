@@ -20,27 +20,11 @@ import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
-public class TestReversibleLoadStore extends TestCase {
+public class TestReversibleLoadStore extends PigExecTestCase {
 
     static List<Tuple> _storedTuples = new ArrayList<Tuple>();
-
-    public void testLocalNoReuse() throws Exception {
-        runNoReuseTest(ExecType.LOCAL) ;
-    }
     
-    public void testMapReduceNoReuse() throws Exception {
-        runNoReuseTest(ExecType.MAPREDUCE) ;
-    }
-    
-    public void testLocalReuse() throws Exception {
-        runReuseTest(ExecType.LOCAL) ;
-    }
-    
-    public void testMapReduceReuse() throws Exception {
-        runReuseTest(ExecType.MAPREDUCE) ;
-    }
-    
-    public void runNoReuseTest(ExecType runType) throws Exception {
+    public void testNoReuse() throws Exception {
         
         DummyLoadFunc.readCounterMap = null ;
         DummyStoreFunc.writeCounter = 0 ;     
@@ -76,7 +60,7 @@ public class TestReversibleLoadStore extends TestCase {
         
     }
     
-    public void runReuseTest(ExecType runType) throws Exception {
+    public void testReuse() throws Exception {
         
         DummyLoadStoreFunc.readCounterMap = null ;
         DummyLoadStoreFunc.writeCounter = 0 ;     

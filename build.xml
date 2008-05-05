@@ -248,15 +248,27 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test" depends="compile-test,jar" description="Run unit tests">
-        <delete dir="${test.log.dir}"/>
-        <mkdir dir="${test.log.dir}"/>
+    <target name="test" depends="test-local,test-mapreduce" description="Run unit tests in local and mapreduce modes"/>
+    <target name="test-local" depends="compile-test,jar" description="Run unit tests in local mode">
+        <antcall target="testOneMode">
+            <param name="test.exectype" value="local" />
+        </antcall>
+    </target>
+    <target name="test-mapreduce" depends="compile-test,jar" description="Run unit tests in mapreduce mode">
+        <antcall target="testOneMode">
+            <param name="test.exectype" value="mapreduce" />
+        </antcall>
+    </target>
+    <target name="testOneMode">
+        <delete dir="${test.log.dir}-${test.exectype}"/>
+        <mkdir dir="${test.log.dir}-${test.exectype}"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
+            <sysproperty key="test.exectype" value="${test.exectype}" />
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
             <!-- <sysproperty key="hod.command" value="${hod.command}"/>
             			<sysproperty key="hod.param" value="${hod.param}"/> -->
-            <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
+            <sysproperty key="hadoop.log.dir" value="${test.log.dir}-${test.exectype}"/>
             <classpath>
                 <pathelement location="${output.jarfile}" />
                 <pathelement location="${test.build.classes}" />
@@ -264,16 +276,17 @@
                 <path refid="classpath"/>
             </classpath>
             <formatter type="${test.junit.output.format}" />
-            <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
+            <batchtest fork="yes" todir="${test.log.dir}-${test.exectype}" unless="testcase">
                 <fileset dir="test">
                     <include name="**/*Test*.java" />
+                    <exclude name="**/PigExecTestCase.java" />
                     <exclude name="**/TestLargeFile.java" />
                     <exclude name="**/TestOrderBy.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
                 </fileset>
             </batchtest>
-            <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
+            <batchtest fork="yes" todir="${test.log.dir}-${test.exectype}" if="testcase">
                 <fileset dir="test" includes="**/${testcase}.java"/>
             </batchtest>
         </junit>

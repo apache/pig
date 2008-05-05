@@ -47,16 +47,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 import junit.framework.TestCase;
 
-public class TestEvalPipeline extends TestCase {
-	
-	MiniCluster cluster = MiniCluster.buildCluster();
-    private PigServer pigServer;
-	
-	@Override
-    protected void setUp() throws Exception {
-	    pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    }
-	
+public class TestEvalPipeline extends PigExecTestCase {
+		
 	static public class MyBagFunction extends EvalFunc<DataBag>{
 		@Override
 		public void exec(Tuple input, DataBag output) throws IOException {

@@ -32,11 +32,9 @@ import org.junit.Test;
 
 import junit.framework.TestCase;
 
-public class TestBinaryStorage extends TestCase {
+public class TestBinaryStorage extends PigExecTestCase {
     private static final String simpleEchoStreamingCommand = 
         "perl -ne 'print \"$_\"'";
-
-    MiniCluster cluster = MiniCluster.buildCluster();
 
     private static final int MAX_DATA_SIZE = 1024;
     
@@ -69,8 +67,6 @@ public class TestBinaryStorage extends TestCase {
     
     private void testBinaryStorage(File input) 
     throws Exception {
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
-			cluster.getProperties());
 
         // Get input data 
         byte[] inputData = new byte[MAX_DATA_SIZE];

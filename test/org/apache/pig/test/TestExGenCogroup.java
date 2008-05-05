@@ -4,29 +4,21 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Random;
 
-import org.apache.pig.PigServer;
 import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestExGenCogroup extends TestCase{
+public class TestExGenCogroup extends PigExecTestCase{
 	String A, B;
 	private int MAX = 10;
-	
-	String initString = "mapreduce";
-	PigServer pig;
-	
-	MiniCluster cluster = MiniCluster.buildCluster();
-	
 	@Override
 	@Before
 	protected void setUp() throws Exception{
+	    super.setUp();
+	    
 		File fileA, fileB;
-		pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 		System.out.println("Generating test data...");
 		fileA = File.createTempFile("dataA", ".dat");
 		fileB = File.createTempFile("dataB", ".dat");
@@ -34,8 +26,8 @@ public class TestExGenCogroup extends TestCase{
 		writeData(fileA);
 		writeData(fileB);
 		
-		A = "'" + FileLocalizer.hadoopify(fileA.toString(), pig.getPigContext()) + "'";
-		B = "'" + FileLocalizer.hadoopify(fileB.toString(), pig.getPigContext()) + "'";
+		A = "'" + FileLocalizer.hadoopify(fileA.toString(), pigServer.getPigContext()) + "'";
+		B = "'" + FileLocalizer.hadoopify(fileB.toString(), pigServer.getPigContext()) + "'";
 		System.out.println("A : " + A  + "\n" + "B : " + B);
 		System.out.println("Test data created.");
 		
@@ -56,46 +48,53 @@ public class TestExGenCogroup extends TestCase{
 	@Override
 	@After
 	protected void tearDown() throws Exception {
-		
-	
+		super.tearDown();
 	}
 	
 	@Test
 	public void testCogroupMultipleCols() throws Exception {
-		//pig = new PigServer(initString);
-		pig.registerQuery("A = load " + A + " as (x, y);");
-		pig.registerQuery("B = load " + B + " as (x, y);");
-		pig.registerQuery("C = cogroup A by (x, y), B by (x, y);");
-		pig.showExamples("C");
+        // FIXME : this should be tested in all modes
+	    if(execType != ExecType.LOCAL)
+	        return;
+		pigServer.registerQuery("A = load " + A + " as (x, y);");
+		pigServer.registerQuery("B = load " + B + " as (x, y);");
+		pigServer.registerQuery("C = cogroup A by (x, y), B by (x, y);");
+		pigServer.showExamples("C");
 	}
 	
 	@Test
 	public void testCogroup() throws Exception {
-		//pig = new PigServer(initString);
-		pig.registerQuery("A = load " + A + " as (x, y);");
-		pig.registerQuery("B = load " + B + " as (x, y);");
-		pig.registerQuery("C = cogroup A by x, B by x;");
-		pig.showExamples("C");
+	    // FIXME : this should be tested in all modes
+        if(execType != ExecType.LOCAL)
+            return;
+		pigServer.registerQuery("A = load " + A + " as (x, y);");
+		pigServer.registerQuery("B = load " + B + " as (x, y);");
+		pigServer.registerQuery("C = cogroup A by x, B by x;");
+		pigServer.showExamples("C");
 	}
 	
 	@Test
 	public void testGroup() throws Exception {
-		//pig = new PigServer(initString);
-		pig.registerQuery("A = load " + A.toString() + " as (x, y);");
-		pig.registerQuery("B = group A by x;");
-		pig.showExamples("B");
+        // FIXME : this should be tested in all modes
+        if(execType != ExecType.LOCAL)
+            return;
+		pigServer.registerQuery("A = load " + A.toString() + " as (x, y);");
+		pigServer.registerQuery("B = group A by x;");
+		pigServer.showExamples("B");
 		
 	}
 	
 	@Test
 	public void testComplexGroup() throws Exception {
-		//pig = new PigServer(initString);
-		pig.registerQuery("A = load " + A.toString() + " as (x, y);");
-		pig.registerQuery("B = load " + B.toString() + " as (x, y);");
-		pig.registerQuery("C = cogroup A by x, B by x;");
-		pig.registerQuery("D = cogroup A by y, B by y;");
-		pig.registerQuery("E = cogroup C by $0, D by $0;");
-		pig.showExamples("E");
+        // FIXME : this should be tested in all modes
+        if(execType != ExecType.LOCAL)
+            return;
+	    pigServer.registerQuery("A = load " + A.toString() + " as (x, y);");
+	    pigServer.registerQuery("B = load " + B.toString() + " as (x, y);");
+	    pigServer.registerQuery("C = cogroup A by x, B by x;");
+	    pigServer.registerQuery("D = cogroup A by y, B by y;");
+	    pigServer.registerQuery("E = cogroup C by $0, D by $0;");
+	    pigServer.showExamples("E");
 	}
 	
 }

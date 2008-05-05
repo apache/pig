@@ -18,31 +18,30 @@
 package org.apache.pig.test;
 
 
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.builtin.DIFF;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigServer;
-import org.apache.pig.builtin.DIFF;
-import junit.framework.TestCase;
 
-public class TestCompressedFiles extends TestCase {
+public class TestCompressedFiles extends PigExecTestCase {
     
     private final Log log = LogFactory.getLog(getClass());
-    MiniCluster cluster = MiniCluster.buildCluster();
 
     File datFile;
     File gzFile;
     @Override
 	@Before
     protected void setUp() throws Exception {
+        super.setUp();
         datFile = File.createTempFile("compTest", ".dat");
         gzFile = File.createTempFile("compTest", ".gz");
         FileOutputStream dat = new FileOutputStream(datFile);
@@ -69,13 +68,16 @@ public class TestCompressedFiles extends TestCase {
     protected void tearDown() throws Exception {
         datFile.delete();
         gzFile.delete();
+        super.tearDown();
     }
     
     @Test
     public void testCompressed1() throws Throwable {
-        PigServer pig = new PigServer(MAPREDUCE, cluster.getProperties());
-        pig.registerQuery("A = foreach (cogroup (load 'file:"+gzFile+"') by $1, (load 'file:"+datFile + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
-        Iterator it = pig.openIterator("A");
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
+        pigServer.registerQuery("A = foreach (cogroup (load 'file:"+gzFile+"') by $1, (load 'file:"+datFile + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
+        Iterator it = pigServer.openIterator("A");
         boolean success = true;
         while(it.hasNext()) {
             success = false;

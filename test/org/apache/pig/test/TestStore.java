@@ -30,22 +30,19 @@ import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 
 import junit.framework.TestCase;
 
-public class TestStore extends TestCase {
+public class TestStore extends PigExecTestCase {
 
 	private int LOOP_COUNT = 1024;
-	MiniCluster cluster = MiniCluster.buildCluster();
-	
 	String fileName;
 	String tmpFile1, tmpFile2;
-	PigServer pig;
 
 	public void testSingleStore() throws Exception{
-		pig.registerQuery("A = load " + fileName + ";");
+		pigServer.registerQuery("A = load " + fileName + ";");
 		
-		pig.store("A", tmpFile1);
+		pigServer.store("A", tmpFile1);
 		
-		pig.registerQuery("B = load " + tmpFile1 + ";");
-		Iterator<Tuple> iter  = pig.openIterator("B");
+		pigServer.registerQuery("B = load " + tmpFile1 + ";");
+		Iterator<Tuple> iter  = pigServer.openIterator("B");
 		
 		int i =0;
 		while (iter.hasNext()){
@@ -57,14 +54,14 @@ public class TestStore extends TestCase {
 	}
 	
 	public void testMultipleStore() throws Exception{
-		pig.registerQuery("A = load " + fileName + ";");
+		pigServer.registerQuery("A = load " + fileName + ";");
 		
-		pig.store("A", tmpFile1);
+		pigServer.store("A", tmpFile1);
 		
-		pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
-		pig.store("B", tmpFile2);
-		pig.registerQuery("C = load " + tmpFile2 + ";");
-		Iterator<Tuple> iter  = pig.openIterator("C");
+		pigServer.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
+		pigServer.store("B", tmpFile2);
+		pigServer.registerQuery("C = load " + tmpFile2 + ";");
+		Iterator<Tuple> iter  = pigServer.openIterator("C");
 		
 		int i =0;
 		while (iter.hasNext()){
@@ -78,14 +75,14 @@ public class TestStore extends TestCase {
 	}
 	
 	public void testStoreWithMultipleMRJobs() throws Exception{
-		pig.registerQuery("A = load " + fileName + ";");		
-		pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
-		pig.registerQuery("C = foreach (group B by $0) generate $0, SUM($1);");
-		pig.registerQuery("D = foreach (group C by $0) generate $0, SUM($1);");
+		pigServer.registerQuery("A = load " + fileName + ";");		
+		pigServer.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
+		pigServer.registerQuery("C = foreach (group B by $0) generate $0, SUM($1);");
+		pigServer.registerQuery("D = foreach (group C by $0) generate $0, SUM($1);");
 
-		pig.store("D", tmpFile2);
-		pig.registerQuery("E = load " + tmpFile2 + ";");
-		Iterator<Tuple> iter  = pig.openIterator("E");
+		pigServer.store("D", tmpFile2);
+		pigServer.registerQuery("E = load " + tmpFile2 + ";");
+		Iterator<Tuple> iter  = pigServer.openIterator("E");
 		
 		int i =0;
 		while (iter.hasNext()){
@@ -107,18 +104,10 @@ public class TestStore extends TestCase {
 			pw.println(i + "\t" + i);
 		}
 		pw.close();
-		try {
-		    pig = new PigServer(MAPREDUCE, cluster.getProperties());
-		}
-		catch (ExecException e) {
-			IOException ioe = new IOException("Failed to create Pig Server");
-			ioe.initCause(e);
-		    throw ioe;
-		}
 		
-		fileName = "'" + FileLocalizer.hadoopify(f.toString(), pig.getPigContext()) + "'";
-		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
-		tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
+		fileName = "'" + FileLocalizer.hadoopify(f.toString(), pigServer.getPigContext()) + "'";
+		tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString() + "'";
+		tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString() + "'";
 		f.delete();
 	}
 	
