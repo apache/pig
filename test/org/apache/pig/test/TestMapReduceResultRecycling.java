@@ -1,31 +1,24 @@
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType ;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 
-import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestMapReduceResultRecycling extends TestCase {
-    MiniCluster cluster = MiniCluster.buildCluster();
+public class TestMapReduceResultRecycling extends PigExecTestCase {
     
     @Test
     public void testPlanRecycling() throws Throwable {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE);
         File tmpFile = this.createTempFile();
         {            
             String query = "a = load 'file:" + tmpFile + "'; " ;
             System.out.println(query);
-            pig.registerQuery(query);
-            pig.explain("a", System.out) ;
-            Iterator<Tuple> it = pig.openIterator("a");
+            pigServer.registerQuery(query);
+            pigServer.explain("a", System.out) ;
+            Iterator<Tuple> it = pigServer.openIterator("a");
             assertTrue(it.next().getAtomField(0).strval().equals("a1")) ;
             assertTrue(it.next().getAtomField(0).strval().equals("b1")) ;
             assertTrue(it.next().getAtomField(0).strval().equals("c1")) ;
@@ -35,9 +28,9 @@ public class TestMapReduceResultRecycling extends TestCase {
         {
             String query = "b = filter a by $0 eq 'a1';" ;
             System.out.println(query);
-            pig.registerQuery(query);
-            pig.explain("b", System.out) ;
-            Iterator<Tuple> it = pig.openIterator("b");
+            pigServer.registerQuery(query);
+            pigServer.explain("b", System.out) ;
+            Iterator<Tuple> it = pigServer.openIterator("b");
             assertTrue(it.next().getAtomField(0).strval().equals("a1")) ;
             assertFalse(it.hasNext()) ;
         }
@@ -45,9 +38,9 @@ public class TestMapReduceResultRecycling extends TestCase {
         {
             String query = "c = filter a by $0 eq 'b1';" ;
             System.out.println(query);
-            pig.registerQuery(query);
-            pig.explain("c", System.out) ;
-            Iterator<Tuple> it = pig.openIterator("c");
+            pigServer.registerQuery(query);
+            pigServer.explain("c", System.out) ;
+            Iterator<Tuple> it = pigServer.openIterator("c");
             assertTrue(it.next().getAtomField(0).strval().equals("b1")) ;
             assertFalse(it.hasNext()) ;
         }

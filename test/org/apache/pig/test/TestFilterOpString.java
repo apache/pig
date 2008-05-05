@@ -34,20 +34,11 @@ import org.apache.pig.data.Tuple;
 
 import junit.framework.TestCase;
 
-public class TestFilterOpString extends TestCase {
+public class TestFilterOpString extends PigExecTestCase {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
-    MiniCluster cluster = MiniCluster.buildCluster();
-    
-    private PigServer pig;
-    
-    @Before
-    @Override
-    protected void setUp() throws Exception {
-        pig = new PigServer(MAPREDUCE, cluster.getProperties());
-    }
 
     @Test
     public void testStringEq() throws Throwable {
@@ -61,12 +52,12 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -88,12 +79,12 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -115,12 +106,12 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -147,12 +138,12 @@ public class TestFilterOpString extends TestCase {
         }
         ps.close();
         
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -175,12 +166,12 @@ public class TestFilterOpString extends TestCase {
         }
         ps.close();
         
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -205,12 +196,12 @@ public class TestFilterOpString extends TestCase {
         }
         ps.close();
         
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 
         log.info(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();

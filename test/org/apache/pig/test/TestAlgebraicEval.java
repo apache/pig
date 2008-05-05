@@ -17,39 +17,18 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 
-import junit.framework.TestCase;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.junit.Test;
 
-public class TestAlgebraicEval extends TestCase {
+public class TestAlgebraicEval extends PigExecTestCase {
 
-    private final Log log = LogFactory.getLog(getClass());
-    
     private int LOOP_COUNT = 1024;
-
-    private PigServer pig;
-    
-    @Before
-    @Override
-    protected void setUp() throws Exception {
-        pig = new PigServer(MAPREDUCE, cluster.getProperties());
-    }
-    
-    MiniCluster cluster = MiniCluster.buildCluster();
 
     @Test
     public void testSimpleCount() throws Throwable {
@@ -66,8 +45,8 @@ public class TestAlgebraicEval extends TestCase {
         if (log.isDebugEnabled()) {
             log.debug(query.toString());
         }
-        pig.registerQuery(query.toString());
-        Iterator it = pig.openIterator("myid");
+        pigServer.registerQuery(query.toString());
+        Iterator it = pigServer.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
         Double count = t.getAtomField(0).numval();
@@ -89,8 +68,8 @@ public class TestAlgebraicEval extends TestCase {
         if (log.isDebugEnabled()) {
             log.debug(query.toString());
         }
-        pig.registerQuery(query.toString());
-        Iterator it = pig.openIterator("myid");
+        pigServer.registerQuery(query.toString());
+        Iterator it = pigServer.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
         Double count = t.getAtomField(1).numval();
@@ -112,8 +91,8 @@ public class TestAlgebraicEval extends TestCase {
         if (log.isDebugEnabled()) {
             log.debug(query.toString());
         }
-        pig.registerQuery(query.toString());
-        Iterator it = pig.openIterator("myid");
+        pigServer.registerQuery(query.toString());
+        Iterator it = pigServer.openIterator("myid");
         tmpFile.delete();
         Tuple t = (Tuple)it.next();
         Double count = t.getAtomField(0).numval();
@@ -134,8 +113,8 @@ public class TestAlgebraicEval extends TestCase {
         ps.close();
         String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
         System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("myid");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
@@ -160,8 +139,8 @@ public class TestAlgebraicEval extends TestCase {
         ps.close();
         String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
         System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
+        pigServer.registerQuery(query);
+        Iterator it = pigServer.openIterator("myid");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();

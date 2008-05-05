@@ -1,8 +1,5 @@
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
-import static org.apache.pig.PigServer.ExecType.LOCAL;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -10,41 +7,23 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
-
-import org.junit.Test;
-import junit.framework.TestCase;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
-public class TestCombiner extends TestCase {
+public class TestCombiner extends PigExecTestCase {
 
-    @Test
-    public void testLocal() throws Exception {
-        // run the test locally
-        runTest(new PigServer(LOCAL, new Properties()));
-    }
-
-    @Test
-    public void testOnCluster() throws Exception {
-        // run the test on cluster
-        MiniCluster buildCluster = MiniCluster.buildCluster();
-        runTest(new PigServer(MAPREDUCE, buildCluster.getProperties()));
-
-    }
-
-    private void runTest(PigServer pig) throws IOException {
+    public void testCombiner() throws IOException {
         List<String> inputLines = new ArrayList<String>();
         inputLines.add("a,b,1");
         inputLines.add("a,b,1");
         inputLines.add("a,c,1");
-        loadWithTestLoadFunc("A", pig, inputLines);
+        loadWithTestLoadFunc("A", pigServer, inputLines);
 
-        pig.registerQuery("B = group A by ($0, $1);");
-        pig.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
-        Iterator<Tuple> resultIterator = pig.openIterator("C");
+        pigServer.registerQuery("B = group A by ($0, $1);");
+        pigServer.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
+        Iterator<Tuple> resultIterator = pigServer.openIterator("C");
         Tuple tuple = resultIterator.next();
         assertEquals("(a, b, 2)", tuple.toString());
         tuple = resultIterator.next();

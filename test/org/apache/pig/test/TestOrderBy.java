@@ -30,13 +30,12 @@ import org.junit.Test;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
+import static org.apache.pig.PigServer.ExecType.LOCAL;
 
-public class TestOrderBy extends TestCase {
+public class TestOrderBy extends PigExecTestCase {
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
-    MiniCluster cluster = MiniCluster.buildCluster();
-    
-    private PigServer pig;
+
     private File tmpFile;
 
     public TestOrderBy() throws Throwable {
@@ -45,7 +44,6 @@ public class TestOrderBy extends TestCase {
             DATA[0][i] = myFormatter.format(i);
             DATA[1][i] = myFormatter.format(DATALEN - i - 1);
         }
-        pig = new PigServer(MAPREDUCE, cluster.getProperties());
     }
     
     protected void setUp() throws Exception {
@@ -60,10 +58,10 @@ public class TestOrderBy extends TestCase {
     protected void tearDown() throws Exception {
         tmpFile.delete();
     }
-    
+
     private void verify(String query, boolean descending) throws Exception {
-        pig.registerQuery(query);
-        Iterator<Tuple> it = pig.openIterator("myid");
+        pigServer.registerQuery(query);
+        Iterator<Tuple> it = pigServer.openIterator("myid");
         int col = (descending ? 1 : 0);
         for(int i = 0; i < DATALEN; i++) {
             Tuple t = (Tuple)it.next();

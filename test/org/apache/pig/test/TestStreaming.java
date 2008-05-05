@@ -22,24 +22,15 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.apache.pig.PigServer;
-import org.apache.pig.PigServer.ExecType;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.*;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
-
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
-
-import junit.framework.TestCase;
-
-public class TestStreaming extends TestCase {
-
-    MiniCluster cluster = MiniCluster.buildCluster();
+public class TestStreaming extends PigExecTestCase {
 
 	private static final String simpleEchoStreamingCommand = 
 		"perl -ne 'chomp $_; print \"$_\n\"'";
@@ -58,18 +49,8 @@ public class TestStreaming extends TestCase {
 	}
 	
 	@Test
-	public void testLocalSimpleMapSideStreaming() throws Exception {
-	    testSimpleMapSideStreaming(ExecType.LOCAL);
-	}
-	
-	@Test
-    public void testMRSimpleMapSideStreaming() throws Exception {
-        testSimpleMapSideStreaming(ExecType.MAPREDUCE);
-    }
-    
-	private void testSimpleMapSideStreaming(ExecType execType) 
+	public void testSimpleMapSideStreaming() 
 	throws Exception {
-	        PigServer pigServer = createPigServer(execType);
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
 				                                        "A,5", "B,5", "C,8", "A,8",
@@ -93,33 +74,10 @@ public class TestStreaming extends TestCase {
 		// Run the query and check the results
 		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
-
-    private PigServer createPigServer(ExecType execType) throws ExecException {
-        PigServer pigServer; 
-        if (execType == ExecType.MAPREDUCE) {
-            pigServer = new PigServer(execType, cluster.getProperties());
-        } else {
-            pigServer = new PigServer(execType);
-        }
-        return pigServer;
-    }
-
-	@Test
-    public void testLocalSimpleMapSideStreamingWithOutputSchema() 
-	throws Exception {
-	    testSimpleMapSideStreamingWithOutputSchema(ExecType.LOCAL);
-	}
-	
-    @Test
-    public void testMRSimpleMapSideStreamingWithOutputSchema() 
-    throws Exception {
-        testSimpleMapSideStreamingWithOutputSchema(ExecType.MAPREDUCE);
-    }
     
-	private void testSimpleMapSideStreamingWithOutputSchema(ExecType execType) 
+	@Test
+	public void testSimpleMapSideStreamingWithOutputSchema() 
 	throws Exception {
-		PigServer pigServer = createPigServer(execType);
-
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
 				                                        "A,5", "B,5", "C,8", "A,8",
@@ -144,21 +102,8 @@ public class TestStreaming extends TestCase {
 	}
 
 	@Test
-    public void testLocalSimpleReduceSideStreamingAfterFlatten() 
+	public void testSimpleReduceSideStreamingAfterFlatten() 
 	throws Exception {
-	    testSimpleReduceSideStreamingAfterFlatten(ExecType.LOCAL);
-	}
-	
-    @Test
-    public void testMRSimpleReduceSideStreamingAfterFlatten() 
-    throws Exception {
-        testSimpleReduceSideStreamingAfterFlatten(ExecType.MAPREDUCE);
-    }
-    
-	private void testSimpleReduceSideStreamingAfterFlatten(ExecType execType) 
-	throws Exception {
-		PigServer pigServer = createPigServer(execType);
-
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1", "B,2", "C,3", "D,2",
 				                                        "A,5", "B,5", "C,8", "A,8",
@@ -186,22 +131,9 @@ public class TestStreaming extends TestCase {
 		Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
 	}
 
-	@Test
-    public void testLocalSimpleOrderedReduceSideStreamingAfterFlatten() 
-	throws Exception {
-	    testSimpleOrderedReduceSideStreamingAfterFlatten(ExecType.LOCAL);
-	}
-	
     @Test
-    public void testMRSimpleOrderedReduceSideStreamingAfterFlatten() 
-    throws Exception {
-        testSimpleOrderedReduceSideStreamingAfterFlatten(ExecType.MAPREDUCE);
-    }
-    
-	private void testSimpleOrderedReduceSideStreamingAfterFlatten(
+	public void testSimpleOrderedReduceSideStreamingAfterFlatten(
 	        ExecType execType) throws Exception {
-	    PigServer pigServer = createPigServer(execType);
-
 		File input = Util.createInputFile("tmp", "", 
 				                          new String[] {"A,1,2,3", "B,2,4,5",
 				                                        "C,3,1,2", "D,2,5,2",
@@ -250,8 +182,9 @@ public class TestStreaming extends TestCase {
 
     @Test
     public void testInputShipSpecs() throws Exception {
-        PigServer pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
-
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
         File input = Util.createInputFile("tmp", "", 
                                           new String[] {"A,1", "B,2", "C,3", 
                                                         "D,2", "A,5", "B,5", 
@@ -309,8 +242,9 @@ public class TestStreaming extends TestCase {
 
     @Test
 	public void testOutputShipSpecs() throws Exception {
-	    PigServer pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
-
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
 	    File input = Util.createInputFile("tmp", "", 
 	                                      new String[] {"A,1", "B,2", "C,3", 
 	                                                    "D,2", "A,5", "B,5", 
@@ -370,8 +304,9 @@ public class TestStreaming extends TestCase {
 
     @Test
     public void testInputOutputSpecs() throws Exception {
-        PigServer pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
-
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
         File input = Util.createInputFile("tmp", "", 
                                           new String[] {"A,1", "B,2", "C,3", 
                                                         "D,2", "A,5", "B,5", 
@@ -436,19 +371,8 @@ public class TestStreaming extends TestCase {
     }
 
     @Test
-    public void testLocalSimpleMapSideStreamingWithUnixPipes() 
+    public void testSimpleMapSideStreamingWithUnixPipes() 
     throws Exception {
-        testSimpleMapSideStreamingWithUnixPipes(ExecType.LOCAL);
-    }
-    
-    @Test
-    public void testMRSimpleMapSideStreamingWithUnixPipes() throws Exception {
-        testSimpleMapSideStreamingWithUnixPipes(ExecType.MAPREDUCE);
-    }
-    
-    private void testSimpleMapSideStreamingWithUnixPipes(ExecType execType) 
-    throws Exception {
-        PigServer pigServer = createPigServer(execType);
         File input = Util.createInputFile("tmp", "", 
                                           new String[] {"A,1", "B,2", "C,3", "D,2",
                                                         "A,5", "B,5", "C,8", "A,8",
@@ -484,7 +408,6 @@ public class TestStreaming extends TestCase {
     
     private void testNegativeLoadStoreOptimization(ExecType execType) 
     throws Exception {
-            PigServer pigServer = createPigServer(execType);
         File input = Util.createInputFile("tmp", "", 
                                           new String[] {"A,1", "B,2", "C,3", "D,2",
                                                         "A,5", "B,5", "C,8", "A,8",
