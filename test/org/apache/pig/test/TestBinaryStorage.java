@@ -83,7 +83,7 @@ public class TestBinaryStorage extends PigExecTestCase {
         pigServer.registerQuery("OP = stream IP through CMD;");
 
         // Save the output using BinaryStorage
-        String output = "/pig/out";
+        String output = "./pig.BinaryStorage.out";
         pigServer.store("OP", output, "BinaryStorage()");
         
         // Get output data 
