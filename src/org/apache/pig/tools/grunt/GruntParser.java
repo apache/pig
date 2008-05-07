@@ -1,6 +1,7 @@
 package org.apache.pig.tools.grunt;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -161,6 +162,12 @@ public class GruntParser extends PigScriptParser {
             mPigServer.setJobName(value);
         }
         else if (key.equals("stream.skippath")) {
+            // Validate
+            File file = new File(value);
+            if (!file.exists() || file.isDirectory()) {
+                throw new IOException("Invalid value for stream.skippath:" + 
+                                      value); 
+            }
             mPigServer.addPathToSkip(value);
         }
         else

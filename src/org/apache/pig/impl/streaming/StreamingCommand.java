@@ -1,5 +1,7 @@
 package org.apache.pig.impl.streaming;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,6 +9,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 
 
 /**
@@ -55,13 +59,16 @@ public class StreamingCommand implements Serializable {
     
     boolean shipFiles = true;
     
+    private PigContext pigContext;
+
     /**
      * Create a new <code>StreamingCommand</code> with the given command.
      * 
      * @param command streaming command to be executed
      * @param argv parsed arguments of the <code>command</code>
      */
-    public StreamingCommand(String[] argv) {
+    public StreamingCommand(PigContext pigContext, String[] argv) {
+        this.pigContext = pigContext;
         this.argv = argv;
 
         // Assume that argv[0] is the executable
@@ -131,7 +138,13 @@ public class StreamingCommand implements Serializable {
      * 
      * @param path path of the file to be shipped to the cluster
      */
-    public void addPathToShip(String path) {
+    public void addPathToShip(String path) throws IOException {
+        // Validate
+        File file = new File(path);
+        if (!file.exists()) {
+            throw new IOException("Invalid ship specification: " + path);
+        }
+        
         shipSpec.add(path);
     }
 
@@ -141,7 +154,12 @@ public class StreamingCommand implements Serializable {
      * 
      * @param path path of the file to be cached on the execute nodes
      */
-    public void addPathToCache(String path) {
+    public void addPathToCache(String path) throws IOException {
+        // Validate
+        if (!FileLocalizer.fileExists(path, pigContext)) {
+            throw new IOException("Invalid cache specification: " + path);
+        }
+        
         cacheSpec.add(path);
     }
 
