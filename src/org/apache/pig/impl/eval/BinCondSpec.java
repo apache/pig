@@ -58,6 +58,7 @@ public class BinCondSpec extends EvalSpec {
     
     @Override
     public void instantiateFunc(FunctionInstantiator fInstantiaor) throws IOException{
+        super.instantiateFunc(fInstantiaor);
         cond.instantiateFunc(fInstantiaor);
         ifTrue.instantiateFunc(fInstantiaor);
         ifFalse.instantiateFunc(fInstantiaor);

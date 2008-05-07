@@ -56,6 +56,7 @@ public class FuncEvalSpec extends EvalSpec {
     
     @Override
     public void instantiateFunc(FunctionInstantiator instantiaor) throws IOException{
+        super.instantiateFunc(instantiaor);
         if(instantiaor != null) {
             func = (EvalFunc) instantiaor.instantiateFuncFromAlias(funcName);
         }

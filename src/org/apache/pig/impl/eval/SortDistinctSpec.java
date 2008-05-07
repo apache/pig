@@ -120,6 +120,7 @@ public class SortDistinctSpec extends EvalSpec {
     @Override
     public void instantiateFunc(FunctionInstantiator instantiaor)
             throws IOException {
+        super.instantiateFunc(instantiaor);
         if (sortSpec!=null)
             sortSpec.instantiateFunc(instantiaor);        
     }

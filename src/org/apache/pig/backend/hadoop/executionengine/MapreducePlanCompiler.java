@@ -353,7 +353,9 @@ public class MapreducePlanCompiler {
         
         //sort the first column of the cogroup output and feed it to the quantiles function
         EvalSpec sortedSampleSpec = new ProjectSpec(1);
-        sortedSampleSpec = sortedSampleSpec.addSpec(new SortDistinctSpec(false, new StarSpec()));
+        EvalSpec starSpec = new StarSpec();
+        starSpec.setComparatorName(loSort.getSortSpec().getComparatorName());
+        sortedSampleSpec = sortedSampleSpec.addSpec(new SortDistinctSpec(false, starSpec));
         argsList.add(sortedSampleSpec);
         
         EvalSpec args = new GenerateSpec(argsList);

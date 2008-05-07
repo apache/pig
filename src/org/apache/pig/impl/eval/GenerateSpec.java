@@ -352,6 +352,7 @@ public class GenerateSpec extends EvalSpec {
     @Override
     public void instantiateFunc(FunctionInstantiator instantiaor)
             throws IOException {
+        super.instantiateFunc(instantiaor);
         for (EvalSpec es: specs)
             es.instantiateFunc(instantiaor);        
     }

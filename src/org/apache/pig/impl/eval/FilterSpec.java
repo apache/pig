@@ -86,7 +86,8 @@ public class FilterSpec extends EvalSpec {
     @Override
     public void instantiateFunc(FunctionInstantiator instantiaor)
             throws IOException {
-        cond.instantiateFunc(instantiaor);        
+        super.instantiateFunc(instantiaor);
+        cond.instantiateFunc(instantiaor);
     }
 
     @Override
