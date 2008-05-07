@@ -275,6 +275,9 @@ Trunk (unreleased changes)
     
     PIG-229: Proper error handling in case of deserializer failure
 
+    PIG-230: Handling shipment for multiple ship/cache commands (acmurthy via
+    olgan)
+
 	PIG-219: Change unit tests to run both local and map reduce modes (kali via gates).
 
 	PIG-202: Fix Order by so that user provided comparator func is used for quantile determination (kali via gates).

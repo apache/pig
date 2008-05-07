@@ -202,7 +202,8 @@ public class TestStreaming extends PigExecTestCase {
                           "  print STDERR \"STDERR: $_\n\";",
                           "}",
                          };
-        File command = Util.createInputFile("script", "pl", script);
+        File command1 = Util.createInputFile("script", "pl", script);
+        File command2 = Util.createInputFile("script", "pl", script);
         
         // Expected results
         String[] expectedFirstFields = 
@@ -213,15 +214,21 @@ public class TestStreaming extends PigExecTestCase {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `" + command.getName() + " foo` " +
-                "ship ('" + command + "') " +
+                "define CMD1 `" + command1.getName() + " foo` " +
+                "ship ('" + command1 + "') " +
                 "input('foo' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
-
+        pigServer.registerQuery(
+                "define CMD2 `" + command2.getName() + " bar` " +
+                "ship ('" + command2 + "') " +
+                "input('bar' using " + PigStorage.class.getName() + "(',')) " +
+                "stderr();"); 
         pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
                                 PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
-        pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
+        pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA " +
+        		                "through CMD1;");
+        pigServer.registerQuery("OP = stream STREAMED_DATA through CMD2;");
 
         String output = "/pig/out";
         pigServer.deleteFile(output);
