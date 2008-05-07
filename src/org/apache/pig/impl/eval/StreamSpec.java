@@ -57,6 +57,10 @@ public class StreamSpec extends EvalSpec {
     
     private static void parseShipCacheSpecs(List<String> specs, 
             Properties properties, String property) {
+        if (specs == null || specs.size() == 0) {
+            return;
+        }
+        
         // Setup streaming-specific properties
         StringBuffer sb = new StringBuffer();
         Iterator<String> i = specs.iterator();

@@ -63,6 +63,14 @@ public class POMapreduce extends PhysicalOperator {
     public int                     mapParallelism       = -1;     // -1 means let hadoop decide
     public int                     reduceParallelism    = -1;
 
+    /**
+     * A list of configs to be merged, not overwritten ...
+     */
+    private static String[] PIG_CONFIGS_TO_MERGE = 
+        { 
+            "pig.streaming.cache.files",
+            "pig.streaming.ship.files",
+        };
     
     static MapReduceLauncher mapReduceLauncher = new MapReduceLauncher();
 
@@ -158,7 +166,7 @@ public class POMapreduce extends PhysicalOperator {
     public void addInputFile(FileSpec fileSpec, EvalSpec evalSpec){
         inputFileSpecs.add(fileSpec);
         toMap.add(evalSpec);
-        properties.putAll(evalSpec.getProperties());
+        mergeProperties(evalSpec.getProperties());
     }
     
     
@@ -249,7 +257,7 @@ public class POMapreduce extends PhysicalOperator {
         else
             toMap.set(i, toMap.get(i).addSpec(spec));
         
-        properties.putAll(spec.getProperties());
+        mergeProperties(spec.getProperties());
     }
     
     public void addReduceSpec(EvalSpec spec){
@@ -258,7 +266,7 @@ public class POMapreduce extends PhysicalOperator {
         else
             toReduce = toReduce.addSpec(spec);
         
-        properties.putAll(spec.getProperties());
+        mergeProperties(spec.getProperties());
     }
     
     public void setProperty(String key, String value) {
@@ -271,6 +279,27 @@ public class POMapreduce extends PhysicalOperator {
     
     public void visit(POVisitor v) {
         v.visitMapreduce(this);
+    }
+    
+    // TODO: Ugly hack! Need a better way to manage multiple properties 
+    // Presumably it should be a part of Hadoop Configuration.
+    private void mergeProperties(Properties other) {
+        Properties mergedProperties = new Properties();
+        
+        for (String key : PIG_CONFIGS_TO_MERGE) {
+            String value = properties.getProperty(key);
+            String otherValue = other.getProperty(key);
+            
+            if (value != null && otherValue != null) {
+                mergedProperties.setProperty(key, value + ", " + otherValue);
+            }
+        }
+        
+        // Copy the other one
+        properties.putAll(other);
+        
+        // Now, overwrite with the merged one
+        properties.putAll(mergedProperties);
     }
 }
 
