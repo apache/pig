@@ -78,6 +78,44 @@ public class Schema {
 
             return true;
         }
+        
+        /***
+         * Compare two field schema for equality
+         * @param fschema
+         * @param fother
+         * @param relaxInner If true, we don't check inner tuple schemas
+         * @param relaxAlias If true, we don't check aliases
+         * @return
+         */
+        public static boolean equals(FieldSchema fschema, 
+                                     FieldSchema fother, 
+                                     boolean relaxInner,
+                                     boolean relaxAlias) {
+            if (fschema == null) {              
+                return false ;
+            }
+            
+            if (fother == null) {
+                return false ;
+            }
+            
+            if (fschema.type != fother.type) {
+                return false ;
+            }
+            
+            if ( (!relaxAlias) && (fschema.alias != fother.alias) ) {
+                return false ;
+            }
+            
+            if ( (!relaxInner) && (fschema.type == DataType.TUPLE) ) {
+               // compare recursively using schema
+               if (!Schema.equals(fschema.schema, fother.schema, false, relaxAlias)) {
+                   return false ;
+               }
+            }
+            
+            return true ;
+        }
     }
 
     private List<FieldSchema> mFields;
@@ -181,6 +219,196 @@ public class Schema {
         }
         return true;
     }
+    
+    /**
+     * Recursively compare two schemas for equality
+     * @param schema
+     * @param other
+     * @param relaxInner if true, inner schemas will not be checked
+     * @return
+     */
+    public static boolean equals(Schema schema, 
+                                 Schema other, 
+                                 boolean relaxInner,
+                                 boolean relaxAlias) {
+        if (schema == null) {
+            return false ;
+        }
+        
+        if (other == null) {
+            return false ;
+        }
+        
+        if (schema.size() != other.size()) return false;
+
+        Iterator<FieldSchema> i = schema.mFields.iterator();
+        Iterator<FieldSchema> j = other.mFields.iterator();
+        
+        while (i.hasNext()) {
+            
+            FieldSchema myFs = i.next() ;
+            FieldSchema otherFs = j.next() ;
+            
+            if ( (!relaxAlias) && (myFs.alias != otherFs.alias) ) {
+                return false ;
+            }
+            
+            if (myFs.type != otherFs.type) {
+                return false ;
+            }
+            
+            if (!relaxInner) {
+                // Compare recursively using field schema
+                if (!FieldSchema.equals(myFs, otherFs, false, relaxAlias)) {
+                    return false ;
+                }            
+            }
+            
+        }
+        return true;
+    }
+    
+    
+    /***
+     * Merge this schema with the other schema
+     * @param other the other schema to be merged with
+     * @param otherTakesAliasPrecedence true if aliases from the other
+     *                                  schema take precedence
+     * @return the merged schema, null if they are not compatible
+     */
+    public Schema merge(Schema other, boolean otherTakesAliasPrecedence) {
+        return mergeSchema(this, other, otherTakesAliasPrecedence) ;
+    }
+    
+    /***
+     * Recursively merge two schemas 
+     * @param schema the initial schema
+     * @param other the other schema to be merged with
+     * @param otherTakesAliasPrecedence true if aliases from the other
+     *                                  schema take precedence
+     * @return the merged schema, null if they are not compatible
+     */
+    private Schema mergeSchema(Schema schema, Schema other, 
+                               boolean otherTakesAliasPrecedence) {
+        
+        if (other == null) {
+            return null ;
+        }
+        
+        if (schema.size() != other.size()) {
+            return null ;
+        }
+        
+        List<FieldSchema> outputList = new ArrayList<FieldSchema>() ;
+        
+        Iterator<FieldSchema> mylist = schema.mFields.iterator() ;
+        Iterator<FieldSchema> otherlist = other.mFields.iterator() ;
+        
+        while (mylist.hasNext()) {
+            
+            FieldSchema myFs = mylist.next() ;
+            FieldSchema otherFs = otherlist.next() ;
+            
+            byte mergedType = mergeType(myFs.type, otherFs.type) ;
+            // if the types cannot be merged, the schemas cannot be merged
+            if (mergedType == DataType.ERROR) {
+                return null ;
+            }
+            
+            String mergedAlias = mergeAlias(myFs.alias, 
+                                            otherFs.alias, 
+                                            otherTakesAliasPrecedence) ;
+            
+            FieldSchema mergedFs = null ;
+            if (mergedType != DataType.TUPLE) {
+                // just normal merge              
+                mergedFs = new FieldSchema(mergedAlias, mergedType) ;
+            }
+            else {
+                // merge inner tuple because both sides are tuples
+                Schema mergedSubSchema = mergeSchema(myFs.schema, 
+                                                     otherFs.schema,
+                                                     otherTakesAliasPrecedence) ;
+                // return null if they cannot be merged
+                if (mergedSubSchema == null) {
+                    return null ;
+                }
+                
+                mergedFs = new FieldSchema(mergedAlias, mergedSubSchema) ;
+                
+            }
+            outputList.add(mergedFs) ;
+        }
+        
+        return new Schema(outputList) ;
+    }
+    
+    /***
+     * Merge two aliases. If one of aliases is null, return the other.
+     * Otherwise check the precedence condition
+     * @param alias
+     * @param other
+     * @param otherTakesPrecedence
+     * @return
+     */
+    private String mergeAlias(String alias, String other
+                              ,boolean otherTakesPrecedence) {
+        if (alias == null) {
+            return other ;
+        }
+        else if (other == null) {
+            return alias ;
+        }
+        else if (otherTakesPrecedence) {
+            return other ;
+        }
+        else {
+            return alias ;
+        }
+    }
+    
+    /***
+     * Merge types if possible
+     * @param type1
+     * @param type2
+     * @return the merged type, or DataType.ERROR if not successful
+     */
+    private byte mergeType(byte type1, byte type2) {
+        // Only legal types can be merged
+        if ( (!DataType.isUsableType(type1)) ||
+             (!DataType.isUsableType(type2)) ) {
+            return DataType.ERROR ;
+        }
+        
+        // Same type is OK
+        if (type1==type2) {
+            return type1 ;
+        }
+        
+        // Both are number so we return the bigger type
+        if ( (DataType.isNumberType(type1)) &&
+             (DataType.isNumberType(type2)) ) {
+            return type1>type2 ? type1:type2 ;
+        }
+        
+        // One is bytearray and the other is (number or chararray)
+        if ( (type1 == DataType.BYTEARRAY) &&
+                ( (type2 == DataType.CHARARRAY) || (DataType.isNumberType(type2)) )
+              ) {
+            return type2 ;
+        }
+        
+        if ( (type2 == DataType.BYTEARRAY) &&
+                ( (type1 == DataType.CHARARRAY) || (DataType.isNumberType(type1)) )
+              ) {
+            return type1 ;
+        }
+        
+        // else return just ERROR
+        return DataType.ERROR ;
+    }
+    
+    
 }
 
 
