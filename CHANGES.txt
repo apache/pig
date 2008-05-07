@@ -281,3 +281,5 @@ Trunk (unreleased changes)
 	PIG-219: Change unit tests to run both local and map reduce modes (kali via gates).
 
 	PIG-202: Fix Order by so that user provided comparator func is used for quantile determination (kali via gates).
+
+    PIG-231: validation for ship, cache, and skippath

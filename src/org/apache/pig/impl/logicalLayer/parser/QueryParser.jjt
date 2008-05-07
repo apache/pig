@@ -250,7 +250,8 @@ public class QueryParser {
      //    via "set stream.skippath <paths>" option.
      private static final String PERL = "perl";
      private static final String PYTHON = "python";
-     private void checkAutoShipSpecs(StreamingCommand command, String[] argv) {
+     private void checkAutoShipSpecs(StreamingCommand command, String[] argv) 
+     throws ParseException {
      	// Candidate for auto-ship
      	String arg0 = argv[0];
      	
@@ -269,7 +270,8 @@ public class QueryParser {
         }
      }
      
-     private void checkAndShip(StreamingCommand command, String arg) {
+     private void checkAndShip(StreamingCommand command, String arg) 
+     throws ParseException {
      	// Don't auto-ship if it is an absolute path...
      	if (arg.startsWith("/")) {
      		return;
@@ -278,7 +280,11 @@ public class QueryParser {
      	// $ which arg
      	String argPath = which(arg);
      	if (argPath != null && !inSkipPaths(argPath)) {
-     		command.addPathToShip(argPath);
+     		try {
+     		    command.addPathToShip(argPath);
+     		} catch(IOException e) {
+                throw new ParseException(e.getMessage());
+            }
      	}
      	 
      }
@@ -1422,7 +1428,7 @@ StreamingCommand Command(): {Token t; StreamingCommand command;}
 	t = <EXECCOMMAND>
 	{
 		String[] argv = splitArgs(unquote(t.image));
-		command = new StreamingCommand(argv);
+		command = new StreamingCommand(pigContext, argv);
         checkAutoShipSpecs(command, argv);
 		return command;
 	}
@@ -1447,7 +1453,7 @@ LogicalOperator DefineClause() : {Token t; Token cmd; String functionName, funct
         cmd = <EXECCOMMAND>
         {
             StreamingCommand command = 
-               new StreamingCommand(splitArgs(unquote(cmd.image)));
+               new StreamingCommand(pigContext, splitArgs(unquote(cmd.image)));
             String[] paths;
             StreamingCommand.HandleSpec[] handleSpecs;
         }
@@ -1458,7 +1464,11 @@ LogicalOperator DefineClause() : {Token t; Token cmd; String functionName, funct
                 	command.setShipFiles(false);
                 } else {
                     for (String path : paths) {
-                        command.addPathToShip(path);
+                    	try {
+                            command.addPathToShip(path);
+                        } catch(IOException e) {
+                            throw new ParseException(e.getMessage());
+                        }
                     }
                 }
             }
@@ -1466,7 +1476,11 @@ LogicalOperator DefineClause() : {Token t; Token cmd; String functionName, funct
             <CACHE> "(" paths = PathList() ")"
             {
                 for (String path : paths) {
-                    command.addPathToCache(path);
+                    try {
+                        command.addPathToCache(path);
+                    } catch(IOException e) {
+                        throw new ParseException(e.getMessage());
+                    }
                 }
             }
             |
