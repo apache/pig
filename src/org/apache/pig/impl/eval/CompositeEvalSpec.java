@@ -102,9 +102,9 @@ public class CompositeEvalSpec extends EvalSpec {
     @Override
     public void instantiateFunc(FunctionInstantiator fInstantiaor)
             throws IOException {
+        super.instantiateFunc(fInstantiaor);
         for (EvalSpec spec: specs)
-            spec.instantiateFunc(fInstantiaor);
-        
+            spec.instantiateFunc(fInstantiaor);   
     }
 
     public List<EvalSpec> getSpecs() {

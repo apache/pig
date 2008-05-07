@@ -122,6 +122,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
         try {
             PhysicalOperator pp = (PhysicalOperator)physicalOpTable.get(plan.getRoot());
 
+            pp.visit(new InstantiateFuncCallerPOVisitor(pigContext, physicalOpTable));
             pp.open();
             
             Tuple t;

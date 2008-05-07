@@ -199,17 +199,7 @@ public abstract class EvalSpec implements Serializable{
      * @return
      */
     public Comparator<Tuple> getComparator() {
-        if (comparator != null)
-            return comparator;
-        else
-        {
-            comparator = new Comparator<Tuple>() {
-                public int compare(Tuple t1, Tuple t2) {
-                    return simpleEval(t1).compareTo(simpleEval(t2));
-                }
-            };
-            return comparator;
-        }
+        return comparator;
     }
     
     public void setFlatten(boolean isFlattened){

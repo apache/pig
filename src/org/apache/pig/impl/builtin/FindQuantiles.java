@@ -39,15 +39,13 @@ public class FindQuantiles extends EvalFunc<DataBag>{
         
         long numSamples = samples.size();
         
-        long toSkip = numSamples / numQuantiles;
-        
-        long i=0, nextQuantile = 0;
+        long i=0, written = 0;
         Iterator<Tuple> iter = samples.iterator();
         while (iter.hasNext()){
             Tuple t = iter.next();
-            if (i==nextQuantile){
+            if ((written + 1) * numSamples < i * (numQuantiles + 1)) {
                 output.add(t);
-                nextQuantile+=toSkip+1;
+                written++;
             }
             i++;
         }
