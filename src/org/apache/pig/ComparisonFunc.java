@@ -22,11 +22,12 @@ import java.io.IOException;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 
 public abstract class ComparisonFunc extends WritableComparator {
     public ComparisonFunc() {
-        super(Tuple.class);
+        super(TupleFactory.getInstance().tupleClass());
     }
 
     public int compare(WritableComparable a, WritableComparable b) {

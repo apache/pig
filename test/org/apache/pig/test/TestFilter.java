@@ -42,7 +42,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestFilter {
+public class TestFilter extends junit.framework.TestCase {
     POFilter pass;
 
     POFilter fail;

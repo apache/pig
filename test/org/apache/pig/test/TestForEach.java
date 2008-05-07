@@ -52,7 +52,7 @@ import org.junit.Test;
  * as those in the projected bag 
  *
  */
-public class TestForEach {
+public class TestForEach extends junit.framework.TestCase {
     
     POForEach fe;
     Tuple t;

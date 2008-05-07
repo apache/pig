@@ -41,7 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLoad {
+public class TestLoad extends junit.framework.TestCase {
     FileSpec inpFSpec;
     POLoad ld;
     PigContext pc;

@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class TestGreaterThan {
+public class TestGreaterThan extends junit.framework.TestCase {
 
     @Before
     public void setUp() throws Exception {

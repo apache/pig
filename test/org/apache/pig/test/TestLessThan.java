@@ -37,7 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLessThan {
+public class TestLessThan extends junit.framework.TestCase {
 
     @Before
     public void setUp() throws Exception {

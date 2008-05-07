@@ -47,7 +47,7 @@ import org.junit.Test;
  * group db by $0 
  *
  */
-public class TestLocalRearrange {
+public class TestLocalRearrange extends junit.framework.TestCase {
     
     POLocalRearrange lr;
     Tuple t;

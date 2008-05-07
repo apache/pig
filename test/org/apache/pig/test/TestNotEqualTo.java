@@ -36,7 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestNotEqualTo {
+public class TestNotEqualTo extends junit.framework.TestCase {
 
     @Before
     public void setUp() throws Exception {

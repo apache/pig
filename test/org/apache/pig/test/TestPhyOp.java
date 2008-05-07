@@ -37,7 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPhyOp {
+public class TestPhyOp extends junit.framework.TestCase {
     PhysicalOperator<PhyPlanVisitor> op;
 
     PhysicalOperator<PhyPlanVisitor> inpOp;

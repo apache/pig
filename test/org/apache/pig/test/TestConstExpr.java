@@ -34,7 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestConstExpr {
+public class TestConstExpr extends junit.framework.TestCase {
     Random r = new Random();
     ConstantExpression ce = (ConstantExpression) GenPhyOp.exprConst();
     

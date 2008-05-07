@@ -142,9 +142,10 @@
         	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java, **/test/TestPOGenerate.java,
                 **/test/TestProject.java, **/test/TestLoad.java, **/test/TestStore.java,
                  **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
-        		**/test/TestLocalRearrange.java,
+        		**/test/TestLocalRearrange.java, **/test/TestPOUserFunc.java,
+        		**/test/TestPODistinct.java, **/test/TestPOSort.java,
                 **/test/FakeFSInputStream.java, **/test/Util.java,
-                **/logicalLayer/*.java,
+                **/logicalLayer/*.java, **/logicalLayer/parser/NodeIdGenerator.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
                 **/physicalLayer/Result.java,
@@ -252,6 +253,9 @@
                 	<include name="**/TestEqualTo.java" />
                 	<include name="**/TestNotEqualTo.java" />
                 	<include name="**/TestPOGenerate.java" />
+                	<include name="**/TestPOSort.java" />
+                	<include name="**/TestPOUserFunc.java" />
+                	<include name="**/TestPODistinct.java" />
                 	<include name="**/TestLoad.java" />
                 	<include name="**/TestStore.java" />
                 	<include name="**/TestPackage.java" />  

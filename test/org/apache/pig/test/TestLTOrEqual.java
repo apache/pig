@@ -37,7 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLTOrEqual {
+public class TestLTOrEqual extends junit.framework.TestCase {
 
     @Before
     public void setUp() throws Exception {
