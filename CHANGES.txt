@@ -283,3 +283,5 @@ Trunk (unreleased changes)
 	PIG-202: Fix Order by so that user provided comparator func is used for quantile determination (kali via gates).
 
     PIG-231: validation for ship, cache, and skippath
+
+    PIG-232: fix for number of output records when BinaryStirage is used
