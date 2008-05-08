@@ -220,7 +220,10 @@ public class HadoopExecutableManager extends ExecutableManager {
         List<HandleSpec> inputSpecs = command.getHandleSpecs(Handle.INPUT);
         HandleSpec inputSpec = 
             (inputSpecs != null) ? inputSpecs.get(0) : null;
-        processError("\nInput records: " + inputRecords);
+        if (inputSpec == null || 
+            !inputSpec.getSpec().contains("BinaryStorage")) {
+            processError("\nInput records: " + inputRecords);
+        }
         processError("\nInput bytes: " + inputBytes + " bytes " +
                     ((inputSpec != null) ? 
                             "(" + inputSpec.getName() + " using " + 
