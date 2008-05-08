@@ -23,33 +23,35 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.StoreFunc; // import org.apache.pig.impl.PigContext;
+import org.apache.pig.StoreFunc; 
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOStore extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
     private FileSpec mOutputFile;
     private StoreFunc mStoreFunc;
+	private static Log log = LogFactory.getLog(LOStore.class);
 
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
      * @param key
      *            OperatorKey for this operator
-     * @param rp
-     *            Requested level of parallelism to be used in the sort.
      * @param outputFileSpec
      *            the file to be stored
      * @param storeFunc
      *            the store function, pre-defined or user defined
      */
-    public LOStore(LogicalPlan plan, OperatorKey key, int rp,
+    public LOStore(LogicalPlan plan, OperatorKey key,
             FileSpec outputFileSpec) throws IOException {
-        super(plan, key, rp);
+        super(plan, key);
 
         mOutputFile = outputFileSpec;
 
@@ -58,13 +60,13 @@ public class LOStore extends LogicalOperator {
         // HExecutionEngine which in turn is completely commented out
         // Also remove the commented out import org.apache.pig.impl.PigContext
 
-        /*
-         * try { mStoreFunc = (StoreFunc)
-         * PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); }
-         * catch (Exception e) { IOException ioe = new
-         * IOException(e.getMessage()); ioe.setStackTrace(e.getStackTrace());
-         * throw ioe; }
-         */
+        try { 
+		 	mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+		} catch (Exception e) { 
+			IOException ioe = new IOException(e.getMessage()); 
+			ioe.setStackTrace(e.getStackTrace());
+			throw ioe; 
+		}
     }
 
     public FileSpec getOutputFile() {

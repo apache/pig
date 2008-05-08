@@ -35,17 +35,14 @@ public class LOCast extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param expr
      *            the expression whose type has to be cast
      * @param type
      *            the type to which the expression is cast
      */
-    public LOCast(LogicalPlan plan, OperatorKey k, int rp,
+    public LOCast(LogicalPlan plan, OperatorKey k,
             ExpressionOperator expr, byte type) {
-        super(plan, k, rp);
+        super(plan, k);
         mExpr = expr;
         mType = type;
     }// End Constructor LOCast

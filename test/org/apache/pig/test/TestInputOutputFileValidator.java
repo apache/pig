@@ -187,10 +187,12 @@ public class TestInputOutputFileValidator extends TestCase {
                                             String outputFile) 
                                         throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        FileSpec filespec1 = new FileSpec(inputFile, "") ;
-        FileSpec filespec2 = new FileSpec(outputFile, "") ;
-        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), 1, filespec1, null) ;       
-        LOStore store = new LOStore(plan, genNewOperatorKeyId(),1, filespec2) ;
+        FileSpec filespec1 =
+            new FileSpec(inputFile, "org.apache.pig.builtin.PigStorage") ;
+        FileSpec filespec2 =
+            new FileSpec(outputFile, "org.apache.pig.builtin.PigStorage");
+        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null) ;       
+        LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2) ;
         
         plan.add(load) ;
         plan.add(store) ;

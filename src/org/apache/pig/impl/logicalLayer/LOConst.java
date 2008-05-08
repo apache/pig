@@ -35,14 +35,11 @@ public class LOConst extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param value
      *            the value of the constant
      */
-    public LOConst(LogicalPlan plan, OperatorKey k, int rp, Object value) {
-        super(plan, k, rp);
+    public LOConst(LogicalPlan plan, OperatorKey k, Object value) {
+        super(plan, k);
         mValue = value;
     }// End Constructor LOConst
 

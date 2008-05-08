@@ -22,22 +22,35 @@ import java.util.List;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOUnion extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
+    private ArrayList<LogicalOperator> mInputs;
+	private static Log log = LogFactory.getLog(LOUnion.class);
 
     /**
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
+     * @param inputs
+     *            List of operators that are input to the union
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k, int rp) {
-        super(plan, k, rp);
+    public LOUnion(LogicalPlan plan, OperatorKey k,
+            ArrayList<LogicalOperator> inputs) {
+        super(plan, k);
+        mInputs = inputs;
+    }
+
+    public List<LogicalOperator> getInputs() {
+        return mInputs;
+    }
+    
+    public void addInput(LogicalOperator input) {
+        mInputs.add(input);
     }
 
     @Override
@@ -46,6 +59,8 @@ public class LOUnion extends LogicalOperator {
             // TODO FIX
             // The schema merge operation needs to be implemented in
             // order to compute the schema of the union
+            //If schemas are the same then return one of the schemas else 
+            //return null
         }
         return mSchema;
     }

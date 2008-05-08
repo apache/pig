@@ -21,10 +21,13 @@ package org.apache.pig.impl.logicalLayer;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOAdd extends BinaryExpressionOperator {
 
     private static final long serialVersionUID = 2L;
+    private static Log log = LogFactory.getLog(LOAdd.class);
 
     /**
      * 
@@ -32,17 +35,14 @@ public class LOAdd extends BinaryExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param lhsOperand
      *            the left hand side operand
      * @param rhsOperand
      *            the right hand side operand
      */
-    public LOAdd(LogicalPlan plan, OperatorKey k, int rp,
+    public LOAdd(LogicalPlan plan, OperatorKey k,
             ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
-        super(plan, k, rp, lhsOperand, rhsOperand);
+        super(plan, k, lhsOperand, rhsOperand);
     }
 
     @Override

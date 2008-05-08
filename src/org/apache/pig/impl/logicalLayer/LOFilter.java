@@ -22,12 +22,15 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOFilter extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
-    private ExpressionOperator mCond;
     private LogicalOperator mInput;
+	private LogicalPlan mComparisonPlan;
+	private static Log log = LogFactory.getLog(LOFilter.class);
 
     /**
      * 
@@ -35,29 +38,26 @@ public class LOFilter extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param cond
      *            the filter condition
      * @param input
      *            the input that needs filtering
      */
-    public LOFilter(LogicalPlan plan, OperatorKey k, int rp,
-            ExpressionOperator cond, LogicalOperator input) {
 
-        super(plan, k, rp);
-        mCond = cond;
+	public LOFilter(LogicalPlan plan, OperatorKey k,
+			LogicalPlan comparisonPlan, LogicalOperator input) {
+		super(plan, k);
+		mComparisonPlan = comparisonPlan;
         mInput = input;
-    }
+	}
 
     public LogicalOperator getInput() {
         return mInput;
     }
 
-    public ExpressionOperator getCondition() {
-        return mCond;
-    }
+	public LogicalPlan getComparisonPlan() {
+		return mComparisonPlan;
+	}
 
     @Override
     public Schema getSchema() throws FrontendException {

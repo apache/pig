@@ -144,7 +144,7 @@
                  **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
         		**/test/TestLocalRearrange.java, **/test/TestPOUserFunc.java,
         		**/test/TestPODistinct.java, **/test/TestPOSort.java,
-        		**/test/TestSchema.java,
+        		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,
                 **/test/FakeFSInputStream.java, **/test/Util.java,
                 **/logicalLayer/*.java, **/logicalLayer/parser/NodeIdGenerator.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
@@ -265,6 +265,7 @@
                 	<include name="**/TestInputOutputFileValidator.java" /> 
                 	<include name="**/TestTypeCheckingValidator.java" /> 
                 	<include name="**/TestSchema.java" /> 
+                	<include name="**/TestLogicalPlanBuilder.java" /> 
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

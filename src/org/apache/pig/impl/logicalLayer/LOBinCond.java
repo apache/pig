@@ -41,9 +41,6 @@ public class LOBinCond extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param cond
      *            ExpressionOperator the expression specifying condition
      * @param lhsOp
@@ -52,10 +49,10 @@ public class LOBinCond extends ExpressionOperator {
      *            ExpressionOperator query to be executed when condition is
      *            false
      */
-    public LOBinCond(LogicalPlan plan, OperatorKey k, int rp,
+    public LOBinCond(LogicalPlan plan, OperatorKey k,
             ExpressionOperator cond, ExpressionOperator lhsOp,
             ExpressionOperator rhsOp) {
-        super(plan, k, rp);
+        super(plan, k);
         mCond = cond;
         mLhsOp = lhsOp;
         mRhsOp = rhsOp;
@@ -89,9 +86,12 @@ public class LOBinCond extends ExpressionOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
+		//TODO
+		//We need a check of LHS and RHS schemas
         if (!mIsSchemaComputed && (null == mSchema)) {
             try {
                 mSchema = mLhsOp.getSchema();
+                //mSchema = mLhsPlan.getRoots().get(0).getSchema();
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;

@@ -25,6 +25,8 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOMapLookup extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
@@ -35,8 +37,9 @@ public class LOMapLookup extends ExpressionOperator {
      */
     private ExpressionOperator mMap;
     private Object mMapKey;
-    private DataType mValueType;
+    private byte mValueType;
     private Schema mValueSchema;
+    private static Log log = LogFactory.getLog(LOMapLookup.class);
 
     /**
      * 
@@ -44,9 +47,6 @@ public class LOMapLookup extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param map
      *            the map expression
      * @param mapKey
@@ -56,10 +56,10 @@ public class LOMapLookup extends ExpressionOperator {
      * @param valueSchema
      *            schema of the value if the type is tuple
      */
-    public LOMapLookup(LogicalPlan plan, OperatorKey key, int rp, ExpressionOperator map,
-            Object mapKey, DataType valueType, Schema valueSchema)
+    public LOMapLookup(LogicalPlan plan, OperatorKey key, ExpressionOperator map,
+            Object mapKey, byte valueType, Schema valueSchema)
             throws ParseException {
-        super(plan, key, rp);
+        super(plan, key);
 
         if (!DataType.isAtomic(mapKey)) {
             throw new ParseException("Map key" + mapKey.toString()
@@ -79,7 +79,7 @@ public class LOMapLookup extends ExpressionOperator {
         return mMapKey;
     }
 
-    public DataType getValueType() {
+    public byte getValueType() {
         return mValueType;
     }
 

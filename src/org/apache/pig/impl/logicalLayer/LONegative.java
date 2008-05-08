@@ -32,15 +32,12 @@ public class LONegative extends UnaryExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param operand
      *            the only operand for a unary operator
      */
-    public LONegative(LogicalPlan plan, OperatorKey k, int rp,
+    public LONegative(LogicalPlan plan, OperatorKey k,
             ExpressionOperator operand) {
-        super(plan, k, rp, operand);
+        super(plan, k, operand);
     }
 
     @Override

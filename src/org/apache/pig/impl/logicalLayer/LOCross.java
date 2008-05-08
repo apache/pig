@@ -18,83 +18,80 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+import java.io.IOException;
+
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-
-public class LOForEach extends LogicalOperator {
+public class LOCross extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
+    private ArrayList<LogicalOperator> mInputs;
+	private static Log log = LogFactory.getLog(LOCross.class);
 
     /**
-     * The foreach operator supports nested query plans. At this point its one
-     * level of nesting. Foreach can have a list of operators that need to be
-     * applied over the input.
-     */
-
-    private LogicalPlan mForEachPlan;
-    private static Log log = LogFactory.getLog(LOForEach.class);
-
-    /**
+     * 
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param operators
-     *            the list of operators that are applied for each input
      */
-
-    public LOForEach(LogicalPlan plan, OperatorKey k,
-            LogicalPlan foreachPlan) {
+    public LOCross(LogicalPlan plan, OperatorKey k, ArrayList<LogicalOperator> inputs) {
 
         super(plan, k);
-        mForEachPlan = foreachPlan;
+        mInputs = inputs;
     }
 
-    public LogicalPlan getForEachPlan() {
-        return mForEachPlan;
+    public List<LogicalOperator>  getInputs() {
+        return mInputs;
     }
-
+    
+    public void addInput(LogicalOperator input) {
+        mInputs.add(input);
+    }
+    
     @Override
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
-            // Assuming that the last operator is the GENERATE
-            // foreach has to terminate with a GENERATE
-            LogicalOperator last = null;
-			for(LogicalOperator op: mForEachPlan.getLeaves()) {
-				if(op instanceof LOGenerate) {
-					last = op;
-					break;
-				}
-			}
-			if(null == last) throw new FrontendException("Did not find generate in the foreach logicalplan");
-
-            log.debug("Last Operator: " + last.getClass().getName());
-            try {
-                mSchema = last.getSchema();
-                mIsSchemaComputed = true;
-            } catch (FrontendException ioe) {
-                mSchema = null;
-                mIsSchemaComputed = false;
-                throw ioe;
+            // Get the schema of the parents
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(s
+                    .size());
+            for (LogicalOperator op : s) {
+                String opAlias = op.getAlias();
+                if (op.getType() == DataType.TUPLE) {
+                    try {
+                        fss.add(new Schema.FieldSchema(opAlias, op
+                                        .getSchema()));
+                    } catch (FrontendException ioe) {
+                        mSchema = null;
+                        mIsSchemaComputed = false;
+                        throw ioe;
+                    }
+                } else {
+                    fss.add(new Schema.FieldSchema(opAlias, op.getType()));
+                }
             }
+            mSchema = new Schema(fss);
+            mIsSchemaComputed = true;
         }
         return mSchema;
     }
 
     @Override
     public String name() {
-        return "ForEach " + mKey.scope + "-" + mKey.id;
+        return "Cross " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public boolean supportsMultipleInputs() {
-        return false;
+        return true;
     }
 
     @Override

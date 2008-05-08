@@ -25,10 +25,14 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LODistinct extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
+    private LogicalOperator mInput;
+    private static Log log = LogFactory.getLog(LODistinct.class);
 
     /**
      * 
@@ -36,23 +40,28 @@ public class LODistinct extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
+     * @param input
+     *            input over which distinct will be applied
      */
-    public LODistinct(LogicalPlan plan, OperatorKey k, int rp) {
+    public LODistinct(LogicalPlan plan, OperatorKey k, LogicalOperator input) {
 
-        super(plan, k, rp);
+        super(plan, k);
+        mInput = input;
+    }
+
+    public LogicalOperator getInput() {
+        return mInput;
     }
 
     @Override
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // Get the schema of the parent
-            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             try {
                 LogicalOperator op = s.iterator().next();
-                if(null == op) {
+                if (null == op) {
+                    log.info("getSchema: Operator not in plan");
                     throw new FrontendException("Could not find operator in plan");
                 }
                 mSchema = s.iterator().next().getSchema();

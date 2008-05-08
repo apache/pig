@@ -19,10 +19,13 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public abstract class ExpressionOperator extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
+    private static Log log = LogFactory.getLog(ExpressionOperator.class);
 
     /**
      * @param plan
@@ -37,6 +40,17 @@ public abstract class ExpressionOperator extends LogicalOperator {
         super(plan, k, rp);
     }
 
+    /**
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
+     */
+    public ExpressionOperator(LogicalPlan plan, OperatorKey k) {
+        super(plan, k);
+    }
+
+    
     @Override
     public boolean supportsMultipleOutputs() {
         return false;

@@ -28,6 +28,9 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 
 /**
  * Parent for all Logical operators.
@@ -44,10 +47,10 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * A boolean variable to remember if the schema has been computed
      */
     protected boolean mIsSchemaComputed = false;
-  
+
     /**
-     * Datatype of this output of this operator.  Operators start out with data type
-     * set to UNKNOWN, and have it set for them by the type checker.
+     * Datatype of this output of this operator. Operators start out with data
+     * type set to UNKNOWN, and have it set for them by the type checker.
      */
     protected byte mType = DataType.UNKNOWN;
 
@@ -59,7 +62,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     /**
      * Name of the record set that results from this operator.
      */
-    protected String mAlias; 
+    protected String mAlias;
 
     /**
      * Logical plan that this operator is a part of.
@@ -67,25 +70,40 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     protected LogicalPlan mPlan;
 
     /**
+     * A boolean variable to remember if input has to be flattened Used only in
+     * the context of generate
+     */
+    //private boolean mIsFlatten = false;
+    
+    private static Log log = LogFactory.getLog(LogicalOperator.class);
+
+    /**
      * Equivalent to LogicalOperator(k, 0).
-     * @param plan Logical plan this operator is a part of.
-     * @param k Operator key to assign to this node.
+     * 
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
      */
     public LogicalOperator(LogicalPlan plan, OperatorKey k) {
         this(plan, k, -1);
     }
 
     /**
-     * @param plan Logical plan this operator is a part of.
-     * @param - k Operator key to assign to this node.
-     * @param = rp degree of requested parallelism with which to execute this node.
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param -
+     *            k Operator key to assign to this node.
+     * @param =
+     *            rp degree of requested parallelism with which to execute this
+     *            node.
      */
     public LogicalOperator(LogicalPlan plan, OperatorKey k, int rp) {
         super(k);
         mPlan = plan;
         mRequestedParallelism = rp;
     }
-    
+
     /**
      * Get the operator key for this operator.
      */
@@ -94,12 +112,14 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     }
 
     /**
-     * Set the output schema for this operator.  If a schema already
-     * exists, an attempt will be made to reconcile it with this new
-     * schema.
-     * @param schema Schema to set.
-     * @throws ParseException if there is already a schema and the existing
-     * schema cannot be reconciled with this new schema.
+     * Set the output schema for this operator. If a schema already exists, an
+     * attempt will be made to reconcile it with this new schema.
+     * 
+     * @param schema
+     *            Schema to set.
+     * @throws ParseException
+     *             if there is already a schema and the existing schema cannot
+     *             be reconciled with this new schema.
      */
     public final void setSchema(Schema schema) throws ParseException {
         // In general, operators don't generate their schema until they're
@@ -109,8 +129,14 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         } catch (FrontendException ioe) {
             // It's fine, it just means we don't have a schema yet.
         }
-        if (mSchema == null) mSchema = schema;
-        else mSchema.reconcile(schema);
+        if (mSchema == null) {
+            log.debug("Operator schema is null; Setting it to new schema");
+            mSchema = schema;
+        } else {
+            log.debug("Reconciling schema");
+            log.debug("mSchema: " + mSchema + " schema: " + schema);
+            mSchema.reconcile(schema);
+        }
     }
 
     /**
@@ -119,9 +145,11 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public abstract Schema getSchema() throws FrontendException;
 
     /**
-     * Set the type of this operator.  This should only be called by the type
+     * Set the type of this operator. This should only be called by the type
      * checking routines.
-     * @param type - Type to set this operator to.
+     * 
+     * @param type -
+     *            Type to set this operator to.
      */
     final public void setType(byte t) {
         mType = t;
@@ -133,7 +161,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public byte getType() {
         return mType;
     }
-    
+
     public String getAlias() {
         return mAlias;
     }
@@ -153,7 +181,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     @Override
     public String toString() {
         StringBuffer msg = new StringBuffer();
-        
+
         msg.append("(Name: " + name() + " Operator Key: " + mKey + ")");
 
         return msg.toString();
@@ -161,8 +189,11 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
 
     /**
      * Given a schema, reconcile it with our existing schema.
-     * @param schema Schema to reconcile with the existing.
-     * @throws ParseException if the reconciliation is not possible.
+     * 
+     * @param schema
+     *            Schema to reconcile with the existing.
+     * @throws ParseException
+     *             if the reconciliation is not possible.
      */
     protected void reconcileSchema(Schema schema) throws ParseException {
         if (mSchema == null) {
@@ -183,5 +214,15 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      *             if the visitor has a problem.
      */
     public abstract void visit(LOVisitor v) throws VisitorException;
+
+	/*
+    public boolean isFlatten() {
+        return mIsFlatten;
+    }
+
+    public void setFlatten(boolean b) {
+        mIsFlatten = b;
+    }
+	*/
 
 }

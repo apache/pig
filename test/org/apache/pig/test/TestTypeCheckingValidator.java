@@ -19,16 +19,16 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking1() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20D) ;
         constant2.setType(DataType.DOUBLE) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 1, "123") ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), "123") ;
         constant3.setType(DataType.CHARARRAY) ;
         
-        LOAdd add1 = new LOAdd(plan, genNewOperatorKeyId(),1 , constant1, constant2) ;            
-        LOCast cast1 = new LOCast(plan, genNewOperatorKeyId(), 1, constant3, DataType.BYTEARRAY) ;     
-        LOMultiply mul1 = new LOMultiply(plan, genNewOperatorKeyId(), 1, add1, cast1) ;
+        LOAdd add1 = new LOAdd(plan, genNewOperatorKeyId(), constant1, constant2) ;            
+        LOCast cast1 = new LOCast(plan, genNewOperatorKeyId(), constant3, DataType.BYTEARRAY) ;     
+        LOMultiply mul1 = new LOMultiply(plan, genNewOperatorKeyId(), add1, cast1) ;
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -66,19 +66,19 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking2() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20D) ;
         constant2.setType(DataType.BYTEARRAY) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 1, 123L) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 123L) ;
         constant3.setType(DataType.LONG) ;        
-        LOConst constant4 =  new LOConst(plan, genNewOperatorKeyId(), 1, true) ;
+        LOConst constant4 =  new LOConst(plan, genNewOperatorKeyId(), true) ;
         constant4.setType(DataType.BOOLEAN) ;
         
-        LOSubtract sub1 = new LOSubtract(plan, genNewOperatorKeyId(), 1, constant1, constant2) ;
-        LOGreaterThan gt1 = new LOGreaterThan(plan, genNewOperatorKeyId(), 1, sub1, constant3) ;
-        LOAnd and1 = new LOAnd(plan, genNewOperatorKeyId(), 1, gt1, constant4) ;
-        LONot not1 = new LONot(plan, genNewOperatorKeyId(), 1, and1) ;
+        LOSubtract sub1 = new LOSubtract(plan, genNewOperatorKeyId(), constant1, constant2) ;
+        LOGreaterThan gt1 = new LOGreaterThan(plan, genNewOperatorKeyId(), sub1, constant3) ;
+        LOAnd and1 = new LOAnd(plan, genNewOperatorKeyId(), gt1, constant4) ;
+        LONot not1 = new LONot(plan, genNewOperatorKeyId(), and1) ;
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -124,15 +124,15 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking3() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.BYTEARRAY) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20L) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20L) ;
         constant2.setType(DataType.LONG) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 1, 123) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 123) ;
         constant3.setType(DataType.INTEGER) ;
         
-        LOMod mod1 = new LOMod(plan, genNewOperatorKeyId(),1 , constant1, constant2) ;            
-        LOEqual equal1 = new LOEqual(plan, genNewOperatorKeyId(), 1, mod1, constant3) ;      
+        LOMod mod1 = new LOMod(plan, genNewOperatorKeyId(), constant1, constant2) ;            
+        LOEqual equal1 = new LOEqual(plan, genNewOperatorKeyId(), mod1, constant3) ;      
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -168,16 +168,16 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking4() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20D) ;
         constant2.setType(DataType.DOUBLE) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 1, "123") ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), "123") ;
         constant3.setType(DataType.CHARARRAY) ;
         
-        LODivide div1 = new LODivide(plan, genNewOperatorKeyId(),1 , constant1, constant2) ;         
-        LOCast cast1 = new LOCast(plan, genNewOperatorKeyId(), 1, constant3, DataType.BYTEARRAY) ;    
-        LONotEqual notequal1 = new LONotEqual(plan, genNewOperatorKeyId(), 1, div1, cast1) ;
+        LODivide div1 = new LODivide(plan, genNewOperatorKeyId(), constant1, constant2) ;         
+        LOCast cast1 = new LOCast(plan, genNewOperatorKeyId(), constant3, DataType.BYTEARRAY) ;    
+        LONotEqual notequal1 = new LONotEqual(plan, genNewOperatorKeyId(), div1, cast1) ;
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -216,17 +216,17 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking5() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.FLOAT) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20) ;
         constant2.setType(DataType.LONG) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 1, 123F) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 123F) ;
         constant3.setType(DataType.FLOAT) ;
-        LOConst constant4 =  new LOConst(plan, genNewOperatorKeyId(), 1, 123D) ;
+        LOConst constant4 =  new LOConst(plan, genNewOperatorKeyId(), 123D) ;
         constant4.setType(DataType.DOUBLE) ;
         
-        LOLesserThanEqual lesser1 = new LOLesserThanEqual(plan, genNewOperatorKeyId(), 1, constant1, constant2) ;
-        LOBinCond bincond1 = new LOBinCond(plan, genNewOperatorKeyId(), 1, lesser1, constant3, constant4) ;
+        LOLesserThanEqual lesser1 = new LOLesserThanEqual(plan, genNewOperatorKeyId(), constant1, constant2) ;
+        LOBinCond bincond1 = new LOBinCond(plan, genNewOperatorKeyId(), lesser1, constant3, constant4) ;
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -267,12 +267,12 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking6() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.CHARARRAY) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20) ;
         constant2.setType(DataType.LONG) ;
         
-        LOAdd add1 = new LOAdd(plan, genNewOperatorKeyId(),1 , constant1, constant2) ;      
+        LOAdd add1 = new LOAdd(plan, genNewOperatorKeyId(), constant1, constant2) ;      
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -301,15 +301,15 @@ public class TestTypeCheckingValidator extends TestCase {
     
     public void testExpressionTypeChecking7() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20D) ;
         constant2.setType(DataType.BYTEARRAY) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 1, 123L) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKeyId(), 123L) ;
         constant3.setType(DataType.LONG) ;        
         
-        LOGreaterThan gt1 = new LOGreaterThan(plan, genNewOperatorKeyId(), 1, constant1, constant2) ;
-        LOEqual equal1 = new LOEqual(plan, genNewOperatorKeyId(),1, gt1, constant3) ;
+        LOGreaterThan gt1 = new LOGreaterThan(plan, genNewOperatorKeyId(), constant1, constant2) ;
+        LOEqual equal1 = new LOEqual(plan, genNewOperatorKeyId(), gt1, constant3) ;
         
         plan.add(constant1) ;
         plan.add(constant2) ;
@@ -342,12 +342,12 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testArithmeticOpCastInsert1() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 1, 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKeyId(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 1, 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKeyId(), 20D) ;
         constant2.setType(DataType.DOUBLE) ;
         
-        LOMultiply mul1 = new LOMultiply(plan, genNewOperatorKeyId(), 1, constant1, constant2) ;
+        LOMultiply mul1 = new LOMultiply(plan, genNewOperatorKeyId(), constant1, constant2) ;
         
         plan.add(constant1) ;
         plan.add(constant2) ;

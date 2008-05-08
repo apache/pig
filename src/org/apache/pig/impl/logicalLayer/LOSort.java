@@ -26,19 +26,26 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOSort extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-    private List<Integer> mSortCols;
+    private LogicalOperator mInput;
     private List<Boolean> mAscCols;
-    private LOUserFunc mSortFunc;
+    private String mSortFunc;
+    private boolean mIsStar = false;
+    private List<LogicalPlan> mSortColPlans;
+	private static Log log = LogFactory.getLog(LOSort.class);
 
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
      * @param key
      *            OperatorKey for this operator
+     * @param input
+     *            Input to sort
      * @param sortCols
      *            Array of column numbers that will be used for sorting data.
      * @param ascCols
@@ -47,33 +54,40 @@ public class LOSort extends LogicalOperator {
      *            this array is null, then all columns will be sorted ascending.
      * @param sorFunc
      *            the user defined sorting function
-     * @param rp
-     *            Requested level of parallelism to be used in the sort.
      */
-    public LOSort(LogicalPlan plan,
-                  OperatorKey key,
-                  List<Integer> sortCols,
-                  List<Boolean> ascCols,
-                  LOUserFunc sortFunc,
-                  int rp) {
-        super(plan, key, rp);
-        mSortCols = sortCols;
+    public LOSort(LogicalPlan plan, OperatorKey key, LogicalOperator input,
+            List<LogicalPlan> sortColPlans, List<Boolean> ascCols, String sortFunc) {
+        super(plan, key);
+        mInput = input;
+        mSortColPlans = sortColPlans;
         mAscCols = ascCols;
         mSortFunc = sortFunc;
     }
 
-    public List<Integer> getSortCols() {
-        return mSortCols;
+    public LogicalOperator getInput() {
+        return mInput;
+    }
+    
+    public List<LogicalPlan> getSortColPlans() {
+        return mSortColPlans;
     }
 
     public List<Boolean> getAscendingCols() {
         return mAscCols;
     }
 
-    public LOUserFunc getUserFunc() {
+    public String getUserFunc() {
         return mSortFunc;
     }
-    
+
+    public void setUserFunc(String func) {
+        mSortFunc = func;
+    }
+
+    public void setStar(boolean b) {
+        mIsStar = b;
+    }
+
     @Override
     public String name() {
         return "SORT " + mKey.scope + "-" + mKey.id;
@@ -83,10 +97,10 @@ public class LOSort extends LogicalOperator {
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get our parent's schema
-            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             try {
                 LogicalOperator op = s.iterator().next();
-                if(null == op) {
+                if (null == op) {
                     throw new FrontendException("Could not find operator in plan");
                 }
                 mSchema = op.getSchema();

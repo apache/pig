@@ -21,6 +21,8 @@ package org.apache.pig.impl.logicalLayer;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.data.DataType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * This abstract class represents the logical Unary Expression Operator The
@@ -30,6 +32,7 @@ import org.apache.pig.data.DataType;
 public abstract class UnaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
     private ExpressionOperator mOperand; // operand
+    private static Log log = LogFactory.getLog(UnaryExpressionOperator.class);
 
     /**
      * @param plan
@@ -50,6 +53,22 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
         mOperand = operand;
     }
 
+    /**
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
+     * @param operand
+     *            ExpressionOperator the left hand side operand
+     * @param operator
+     *            LogicalExperssion the actual operator
+     */
+    public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k,
+            ExpressionOperator operand) {
+        super(plan, k);
+        mOperand = operand;
+    }
+    
     public ExpressionOperator getOperand() {
         return mOperand;
     }

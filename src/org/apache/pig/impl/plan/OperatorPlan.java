@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 
 //import org.apache.commons.collections.map.MultiValueMap;
 
@@ -40,7 +43,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
 
     private List<E> mRoots;
     private List<E> mLeaves;
-
+    private Log log = LogFactory.getLog(OperatorPlan.class);
     
     public OperatorPlan() {
         mRoots = new ArrayList<E>();
@@ -99,6 +102,25 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         return mKeys.get(opKey);
     }
 
+    /**
+     * Get the map of operator key and associated operators
+     * @return map of operator key and operators.
+     */
+/*
+    public Map<OperatorKey, E> getKeys() {
+        return mKeys;
+    }
+*/
+    /**
+     * Get the map of operators and associated operator keys
+     * @return map of operator and operator keys.
+     */
+/*
+    public Map<E, OperatorKey> getOps() {
+        return mOps;
+    }
+*/
+    
     /**
      * Insert an operator into the plan.  This only inserts it as a node in
      * the graph, it does not connect it to any other operators.  That should
@@ -232,6 +254,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
 
     private void checkInPlan(E op) throws PlanException {
         if (mOps.get(op) == null) {
+            log.debug("Attempt to connect operator " +
+                op.name() + " which is not in the plan.");
             throw new PlanException("Attempt to connect operator " +
                 op.name() + " which is not in the plan.");
         }

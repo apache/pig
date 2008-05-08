@@ -15,28 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.PlanVisitor;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
-public class LOSplit extends LogicalOperator {
+
+public class LOSplitOutput extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-    private Map<String, LogicalPlan> mCondPlans;
-    private ArrayList<LogicalOperator> mOutputs;
-	private static Log log = LogFactory.getLog(LOSplit.class);
-
+    protected int mIndex;
+    
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
@@ -47,44 +43,21 @@ public class LOSplit extends LogicalOperator {
      * @param conditions
      *            list of conditions for the split
      */
-    public LOSplit(LogicalPlan plan, OperatorKey key,
-            ArrayList<LogicalOperator> outputs,
-            Map<String, LogicalPlan> condPlans) {
+    public LOSplitOutput(LogicalPlan plan, OperatorKey key, int index) {
         super(plan, key);
-        mOutputs = outputs;
-        mCondPlans = condPlans;
-    }
-
-    public List<LogicalOperator> getOutputs() {
-        return mOutputs;
-    }
-
-    public Collection<LogicalPlan> getConditionPlans() {
-        return mCondPlans.values();
-    }
-
-    public Set<String> getOutputAliases() {
-        return mCondPlans.keySet();
-    }
-
-    public void addOutputAlias(String output, LogicalPlan cond) {
-        mCondPlans.put(output, cond);
+        this.mIndex = index;
     }
     
-    public void addOutput(LogicalOperator lOp) {
-        mOutputs.add(lOp);
-    }
-
     @Override
     public String name() {
-        return "Split " + mKey.scope + "-" + mKey.id;
+        return "SplitOutput " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public Schema getSchema() throws FrontendException {
+    public Schema getSchema() throws FrontendException{
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get our parent's schema
-            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {
@@ -92,13 +65,17 @@ public class LOSplit extends LogicalOperator {
                 }
                 mSchema = s.iterator().next().getSchema();
                 mIsSchemaComputed = true;
-            } catch (FrontendException ioe) {
+            } catch (FrontendException fe) {
                 mSchema = null;
                 mIsSchemaComputed = false;
-                throw ioe;
+                throw fe;
             }
         }
         return mSchema;
+    }
+
+    public void visit(LOVisitor v) throws VisitorException{
+        v.visit(this);
     }
 
     @Override
@@ -108,10 +85,10 @@ public class LOSplit extends LogicalOperator {
 
     @Override
     public boolean supportsMultipleOutputs() {
-        return true;
+        return false;
     }
 
-    public void visit(LOVisitor v) throws VisitorException {
-        v.visit(this);
+    public int getReadFrom() {
+        return mIndex;
     }
 }

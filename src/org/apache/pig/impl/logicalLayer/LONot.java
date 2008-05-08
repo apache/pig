@@ -21,10 +21,13 @@ package org.apache.pig.impl.logicalLayer;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LONot extends UnaryExpressionOperator {
 
     private static final long serialVersionUID = 2L;
+    private static Log log = LogFactory.getLog(LONot.class);
 
     /**
      * 
@@ -32,17 +35,14 @@ public class LONot extends UnaryExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param rp
-     *            degree of requested parallelism with which to execute this
-     *            node.
      * @param operand
      *            the only operand for a unary operator
      */
-    public LONot(LogicalPlan plan, OperatorKey k, int rp,
+    public LONot(LogicalPlan plan, OperatorKey k,
             ExpressionOperator operand) {
-        super(plan, k, rp, operand);
+        super(plan, k, operand);
     }
-
+    
     @Override
     public Schema getSchema() {
         return mSchema;

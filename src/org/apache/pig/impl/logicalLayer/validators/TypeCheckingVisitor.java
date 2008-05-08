@@ -349,7 +349,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
                                            byte toType ) {
         OperatorKey newKey = genNewOperatorKey(binOp) ;
-        LOCast cast = new LOCast(mPlan, newKey, 1, binOp.getLhsOperand(), toType) ;
+        LOCast cast = new LOCast(mPlan, newKey, binOp.getLhsOperand(), toType) ;
         mPlan.add(cast) ;
         mPlan.disconnect(binOp.getLhsOperand(), binOp) ;
         try {
@@ -367,7 +367,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     private void insertRightCastForBinaryOp(BinaryExpressionOperator binOp,
                                             byte toType ) {
         OperatorKey newKey = genNewOperatorKey(binOp) ;
-        LOCast cast = new LOCast(mPlan, newKey, 1, binOp.getRhsOperand(), toType) ;
+        LOCast cast = new LOCast(mPlan, newKey, binOp.getRhsOperand(), toType) ;
         mPlan.add(cast) ;
         mPlan.disconnect(binOp.getRhsOperand(), binOp) ;
         try {
@@ -425,7 +425,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         // All uniOps at the moment only work with Expression input
         ExpressionOperator input = (ExpressionOperator) list.get(0) ;                
         OperatorKey newKey = genNewOperatorKey(uniOp) ;
-        LOCast cast = new LOCast(mPlan, newKey, 1, input, toType) ;
+        LOCast cast = new LOCast(mPlan, newKey, input, toType) ;
         
         mPlan.disconnect(input, uniOp) ;       
         try {
@@ -518,7 +518,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     private void insertLeftCastForBinCond(LOBinCond binCond, byte toType) {
         OperatorKey newKey = genNewOperatorKey(binCond) ;
-        LOCast cast = new LOCast(mPlan, newKey, 1, binCond.getLhsOp(), toType) ;
+        LOCast cast = new LOCast(mPlan, newKey, binCond.getLhsOp(), toType) ;
         mPlan.add(cast) ;
         mPlan.disconnect(binCond.getLhsOp(), binCond) ;
         try {
@@ -535,7 +535,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     private void insertRightCastForBinCond(LOBinCond binCond, byte toType) {
         OperatorKey newKey = genNewOperatorKey(binCond) ;
-        LOCast cast = new LOCast(mPlan, newKey, 1, binCond.getRhsOp(), toType) ;
+        LOCast cast = new LOCast(mPlan, newKey, binCond.getRhsOp(), toType) ;
         mPlan.add(cast) ;
         mPlan.disconnect(binCond.getRhsOp(), binCond) ;
         try {
@@ -831,6 +831,8 @@ public class TypeCheckingVisitor extends LOVisitor {
     */
 
     // TODO: NOT DONE YET
+	//COmmenting out this method as its not using the new APIs
+	/*
     protected void visit(LOGenerate g) throws VisitorException {
         // Visit each of generates projection elements.
         Iterator<ExpressionOperator> i = g.getProjections().iterator();
@@ -838,6 +840,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             i.next().visit(this);
         }
     }
+	*/
     
     /***
      * This does:-

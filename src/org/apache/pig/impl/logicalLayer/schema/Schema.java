@@ -22,9 +22,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Collection;
+import java.io.IOException;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+
 
 public class Schema {
 
@@ -40,31 +48,63 @@ public class Schema {
         public byte type;
 
         /**
-         * If this is a tuple itself, it can have a schema.  Otherwise this
-         * field must be null.
+         * If this is a tuple itself, it can have a schema. Otherwise this field
+         * must be null.
          */
         public Schema schema;
+        
+        private static Log log = LogFactory.getLog(Schema.FieldSchema.class);
 
         /**
          * Constructor for any type.
-         * @param a Alias, if known.  If unknown leave null.
-         * @param t Type, using codes from {@link org.apache.pig.data.DataType}.
+         * 
+         * @param a
+         *            Alias, if known. If unknown leave null.
+         * @param t
+         *            Type, using codes from
+         *            {@link org.apache.pig.data.DataType}.
          */
         public FieldSchema(String a, byte t) {
             alias = a;
-            type = t ;
-            schema = null;
+            type = t;
+            schema = null;            
         }
 
         /**
          * Constructor for tuple fields.
-         * @param a Alias, if known.  If unknown leave null.
-         * @param s Schema of this tuple.
+         * 
+         * @param a
+         *            Alias, if known. If unknown leave null.
+         * @param s
+         *            Schema of this tuple.
          */
         public FieldSchema(String a, Schema s) {
             alias = a;
             type = DataType.TUPLE;
             schema = s;
+        }
+
+        /**
+         * Constructor for tuple fields.
+         * 
+         * @param a
+         *            Alias, if known. If unknown leave null.
+         * @param s
+         *            Schema of this tuple.
+         * @param t
+         *            Type, using codes from
+         *            {@link org.apache.pig.data.DataType}.
+         * 
+         */
+        public FieldSchema(String a, Schema s, byte t)  throws FrontendException {
+            alias = a;
+            schema = s;
+            log.debug("t: " + t + " Bag: " + DataType.BAG + " tuple: " + DataType.TUPLE);
+            if ((null != s) && (t != DataType.BAG) && (t != DataType.TUPLE)) {
+                throw new FrontendException("Only a BAG or TUPLE can have schemas. Got "
+                        + DataType.findTypeName(t));
+            }
+            type = t;
         }
 
         @Override
@@ -78,6 +118,8 @@ public class Schema {
 
             return true;
         }
+
+        // TODO Need to add hashcode.
         
         /***
          * Compare two field schema for equality
@@ -120,6 +162,14 @@ public class Schema {
 
     private List<FieldSchema> mFields;
     private Map<String, FieldSchema> mAliases;
+    private MultiMap<FieldSchema, String> mFieldSchemas;
+    private static Log log = LogFactory.getLog(Schema.class);
+ 
+    public Schema() {
+        mFields = new ArrayList<FieldSchema>();
+        mAliases = new HashMap<String, FieldSchema>();
+        mFieldSchemas = new MultiMap<FieldSchema, String>();
+    }
 
     /**
      * @param fields List of field schemas that describes the fields.
@@ -127,8 +177,14 @@ public class Schema {
     public Schema(List<FieldSchema> fields) {
         mFields = fields;
         mAliases = new HashMap<String, FieldSchema>(fields.size());
-        for (FieldSchema fs : fields) {
-            if (fs.alias != null) mAliases.put(fs.alias, fs);
+        mFieldSchemas = new MultiMap<FieldSchema, String>();
+        for (FieldSchema fs : fields) {                    
+            if (fs.alias != null) {
+                mAliases.put(fs.alias, fs);
+                if(null != fs) {
+                    mFieldSchemas.put(fs, fs.alias);    
+                }
+            }
         }
     }
 
@@ -139,8 +195,13 @@ public class Schema {
     public Schema(FieldSchema fieldSchema) {
         mFields = new ArrayList<FieldSchema>(1);
         mFields.add(fieldSchema);
+        mAliases = new HashMap<String, FieldSchema>(1);
+        mFieldSchemas = new MultiMap<FieldSchema, String>();
         if (fieldSchema.alias != null) {
             mAliases.put(fieldSchema.alias, fieldSchema);
+            if(null != fieldSchema) {
+                mFieldSchemas.put(fieldSchema, fieldSchema.alias);
+            }
         }
     }
 
@@ -155,15 +216,18 @@ public class Schema {
 
     /**
      * Given a field number, find the associated FieldSchema.
-     * @param fieldNum Field number to look up.
+     * 
+     * @param fieldNum
+     *            Field number to look up.
      * @return FieldSchema for this field.
-     * @throws ParseException if the field number exceeds the number of
-     * fields in the tuple.
+     * @throws ParseException
+     *             if the field number exceeds the number of fields in the
+     *             tuple.
      */
     public FieldSchema getField(int fieldNum) throws ParseException {
         if (fieldNum >= mFields.size()) {
-            throw new ParseException("Attempt to fetch field " + fieldNum +
-                " from tuple of size " + mFields.size());
+            throw new ParseException("Attempt to fetch field " + fieldNum
+                    + " from tuple of size " + mFields.size());
         }
 
         return mFields.get(fieldNum);
@@ -171,6 +235,7 @@ public class Schema {
 
     /**
      * Find the number of fields in the schema.
+     * 
      * @return number of fields.
      */
     public int size() {
@@ -198,9 +263,39 @@ public class Schema {
         for (int j = 0; i.hasNext(); j++) {
             FieldSchema otherFs = i.next();
             FieldSchema ourFs = mFields.get(j);
-            if (otherFs.alias != null) ourFs.alias = otherFs.alias; 
-            if (otherFs.type != DataType.UNKNOWN) ourFs.type = otherFs.type; 
-            if (otherFs.schema != null) ourFs.schema = otherFs.schema; 
+            log.debug("ourFs: " + ourFs + " otherFs: " + otherFs);
+            if (otherFs.alias != null) {
+                log.debug("otherFs.alias: " + otherFs.alias);
+                if (ourFs.alias != null) {
+                    log.debug("Removing ourFs.alias: " + ourFs.alias);
+                    mAliases.remove(ourFs.alias);
+                    Collection<String> aliases = mFieldSchemas.get(ourFs);
+                    List<String> listAliases = new ArrayList<String>();
+                    for(String alias: aliases) {
+                        listAliases.add(new String(alias));
+                    }
+                    for(String alias: listAliases) {
+                        log.debug("Removing alias " + alias + " from multimap");
+                        mFieldSchemas.remove(ourFs, alias);
+                    }
+                }
+                ourFs.alias = otherFs.alias;
+                log.debug("Setting alias to: " + otherFs.alias);
+                mAliases.put(ourFs.alias, ourFs);
+                if(null != ourFs.alias) {
+                    mFieldSchemas.put(ourFs, ourFs.alias);
+                }
+            }
+            if (otherFs.type != DataType.UNKNOWN) {
+                ourFs.type = otherFs.type;
+                log.debug("Setting type to: "
+                        + DataType.findTypeName(otherFs.type));
+            }
+            if (otherFs.schema != null) {
+                ourFs.schema = otherFs.schema;
+                log.debug("Setting schema to: " + otherFs.schema);
+            }
+
         }
     }
 
@@ -219,7 +314,67 @@ public class Schema {
         }
         return true;
     }
+
+    // TODO add hashCode()
+
+    public void add(FieldSchema f) {
+        mFields.add(f);
+        if (null != f.alias) {
+            mAliases.put(f.alias, f);
+        }
+    }
+ 
+    /**
+     * Given an alias, find the associated position of the field schema.
+     * 
+     * @param alias
+     *            alias of the FieldSchema.
+     * @return position of the FieldSchema.
+     */
+    public int getPosition(String alias) {
+
+        FieldSchema fs = getField(alias);
+
+        if (null == fs) {
+            return -1;
+        }
+        
+        log.debug("fs: " + fs);
+        int index = -1;
+        for(int i = 0; i < mFields.size(); ++i) {
+            log.debug("mFields(" + i + "): " + mFields.get(i) + " alias: " + mFields.get(i).alias);
+            if(fs == mFields.get(i)) {index = i;}
+        }
+
+        log.debug("index: " + index);
+        return index;
+        //return mFields.indexOf(fs);
+    }
+
+    public void addAlias(String alias, FieldSchema fs) {
+        if(null != alias) {
+            mAliases.put(alias, fs);
+            if(null != fs) {
+                mFieldSchemas.put(fs, alias);
+            }
+        }
+    }
+
+    public Set<String> getAliases() {
+        return mAliases.keySet();
+    }
+
+    public void printAliases() {
+        Set<String> aliasNames = mAliases.keySet();
+        for (String alias : aliasNames) {
+            log.debug("Schema Alias: " + alias);
+        }
+    }
     
+    public List<FieldSchema> getFields() {
+        return mFields;
+    }
+
     /**
      * Recursively compare two schemas for equality
      * @param schema

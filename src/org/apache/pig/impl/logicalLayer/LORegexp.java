@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,19 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOOr extends BinaryExpressionOperator {
-
+public class LORegexp extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
-    private static Log log = LogFactory.getLog(LOOr.class);
+
+    /**
+     * The expression and the column to be projected.
+     */
+    private ExpressionOperator mOperand;
+    private String mRegexp;
+    private static Log log = LogFactory.getLog(LORegexp.class);
 
     /**
      * 
@@ -35,16 +44,36 @@ public class LOOr extends BinaryExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param lhsOperand
-     *            the left hand side operand
-     * @param rhsOperand
-     *            the right hand side operand
+     * @param exp
+     *            the expression which might contain the column to project
+     * @param projection
+     *            the list of columns to project
      */
-    public LOOr(LogicalPlan plan, OperatorKey k,
-            ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
-        super(plan, k, lhsOperand, rhsOperand);
+    public LORegexp(LogicalPlan plan, OperatorKey key,
+            ExpressionOperator operand, String regexp) {
+        super(plan, key);
+        mOperand = operand;
+        mRegexp = regexp;
+    }
+
+    public ExpressionOperator getOperand() {
+        return mOperand;
+    }
+
+    public String getRegexp() {
+        return mRegexp;
     }
     
+    @Override
+    public String name() {
+        return "Project " + mKey.scope + "-" + mKey.id;
+    }
+
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
+    }
+
     @Override
     public Schema getSchema() {
         return mSchema;
@@ -55,8 +84,4 @@ public class LOOr extends BinaryExpressionOperator {
         v.visit(this);
     }
 
-    @Override
-    public String name() {
-        return "Or " + mKey.scope + "-" + mKey.id;
-    }
 }

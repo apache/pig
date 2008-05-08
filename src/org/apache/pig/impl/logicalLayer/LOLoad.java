@@ -24,11 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.net.URL;
 
-import org.apache.pig.LoadFunc; // import org.apache.pig.impl.PigContext;
+import org.apache.pig.LoadFunc; 
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOLoad extends LogicalOperator {
     private static final long serialVersionUID = 2L;
@@ -36,36 +39,34 @@ public class LOLoad extends LogicalOperator {
     private FileSpec mInputFileSpec;
     private LoadFunc mLoadFunc;
     private URL mSchemaFile;
+	private static Log log = LogFactory.getLog(LOLoad.class);
 
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
      * @param key
      *            OperatorKey for this operator
-     * @param rp
-     *            Requested level of parallelism to be used in the sort.
      * @param inputFileSpec
-     *            the file to be loaded
+     *            the file to be loaded *
+     * @param schemaFile
+     *            the file with the schema for the data to be loaded
+     * 
      */
-    public LOLoad(LogicalPlan plan, OperatorKey key, int rp,
-            FileSpec inputFileSpec, URL schemaFile) throws IOException {
-        super(plan, key, rp);
+    public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
+            URL schemaFile) throws IOException {
+        super(plan, key);
 
         mInputFileSpec = inputFileSpec;
         mSchemaFile = schemaFile;
 
-        // TODO FIX
-        // The code below is commented out as PigContext pulls in
-        // HExecutionEngine which in turn is completely commented out
-        // Also remove the commented out import org.apache.pig.impl.PigContext
-
-        /*
-         * try { mLoadFunc = (LoadFunc)
-         * PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); }
-         * catch (Exception e){ IOException ioe = new
-         * IOException(e.getMessage()); ioe.setStackTrace(e.getStackTrace());
-         * throw ioe; }
-         */
+         try { 
+		 	mLoadFunc = (LoadFunc)
+          	    PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
+		} catch (Exception e){ 
+			IOException ioe = new IOException(e.getMessage()); 
+			ioe.setStackTrace(e.getStackTrace());
+        	throw ioe; 
+		}
     }
 
     public FileSpec getInputFile() {
@@ -90,11 +91,17 @@ public class LOLoad extends LogicalOperator {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get the schema of the load function
             try {
-                mSchema = mLoadFunc.determineSchema(mSchemaFile);
+                //DEBUG
+                //System.out.println("Schema file: " + mSchema);
+                if(null != mSchemaFile) {
+                    mSchema = mLoadFunc.determineSchema(mSchemaFile);
+                }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
                 FrontendException fee = new FrontendException(ioe.getMessage());
                 fee.initCause(ioe);
+                mIsSchemaComputed = false;
+                mSchema = null;
                 throw fee;
             }
         }
