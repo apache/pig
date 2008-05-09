@@ -289,3 +289,5 @@ Trunk (unreleased changes)
 
     PIG-232: fix for number of input records when BinaryStirage is used
     (acmurthy via olgan)
+
+    PIG-232: let valid cache specifications through (acmurthy via olgan)

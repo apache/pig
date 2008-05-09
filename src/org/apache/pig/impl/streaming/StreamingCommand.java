@@ -3,6 +3,8 @@ package org.apache.pig.impl.streaming;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -142,7 +144,11 @@ public class StreamingCommand implements Serializable {
         // Validate
         File file = new File(path);
         if (!file.exists()) {
-            throw new IOException("Invalid ship specification: " + path);
+            throw new IOException("Invalid ship specification: '" + path + 
+                                  "' does not exist!");
+        } else if (file.isDirectory()) {
+            throw new IOException("Invalid ship specification: '" + path + 
+                                  "' is a directory and can't be shipped!");
         }
         
         shipSpec.add(path);
@@ -156,10 +162,35 @@ public class StreamingCommand implements Serializable {
      */
     public void addPathToCache(String path) throws IOException {
         // Validate
-        if (!FileLocalizer.fileExists(path, pigContext)) {
+        URI pathUri = null;
+        URI dfsPath = null;
+        try {
+            pathUri = new URI(path);
+            
+            // Strip away the URI's _fragment_ and _query_
+            dfsPath = new URI(pathUri.getScheme(), pathUri.getAuthority(), 
+                              pathUri.getPath(), null, null);
+        } catch (URISyntaxException urise) {
             throw new IOException("Invalid cache specification: " + path);
         }
         
+        boolean exists = false;
+        try {
+            exists = FileLocalizer.fileExists(dfsPath.toString(), pigContext);
+        } catch (IOException ioe) {
+            // Throw a better error message...
+            throw new IOException("Invalid cache specification: '" + dfsPath + 
+                                  "' does not exist!");
+        } 
+        
+        if (!exists) {
+            throw new IOException("Invalid cache specification: '" + dfsPath + 
+                                  "' does not exist!");
+        } else if (FileLocalizer.isDirectory(dfsPath.toString(), pigContext)) {
+            throw new IOException("Invalid cache specification: '" + dfsPath + 
+                                  "' is a directory and can't be cached!");
+        }
+
         cacheSpec.add(path);
     }
 
