@@ -344,6 +344,27 @@ public class FileLocalizer {
         return elem.exists() || globMatchesFiles(elem, store);
     }
 
+    public static boolean isFile(String filename, PigContext context)
+    throws IOException {
+        return !isDirectory(filename, context.getDfs());
+    }
+
+    public static boolean isFile(String filename, DataStorage store)
+    throws IOException {
+        return !isDirectory(filename, store);
+    }
+
+    public static boolean isDirectory(String filename, PigContext context)
+    throws IOException {
+        return isDirectory(filename, context.getDfs());
+    }
+
+    public static boolean isDirectory(String filename, DataStorage store)
+    throws IOException {
+        ElementDescriptor elem = store.asElement(filename);
+        return (elem instanceof ContainerDescriptor);
+    }
+
     private static boolean globMatchesFiles(ElementDescriptor elem,
                                             DataStorage fs)
             throws IOException
