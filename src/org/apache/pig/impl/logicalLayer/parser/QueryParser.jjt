@@ -46,6 +46,7 @@ import org.apache.pig.impl.builtin.*;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
+import org.apache.pig.backend.datastorage.* ;
 
 public class QueryParser {
 	private PigContext pigContext;
@@ -121,8 +122,22 @@ public class QueryParser {
 	static int undollar(String s) {
 		return Integer.parseInt(s.substring(1, s.length()));	
 	}
-	
-	
+
+	/**************This is already a part of type branch. Don't merge it back ***********/
+	private boolean checkFileExists(String filename) throws IOException {
+        if (pigContext.getExecType() == ExecType.LOCAL) {
+            ElementDescriptor elem = pigContext.getLfs().asElement(filename) ;
+            return elem.exists() ;
+        }
+        else if (pigContext.getExecType() == ExecType.MAPREDUCE) {
+            // This does actual file check + glob check
+            return FileLocalizer.fileExists(filename, pigContext) ;
+        }
+        else { // if ExecType is something else)
+            throw new RuntimeException("Undefined state in " + this.getClass()) ;
+        }
+    }
+    /************************************************************************************/
 	
 	String massageFilename(String filename, PigContext pigContext)
 	throws IOException, ParseException {
@@ -1534,6 +1549,13 @@ LogicalOperator StoreClause() : {LogicalOperator lo; Token t; String fileName; S
         lo = new LOStore(opTable, scope, getNextId(), readFrom.getRoot(),
                          new FileSpec(jobOutputFile, functionSpec),
                          false);
+
+        /**************This is already a part of type branch. Don't merge it back ***********/
+        if (checkFileExists(jobOutputFile)) {
+            throw new ParseException(jobOutputFile + " already exists. Cannot overwrite.") ;
+        }
+        /************************************************************************************/
+        
         pigContext.setJobOutputFile(jobOutputFile);
         
         return lo;

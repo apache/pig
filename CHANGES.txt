@@ -291,3 +291,5 @@ Trunk (unreleased changes)
     (acmurthy via olgan)
 
     PIG-232: let valid cache specifications through (acmurthy via olgan)
+
+    PIG-237: validation of the output directory (pi_song via olgan)
