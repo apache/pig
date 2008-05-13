@@ -111,8 +111,9 @@ public class HExecutionEngine implements ExecutionEngine {
         setSSHFactory();
         
         String hodServer = properties.getProperty(HOD_SERVER);
-        String cluster = properties.getProperty(JOB_TRACKER_LOCATION);
-        String nameNode = properties.getProperty( FILE_SYSTEM_LOCATION);
+        String cluster = null;
+        String nameNode = null;
+        Configuration configuration = null;
     
         if (hodServer != null && hodServer.length() > 0) {
             String hdfsAndMapred[] = doHod(hodServer, properties);
@@ -120,6 +121,24 @@ public class HExecutionEngine implements ExecutionEngine {
             properties.setProperty(JOB_TRACKER_LOCATION, hdfsAndMapred[1]);
         }
         else {
+            
+            // We need to build a configuration object first in the manner described below
+            // and then get back a properties object to inspect the JOB_TRACKER_LOCATION
+            // and FILE_SYSTEM_LOCATION. The reason to do this is if we looked only at
+            // the existing properties object, we may not get the right settings. So we want
+            // to read the configurations in the order specified below and only then look
+            // for JOB_TRACKER_LOCATION and FILE_SYSTEM_LOCATION.
+            
+            // Hadoop by default specifies two resources, loaded in-order from the classpath:
+            // 1. hadoop-default.xml : Read-only defaults for hadoop.
+            // 2. hadoop-site.xml: Site-specific configuration for a given hadoop installation.
+            // Now add the settings from "properties" object to override any existing properties
+            // All of the above is accomplished in the method call below
+            configuration = ConfigurationUtil.toConfiguration(properties);            
+            properties = ConfigurationUtil.toProperties(configuration);
+            cluster = properties.getProperty(JOB_TRACKER_LOCATION);
+            nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
+            
             if (cluster != null && cluster.length() > 0) {
                 if(!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
                     cluster = cluster + ":50020";
@@ -137,8 +156,13 @@ public class HExecutionEngine implements ExecutionEngine {
      
         log.info("Connecting to hadoop file system at: "  + (nameNode==null? LOCAL: nameNode) )  ;
         ds = new HDataStorage(properties);
+                
+        // The above HDataStorage constructor sets DEFAULT_REPLICATION_FACTOR_KEY in properties.
+        // So we need to reconstruct the configuration object for the non HOD case
+        // In the HOD case, this is the first time the configuration object will be created
+        configuration = ConfigurationUtil.toConfiguration(properties);
+        
             
-        Configuration configuration = ConfigurationUtil.toConfiguration(properties);
         if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
                 log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
                 if (!LOCAL.equalsIgnoreCase(cluster)) {
