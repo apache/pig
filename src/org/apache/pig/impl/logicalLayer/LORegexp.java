@@ -66,7 +66,7 @@ public class LORegexp extends ExpressionOperator {
     
     @Override
     public String name() {
-        return "Project " + mKey.scope + "-" + mKey.id;
+        return "Regexp " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
@@ -77,6 +77,11 @@ public class LORegexp extends ExpressionOperator {
     @Override
     public Schema getSchema() {
         return mSchema;
+    }
+
+    @Override
+    public Schema.FieldSchema getFieldSchema() {
+        return mFieldSchema;
     }
 
     @Override

@@ -136,18 +136,24 @@ public class LOCogroup extends LogicalOperator {
                 log.debug("GBY Input: " + op.getClass().getName());
 				for(LogicalPlan plan: mGroupByPlans.get(op)) {
 	                int position = 0;
-	                for(LogicalOperator eOp: plan.getRoots()) {
-	                    Schema eOpSchema = eOp.getSchema();
-	                    log.debug("Computing the lookup tables");
-	                    if (null != eOpSchema) {
-	                        for (String alias : eOpSchema.getAliases()) {
-	                            log.debug("Adding alias to GBY: " + alias);
-	                            groupByAliases.add(alias);
-	                            lookup.put(alias, false);
-	                            aliasExop.put(alias, (ExpressionOperator)eOp);                            
-	                            positionAlias.put(position, alias);
-	                        }
-	                    }
+	                for(LogicalOperator eOp: plan.getLeaves()) {
+						log.debug("Leaf: " + eOp);
+						Schema.FieldSchema fs = ((ExpressionOperator)eOp).getFieldSchema();
+						if(null != fs) {
+		                    Schema eOpSchema = fs.schema;
+		                    log.debug("Computing the lookup tables");
+		                    if (null != fs) {
+								String alias = fs.alias;
+		                        //for (String alias : eOpSchema.getAliases()) {
+								if(null != alias) {
+		                            log.debug("Adding alias to GBY: " + alias);
+		                            groupByAliases.add(alias);
+		                            lookup.put(alias, false);
+		                            aliasExop.put(alias, (ExpressionOperator)eOp);                            
+		                            positionAlias.put(position, alias);
+		                        }
+		                    }
+						}
 	                }
 	                ++position;
 				}
@@ -170,16 +176,30 @@ public class LOCogroup extends LogicalOperator {
                                 ExpressionOperator eOp = (ExpressionOperator) (cEops.toArray())[0];
                                 if(null != eOp) {
                                     if(!lookup.get(alias)) {
-                                        groupByFss.add(new Schema.FieldSchema(alias, eOp.getSchema()));
-                                        lookup.put(alias, true);
+										Schema.FieldSchema fs = eOp.getFieldSchema();
+										if(null != fs) {
+											log.debug("Added fs with alias " + alias + " and fs.schema " + fs.schema);
+                                        	groupByFss.add(new Schema.FieldSchema(alias, fs.schema));
+                                        	lookup.put(alias, true);
+										} else {
+											log.debug("Added fs with alias " + alias + " and schema null");
+											groupByFss.add(new Schema.FieldSchema(alias, null));
+										}
                                     } else {
                                         if(j < aliases.length) {
                                             continue;
                                         } else {
                                             //we have seen this alias before
                                             //just add the schema of the expression operator with the null alias
-                                            groupByFss.add(new Schema.FieldSchema(null, eOp.getSchema()));
-                                            break;
+											Schema.FieldSchema fs = eOp.getFieldSchema();
+											if(null != fs) {
+												log.debug("Added fs with alias null and schema " + fs.schema);
+                                            	groupByFss.add(new Schema.FieldSchema(null, fs.schema));
+                                            } else {
+												log.debug("Added fs with alias null and schema null");
+												groupByFss.add(new Schema.FieldSchema(null, null));
+											}
+											break;
                                         }
                                     }
                                 } else {
@@ -200,6 +220,7 @@ public class LOCogroup extends LogicalOperator {
                     //We have positions $1, $2, etc.
                     //The schema for these columns is the schema of the expression operatore
                     //and so the alias is null
+					log.debug("Added fs with alias null and type bytearray");
                     groupByFss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));                    
                 }
             }            
@@ -213,18 +234,21 @@ public class LOCogroup extends LogicalOperator {
 				byte groupByType = groupByFss.get(0).type;
 				Schema groupSchema = groupByFss.get(0).schema;
 				log.debug("Type == " + DataType.findTypeName(groupByType));
+				/*
 				if(DataType.TUPLE == groupByType || DataType.BAG == groupByType) { 
 					if(null != groupSchema) {
 						Schema innerSchema = groupSchema.getFields().get(0).schema;
 						fss.add(new Schema.FieldSchema("group", innerSchema, groupByType));
+						log.debug("Printing the aliases of the single group by column");
+						groupSchema.printAliases();
 					} else {
 						fss.add(new Schema.FieldSchema("group", groupSchema, groupByType));
 					}
-					log.debug("Printing the aliases of the single group by column");
-					groupSchema.printAliases();
 				} else {
 					fss.add(new Schema.FieldSchema("group", groupByType));
 				}
+				*/
+				fss.add(new Schema.FieldSchema("group", groupSchema, groupByType));
 			} else {
             	fss.add(new Schema.FieldSchema("group", groupBySchema));
 			}

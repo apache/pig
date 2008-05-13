@@ -61,7 +61,7 @@ public class LODistinct extends LogicalOperator {
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {
-                    log.info("getSchema: Operator not in plan");
+                    log.debug("getSchema: Operator not in plan");
                     throw new FrontendException("Could not find operator in plan");
                 }
                 mSchema = s.iterator().next().getSchema();

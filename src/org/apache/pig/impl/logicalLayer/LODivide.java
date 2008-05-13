@@ -47,11 +47,15 @@ public class LODivide extends BinaryExpressionOperator {
 
     @Override
     public Schema getSchema() {
-        // TODO When tuple division is implemented, getSchema should
-        // compute the schema, store the computed schema and return
-        // the computed schema
-
         return mSchema;
+    }
+
+    @Override
+    public Schema.FieldSchema getFieldSchema() {
+        // TODO When tuple division by a scalar is implemented, getFieldSchema should
+        // compute the schema, store and return the computed schema 
+
+        return mFieldSchema;
     }
 
     @Override

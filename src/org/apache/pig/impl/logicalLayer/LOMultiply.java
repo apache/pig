@@ -47,11 +47,15 @@ public class LOMultiply extends BinaryExpressionOperator {
 
     @Override
     public Schema getSchema() {
-        // TODO When tuple multiplication is implemented, getSchema should
-        // compute the schema, store the computed schema and return
-        // the computed schema
-
         return mSchema;
+    }
+
+    @Override
+    public Schema.FieldSchema getFieldSchema() {
+        // TODO When tuple multiplication is implemented, getFieldSchema should
+        // compute the schema, store and return the computed schema
+
+        return mFieldSchema;
     }
 
     @Override

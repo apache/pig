@@ -19,6 +19,8 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collection;
+import java.util.Iterator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -54,13 +56,34 @@ public class LOUnion extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() {
-        if (null == mSchema) {
-            // TODO FIX
-            // The schema merge operation needs to be implemented in
-            // order to compute the schema of the union
-            //If schemas are the same then return one of the schemas else 
-            //return null
+    public Schema getSchema() throws FrontendException {
+        if (!mIsSchemaComputed && (null == mSchema)) {
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+			log.debug("Number of predecessors in the graph: " + s.size());
+            try {
+				Iterator<LogicalOperator> iter = s.iterator();
+                LogicalOperator op = iter.next();
+                if (null == op) {
+                    log.debug("getSchema: Operator not in plan");
+                    throw new FrontendException("Could not find operator in plan");
+                }
+                mSchema = op.getSchema();
+				log.debug("Printing aliases");
+				mSchema.printAliases();
+				while(iter.hasNext()) {
+                	op = iter.next();
+					if(null == mSchema) {
+						log.debug("Schema is null, cannot perform schema merge");
+						throw new FrontendException("Schema is null, cannot perform schema merge");
+					}
+					mSchema = mSchema.merge(op.getSchema(), false);
+				}
+				mIsSchemaComputed = true;
+            } catch (FrontendException fe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw fe;
+            }
         }
         return mSchema;
     }

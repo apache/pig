@@ -47,11 +47,16 @@ public class LOAdd extends BinaryExpressionOperator {
 
     @Override
     public Schema getSchema() {
+        return mSchema;
+    }
+
+    @Override
+    public Schema.FieldSchema getFieldSchema() {
         // TODO When tuple addition is implemented, getSchema should
         // compute the schema, store the computed schema and return
         // the computed schema
 
-        return mSchema;
+        return mFieldSchema;
     }
 
     @Override

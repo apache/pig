@@ -18,7 +18,10 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
+import java.util.ArrayList;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -26,6 +29,8 @@ public abstract class ExpressionOperator extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(ExpressionOperator.class);
+	protected boolean mIsFieldSchemaComputed = false;
+	protected Schema.FieldSchema mFieldSchema = null;
 
     /**
      * @param plan
@@ -55,5 +60,54 @@ public abstract class ExpressionOperator extends LogicalOperator {
     public boolean supportsMultipleOutputs() {
         return false;
     }
+
+    @Override
+    public Schema getSchema() throws FrontendException{
+        return mSchema;
+    }
+
+	public abstract Schema.FieldSchema getFieldSchema() throws FrontendException;
+
+    /**
+     * Set the output schema for this operator. If a schema already exists, an
+     * attempt will be made to reconcile it with this new schema.
+     * 
+     * @param schema
+     *            Schema to set.
+     * @throws ParseException
+     *             if there is already a schema and the existing schema cannot
+     *             be reconciled with this new schema.
+     */
+    public final void setFieldSchema(Schema.FieldSchema fs) throws FrontendException {
+        // In general, operators don't generate their schema until they're
+        // asked, so ask them to do it.
+		log.debug("Inside setFieldSchema");
+        try {
+            getFieldSchema();
+        } catch (FrontendException fee) {
+            // It's fine, it just means we don't have a schema yet.
+        }
+		log.debug("After getFieldSchema()");
+        if (null == mFieldSchema) {
+            log.debug("Operator schema is null; Setting it to new schema");
+            mFieldSchema = fs;
+        } else {
+            log.debug("Reconciling schema");
+			log.debug("mFieldSchema: " + mFieldSchema + " fs: " + fs);
+            //log.debug("mSchema: " + mSchema + " schema: " + schema);
+			try {
+				if(null != mFieldSchema.schema) {
+            		mFieldSchema.schema.reconcile(fs.schema);
+				} else {
+					mFieldSchema.schema = fs.schema;
+				}
+				mFieldSchema.type = fs.type;
+				mFieldSchema.alias = fs.alias;
+			} catch (ParseException pe) {
+				throw new FrontendException(pe.getMessage());
+			}
+        }
+    }
+
 }
 

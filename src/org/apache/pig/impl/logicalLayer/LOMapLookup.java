@@ -95,19 +95,23 @@ public class LOMapLookup extends ExpressionOperator {
 
     @Override
     public Schema getSchema() {
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        return mSchema;
+    }
+
+    @Override
+    public Schema.FieldSchema getFieldSchema() {
+        if (!mIsFieldSchemaComputed && (null == mFieldSchema)) {
             Schema.FieldSchema fss;
-            if (DataType.findType(mValueType) == DataType.TUPLE) {
+            if (DataType.isSchemaType(mValueType)) {
                 fss = new Schema.FieldSchema(null, mValueSchema);
             } else {
                 fss = new Schema.FieldSchema(null, DataType
                         .findType(mValueType));
             }
 
-            mSchema = new Schema(fss);
-            mIsSchemaComputed = true;
+            mIsFieldSchemaComputed = true;
         }
-        return mSchema;
+        return mFieldSchema;
     }
 
     @Override

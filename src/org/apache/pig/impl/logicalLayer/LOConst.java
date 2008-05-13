@@ -58,6 +58,11 @@ public class LOConst extends ExpressionOperator {
     }
 
     @Override
+    public Schema.FieldSchema getFieldSchema() {
+        return mFieldSchema;
+    }
+
+    @Override
     public String name() {
         return "Const " + mKey.scope + "-" + mKey.id;
     }

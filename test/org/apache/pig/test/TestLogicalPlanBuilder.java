@@ -71,7 +71,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
 
-    
     /* TODO FIX
     @Test
     public void testQuery3() {
@@ -427,7 +426,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     
     @Test
     public void testQuery32() {
-        String query = "foreach (load 'myfile' as (col1, col2 : (sub1, sub2), col3 : (bag1))) generate col1 ;";
+        String query = "foreach (load 'myfile' as (col1, col2 : tuple(sub1, sub2), col3 : tuple(bag1))) generate col1 ;";
         buildPlan(query);
     }
     
@@ -444,7 +443,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     //TODO: Nested schemas don't work now. Probably a bug in the new parser.
     public void testQuery34() {
-        buildPlan("A = load 'a' as (aCol1, aCol2 : (subCol1, subCol2));");
+        buildPlan("A = load 'a' as (aCol1, aCol2 : tuple(subCol1, subCol2));");
         buildPlan("A = filter A by aCol2 == '1';");
         buildPlan("B = load 'b' as (bCol1, bCol2);");
         String query = "foreach (cogroup A by (aCol1), B by bCol1 ) generate A.aCol2, B.bCol2 ;";
@@ -668,7 +667,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     public void testQuery61() {
         buildPlan("a = load 'a' as (name, age, gpa);");
         buildPlan("b = load 'b' as (name, height);");
-        String query = "c = cross a,b;";
+        String query = "c = union a,b;";
         buildPlan(query);
     }
 
@@ -676,9 +675,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     public void testQuery62() {
         buildPlan("a = load 'a' as (name, age, gpa);");
         buildPlan("b = load 'b' as (name, height);");
-        String query = "c = cross a,b;";        
+        String query = "c = cross a,b;";
         buildPlan(query);
-        buildPlan("d = order c by a, b;");
+        buildPlan("d = order c by b::name, height, a::gpa;");
         buildPlan("e = order a by name, age, gpa desc;");
         buildPlan("f = order a by $0 asc, age, gpa desc;");
     }
@@ -708,7 +707,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testQuery63() {
-        buildPlan("a = load 'a' as (name, details: (age, gpa));");
+        buildPlan("a = load 'a' as (name, details: tuple(age, gpa));");
         buildPlan("b = group a by details;");
         String query = "d = foreach b generate group.age;";
         //buildPlan("b = group a by 2*3;");
@@ -717,7 +716,40 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 		buildPlan("e = foreach a generate name, details;");
     }
 
+    @Test
+    public void testQuery64() {
+        buildPlan("a = load 'a' as (name: chararray, details: tuple(age, gpa));");
+        buildPlan("c = load 'a' as (name, details: bag{age: integer, gpa});");
+        buildPlan("b = group a by details;");
+        String query = "d = foreach b generate group.age;";
+        buildPlan(query);
+		buildPlan("e = foreach a generate name, details;");
+		buildPlan("f = LOAD 'myfile' AS (garage: bag{num_tools: integer}, links: bag{websites: chararray}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray), bag_of_unknown: bag{}});");
+    }
+
+    @Test
+    public void testQueryFail18() {
+        String query = "foreach (load 'myfile' as (col1, col2 : (sub1, sub2), col3 : (bag1))) generate col1 ;";
+        try {
+        	buildPlan(query);
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
     
+    @Test
+    public void testQueryFail19() {
+        buildPlan("a = load 'a' as (name, age, gpa);");
+        buildPlan("b = load 'b' as (name, height);");
+        String query = "c = cross a,b;";
+        buildPlan(query);
+        try {
+        	buildPlan("d = order c by name, b::name, height, a::gpa;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+
     // Helper Functions
     // =================
     public LogicalPlan buildPlan(String query) {

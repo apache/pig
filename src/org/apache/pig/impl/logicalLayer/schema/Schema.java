@@ -109,12 +109,15 @@ public class Schema {
 
         @Override
         public boolean equals(Object other) {
-            if (!(other instanceof FieldSchema)) return false;
-            FieldSchema fs = (FieldSchema)other;
-            // Fields can have different names and still be equal.  But
+            if (!(other instanceof FieldSchema))
+                return false;
+            FieldSchema fs = (FieldSchema) other;
+            // Fields can have different names and still be equal. But
             // types and schemas (if they're a tuple) must match.
-            if (type != fs.type) return false;
-            if (schema != fs.schema) return false;
+            if (type != fs.type)
+                return false;
+            if (schema != fs.schema)
+                return false;
 
             return true;
         }
@@ -164,7 +167,7 @@ public class Schema {
     private Map<String, FieldSchema> mAliases;
     private MultiMap<FieldSchema, String> mFieldSchemas;
     private static Log log = LogFactory.getLog(Schema.class);
- 
+
     public Schema() {
         mFields = new ArrayList<FieldSchema>();
         mAliases = new HashMap<String, FieldSchema>();
@@ -172,7 +175,8 @@ public class Schema {
     }
 
     /**
-     * @param fields List of field schemas that describes the fields.
+     * @param fields
+     *            List of field schemas that describes the fields.
      */
     public Schema(List<FieldSchema> fields) {
         mFields = fields;
@@ -190,7 +194,9 @@ public class Schema {
 
     /**
      * Create a schema with only one field.
-     * @param fieldSchema field to put in this schema.
+     * 
+     * @param fieldSchema
+     *            field to put in this schema.
      */
     public Schema(FieldSchema fieldSchema) {
         mFields = new ArrayList<FieldSchema>(1);
@@ -207,7 +213,9 @@ public class Schema {
 
     /**
      * Given an alias name, find the associated FieldSchema.
-     * @param alias Alias to look up.
+     * 
+     * @param alias
+     *            Alias to look up.
      * @return FieldSchema, or null if no such alias is in this tuple.
      */
     public FieldSchema getField(String alias) {
@@ -243,20 +251,26 @@ public class Schema {
     }
 
     /**
-     * Reconcile this schema with another schema.  The schema being reconciled
-     * with should have the same number of columns.  The use case is where a
-     * schema already exists but may not have alias and or type information.  If
+     * Reconcile this schema with another schema. The schema being reconciled
+     * with should have the same number of columns. The use case is where a
+     * schema already exists but may not have alias and or type information. If
      * an alias exists in this schema and a new one is given, then the new one
-     * will be used.  Similarly with types, though this needs to be used
+     * will be used. Similarly with types, though this needs to be used
      * carefully, as types should not be lightly changed.
-     * @param other Schema to reconcile with.
-     * @throws ParseException if this cannot be reconciled.
+     * 
+     * @param other
+     *            Schema to reconcile with.
+     * @throws ParseException
+     *             if this cannot be reconciled.
      */
     public void reconcile(Schema other) throws ParseException {
         if (other.size() != size()) {
+            log.debug("Cannot reconcile schemas with different "
+                    + "sizes.  This schema has size " + size()
+                    + " other has size " + "of " + other.size());
             throw new ParseException("Cannot reconcile schemas with different "
-                + "sizes.  This schema has size " + size() + " other has size " 
-                + "of " + other.size());
+                    + "sizes.  This schema has size " + size()
+                    + " other has size " + "of " + other.size());
         }
 
         Iterator<FieldSchema> i = other.mFields.iterator();
@@ -295,22 +309,24 @@ public class Schema {
                 ourFs.schema = otherFs.schema;
                 log.debug("Setting schema to: " + otherFs.schema);
             }
-
         }
     }
 
     @Override
     public boolean equals(Object other) {
-        if (!(other instanceof Schema)) return false;
+        if (!(other instanceof Schema))
+            return false;
 
-        Schema s = (Schema)other;
+        Schema s = (Schema) other;
 
-        if (s.size() != size()) return false;
+        if (s.size() != size())
+            return false;
 
         Iterator<FieldSchema> i = mFields.iterator();
         Iterator<FieldSchema> j = s.mFields.iterator();
         while (i.hasNext()) {
-            if (!(i.next().equals(j.next()))) return false;
+            if (!(i.next().equals(j.next())))
+                return false;
         }
         return true;
     }
@@ -475,7 +491,7 @@ public class Schema {
                                             otherTakesAliasPrecedence) ;
             
             FieldSchema mergedFs = null ;
-            if (mergedType != DataType.TUPLE) {
+            if (!DataType.isSchemaType(mergedType)) {
                 // just normal merge              
                 mergedFs = new FieldSchema(mergedAlias, mergedType) ;
             }
@@ -562,9 +578,5 @@ public class Schema {
         // else return just ERROR
         return DataType.ERROR ;
     }
-    
-    
+
 }
-
-
-

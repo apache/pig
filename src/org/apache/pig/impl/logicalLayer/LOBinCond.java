@@ -84,22 +84,27 @@ public class LOBinCond extends ExpressionOperator {
         v.visit(this);
     }
 
+	@Override
+	public Schema getSchema() throws FrontendException {
+		return mSchema;
+	}
+
     @Override
-    public Schema getSchema() throws FrontendException {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
 		//TODO
 		//We need a check of LHS and RHS schemas
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsFieldSchemaComputed && (null == mFieldSchema)) {
             try {
-                mSchema = mLhsOp.getSchema();
+                mFieldSchema = mLhsOp.getFieldSchema();
                 //mSchema = mLhsPlan.getRoots().get(0).getSchema();
-                mIsSchemaComputed = true;
-            } catch (FrontendException ioe) {
-                mSchema = null;
-                mIsSchemaComputed = false;
-                throw ioe;
+                mIsFieldSchemaComputed = true;
+            } catch (FrontendException fee) {
+                mFieldSchema = null;
+                mIsFieldSchemaComputed = false;
+                throw fee;
             }
         }
-        return mSchema;
+        return mFieldSchema;
     }
 
     @Override

@@ -319,7 +319,8 @@ public class QueryParser {
 	}
 
 	 //END
-
+	
+	private static Map<String, Byte> nameToTypeMap = DataType.genNameToTypeMap();
 }
 
 	
@@ -371,6 +372,15 @@ TOKEN : { <FLATTEN : "flatten"> }
 TOKEN : { <EVAL : "eval"> }
 TOKEN : { <ASC : "asc"> }
 TOKEN : { <DESC : "desc"> }
+TOKEN : { <INT : "integer"> }
+TOKEN : { <LONG : "long"> }
+TOKEN : { <FLOAT : "float"> }
+TOKEN : { <DOUBLE : "double"> }
+TOKEN : { <CHARARRAY : "chararray"> }
+TOKEN : { <BYTEARRAY : "bytearray"> }
+TOKEN : { <BAG : "bag"> }
+TOKEN : { <TUPLE : "tuple"> }
+TOKEN : { <MAP : "map"> }
 
 TOKEN:
 {
@@ -383,8 +393,8 @@ TOKEN:
 // Define Numeric Constants
 TOKEN :
 {
-	< NUMBER: <INTEGER> | <FLOAT> | <FLOAT> ( ["e","E"] ([ "-","+"])? <FLOAT> )?>
-| 	< #FLOAT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
+	< NUMBER: <INTEGER> | <FLOATINGPOINT> | <FLOATINGPOINT> ( ["e","E"] ([ "-","+"])? <FLOATINGPOINT> )?>
+| 	< #FLOATINGPOINT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
 | 	< INTEGER: ( <DIGIT> )+ >
 }
 
@@ -1355,7 +1365,7 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 	ExpressionOperator item; 
 	Schema schema = null; 
 	Token t; 
-	Schema.FieldSchema fs; 
+	Schema.FieldSchema fs = null; 
 	boolean flatten = false;
 	log.trace("Entering FlattenedGenerateItem");
 }
@@ -1379,16 +1389,12 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 		}
 	)
 	)
-	[ <AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" | fs = AtomSchema() {schema = new Schema(fs);})]
+	[ <AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {if(schema.size() > 1) {throw new ParseException("Schema mismatch");} fs = schema.getFields().get(0);} | fs = AtomSchema() )]
 	)
 	{
 		log.debug("item: " + item.getClass().getName());
-		if(null != schema) {
-			item.setSchema(schema); 
-			log.debug("Printing Schema Aliases from parser"); 
-			schema.printAliases();
-			log.debug("Printing Schema Aliases from item"); 
-			item.getSchema().printAliases();			
+		if(null != fs) {
+			item.setFieldSchema(fs); 
 		}
 		flattenList.add(flatten);
 		log.trace("Exiting FlattenedGenerateItem");
@@ -1535,22 +1541,26 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 	)
 	(
 		{ 
-			subSchema = item.getSchema(); 
+			Schema.FieldSchema fs = item.getFieldSchema(); 
+			subSchema = fs.schema; 
 			//TODO
 			//HACK for the schema problems with LOProject
 			//Check the schema to see if the constituent
 			//field is a bag or a tuple/ If so, then get
 			//that schema and send it out instead of the
 			//actual schema
-			log.debug("Printing subSchema Aliases");
-			subSchema.printAliases();
-			
+			log.debug("subSchema: " + subSchema);
+			if(null != subSchema) {
+				log.debug("Printing subSchema Aliases");
+				subSchema.printAliases();
+			}
+			/*	
 			log.debug("Printing the field schemas of subSchema");
 			for(Schema.FieldSchema fs: subSchema.getFields()) {
 				log.debug("fs: " + fs);
 				subSchema = fs.schema;
 			}
-			
+			*/
 		}
 		( 
 			"." projection = BracketedSimpleProj(subSchema,lp,item) 
@@ -1563,10 +1573,10 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 |		( "#" t = <QUOTEDSTRING> { 
 			assertAtomic(item, false);
 			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), item, unquote(t.image), DataType.BYTEARRAY, null);
-			item = mapLookup;
 			lp.add(mapLookup);
 			log.debug("BaseEvalSpec: Added operator " + mapLookup.getClass().getName() + " " + mapLookup + " to logical plan " + lp);
 			lp.connect(item, mapLookup);
+			item = mapLookup;
 			log.debug("BaseEvalSpec: Connected operator " + item.getClass().getName() + " " + item+ " to " + mapLookup + " logical plan " + lp);
 		}
 		)
@@ -1624,7 +1634,7 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 			lp.connect(exprOp, userFunc);
 			log.debug("FuncEvalSpec: Connected operator " + exprOp.getClass().getName() + " " + exprOp+ " to " + userFunc + " logical plan " + lp);
 		}
-		log.trace("Exiting BinCond");
+		log.trace("Exiting FuncEvalSpec");
 		return userFunc;
 	}
 }
@@ -1665,16 +1675,61 @@ ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs,
 		log.debug("EvalArgsItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
 	}
 	)
-	{log.trace("Entering EvalArgsItem");return item;}
+	{log.trace("Exiting EvalArgsItem");return item;}
 }
 
+byte Type() : 
+{ 
+	log.trace("Entering Type");
+	byte type;
+}
+{
+ (type = BasicType() | type = CompositeType()) 
+ {
+	log.trace("Exiting Type");
+ 	return type;
+ }	
+}
+
+byte CompositeType() : 
+{ 
+	log.trace("Entering CompositeType");
+	Token t = null;
+	byte type;
+}
+{
+ (t = <MAP>| t = <BAG>| t = <TUPLE>) 
+ {
+	log.debug("t: " + t + " type: " + nameToTypeMap.get(t.image.toUpperCase()));
+ 	type = nameToTypeMap.get(t.image.toUpperCase());
+	log.trace("Exiting CompositeType");
+ 	return type;
+ }
+}
+
+byte BasicType() : 
+{ 
+	log.trace("Entering BasicType");
+	Token t = null;
+	byte type;
+}
+{
+ (t = <INT>| t = <LONG>| t = <FLOAT>| t = <DOUBLE>| t = <CHARARRAY>| t = <BYTEARRAY>) 
+ {
+	log.debug(" nameToTypeMap: " + nameToTypeMap);
+	log.debug("t: " + t + " type: " + nameToTypeMap.get(t.image.toUpperCase()));
+ 	type = nameToTypeMap.get(t.image.toUpperCase());
+	log.trace("Exiting BasicType");
+ 	return type;
+ }
+}
 
 Schema.FieldSchema FieldSchema() : 
 {
 	Token t1; 
 	Schema item = null; 
 	Schema.FieldSchema fs = null; 
-	log.trace("Entering Schema");
+	log.trace("Entering FieldSchema");
 }
 {
 	(
@@ -1683,21 +1738,28 @@ Schema.FieldSchema FieldSchema() :
 |	LOOKAHEAD(AtomSchema()) fs = AtomSchema()
 	)
 	//{log.debug("Printing Aliases"); item.printAliases();log.trace("Exiting Schema");return item;}
-	{log.trace("Exiting Schema");return fs;}
+	{log.trace("Exiting FieldSchema");return fs;}
 }
 
 Schema.FieldSchema AtomSchema() : 
 {
-	Token t1;
+	Token t1 = null;
+	byte type = DataType.BYTEARRAY;
+	Schema.FieldSchema fs;
 	log.trace("Entering AtomSchema");
 }
 {
-	(  ( t1 = <IDENTIFIER> ) 
+	(  ( t1 = <IDENTIFIER> [":" type = BasicType() ] )
 		{ 
-			log.debug("AtomSchema: " + t1.image);
+			if(null != t1) {
+				log.debug("AtomSchema: " + t1.image);
+				fs = new Schema.FieldSchema(t1.image, type); 
+			} else {
+				fs = new Schema.FieldSchema(null, type); 
+			}
 			
 			log.trace("Exiting AtomSchema");
-			return new Schema.FieldSchema(t1.image, DataType.BYTEARRAY); 
+			return fs;
 		} 
 	)
 }
@@ -1710,7 +1772,7 @@ Schema.FieldSchema SchemaTuple() :
 	log.trace("Entering SchemaTuple");
 }
 { 
-	[( t1 = <IDENTIFIER> ) ":"] "(" list = TupleSchema() ")"	 
+	( t1 = <IDENTIFIER> )  [":" <TUPLE>] "(" list = TupleSchema() ")" 
 	{
 		if (null != t1) {
 			log.debug("TUPLE alias " + t1.image);
@@ -1731,7 +1793,7 @@ Schema.FieldSchema SchemaBag() :
 	log.trace("Entering SchemaBag");
 }
 { 
-	[( t1 = <IDENTIFIER> ) ":"] "[" list = TupleSchema() "]"	 
+	( t1 = <IDENTIFIER> ) [":" <BAG>] "{" list = TupleSchema() "}" 
 	{
 		if (null != t1) {
 			log.debug("BAG alias " + t1.image);
@@ -1780,7 +1842,7 @@ String EvalFunction() :
 			throw new ParseException(e.getMessage());
 		}
 		
-		log.trace("Exiting EvalFunc");
+		log.trace("Exiting EvalFunction");
 		return funcName;
 	}
 }

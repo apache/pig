@@ -62,6 +62,11 @@ public class LOCast extends ExpressionOperator {
     }
 
     @Override
+    public Schema.FieldSchema getFieldSchema() {
+        return mFieldSchema;
+    }
+
+    @Override
     public String name() {
         return "Cast " + mKey.scope + "-" + mKey.id;
     }

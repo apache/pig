@@ -51,6 +51,11 @@ public class LOGreaterThanEqual extends BinaryExpressionOperator {
     }
 
     @Override
+    public Schema.FieldSchema getFieldSchema() {
+        return mFieldSchema;
+    }
+
+    @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }

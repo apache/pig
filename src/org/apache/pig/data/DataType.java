@@ -339,6 +339,16 @@ public class DataType {
         return ret;
     }
 
+    public static Map<String, Byte> genNameToTypeMap(){
+        byte[] types = genAllTypes();
+        String[] names = genAllTypeNames();
+        Map<String, Byte> ret = new HashMap<String, Byte>();
+        for(int i=0;i<types.length;i++){
+            ret.put(names[i], types[i]);
+        }
+        return ret;
+    }
+
     /**
      * Get the type name.
      * @param o Object to test.
@@ -429,6 +439,25 @@ public class DataType {
         return isAtomic(findType(o));
     }
 
+    /**
+     * Determine whether the this data type has a schema.
+     * @param o Object to determine if it has a schema
+     * @return true if the type can have a alid schema (i.e., bag or tuple)
+     */
+    public static boolean isSchemaType(Object o) {
+        return isSchemaType(findType(o));
+    }
+
+    /**
+     * Determine whether the this data type has a schema.
+     * @param o Object to determine if it has a schema
+     * @return true if the type can have a alid schema (i.e., bag or tuple)
+     */
+    public static boolean isSchemaType(byte dataType) {
+        return ((dataType == BAG) || (dataType == TUPLE)); 
+    }
+
+    /**
     /**
      * Compare two objects to each other.  This function is necessary
      * because there's no super class that implements compareTo.  This

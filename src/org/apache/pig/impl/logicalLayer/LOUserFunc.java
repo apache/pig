@@ -69,10 +69,16 @@ public class LOUserFunc extends ExpressionOperator {
 
     @Override
     public Schema getSchema() {
-        if (mSchema == null) {
-            mSchema = new Schema(new Schema.FieldSchema(null, mType));
-        }
         return mSchema;
+    }
+
+    @Override
+    public Schema.FieldSchema getFieldSchema() {
+        if (!mIsFieldSchemaComputed && (mFieldSchema == null)) {
+            mFieldSchema = new Schema.FieldSchema(null, mType);
+			mIsFieldSchemaComputed = true;
+        }
+        return mFieldSchema;
     }
 
     @Override
