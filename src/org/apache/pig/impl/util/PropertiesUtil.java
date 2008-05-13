@@ -66,6 +66,10 @@ public class PropertiesUtil {
             }
         }
 		
+		// Add System properties which include command line overrides
+		// Any existing keys will be overridden 
+		properties.putAll(System.getProperties());
+		
 		// For telling error fast when there are problems
 		ConfigurationValidator.validatePigProperties(properties) ;
     }

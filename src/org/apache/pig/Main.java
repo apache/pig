@@ -206,8 +206,6 @@ public static void main(String args[])
                      }
             }
         }
-        // set the cluster
-        properties.setProperty(HExecutionEngine.JOB_TRACKER_LOCATION, cluster);
         // configure logging
         configureLog4J(properties);
         // create the context with the parameter
