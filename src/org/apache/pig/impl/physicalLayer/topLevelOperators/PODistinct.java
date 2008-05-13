@@ -41,87 +41,87 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class PODistinct extends PhysicalOperator<PhyPlanVisitor> {
 
-	private boolean inputsAccumulated = false;
-	private DataBag distinctBag = BagFactory.getInstance().newDistinctBag();
-	private final Log log = LogFactory.getLog(getClass());
-	transient Iterator<Tuple> it;
+    private boolean inputsAccumulated = false;
+    private DataBag distinctBag = BagFactory.getInstance().newDistinctBag();
+    private final Log log = LogFactory.getLog(getClass());
+    transient Iterator<Tuple> it;
 
-	public PODistinct(OperatorKey k, int rp, List<PhysicalOperator> inp) {
-		super(k, rp, inp);
-		// TODO Auto-generated constructor stub
-	}
+    public PODistinct(OperatorKey k, int rp, List<PhysicalOperator> inp) {
+        super(k, rp, inp);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PODistinct(OperatorKey k, int rp) {
-		super(k, rp);
-		// TODO Auto-generated constructor stub
-	}
+    public PODistinct(OperatorKey k, int rp) {
+        super(k, rp);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PODistinct(OperatorKey k, List<PhysicalOperator> inp) {
-		super(k, inp);
-		// TODO Auto-generated constructor stub
-	}
+    public PODistinct(OperatorKey k, List<PhysicalOperator> inp) {
+        super(k, inp);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PODistinct(OperatorKey k) {
-		super(k);
-		// TODO Auto-generated constructor stub
-	}
+    public PODistinct(OperatorKey k) {
+        super(k);
+        // TODO Auto-generated constructor stub
+    }
 
-	@Override
-	public boolean isBlocking() {
-		// TODO Auto-generated method stub
-		return true;
-	}
+    @Override
+    public boolean isBlocking() {
+        // TODO Auto-generated method stub
+        return true;
+    }
 
-	@Override
-	public Result getNext(Tuple t) throws ExecException {
-		if (!inputsAccumulated) {
-			Result in = processInput();
-			while (in.returnStatus != POStatus.STATUS_EOP) {
-				if (in.returnStatus == POStatus.STATUS_ERR) {
-					log.error("Error in reading from inputs");
-					continue;
-				} else if (in.returnStatus == POStatus.STATUS_NULL) {
-					continue;
-				}
-				distinctBag.add((Tuple) in.result);
-				in = processInput();
-			}
-			inputsAccumulated = true;
-		}
-		if (it == null) {
-			it = distinctBag.iterator();
-		}
-		res.result = it.next();
-		if (res.result == null)
-			res.returnStatus = POStatus.STATUS_EOP;
-		else
-			res.returnStatus = POStatus.STATUS_OK;
-		return res;
+    @Override
+    public Result getNext(Tuple t) throws ExecException {
+        if (!inputsAccumulated) {
+            Result in = processInput();
+            while (in.returnStatus != POStatus.STATUS_EOP) {
+                if (in.returnStatus == POStatus.STATUS_ERR) {
+                    log.error("Error in reading from inputs");
+                    continue;
+                } else if (in.returnStatus == POStatus.STATUS_NULL) {
+                    continue;
+                }
+                distinctBag.add((Tuple) in.result);
+                in = processInput();
+            }
+            inputsAccumulated = true;
+        }
+        if (it == null) {
+            it = distinctBag.iterator();
+        }
+        res.result = it.next();
+        if (res.result == null)
+            res.returnStatus = POStatus.STATUS_EOP;
+        else
+            res.returnStatus = POStatus.STATUS_OK;
+        return res;
 
-	}
+    }
 
-	@Override
-	public String name() {
-		// TODO Auto-generated method stub
-		return "PODistinct - " + mKey.toString();
-	}
+    @Override
+    public String name() {
+        // TODO Auto-generated method stub
+        return "PODistinct - " + mKey.toString();
+    }
 
-	@Override
-	public boolean supportsMultipleInputs() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean supportsMultipleInputs() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public boolean supportsMultipleOutputs() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean supportsMultipleOutputs() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public void visit(PhyPlanVisitor v) throws VisitorException {
-		// TODO Auto-generated method stub
-		v.visitDistinct(this);
-	}
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        // TODO Auto-generated method stub
+        v.visitDistinct(this);
+    }
 
 }

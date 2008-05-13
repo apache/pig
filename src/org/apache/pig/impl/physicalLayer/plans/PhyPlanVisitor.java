@@ -116,24 +116,24 @@ public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O
         //do nothing
     }
 
-	public void visitDistinct(PODistinct distinct) throws VisitorException {
-        //do nothing		
-	}
+    public void visitDistinct(PODistinct distinct) throws VisitorException {
+        //do nothing        
+    }
 
-	public void visitRead(PORead read) throws VisitorException {
-        //do nothing		
-	}
+    public void visitRead(PORead read) throws VisitorException {
+        //do nothing        
+    }
 
-	public void visitSort(POSort sort) throws VisitorException {
+    public void visitSort(POSort sort) throws VisitorException {
         List<ExprPlan> inpPlans = sort.getSortPlans();
         for (ExprPlan plan : inpPlans) {
             ExprPlanVisitor epv = new ExprPlanVisitor(plan,new DependencyOrderWalker<ExpressionOperator, ExprPlan>(plan));
             epv.visit();
         }
-	}
+    }
 
-	public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
-	    //do nothing
-	}
+    public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
+        //do nothing
+    }
 
 }

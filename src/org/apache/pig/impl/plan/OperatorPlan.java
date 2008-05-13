@@ -337,8 +337,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
             connect(oper, leaf);
         }
     }
-	
-	public boolean isSingleLeafPlan() {
+    
+    public boolean isSingleLeafPlan() {
         List<E> tmpList = getLeaves() ;
         return tmpList.size() == 1 ;
     }

@@ -39,7 +39,7 @@ public class LOLoad extends LogicalOperator {
     private FileSpec mInputFileSpec;
     private LoadFunc mLoadFunc;
     private URL mSchemaFile;
-	private static Log log = LogFactory.getLog(LOLoad.class);
+    private static Log log = LogFactory.getLog(LOLoad.class);
 
     /**
      * @param plan
@@ -60,13 +60,13 @@ public class LOLoad extends LogicalOperator {
         mSchemaFile = schemaFile;
 
          try { 
-		 	mLoadFunc = (LoadFunc)
-          	    PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
-		} catch (Exception e){ 
-			IOException ioe = new IOException(e.getMessage()); 
-			ioe.setStackTrace(e.getStackTrace());
-        	throw ioe; 
-		}
+             mLoadFunc = (LoadFunc)
+                  PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
+        } catch (Exception e){ 
+            IOException ioe = new IOException(e.getMessage()); 
+            ioe.setStackTrace(e.getStackTrace());
+            throw ioe; 
+        }
     }
 
     public FileSpec getInputFile() {

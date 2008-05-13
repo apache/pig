@@ -37,7 +37,7 @@ public class LOSort extends LogicalOperator {
     private String mSortFunc;
     private boolean mIsStar = false;
     private List<LogicalPlan> mSortColPlans;
-	private static Log log = LogFactory.getLog(LOSort.class);
+    private static Log log = LogFactory.getLog(LOSort.class);
 
     /**
      * @param plan

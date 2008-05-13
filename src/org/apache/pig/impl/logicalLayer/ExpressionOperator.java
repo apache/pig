@@ -29,8 +29,8 @@ public abstract class ExpressionOperator extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(ExpressionOperator.class);
-	protected boolean mIsFieldSchemaComputed = false;
-	protected Schema.FieldSchema mFieldSchema = null;
+    protected boolean mIsFieldSchemaComputed = false;
+    protected Schema.FieldSchema mFieldSchema = null;
 
     /**
      * @param plan
@@ -66,7 +66,7 @@ public abstract class ExpressionOperator extends LogicalOperator {
         return mSchema;
     }
 
-	public abstract Schema.FieldSchema getFieldSchema() throws FrontendException;
+    public abstract Schema.FieldSchema getFieldSchema() throws FrontendException;
 
     /**
      * Set the output schema for this operator. If a schema already exists, an
@@ -81,31 +81,31 @@ public abstract class ExpressionOperator extends LogicalOperator {
     public final void setFieldSchema(Schema.FieldSchema fs) throws FrontendException {
         // In general, operators don't generate their schema until they're
         // asked, so ask them to do it.
-		log.debug("Inside setFieldSchema");
+        log.debug("Inside setFieldSchema");
         try {
             getFieldSchema();
         } catch (FrontendException fee) {
             // It's fine, it just means we don't have a schema yet.
         }
-		log.debug("After getFieldSchema()");
+        log.debug("After getFieldSchema()");
         if (null == mFieldSchema) {
             log.debug("Operator schema is null; Setting it to new schema");
             mFieldSchema = fs;
         } else {
             log.debug("Reconciling schema");
-			log.debug("mFieldSchema: " + mFieldSchema + " fs: " + fs);
+            log.debug("mFieldSchema: " + mFieldSchema + " fs: " + fs);
             //log.debug("mSchema: " + mSchema + " schema: " + schema);
-			try {
-				if(null != mFieldSchema.schema) {
-            		mFieldSchema.schema.reconcile(fs.schema);
-				} else {
-					mFieldSchema.schema = fs.schema;
-				}
-				mFieldSchema.type = fs.type;
-				mFieldSchema.alias = fs.alias;
-			} catch (ParseException pe) {
-				throw new FrontendException(pe.getMessage());
-			}
+            try {
+                if(null != mFieldSchema.schema) {
+                    mFieldSchema.schema.reconcile(fs.schema);
+                } else {
+                    mFieldSchema.schema = fs.schema;
+                }
+                mFieldSchema.type = fs.type;
+                mFieldSchema.alias = fs.alias;
+            } catch (ParseException pe) {
+                throw new FrontendException(pe.getMessage());
+            }
         }
     }
 

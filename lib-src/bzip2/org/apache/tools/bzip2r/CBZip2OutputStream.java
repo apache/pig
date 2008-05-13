@@ -350,7 +350,7 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
      *
      */
     public void write(int bv) throws IOException {
-    	written = true;
+        written = true;
         int b = (256 + bv) % 256;
         if (currentChar != -1) {
             if (currentChar == b) {
@@ -434,8 +434,8 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
         }
         currentChar = -1;
         if (written){
-        	endBlock();
-        	endCompression();
+            endBlock();
+            endCompression();
         }
         closed = true;
         super.close();

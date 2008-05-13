@@ -118,16 +118,16 @@ abstract public class LOVisitor extends
         // Visit each of the inputs of cogroup.
         MultiMap<LogicalOperator, LogicalPlan> mapGByPlans = cg.getGroupByPlans();
         for(LogicalOperator op: cg.getInputs()) {
-			for(LogicalPlan lp: mapGByPlans.get(op)) {
-	            if (null != lp) {
-					PlanWalker w = new DependencyOrderWalker(lp);
-					pushWalker(w);
-					for(LogicalOperator logicalOp: lp.getRoots()) {
-						logicalOp.visit(this);
-					}
-					popWalker();
-	            }
-			}
+            for(LogicalPlan lp: mapGByPlans.get(op)) {
+                if (null != lp) {
+                    PlanWalker w = new DependencyOrderWalker(lp);
+                    pushWalker(w);
+                    for(LogicalOperator logicalOp: lp.getRoots()) {
+                        logicalOp.visit(this);
+                    }
+                    popWalker();
+                }
+            }
         }
     }
 
@@ -139,14 +139,14 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOGenerate g) throws VisitorException {
         // Visit each of generates projection elements.
-		for(LogicalPlan lp: g.getGeneratePlans()) {
-			PlanWalker w = new DependencyOrderWalker(lp);
-			pushWalker(w);
-			for(LogicalOperator logicalOp: lp.getRoots()) {
-				logicalOp.visit(this);
-			}
-			popWalker();
-		}
+        for(LogicalPlan lp: g.getGeneratePlans()) {
+            PlanWalker w = new DependencyOrderWalker(lp);
+            pushWalker(w);
+            for(LogicalOperator logicalOp: lp.getRoots()) {
+                logicalOp.visit(this);
+            }
+            popWalker();
+        }
     }
 
     /**
@@ -157,14 +157,14 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOSort s) throws VisitorException {
         // Visit the sort function
-		for(LogicalPlan lp: s.getSortColPlans()) {
-			PlanWalker w = new DependencyOrderWalker(lp);
-			pushWalker(w);
-			for(LogicalOperator logicalOp: lp.getRoots()) {
-				logicalOp.visit(this);
-			}
-			popWalker();
-		}
+        for(LogicalPlan lp: s.getSortColPlans()) {
+            PlanWalker w = new DependencyOrderWalker(lp);
+            pushWalker(w);
+            for(LogicalOperator logicalOp: lp.getRoots()) {
+                logicalOp.visit(this);
+            }
+            popWalker();
+        }
     }
 
     /**
@@ -175,12 +175,12 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOFilter filter) throws VisitorException {
         // Visit the condition for the filter followed by the input
-		PlanWalker w = new DependencyOrderWalker(filter.getComparisonPlan());
-		pushWalker(w);
-		for(LogicalOperator logicalOp: filter.getComparisonPlan().getRoots()) {
-			logicalOp.visit(this);
-		}
-		popWalker();
+        PlanWalker w = new DependencyOrderWalker(filter.getComparisonPlan());
+        pushWalker(w);
+        for(LogicalOperator logicalOp: filter.getComparisonPlan().getRoots()) {
+            logicalOp.visit(this);
+        }
+        popWalker();
     }
 
     /**
@@ -191,16 +191,16 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOSplit split) throws VisitorException {
         // Visit each of split's conditions
-		for(LogicalPlan lp: split.getConditionPlans()) {
+        for(LogicalPlan lp: split.getConditionPlans()) {
             if (null != lp) {
-				PlanWalker w = new DependencyOrderWalker(lp);
-				pushWalker(w);
-				for(LogicalOperator logicalOp: lp.getRoots()) {
-					logicalOp.visit(this);
-				}
-				popWalker();
+                PlanWalker w = new DependencyOrderWalker(lp);
+                pushWalker(w);
+                for(LogicalOperator logicalOp: lp.getRoots()) {
+                    logicalOp.visit(this);
+                }
+                popWalker();
             }
-		}
+        }
     }
 
     /**
@@ -211,13 +211,13 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOForEach forEach) throws VisitorException {
         // Visit the operators that are part of the foreach plan
-		LogicalPlan plan = forEach.getForEachPlan();
-		PlanWalker w = new DependencyOrderWalker(plan);
-		pushWalker(w);
-		for(LogicalOperator logicalOp: plan.getRoots()) {
-			logicalOp.visit(this);
-		}
-		popWalker();
+        LogicalPlan plan = forEach.getForEachPlan();
+        PlanWalker w = new DependencyOrderWalker(plan);
+        pushWalker(w);
+        for(LogicalOperator logicalOp: plan.getRoots()) {
+            logicalOp.visit(this);
+        }
+        popWalker();
     }
 
     /**
@@ -289,10 +289,10 @@ abstract public class LOVisitor extends
 
     protected void visit(LOProject project) throws VisitorException {
         // Visit the operand of the project as long as the sentinel is false
-		
-		if(!project.getSentinel()) {
-			project.getExpression().visit(this);
-		}
+        
+        if(!project.getSentinel()) {
+            project.getExpression().visit(this);
+        }
     }
 
 }

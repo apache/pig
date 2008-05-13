@@ -108,14 +108,14 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
         //do nothing
     }
 
-	public void visitBinCond(POBinCond binCond) {
-		// do nothing
-		
-	}
+    public void visitBinCond(POBinCond binCond) {
+        // do nothing
+        
+    }
 
-	public void visitNegative(PONegative negative) {
-		//do nothing
-		
-	}
+    public void visitNegative(PONegative negative) {
+        //do nothing
+        
+    }
 
 }

@@ -831,8 +831,8 @@ public class TypeCheckingVisitor extends LOVisitor {
     */
 
     // TODO: NOT DONE YET
-	//COmmenting out this method as its not using the new APIs
-	/*
+    //COmmenting out this method as its not using the new APIs
+    /*
     protected void visit(LOGenerate g) throws VisitorException {
         // Visit each of generates projection elements.
         Iterator<ExpressionOperator> i = g.getProjections().iterator();
@@ -840,7 +840,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             i.next().visit(this);
         }
     }
-	*/
+    */
     
     /***
      * This does:-

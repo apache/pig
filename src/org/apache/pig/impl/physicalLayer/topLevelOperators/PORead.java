@@ -35,71 +35,71 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class PORead extends PhysicalOperator<PhyPlanVisitor> {
 
-	DataBag bag;
-	transient Iterator<Tuple> it;
+    DataBag bag;
+    transient Iterator<Tuple> it;
 
-	public PORead(OperatorKey k) {
-		super(k);
-		// TODO Auto-generated constructor stub
-	}
+    public PORead(OperatorKey k) {
+        super(k);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PORead(OperatorKey k, int rp, List<PhysicalOperator> inp) {
-		super(k, rp, inp);
-		// TODO Auto-generated constructor stub
-	}
+    public PORead(OperatorKey k, int rp, List<PhysicalOperator> inp) {
+        super(k, rp, inp);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PORead(OperatorKey k, int rp) {
-		super(k, rp);
-		// TODO Auto-generated constructor stub
-	}
+    public PORead(OperatorKey k, int rp) {
+        super(k, rp);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PORead(OperatorKey k, List<PhysicalOperator> inp) {
-		super(k, inp);
-		// TODO Auto-generated constructor stub
-	}
+    public PORead(OperatorKey k, List<PhysicalOperator> inp) {
+        super(k, inp);
+        // TODO Auto-generated constructor stub
+    }
 
-	public PORead(OperatorKey k, DataBag bag) {
-		super(k);
-		this.bag = bag;
-	}
+    public PORead(OperatorKey k, DataBag bag) {
+        super(k);
+        this.bag = bag;
+    }
 
-	@Override
-	public Result getNext(Tuple t) {
-		if (it == null) {
-			it = bag.iterator();
-		}
-		Result res = new Result();
-		if (it.hasNext()) {
-			res.returnStatus = POStatus.STATUS_OK;
-			res.result = it.next();
-		} else {
-			res.returnStatus = POStatus.STATUS_EOP;
-		}
-		return res;
-	}
+    @Override
+    public Result getNext(Tuple t) {
+        if (it == null) {
+            it = bag.iterator();
+        }
+        Result res = new Result();
+        if (it.hasNext()) {
+            res.returnStatus = POStatus.STATUS_OK;
+            res.result = it.next();
+        } else {
+            res.returnStatus = POStatus.STATUS_EOP;
+        }
+        return res;
+    }
 
-	@Override
-	public String name() {
-		// TODO Auto-generated method stub
-		return "PORead - " + mKey.toString();
-	}
+    @Override
+    public String name() {
+        // TODO Auto-generated method stub
+        return "PORead - " + mKey.toString();
+    }
 
-	@Override
-	public boolean supportsMultipleInputs() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean supportsMultipleInputs() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public boolean supportsMultipleOutputs() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean supportsMultipleOutputs() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public void visit(PhyPlanVisitor v) throws VisitorException {
-		// TODO Auto-generated method stub
-		v.visitRead(this);
-	}
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        // TODO Auto-generated method stub
+        v.visitRead(this);
+    }
 
 }

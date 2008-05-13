@@ -35,7 +35,7 @@ public class LOSplit extends LogicalOperator {
 
     private Map<String, LogicalPlan> mCondPlans;
     private ArrayList<LogicalOperator> mOutputs;
-	private static Log log = LogFactory.getLog(LOSplit.class);
+    private static Log log = LogFactory.getLog(LOSplit.class);
 
     /**
      * @param plan

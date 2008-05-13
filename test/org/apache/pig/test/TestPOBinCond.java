@@ -40,68 +40,68 @@ import org.junit.Before;
 import junit.framework.TestCase;
 
 public class TestPOBinCond extends TestCase {
-	Random r = new Random();
-	DataBag bag = BagFactory.getInstance().newDefaultBag();
-	final int MAX = 10;
-	
-	@Before
-	@Override
-	public void setUp() {
-		for(int i = 0; i < 10; i ++) {
-			Tuple t = TupleFactory.getInstance().newTuple();
-			t.append(r.nextInt(2));
-			t.append(0);
-			t.append(1);
-			bag.add(t);
-		}
-	}
-	
-	public void testPOBinCond() throws ExecException, PlanException {
-		ConstantExpression rt = (ConstantExpression) GenPhyOp.exprConst();
-		rt.setValue(1);
-		rt.setResultType(DataType.INTEGER);
-		
-		POProject prj1 = GenPhyOp.exprProject();
-		prj1.setColumn(0);
-		prj1.setResultType(DataType.INTEGER);
-		
-		EqualToExpr equal = (EqualToExpr) GenPhyOp.compEqualToExpr();
-		equal.setLhs(prj1);
-		equal.setRhs(rt);
-		
-		POProject prjLhs = GenPhyOp.exprProject();
-		prjLhs.setResultType(DataType.INTEGER);
-		prjLhs.setColumn(1);
-		
-		POProject prjRhs = GenPhyOp.exprProject();
-		prjRhs.setResultType(DataType.INTEGER);
-		prjRhs.setColumn(2);
-		
-		POBinCond op = new POBinCond(new OperatorKey("", r.nextLong()), -1, equal, prjLhs, prjRhs);
-		op.setResultType(DataType.INTEGER);
-		
-		ExprPlan plan = new ExprPlan();
-		plan.add(op);
-		plan.add(prjLhs);
-		plan.add(prjRhs);
-		plan.add(equal);
-		plan.connect(equal, op);
-		plan.connect(prjLhs, op);
-		plan.connect(prjRhs, op);
-		
-		plan.add(prj1);
-		plan.add(rt);
-		plan.connect(prj1, equal);
-		plan.connect(rt, equal);
-		
-		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
-			Tuple t = it.next();
-			plan.attachInput(t);
-			Integer i = (Integer) t.get(0);
-			assertEquals(1, i | (Integer)op.getNext(i).result);
-//			System.out.println(t + " " + op.getNext(i).result.toString());
-		}
-		
-		
-	}
+    Random r = new Random();
+    DataBag bag = BagFactory.getInstance().newDefaultBag();
+    final int MAX = 10;
+    
+    @Before
+    @Override
+    public void setUp() {
+        for(int i = 0; i < 10; i ++) {
+            Tuple t = TupleFactory.getInstance().newTuple();
+            t.append(r.nextInt(2));
+            t.append(0);
+            t.append(1);
+            bag.add(t);
+        }
+    }
+    
+    public void testPOBinCond() throws ExecException, PlanException {
+        ConstantExpression rt = (ConstantExpression) GenPhyOp.exprConst();
+        rt.setValue(1);
+        rt.setResultType(DataType.INTEGER);
+        
+        POProject prj1 = GenPhyOp.exprProject();
+        prj1.setColumn(0);
+        prj1.setResultType(DataType.INTEGER);
+        
+        EqualToExpr equal = (EqualToExpr) GenPhyOp.compEqualToExpr();
+        equal.setLhs(prj1);
+        equal.setRhs(rt);
+        
+        POProject prjLhs = GenPhyOp.exprProject();
+        prjLhs.setResultType(DataType.INTEGER);
+        prjLhs.setColumn(1);
+        
+        POProject prjRhs = GenPhyOp.exprProject();
+        prjRhs.setResultType(DataType.INTEGER);
+        prjRhs.setColumn(2);
+        
+        POBinCond op = new POBinCond(new OperatorKey("", r.nextLong()), -1, equal, prjLhs, prjRhs);
+        op.setResultType(DataType.INTEGER);
+        
+        ExprPlan plan = new ExprPlan();
+        plan.add(op);
+        plan.add(prjLhs);
+        plan.add(prjRhs);
+        plan.add(equal);
+        plan.connect(equal, op);
+        plan.connect(prjLhs, op);
+        plan.connect(prjRhs, op);
+        
+        plan.add(prj1);
+        plan.add(rt);
+        plan.connect(prj1, equal);
+        plan.connect(rt, equal);
+        
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+            Tuple t = it.next();
+            plan.attachInput(t);
+            Integer i = (Integer) t.get(0);
+            assertEquals(1, i | (Integer)op.getNext(i).result);
+//            System.out.println(t + " " + op.getNext(i).result.toString());
+        }
+        
+        
+    }
 }

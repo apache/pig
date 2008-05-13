@@ -29,8 +29,8 @@ public class LOFilter extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
     private LogicalOperator mInput;
-	private LogicalPlan mComparisonPlan;
-	private static Log log = LogFactory.getLog(LOFilter.class);
+    private LogicalPlan mComparisonPlan;
+    private static Log log = LogFactory.getLog(LOFilter.class);
 
     /**
      * 
@@ -44,20 +44,20 @@ public class LOFilter extends LogicalOperator {
      *            the input that needs filtering
      */
 
-	public LOFilter(LogicalPlan plan, OperatorKey k,
-			LogicalPlan comparisonPlan, LogicalOperator input) {
-		super(plan, k);
-		mComparisonPlan = comparisonPlan;
+    public LOFilter(LogicalPlan plan, OperatorKey k,
+            LogicalPlan comparisonPlan, LogicalOperator input) {
+        super(plan, k);
+        mComparisonPlan = comparisonPlan;
         mInput = input;
-	}
+    }
 
     public LogicalOperator getInput() {
         return mInput;
     }
 
-	public LogicalPlan getComparisonPlan() {
-		return mComparisonPlan;
-	}
+    public LogicalPlan getComparisonPlan() {
+        return mComparisonPlan;
+    }
 
     @Override
     public Schema getSchema() throws FrontendException {

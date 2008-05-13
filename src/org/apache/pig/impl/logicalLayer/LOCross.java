@@ -38,7 +38,7 @@ public class LOCross extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
     private ArrayList<LogicalOperator> mInputs;
-	private static Log log = LogFactory.getLog(LOCross.class);
+    private static Log log = LogFactory.getLog(LOCross.class);
 
     /**
      * 
@@ -66,99 +66,99 @@ public class LOCross extends LogicalOperator {
         if (!mIsSchemaComputed && (null == mSchema)) {
             Collection<LogicalOperator> pred = mPlan.getPredecessors(this);
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
-			Map<Schema.FieldSchema, String> flattenAlias = new HashMap<Schema.FieldSchema, String>();
-			Map<String, Boolean> inverseFlattenAlias = new HashMap<String, Boolean>();
-			Map<String, Integer> aliases = new HashMap<String, Integer>();
+            Map<Schema.FieldSchema, String> flattenAlias = new HashMap<Schema.FieldSchema, String>();
+            Map<String, Boolean> inverseFlattenAlias = new HashMap<String, Boolean>();
+            Map<String, Integer> aliases = new HashMap<String, Integer>();
 
             for (LogicalOperator op : pred) {
                 String opAlias = op.getAlias();
-				Schema s = op.getSchema();
+                Schema s = op.getSchema();
 
-				//need to extract the children and create the aliases
-				//assumption here is that flatten is only for one column
-				//i.e., flatten(A), flatten(A.x) and NOT
-				//flatten(B.(x,y,z))
-				if(null != s) {
-					for(Schema.FieldSchema fs: s.getFields()) {
-						log.debug("fs: " + fs);
-						log.debug("fs.alias: " + fs.alias);
-						if(null != fs.alias) {
-							String disambiguatorAlias = opAlias + "::" + fs.alias;
-							Schema.FieldSchema newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
-							fss.add(newFs);
-							Integer count;
-							count = aliases.get(fs.alias);
-							if(null == count) {
-								aliases.put(fs.alias, 0);
-							} else {
-								aliases.put(fs.alias, ++count);
-							}
-							count = aliases.get(disambiguatorAlias);
-							if(null == count) {
-								aliases.put(disambiguatorAlias, 0);
-							} else {
-								aliases.put(disambiguatorAlias, ++count);
-							}
-							flattenAlias.put(newFs, fs.alias);
-							inverseFlattenAlias.put(fs.alias, true);
-							//it's fine if there are duplicates
-							//we just need to record if its due to
-							//flattening
-						} else {
-							Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-							fss.add(newFs);
-						}
-					}
-				} else {
-					Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-					fss.add(newFs);
-				}
+                //need to extract the children and create the aliases
+                //assumption here is that flatten is only for one column
+                //i.e., flatten(A), flatten(A.x) and NOT
+                //flatten(B.(x,y,z))
+                if(null != s) {
+                    for(Schema.FieldSchema fs: s.getFields()) {
+                        log.debug("fs: " + fs);
+                        log.debug("fs.alias: " + fs.alias);
+                        if(null != fs.alias) {
+                            String disambiguatorAlias = opAlias + "::" + fs.alias;
+                            Schema.FieldSchema newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
+                            fss.add(newFs);
+                            Integer count;
+                            count = aliases.get(fs.alias);
+                            if(null == count) {
+                                aliases.put(fs.alias, 0);
+                            } else {
+                                aliases.put(fs.alias, ++count);
+                            }
+                            count = aliases.get(disambiguatorAlias);
+                            if(null == count) {
+                                aliases.put(disambiguatorAlias, 0);
+                            } else {
+                                aliases.put(disambiguatorAlias, ++count);
+                            }
+                            flattenAlias.put(newFs, fs.alias);
+                            inverseFlattenAlias.put(fs.alias, true);
+                            //it's fine if there are duplicates
+                            //we just need to record if its due to
+                            //flattening
+                        } else {
+                            Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                            fss.add(newFs);
+                        }
+                    }
+                } else {
+                    Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                    fss.add(newFs);
+                }
             }
 
-			//check for duplicate column names and throw an error if there are duplicates
-			//ensure that flatten gets rid of duplicate column names when the checks are
-			//being done
-			log.debug(" flattenAlias: " + flattenAlias);
-			log.debug(" inverseFlattenAlias: " + inverseFlattenAlias);
-			log.debug(" aliases: " + aliases);
-			log.debug(" fss.size: " + fss.size());
-			boolean duplicates = false;
-			Set<String> duplicateAliases = new HashSet<String>();
-			for(String alias: aliases.keySet()) {
-				Integer count = aliases.get(alias);
-				if(count > 0) {
-					Boolean inFlatten = false;
-					log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
-					inFlatten = inverseFlattenAlias.get(alias);
-					log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
-					if((null != inFlatten) && (!inFlatten)) {
-						duplicates = true;
-						duplicateAliases.add(alias);
-					}
-				}
-			}
-			if(duplicates) {
-				String errMessage = "Found duplicates in schema ";
-				if(duplicateAliases.size() > 0) {
-					Iterator<String> iter = duplicateAliases.iterator();
-					errMessage += ": " + iter.next();
-					while(iter.hasNext()) {
-						errMessage += ", " + iter.next();
-					}
-				}
-				throw new FrontendException(errMessage);
-			}
+            //check for duplicate column names and throw an error if there are duplicates
+            //ensure that flatten gets rid of duplicate column names when the checks are
+            //being done
+            log.debug(" flattenAlias: " + flattenAlias);
+            log.debug(" inverseFlattenAlias: " + inverseFlattenAlias);
+            log.debug(" aliases: " + aliases);
+            log.debug(" fss.size: " + fss.size());
+            boolean duplicates = false;
+            Set<String> duplicateAliases = new HashSet<String>();
+            for(String alias: aliases.keySet()) {
+                Integer count = aliases.get(alias);
+                if(count > 0) {
+                    Boolean inFlatten = false;
+                    log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
+                    inFlatten = inverseFlattenAlias.get(alias);
+                    log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
+                    if((null != inFlatten) && (!inFlatten)) {
+                        duplicates = true;
+                        duplicateAliases.add(alias);
+                    }
+                }
+            }
+            if(duplicates) {
+                String errMessage = "Found duplicates in schema ";
+                if(duplicateAliases.size() > 0) {
+                    Iterator<String> iter = duplicateAliases.iterator();
+                    errMessage += ": " + iter.next();
+                    while(iter.hasNext()) {
+                        errMessage += ", " + iter.next();
+                    }
+                }
+                throw new FrontendException(errMessage);
+            }
             mSchema = new Schema(fss);
-			//add the aliases that are unique after flattening
-			for(Schema.FieldSchema fs: mSchema.getFields()) {
-				String alias = flattenAlias.get(fs);
-				Integer count = aliases.get(alias);
-				if (null == count) count = 0;
-				log.debug("alias: " + alias);
-				if((null != alias) && (count == 0)) {
-					mSchema.addAlias(alias, fs);
-				}
-			}
+            //add the aliases that are unique after flattening
+            for(Schema.FieldSchema fs: mSchema.getFields()) {
+                String alias = flattenAlias.get(fs);
+                Integer count = aliases.get(alias);
+                if (null == count) count = 0;
+                log.debug("alias: " + alias);
+                if((null != alias) && (count == 0)) {
+                    mSchema.addAlias(alias, fs);
+                }
+            }
             mIsSchemaComputed = true;
         }
         return mSchema;

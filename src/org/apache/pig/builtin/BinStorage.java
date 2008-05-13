@@ -110,58 +110,58 @@ public class BinStorage implements LoadFunc, StoreFunc {
         t.write(out);
     }
 
-	public DataBag bytesToBag(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public DataBag bytesToBag(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Boolean bytesToBoolean(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Boolean bytesToBoolean(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public String bytesToCharArray(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public String bytesToCharArray(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Double bytesToDouble(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Double bytesToDouble(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Float bytesToFloat(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Float bytesToFloat(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Integer bytesToInteger(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Integer bytesToInteger(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Long bytesToLong(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Long bytesToLong(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Tuple bytesToTuple(byte[] b) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Tuple bytesToTuple(byte[] b) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public Schema determineSchema(URL fileName) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public Schema determineSchema(URL fileName) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	public void fieldsToRead(Schema schema) {
-		// TODO Auto-generated method stub
-		
-	}
+    public void fieldsToRead(Schema schema) {
+        // TODO Auto-generated method stub
+        
+    }
 }

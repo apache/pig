@@ -37,7 +37,7 @@ public class LOStore extends LogicalOperator {
 
     private FileSpec mOutputFile;
     private StoreFunc mStoreFunc;
-	private static Log log = LogFactory.getLog(LOStore.class);
+    private static Log log = LogFactory.getLog(LOStore.class);
 
     /**
      * @param plan
@@ -61,12 +61,12 @@ public class LOStore extends LogicalOperator {
         // Also remove the commented out import org.apache.pig.impl.PigContext
 
         try { 
-		 	mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
-		} catch (Exception e) { 
-			IOException ioe = new IOException(e.getMessage()); 
-			ioe.setStackTrace(e.getStackTrace());
-			throw ioe; 
-		}
+             mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+        } catch (Exception e) { 
+            IOException ioe = new IOException(e.getMessage()); 
+            ioe.setStackTrace(e.getStackTrace());
+            throw ioe; 
+        }
     }
 
     public FileSpec getOutputFile() {

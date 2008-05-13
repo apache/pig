@@ -35,7 +35,7 @@ import org.apache.pig.impl.plan.OperatorPlan;
 public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
 
     private Rule<O, P> mRule;
-	private List<O> mMatches;
+    private List<O> mMatches;
     private P mPlan; // for convience.
 
     /**
@@ -50,20 +50,20 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
         mPlan = mRule.transformer.getPlan();
         // Add sufficient slots in the matches array
         for (int i = 0; i < sz; i++) mMatches.add(null);
-	    return beginMatch(mPlan.getRoots());
+        return beginMatch(mPlan.getRoots());
     }
 
-	/**
-	 * @return a list that with the instances of nodes that matched the
+    /**
+     * @return a list that with the instances of nodes that matched the
      * pattern defined by
-	 * the rule.  The nodes will be in the vector in the order they are
-	 * specified in the rule.
-	 */
-	List<O> getMatches() {
+     * the rule.  The nodes will be in the vector in the order they are
+     * specified in the rule.
+     */
+    List<O> getMatches() {
         return mMatches;
     }
 
-	/*
+    /*
      * This pattern matching is fairly simple and makes some important
      * assumptions.
      * 1)  The pattern to be matched must be expressable as a simple list.  That
@@ -77,64 +77,64 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
     private boolean beginMatch(List<O> nodes) {
         if (nodes == null) return false;
         for (O op : nodes) {
-		    List<O> successors = new ArrayList<O>();
-		    if (op.getClass().getName().equals(mRule.nodes.get(0))) {
-			    mMatches.set(0, op);
-			    // Follow the edge to see the next node we should be looking for.
-			    Integer nextOpNum = mRule.edges.get(0);
+            List<O> successors = new ArrayList<O>();
+            if (op.getClass().getName().equals(mRule.nodes.get(0))) {
+                mMatches.set(0, op);
+                // Follow the edge to see the next node we should be looking for.
+                Integer nextOpNum = mRule.edges.get(0);
                 if (nextOpNum == null) {
-				    // This was looking for a single node
-				    return true;
-			    }
-			    successors = mPlan.getSuccessors(op);
+                    // This was looking for a single node
+                    return true;
+                }
+                successors = mPlan.getSuccessors(op);
                 if (successors == null) return false;
                 for (O successorOp : successors) {
-				    if (continueMatch(successorOp, nextOpNum)) return true;
-			    }
-		    }
+                    if (continueMatch(successorOp, nextOpNum)) return true;
+                }
+            }
 
-		    // That node didn't match.  Go to this nodes successors and see if
-		    // any of them match.
-		    successors = mPlan.getSuccessors(op);
-		    if (beginMatch(successors)) return true;
-	    }
-	    // If we get here we haven't found it.
-	    return false;
+            // That node didn't match.  Go to this nodes successors and see if
+            // any of them match.
+            successors = mPlan.getSuccessors(op);
+            if (beginMatch(successors)) return true;
+        }
+        // If we get here we haven't found it.
+        return false;
     }
 
-	private boolean continueMatch(O current, Integer nodeNumber) {
-	    if (current.getClass().getName() == mRule.nodes.get(nodeNumber)) {
-		    mMatches.set(nodeNumber, current);
+    private boolean continueMatch(O current, Integer nodeNumber) {
+        if (current.getClass().getName() == mRule.nodes.get(nodeNumber)) {
+            mMatches.set(nodeNumber, current);
 
-		    // Follow the edge to see the next node we should be looking for.
-		    Integer nextOpNum = mRule.edges.get(nodeNumber);
-		    if (nextOpNum == null) {
-			    // We've comleted the match
-			    return true;
-		    }
+            // Follow the edge to see the next node we should be looking for.
+            Integer nextOpNum = mRule.edges.get(nodeNumber);
+            if (nextOpNum == null) {
+                // We've comleted the match
+                return true;
+            }
             List<O> successors = new ArrayList<O>();
-		    successors = mPlan.getSuccessors(current);
+            successors = mPlan.getSuccessors(current);
             if (successors == null) return false;
             for (O successorOp : successors) {
-			    if (continueMatch(successorOp, nextOpNum)) return true;
-		    }
-	    } else if (!mRule.required.get(nodeNumber)) {
-		    // This node was optional, so it's okay if we don't match, keep
-		    // going anyway.  Keep looking for the current node (don't find our
-		    // successors, but look for the next edge.
-		    Integer nextOpNum = mRule.edges.get(nodeNumber);
-		    if (nextOpNum == null) {
-			    // We've comleted the match
-			    return true;
-		    }
-		    if (continueMatch(current, nextOpNum)) return true;
-	    }
+                if (continueMatch(successorOp, nextOpNum)) return true;
+            }
+        } else if (!mRule.required.get(nodeNumber)) {
+            // This node was optional, so it's okay if we don't match, keep
+            // going anyway.  Keep looking for the current node (don't find our
+            // successors, but look for the next edge.
+            Integer nextOpNum = mRule.edges.get(nodeNumber);
+            if (nextOpNum == null) {
+                // We've comleted the match
+                return true;
+            }
+            if (continueMatch(current, nextOpNum)) return true;
+        }
 
-	    // We can arrive here either because we didn't match at this node or
-	    // further down the line.  One way or another we need to remove ourselves
-	    // from the match vector and return false.
-	    mMatches.set(nodeNumber, null);
-	    return false;
+        // We can arrive here either because we didn't match at this node or
+        // further down the line.  One way or another we need to remove ourselves
+        // from the match vector and return false.
+        mMatches.set(nodeNumber, null);
+        return false;
     }
 
 }

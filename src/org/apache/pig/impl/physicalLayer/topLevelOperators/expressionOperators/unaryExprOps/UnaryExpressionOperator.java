@@ -24,24 +24,24 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public abstract class UnaryExpressionOperator extends ExpressionOperator {
 
-	ExpressionOperator input;
-	
-	public UnaryExpressionOperator(OperatorKey k, int rp) {
-		super(k, rp);
-		
-	}
+    ExpressionOperator input;
+    
+    public UnaryExpressionOperator(OperatorKey k, int rp) {
+        super(k, rp);
+        
+    }
 
-	public UnaryExpressionOperator(OperatorKey k) {
-		super(k);
-		
-	}
+    public UnaryExpressionOperator(OperatorKey k) {
+        super(k);
+        
+    }
 
-	@Override
-	public boolean supportsMultipleInputs() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-	
+    @Override
+    public boolean supportsMultipleInputs() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+    
+    
 
 }

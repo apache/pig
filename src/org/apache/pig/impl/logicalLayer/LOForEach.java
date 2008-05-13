@@ -66,13 +66,13 @@ public class LOForEach extends LogicalOperator {
             // Assuming that the last operator is the GENERATE
             // foreach has to terminate with a GENERATE
             LogicalOperator last = null;
-			for(LogicalOperator op: mForEachPlan.getLeaves()) {
-				if(op instanceof LOGenerate) {
-					last = op;
-					break;
-				}
-			}
-			if(null == last) throw new FrontendException("Did not find generate in the foreach logicalplan");
+            for(LogicalOperator op: mForEachPlan.getLeaves()) {
+                if(op instanceof LOGenerate) {
+                    last = op;
+                    break;
+                }
+            }
+            if(null == last) throw new FrontendException("Did not find generate in the foreach logicalplan");
 
             log.debug("Last Operator: " + last.getClass().getName());
             try {

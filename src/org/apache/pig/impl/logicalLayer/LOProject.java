@@ -62,7 +62,7 @@ public class LOProject extends ExpressionOperator {
     private List<Integer> mProjection;
     private boolean mIsStar = false;
     private static Log log = LogFactory.getLog(LOProject.class);
-	private boolean mSentinel;
+    private boolean mSentinel;
 
     /**
      * 
@@ -80,11 +80,11 @@ public class LOProject extends ExpressionOperator {
         super(plan, key);
         mExp = exp;
         mProjection = projection;
-		if(mExp instanceof ExpressionOperator) {
-			mSentinel = false;
-		} else {
-			mSentinel = true;
-		}
+        if(mExp instanceof ExpressionOperator) {
+            mSentinel = false;
+        } else {
+            mSentinel = true;
+        }
     }
 
     /**
@@ -104,11 +104,11 @@ public class LOProject extends ExpressionOperator {
         mExp = exp;
         mProjection = new ArrayList<Integer>(1);
         mProjection.add(projection);
-		if(mExp instanceof ExpressionOperator) {
-			mSentinel = false;
-		} else {
-			mSentinel = true;
-		}
+        if(mExp instanceof ExpressionOperator) {
+            mSentinel = false;
+        } else {
+            mSentinel = true;
+        }
     }
 
     public LogicalOperator getExpression() {
@@ -153,13 +153,13 @@ public class LOProject extends ExpressionOperator {
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         log.debug("Inside getFieldSchemas");
-		log.debug("Number of columns: " + mProjection.size());
+        log.debug("Number of columns: " + mProjection.size());
         for (int i : mProjection) {
             log.debug("Column: " + i);
         }
-		LogicalOperator expressionOperator = mExp;
-		log.debug("expressionOperator = " + expressionOperator);
-		log.debug("mIsStar: " + mIsStar);
+        LogicalOperator expressionOperator = mExp;
+        log.debug("expressionOperator = " + expressionOperator);
+        log.debug("mIsStar: " + mIsStar);
 
         if (!mIsFieldSchemaComputed && (null == mFieldSchema)) {
 
@@ -169,23 +169,23 @@ public class LOProject extends ExpressionOperator {
                     if (null != expressionOperator) {
                         log.debug("expressionOperator is not null "
                                 + expressionOperator.getClass().getName() + " " + expressionOperator);
-						if(!mSentinel) {
-							//we have an expression operator and hence a list of field shcemas
-							mFieldSchema = ((ExpressionOperator)expressionOperator).getFieldSchema();
-						} else {
-							//we have a relational operator as input and hence a schema
-							log.debug("expression operator alias: " + expressionOperator.getAlias());
-							log.debug("expression operator schema: " + expressionOperator.getSchema());
-							log.debug("expression operator type: " + expressionOperator.getType());
-							//TODO
-							//the type of the operator will be unkown. when type checking is in place
-							//add the type of the operator as a parameter to the fieldschema creation
-							//mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), expressionOperator.getType());
-							mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
-                    	}
-					} else {
-						log.warn("The input for a projection operator cannot be null");
-					}
+                        if(!mSentinel) {
+                            //we have an expression operator and hence a list of field shcemas
+                            mFieldSchema = ((ExpressionOperator)expressionOperator).getFieldSchema();
+                        } else {
+                            //we have a relational operator as input and hence a schema
+                            log.debug("expression operator alias: " + expressionOperator.getAlias());
+                            log.debug("expression operator schema: " + expressionOperator.getSchema());
+                            log.debug("expression operator type: " + expressionOperator.getType());
+                            //TODO
+                            //the type of the operator will be unkown. when type checking is in place
+                            //add the type of the operator as a parameter to the fieldschema creation
+                            //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), expressionOperator.getType());
+                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
+                        }
+                    } else {
+                        log.warn("The input for a projection operator cannot be null");
+                    }
                     mIsFieldSchemaComputed = true;
                 } catch (FrontendException fee) {
                     mFieldSchema = null;
@@ -196,78 +196,78 @@ public class LOProject extends ExpressionOperator {
                 log.debug("Exiting getSchema()");
                 return mFieldSchema;
             } else {
-				//its n list of columns to project including a single column
+                //its n list of columns to project including a single column
                 List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(mProjection.size());
-				try {
-	                if (null != expressionOperator) {
-	                    log.debug("expressionOperator is not null");
-						if(mProjection.size() == 1) {
-							//if there is only one element then extract and return the field schema
-							log.debug("Only one element");
-							if(!mSentinel) {
-								log.debug("Input is an expression operator");
-								Schema.FieldSchema expOpFs = ((ExpressionOperator)expressionOperator).getFieldSchema();
-								if(null != expOpFs) {
-									Schema s = expOpFs.schema;
-									if(null != s) {
-										mFieldSchema = s.getField(mProjection.get(0));
-									} else {
-										mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-									}
-								} else {
-									mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-								}
-							} else {
-								log.debug("Input is a logical operator");
-	                       		Schema s = expressionOperator.getSchema();
-	                    		log.debug("s: " + s);
-								if(null != s) {
-	                            	mFieldSchema = s.getField(mProjection.get(0));
-									log.debug("mFieldSchema alias: " + mFieldSchema.alias);
-									log.debug("mFieldSchema schema: " + mFieldSchema.schema);
-								} else {
-									mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-								}
-							}
-							mIsFieldSchemaComputed = true;
-							return mFieldSchema;
-						}
-						
-	                    for (int colNum : mProjection) {
-	                        log.debug("Col: " + colNum);
-							if(!mSentinel) {
-								Schema.FieldSchema expOpFs = ((ExpressionOperator)expressionOperator).getFieldSchema();
-								if(null != expOpFs) {
-									Schema s = expOpFs.schema;
-									if(null != s) {
-										fss.add(s.getField(colNum));
-									} else {
-										fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
-									}
-								} else {
-									fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
-								}
-							} else {
-								Schema s = expressionOperator.getSchema();
-								if(null != s) {
-									fss.add(s.getField(colNum));
-								} else {
-									fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
-								}
-							}
-						}
-	
-	                } else {
-						log.warn("The input for a projection operator cannot be null");
-	                    //fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
-	                }
-				} catch(ParseException pe) {
-					mFieldSchema = null;
-					mIsFieldSchemaComputed = false;
-					throw new FrontendException(pe.getMessage());
-				}
-				mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), new Schema(fss));
-				mIsFieldSchemaComputed = true;
+                try {
+                    if (null != expressionOperator) {
+                        log.debug("expressionOperator is not null");
+                        if(mProjection.size() == 1) {
+                            //if there is only one element then extract and return the field schema
+                            log.debug("Only one element");
+                            if(!mSentinel) {
+                                log.debug("Input is an expression operator");
+                                Schema.FieldSchema expOpFs = ((ExpressionOperator)expressionOperator).getFieldSchema();
+                                if(null != expOpFs) {
+                                    Schema s = expOpFs.schema;
+                                    if(null != s) {
+                                        mFieldSchema = s.getField(mProjection.get(0));
+                                    } else {
+                                        mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    }
+                                } else {
+                                    mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                }
+                            } else {
+                                log.debug("Input is a logical operator");
+                                   Schema s = expressionOperator.getSchema();
+                                log.debug("s: " + s);
+                                if(null != s) {
+                                    mFieldSchema = s.getField(mProjection.get(0));
+                                    log.debug("mFieldSchema alias: " + mFieldSchema.alias);
+                                    log.debug("mFieldSchema schema: " + mFieldSchema.schema);
+                                } else {
+                                    mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                }
+                            }
+                            mIsFieldSchemaComputed = true;
+                            return mFieldSchema;
+                        }
+                        
+                        for (int colNum : mProjection) {
+                            log.debug("Col: " + colNum);
+                            if(!mSentinel) {
+                                Schema.FieldSchema expOpFs = ((ExpressionOperator)expressionOperator).getFieldSchema();
+                                if(null != expOpFs) {
+                                    Schema s = expOpFs.schema;
+                                    if(null != s) {
+                                        fss.add(s.getField(colNum));
+                                    } else {
+                                        fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                    }
+                                } else {
+                                    fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                }
+                            } else {
+                                Schema s = expressionOperator.getSchema();
+                                if(null != s) {
+                                    fss.add(s.getField(colNum));
+                                } else {
+                                    fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                }
+                            }
+                        }
+    
+                    } else {
+                        log.warn("The input for a projection operator cannot be null");
+                        //fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                    }
+                } catch(ParseException pe) {
+                    mFieldSchema = null;
+                    mIsFieldSchemaComputed = false;
+                    throw new FrontendException(pe.getMessage());
+                }
+                mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), new Schema(fss));
+                mIsFieldSchemaComputed = true;
                 log.debug("mIsStar is false, returning computed field schema of expressionOperator");
             }
         }

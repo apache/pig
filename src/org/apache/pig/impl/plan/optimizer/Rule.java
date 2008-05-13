@@ -37,9 +37,9 @@ import org.apache.pig.impl.plan.OperatorPlan;
 public class Rule<O extends Operator, P extends OperatorPlan<O>> {
 
     public List<String> nodes;
-	public Map<Integer, Integer> edges;
-	public List<Boolean> required;
-	public Transformer<O, P> transformer;
+    public Map<Integer, Integer> edges;
+    public List<Boolean> required;
+    public Transformer<O, P> transformer;
 
     /**
      * @param nodes List of node types to look for.

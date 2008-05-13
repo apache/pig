@@ -36,113 +36,113 @@ import org.junit.Before;
 import junit.framework.TestCase;
 
 public class TestPONegative extends TestCase {
-	
-	DataBag bag = BagFactory.getInstance().newDefaultBag();
-	Random r = new Random();
-	TupleFactory tf = TupleFactory.getInstance();
-	final int MAX = 10;
-	
-	public void testPONegInt () throws PlanException, ExecException {
-		for(int i = 0; i < MAX; i++) {
-			Tuple t = tf.newTuple();
-			t.append(r.nextInt());
-			bag.add(t);
-		}
-		
-		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		prj.setResultType(DataType.INTEGER);
-		PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
-		pn.setResultType(DataType.INTEGER);
-		
-		ExprPlan plan = new ExprPlan();
-		plan.add(prj); plan.add(pn);
-		plan.connect(prj, pn);
-		
-		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
-			Tuple t = it.next();
-			plan.attachInput(t);
-			Integer expected = -(Integer)t.get(0);
-			int output = (Integer) pn.getNext(expected).result;
-			assertEquals(expected.intValue(), output);
-		}
-		
-	}
-	
-	public void testPONegLong () throws PlanException, ExecException {
-		for(int i = 0; i < MAX; i++) {
-			Tuple t = tf.newTuple();
-			t.append(r.nextLong());
-			bag.add(t);
-		}
-		
-		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		prj.setResultType(DataType.LONG);
-		PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
-		pn.setResultType(DataType.LONG);
-		
-		ExprPlan plan = new ExprPlan();
-		plan.add(prj); plan.add(pn);
-		plan.connect(prj, pn);
-		
-		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
-			Tuple t = it.next();
-			plan.attachInput(t);
-			Long expected = -(Long)t.get(0);
-			long output = (Long) pn.getNext(expected).result;
-			assertEquals(expected.longValue(), output);
-		}
-		
-	}
-	
-	public void testPONegDouble() throws PlanException, ExecException {
-		for(int i = 0; i < MAX; i++) {
-			Tuple t = tf.newTuple();
-			t.append(r.nextDouble());
-			bag.add(t);
-		}
-		
-		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		prj.setResultType(DataType.DOUBLE);
-		PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
-		pn.setResultType(DataType.DOUBLE);
-		
-		ExprPlan plan = new ExprPlan();
-		plan.add(prj); plan.add(pn);
-		plan.connect(prj, pn);
-		
-		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
-			Tuple t = it.next();
-			plan.attachInput(t);
-			Double expected = -(Double)t.get(0);
-			double output = (Double) pn.getNext(expected).result;
-			assertEquals(expected.doubleValue(), output);
-		}
-		
-	}
-	
-	public void testPONegFloat() throws PlanException, ExecException {
-		for(int i = 0; i < MAX; i++) {
-			Tuple t = tf.newTuple();
-			t.append(r.nextFloat());
-			bag.add(t);
-		}
-		
-		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		prj.setResultType(DataType.FLOAT);
-		PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
-		pn.setResultType(DataType.FLOAT);
-		
-		ExprPlan plan = new ExprPlan();
-		plan.add(prj); plan.add(pn);
-		plan.connect(prj, pn);
-		
-		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
-			Tuple t = it.next();
-			plan.attachInput(t);
-			Float expected = -(Float)t.get(0);
-			float output = (Float) pn.getNext(expected).result;
-			assertEquals(expected.floatValue(), output);
-		}
-		
-	}
+    
+    DataBag bag = BagFactory.getInstance().newDefaultBag();
+    Random r = new Random();
+    TupleFactory tf = TupleFactory.getInstance();
+    final int MAX = 10;
+    
+    public void testPONegInt () throws PlanException, ExecException {
+        for(int i = 0; i < MAX; i++) {
+            Tuple t = tf.newTuple();
+            t.append(r.nextInt());
+            bag.add(t);
+        }
+        
+        POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        prj.setResultType(DataType.INTEGER);
+        PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
+        pn.setResultType(DataType.INTEGER);
+        
+        ExprPlan plan = new ExprPlan();
+        plan.add(prj); plan.add(pn);
+        plan.connect(prj, pn);
+        
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+            Tuple t = it.next();
+            plan.attachInput(t);
+            Integer expected = -(Integer)t.get(0);
+            int output = (Integer) pn.getNext(expected).result;
+            assertEquals(expected.intValue(), output);
+        }
+        
+    }
+    
+    public void testPONegLong () throws PlanException, ExecException {
+        for(int i = 0; i < MAX; i++) {
+            Tuple t = tf.newTuple();
+            t.append(r.nextLong());
+            bag.add(t);
+        }
+        
+        POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        prj.setResultType(DataType.LONG);
+        PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
+        pn.setResultType(DataType.LONG);
+        
+        ExprPlan plan = new ExprPlan();
+        plan.add(prj); plan.add(pn);
+        plan.connect(prj, pn);
+        
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+            Tuple t = it.next();
+            plan.attachInput(t);
+            Long expected = -(Long)t.get(0);
+            long output = (Long) pn.getNext(expected).result;
+            assertEquals(expected.longValue(), output);
+        }
+        
+    }
+    
+    public void testPONegDouble() throws PlanException, ExecException {
+        for(int i = 0; i < MAX; i++) {
+            Tuple t = tf.newTuple();
+            t.append(r.nextDouble());
+            bag.add(t);
+        }
+        
+        POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        prj.setResultType(DataType.DOUBLE);
+        PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
+        pn.setResultType(DataType.DOUBLE);
+        
+        ExprPlan plan = new ExprPlan();
+        plan.add(prj); plan.add(pn);
+        plan.connect(prj, pn);
+        
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+            Tuple t = it.next();
+            plan.attachInput(t);
+            Double expected = -(Double)t.get(0);
+            double output = (Double) pn.getNext(expected).result;
+            assertEquals(expected.doubleValue(), output);
+        }
+        
+    }
+    
+    public void testPONegFloat() throws PlanException, ExecException {
+        for(int i = 0; i < MAX; i++) {
+            Tuple t = tf.newTuple();
+            t.append(r.nextFloat());
+            bag.add(t);
+        }
+        
+        POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        prj.setResultType(DataType.FLOAT);
+        PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
+        pn.setResultType(DataType.FLOAT);
+        
+        ExprPlan plan = new ExprPlan();
+        plan.add(prj); plan.add(pn);
+        plan.connect(prj, pn);
+        
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+            Tuple t = it.next();
+            plan.attachInput(t);
+            Float expected = -(Float)t.get(0);
+            float output = (Float) pn.getNext(expected).result;
+            assertEquals(expected.floatValue(), output);
+        }
+        
+    }
 }

@@ -38,26 +38,26 @@ public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>>
         super(plan, walker);
     }
 
-	/**
-	 * check if the transform should be done.  If this is being called then
-	 * the pattern matches, but there may be other criteria that must be met
-	 * as well.
-	 * @param nodes - List of nodes declared in transform ($1 = nodes[0],
-	 * etc.)  Remember that somes entries in node[] may be NULL since they may
-	 * not be created until after the transform.
-	 * @returns - true if the transform should be done.
-	 */
-	public abstract boolean check(List<O> nodes);
+    /**
+     * check if the transform should be done.  If this is being called then
+     * the pattern matches, but there may be other criteria that must be met
+     * as well.
+     * @param nodes - List of nodes declared in transform ($1 = nodes[0],
+     * etc.)  Remember that somes entries in node[] may be NULL since they may
+     * not be created until after the transform.
+     * @returns - true if the transform should be done.
+     */
+    public abstract boolean check(List<O> nodes);
 
-	/**
-	 * Transform the tree
-	 * @param nodes - List of nodes declared in transform ($1 = nodes[0],
-	 * etc.)  This call must destruct any nodes that are being removed as part
-	 * of the transform and remove them from the nodes vector and construct
-	 * any that are being created as part of the transform and add them at the
-	 * appropriate point to the nodes vector.
-	 */
-	public abstract void transform(List<O> nodes);
+    /**
+     * Transform the tree
+     * @param nodes - List of nodes declared in transform ($1 = nodes[0],
+     * etc.)  This call must destruct any nodes that are being removed as part
+     * of the transform and remove them from the nodes vector and construct
+     * any that are being created as part of the transform and add them at the
+     * appropriate point to the nodes vector.
+     */
+    public abstract void transform(List<O> nodes);
 
 }
 

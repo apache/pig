@@ -31,7 +31,7 @@ public class LOUnion extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
     private ArrayList<LogicalOperator> mInputs;
-	private static Log log = LogFactory.getLog(LOUnion.class);
+    private static Log log = LogFactory.getLog(LOUnion.class);
 
     /**
      * @param plan
@@ -59,26 +59,26 @@ public class LOUnion extends LogicalOperator {
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
-			log.debug("Number of predecessors in the graph: " + s.size());
+            log.debug("Number of predecessors in the graph: " + s.size());
             try {
-				Iterator<LogicalOperator> iter = s.iterator();
+                Iterator<LogicalOperator> iter = s.iterator();
                 LogicalOperator op = iter.next();
                 if (null == op) {
                     log.debug("getSchema: Operator not in plan");
                     throw new FrontendException("Could not find operator in plan");
                 }
                 mSchema = op.getSchema();
-				log.debug("Printing aliases");
-				mSchema.printAliases();
-				while(iter.hasNext()) {
-                	op = iter.next();
-					if(null == mSchema) {
-						log.debug("Schema is null, cannot perform schema merge");
-						throw new FrontendException("Schema is null, cannot perform schema merge");
-					}
-					mSchema = mSchema.merge(op.getSchema(), false);
-				}
-				mIsSchemaComputed = true;
+                log.debug("Printing aliases");
+                mSchema.printAliases();
+                while(iter.hasNext()) {
+                    op = iter.next();
+                    if(null == mSchema) {
+                        log.debug("Schema is null, cannot perform schema merge");
+                        throw new FrontendException("Schema is null, cannot perform schema merge");
+                    }
+                    mSchema = mSchema.merge(op.getSchema(), false);
+                }
+                mIsSchemaComputed = true;
             } catch (FrontendException fe) {
                 mSchema = null;
                 mIsSchemaComputed = false;

@@ -694,12 +694,12 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         }
     } 
 
-	@Test
+    @Test
     public void testQueryFail17(){
         buildPlan("a = load 'a' as (url, host, rank);");
         buildPlan("b = group a by url; ");
         try {
-        	LogicalPlan lp = buildPlan("c = foreach b generate group.url;");
+            LogicalPlan lp = buildPlan("c = foreach b generate group.url;");
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
@@ -713,7 +713,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         //buildPlan("b = group a by 2*3;");
         //String query = "d = foreach b generate group;";
         buildPlan(query);
-		buildPlan("e = foreach a generate name, details;");
+        buildPlan("e = foreach a generate name, details;");
     }
 
     @Test
@@ -723,15 +723,15 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("b = group a by details;");
         String query = "d = foreach b generate group.age;";
         buildPlan(query);
-		buildPlan("e = foreach a generate name, details;");
-		buildPlan("f = LOAD 'myfile' AS (garage: bag{num_tools: integer}, links: bag{websites: chararray}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray), bag_of_unknown: bag{}});");
+        buildPlan("e = foreach a generate name, details;");
+        buildPlan("f = LOAD 'myfile' AS (garage: bag{num_tools: integer}, links: bag{websites: chararray}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray), bag_of_unknown: bag{}});");
     }
 
     @Test
     public void testQueryFail18() {
         String query = "foreach (load 'myfile' as (col1, col2 : (sub1, sub2), col3 : (bag1))) generate col1 ;";
         try {
-        	buildPlan(query);
+            buildPlan(query);
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
@@ -744,7 +744,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         String query = "c = cross a,b;";
         buildPlan(query);
         try {
-        	buildPlan("d = order c by name, b::name, height, a::gpa;");
+            buildPlan("d = order c by name, b::name, height, a::gpa;");
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
@@ -783,7 +783,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             
             //Just the top level roots and their children
             //Need a recursive one to travel down the tree
-			/*
+            /*
             for(LogicalOperator op: lp.getRoots()) {
                 System.err.println("Logical Plan Root: " + op.getClass().getName() + " object " + op);    
 
@@ -797,7 +797,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
                     }
                 }
             }
-			*/
+            */
             assertTrue(lp != null);
             return lp;
         } catch (IOException e) {
