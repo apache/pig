@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POBinCond;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.EqualToExpr;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.GTOrEqualToExpr;
@@ -35,6 +36,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LTOrEqualToExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.LessThanExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.unaryExprOps.PONegative;
 import org.apache.pig.impl.plan.PlanWalker;
 
 /**
@@ -104,5 +106,15 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
     public void visitMod(Mod mod) {
         //do nothing
     }
+
+	public void visitBinCond(POBinCond binCond) {
+		// do nothing
+		
+	}
+
+	public void visitNegative(PONegative negative) {
+		//do nothing
+		
+	}
 
 }
