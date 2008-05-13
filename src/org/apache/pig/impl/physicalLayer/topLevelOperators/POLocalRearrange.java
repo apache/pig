@@ -40,6 +40,11 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
     private Log log = LogFactory.getLog(getClass());
 
     PhysicalPlan<PhysicalOperator> plan;
@@ -53,6 +58,8 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
     //as the generate can potentially return multiple tuples for
     //same call.
     private boolean processingPlan = false;
+    
+    byte keyType;
 
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -190,5 +197,13 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
     public void setPlan(PhysicalPlan<PhysicalOperator> plan) {
         this.plan = plan;
         gen = (POGenerate) plan.getLeaves().get(0);
+    }
+
+    public byte getKeyType() {
+        return keyType;
+    }
+
+    public void setKeyType(byte keyType) {
+        this.keyType = keyType;
     }
 }

@@ -245,4 +245,8 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 		v.visitSort(this);
 	}
 
+    public List<ExprPlan> getSortPlans() {
+        return sortPlans;
+    }
+
 }

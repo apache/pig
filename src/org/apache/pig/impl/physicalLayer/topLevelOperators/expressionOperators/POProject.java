@@ -17,21 +17,20 @@
  */
 package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+/*import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;*/
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * Implements the overloaded form of the project operator.
@@ -42,7 +41,12 @@ import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
  */
 public class POProject extends ExpressionOperator {
     
-    private Log log = LogFactory.getLog(getClass());
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+//    private Log log = LogFactory.getLog(getClass());
     
     //The column to project
     int column = 0;
@@ -116,12 +120,7 @@ public class POProject extends ExpressionOperator {
         if(res.returnStatus != POStatus.STATUS_OK){
             return res;
         }
-        try {
-            res.result = ((Tuple)res.result).get(column);
-        } catch (ExecException e) {
-            res.returnStatus = POStatus.STATUS_ERR;
-            log.warn(e.getMessage());
-        }
+        res.result = ((Tuple)res.result).get(column);
         return res;
     }
 
@@ -188,24 +187,19 @@ public class POProject extends ExpressionOperator {
             inpValue = (Tuple)res.result;
             res.result = null;
             
-            try {
-                Object ret = inpValue.get(column);
-                if(overloaded){
-                    DataBag retBag = (DataBag)ret;
-                    bagIterator = retBag.iterator();
-                    if(bagIterator.hasNext()){
-                        processingBagOfTuples = true;
-                        res.result = bagIterator.next();
-                    }
+            Object ret = inpValue.get(column);
+            if(overloaded){
+                DataBag retBag = (DataBag)ret;
+                bagIterator = retBag.iterator();
+                if(bagIterator.hasNext()){
+                    processingBagOfTuples = true;
+                    res.result = bagIterator.next();
                 }
-                else {
-                    res.result = (Tuple)ret;
-                }
-                return res;
-            } catch (ExecException e) {
-                res.returnStatus = POStatus.STATUS_ERR;
-                log.error(e.getMessage());
             }
+            else {
+                res.result = (Tuple)ret;
+            }
+            return res;
         }
         if(bagIterator.hasNext()){
             res.result = bagIterator.next();

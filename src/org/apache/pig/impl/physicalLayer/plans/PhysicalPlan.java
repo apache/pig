@@ -17,6 +17,8 @@
  */
 package org.apache.pig.impl.physicalLayer.plans;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -24,6 +26,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * 
@@ -33,6 +36,11 @@ import org.apache.pig.impl.plan.PlanException;
  * @param <E>
  */
 public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     public PhysicalPlan() {
         super();
@@ -50,8 +58,18 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
      * @param out : OutputStream to which the visual representation is written
      */
     public void explain(OutputStream out){
-        //Use a plan visitor and output the current physical
-        //plan into out
+        PlanPrinter<E, PhysicalPlan<E>> mpp = new PlanPrinter<E, PhysicalPlan<E>>(
+                this);
+
+        try {
+            mpp.print(out);
+        } catch (VisitorException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
     
     @Override
@@ -60,4 +78,47 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
         super.connect(from, to);
         to.setInputs(getPredecessors(to));
     }
+    
+    /*public void connect(List<E> from, E to) throws IOException{
+        if(!to.supportsMultipleInputs()){
+            throw new IOException("Invalid Operation on " + to.name() + ". It doesn't support multiple inputs.");
+        }
+        
+    }*/
+    
+    @Override
+    public void remove(E op) {
+        op.setInputs(null);
+        List<E> sucs = getSuccessors(op);
+        if(sucs!=null && sucs.size()!=0){
+            for (E suc : sucs) {
+                suc.setInputs(null);
+            }
+        }
+        super.remove(op);
+    }
+
+    public boolean isEmpty() {
+        return (mOps.size() == 0);
+    }
+
+    @Override
+    public String toString() {
+        if(isEmpty())
+            return "Empty Plan!";
+        else{
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            explain(baos);
+            return baos.toString();
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        // TODO Auto-generated method stub
+        return super.equals(obj);
+    }
+    
+    
+    
 }

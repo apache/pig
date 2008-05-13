@@ -28,7 +28,7 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 /**
  * Base class for all types of operators.
  */
-abstract public class Operator<V extends PlanVisitor> implements Serializable {
+abstract public class Operator<V extends PlanVisitor> implements Serializable, Comparable<Operator> {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -87,4 +87,36 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable {
 
         return msg.toString();
     }
+    
+    /**
+     * Compares to Operators based on their opKey
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Operator){
+            Operator opObj = (Operator)obj;
+            if(obj==this)
+                return true;
+            return mKey.equals(opObj);
+        }
+        return false;
+    }
+    
+    /**
+     * Needed to ensure that the list iterators'
+     * outputs are deterministic. Without this
+     * we are totally at object id's mercy.
+     */
+    @Override
+    public int hashCode() {
+        return mKey.hashCode();
+    }
+
+    public int compareTo(Operator o) {
+        return mKey.compareTo(o.mKey);
+    }
+    
+    
+    
+    
 }

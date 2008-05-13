@@ -38,6 +38,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.NotEqualToExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.unaryExprOps.PONegative;
 import org.apache.pig.impl.plan.PlanWalker;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * The visitor to be used for visiting expression plans.
@@ -50,60 +51,60 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
     private final Log log = LogFactory.getLog(getClass());
     
     public ExprPlanVisitor(ExprPlan plan,
-                           PlanWalker<ExpressionOperator, ExprPlan> walker) {
+            PlanWalker<ExpressionOperator, ExprPlan> walker) {
         super(plan, walker);
         // TODO Auto-generated constructor stub
     }
     
-    public void visitConstant(ConstantExpression cnst){
+    public void visitConstant(ConstantExpression cnst) throws VisitorException{
         //do nothing
     }
     
-    public void visitProject(POProject proj){
+    public void visitProject(POProject proj) throws VisitorException{
         //do nothing
     }
     
-    public void visitGreaterThan(GreaterThanExpr grt){
+    public void visitGreaterThan(GreaterThanExpr grt) throws VisitorException{
         //do nothing
     }
     
-    public void visitLessThan(LessThanExpr lt){
+    public void visitLessThan(LessThanExpr lt) throws VisitorException{
         //do nothing
     }
     
-    public void visitGTOrEqual(GTOrEqualToExpr gte){
+    public void visitGTOrEqual(GTOrEqualToExpr gte) throws VisitorException{
         //do nothing
     }
     
-    public void visiLTOrEqual(LTOrEqualToExpr lte){
+    public void visiLTOrEqual(LTOrEqualToExpr lte) throws VisitorException{
         //do nothing
     }
     
-    public void visitEqualTo(EqualToExpr eq){
+    public void visitEqualTo(EqualToExpr eq) throws VisitorException{
         //do nothing
     }
     
-    public void visitNotEqualTo(NotEqualToExpr eq){
+    public void visitNotEqualTo(NotEqualToExpr eq) throws VisitorException{
         //do nothing
     }
     
-    public void visitAdd(Add add) {
+    public void visitAdd(Add add) throws VisitorException{
         //do nothing
     }
     
-    public void visitSubtract(Subtract sub) {
+    public void visitSubtract(Subtract sub) throws VisitorException {
         //do nothing
     }
     
-    public void visitMultiply(Multiply mul) {
+    public void visitMultiply(Multiply mul) throws VisitorException {
         //do nothing
     }
     
-    public void visitDivide(Divide dv) {
+    public void visitDivide(Divide dv) throws VisitorException {
         //do nothing
     }
     
-    public void visitMod(Mod mod) {
+    public void visitMod(Mod mod) throws VisitorException {
         //do nothing
     }
 

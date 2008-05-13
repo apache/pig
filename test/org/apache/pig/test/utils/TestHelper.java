@@ -17,13 +17,24 @@
  */
 package org.apache.pig.test.utils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
+import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.Result;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 
 /**
  * Will contain static methods that will be useful
@@ -31,6 +42,7 @@ import org.apache.pig.data.Tuple;
  *
  */
 public class TestHelper {
+    public static int dispAfterNumTuples = 1000;
     public static boolean bagContains(DataBag db, Tuple t) {
         Iterator<Tuple> iter = db.iterator();
         for (Tuple tuple : db) {
@@ -43,7 +55,8 @@ public class TestHelper {
     public static boolean compareBags(DataBag db1, DataBag db2) {
         if (db1.size() != db2.size())
             return false;
-
+        
+        int i=-1;
         boolean equal = true;
         for (Tuple tuple : db2) {
             boolean contains = false;
@@ -57,6 +70,8 @@ public class TestHelper {
                 equal = false;
                 break;
             }
+            /*if(++i%dispAfterNumTuples==0)
+                System.out.println(i/dispAfterNumTuples);*/
         }
         return equal;
     }
@@ -68,6 +83,131 @@ public class TestHelper {
             Tuple t1 = new DefaultTuple();
             t1.append(o);
             ret.add(t1);
+        }
+        return ret;
+    }
+    
+    public static DataBag projectBag(DataBag db2, int[] fields) throws ExecException {
+        DataBag ret = DefaultBagFactory.getInstance().newDefaultBag();
+        for (Tuple tuple : db2) {
+            Tuple t1 = new DefaultTuple();
+            for (int fld : fields) {
+                Object o = tuple.get(fld);
+                t1.append(o);
+            }
+            ret.add(t1);
+        }
+        return ret;
+    }
+    
+    public static int compareInputStreams(InputStream exp, InputStream act) throws IOException{
+        byte[] bExp = new byte[4096], bAct = new byte[4096];
+        
+        int outLen,inLen = -1;
+        while(act.read(bAct)!=-1){
+            exp.read(bExp);
+            int cmp = compareByteArray(bExp, bAct);
+            if(cmp!=0)
+                return cmp;
+        }
+        return 0;
+    }
+    
+    public static int compareByteArray(byte[] b1, byte[] b2){
+        if(b1.length>b2.length)
+            return 1;
+        else if(b1.length<b2.length)
+            return -1;
+        for(int i=0;i<b1.length;i++){
+            if(b1[i]>b2[i])
+                return 1;
+            else if(b1[i]<b2[i])
+                return -1;
+        }
+        return 0;
+    }
+    
+    /*public static boolean areFilesSame(FileSpec expLocal, FileSpec actHadoop, PigContext pc, int dispAftNumTuples) throws ExecException, IOException{
+        Random r = new Random();
+        
+        POLoad ldExp = new POLoad(new OperatorKey("", r.nextLong()));
+        ldExp.setPc(pc);
+        ldExp.setLFile(expLocal);
+        
+        POLoad ldAct = new POLoad(new OperatorKey("", r.nextLong()));
+        ldAct.setPc(pc);
+        ldAct.setLFile(actHadoop);
+        
+        Tuple t = null;
+        int numActTuples = -1;
+        boolean matches = true;
+        for(Result resAct=ldAct.getNext(t);resAct.returnStatus!=POStatus.STATUS_EOP;resAct=ldAct.getNext(t)){
+            Tuple tupAct = (Tuple)resAct.result;
+            ++numActTuples;
+            boolean found = false;
+            for(Result resExp=ldExp.getNext(t);resExp.returnStatus!=POStatus.STATUS_EOP;resExp=ldExp.getNext(t)){
+                Tuple tupExp = (Tuple)resExp.result;
+                if(tupAct.compareTo(tupExp)==0){
+                    found = true;
+                    ldExp.tearDown();
+                    break;
+                }
+            }
+            if(!found){
+                matches = false;
+                break;
+            }
+            if(numActTuples%dispAftNumTuples ==0)
+                System.out.println(numActTuples/dispAftNumTuples);
+        }
+        
+        int numExpTuples = -1;
+        while(ldExp.getNext(t).returnStatus!=POStatus.STATUS_EOP)
+            ++numExpTuples;
+        
+        return (matches && numActTuples==numExpTuples);
+    }*/
+    
+    public static boolean areFilesSame(FileSpec expLocal, FileSpec actHadoop, PigContext pc) throws ExecException, IOException{
+        Random r = new Random();
+        
+        POLoad ldExp = new POLoad(new OperatorKey("", r.nextLong()));
+        ldExp.setPc(pc);
+        ldExp.setLFile(expLocal);
+        
+        POLoad ldAct = new POLoad(new OperatorKey("", r.nextLong()));
+        ldAct.setPc(pc);
+        ldAct.setLFile(actHadoop);
+        
+        Tuple t = null;
+        int numActTuples = -1;
+        DataBag bagAct = DefaultBagFactory.getInstance().newDefaultBag();
+        Result resAct = null;
+        while((resAct = ldAct.getNext(t)).returnStatus!=POStatus.STATUS_EOP){
+            ++numActTuples;
+            bagAct.add(trimTuple((Tuple)resAct.result));
+        }
+        
+        int numExpTuples = -1;
+        DataBag bagExp = DefaultBagFactory.getInstance().newDefaultBag();
+        Result resExp = null;
+        while((resExp = ldExp.getNext(t)).returnStatus!=POStatus.STATUS_EOP){
+            ++numExpTuples;
+            bagExp.add(trimTuple((Tuple)resExp.result));
+        }
+        
+        if(numActTuples!=numExpTuples)
+            return false;
+        
+        return compareBags(bagExp, bagAct);
+    }
+    
+    private static Tuple trimTuple(Tuple t){
+        Tuple ret = TupleFactory.getInstance().newTuple();
+        for (Object o : t.getAll()) {
+            DataByteArray dba = (DataByteArray)o;
+            DataByteArray nDba = new DataByteArray(dba.toString().trim().getBytes());
+            ret.append(nDba);
         }
         return ret;
     }

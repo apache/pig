@@ -17,10 +17,7 @@
  */
 package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators;
 
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.physicalLayer.POStatus;
-import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.BinaryExpressionOperator;
 
 /**

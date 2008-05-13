@@ -27,11 +27,11 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.Operator;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
@@ -62,7 +62,7 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
 
     private Log log = LogFactory.getLog(getClass());
 
-    static final long serialVersionUID = 1L;
+    protected static final long serialVersionUID = 1L;
 
     // The degree of parallelism requested
     protected int requestedParallelism;
@@ -199,7 +199,7 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
     public Result processInput() throws ExecException {
         Result res = new Result();
         Tuple inpValue = null;
-        if (input == null && inputs == null) {
+        if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
             return res;
@@ -213,8 +213,8 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
             return res;
         }
     }
-    
-    public abstract void visit(V v) throws VisitorException ;
+
+    public abstract void visit(V v) throws VisitorException;
 
     public Result getNext(Integer i) throws ExecException {
         return res;

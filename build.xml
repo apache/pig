@@ -40,7 +40,7 @@
     <property name="dist.dir" value="${build.dir}/${final.name}" />
     <property name="build.encoding" value="ISO-8859-1" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
-    <property name="hadoop.jarfile" value="hadoop15.jar" />
+    <property name="hadoop.jarfile" value="hadoop16.jar" />
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
@@ -68,7 +68,7 @@
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
-        <fileset file="${lib.dir}/hadoop15.jar" />
+        <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/javacc.jar" />
         <fileset file="${lib.dir}/jsch-0.1.33.jar" />
         <fileset file="${lib.dir}/junit-4.1.jar" />
@@ -144,12 +144,13 @@
                  **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
         		**/test/TestLocalRearrange.java, **/test/TestPOUserFunc.java,
         		**/test/TestPODistinct.java, **/test/TestPOSort.java,
-        		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,
-                **/test/FakeFSInputStream.java, **/test/Util.java,
+        		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,**/test/TestUnion.java, **/test/TestMRCompiler.java,
+                **/test/FakeFSInputStream.java, **/test/Util.java, **/test/TestJobSubmission.java,
+        		**/test/TestLocalJobSubmission.java,
                 **/logicalLayer/*.java, **/logicalLayer/parser/NodeIdGenerator.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
-                **/physicalLayer/Result.java,
+                **/physicalLayer/Result.java, **/mapReduceLayer/**/*.java, 
                 **/physicalLayer/POStatus.java, **/bzip2r/*.java,
                 **/validators/*.java , **/test/TestInputOutputFileValidator.java ,
 				**/test/TestTypeCheckingValidator.java, 
@@ -261,11 +262,16 @@
                 	<include name="**/TestStore.java" />
                 	<include name="**/TestPackage.java" />  
                 	<include name="**/TestLocalRearrange.java" /> 
-                	<include name="**/TestForEach.java" /> 
+                	<include name="**/TestForEach.java" />
+					<include name="**/TestUnion.java" /> 
+                	<include name="**/TestMRCompiler.java" /> 
+                	<include name="**/TestJobSubmission.java" /> 
                 	<include name="**/TestInputOutputFileValidator.java" /> 
                 	<include name="**/TestTypeCheckingValidator.java" /> 
                 	<include name="**/TestSchema.java" /> 
-                	<include name="**/TestLogicalPlanBuilder.java" /> 
+                	<include name="**/TestLogicalPlanBuilder.java" />
+                	<include name="**/TestLocalJobSubmission.java" />
+                	
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

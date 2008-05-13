@@ -25,12 +25,12 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.ComparisonOperator;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * This is an implementation of the Filter operator. It has an Expression Plan
@@ -44,6 +44,11 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.b
  * 
  */
 public class POFilter extends PhysicalOperator<PhyPlanVisitor> {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     private Log log = LogFactory.getLog(getClass());
 

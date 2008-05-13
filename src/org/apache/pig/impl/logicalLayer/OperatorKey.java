@@ -22,7 +22,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.io.Serializable;
 
-public class OperatorKey implements Serializable {
+public class OperatorKey implements Serializable, Comparable<OperatorKey> {
     private static final long serialVersionUID = 1L;
     
     public String scope;
@@ -65,5 +65,19 @@ public class OperatorKey implements Serializable {
     
     public long getId() {
         return id;
+    }
+
+    public int compareTo(OperatorKey o) {
+        int scCmp = scope.compareTo(o.scope);
+        if(scCmp!=0)
+            return scCmp;
+        else{
+            if(id>o.id)
+                return 1;
+            else if(id==o.id)
+                return 0;
+            else
+                return -1;
+        }
     }
 }

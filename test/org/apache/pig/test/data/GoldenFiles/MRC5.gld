@@ -1,0 +1,13 @@
+MapReduce - MRCompiler-30:
+Reduce Plan Empty
+|   Store(DummyFil:DummyLdr) - -340188275237520979
+|   |
+|   |---Union - --1008013035164995818
+|       |
+|       |---Filter - -2626971498845605352
+|       |   |
+|       |   |---Load(DummyFil:DummyLdr) - -3900012572437255236
+|       |
+|       |---Filter - -8760996681222683693
+|           |
+|           |---Load(DummyFil:DummyLdr) - -7391599663069134339

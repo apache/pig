@@ -23,9 +23,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -48,6 +47,11 @@ import org.apache.pig.impl.plan.VisitorException;
  * bags based on the index.
  */
 public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
     //The iterator of indexed Tuples
     //that is typically provided by
     //Hadoop
@@ -55,6 +59,9 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
     
     //The key being worked on
     Object key;
+    
+    //key's type
+    byte keyType;
 
     //The number of inputs to this
     //co-group
@@ -145,6 +152,7 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
+        //Should be removed once we start integration/perf testing
         if(indTupIter==null){
             throw new ExecException("Incorrect usage of the Package operator. " +
                     "No input has been attached.");
@@ -153,7 +161,7 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
         //Create numInputs bags
         DataBag[] dbs = new DataBag[numInputs];
         for (int i = 0; i < numInputs; i++) {
-            dbs[i] = DefaultBagFactory.getInstance().newDefaultBag();
+            dbs[i] = BagFactory.getInstance().newDefaultBag();
         }
         
         //For each indexed tup in the inp, sort them
@@ -168,24 +176,19 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
         //the key and all the above constructed bags
         //and return it.
         Tuple res;
-        try{
-            res = TupleFactory.getInstance().newTuple(numInputs+1);
-            res.set(0,key);
-            int i=-1;
-            for (DataBag bag : dbs) {
-                if(inner[++i]){
-                    if(bag.size()==0){
-                        detachInput();
-                        Result r = new Result();
-                        r.returnStatus = POStatus.STATUS_NULL;
-                        return r;
-                    }
+        res = TupleFactory.getInstance().newTuple(numInputs+1);
+        res.set(0,key);
+        int i=-1;
+        for (DataBag bag : dbs) {
+            if(inner[++i]){
+                if(bag.size()==0){
+                    detachInput();
+                    Result r = new Result();
+                    r.returnStatus = POStatus.STATUS_NULL;
+                    return r;
                 }
-                res.set(i+1,bag);
             }
-        }catch(ExecException e){
-            log.error("Received error while constructing the output tuple");
-            return new Result();
+            res.set(i+1,bag);
         }
         detachInput();
         Result r = new Result();
@@ -194,7 +197,11 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
         return r;
     }
 
+    public byte getKeyType() {
+        return keyType;
+    }
 
-
-    
+    public void setKeyType(byte keyType) {
+        this.keyType = keyType;
+    }
 }

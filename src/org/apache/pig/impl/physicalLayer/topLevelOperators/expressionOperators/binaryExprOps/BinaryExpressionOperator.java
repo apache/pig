@@ -28,6 +28,8 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.E
  *
  */
 public abstract class BinaryExpressionOperator extends ExpressionOperator {
+    private static final long serialVersionUID = 1L;
+    
     protected ExpressionOperator lhs;
     protected ExpressionOperator rhs;
     

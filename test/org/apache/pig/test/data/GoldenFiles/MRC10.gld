@@ -1,0 +1,57 @@
+MapReduce - MRCompiler-68:
+Reduce Plan Empty
+|   Store(DummyFil:DummyLdr) - --2325244147060806375
+|   |
+|   |---Union - --8240903279973257769
+|       |
+|       |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-69
+|       |
+|       |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-71
+|
+|---MapReduce - MRCompiler-60:
+|   |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-70
+|   |   |
+|   |   |---Package - --6957591191795645940
+|   |   Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-61
+|   |   
+|   |   Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-63
+|   |
+|   |---MapReduce - MRCompiler-58:
+|   |   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-62
+|   |   |   |
+|   |   |   |---Local Rearrange - --5190071275724378681
+|   |   |       |
+|   |   |       |---Package - --1158897849427419546
+|   |   |   Local Rearrange - --2057425961601007773
+|   |   |   |
+|   |   |   |---Filter - --1963949992380707373
+|   |   |       |
+|   |   |       |---Load(DummyFil:DummyLdr) - --8361563503038121624
+|   |
+|   |---MapReduce - MRCompiler-59:
+|       |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-64
+|       |   |
+|       |   |---Local Rearrange - -580704905698185869
+|       |       |
+|       |       |---Package - --5758282087831209061
+|       |   Local Rearrange - --6061281703859425960
+|       |   |
+|       |   |---Load(DummyFil:DummyLdr) - -5515425171581967372
+|
+|---MapReduce - MRCompiler-67:
+    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-72
+    |   |
+    |   |---Filter - --1194577301115518934
+    |       |
+    |       |---Package - --8027742474430787324
+    |   Union - MapReduceOper-3
+    |   |
+    |   |---Local Rearrange - --5768272326302808468
+    |   |   |
+    |   |   |---Load(DummyFil:DummyLdr) - -6435233330554227045
+    |   |
+    |   |---Local Rearrange - --2829086180578157275
+    |       |
+    |       |---Filter - --5371705948522929752
+    |           |
+    |           |---Load(DummyFil:DummyLdr) - --4168060277593001906

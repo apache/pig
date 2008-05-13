@@ -44,6 +44,10 @@ import org.apache.pig.impl.plan.VisitorException;
  *
  */
 public class POStore extends PhysicalOperator<PhyPlanVisitor> {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
     private StoreFunc storer;
     // The filespec on which the operator is based
@@ -153,7 +157,10 @@ public class POStore extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Store - " + mKey.toString();
+        if(sFile!=null)
+            return "Store" + "(" + sFile.toString() + ")" + " - " + mKey.toString();
+        else
+            return "Store" + "(" + "DummyFil:DummyLdr" + ")" + " - " + mKey.toString();
     }
 
     @Override

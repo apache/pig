@@ -41,6 +41,11 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
     private Log log = LogFactory.getLog(getClass());
 
     PhysicalPlan<PhysicalOperator> plan;
@@ -116,14 +121,14 @@ public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
                 if(res.returnStatus==POStatus.STATUS_OK){
                     return res;
                 }
-                if(res.returnStatus==POStatus.STATUS_ERR)
-                    return res;
-                if(res.returnStatus==POStatus.STATUS_NULL)
-                    continue;
                 if(res.returnStatus==POStatus.STATUS_EOP){
                     processingPlan = false;
                     break;
                 }
+                if(res.returnStatus==POStatus.STATUS_ERR)
+                    return res;
+                if(res.returnStatus==POStatus.STATUS_NULL)
+                    continue;
             }
         }
         //The nested plan processing is done or is
@@ -133,15 +138,16 @@ public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
         while (true) {
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
-                break;
+                return inp;
             if (inp.returnStatus == POStatus.STATUS_NULL)
                 continue;
             
             plan.attachInput((Tuple) inp.result);
             
             res = gen.getNext(t);
+            
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
-                break;
+                return inp;
             if(inp.returnStatus == POStatus.STATUS_NULL)
                 continue;
             
@@ -149,7 +155,6 @@ public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
             
             return res;
         }
-        return inp;
     }
 
     public PhysicalPlan<PhysicalOperator> getPlan() {

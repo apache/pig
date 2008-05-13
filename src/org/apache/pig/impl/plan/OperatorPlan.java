@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.commons.logging.Log;
@@ -261,7 +262,83 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         }
     }
     
-    public boolean isSingleLeafPlan() {
+    /**
+     * Merges the operators in the incoming operPlan with
+     * this plan's operators. By merging I mean just making
+     * a combined graph with each one as a component
+     * It doesn't support merging of shared plans
+     * @param inpPlan
+     * @return
+     * @throws PlanException
+     */
+    public OperatorPlan<E> merge(OperatorPlan<E> inpPlan) throws PlanException {
+        Map<E, OperatorKey> inpOps = inpPlan.mOps;
+        Set<E> curOpsKeySet = mOps.keySet();
+        for (Map.Entry<E, OperatorKey> mapEnt : inpOps.entrySet()) {
+            if (curOpsKeySet.contains(mapEnt.getKey()))
+                throw new PlanException(
+                        "There are operators that are shared across the plans. Merge of "
+                                + "mutually exclusive plans is the only supported merge.");
+            mOps.put(mapEnt.getKey(), mapEnt.getValue());
+        }
+
+        Map<OperatorKey, E> inpKeys = inpPlan.mKeys;
+        Set<OperatorKey> curOKKeySet = mKeys.keySet();
+        for (Map.Entry<OperatorKey, E> mapEnt : inpKeys.entrySet()) {
+            if (curOKKeySet.contains(mapEnt.getKey()))
+                throw new PlanException(
+                        "There are operators that are shared across the plans. Merge of "
+                                + "mutually exclusive plans is the only supported merge.");
+            mKeys.put(mapEnt.getKey(), mapEnt.getValue());
+        }
+
+        MultiMap<E, E> inpFromEdges = inpPlan.mFromEdges;
+        Set<E> curFEKeySet = mFromEdges.keySet();
+        for (E fromEdg : inpFromEdges.keySet()) {
+            if (curFEKeySet.contains(fromEdg))
+                throw new PlanException(
+                        "There are operators that are shared across the plans. Merge of "
+                                + "mutually exclusive plans is the only supported merge.");
+            for (E e : inpFromEdges.get(fromEdg)) {
+                mFromEdges.put(fromEdg, e);
+            }
+        }
+
+        MultiMap<E, E> inpToEdges = inpPlan.mToEdges;
+        Set<E> curTEKeySet = mToEdges.keySet();
+        for (E toEdg : inpToEdges.keySet()) {
+            if (curTEKeySet.contains(toEdg))
+                throw new PlanException(
+                        "There are operators that are shared across the plans. Merge of "
+                                + "mutually exclusive plans is the only supported merge.");
+            for (E e : inpToEdges.get(toEdg)) {
+                mToEdges.put(toEdg, e);
+            }
+        }
+
+        markDirty();
+        return this;
+    }
+    
+    /**
+     * Utility method heavily used in the MRCompiler
+     * Adds the leaf operator to the plan and connects
+     * all existing leaves to the new leaf
+     * @param leaf
+     * @throws PlanException 
+     */
+    public void addAsLeaf(E leaf) throws PlanException {
+        List<E> ret = new ArrayList<E>();
+        for (E operator : getLeaves()) {
+            ret.add(operator);
+        }
+        add(leaf);
+        for (E oper : ret) {
+            connect(oper, leaf);
+        }
+    }
+	
+	public boolean isSingleLeafPlan() {
         List<E> tmpList = getLeaves() ;
         return tmpList.size() == 1 ;
     }

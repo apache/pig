@@ -19,9 +19,9 @@ package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators;
 
 
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * A base class for all types of expressions. All expression
@@ -30,6 +30,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
  */
 
 public abstract class ExpressionOperator extends PhysicalOperator<ExprPlanVisitor> {
+    private static final long serialVersionUID = 1L;
     
     public ExpressionOperator(OperatorKey k) {
         this(k,-1);

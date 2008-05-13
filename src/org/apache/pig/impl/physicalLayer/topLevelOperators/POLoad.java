@@ -45,6 +45,10 @@ import org.apache.pig.impl.plan.VisitorException;
  *
  */
 public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
+    /**
+     * 
+     */
+//    private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
     LoadFunc loader = null;
     // The filespec on which the operator is based
@@ -78,7 +82,7 @@ public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
      * 3) Binding to the input stream
      * @throws IOException
      */
-    private void setUp() throws IOException{
+    public void setUp() throws IOException{
         String filename = lFile.getFileName();
         loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
         
@@ -92,7 +96,7 @@ public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
      * using this method
      * @throws IOException
      */
-    private void tearDown() throws IOException{
+    public void tearDown() throws IOException{
         is.close();
         setUpDone = false;
     }
@@ -136,7 +140,10 @@ public class POLoad extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Load - " + mKey.toString();
+        if(lFile!=null)
+            return "Load" + "(" + lFile.toString() + ")" + " - " + mKey.toString();
+        else
+            return "Load" + "(" + "DummyFil:DummyLdr" + ")" + " - " + mKey.toString();
     }
 
     @Override

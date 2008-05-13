@@ -19,12 +19,17 @@ package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class Mod extends ArithmeticOperator {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
     public Mod(OperatorKey k) {
         super(k);

@@ -194,18 +194,60 @@ public class FileLocalizer {
         return new DataStorageInputStreamIterator(elements);
     }
     
+    private static InputStream openLFSFile(ElementDescriptor elem) throws IOException{
+        ElementDescriptor[] elements = null;
+        
+        if (elem.exists()) {
+            try {
+                if(! elem.getDataStorage().isContainer(elem.toString())) {
+                    return elem.open();
+                }
+            }
+            catch (DataStorageException e) {
+                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
+            }
+            
+            ArrayList<ElementDescriptor> arrayList = 
+                new ArrayList<ElementDescriptor>();
+            Iterator<ElementDescriptor> allElements = 
+                ((ContainerDescriptor)elem).iterator();
+            
+            while (allElements.hasNext()) {
+                ElementDescriptor ed = allElements.next();
+                int li = ed.toString().lastIndexOf(File.separatorChar);
+                String fName = ed.toString().substring(li+1);
+                if(fName.charAt(0)=='.')
+                    continue;
+                arrayList.add(ed);
+            }
+            
+            elements = new ElementDescriptor[ arrayList.size() ];
+            arrayList.toArray(elements);
+        
+        } else {
+            // It might be a glob
+            if (!globMatchesFiles(elem, elem.getDataStorage())) {
+                throw new IOException(elem.toString() + " does not exist");
+            }
+        }
+        
+        return new DataStorageInputStreamIterator(elements);
+    }
+    
     static public InputStream open(String fileSpec, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
             init(pigContext);
-            ElementDescriptor elem = pigContext.getDfs().
-            asElement(fullPath(fileSpec, pigContext));
+            ElementDescriptor elem = pigContext.getDfs().asElement(fullPath(fileSpec, pigContext));
             return openDFSFile(elem);
         }
         else {
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
             //buffering because we only want buffered streams to be passed to load functions.
-            return new BufferedInputStream(new FileInputStream(fileSpec));
+            /*return new BufferedInputStream(new FileInputStream(fileSpec));*/
+            init(pigContext);
+            ElementDescriptor elem = pigContext.getLfs().asElement(fullPath(fileSpec, pigContext));
+            return openLFSFile(elem);
         }
     }
     
@@ -385,6 +427,14 @@ public class FileLocalizer {
         catch (DataStorageException e) {
             throw WrappedIOException.wrap("Unable to get collect for pattern " + elem.toString(), e);
         }
+    }
+
+    public static Random getR() {
+        return r;
+    }
+
+    public static void setR(Random r) {
+        FileLocalizer.r = r;
     }
 
 }

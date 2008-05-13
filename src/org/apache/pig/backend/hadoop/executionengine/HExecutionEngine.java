@@ -154,11 +154,13 @@ public class HExecutionEngine implements ExecutionEngine {
         catch (IOException e) {
             throw new ExecException("Failed to create DataStorage", e);
         }
-            
-        log.info("Connecting to map-reduce job tracker at: " + conf.get("mapred.job.tracker"));
+        
+        String jobTrackerName = conf.get("mapred.job.tracker").toString();
+        log.info("Connecting to map-reduce job tracker at: " + jobTrackerName);
         
         try {
-            jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
+            if(!jobTrackerName.equalsIgnoreCase("local"))
+                jobTracker = (JobSubmissionProtocol) RPC.getProxy(JobSubmissionProtocol.class,
                                                               JobSubmissionProtocol.versionID, 
                                                               JobTracker.getAddress(conf.getConfiguration()),
                                                               conf.getConfiguration());

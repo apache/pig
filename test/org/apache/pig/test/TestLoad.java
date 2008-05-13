@@ -17,12 +17,10 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
-
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 
-import org.apache.hadoop.fs.BufferedFSInputStream;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -50,8 +48,9 @@ public class TestLoad extends junit.framework.TestCase {
     static MiniCluster cluster = MiniCluster.buildCluster();
     @Before
     public void setUp() throws Exception {
-        
-        inpFSpec = new FileSpec("file:////etc/passwd",PigStorage.class.getName()+"(':')");
+        String curDir = System.getProperty("user.dir");
+        String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
+        inpFSpec = new FileSpec("file:" + inpDir + "passwd",PigStorage.class.getName()+"(':')");
         pc = new PigContext();
         pc.connect();
         
@@ -60,7 +59,7 @@ public class TestLoad extends junit.framework.TestCase {
         ld.setPc(pc);
         
         inpDB = DefaultBagFactory.getInstance().newDefaultBag();
-        BufferedReader br = new BufferedReader(new FileReader("/etc/passwd"));
+        BufferedReader br = new BufferedReader(new FileReader("test/org/apache/pig/test/data/InputFiles/passwd"));
         
         for(String line = br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);

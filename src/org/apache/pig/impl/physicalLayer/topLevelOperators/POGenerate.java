@@ -38,11 +38,15 @@ import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.PlanVisitor;
 
-public class POGenerate extends PhysicalOperator {
+public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
     
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     private List<Boolean> isToBeFlattened;
     //private Boolean outputIsDataBag;
     private List<Tuple> outputBuffer = new LinkedList<Tuple>();
@@ -280,11 +284,6 @@ public class POGenerate extends PhysicalOperator {
     }
 
     @Override
-    public void visit(PlanVisitor v) throws VisitorException {
-        ((PhyPlanVisitor)v).visitGenerate(this);
-    }
-
-    @Override
     public boolean supportsMultipleInputs() {
         return false;
     }
@@ -292,6 +291,10 @@ public class POGenerate extends PhysicalOperator {
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
+    }
+
+    public List<ExprPlan> getInputPlans() {
+        return inputPlans;
     }
     
 

@@ -256,8 +256,10 @@ public class POUserFunc extends PhysicalOperator<PhyPlanVisitor> {
 
 	@Override
 	public String name() {
-
-		return "POUserFunc - " + mKey.toString();
+	    if(funcSpec!=null)
+	        return "POUserFunc" + "(" + funcSpec + ")" + " - " + mKey.toString();
+        else
+            return "POUserFunc" + "(" + "DummySpec" + ")" + " - " + mKey.toString();
 	}
 
 	@Override

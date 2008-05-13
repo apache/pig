@@ -58,7 +58,7 @@ public class TestLocalRearrange extends junit.framework.TestCase {
     public void setUp() throws Exception {
         Random r = new Random();
         db = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
-        lr = GenPhyOp.topLocalRearrangeOPWithPlan(0,0,db.iterator().next());
+        lr = GenPhyOp.topLocalRearrangeOPWithPlanPlain(0,0,db.iterator().next());
         POProject proj = GenPhyOp.exprProject();
         proj.setColumn(0);
         proj.setResultType(DataType.TUPLE);

@@ -19,17 +19,15 @@ package org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators;
 
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
-import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.plan.VisitorException;
 
 
 /**
@@ -39,7 +37,12 @@ import org.apache.pig.backend.executionengine.ExecException;
  */
 public class ConstantExpression extends ExpressionOperator {
     
-    private Log log = LogFactory.getLog(getClass());
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+//    private Log log = LogFactory.getLog(getClass());
     
     //The value that this constant represents
     Object value;
@@ -57,7 +60,10 @@ public class ConstantExpression extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "Constant(" + value.toString() +") - " + mKey.toString();
+        if(value!=null)
+            return "Constant(" + value.toString() +") - " + mKey.toString();
+        else
+            return "Constant(" + "DummyVal" +") - " + mKey.toString();
     }
 
     @Override

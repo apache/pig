@@ -34,6 +34,10 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class NotEqualToExpr extends ComparisonOperator {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     private final Log log = LogFactory.getLog(getClass());
 
     public NotEqualToExpr(OperatorKey k) {
