@@ -60,6 +60,10 @@ public class LORegexp extends ExpressionOperator {
         return mOperand;
     }
 
+    public void setOperand(ExpressionOperator op) {
+        mOperand = op ;
+    }
+
     public String getRegexp() {
         return mRegexp;
     }
@@ -87,6 +91,11 @@ public class LORegexp extends ExpressionOperator {
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
+    }
+
+    @Override
+    public byte getType() {
+        return DataType.BOOLEAN ;
     }
 
 }

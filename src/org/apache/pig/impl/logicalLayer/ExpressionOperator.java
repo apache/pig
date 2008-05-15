@@ -66,7 +66,11 @@ public abstract class ExpressionOperator extends LogicalOperator {
         return mSchema;
     }
 
-    public abstract Schema.FieldSchema getFieldSchema() throws FrontendException;
+    // Default implementation just get type info from mType
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, mType) ;
+        return fs ;
+    }
 
     /**
      * Set the output schema for this operator. If a schema already exists, an

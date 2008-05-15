@@ -84,7 +84,7 @@ public class LOSplit extends LogicalOperator {
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get our parent's schema
-            Collection<LogicalOperator> s = mPlan.getSuccessors(this);
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {

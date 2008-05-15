@@ -56,6 +56,9 @@ public abstract class PlanWalker <O extends Operator,
      */
     public abstract PlanWalker<O, P> spawnChildWalker(P plan);
 
+    public P getPlan() {
+        return mPlan ;
+    }
 }
 
 

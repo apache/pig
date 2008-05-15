@@ -65,8 +65,13 @@ public class TypeGraphPrinter extends LOVisitor {
         appendOp(op) ;
     }
     
-    protected void visit(LOFilter op) {
+    protected void visit(LOFilter op) throws VisitorException {
         appendOp(op) ;
+        sb.append("Filter Inner Plan:\n") ;
+        pushWalker(mCurrentWalker.spawnChildWalker(op.getComparisonPlan())) ;
+        visit();
+        popWalker();
+        sb.append("\n") ;
     }
     
     protected void visit(LOSplit op) {
@@ -100,6 +105,19 @@ public class TypeGraphPrinter extends LOVisitor {
     protected void visit(LOConst op) {  
         appendOp(op) ;
     }
+
+    protected void visit(LORegexp op) {
+        appendOp(op) ;
+    }
+
+    protected void visit(LOProject op) {
+        appendOp(op) ;
+    }
+
+    protected void visit(LODistinct op) {
+        appendOp(op) ;
+    }
+
 
     private void appendOp(LogicalOperator op) {
         sb.append("(") ;

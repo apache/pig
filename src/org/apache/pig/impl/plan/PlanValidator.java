@@ -29,7 +29,7 @@ public abstract class PlanValidator<O extends Operator, P extends OperatorPlan<O
      * If there are errors during validation, all of the errors have
      * to be collected in the supplied messageCollector. The exception should
      * be thrown only when the validation logic finds something too bad 
-     * that the other validation logics should not try to do more work.
+     * that other validation logics should not try to do more work.
      * 
      */
     public abstract void validate(P plan, CompilationMessageCollector messageCollector) 
@@ -37,8 +37,8 @@ public abstract class PlanValidator<O extends Operator, P extends OperatorPlan<O
     
     /**
      * This convenient method is used when: 
-     * - if an exception is thrown from the current validation logic, 
-     * the whole validation pipeline should stop.
+     * - if an exception being thrown from the current validation logic
+     *   indicates that the whole validation pipeline should stop.
      * @param visitor
      * @param messageCollector
      * @throws PlanValidationException
@@ -60,9 +60,10 @@ public abstract class PlanValidator<O extends Operator, P extends OperatorPlan<O
     
     /**
      * This convenient method is used when: 
-     * - if an exception is thrown from the current validation logic, 
-     * the whole validation pipeline should keep going by continuing
-     * with the next validation logic in the pipeline
+     * - if an exception being thrown from the current validation logic
+     *   indicates that the whole validation pipeline should keep going
+     *   by continuing with the next validation logic in the pipeline
+     *   (skip the rest of the current logic)
      * @param visitor
      * @param messageCollector
      * @throws PlanValidationException
@@ -77,6 +78,31 @@ public abstract class PlanValidator<O extends Operator, P extends OperatorPlan<O
             messageCollector.collect("Unexpected exception in " 
                                   + this.getClass().getSimpleName(),
                                   MessageType.Error) ;
+        }
+    }
+
+    /**
+     * This convenient method is used when: 
+     * - if an exception being thrown from the current validation logic
+     *   indicates that the whole validation pipeline should stop.
+     *
+     *   This method also assumes that the appropriate error message
+     *   has already been recorded in the message collector so
+     *   there is no need to duplicate the error message again here.
+     *
+     * @param visitor
+     * @param messageCollector
+     * @throws PlanValidationException
+     */
+    protected void validateSkipCollectException(PlanVisitor<O, P> visitor,
+                            CompilationMessageCollector messageCollector)
+                                             throws PlanValidationException {
+        try {
+            visitor.visit() ;
+        }
+        catch(VisitorException ve) {
+            throw new PlanValidationException("An unexpected exception caused "
+                                              + "the validation to stop", ve) ;
         }
     }
 

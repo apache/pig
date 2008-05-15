@@ -72,4 +72,10 @@ public class LOConst extends ExpressionOperator {
         return false;
     }
 
+    // This allows us to assign a constant to an alias
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return true;
+    }
+
 }

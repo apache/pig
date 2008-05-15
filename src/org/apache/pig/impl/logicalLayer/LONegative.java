@@ -59,4 +59,13 @@ public class LONegative extends UnaryExpressionOperator {
     public String name() {
         return "Negative " + mKey.scope + "-" + mKey.id;
     }
+
+    // Return type is the same as input
+    // This might not be a number type which is wrong
+    // but the post-parsing logic will eventually detect it.
+    @Override
+    public byte getType() {
+        return mOperand.getType() ;
+    }
+    
 }

@@ -228,6 +228,7 @@ public class LOProject extends ExpressionOperator {
                                 } else {
                                     mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                                 }
+                                mType = mFieldSchema.type ;
                             }
                             mIsFieldSchemaComputed = true;
                             return mFieldSchema;

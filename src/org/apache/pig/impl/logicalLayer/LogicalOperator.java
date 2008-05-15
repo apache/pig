@@ -215,7 +215,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      */
     public abstract void visit(LOVisitor v) throws VisitorException;
 
-    /*
+	/*
     public boolean isFlatten() {
         return mIsFlatten;
     }
@@ -223,6 +223,8 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public void setFlatten(boolean b) {
         mIsFlatten = b;
     }
-    */
-
+	*/
+    public LogicalPlan getPlan() {
+        return mPlan ;
+    }
 }

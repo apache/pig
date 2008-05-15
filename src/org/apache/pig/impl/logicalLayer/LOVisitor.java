@@ -287,6 +287,22 @@ abstract public class LOVisitor extends
         
     }
 
+    protected void visit(LOUnion u) throws VisitorException {
+
+    }
+
+    protected void visit(LOSplitOutput sop) throws VisitorException {
+
+    }
+
+    protected void visit(LODistinct dt) throws VisitorException {
+
+    }
+
+    protected void visit(LOCross cs) throws VisitorException {
+
+    }
+
     protected void visit(LOProject project) throws VisitorException {
         // Visit the operand of the project as long as the sentinel is false
         

@@ -235,7 +235,12 @@
                 <path refid="classpath"/>
             </classpath>
             <formatter type="${test.junit.output.format}" />
-            <batchtest fork="yes" todir="${test.log.dir}">
+
+            <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
+                <fileset dir="test" includes="**/${testcase}.java"/>
+            </batchtest>
+
+            <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
                 <fileset dir="test">
                     <include name="**/TestBuiltin.java" />
                     <include name="**/TestOperatorPlan.java" />

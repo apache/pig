@@ -18,18 +18,14 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.net.URL;
 
-import org.apache.pig.LoadFunc; 
+import org.apache.pig.LoadFunc;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -39,6 +35,7 @@ public class LOLoad extends LogicalOperator {
     private FileSpec mInputFileSpec;
     private LoadFunc mLoadFunc;
     private URL mSchemaFile;
+    private Schema mEnforcedSchema = null ;
     private static Log log = LogFactory.getLog(LOLoad.class);
 
     /**
@@ -93,6 +90,12 @@ public class LOLoad extends LogicalOperator {
             try {
                 //DEBUG
                 //System.out.println("Schema file: " + mSchema);
+                
+                if (mEnforcedSchema != null) {
+                    mSchema = mEnforcedSchema ;
+                    return mSchema ;
+                }
+
                 if(null != mSchemaFile) {
                     mSchema = mLoadFunc.determineSchema(mSchemaFile);
                 }
@@ -120,5 +123,18 @@ public class LOLoad extends LogicalOperator {
 
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
+    }
+
+    public Schema getEnforcedSchema() {
+        return mEnforcedSchema;
+    }
+
+    public void setEnforcedSchema(Schema enforcedSchema) {
+        this.mEnforcedSchema = enforcedSchema;
+    }
+
+    @Override
+    public byte getType() {
+        return DataType.BAG ;
     }
 }

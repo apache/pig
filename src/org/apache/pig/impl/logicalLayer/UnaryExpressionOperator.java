@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public abstract class UnaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
-    private ExpressionOperator mOperand; // operand
+    protected ExpressionOperator mOperand; // operand
     private static Log log = LogFactory.getLog(UnaryExpressionOperator.class);
 
     /**

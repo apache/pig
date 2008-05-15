@@ -19,7 +19,8 @@ public class TypeCheckingValidator extends PlanValidator<LogicalOperator, Logica
                                         throws PlanValidationException {
         // The first msgCollector is used in visitor
         // The second msgCollector is used by the validator
-        super.validate(new TypeCheckingVisitor(plan,  msgCollector), 
-                       msgCollector) ;      
+        super.validateSkipCollectException(new TypeCheckingVisitor(plan,  msgCollector),
+                                           msgCollector) ;
+
     }
 }
