@@ -146,7 +146,7 @@
         		**/test/TestPODistinct.java, **/test/TestPOSort.java,
         		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,**/test/TestUnion.java, **/test/TestMRCompiler.java,
                 **/test/FakeFSInputStream.java, **/test/Util.java, **/test/TestJobSubmission.java,
-        		**/test/TestLocalJobSubmission.java,
+        		**/test/TestLocalJobSubmission.java, **/test/TestPOMapLookUp.java,
                 **/logicalLayer/*.java, **/logicalLayer/parser/NodeIdGenerator.java,
                 **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
                 **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
@@ -276,6 +276,7 @@
                 	<include name="**/TestSchema.java" /> 
                 	<include name="**/TestLogicalPlanBuilder.java" />
                 	<include name="**/TestLocalJobSubmission.java" />
+                	<include name="**/TestPOMapLookUp.java" />
                 	
                     <!--
                     <include name="**/*Test*.java" />

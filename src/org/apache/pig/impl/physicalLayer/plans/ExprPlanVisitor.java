@@ -22,6 +22,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POBinCond;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POCast;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POMapLookUp;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.EqualToExpr;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.GTOrEqualToExpr;
@@ -117,5 +119,15 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
         //do nothing
         
     }
+
+	public void visitMapLookUp(POMapLookUp mapLookUp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void visitCast(POCast cast) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
