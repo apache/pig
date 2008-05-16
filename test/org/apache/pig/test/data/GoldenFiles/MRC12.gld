@@ -1,4 +1,4 @@
-MapReduce - MRCompiler-92:
+MapReduce(-1) - MRCompiler-92:
 |   Store(DummyFil:DummyLdr) - -913122466036599874
 |   |
 |   |---Package - -8515950928528386562
@@ -16,7 +16,7 @@ MapReduce - MRCompiler-92:
 |           |
 |           |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-90
 |
-|---MapReduce - MRCompiler-86:
+|---MapReduce(-1) - MRCompiler-86:
     Reduce Plan Empty
     |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-87
     |   |

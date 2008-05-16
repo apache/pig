@@ -32,10 +32,10 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POSort;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PODistinct;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POUserFunc;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanWalker;
@@ -77,11 +77,11 @@ public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O
     }
     
     public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException{
-        pushWalker(mCurrentWalker.spawnChildWalker((P)lr.getPlan()));
-        // this causes the current walker (the new one we created)
-        // to walk the nested plan
-        visit();
-        popWalker();
+        List<ExprPlan> inpPlans = lr.getPlans();
+        for (ExprPlan plan : inpPlans) {
+            ExprPlanVisitor epv = new ExprPlanVisitor(plan,new DependencyOrderWalker<ExpressionOperator, ExprPlan>(plan));
+            epv.visit();
+        }
     }
     
     public void visitForEach(POForEach fe) throws VisitorException{
@@ -116,24 +116,19 @@ public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O
         //do nothing
     }
 
-    public void visitDistinct(PODistinct distinct) throws VisitorException {
-        //do nothing        
-    }
+	public void visitDistinct(PODistinct distinct) throws VisitorException {
+        //do nothing		
+	}
 
-    public void visitRead(PORead read) throws VisitorException {
-        //do nothing        
-    }
+	public void visitRead(PORead read) throws VisitorException {
+        //do nothing		
+	}
 
-    public void visitSort(POSort sort) throws VisitorException {
+	public void visitSort(POSort sort) throws VisitorException {
         List<ExprPlan> inpPlans = sort.getSortPlans();
         for (ExprPlan plan : inpPlans) {
             ExprPlanVisitor epv = new ExprPlanVisitor(plan,new DependencyOrderWalker<ExpressionOperator, ExprPlan>(plan));
             epv.visit();
         }
-    }
-
-    public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
-        //do nothing
-    }
-
+	}
 }

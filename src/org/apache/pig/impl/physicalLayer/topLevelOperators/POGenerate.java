@@ -89,7 +89,22 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "POGenerate - " + mKey.toString();
+        String fString = getFlatStr();
+        return "POGenerate" + "(" + fString + ")" + "  - " + mKey.toString();
+    }
+
+    private String getFlatStr() {
+        if(isToBeFlattened==null)
+            return "";
+        StringBuilder sb = new StringBuilder();
+        for (Boolean b : isToBeFlattened) {
+            sb.append(b);
+            sb.append(',');
+        }
+        if(sb.length()>0){
+            sb.deleteCharAt(sb.length()-1);
+        }
+        return sb.toString();
     }
 
     /**

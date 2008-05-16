@@ -1,0 +1,105 @@
+MapReduce(-1,GFCross) - MRCompiler-161:
+|   Store(DummyFil:DummyLdr) - -5165956429696944631
+|   |
+|   |---For Each - -2197807331204639125
+|       |   |
+|       |   POGenerate(false)  - --8447156979210379761
+|       |   |   |
+|       |   |   POUserFunc(org.apache.pig.impl.builtin.GFCross) - -6139496040975471496
+|       |   |   |
+|       |   |   |---Project(*) - -5878058249424113280
+|       |
+|       |---Package - -7085374960058856883
+|   Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-160
+|
+|---MapReduce(-1,AVG) - MRCompiler-158:
+    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-159
+    |   |
+    |   |---Local Rearrange - -7398260302074824818
+    |       |
+    |       |---For Each - -4188863770717253580
+    |           |   |
+    |           |   POGenerate(false)  - -7973970339130605847
+    |           |   |   |
+    |           |   |   POUserFunc(org.apache.pig.builtin.AVG) - --6860857982727545176
+    |           |   |   |
+    |           |   |   |---Project(*) - -2082992246427879202
+    |           |
+    |           |---Package - -737965411848544085
+    |   Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-157
+    |
+    |---MapReduce(20,FindQuantiles,SUM) - MRCompiler-149:
+        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-156
+        |   |
+        |   |---Local Rearrange - --3359714221559579809
+        |       |
+        |       |---For Each - --7926255547935388282
+        |           |   |
+        |           |   POGenerate(false,false)  - -8639002377389679348
+        |           |   |   |
+        |           |   |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles) - -727770031531364881
+        |           |   |   |
+        |           |   |   |---Project(*) - -7128285064986147947
+        |           |   |   |
+        |           |   |   POUserFunc(org.apache.pig.builtin.SUM) - --5683415113785058706
+        |           |   |   |
+        |           |   |   |---Project(*) - --8002381389674382470
+        |           |
+        |           |---For Each - MRCompiler-155
+        |               |   |
+        |               |   POGenerate(true)  - MRCompiler-154
+        |               |   |   |
+        |               |   |   Project(1) - MRCompiler-153
+        |               |
+        |               |---Package - MRCompiler-152
+        |   Local Rearrange - MRCompiler-151
+        |   |   |
+        |   |   Project(0) - MRCompiler-150
+        |   |
+        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-148
+        |
+        |---MapReduce(-1,FindQuantiles,TestMRCompiler$WeirdComparator) - MRCompiler-130:
+            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-147
+            |   |
+            |   |---For Each - MRCompiler-146
+            |       |   |
+            |       |   POGenerate(false)  - MRCompiler-145
+            |       |   |   |
+            |       |   |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles) - MRCompiler-144
+            |       |   |   |
+            |       |   |   |---Project(*) - MRCompiler-143
+            |       |
+            |       |---For Each - MRCompiler-142
+            |           |   |
+            |           |   POGenerate(false,false)  - MRCompiler-141
+            |           |   |   |
+            |           |   |   Constant(20) - MRCompiler-140
+            |           |   |   |
+            |           |   |   Project(*) - MRCompiler-139
+            |           |   |
+            |           |   |---POSort - --776319888013965510
+            |           |       |   |
+            |           |       |   Project(*) - MRCompiler-138
+            |           |       |
+            |           |       |---Project(1) - MRCompiler-137
+            |           |
+            |           |---Package - MRCompiler-136
+            |   Local Rearrange - MRCompiler-135
+            |   |   |
+            |   |   Constant(all) - MRCompiler-134
+            |   |
+            |   |---For Each - MRCompiler-133
+            |       |   |
+            |       |   POGenerate(true)  - MRCompiler-132
+            |       |   |   |
+            |       |   |   Project(0) - MRCompiler-131
+            |       |
+            |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader) - MRCompiler-129
+            |
+            |---MapReduce(-1) - MRCompiler-127:
+                Reduce Plan Empty
+                |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-128
+                |   |
+                |   |---Filter - --4867358672373443663
+                |       |
+                |       |---Load(DummyFil:DummyLdr) - -31712229583931650

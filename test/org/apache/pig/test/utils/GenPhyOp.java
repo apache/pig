@@ -18,6 +18,7 @@
 package org.apache.pig.test.utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -27,6 +28,7 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
@@ -39,6 +41,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POSplit;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
@@ -47,6 +50,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POCast;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Add;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Divide;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Mod;
@@ -424,15 +428,14 @@ public class GenPhyOp{
      * @throws ExecException
      */
     public static POLocalRearrange topLocalRearrangeOPWithPlan(int index, int grpCol, Tuple sample) throws ExecException, PlanException{
-        POGenerate gen = topGenerateOpWithExPlanLR(grpCol, sample);
-        PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
-        pp.add(gen);
-        
-        POLocalRearrange ret = topLocalRearrangeOp();
-        ret.setPlan(pp);
-        ret.setIndex(index);
-        ret.setResultType(DataType.TUPLE);
-        return ret;
+        POLocalRearrange lr = topLocalRearrangeOPWithPlanPlain(index, grpCol, sample);
+        List<ExprPlan> plans = lr.getPlans(); 
+        ExprPlan ep = plans.get(0);
+        POCast cst = new POCast(new OperatorKey("", r.nextLong()));
+        cst.setResultType(sample.getType(grpCol));
+        ep.addAsLeaf(cst);
+        lr.setPlans(plans);
+        return lr;
     }
     
     /**
@@ -445,14 +448,20 @@ public class GenPhyOp{
      * @throws ExecException
      */
     public static POLocalRearrange topLocalRearrangeOPWithPlanPlain(int index, int grpCol, Tuple sample) throws ExecException, PlanException{
-        POGenerate gen = topGenerateOpWithExPlan(grpCol, sample);
-        PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
-        pp.add(gen);
+        POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, grpCol);
+        prj1.setResultType(sample.getType(grpCol));
+        prj1.setOverloaded(false);
+
+        ExprPlan plan1 = new ExprPlan();
+        plan1.add(prj1);
         
+        List<ExprPlan> plans = new ArrayList<ExprPlan>();
+        plans.add(plan1);
         POLocalRearrange ret = topLocalRearrangeOp();
-        ret.setPlan(pp);
+        ret.setPlans(plans);
         ret.setIndex(index);
         ret.setResultType(DataType.TUPLE);
+        ret.setKeyType(sample.getType(grpCol));
         return ret;
     }
     
@@ -765,6 +774,36 @@ public class GenPhyOp{
         
         ret.connect(ld, fl);
         return ret;
+    }
+    
+    public static POForEach topForEachOPWithUDF(List<String> clsName) throws PlanException{
+        List<ExprPlan> ep4s = new ArrayList<ExprPlan>();
+        List<Boolean> flattened3 = new ArrayList<Boolean>();
+        for (String string : clsName) {
+            ExprPlan ep4 = new ExprPlan();
+            POProject prjStar4 = new POProject(new OperatorKey("", r.nextLong()));
+            prjStar4.setResultType(DataType.TUPLE);
+            prjStar4.setStar(true);
+            ep4.add(prjStar4);
+            
+            List ufInps = new ArrayList();
+            ufInps.add(prjStar4);
+            POUserFunc uf = new POUserFunc(new OperatorKey("", r.nextLong()), -1, ufInps, string);
+            ep4.add(uf);
+            ep4.connect(prjStar4, uf);
+            ep4s.add(ep4);
+            flattened3.add(false);
+        }
+        
+        POGenerate finGen = new POGenerate(new OperatorKey("", r.nextLong()), ep4s, flattened3);
+        
+        PhysicalPlan<PhysicalOperator> fe3Plan = new PhysicalPlan<PhysicalOperator>();
+        fe3Plan.add(finGen);
+        
+        POForEach fe3 = new POForEach(new OperatorKey("", r.nextLong()));
+        fe3.setPlan(fe3Plan);
+        fe3.setResultType(DataType.TUPLE);
+        return fe3;
     }
     
     public static ExprPlan arithPlan() throws PlanException{

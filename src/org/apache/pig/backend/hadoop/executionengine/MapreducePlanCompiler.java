@@ -57,11 +57,11 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.SortPartitioner;
 import org.apache.pig.backend.hadoop.datastorage.HFile;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
+import org.apache.pig.impl.mapReduceLayer.SortPartitioner;
 
 // compiler for mapreduce physical plans
 public class MapreducePlanCompiler {

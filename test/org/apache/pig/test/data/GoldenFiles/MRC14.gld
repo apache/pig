@@ -1,4 +1,4 @@
-MapReduce - MRCompiler-126:
+MapReduce(100) - MRCompiler-126:
 Reduce Plan Empty
 |   Store(DummyFil:DummyLdr) - --7335024873119453444
 |   |
@@ -12,7 +12,7 @@ Reduce Plan Empty
 |           |
 |           |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-124
 |
-|---MapReduce - MRCompiler-120:
+|---MapReduce(40) - MRCompiler-120:
     |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-121
     |   |
     |   |---Package - --1848504978980807369
@@ -36,7 +36,7 @@ Reduce Plan Empty
     |           |
     |           |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-118
     |
-    |---MapReduce - MRCompiler-109:
+    |---MapReduce(20) - MRCompiler-109:
     |   Reduce Plan Empty
     |   |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-110
     |   |   |
@@ -44,13 +44,13 @@ Reduce Plan Empty
     |   |       |
     |   |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-108
     |   |
-    |   |---MapReduce - MRCompiler-106:
+    |   |---MapReduce(-1) - MRCompiler-106:
     |       Reduce Plan Empty
     |       |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-107
     |       |   |
     |       |   |---Load(DummyFil:DummyLdr) - -7955165653808522445
     |
-    |---MapReduce - MRCompiler-116:
+    |---MapReduce(10) - MRCompiler-116:
         Reduce Plan Empty
         |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-117
         |   |
@@ -58,7 +58,7 @@ Reduce Plan Empty
         |       |
         |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-115
         |
-        |---MapReduce - MRCompiler-106:
+        |---MapReduce(-1) - MRCompiler-106:
             Reduce Plan Empty
             |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-107
             |   |

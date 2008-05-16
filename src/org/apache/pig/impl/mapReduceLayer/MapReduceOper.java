@@ -65,11 +65,16 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //Indicates if this job is an order by job
     boolean globalSort = false;
     
+    //The quantiles file name if globalSort is true
+    String quantFile;
+    
     public List<String> UDFs;
     
     NodeIdGenerator nig;
 
     private String scope;
+    
+    int requestedParallelism = -1;
 
     public MapReduceOper(OperatorKey k) {
         super(k);
@@ -104,7 +109,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
      */
     @Override
     public String name() {
-        StringBuilder sb = new StringBuilder("MapReduce - " + mKey.toString()
+        String udfStr = getUDFsAsStr();
+        
+        StringBuilder sb = new StringBuilder("MapReduce" + "(" + requestedParallelism + 
+                (udfStr.equals("")? "" : ",") + udfStr + ")" + " - " + mKey.toString()
                 + ":\n");
         int index = sb.length();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -123,6 +131,18 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         }
         else
             sb.insert(index, "Reduce Plan Empty" + "\n");
+        return sb.toString();
+    }
+
+    private String getUDFsAsStr() {
+        StringBuilder sb = new StringBuilder();
+        if(UDFs!=null && UDFs.size()>0){
+            for (String str : UDFs) {
+                sb.append(str.substring(str.lastIndexOf('.')+1));
+                sb.append(',');
+            }
+            sb.deleteCharAt(sb.length()-1);
+        }
         return sb.toString();
     }
 
@@ -145,7 +165,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return mapDone;
     }
     
-    public void setMapDone(boolean mapDone) throws IOException{
+    public void setMapDone(boolean mapDone){
         this.mapDone = mapDone;
     }
     
@@ -213,5 +233,13 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public void setGlobalSort(boolean globalSort) {
         this.globalSort = globalSort;
+    }
+
+    public String getQuantFile() {
+        return quantFile;
+    }
+
+    public void setQuantFile(String quantFile) {
+        this.quantFile = quantFile;
     }
 }

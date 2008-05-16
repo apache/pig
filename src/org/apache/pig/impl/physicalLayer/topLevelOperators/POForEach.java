@@ -146,10 +146,10 @@ public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
             
             res = gen.getNext(t);
             
-            if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
+            /*if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
                 return inp;
             if(inp.returnStatus == POStatus.STATUS_NULL)
-                continue;
+                continue;*/
             
             processingPlan = true;
             

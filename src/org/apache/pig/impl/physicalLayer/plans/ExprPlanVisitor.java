@@ -25,6 +25,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.P
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POCast;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POMapLookUp;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.EqualToExpr;
 //import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.comparators.GTOrEqualToExpr;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Add;
@@ -109,7 +110,7 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
     public void visitMod(Mod mod) throws VisitorException {
         //do nothing
     }
-
+    
     public void visitBinCond(POBinCond binCond) {
         // do nothing
         
@@ -118,6 +119,10 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
     public void visitNegative(PONegative negative) {
         //do nothing
         
+    }
+    
+    public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
+        //do nothing
     }
 
 	public void visitMapLookUp(POMapLookUp mapLookUp) {

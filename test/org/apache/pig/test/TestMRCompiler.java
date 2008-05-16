@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -29,23 +27,39 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.pig.ComparisonFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.AVG;
+import org.apache.pig.builtin.SUM;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.builtin.GFCross;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MRCompiler;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POSort;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POSplit;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserComparisonFunc;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.test.TestPOSort.WeirdComparator;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.junit.After;
 import org.junit.Before;
@@ -54,7 +68,7 @@ import org.junit.Test;
 public class TestMRCompiler extends junit.framework.TestCase {
     static PhysicalPlan<PhysicalOperator> php = new PhysicalPlan<PhysicalOperator>();
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+//    MiniCluster cluster = MiniCluster.buildCluster();
     
     static PigContext pc;
 
@@ -64,6 +78,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     static final long SEED = 1013;
     
+    static Random r;
     static{
         pc = new PigContext();
         try {
@@ -72,14 +87,16 @@ public class TestMRCompiler extends junit.framework.TestCase {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        r = new Random(SEED);
     }
 
     @Before
     public void setUp() throws ExecException {
-        GenPhyOp.setR(new Random(SEED));
+        GenPhyOp.setR(r);
         
         GenPhyOp.setPc(pc);
-        int numTests = 14;
+        int numTests = 15;
+//        int numTests = 9;
         tests = new String[numTests];
         int cnt = -1;
 
@@ -89,6 +106,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         tests[++cnt] = "intTestRun2";
         for (int i = 1; i <= 3; i++)
             tests[++cnt] = "intTestSpl" + i;
+        tests[++cnt] = "intTestSortUDF1";
     }
 
     @After
@@ -112,7 +130,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
         PhysicalPlan<PhysicalOperator> part1 = new PhysicalPlan<PhysicalOperator>();
         POLoad lC = GenPhyOp.topLoadOp();
         POFilter fC = GenPhyOp.topFilterOp();
+        fC.setRequestedParallelism(20);
         POLocalRearrange lrC = GenPhyOp.topLocalRearrangeOp();
+        lrC.setRequestedParallelism(10);
         POGlobalRearrange grC = GenPhyOp.topGlobalRearrangeOp();
         POPackage pkC = GenPhyOp.topPackageOp();
         part1.add(lC);
@@ -126,7 +146,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
         part1.connect(grC, pkC);
 
         POPackage pkD = GenPhyOp.topPackageOp();
+        pkD.setRequestedParallelism(20);
         POLocalRearrange lrD = GenPhyOp.topLocalRearrangeOp();
+        lrD.setRequestedParallelism(30);
         POGlobalRearrange grD = GenPhyOp.topGlobalRearrangeOp();
         POLoad lD = GenPhyOp.topLoadOp();
         part1.add(lD);
@@ -399,7 +421,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.connect(lA, spl);
 
         POFilter fl1 = GenPhyOp.topFilterOp();
+        fl1.setRequestedParallelism(10);
         POFilter fl2 = GenPhyOp.topFilterOp();
+        fl2.setRequestedParallelism(20);
         php.add(fl1);
         php.add(fl2);
         php.connect(spl, fl1);
@@ -413,8 +437,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.connect(fl2, sp21);
 
         POFilter fl11 = GenPhyOp.topFilterOp();
+        fl11.setRequestedParallelism(10);
         POFilter fl21 = GenPhyOp.topFilterOp();
+        fl21.setRequestedParallelism(20);
         POFilter fl22 = GenPhyOp.topFilterOp();
+        fl22.setRequestedParallelism(30);
         php.add(fl11);
         php.add(fl21);
         php.add(fl22);
@@ -423,8 +450,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.connect(sp21, fl22);
 
         POLocalRearrange lr1 = GenPhyOp.topLocalRearrangeOp();
+        lr1.setRequestedParallelism(40);
         POLocalRearrange lr21 = GenPhyOp.topLocalRearrangeOp();
+        lr21.setRequestedParallelism(15);
         POLocalRearrange lr22 = GenPhyOp.topLocalRearrangeOp();
+        lr22.setRequestedParallelism(35);
         php.add(lr1);
         php.add(lr21);
         php.add(lr22);
@@ -436,13 +466,16 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.addAsLeaf(gr);
 
         POPackage pk = GenPhyOp.topPackageOp();
+        pk.setRequestedParallelism(25);
         php.addAsLeaf(pk);
 
         POSplit sp2 = GenPhyOp.topSplitOp();
         php.addAsLeaf(sp2);
 
         POFilter fl3 = GenPhyOp.topFilterOp();
+        fl3.setRequestedParallelism(100);
         POFilter fl4 = GenPhyOp.topFilterOp();
+        fl4.setRequestedParallelism(80);
         php.add(fl3);
         php.add(fl4);
         php.connect(sp2, fl3);
@@ -687,6 +720,86 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
     }
+    
+    public static void intTestSortUDF1() throws PlanException, ExecException{
+        php = new PhysicalPlan<PhysicalOperator>();
+        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
+        php.merge(ldFil1);
+        
+        String funcName = WeirdComparator.class.getName();
+        POUserFunc comparator = new POUserComparisonFunc(
+                new OperatorKey("", r.nextLong()), -1, null, funcName);
+        POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, ldFil1.getLeaves(),
+                null, null, comparator);
+        sort.setRequestedParallelism(20);
+        ExprPlan nesSortPlan = new ExprPlan();
+        POProject topPrj = new POProject(new OperatorKey("", r.nextLong()));
+        topPrj.setColumn(1);
+        topPrj.setOverloaded(true);
+        topPrj.setResultType(DataType.TUPLE);
+        nesSortPlan.add(topPrj);
+        
+        POProject prjStar2 = new POProject(new OperatorKey("", r.nextLong()));
+        prjStar2.setResultType(DataType.TUPLE);
+        prjStar2.setStar(true);
+        nesSortPlan.add(prjStar2);
+        
+        nesSortPlan.connect(topPrj, prjStar2);
+        List<ExprPlan> nesSortPlanLst = new ArrayList<ExprPlan>();
+        nesSortPlanLst.add(nesSortPlan);
+        
+        sort.setSortPlans(nesSortPlanLst);
+        
+        php.add(sort);
+        php.connect(ldFil1.getLeaves().get(0), sort);
+        
+        List<String> udfs = new ArrayList<String>();
+        udfs.add(FindQuantiles.class.getName());
+        udfs.add(SUM.class.getName());
+        POForEach fe3 = GenPhyOp.topForEachOPWithUDF(udfs);
+        php.add(fe3);
+        php.connect(sort, fe3);
+        
+        PhysicalPlan<PhysicalOperator> grpChain1 = GenPhyOp.grpChain();
+        php.merge(grpChain1);
+        php.connect(fe3,grpChain1.getRoots().get(0));
+        
+        udfs.clear();
+        udfs.add(AVG.class.getName());
+        POForEach fe4 = GenPhyOp.topForEachOPWithUDF(udfs);
+        php.addAsLeaf(fe4);
+        
+        PhysicalPlan<PhysicalOperator> grpChain2 = GenPhyOp.grpChain();
+        php.merge(grpChain2);
+        php.connect(fe4,grpChain2.getRoots().get(0));
+
+        udfs.clear();
+        udfs.add(GFCross.class.getName());
+        POForEach fe5 = GenPhyOp.topForEachOPWithUDF(udfs);
+        php.addAsLeaf(fe5);
+        
+        POStore st = GenPhyOp.topStoreOp();
+        php.addAsLeaf(st);
+    }
+    
+    public static class WeirdComparator extends ComparisonFunc {
+
+        @Override
+        public int compare(Tuple t1, Tuple t2) {
+            // TODO Auto-generated method stub
+            int result = 0;
+            try {
+                int i1 = (Integer) t1.get(1);
+                int i2 = (Integer) t2.get(1);
+                result = (i1 - 50) * (i1 - 50) - (i2 - 50) * (i2 - 50);
+            } catch (ExecException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            return result;
+        }
+
+    }
 
     public static void generate() throws SecurityException, NoSuchMethodException,
             IllegalArgumentException, IllegalAccessException,
@@ -713,7 +826,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
             ppp.print(baos);
 
-            FileOutputStream fos = new FileOutputStream("intTest/org/apache/pig/test/data/GoldenFiles/MRC"
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/MRC"
                     + (i + 1) + ".gld");
             fos.write(baos.toByteArray());
 

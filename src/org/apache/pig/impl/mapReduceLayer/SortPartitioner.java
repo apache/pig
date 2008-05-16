@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.mapreduceExec;
+package org.apache.pig.impl.mapReduceLayer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +27,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -45,7 +46,7 @@ public class SortPartitioner implements Partitioner {
             if (index < 0)
                 index = -index-1;
             return Math.min(index, numPartitions - 1);
-        }catch(IOException e){
+        }catch(ExecException e){
             throw new RuntimeException(e);
         }
     }

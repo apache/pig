@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Random;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -35,33 +36,40 @@ public class GFCross extends EvalFunc<DataBag> {
     public static int DEFAULT_PARALLELISM = 96;
 
     @Override
-    public DataBag exec(Tuple input) throws IOException {;
-        numInputs = (Integer)input.get(0);
-        myNumber = (Integer)input.get(1);
-        DataBag output = mBagFactory.newDefaultBag();
+    public DataBag exec(Tuple input) throws IOException {
+        try{
+            numInputs = (Integer)input.get(0);
+            myNumber = (Integer)input.get(1);
         
-        numGroupsPerInput = (int) Math.ceil(Math.pow(DEFAULT_PARALLELISM, 1.0/numInputs));
-        int numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
+            DataBag output = mBagFactory.newDefaultBag();
             
-        int[] digits = new int[numInputs];
-        for (int i=0; i<numInputs; i++){
-            if (i == myNumber){
-                Random r = new Random(System.currentTimeMillis());
-                digits[i] = r.nextInt(numGroupsPerInput);
-            }else{
-                digits[i] = 0;
+            numGroupsPerInput = (int) Math.ceil(Math.pow(DEFAULT_PARALLELISM, 1.0/numInputs));
+            int numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
+                
+            int[] digits = new int[numInputs];
+            for (int i=0; i<numInputs; i++){
+                if (i == myNumber){
+                    Random r = new Random(System.currentTimeMillis());
+                    digits[i] = r.nextInt(numGroupsPerInput);
+                }else{
+                    digits[i] = 0;
+                }
             }
+                
+            for (int i=0; i<numGroupsGoingTo; i++){
+                output.add(toTuple(digits));
+                next(digits);
+            }            
+    
+            return output;
+        }catch(ExecException e){
+            IOException ioe = new IOException();
+            ioe.initCause(e);
+            throw ioe;
         }
-            
-        for (int i=0; i<numGroupsGoingTo; i++){
-            output.add(toTuple(digits));
-            next(digits);
-        }            
-
-        return output;
     }
     
-    private Tuple toTuple(int[] digits) throws IOException{
+    private Tuple toTuple(int[] digits) throws IOException, ExecException{
         Tuple t = mTupleFactory.newTuple(numInputs);
         for (int i=0; i<numInputs; i++){
             t.set(i, digits[i]);

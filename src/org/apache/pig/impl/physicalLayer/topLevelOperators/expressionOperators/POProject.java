@@ -64,6 +64,8 @@ public class POProject extends ExpressionOperator {
     //of the translator to set this.
     boolean overloaded = false;
     
+    boolean star = false;
+    
     public POProject(OperatorKey k) {
         this(k,-1,0);
     }
@@ -79,7 +81,8 @@ public class POProject extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "Project(" + column + ") - " + mKey.toString();
+        
+        return "Project(" + ((star) ? "*" : column) + ") - " + mKey.toString();
     }
 
     @Override
@@ -184,6 +187,9 @@ public class POProject extends ExpressionOperator {
             res = processInput();
             if(res.returnStatus!=POStatus.STATUS_OK)
                 return res;
+            if(star)
+                return res;
+            
             inpValue = (Tuple)res.result;
             res.result = null;
             
@@ -227,6 +233,14 @@ public class POProject extends ExpressionOperator {
 
     public void setOverloaded(boolean overloaded) {
         this.overloaded = overloaded;
+    }
+
+    public boolean isStar() {
+        return star;
+    }
+
+    public void setStar(boolean star) {
+        this.star = star;
     }
 
 }

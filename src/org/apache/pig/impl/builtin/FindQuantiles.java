@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -36,8 +37,16 @@ public class FindQuantiles extends EvalFunc<DataBag>{
     
     @Override
     public DataBag exec(Tuple input) throws IOException {
-        Integer numQuantiles = (Integer)input.get(0);
-        DataBag samples = (DataBag)input.get(1);
+        Integer numQuantiles = null;
+        DataBag samples = null;
+        try{
+            numQuantiles = (Integer)input.get(0);
+            samples = (DataBag)input.get(1);
+        }catch(ExecException e){
+            IOException ioe = new IOException();
+            ioe.initCause(e);
+            throw ioe;
+        }
         DataBag output = mBagFactory.newDefaultBag();
         
         long numSamples = samples.size();

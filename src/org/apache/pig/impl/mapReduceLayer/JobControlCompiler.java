@@ -242,11 +242,17 @@ public class JobControlCompiler{
                 mro.reducePlan.remove(pack);
                 jobConf.setMapperClass(PigMapReduce.Map.class);
                 jobConf.setReducerClass(PigMapReduce.Reduce.class);
+                jobConf.setNumReduceTasks((mro.requestedParallelism>0)?mro.requestedParallelism:1);
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 jobConf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
                 jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
                 jobConf.setOutputKeyClass(DataType.getWritableComparableTypes(pack.getKeyType()).getClass());
                 jobConf.setOutputValueClass(IndexedTuple.class);
+            }
+            
+            if(mro.isGlobalSort()){
+                jobConf.set("pig.quantilesFile", mro.getQuantFile());
+                jobConf.setPartitionerClass(SortPartitioner.class);
             }
     
             return jobConf;

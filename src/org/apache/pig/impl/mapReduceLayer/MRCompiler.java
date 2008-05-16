@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -30,25 +31,39 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.impl.mapReduceLayer.plans.UDFFinder;
+import org.apache.pig.impl.mapReduceLayer.plans.UDFFinderForExpr;
+import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PORead;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POSort;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POSplit;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanException;
@@ -73,13 +88,19 @@ import org.apache.pig.impl.plan.OperatorPlan;
  * being to keep the number of MROpers to a minimum.
  * 
  * It also merges multiple Map jobs, created by compiling
- * the inputs individually, into a single job.
+ * the inputs individually, into a single job. Here a new
+ * map job is created and then the contents of the previous
+ * map plans are added. However, any other state that was in
+ * the previous map plans, should be manually moved over. So,
+ * if you are adding something new take care about this.
+ * Ex of this is in requestedParallelism
  * 
  * Only in case of blocking operators and splits, a new 
  * MapReduce operator is started using a store-load combination
  * to connect the two operators. Whenever this happens
  * care is taken to add the MROper into the MRPlan and connect it
  * appropriately.
+ * 
  *
  */
 public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>> {
@@ -117,6 +138,10 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     
     private Random r;
     
+    private UDFFinderForExpr udfFinderForExpr;
+    
+    private UDFFinder udfFinder;
+    
     public MRCompiler(PhysicalPlan<PhysicalOperator> plan) {
         this(plan,null);
     }
@@ -132,6 +157,8 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         scope = "MRCompiler";
         r = new Random(1331);
         FileLocalizer.setR(r);
+        udfFinderForExpr = new UDFFinderForExpr();
+        udfFinder = new UDFFinder();
     }
     
     /**
@@ -218,6 +245,8 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         //Now we have the inputs compiled. Do something
         //with the input oper op.
         op.visit(this);
+        if(op.getRequestedParallelism() > curMROp.requestedParallelism)
+            curMROp.requestedParallelism = op.getRequestedParallelism();
         compiledInputs = prevCompInp;
     }
     
@@ -378,21 +407,9 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         }
     }
     
-    /**
-     * Used to compile a split operator. The logic is to
-     * close the split job by replacing the split oper by
-     * a store and creating a new Map MRoper and return
-     * that as the current MROper to which other operators
-     * would be compiled into. The new MROper would be connected
-     * to the split job by load-store. Also add the split oper 
-     * to the splitsSeen map.
-     * @param op
-     * @throws IOException
-     * @throws PlanException 
-     */
-    private void split(POSplit op) throws PlanException{
+    
+    private MapReduceOper endSingleInputPlanWithStr(FileSpec fSpec) throws PlanException{
         MapReduceOper mro = compiledInputs[0];
-        FileSpec fSpec = op.getSplitStore();
         POStore str = getStore();
         str.setSFile(fSpec);
         if (!mro.isMapDone()) {
@@ -404,8 +421,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         } else {
             log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");
         }
-        splitsSeen.put(op.getOperatorKey(), mro);
-        curMROp = startNew(fSpec, mro);
+        return mro;
     }
     
     /**
@@ -486,11 +502,15 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             }
         }
         merge(ret.get(0).mapPlan, mpLst);
+        
         Iterator<MapReduceOper> it = toBeConnected.iterator();
         while(it.hasNext())
             MRPlan.connect(it.next(), mergedMap);
-        for(MapReduceOper rmro : remLst)
+        for(MapReduceOper rmro : remLst){
+            if(rmro.requestedParallelism > mergedMap.requestedParallelism)
+                mergedMap.requestedParallelism = rmro.requestedParallelism;
             MRPlan.remove(rmro);
+        }
         return ret;
     }
     
@@ -508,14 +528,43 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             finPlan.merge(e);
         }
     }
+
+    private void addUDFs(ExprPlan plan) throws VisitorException{
+        if(plan!=null){
+            udfFinderForExpr.setPlan(plan);
+            udfFinderForExpr.visit();
+            curMROp.UDFs.addAll(udfFinderForExpr.getUDFs());
+        }
+    }
+    
+    private void addUDFs(PhysicalPlan<PhysicalOperator> plan) throws VisitorException{
+        if(plan!=null){
+            udfFinder.setPlan(plan);
+            udfFinder.visit();
+            curMROp.UDFs.addAll(udfFinder.getUDFs());
+        }
+    }
+    
+    
+    /* The visitOp methods that decide what to do with the current operator */
     
     /**
-     * The visitOp methods that decide what to do with the current operator
+     * Compiles a split operator. The logic is to
+     * close the split job by replacing the split oper by
+     * a store and creating a new Map MRoper and return
+     * that as the current MROper to which other operators
+     * would be compiled into. The new MROper would be connected
+     * to the split job by load-store. Also add the split oper 
+     * to the splitsSeen map.
+     * @param op - The split operator
+     * @throws VisitorException
      */
-    
     public void visitSplit(POSplit op) throws VisitorException{
         try{
-            split(op);
+            FileSpec fSpec = op.getSplitStore();
+            MapReduceOper mro = endSingleInputPlanWithStr(fSpec);
+            splitsSeen.put(op.getOperatorKey(), mro);
+            curMROp = startNew(fSpec, mro);
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -546,6 +595,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     public void visitFilter(POFilter op) throws VisitorException{
         try{
             nonBlocking(op);
+            addUDFs(op.getPlan());
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -556,6 +606,10 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     public void visitLocalRearrange(POLocalRearrange op) throws VisitorException {
         try{
             nonBlocking(op);
+            List<ExprPlan> plans = op.getPlans();
+            if(plans!=null)
+                for(ExprPlan ep : plans)
+                    addUDFs(ep);
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -566,6 +620,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     public void visitForEach(POForEach op) throws VisitorException{
         try{
             nonBlocking(op);
+            addUDFs(op.getPlan());
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -600,6 +655,275 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
             throw pe;
+        }
+    }
+
+    @Override
+    public void visitSort(POSort op) throws VisitorException {
+        try{
+            FileSpec fSpec = getTempFileSpec();
+            MapReduceOper mro = endSingleInputPlanWithStr(fSpec);
+            FileSpec quantFile = getTempFileSpec();
+            int rp = op.getRequestedParallelism();
+            int[] fields = getSortCols(op);
+            MapReduceOper quant = getQuantileJob(op, mro, fSpec, quantFile, rp, fields);
+            curMROp = getSortJob(quant, fSpec, quantFile, rp, fields);
+        }catch(Exception e){
+            VisitorException pe = new VisitorException(e.getMessage());
+            pe.initCause(e);
+            throw pe;
+        }
+    }
+    
+    private int[] getSortCols(POSort sort){
+        List<ExprPlan> plans = sort.getSortPlans();
+        if(plans!=null){
+            int[] ret = new int[plans.size()]; 
+            int i=-1;
+            for (ExprPlan plan : plans) {
+                ret[++i] = ((POProject)plan.getLeaves().get(0)).getColumn();
+            }
+            return ret;
+        }
+        return null;
+    }
+    
+    public MapReduceOper getSortJob(MapReduceOper quantJob, FileSpec lFile, FileSpec quantFile, int rp, int[] fields) throws PlanException{
+        MapReduceOper mro = startNew(lFile, quantJob);
+        mro.setQuantFile(quantFile.getFileName());
+        mro.setGlobalSort(true);
+        mro.requestedParallelism = rp;
+        
+        List<ExprPlan> eps1 = new ArrayList<ExprPlan>();
+        
+        if(fields==null)
+            throw new PlanException("No Expression Plan found in POSort");
+        for (int i : fields) {
+            ExprPlan ep = new ExprPlan();
+            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prj.setColumn(i);
+            prj.setOverloaded(false);
+            prj.setResultType(DataType.BYTEARRAY);
+            ep.add(prj);
+            eps1.add(ep);
+        }
+        
+        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        lr.setIndex(0);
+        lr.setKeyType((fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
+        lr.setPlans(eps1);
+        lr.setResultType(DataType.TUPLE);
+        mro.mapPlan.addAsLeaf(lr);
+        
+        mro.setMapDone(true);
+        
+        POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        pkg.setKeyType((fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
+        pkg.setNumInps(1);
+        boolean[] inner = {false}; 
+        pkg.setInner(inner);
+        mro.reducePlan.add(pkg);
+        
+        ExprPlan ep = new ExprPlan();
+        POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        prj.setColumn(1);
+        prj.setOverloaded(false);
+        prj.setResultType(DataType.BYTEARRAY);
+        ep.add(prj);
+        List<ExprPlan> eps2 = new ArrayList<ExprPlan>();
+        eps2.add(ep);
+        List<Boolean> flattened = new ArrayList<Boolean>();
+        flattened.add(true);
+        POGenerate fe1Gen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)),eps2,flattened);
+        fe1Gen.setResultType(DataType.TUPLE);
+        PhysicalPlan<PhysicalOperator> fe1Plan = new PhysicalPlan<PhysicalOperator>();
+        fe1Plan.add(fe1Gen);
+        POForEach fe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        fe1.setPlan(fe1Plan);
+        fe1.setResultType(DataType.TUPLE);
+        mro.reducePlan.add(fe1);
+        mro.reducePlan.connect(pkg, fe1);
+//        ep1.add(innGen);
+        return mro;
+    }
+
+    public MapReduceOper getQuantileJob(POSort sort, MapReduceOper prevJob, FileSpec lFile, FileSpec quantFile, int rp, int[] fields) throws PlanException, VisitorException {
+        FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),RandomSampleLoader.class.getName());
+        MapReduceOper mro = startNew(quantLdFilName, prevJob);
+        mro.UDFs.add(FindQuantiles.class.getName());
+        if(sort.isUDFComparatorUsed)
+            mro.UDFs.add(sort.getMSortFunc().getFuncSpec());
+        
+        List<ExprPlan> eps1 = new ArrayList<ExprPlan>();
+        List<Boolean> flat1 = new ArrayList<Boolean>();
+        
+        if(fields==null)
+            throw new PlanException("No Expression Plan found in POSort");
+        for (int i : fields) {
+            ExprPlan ep = new ExprPlan();
+            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prj.setColumn(i);
+            prj.setOverloaded(false);
+            prj.setResultType(DataType.BYTEARRAY);
+            ep.add(prj);
+            eps1.add(ep);
+            flat1.add(true);
+        }
+        POGenerate fe1Gen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)),eps1,flat1);
+        fe1Gen.setResultType(DataType.TUPLE);
+        PhysicalPlan<PhysicalOperator> fe1Plan = new PhysicalPlan<PhysicalOperator>();
+        fe1Plan.add(fe1Gen);
+        POForEach fe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        fe1.setPlan(fe1Plan);
+        fe1.setResultType(DataType.TUPLE);
+        mro.mapPlan.addAsLeaf(fe1);
+        
+        ExprPlan ep1 = new ExprPlan();
+        ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        ce.setValue("all");
+        ep1.add(ce);
+        
+        List<ExprPlan> eps = new ArrayList<ExprPlan>();
+        eps.add(ep1);
+        
+        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        lr.setIndex(0);
+        lr.setKeyType(DataType.CHARARRAY);
+        lr.setPlans(eps);
+        lr.setResultType(DataType.TUPLE);
+        mro.mapPlan.add(lr);
+        mro.mapPlan.connect(fe1, lr);
+        
+        mro.setMapDone(true);
+        
+        POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        pkg.setKeyType(DataType.CHARARRAY);
+        pkg.setNumInps(1);
+        boolean[] inner = {false}; 
+        pkg.setInner(inner);
+        mro.reducePlan.add(pkg);
+        
+        PhysicalPlan<PhysicalOperator> fe2Plan = new PhysicalPlan<PhysicalOperator>();
+        
+        POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        topPrj.setColumn(1);
+        topPrj.setOverloaded(true);
+        topPrj.setResultType(DataType.TUPLE);
+        fe2Plan.add(topPrj);
+        
+        ExprPlan nesSortPlan = new ExprPlan();
+        POProject prjStar2 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        prjStar2.setResultType(DataType.TUPLE);
+        prjStar2.setStar(true);
+        nesSortPlan.add(prjStar2);
+        
+        List<ExprPlan> nesSortPlanLst = new ArrayList<ExprPlan>();
+        nesSortPlanLst.add(nesSortPlan);
+        
+        sort.setSortPlans(nesSortPlanLst);
+        fe2Plan.add(sort);
+        fe2Plan.connect(topPrj, sort);
+        
+        ExprPlan ep3 = new ExprPlan();
+        POProject prjStar3 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        prjStar3.setResultType(DataType.TUPLE);
+        prjStar3.setStar(true);
+        ep3.add(prjStar3);
+        
+        ExprPlan rpep = new ExprPlan();
+        ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        rpce.setRequestedParallelism(rp);
+        rpce.setValue(rp<=0?1:rp);
+        rpep.add(rpce);
+        
+        List<ExprPlan> genEps = new ArrayList<ExprPlan>();
+        genEps.add(rpep);
+        genEps.add(ep3);
+        
+        List<Boolean> flattened2 = new ArrayList<Boolean>();
+        flattened2.add(false);
+        flattened2.add(false);
+        POGenerate nesGen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)), genEps, flattened2);
+        fe2Plan.add(nesGen);
+        fe2Plan.connect(sort, nesGen);
+        
+        POForEach fe2 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        fe2.setPlan(fe2Plan);
+        fe2.setResultType(DataType.TUPLE);
+        
+        mro.reducePlan.add(fe2);
+        mro.reducePlan.connect(pkg, fe2);
+        
+        ExprPlan ep4 = new ExprPlan();
+        POProject prjStar4 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        prjStar4.setResultType(DataType.TUPLE);
+        prjStar4.setStar(true);
+        ep4.add(prjStar4);
+        
+        List ufInps = new ArrayList();
+        ufInps.add(prjStar4);
+        POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, FindQuantiles.class.getName());
+        ep4.add(uf);
+        ep4.connect(prjStar4, uf);
+        
+        List<ExprPlan> ep4s = new ArrayList<ExprPlan>();
+        ep4s.add(ep4);
+        List<Boolean> flattened3 = new ArrayList<Boolean>();
+        flattened3.add(false);
+        POGenerate finGen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)), ep4s, flattened3);
+        
+        PhysicalPlan<PhysicalOperator> fe3Plan = new PhysicalPlan<PhysicalOperator>();
+        fe3Plan.add(finGen);
+        
+        POForEach fe3 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        fe3.setPlan(fe3Plan);
+        fe3.setResultType(DataType.TUPLE);
+        
+        mro.reducePlan.add(fe3);
+        mro.reducePlan.connect(fe2, fe3);
+        
+        POStore str = getStore();
+        str.setSFile(quantFile);
+        mro.reducePlan.add(str);
+        mro.reducePlan.connect(fe3, str);
+        
+        mro.setReduceDone(true);
+//        mro.requestedParallelism = rp;
+        return mro;
+    }
+    
+    public static void main(String[] args) throws PlanException, IOException, ExecException, VisitorException {
+        PigContext pc = new PigContext();
+        pc.connect();
+        MRCompiler comp = new MRCompiler(null, pc);
+        Random r = new Random();
+        List<ExprPlan> sortPlans = new LinkedList<ExprPlan>();
+        POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
+        pr1.setResultType(DataType.INTEGER);
+        ExprPlan expPlan = new ExprPlan();
+        expPlan.add(pr1);
+        sortPlans.add(expPlan);
+        List<Boolean> mAscCols = new LinkedList<Boolean>();
+        mAscCols.add(false);
+        MapReduceOper pj = comp.getMROp();
+        POLoad ld = comp.getLoad();
+        pj.mapPlan.add(ld);
+
+        POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, null,
+                sortPlans, mAscCols, null);
+        
+        pj.mapPlan.addAsLeaf(sort);
+        
+        POStore st = comp.getStore();
+        pj.mapPlan.addAsLeaf(st);
+        
+        MRCompiler c1 = new MRCompiler(pj.mapPlan,pc);
+        c1.compile();
+        MROperPlan plan = c1.getMRPlan();
+        for(int i=0;i<3;i++){
+            MapReduceOper job = plan.getLeaves().get(0);
+            System.out.println(job.name());
+            plan.remove(job);
         }
     }
 }

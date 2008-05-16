@@ -17,19 +17,24 @@
  */
 package org.apache.pig.impl.physicalLayer.topLevelOperators;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
+import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -47,17 +52,12 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
 
     private Log log = LogFactory.getLog(getClass());
 
-    PhysicalPlan<PhysicalOperator> plan;
+    List<ExprPlan> plans;
+    
+    List<ExpressionOperator> leafOps;
 
     // The position of this LR in the package operator
     int index;
-
-    POGenerate gen;
-    
-    //Since the plan has a generate, this needs to be maintained
-    //as the generate can potentially return multiple tuples for
-    //same call.
-    private boolean processingPlan = false;
     
     byte keyType;
 
@@ -76,6 +76,7 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
     public POLocalRearrange(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp, inp);
         index = -1;
+        leafOps = new ArrayList<ExpressionOperator>();
     }
 
     @Override
@@ -113,43 +114,18 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
     @Override
     public void attachInput(Tuple t) {
         super.attachInput(t);
-        processingPlan = false;
     }
     
     /**
      * Calls getNext on the generate operator inside the nested
      * physical plan. Converts the generated tuple into the proper
-     * format, i.e, (key,{(value)})
+     * format, i.e, (key,indexedTuple(value))
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        Result res = null;
+        
         Result inp = null;
-        //The nested plan is under processing
-        //So return tuples that the generate oper
-        //returns after converting them to the required
-        //format
-        if(processingPlan){
-            while(true) {
-                res = gen.getNext(t);
-                if(res.returnStatus==POStatus.STATUS_OK){
-                    res.result = constructLROutput((Tuple)res.result);
-                    return res;
-                }
-                if(res.returnStatus==POStatus.STATUS_ERR)
-                    return res;
-                if(res.returnStatus==POStatus.STATUS_NULL)
-                    continue;
-                if(res.returnStatus==POStatus.STATUS_EOP){
-                    processingPlan = false;
-                    break;
-                }
-            }
-        }
-        //The nested plan processing is done or is
-        //yet to begin. So process the input and start
-        //nested plan processing on the input tuple
-        //read
+        Result res = null;
         while (true) {
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
@@ -157,46 +133,78 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
             if (inp.returnStatus == POStatus.STATUS_NULL)
                 continue;
             
-            plan.attachInput((Tuple) inp.result);
-            
-            res = gen.getNext(t);
-            if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
-                break;
-            if(inp.returnStatus == POStatus.STATUS_NULL)
-                continue;
-            
-            processingPlan = true;
-            
-            res.result = constructLROutput((Tuple)res.result);
+            for (ExprPlan ep : plans) {
+                ep.attachInput((Tuple)inp.result);
+            }
+            List<Result> resLst = new ArrayList<Result>();
+            for (ExpressionOperator op : leafOps){
+                
+                switch(op.resultType){
+                case DataType.BAG:
+                    res = op.getNext(dummyBag);
+                    break;
+                case DataType.BOOLEAN:
+                    res = op.getNext(dummyBool);
+                    break;
+                case DataType.BYTEARRAY:
+                    res = op.getNext(dummyDBA);
+                    break;
+                case DataType.CHARARRAY:
+                    res = op.getNext(dummyString);
+                    break;
+                case DataType.DOUBLE:
+                    res = op.getNext(dummyDouble);
+                    break;
+                case DataType.FLOAT:
+                    res = op.getNext(dummyFloat);
+                    break;
+                case DataType.INTEGER:
+                    res = op.getNext(dummyInt);
+                    break;
+                case DataType.LONG:
+                    res = op.getNext(dummyLong);
+                    break;
+                case DataType.MAP:
+                    res = op.getNext(dummyMap);
+                    break;
+                case DataType.TUPLE:
+                    res = op.getNext(dummyTuple);
+                    break;
+                }
+                if(res.returnStatus!=POStatus.STATUS_OK)
+                    return new Result();
+                resLst.add(res);
+            }
+            res.result = constructLROutput(resLst,(Tuple)inp.result);
             return res;
         }
         return inp;
     }
     
-    private Tuple constructLROutput(Tuple genOut){
-        //Strip the input tuple off its key which
-        //will be the first field in the tuple
-        Object key = genOut.getAll().remove(0);
+    private Tuple constructLROutput(List<Result> resLst, Tuple value) throws ExecException{
+        //Construct key
+        Object key;
+        if(resLst.size()>1){
+            Tuple t = TupleFactory.getInstance().newTuple(resLst.size());
+            int i=-1;
+            for(Result res : resLst)
+                t.set(++i, res.result);
+            key = t;
+        }
+        else{
+            key = resLst.get(0).result;
+        }
         
         //Create the indexed tuple out of the value
         //that is remaining in the input tuple
-        IndexedTuple it = new IndexedTuple(genOut, index);
+        IndexedTuple it = new IndexedTuple(value, index);
         
         //Put the key and the indexed tuple
         //in a tuple and return
-        Tuple outPut = new DefaultTuple();
-        outPut.append(key);
-        outPut.append(it);
+        Tuple outPut = TupleFactory.getInstance().newTuple(2);
+        outPut.set(0,key);
+        outPut.set(1,it);
         return outPut;
-    }
-
-    public PhysicalPlan<PhysicalOperator> getPlan() {
-        return plan;
-    }
-
-    public void setPlan(PhysicalPlan<PhysicalOperator> plan) {
-        this.plan = plan;
-        gen = (POGenerate) plan.getLeaves().get(0);
     }
 
     public byte getKeyType() {
@@ -205,5 +213,17 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
 
     public void setKeyType(byte keyType) {
         this.keyType = keyType;
+    }
+
+    public List<ExprPlan> getPlans() {
+        return plans;
+    }
+
+    public void setPlans(List<ExprPlan> plans) {
+        this.plans = plans;
+        leafOps.clear();
+        for (ExprPlan plan : plans) {
+            leafOps.add(plan.getLeaves().get(0));
+        }
     }
 }
