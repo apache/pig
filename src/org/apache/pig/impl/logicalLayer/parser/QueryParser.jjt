@@ -44,6 +44,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.plan.MultiMap;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
 
 
 public class QueryParser {
@@ -54,6 +58,7 @@ public class QueryParser {
 	private NodeIdGenerator nodeIdGen;
 	//a map of alias to logical operator for a quick lookup
 	private Map<String, LogicalOperator> mapAliasOp;
+	private Map<String, ExpressionOperator> defineAliases;
 	private static Log log = LogFactory.getLog(QueryParser.class);
 	
 	private long getNextId() {
@@ -65,7 +70,8 @@ public class QueryParser {
 					   String scope, 
 					   Map<String, LogicalPlan> aliases,
 					   Map<OperatorKey, LogicalOperator> opTable,
-					   Map<String, LogicalOperator> aliasOp) {
+					   Map<String, LogicalOperator> aliasOp,
+					   Map<String, ExpressionOperator> defineAliases) {
 		this(in);
 		this.pigContext = pigContext;
 		this.aliases = aliases;
@@ -73,6 +79,7 @@ public class QueryParser {
 		this.scope = scope;
 		this.nodeIdGen = NodeIdGenerator.getGenerator();
 		this.mapAliasOp = aliasOp;
+		this.defineAliases = defineAliases;
 	}
 
 	public class CogroupInput {
@@ -283,6 +290,10 @@ public class QueryParser {
 	 LogicalOperator getOp(String alias) {
 	 	return mapAliasOp.get(alias);
 	 }
+
+	 ExpressionOperator getDefineOp(String alias) {
+	 	return defineAliases.get(alias);
+	 }
 	 
 	 //BEGIN
 	 //I am maintaining state about the operators that should
@@ -381,6 +392,7 @@ TOKEN : { <BYTEARRAY : "bytearray"> }
 TOKEN : { <BAG : "bag"> }
 TOKEN : { <TUPLE : "tuple"> }
 TOKEN : { <MAP : "map"> }
+TOKEN : { <DEFINE : "define"> }
 
 TOKEN:
 {
@@ -393,9 +405,12 @@ TOKEN:
 // Define Numeric Constants
 TOKEN :
 {
-	< NUMBER: <INTEGER> | <FLOATINGPOINT> | <FLOATINGPOINT> ( ["e","E"] ([ "-","+"])? <FLOATINGPOINT> )?>
-| 	< #FLOATINGPOINT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
+//	< NUMBER: <INTEGER> | <LONGINTEGER> | <DOUBLENUMBER> | <FLOATNUMBER> >
+ 	< #FLOATINGPOINT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
 | 	< INTEGER: ( <DIGIT> )+ >
+| 	< LONGINTEGER: <INTEGER> (["l","L"])? >
+|   < DOUBLENUMBER: <FLOATINGPOINT> ( ["e","E"] ([ "-","+"])? <FLOATINGPOINT> )?>
+|   < FLOATNUMBER: <DOUBLENUMBER> (["f","F"])? >
 }
 
 TOKEN : { <QUOTEDSTRING : "'" (~["'"])* "'"> }
@@ -405,7 +420,7 @@ TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
 // Parse is the Starting function.
 LogicalPlan Parse() : 
 {
-	LogicalOperator root; 
+	LogicalOperator root = null; 
 	Token t1; 
 	LogicalPlan lp = new LogicalPlan();
 	log.trace("Entering Parse");
@@ -416,11 +431,14 @@ LogicalPlan Parse() :
 	(t1 = <IDENTIFIER> "=" root = Expr(lp) ";" {root.setAlias(t1.image); addAlias(t1.image, root);})
 |	(root = Expr(lp) ";")
 |	(<SPLIT> root = SplitClause(lp) ";")
+|	(<DEFINE> DefineClause(lp) ";")
 	)
 	{ 
-		if(null != root.getSchema()) {
-			log.debug("Root: " + root.getClass().getName() + " schema aliases");
-			root.getSchema().printAliases();
+		if(null != root) {
+			if(null != root.getSchema()) {
+				log.debug("Root: " + root.getClass().getName() + " schema aliases");
+				root.getSchema().printAliases();
+			}
 		}
 		
 		log.trace("Exiting Parse");
@@ -463,6 +481,20 @@ LogicalOperator SplitClause(LogicalPlan lp):
 	)
 	{log.trace("Exiting SplitClause"); return splitOp;}
 } 
+
+void DefineClause(LogicalPlan lp) :
+{
+	Token t;
+	ExpressionOperator exOp;
+	log.trace("Entering DefineClause");
+}
+{
+	(t = <IDENTIFIER> "=" exOp = FuncDeclareSpec(lp))
+	{
+		defineAliases.put(t.image, exOp);
+		log.trace("Exiting DefineClause");
+	}
+}
 
 
 LogicalOperator Expr(LogicalPlan lp) : 
@@ -533,7 +565,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 {
 	(
 	(
-	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema);log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
+	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema);log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.info("Load as atomschema()");schema.printAliases();}) ])
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
 |   (<ORDER> op = OrderClause(lp))
@@ -550,7 +582,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |	(<UNION> op = UnionClause(lp))
 |	(<FOREACH> op = ForEachClause(lp))
 	)
-    [<PARALLEL> t2=<NUMBER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
+    [<PARALLEL> t2=<INTEGER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
 	)	
 	{log.trace("Exiting BaseExpr"); return op;}
 }
@@ -1526,11 +1558,12 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 	ExpressionOperator projection; 
 	Schema subSchema = null; 
 	Token t; 
+    Object key = new Object();
 	log.trace("Entering BaseEvalSpec");
 }
 {
 	(
-	item = Const(lp)
+    LOOKAHEAD(Const(lp)) item = Const(lp)
 |	(
 	(
 		LOOKAHEAD(FuncEvalSpec(over,specs,lp,input))
@@ -1570,9 +1603,9 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 				item = projection;
 			}
 		)
-|		( "#" t = <QUOTEDSTRING> { 
+|		( "#" key = AtomDatum() { 
 			assertAtomic(item, false);
-			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), item, unquote(t.image), DataType.BYTEARRAY, null);
+			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), item, key, DataType.BYTEARRAY, null);
 			lp.add(mapLookup);
 			log.debug("BaseEvalSpec: Added operator " + mapLookup.getClass().getName() + " " + mapLookup + " to logical plan " + lp);
 			lp.connect(item, mapLookup);
@@ -1622,12 +1655,33 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 {
 	String funcName; 
 	List<ExpressionOperator> args;
+	ExpressionOperator userFunc;
 	log.trace("Entering FuncEvalSpec");
 }
 {
 	funcName=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
 	{
-		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, DataType.BYTEARRAY);
+		//check if the function name is an alias
+		//if the user has defined an alias then 
+		//verify if the number of of arguments match
+		//and create a new LOUserFunc with the information
+		//from the lookup table
+
+		LOUserFunc userAliasFunc = (LOUserFunc)getDefineOp(funcName);
+
+		if(null == userAliasFunc) {
+
+			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, DataType.BYTEARRAY);
+		} else {
+			//we have an alias
+			int expectedNumArgs = userAliasFunc.getArguments().size();
+			int numArgs = args.size();
+			if(expectedNumArgs != numArgs) {
+				throw new ParseException("Expected " + expectedNumArgs + " argument(s) found " + numArgs + " argument(s)");
+			}
+			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), userAliasFunc.getFuncName(), userAliasFunc.getArguments(), userAliasFunc.getType());
+
+		}
 		lp.add(userFunc);
 		log.debug("FuncEvalSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
 		for(ExpressionOperator exprOp: args) {
@@ -1676,6 +1730,71 @@ ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs,
 	}
 	)
 	{log.trace("Exiting EvalArgsItem");return item;}
+}
+
+ExpressionOperator FuncDeclareSpec(LogicalPlan lp) : 
+{
+	String funcName; 
+	List<ExpressionOperator> args;
+	byte type = DataType.BYTEARRAY;
+	log.trace("Entering FuncDeclareSpec");
+}
+{
+	[type = Type()] funcName=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
+	{
+		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
+		//lp.add(userFunc);
+		//log.debug("FuncDeclareSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
+		//for(ExpressionOperator exprOp: args) {
+			//lp.connect(exprOp, userFunc);
+			//log.debug("FuncDeclareSpec: Connected operator " + exprOp.getClass().getName() + " " + exprOp+ " to " + userFunc + " logical plan " + lp);
+		//}
+		log.trace("Exiting FuncDeclareSpec");
+		return userFunc;
+	}
+}
+
+List<ExpressionOperator> FuncDeclareArgs(LogicalPlan lp) : 
+{
+	ArrayList<ExpressionOperator> specList = new ArrayList<ExpressionOperator>(); 
+	ExpressionOperator item;
+	log.trace("Entering FuncDeclareEvalArgs");
+}
+{
+	(
+	(item=FuncDeclareArgsItem(lp)	{specList.add(item);}
+	("," item=FuncDeclareArgsItem(lp) {specList.add(item);})*)
+	
+	| {}
+	)
+	{
+		log.trace("Exiting EvalArgs");
+		return specList;
+	}
+}
+
+ExpressionOperator FuncDeclareArgsItem(LogicalPlan lp):
+{
+	ExpressionOperator item;
+	byte type = DataType.BYTEARRAY;
+	Token t = null;
+	log.trace("Entering FuncDeclareArgsItem");
+}
+{
+	(
+	type = Type() [t = <IDENTIFIER>]
+	{
+		LOProject project = new LOProject(lp, new OperatorKey(scope, getNextId()), null, -1); 
+		project.setType(type);
+		if(null != t) {
+			project.setAlias(t.image); 
+		}
+		item = project;
+		//lp.add(project);
+		log.debug("FuncDeclareArgsItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+	}
+	)
+	{log.trace("Exiting FuncDeclareArgsItem");return item;}
 }
 
 byte Type() : 
@@ -1735,6 +1854,7 @@ Schema.FieldSchema FieldSchema() :
 	(
 	LOOKAHEAD(SchemaTuple()) fs = SchemaTuple()
 |	LOOKAHEAD(SchemaBag()) fs = SchemaBag()
+|	LOOKAHEAD(SchemaMap()) fs = SchemaMap()
 |	LOOKAHEAD(AtomSchema()) fs = AtomSchema()
 	)
 	//{log.debug("Printing Aliases"); item.printAliases();log.trace("Exiting Schema");return item;}
@@ -1764,21 +1884,41 @@ Schema.FieldSchema AtomSchema() :
 	)
 }
 
+Schema.FieldSchema SchemaMap() :
+{
+	Token t1 = null; 
+	Schema.FieldSchema fs;
+	log.trace("Entering SchemaMap");
+}
+{
+	( t1 = <IDENTIFIER> )  [":" <MAP>] "[" "]"
+	{
+		if (null != t1) {
+			log.debug("MAP alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, DataType.MAP);
+		} else {
+			fs = new Schema.FieldSchema(null, DataType.MAP);
+		}
+		log.trace("Exiting SchemaMap");
+		return fs;
+	} 
+}
+
 Schema.FieldSchema SchemaTuple() : 
 {
 	Token t1 = null; 
-	Schema list;
+	Schema s;
 	Schema.FieldSchema fs;
 	log.trace("Entering SchemaTuple");
 }
 { 
-	( t1 = <IDENTIFIER> )  [":" <TUPLE>] "(" list = TupleSchema() ")" 
+	( t1 = <IDENTIFIER> )  [":" <TUPLE>] "(" s = TupleSchema() ")" 
 	{
 		if (null != t1) {
 			log.debug("TUPLE alias " + t1.image);
-			fs = new Schema.FieldSchema(t1.image, list, DataType.TUPLE);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.TUPLE);
 		} else {
-			fs = new Schema.FieldSchema(null, list, DataType.TUPLE);
+			fs = new Schema.FieldSchema(null, s, DataType.TUPLE);
 		}
 		log.trace("Exiting SchemaTuple");
 		return fs;
@@ -1788,18 +1928,19 @@ Schema.FieldSchema SchemaTuple() :
 Schema.FieldSchema SchemaBag() : 
 {
 	Token t1 = null; 
-	Schema list;
+	Schema s;
 	Schema.FieldSchema fs;
 	log.trace("Entering SchemaBag");
 }
 { 
-	( t1 = <IDENTIFIER> ) [":" <BAG>] "{" list = TupleSchema() "}" 
+	( t1 = <IDENTIFIER> ) [":" <BAG>] "{" (fs = SchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" 
 	{
+        s = new Schema(fs);
 		if (null != t1) {
 			log.debug("BAG alias " + t1.image);
-			fs = new Schema.FieldSchema(t1.image, list, DataType.BAG);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.BAG);
 		} else {
-			fs = new Schema.FieldSchema(null, list, DataType.BAG);
+			fs = new Schema.FieldSchema(null, s, DataType.BAG);
 		}
 		log.trace("Exiting SchemaBag");
 		return fs;
@@ -1836,13 +1977,20 @@ String EvalFunction() :
 {
 	funcName = QualifiedFunction()
 	{
-		try{
-			LOUserFunc ef = (LOUserFunc) pigContext.instantiateFuncFromAlias(funcName);
-		}catch (Exception e){
-			throw new ParseException(e.getMessage());
+		ExpressionOperator userFunc = getDefineOp(funcName);
+		if(null == userFunc) {
+		//TODO
+		//Commented out the code for instaniateFunc as it's failing
+		/*
+			try{
+				LOUserFunc ef = (LOUserFunc) pigContext.instantiateFuncFromAlias(funcName);
+			}catch (Exception e){
+				throw new ParseException(e.getMessage());
+			}
+		*/
 		}
-		
 		log.trace("Exiting EvalFunction");
+		
 		return funcName;
 	}
 }
@@ -1904,20 +2052,137 @@ ExpressionOperator SimpleProj(Schema over, LogicalPlan lp, LogicalOperator eOp):
 	}
 }
 
+DataBag Bag() :
+{
+	byte type = DataType.BYTEARRAY;
+	BagFactory bagFactory = BagFactory.getInstance();
+    DataBag bag = bagFactory.newDefaultBag();
+    Tuple t = null;
+    log.trace("Entering bag");
+}
+{
+ ("(" t = Tuple() {bag.add(t);} ")" ("," "(" t = Tuple() {bag.add(t);} ")" )* )
+ {
+    log.trace("Exiting bag");
+    return bag;
+ }
+}
+
+Tuple Tuple() : 
+{
+	byte type = DataType.BYTEARRAY;
+	Object obj = null;
+	TupleFactory tupleFactory = TupleFactory.getInstance();
+	ArrayList<Object> objList = new ArrayList<Object>(); 
+	log.trace("Entering Tuple");
+}
+{
+	(	
+	(	
+            (
+                obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);} 
+		        ( LOOKAHEAD(2) "," obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);})* 
+            )
+            |		{}
+	)
+	)
+	{
+		Tuple tuple = tupleFactory.newTuple(objList);
+		log.trace("Exiting Tuple");
+		return tuple;
+	}
+}
+
+Map<Object, Object> Map() :
+{
+	Map<Object, Object> keyValues = new HashMap<Object, Object>();
+	log.trace("Entering Map");
+	
+}
+{
+	( KeyValuePair(keyValues) ("," KeyValuePair(keyValues))* )
+	{
+		log.trace("Exiting Map");
+		return keyValues;
+	}
+}
+
+void KeyValuePair(Map<Object, Object> keyValues) :
+{
+	Object key = null;
+	Object value = null;
+	log.trace("Entering KeyValuePair");
+}
+{
+	(key = AtomDatum() "#" value = Datum())
+	{
+		keyValues.put(key, value);
+		log.trace("Exiting KeyValuePair");
+	}
+	
+}
+
+Object AtomDatum():
+{
+    Object obj = null;
+	Token t;
+	log.trace("Entering AtomDatum");
+}
+{
+	(
+	t = <INTEGER> {obj = new Integer(Integer.parseInt(t.image));}
+|	t = <LONGINTEGER> 
+    {
+        String num = t.image.substring(0, t.image.length() - 2);
+        obj = new Long(Long.parseLong(num));
+    }
+|	t = <FLOATNUMBER> {obj = new Float(Float.parseFloat(t.image));}
+|	t = <DOUBLENUMBER> {obj = new Double(Double.parseDouble(t.image));}
+|	t = <QUOTEDSTRING> {obj = unquote(t.image);}
+	)
+	{
+        log.debug("Number: " + t.image + " obj type: " + DataType.findTypeName(DataType.findType(obj)));
+		log.trace("Exiting AtomDatum");
+		return obj;
+	}
+}
+
+Object Datum(): 
+{
+    Object obj = null;
+	log.trace("Entering Datum");
+}
+{
+	(
+	obj = "[" Map() "]"
+|	obj = "{" Bag() "}"
+|	obj = "(" Tuple() ")"
+|	obj = AtomDatum()
+	)
+	{
+		log.trace("Exiting Datum");
+		return obj;
+	}
+}
 
 ExpressionOperator Const(LogicalPlan lp) : 
 {
 	Token t1; 
 	String s;
+	Object obj = null;
+	byte type = DataType.BYTEARRAY;
 	log.trace("Entering Const");
 }
 {
 	(
-	t1=<QUOTEDSTRING> {s = unquote(t1.image);}
-|	t1 = <NUMBER> {s = t1.image;}
+	LOOKAHEAD(AtomDatum()) obj = AtomDatum ()
+|	obj= Datum()
 	)
 	{
-		ExpressionOperator lConst = new LOConst(lp, new OperatorKey(scope, getNextId()), s);
+		ExpressionOperator lConst = new LOConst(lp, new OperatorKey(scope, getNextId()), obj);
+        type = DataType.findType(obj);
+        log.debug("type: " + DataType.findTypeName(type));
+		lConst.setType(type);
 		lp.add(lConst);
 		log.debug("Const: Added operator " + lConst.getClass().getName() + " " + lConst + " to logical plan " + lp);
 		log.trace("Exiting Const");
@@ -1987,6 +2252,7 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 				item = new LOProject(lp, new OperatorKey(scope, getNextId()), op, -1);
 				((LOProject)item).setStar(true);
 				log.debug("Set star to true");
+				item.setAlias(t1.image);
 				
 				if(insideGenerate()) {
 					log.debug("AliasFieldOrSpec: Inside generate");
@@ -2019,6 +2285,7 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 				over.printAliases();
 			}	
 			item = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, i);
+			item.setAlias(t1.image);
 			try {
 				lp.add(item);
 				log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);

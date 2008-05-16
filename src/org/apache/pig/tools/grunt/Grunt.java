@@ -52,13 +52,14 @@ public class Grunt
     parser.parseContOnError();
     }
 
-    public void exec() {
+    public void exec() throws Throwable {
         try {
         parser.setInteractive(false);
         parser.parseStopOnError();
         } catch (Throwable e) {
             log.error(e.getMessage());
-    }
+            throw e;
+        }
     
     }
 }

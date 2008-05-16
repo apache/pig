@@ -61,9 +61,9 @@ public class LOMapLookup extends ExpressionOperator {
             throws ParseException {
         super(plan, key);
 
-        if (!DataType.isAtomic(mapKey)) {
-            throw new ParseException("Map key" + mapKey.toString()
-                    + "is not atomic");
+        if (!DataType.isAtomic(DataType.findType(mapKey))) {
+            throw new ParseException("Map key " + mapKey.toString()
+                    + " is not atomic");
         }
         mMap = map;
         mMapKey = mapKey;

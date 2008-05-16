@@ -234,20 +234,6 @@ public class LOCogroup extends LogicalOperator {
                 byte groupByType = groupByFss.get(0).type;
                 Schema groupSchema = groupByFss.get(0).schema;
                 log.debug("Type == " + DataType.findTypeName(groupByType));
-                /*
-                if(DataType.TUPLE == groupByType || DataType.BAG == groupByType) { 
-                    if(null != groupSchema) {
-                        Schema innerSchema = groupSchema.getFields().get(0).schema;
-                        fss.add(new Schema.FieldSchema("group", innerSchema, groupByType));
-                        log.debug("Printing the aliases of the single group by column");
-                        groupSchema.printAliases();
-                    } else {
-                        fss.add(new Schema.FieldSchema("group", groupSchema, groupByType));
-                    }
-                } else {
-                    fss.add(new Schema.FieldSchema("group", groupByType));
-                }
-                */
                 fss.add(new Schema.FieldSchema("group", groupSchema, groupByType));
             } else {
                 fss.add(new Schema.FieldSchema("group", groupBySchema));

@@ -89,13 +89,13 @@ public class LOCross extends LogicalOperator {
                             Integer count;
                             count = aliases.get(fs.alias);
                             if(null == count) {
-                                aliases.put(fs.alias, 0);
+                                aliases.put(fs.alias, 1);
                             } else {
                                 aliases.put(fs.alias, ++count);
                             }
                             count = aliases.get(disambiguatorAlias);
                             if(null == count) {
-                                aliases.put(disambiguatorAlias, 0);
+                                aliases.put(disambiguatorAlias, 1);
                             } else {
                                 aliases.put(disambiguatorAlias, ++count);
                             }
@@ -126,7 +126,7 @@ public class LOCross extends LogicalOperator {
             Set<String> duplicateAliases = new HashSet<String>();
             for(String alias: aliases.keySet()) {
                 Integer count = aliases.get(alias);
-                if(count > 0) {
+                if(count > 1) {
                     Boolean inFlatten = false;
                     log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
                     inFlatten = inverseFlattenAlias.get(alias);
@@ -153,9 +153,9 @@ public class LOCross extends LogicalOperator {
             for(Schema.FieldSchema fs: mSchema.getFields()) {
                 String alias = flattenAlias.get(fs);
                 Integer count = aliases.get(alias);
-                if (null == count) count = 0;
+                if (null == count) count = 1;
                 log.debug("alias: " + alias);
-                if((null != alias) && (count == 0)) {
+                if((null != alias) && (count == 1)) {
                     mSchema.addAlias(alias, fs);
                 }
             }

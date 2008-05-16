@@ -45,11 +45,12 @@ public class LogicalPlanBuilder {
                              String query, 
                              Map<String, LogicalPlan> aliases,
                              Map<OperatorKey, LogicalOperator> opTable,
-                             Map<String, LogicalOperator> aliasOp)
+                             Map<String, LogicalOperator> aliasOp,
+                             Map<String, ExpressionOperator> defineAliases)
         throws IOException, ParseException {
         ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes());        
         //QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable);
-        QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable, aliasOp);
+        QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable, aliasOp, defineAliases);
         return parser.Parse();        
     }
 

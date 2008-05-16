@@ -19,7 +19,10 @@ package org.apache.pig.test;
 
 import org.junit.Test;
 import junit.framework.TestCase;
+import junit.framework.AssertionFailedError;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
@@ -31,13 +34,14 @@ import java.io.BufferedReader;
 public class TestGrunt extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
 
+    private final Log log = LogFactory.getLog(getClass());
     
     @Test 
     public void testCopyFromLocal() throws Throwable {
         PigServer server = new PigServer("MAPREDUCE");
         PigContext context = server.getPigContext();
         
-        String strCmd = "copyFromLocal /tmp/TestMe;";
+        String strCmd = "copyFromLocal /bin/sh . ;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -45,5 +49,24 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
     
         grunt.exec();
+    }
+
+    @Test 
+    public void testDefineFail() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "define myudf org.apache.pig.myudf();";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("Encountered \"define\""));
+        }
     }
 }

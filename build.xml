@@ -141,7 +141,7 @@
         	    **/test/TestGTOrEqual.java,**/test/TestLessThan.java,**/test/TestLTOrEqual.java,
         	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java, **/test/TestPOGenerate.java,
                 **/test/TestProject.java, **/test/TestLoad.java, **/test/TestStore.java,
-                 **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
+                **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
         		**/test/TestLocalRearrange.java, **/test/TestPOUserFunc.java,
         		**/test/TestPODistinct.java, **/test/TestPOSort.java,
         		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,**/test/TestUnion.java, **/test/TestMRCompiler.java,
@@ -155,7 +155,8 @@
                 **/physicalLayer/POStatus.java, **/bzip2r/*.java,
                 **/validators/*.java , **/test/TestInputOutputFileValidator.java ,
 				**/test/TestTypeCheckingValidator.java, 
-                **/backend/executionengine/ExecException.java"
+                **/backend/executionengine/ExecException.java,
+                **/tools/grunt/*.java, **/test/TestGrunt.java"
             destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
@@ -276,10 +277,11 @@
                 	<include name="**/TestTypeCheckingValidator.java" /> 
                 	<include name="**/TestSchema.java" /> 
                 	<include name="**/TestLogicalPlanBuilder.java" />
-                	<include name="**/TestLocalJobSubmission.java" />
+                    <include name="**/TestLocalJobSubmission.java" />
                 	<include name="**/TestPOMapLookUp.java" />
                 	<include name="**/TestPOBinCond.java" />
                 	<include name="**/TestPONegative.java" />
+                	<include name="**/TestGrunt.java" />
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

@@ -50,6 +50,7 @@ import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 //import org.apache.pig.impl.logicalLayer.LOEval;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -525,6 +526,19 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
 
     @Test
+    public void testQueryFail43() {
+        buildPlan("a = load 'a' as (name, age, gpa);");
+        buildPlan("b = load 'b' as (name, height);");
+        try {
+            String query = "c = cogroup a by (name, age), b by (height);";
+            buildPlan(query);
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    } 
+
+
+    @Test
     public void testQuery44() {
         buildPlan("a = load 'a' as (url, pagerank);");
         buildPlan("b = load 'b' as (url, query, rank);");
@@ -647,6 +661,17 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     } 
 
+	@Test
+    public void testQueryFail58(){
+        buildPlan("a = load 'a' as (url, host, rank);");
+        buildPlan("b = group a by url; ");
+        try {
+        	LogicalPlan lp = buildPlan("c = foreach b generate group.url;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+
     @Test
     public void testQuery59() {
         buildPlan("a = load 'a' as (name, age, gpa);");
@@ -683,23 +708,13 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
 
     @Test
-    public void testQueryFail6() {
+    public void testQueryFail62() {
         buildPlan("a = load 'a' as (name, age, gpa);");
         buildPlan("b = load 'b' as (name, height);");
+        String query = "c = cross a,b;";
+        buildPlan(query);
         try {
-            String query = "c = cogroup a by (name, age), b by (height);";
-            buildPlan(query);
-        } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Exception"));
-        }
-    } 
-
-    @Test
-    public void testQueryFail17(){
-        buildPlan("a = load 'a' as (url, host, rank);");
-        buildPlan("b = group a by url; ");
-        try {
-            LogicalPlan lp = buildPlan("c = foreach b generate group.url;");
+        	buildPlan("d = order c by name, b::name, height, a::gpa;");
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
@@ -710,46 +725,124 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("a = load 'a' as (name, details: tuple(age, gpa));");
         buildPlan("b = group a by details;");
         String query = "d = foreach b generate group.age;";
-        //buildPlan("b = group a by 2*3;");
-        //String query = "d = foreach b generate group;";
         buildPlan(query);
         buildPlan("e = foreach a generate name, details;");
     }
 
     @Test
-    public void testQuery64() {
-        buildPlan("a = load 'a' as (name: chararray, details: tuple(age, gpa));");
-        buildPlan("c = load 'a' as (name, details: bag{age: integer, gpa});");
-        buildPlan("b = group a by details;");
-        String query = "d = foreach b generate group.age;";
-        buildPlan(query);
-        buildPlan("e = foreach a generate name, details;");
-        buildPlan("f = LOAD 'myfile' AS (garage: bag{num_tools: integer}, links: bag{websites: chararray}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray), bag_of_unknown: bag{}});");
-    }
-
-    @Test
-    public void testQueryFail18() {
+    public void testQueryFail63() {
         String query = "foreach (load 'myfile' as (col1, col2 : (sub1, sub2), col3 : (bag1))) generate col1 ;";
         try {
-            buildPlan(query);
+        	buildPlan(query);
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
     }
     
     @Test
-    public void testQueryFail19() {
-        buildPlan("a = load 'a' as (name, age, gpa);");
-        buildPlan("b = load 'b' as (name, height);");
-        String query = "c = cross a,b;";
+    public void testQuery64() {
+        buildPlan("a = load 'a' as (name: chararray, details: tuple(age, gpa), mymap: map[]);");
+        buildPlan("c = load 'a' as (name, details: bag{mytuple: tuple(age: integer, gpa)});");
+        buildPlan("b = group a by details;");
+        String query = "d = foreach b generate group.age;";
         buildPlan(query);
+		buildPlan("e = foreach a generate name, details;");
+		buildPlan("f = LOAD 'myfile' AS (garage: bag{tuple1: tuple(num_tools: integer)}, links: bag{tuple2: tuple(websites: chararray)}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray, bag_of_unknown: bag{})});");
+    }
+
+    @Test
+    public void testQueryFail64() {
+        String query = "foreach (load 'myfile' as (col1, col2 : bag{age: integer})) generate col1 ;";
         try {
-            buildPlan("d = order c by name, b::name, height, a::gpa;");
+        	buildPlan(query);
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
     }
+    
+    @Test
+    public void testQuery65() {
+        buildPlan("a = load 'a' as (name, age, gpa);");
+        buildPlan("b = load 'b' as (name, height);");
+		buildPlan("c = cogroup a by (name, age), b by (name, height);");
+		buildPlan("d = foreach c generate group.name, a.name as aName, b.name as b::name;");
+	}
 
+    @Test
+    public void testQueryFail65() {
+        buildPlan("a = load 'a' as (name, age, gpa);");
+        buildPlan("b = load 'b' as (name, height);");
+		buildPlan("c = cogroup a by (name, age), b by (name, height);");
+        try {
+			buildPlan("d = foreach c generate group.name, a.name, b.height as age, a.age;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+	}
+
+    @Test
+    public void testQuery66() {
+        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(integer i, chararray c);");
+        buildPlan("a = load 'input1' as (name, age, gpa);");
+        buildPlan("b = foreach a generate myFunc($0, $1);");
+	}
+
+    @Test
+    public void testQueryFail66() {
+        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(integer i, chararray c);");
+        buildPlan("a = load 'input1' as (name, age, gpa);");
+        try {
+        	buildPlan("b = foreach a generate myFunc($0, $1, $2);");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+	}
+
+    @Test
+    public void testQuery67() {
+        buildPlan(" a = load 'input1' as (name, age, gpa);");
+        buildPlan(" b = foreach a generate age, age * 10L, gpa/0.2f, {(16, 4.0e-2, 'hello')};");
+    }
+
+    @Test
+    public void testQuery68() {
+        buildPlan(" a = load 'input1';");
+        buildPlan(" b = foreach a generate {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12l, {()})};");
+    }
+
+    @Test
+    public void testQuery69() {
+        buildPlan(" a = load 'input1';");
+        buildPlan(" b = foreach a generate {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12L, (1), ())};");
+    }
+
+    @Test
+    public void testQuery70() {
+        buildPlan(" a = load 'input1';");
+        buildPlan(" b = foreach a generate [10L#'hello', 4.0e-2#10L, 0.5f#(1), 'world'#42, 42#{('guide')}] as mymap;");
+        buildPlan(" c = foreach b generate mymap#10L;");
+    }
+
+    @Test
+    public void testQueryFail67() {
+        buildPlan(" a = load 'input1' as (name, age, gpa);");
+        try {
+            buildPlan(" b = foreach a generate age, age * 10L, gpa/0.2f, {16, 4.0e-2, 'hello'};");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+    
+    @Test
+    public void testQueryFail68() {
+        buildPlan(" a = load 'input1' as (name, age, gpa);");
+        try {
+            buildPlan(" b = foreach a generate {(16 L, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12L, {()})};");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+    
     // Helper Functions
     // =================
     public LogicalPlan buildPlan(String query) {
@@ -766,7 +859,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
                                            query,
                                            aliases,
                                            logicalOpTable,
-                                           aliasOp);
+                                           aliasOp,
+                                           defineAliases);
             List<LogicalOperator> roots = lp.getRoots();
             
             if(roots.size() > 0) {
@@ -817,4 +911,5 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+    Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
 }
