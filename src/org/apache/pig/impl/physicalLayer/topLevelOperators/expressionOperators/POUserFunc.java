@@ -38,12 +38,15 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
-import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POUserFunc extends ExpressionOperator {
 
-	transient EvalFunc func;
+	/**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    transient EvalFunc func;
 	Tuple t1, t2;
 	private final Log log = LogFactory.getLog(getClass());
 	String funcSpec;
@@ -73,6 +76,7 @@ public class POUserFunc extends ExpressionOperator {
 
 	private void instantiateFunc() {
 		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(this.funcSpec);
+        this.func.setReporter(reporter);
 	}
 
 	private Result getNext() throws ExecException {
@@ -85,6 +89,7 @@ public class POUserFunc extends ExpressionOperator {
 		try {
 			if (inputAttached) {
 				result.result = func.exec(input);
+                if(reporter!=null) reporter.progress();
 				result.returnStatus = (result.result != null) ? POStatus.STATUS_OK
 						: POStatus.STATUS_EOP;
 				return result;

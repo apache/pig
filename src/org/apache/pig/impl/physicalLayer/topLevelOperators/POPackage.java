@@ -170,6 +170,7 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
         while (indTupIter.hasNext()) {
             IndexedTuple it = indTupIter.next();
             dbs[it.index].add(it.toTuple());
+            if(reporter!=null) reporter.progress();
         }
         
         //Construct the output tuple by appending

@@ -1,0 +1,41 @@
+MapReduce(-1) - MRCompiler-176:
+|   Store(DummyFil:DummyLdr) - -6079615556647418436
+|   |
+|   |---For Each - MRCompiler-180
+|       |   |
+|       |   POGenerate(false)  - MRCompiler-179
+|       |   |   |
+|       |   |   Project(0) - MRCompiler-178
+|       |
+|       |---Package - MRCompiler-177
+|   Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-175
+|
+|---MapReduce(-1) - MRCompiler-171:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-174
+    |   |
+    |   |---Local Rearrange - MRCompiler-173
+    |       |   |
+    |       |   Project(*) - MRCompiler-172
+    |       |
+    |       |---Package - -8219725798912083822
+    |   Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-170
+    |
+    |---MapReduce(-1) - MRCompiler-162:
+        |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-169
+        |   |
+        |   |---Local Rearrange - --3889827013424534115
+        |       |
+        |       |---For Each - MRCompiler-168
+        |           |   |
+        |           |   POGenerate(false)  - MRCompiler-167
+        |           |   |   |
+        |           |   |   Project(0) - MRCompiler-166
+        |           |
+        |           |---Package - MRCompiler-165
+        |   Local Rearrange - MRCompiler-164
+        |   |   |
+        |   |   Project(*) - MRCompiler-163
+        |   |
+        |   |---Filter - --1613182091613226659
+        |       |
+        |       |---Load(DummyFil:DummyLdr) - -5321755951016030071

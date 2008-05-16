@@ -47,6 +47,8 @@ import org.apache.pig.impl.mapReduceLayer.plans.UDFFinderForExpr;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PODistinct;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
@@ -54,21 +56,19 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PORead;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POSort;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POSplit;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * The compiler that compiles a given physical plan
@@ -657,6 +657,68 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             throw pe;
         }
     }
+    
+    
+
+    @Override
+    public void visitDistinct(PODistinct op) throws VisitorException {
+        try{
+            MapReduceOper mro = compiledInputs[0];
+            ExprPlan ep = new ExprPlan();
+            POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prjStar.setResultType(DataType.TUPLE);
+            prjStar.setStar(true);
+            ep.add(prjStar);
+            
+            List<ExprPlan> eps = new ArrayList<ExprPlan>();
+            eps.add(ep);
+            
+            POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            lr.setIndex(0);
+            lr.setKeyType(DataType.TUPLE);
+            lr.setPlans(eps);
+            lr.setResultType(DataType.TUPLE);
+            if(!mro.isMapDone()){
+                mro.mapPlan.addAsLeaf(lr);
+            }
+            else if(mro.isMapDone() && ! mro.isReduceDone()){
+                mro.reducePlan.addAsLeaf(lr);
+            }
+            
+            blocking(op);
+            
+            POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            pkg.setKeyType(DataType.TUPLE);
+            pkg.setNumInps(1);
+            boolean[] inner = {false}; 
+            pkg.setInner(inner);
+            curMROp.reducePlan.add(pkg);
+            
+            List<ExprPlan> eps1 = new ArrayList<ExprPlan>();
+            List<Boolean> flat1 = new ArrayList<Boolean>();
+            ExprPlan ep1 = new ExprPlan();
+            POProject prj1 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prj1.setResultType(DataType.TUPLE);
+            prj1.setStar(false);
+            prj1.setColumn(0);
+            prj1.setOverloaded(false);
+            ep1.add(prj1);
+            eps1.add(ep1);
+            flat1.add(false);
+            POGenerate fe1Gen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)),eps1,flat1);
+            fe1Gen.setResultType(DataType.TUPLE);
+            PhysicalPlan<PhysicalOperator> fe1Plan = new PhysicalPlan<PhysicalOperator>();
+            fe1Plan.add(fe1Gen);
+            POForEach fe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            fe1.setPlan(fe1Plan);
+            fe1.setResultType(DataType.TUPLE);
+            curMROp.reducePlan.addAsLeaf(fe1);
+        }catch(Exception e){
+            VisitorException pe = new VisitorException(e.getMessage());
+            pe.initCause(e);
+            throw pe;
+        }
+    }
 
     @Override
     public void visitSort(POSort op) throws VisitorException {
@@ -909,10 +971,11 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         POLoad ld = comp.getLoad();
         pj.mapPlan.add(ld);
 
-        POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, null,
-                sortPlans, mAscCols, null);
-        
-        pj.mapPlan.addAsLeaf(sort);
+        /*POSort op = new POSort(new OperatorKey("", r.nextLong()), -1, null,
+                sortPlans, mAscCols, null);*/
+        PODistinct op = new PODistinct(new OperatorKey("", r.nextLong()),
+                -1, null);
+        pj.mapPlan.addAsLeaf(op);
         
         POStore st = comp.getStore();
         pj.mapPlan.addAsLeaf(st);
@@ -920,10 +983,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         MRCompiler c1 = new MRCompiler(pj.mapPlan,pc);
         c1.compile();
         MROperPlan plan = c1.getMRPlan();
-        for(int i=0;i<3;i++){
-            MapReduceOper job = plan.getLeaves().get(0);
-            System.out.println(job.name());
-            plan.remove(job);
-        }
+        PlanPrinter<MapReduceOper, MROperPlan> pp = new PlanPrinter<MapReduceOper, MROperPlan>(plan);
+        pp.print(System.out);
     }
 }

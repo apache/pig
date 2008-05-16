@@ -118,6 +118,7 @@ public class POUnion extends PhysicalOperator<PhyPlanVisitor> {
             Result res;
             
             while(true){
+                if(reporter!=null) reporter.progress();
                 res = inputs.get(ind).getNext(t);
                 if(res.returnStatus == POStatus.STATUS_NULL)
                     continue;

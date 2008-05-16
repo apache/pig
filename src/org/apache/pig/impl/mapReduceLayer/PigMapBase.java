@@ -27,16 +27,12 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public abstract class PigMapBase extends MapReduceBase{
     private final Log log = LogFactory.getLog(getClass());
     
-    protected String inputFile = null;
-    
     //Map Plan
     protected PhysicalPlan<PhysicalOperator> mp;
     
-    //The reporter that handles communicating progress
-    protected RunnableReporter runnableReporter;
-    
-    //The thread used to run the runnableReporter
-    protected Thread reporterThread;
+    // Reporter that will be used by operators
+    // to transmit heartbeat
+    ProgressableReporter pigReporter;
     
     /**
      * Will be called when all the tuples in the input
@@ -45,13 +41,8 @@ public abstract class PigMapBase extends MapReduceBase{
     @Override
     public void close() throws IOException {
         super.close();
-        if(runnableReporter!=null){
-            runnableReporter.setDone(true);
-            runnableReporter = null;
-        }
-        reporterThread = null;
+        PhysicalOperator.setReporter(null);
         mp = null;
-        inputFile = null;
     }
 
     /**
@@ -61,7 +52,6 @@ public abstract class PigMapBase extends MapReduceBase{
     @Override
     public void configure(JobConf job) {
         super.configure(job);
-        inputFile = job.get("map.input.file", "UNKNOWN");
         try {
             mp = (PhysicalPlan<PhysicalOperator>) ObjectSerializer.deserialize(job
                     .get("pig.mapPlan"));
@@ -77,9 +67,8 @@ public abstract class PigMapBase extends MapReduceBase{
             // till here
             
             long sleepTime = job.getLong("pig.reporter.sleep.time", 10000);
-            runnableReporter = new RunnableReporter(sleepTime);
-            reporterThread = new Thread(runnableReporter);
-            reporterThread.start();
+            
+            pigReporter = new ProgressableReporter();
         } catch (IOException e) {
             log.error(e.getMessage() + "was caused by:");
             log.error(e.getCause().getMessage());
@@ -99,8 +88,8 @@ public abstract class PigMapBase extends MapReduceBase{
             OutputCollector<WritableComparable, Writable> oc,
             Reporter reporter) throws IOException {
         
-        runnableReporter.setReporter(reporter);
-        runnableReporter.setInputFile(inputFile);
+        pigReporter.setRep(reporter);
+        PhysicalOperator.setReporter(pigReporter);
         
         if(mp.isEmpty()){
             try{

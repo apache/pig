@@ -214,7 +214,7 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
                     }
                     
                 }
-                
+                if(reporter!=null) reporter.progress();
                 //CreateTuple(data);
                 res.result = CreateTuple(data);
                 res.returnStatus = POStatus.STATUS_OK;

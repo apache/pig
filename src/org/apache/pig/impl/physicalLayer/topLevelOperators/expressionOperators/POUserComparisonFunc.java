@@ -17,7 +17,11 @@ import org.apache.pig.impl.physicalLayer.Result;
 
 public class POUserComparisonFunc extends POUserFunc {
 
-	transient ComparisonFunc func;
+	/**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    transient ComparisonFunc func;
 	private Log log = LogFactory.getLog(getClass());
 	
 	public POUserComparisonFunc(OperatorKey k, int rp, List inp, String funcSpec, ComparisonFunc func) {
@@ -34,6 +38,7 @@ public class POUserComparisonFunc extends POUserFunc {
 	
 	private void instantiateFunc() {
 		this.func = (ComparisonFunc) PigContext.instantiateFuncFromSpec(this.funcSpec);
+        this.func.setReporter(reporter);
 	}
 	
 	public ComparisonFunc getComparator() {

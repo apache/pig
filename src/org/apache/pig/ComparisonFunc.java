@@ -23,9 +23,14 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.physicalLayer.PigProgressable;
 
 
 public abstract class ComparisonFunc extends WritableComparator {
+    // If the comparison is a time consuming process
+    // this reporter must be used to report progress
+    protected PigProgressable reporter;
+    
     public ComparisonFunc() {
         super(TupleFactory.getInstance().tupleClass());
     }
@@ -48,4 +53,8 @@ public abstract class ComparisonFunc extends WritableComparator {
      * @see java.util.Comparator
      */
     abstract public int compare(Tuple t1, Tuple t2);
+
+    public void setReporter(PigProgressable reporter) {
+        this.reporter = reporter;
+    }
 }

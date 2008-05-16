@@ -42,6 +42,7 @@ import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PODistinct;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
@@ -95,7 +96,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         GenPhyOp.setR(r);
         
         GenPhyOp.setPc(pc);
-        int numTests = 15;
+        int numTests = 16;
 //        int numTests = 9;
         tests = new String[numTests];
         int cnt = -1;
@@ -107,6 +108,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         for (int i = 1; i <= 3; i++)
             tests[++cnt] = "intTestSpl" + i;
         tests[++cnt] = "intTestSortUDF1";
+        tests[++cnt] = "intTestDistinct1";
     }
 
     @After
@@ -778,6 +780,28 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POForEach fe5 = GenPhyOp.topForEachOPWithUDF(udfs);
         php.addAsLeaf(fe5);
         
+        POStore st = GenPhyOp.topStoreOp();
+        php.addAsLeaf(st);
+    }
+    
+    public static void intTestDistinct1() throws PlanException, ExecException{
+        php = new PhysicalPlan<PhysicalOperator>();
+        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
+        php.merge(ldFil1);
+        
+        PODistinct op = new PODistinct(new OperatorKey("", r.nextLong()),
+                -1, null);
+        
+        php.addAsLeaf(op);
+        
+        PhysicalPlan<PhysicalOperator> grpChain1 = GenPhyOp.grpChain();
+        php.merge(grpChain1);
+        php.connect(op,grpChain1.getRoots().get(0));
+        
+        PODistinct op1 = new PODistinct(new OperatorKey("", r.nextLong()),
+                -1, null);
+        
+        php.addAsLeaf(op1);
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
     }

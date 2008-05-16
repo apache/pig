@@ -15,50 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * 
- */
 package org.apache.pig.impl.mapReduceLayer;
 
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.pig.impl.physicalLayer.PigProgressable;
 
-public class RunnableReporter implements Runnable {
+public class ProgressableReporter implements PigProgressable {
     Reporter rep;
-    boolean done = false;
-    private long sleepTime;
-    String inputFile;
-
-    public RunnableReporter(long sleepTime) {
-        this.sleepTime = sleepTime;
+    
+    public ProgressableReporter(){
+        
     }
     
-    /**
-     * While the task is not done, keep reporting
-     * status back every sleeptime millisecs
-     */
-    public void run() {
-        while(!done){
-            if(rep!=null)
-                rep.setStatus("Processing input file: " + inputFile);
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {}
-        }
-    }
-    
-    public void setReporter(Reporter rep){
+    public ProgressableReporter(Reporter rep) {
+        super();
         this.rep = rep;
     }
 
-    public void setSleepTime(long sleepTime) {
-        this.sleepTime = sleepTime;
+    public void progress() {
+        rep.progress();
     }
 
-    public void setInputFile(String inputFile) {
-        this.inputFile = inputFile;
+    public void progress(String msg) {
+        rep.setStatus(msg);
     }
 
-    public void setDone(boolean done) {
-        this.done = done;
+    public void setRep(Reporter rep) {
+        this.rep = rep;
     }
+
 }

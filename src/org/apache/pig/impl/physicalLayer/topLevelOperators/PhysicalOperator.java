@@ -28,6 +28,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.PigProgressable;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.Operator;
@@ -85,6 +86,11 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
 
     // The result of performing the operation along with the output
     protected Result res = null;
+    
+    // Will be used by operators to report status or transmit heartbeat
+    // Should be set by the backends to appropriate implementations that
+    // wrap their own version of a reporter.
+    protected static PigProgressable reporter;
 
     // Dummy types used to access the getNext of appropriate
     // type. These will be null
@@ -197,6 +203,7 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
      * @throws ExecException
      */
     public Result processInput() throws ExecException {
+        
         Result res = new Result();
         Tuple inpValue = null;
         if (input == null && (inputs == null || inputs.size()==0)) {
@@ -204,6 +211,10 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
             res.returnStatus = POStatus.STATUS_EOP;
             return res;
         }
+        
+        //Should be removed once the model is clear
+        if(reporter!=null) reporter.progress();
+            
         if (!isInputAttached())
             return inputs.get(0).getNext(inpValue);
         else {
@@ -254,6 +265,10 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
 
     public Result getNext(DataBag db) throws ExecException {
         return res;
+    }
+
+    public static void setReporter(PigProgressable reporter) {
+        PhysicalOperator.reporter = reporter;
     }
 
 }

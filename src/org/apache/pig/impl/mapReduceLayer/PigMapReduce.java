@@ -38,10 +38,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
@@ -78,141 +76,6 @@ public class PigMapReduce {
             WritableComparable wcKey = DataType.getWritableComparableTypes(key);
             oc.collect(wcKey, it);
         }
-        /*private final Log log = LogFactory.getLog(getClass());
-        
-        private String inputFile = null;
-        
-        //Map Plan
-        private PhysicalPlan<PhysicalOperator> mp;
-        
-        //The reporter that handles communicating progress        
-        RunnableReporter runnableReporter;
-        
-        //The thread used to run the runnableReporter        
-        Thread reporterThread;
-        
-        *//**
-         * Configures the mapper with the map plan and the
-         * reproter thread
-         *//*
-        @Override
-        public void configure(JobConf jConf) {
-            super.configure(jConf);
-            inputFile = jConf.get("map.input.file", "UNKNOWN");
-            try {
-                mp = (PhysicalPlan<PhysicalOperator>) ObjectSerializer.deserialize(jConf
-                        .get("pig.mapPlan"));
-                
-                // To be removed
-                if(mp.isEmpty())
-                    log.debug("Map Plan empty!");
-                else{
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    mp.explain(baos);
-                    log.debug(baos.toString());
-                }
-                // till here
-                
-                long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
-                runnableReporter = new RunnableReporter(sleepTime);
-                reporterThread = new Thread(runnableReporter);
-                reporterThread.start();
-            } catch (IOException e) {
-                log.error(e.getMessage() + "was caused by:");
-                log.error(e.getCause().getMessage());
-            }
-        }
-        
-        *//**
-         * The map function that attaches the inpTuple appropriately
-         * and executes the map plan if its not empty. Collects the
-         * result of execution into oc or the input directly to oc
-         * if map plan empty. The collection is done after extracting
-         * the key and indexed tuple.
-         *//*
-        public void map(Text key, TargetedTuple inpTuple,
-                OutputCollector<WritableComparable, Writable> oc,
-                Reporter reporter) throws IOException {
-            
-            runnableReporter.setReporter(reporter);
-            runnableReporter.setInputFile(inputFile);
-            
-            if(mp.isEmpty()){
-                try{
-                    collectKeyAndTuple(oc,inpTuple.toTuple());
-                } catch (ExecException e) {
-                    IOException ioe = new IOException(e.getMessage());
-                    ioe.initCause(e.getCause());
-                    throw ioe;
-                }
-                return;
-            }
-            
-            for (OperatorKey targetKey : inpTuple.targetOps) {
-                PhysicalOperator<PhyPlanVisitor> target = mp.getOperator(targetKey);
-                Tuple t = inpTuple.toTuple();
-                target.attachInput(t);
-            }
-            
-            List<PhysicalOperator> leaves = mp.getLeaves();
-            
-            PhysicalOperator leaf = leaves.get(0);
-            try {
-                while(true){
-                    Result res = leaf.getNext(inpTuple);
-                    if(res.returnStatus==POStatus.STATUS_OK){
-                        collectKeyAndTuple(oc,(Tuple)res.result);
-                        continue;
-                    }
-                    
-                    if(res.returnStatus==POStatus.STATUS_EOP)
-                        return;
-                    
-                    if(res.returnStatus==POStatus.STATUS_NULL)
-                        continue;
-                    
-                    if(res.returnStatus==POStatus.STATUS_ERR){
-                        IOException ioe = new IOException("Received Error while " +
-                                "processing the map plan.");
-                        throw ioe;
-                    }
-                }
-            } catch (ExecException e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.initCause(e.getCause());
-                throw ioe;
-            }
-        }
-        
-        *//**
-         * Assumes that the tuple is of the form (key,indexedTuple) and
-         * extracts the key & indexed tuple. The key is then converted
-         * to the appropriate Hadoop type and the Hadoop type and IndexedTup
-         * are collected into the output collector
-         * @param oc - Output Collector
-         * @param tuple - The tuple which is the result of a LR either directly
-         *                  or by loading a file which has the output of a LR
-         * @throws ExecException
-         * @throws IOException
-         *//*
-        private void collectKeyAndTuple(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException {
-            Object key = tuple.get(0);
-            IndexedTuple it = (IndexedTuple)tuple.get(1);
-            WritableComparable wcKey = DataType.getWritableComparableTypes(key);
-            oc.collect(wcKey, it);
-        }
-        
-        *//**
-         * Will be called when all the tuples in the input
-         * are done. So reporter thread should be stopped.
-         *//*
-        @Override
-        public void close() throws IOException {
-            super.close();
-            if(runnableReporter!=null)
-                runnableReporter.setDone(true);
-        }*/
-
     }
 
     public static class Reduce extends MapReduceBase
@@ -230,11 +93,7 @@ public class PigMapReduce {
         //plan
         private POPackage pack;
         
-        //The reporter that handles communicating progress        
-        RunnableReporter runnableReporter;
-        
-        //The thread used to run the runnableReporter        
-        Thread reporterThread;
+        ProgressableReporter pigReporter;
         
         /**
          * Configures the Reduce plan, the POPackage operator
@@ -258,9 +117,8 @@ public class PigMapReduce {
                 // till here
                 
                 long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
-                runnableReporter = new RunnableReporter(sleepTime);
-                reporterThread = new Thread(runnableReporter);
-                reporterThread.start();
+
+                pigReporter = new ProgressableReporter();
             } catch (IOException e) {
                 log.error(e.getMessage() + "was caused by:");
                 log.error(e.getCause().getMessage());
@@ -278,7 +136,7 @@ public class PigMapReduce {
                 OutputCollector<WritableComparable, Writable> oc,
                 Reporter reporter) throws IOException {
             
-            runnableReporter.setReporter(reporter);
+            pigReporter.setRep(reporter);
             
             Object k = DataType.convertToPigType(key);
             pack.attachInput(k, indInp);
@@ -345,8 +203,9 @@ public class PigMapReduce {
         @Override
         public void close() throws IOException {
             super.close();
-            if(runnableReporter!=null)
-                runnableReporter.setDone(true);
+            /*if(runnableReporter!=null)
+                runnableReporter.setDone(true);*/
+            PhysicalOperator.setReporter(null);
         }
     }
     

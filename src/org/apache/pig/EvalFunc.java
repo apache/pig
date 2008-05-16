@@ -26,6 +26,7 @@ import org.apache.pig.data.Tuple;
 // TODO FIX
 // import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.physicalLayer.PigProgressable;
 
 
 /**
@@ -44,6 +45,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  *
  */
 public abstract class EvalFunc<T>  {
+    // UDFs must use this to report progress
+    // if the exec is taking more that 300 ms
+    protected PigProgressable reporter;
     
     protected Type returnType;
     
@@ -107,16 +111,7 @@ public abstract class EvalFunc<T>  {
         
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
     protected void progress() { 
-        //This part appears to be unused and is causing problems due to changing hadoop signature
-        /*
-        if (PigMapReduce.reporter != null) {
-            try {
-                PigMapReduce.reporter.progress();
-            } catch (IOException ignored) {
-            }
-        }
-        */
-        
+        if(reporter!=null) reporter.progress();
     }
 
     /**
@@ -157,5 +152,15 @@ public abstract class EvalFunc<T>  {
      */
     public boolean isAsynchronous(){
         return false;
+    }
+
+
+    public PigProgressable getReporter() {
+        return reporter;
+    }
+
+
+    public void setReporter(PigProgressable reporter) {
+        this.reporter = reporter;
     }
 }
