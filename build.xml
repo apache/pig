@@ -144,7 +144,7 @@
                 **/test/TestProject.java, **/test/TestLoad.java, **/test/TestStore.java,
                 **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
         		**/test/TestLocalRearrange.java, **/test/TestPOUserFunc.java,
-        		**/test/TestPODistinct.java, **/test/TestPOSort.java,
+        		**/test/TestPODistinct.java, **/test/TestPOSort.java, **/test/TestPOCast.java,
         		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,**/test/TestUnion.java, **/test/TestMRCompiler.java,
                 **/test/FakeFSInputStream.java, **/test/Util.java, **/test/TestJobSubmission.java,
         		**/test/TestLocalJobSubmission.java, **/test/TestPOMapLookUp.java, 
@@ -283,6 +283,7 @@
                 	<include name="**/TestPOBinCond.java" />
                 	<include name="**/TestPONegative.java" />
                 	<include name="**/TestGrunt.java" />
+                	<include name="**/TestPOCast.java" />
                     <!--
                     <include name="**/*Test*.java" />
                     <exclude name="**/TestLargeFile.java" />

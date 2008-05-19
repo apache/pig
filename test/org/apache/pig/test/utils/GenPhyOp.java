@@ -48,7 +48,7 @@ import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ConstantExpression;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POCast;
+//import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POCastDummy;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.binaryExprOps.arithmeticOperators.Add;
@@ -220,7 +220,7 @@ public class GenPhyOp{
         prj1.setResultType(sample.getType(grpCol));
         prj1.setOverloaded(false);
         
-        POCast cst = new POCast(new OperatorKey("",r.nextLong()));
+        POCastDummy cst = new POCastDummy(new OperatorKey("",r.nextLong()));
         cst.setResultType(sample.getType(grpCol));
 
         List<Boolean> toBeFlattened = new LinkedList<Boolean>();
@@ -236,14 +236,14 @@ public class GenPhyOp{
         inputs.add(plan1);
         
         POProject rest[] = new POProject[sample.size()];
-        POCast csts[] = new POCast[sample.size()];
+        POCastDummy csts[] = new POCastDummy[sample.size()];
         int i=-1;
         for (POProject project : rest) {
             project = new POProject(new OperatorKey("", r.nextLong()), -1, ++i);
             project.setResultType(sample.getType(i));
             project.setOverloaded(false);
             
-            csts[i] = new POCast(new OperatorKey("",r.nextLong()));
+            csts[i] = new POCastDummy(new OperatorKey("",r.nextLong()));
             csts[i].setResultType(sample.getType(i));
             
             ExprPlan pl = new ExprPlan();
@@ -347,7 +347,7 @@ public class GenPhyOp{
         }
         
         
-        POCast[] cst = new POCast[fields.length];
+        POCastDummy[] cst = new POCastDummy[fields.length];
 
         List<Boolean> toBeFlattened = new LinkedList<Boolean>();
         for (POProject project : prj)
@@ -360,7 +360,7 @@ public class GenPhyOp{
         for (int i=0;i<plans.length;i++) {
             plans[i] = new ExprPlan();
             plans[i].add(prj[i]);
-            cst[i] = new POCast(new OperatorKey("",r.nextLong()));
+            cst[i] = new POCastDummy(new OperatorKey("",r.nextLong()));
             cst[i].setResultType(sample.getType(fields[i]));
             plans[i].add(cst[i]);
             plans[i].connect(prj[i], cst[i]);
@@ -395,7 +395,7 @@ public class GenPhyOp{
         }
         
         
-        POCast[] cst = new POCast[fields.length];
+        POCastDummy[] cst = new POCastDummy[fields.length];
 
         /*List<Boolean> toBeFlattened = new LinkedList<Boolean>();
         for (POProject project : prj)
@@ -406,7 +406,7 @@ public class GenPhyOp{
         for (int i=0;i<plans.length;i++) {
             plans[i] = new ExprPlan();
             plans[i].add(prj[i]);
-            cst[i] = new POCast(new OperatorKey("",r.nextLong()));
+            cst[i] = new POCastDummy(new OperatorKey("",r.nextLong()));
             cst[i].setResultType(sample.getType(fields[i]));
             plans[i].add(cst[i]);
             plans[i].connect(prj[i], cst[i]);
@@ -431,7 +431,7 @@ public class GenPhyOp{
         POLocalRearrange lr = topLocalRearrangeOPWithPlanPlain(index, grpCol, sample);
         List<ExprPlan> plans = lr.getPlans(); 
         ExprPlan ep = plans.get(0);
-        POCast cst = new POCast(new OperatorKey("", r.nextLong()));
+        POCastDummy cst = new POCastDummy(new OperatorKey("", r.nextLong()));
         cst.setResultType(sample.getType(grpCol));
         ep.addAsLeaf(cst);
         lr.setPlans(plans);
@@ -684,7 +684,7 @@ public class GenPhyOp{
             break;
         }
         
-        POCast cst = new POCast(new OperatorKey("",r.nextLong()));
+        POCastDummy cst = new POCastDummy(new OperatorKey("",r.nextLong()));
         
         cop.setLhs(cst);
         cop.setRhs(ce2);
