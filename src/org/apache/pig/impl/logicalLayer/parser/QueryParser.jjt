@@ -463,6 +463,8 @@ LogicalOperator SplitClause(LogicalPlan lp):
 		splitOp = new LOSplit(lp, input.getOperatorKey(), new ArrayList<LogicalOperator>(), new HashMap<String,LogicalPlan>());
 		lp.add(splitOp);
 		log.debug("Adding operator " + splitOp.getClass().getName() + " to the logical plan");		
+        lp.connect(input, splitOp);
+		log.debug("Connected alias: " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + splitOp.getClass().getName());
 	}
 	alias = <IDENTIFIER> <IF> cond = PCond(input.getSchema(), null, condPlan = new LogicalPlan(), input) 
 	{
@@ -880,8 +882,6 @@ ExpressionOperator PNotCond(Schema over, Map<String, LogicalOperator> specs,Logi
 		return eOp;
 	}
 }
-
-
 
 LogicalOperator CogroupClause(LogicalPlan lp) : 
 {
@@ -1488,9 +1488,11 @@ ExpressionOperator MultiplicativeExpr(Schema over, Map<String, LogicalOperator> 
 }
 {
 		(
-		lhs = UnaryExpr(over,specs,lp,input)
+//		lhs = UnaryExpr(over,specs,lp,input)
+		lhs = CastExpr(over,specs,lp,input)
 		(
-		( t = <STAR> | t = "/" | t = "%") rhs = UnaryExpr(over,specs,lp,input) 			
+//		( t = <STAR> | t = "/" | t = "%") rhs = UnaryExpr(over,specs,lp,input) 			
+		( t = <STAR> | t = "/" | t = "%") rhs = CastExpr(over,specs,lp,input) 			
 		{
 			assertAtomic(lhs,true);
 			assertAtomic(rhs,true);
@@ -1517,6 +1519,32 @@ ExpressionOperator MultiplicativeExpr(Schema over, Map<String, LogicalOperator> 
 		}
 }
 
+ExpressionOperator CastExpr(Schema over, Map<String, LogicalOperator> specs,LogicalPlan lp,LogicalOperator input) :
+{
+    byte type = DataType.BYTEARRAY;
+    ExpressionOperator cast;
+    ExpressionOperator exprOp;
+    boolean castRequired = false;
+    log.trace("Entering Cast");
+}
+{
+    [LOOKAHEAD(2)"(" type = Type() {castRequired = true;}")"] exprOp = UnaryExpr(over, specs, lp, input)
+    {
+        if(castRequired) {
+            cast = new LOCast(lp, new OperatorKey(scope, getNextId()), exprOp, type);
+            lp.add(cast);
+		    log.debug("Added operator " + cast.getClass().getName() + " " + cast + " to logical plan " + lp);
+            lp.connect(exprOp, cast);
+		    log.debug("Connected operator " + exprOp.getClass().getName() + " " + exprOp + " to " + cast + " logical plan " + lp);
+            log.trace("Exiting Cast");
+            return cast;
+        } else {
+            log.trace("Exiting Cast");
+            return exprOp;
+        }
+    }
+}
+
 ExpressionOperator UnaryExpr(Schema over,  Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
 {
 	ExpressionOperator expr; 
@@ -1539,7 +1567,8 @@ ExpressionOperator NegativeExpr(Schema over, Map<String, LogicalOperator> specs,
 	log.trace("Entering NegativeExpr");
 }
 {
-	"-" c1=UnaryExpr(over,specs,lp,input)
+//	"-" c1=UnaryExpr(over,specs,lp,input)
+	"-" c1=CastExpr(over,specs,lp,input)
 	{
 		ExpressionOperator eOp = new LONegative(lp, new OperatorKey(scope, getNextId()), c1);
 		lp.add(eOp);
@@ -1549,7 +1578,6 @@ ExpressionOperator NegativeExpr(Schema over, Map<String, LogicalOperator> specs,
 		return eOp;
 	}
 }
-
 
 	
 ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) :

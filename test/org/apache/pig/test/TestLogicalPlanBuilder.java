@@ -843,6 +843,28 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         }
     }
     
+    @Test
+    public void testQuery71() {
+        buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
+        buildPlan("b = foreach x generate $0;");
+        buildPlan("c = foreach y generate $1;");
+    }
+
+    @Test
+    public void testQuery72() {
+        buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
+        buildPlan("b = foreach x generate (integer)$0;");
+        buildPlan("c = foreach y generate (bag)$1;");
+        buildPlan("d = foreach y generate (integer)($1/2);");
+    }
+
+    @Test
+    public void testQuery73() {
+        buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
+        buildPlan("b = filter x by $0 matches '^fred.*';");
+        buildPlan("c = foreach y generate $0, ($0 matches 'yuri.*' ? $1 - 10 : $1);");
+    }
+
     // Helper Functions
     // =================
     public LogicalPlan buildPlan(String query) {
