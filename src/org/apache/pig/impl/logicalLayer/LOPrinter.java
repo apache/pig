@@ -18,12 +18,15 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Iterator;
+import java.util.List;
 import java.io.PrintStream;
 
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.MultiMap;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -31,40 +34,194 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class LOPrinter extends LOVisitor {
 
-    public LOPrinter(LogicalPlan plan) {
+    private PrintStream mStream = null;
+    private int mIndent = 0;
+
+    /**
+     * @param ps PrintStream to output plan information to
+     * @param plan Logical plan to print
+     */
+    public LOPrinter(PrintStream ps, LogicalPlan plan) {
         super(plan, new DepthFirstWalker(plan));
     }
 
-    // TODO FIX
-    /*
-    private PrintStream mStream = null;
-
-    public LOPrinter(PrintStream ps) {
-        mStream = ps;
+    public void visit(LOAdd a) throws VisitorException {
+        visitBinary(a, "+");
     }
 
-    /**
-     * Only LOCogroup.visit() should ever call this method.
-     */
-    /*
-    @Override
-    public void visitCogroup(LOCogroup g) {
-        print(g, g.name(), g.getSpecs());
-        super.visitCogroup(g);
+    public void visit(LOAnd a) throws VisitorException {
+        visitBinary(a, "AND");
+    }
+    
+    public void visit(LOBinCond bc) throws VisitorException {
+        print(bc);
+        mStream.print(" COND: (");
+        bc.getCond().visit(this);
+        mStream.print(") TRUE: (");
+        bc.getLhsOp().visit(this);
+        mStream.print(") FALSE (");
+        bc.getRhsOp().visit(this);
+        mStream.print(")");
+    }
+
+    public void visit(LOCogroup g) throws VisitorException {
+        print(g);
+        mStream.print("GROUP BY PLANS:");
+        MultiMap<LogicalOperator, LogicalPlan> plans = g.getGroupByPlans();
+        for (LogicalOperator lo : plans.keySet()) {
+            // Visit the associated plans
+            for (LogicalPlan plan : plans.get(lo)) {
+                mIndent++;
+                pushWalker(new DepthFirstWalker(plan));
+                visit();
+                popWalker();
+                mIndent--;
+            }
+            mStream.println();
+        }
+        // Visit input operators
+        for (LogicalOperator lo : plans.keySet()) {
+            // Visit the operator
+            lo.visit(this);
+        }
     }
         
-    /**
-     * Only LOEval.visit() should ever call this method.
-     */
-    /*
-    @Override
-    public void visitEval(LOEval e) {
-        List<EvalSpec> ls = new ArrayList<EvalSpec>();
-        ls.add(e.getSpec());
-        print(e, e.name(), ls);
-        super.visitEval(e);
+    public void visit(LOConst c) throws VisitorException {
+        print(c);
+        mStream.print(" VALUE (" + c.getValue() + ")");
     }
-        
+
+    public void visit(LOCross c) throws VisitorException {
+        print(c);
+        mStream.println();
+        super.visit(c);
+    }
+
+    public void visit(LODistinct d) throws VisitorException {
+        print(d);
+        mStream.println();
+        super.visit(d);
+    }
+
+    public void visit(LODivide d) throws VisitorException {
+        visitBinary(d, "/");
+    }
+
+    public void visit(LOEqual e) throws VisitorException {
+        visitBinary(e, "==");
+    }
+
+    public void visit(LOFilter f) throws VisitorException {
+        print(f);
+        mStream.print(" COMP: ");
+        mIndent++;
+        pushWalker(new DepthFirstWalker(f.getComparisonPlan()));
+        visit();
+        mIndent--;
+        mStream.println();
+        f.getInput().visit(this);
+    }
+
+     public void visit(LOForEach f) throws VisitorException {
+        print(f);
+        mStream.print(" PLAN: ");
+        mIndent++;
+        pushWalker(new DepthFirstWalker(f.getForEachPlan()));
+        visit();
+        mIndent--;
+        mStream.println();
+        // Visit our input
+        mPlan.getPredecessors((LogicalOperator)f).get(0).visit(this);
+    }
+ 
+    public void visit(LOGreaterThan gt) throws VisitorException {
+        visitBinary(gt, ">");
+    }
+
+    public void visit(LOGreaterThanEqual gte) throws VisitorException {
+        visitBinary(gte, ">=");
+    }
+
+    public void visit(LOLesserThan lt) throws VisitorException {
+        visitBinary(lt, "<");
+    }
+
+    public void visit(LOLesserThanEqual lte) throws VisitorException {
+        visitBinary(lte, "<=");
+    }
+
+    public void visit(LOLoad load) throws VisitorException {
+        print(load);
+        mStream.print(" FILE: " + load.getInputFile().getFileName());
+        mStream.print(" FUNC: " + load.getLoadFunc().getClass().getName());
+        mStream.println();
+    }
+
+    public void visit(LOMapLookup mlu) throws VisitorException {
+        print(mlu);
+        mStream.print("(");
+        mlu.getMap().visit(this);
+        mStream.print(")# " + mlu.getKey());
+    }
+
+    public void visit(LOMod m) throws VisitorException {
+        visitBinary(m, "MOD");
+    }
+
+    public void visit(LOMultiply m) throws VisitorException {
+        visitBinary(m, "*");
+    }
+
+    public void visit(LONegative n) throws VisitorException {
+        visitUnary(n, "-");
+    }
+
+    public void visit(LONot n) throws VisitorException {
+        visitUnary(n, "NOT");
+    }
+
+    public void visit(LONotEqual ne) throws VisitorException {
+        visitBinary(ne, "!=");
+    }
+
+    public void visit(LOOr or) throws VisitorException {
+        visitBinary(or, "OR");
+    }
+
+    public void visit(LOProject p) throws VisitorException {
+        print(p);
+        if (p.isStar()) {
+            mStream.print(" ALL ");
+        } else {
+            List<Integer> cols = p.getProjection();
+            mStream.print(" COL");
+            if (cols.size() > 1) mStream.print("S");
+            mStream.print(" (");
+            for (int i = 0; i < cols.size(); i++) {
+                if (i > 0) mStream.print(", ");
+                mStream.print(cols.get(i));
+            }
+            mStream.print(")");
+        }
+        mStream.print(" FROM ");
+        if (p.getSentinel()) {
+            // This project is connected to some other relation, don't follow
+            // that path or we'll cycle in the graph.
+            p.getExpression().name();
+        } else {
+            mIndent++;
+            p.getExpression().visit(this);
+            mIndent--;
+        }
+    }
+
+    public void visit(LORegexp r) throws VisitorException {
+        print(r);
+        mStream.print(" REGEX (" + r.getRegexp() + ") LOOKING IN (");
+        r.getOperand().visit(this);
+        mStream.print(")");
+    }
+
     /**
      * Only LOUnion.visit() should ever call this method.
      */
@@ -73,16 +230,6 @@ public class LOPrinter extends LOVisitor {
     public void visitUnion(LOUnion u) {
         print(u, u.name());
         super.visitUnion(u);
-    }
-        
-    /**
-     * Only LOLoad.visit() should ever call this method.
-     */
-    /*
-    @Override
-    public void visitLoad(LOLoad l) {
-        print(l, l.name());
-        super.visitLoad(l);
     }
         
     /**
@@ -121,55 +268,67 @@ public class LOPrinter extends LOVisitor {
         List<EvalSpec> empty = new ArrayList<EvalSpec>();
         print(lo, name, empty);
     }
-
-    private void print(
-            LogicalOperator lo,
-            String name,
-            List<EvalSpec> specs) {
-        mStream.println(name);
-        mStream.println("Object id: " + lo.hashCode());
-        mStream.print("Inputs: ");
-        List<OperatorKey> inputs = lo.getInputs();
-        Iterator<OperatorKey> i = inputs.iterator();
-        while (i.hasNext()) {
-            LogicalOperator input = lo.getOpTable().get(i.next());
-            mStream.print(input.hashCode() + " ");
-        }
-        mStream.println();
-
-        mStream.print("Schema: ");
-        printSchema(lo.outputSchema(), 0);
-        mStream.println();
-
-        mStream.println("EvalSpecs:");
-        //printSpecs(specs);
-        Iterator<EvalSpec> j = specs.iterator();
-        while (j.hasNext()) {
-            j.next().visit(new EvalSpecPrinter(mStream));
-        }
-    }
-
-    private void printSchema(Schema schema, int pos) {
-        if (schema instanceof AtomSchema) {
-            String a = schema.getAlias();
-            if (a == null) mStream.print("$" + pos);
-            else mStream.print(a);
-        } else if (schema instanceof TupleSchema) {
-            mStream.print("(");
-            TupleSchema ts = (TupleSchema)schema;
-            int sz = ts.numFields();
-            for (int j = 0; j < sz; j++) {
-                if (j != 0) mStream.print(", ");
-                Schema s = ts.schemaFor(j);
-                if (s == null) mStream.print("$" + j);
-                else printSchema(s, j);
-            }
-            mStream.print(")");
-        } else {
-            throw new AssertionError("Unknown schema type.");
-        }
-    }
     */
+
+    private void visitBinary(
+            BinaryExpressionOperator b,
+            String op) throws VisitorException {
+        print(b);
+        mStream.print(" (");
+        b.getLhsOperand().visit(this);
+        mStream.print(") " + op + " (");
+        b.getRhsOperand().visit(this);
+        mStream.print(") ");
+    }
+
+    private void visitUnary(
+            UnaryExpressionOperator e,
+            String op) throws VisitorException {
+        print(e);
+        mStream.print(op + " (");
+        e.getOperand().visit(this);
+        mStream.print(") ");
+    }
+
+    private void print(LogicalOperator lo) {
+        for (int i = 0; i < mIndent; i++) mStream.print("    ");
+
+        printName(lo);
+
+        if (!(lo instanceof ExpressionOperator)) {
+            mStream.print("Inputs: ");
+            for (LogicalOperator predecessor : mPlan.getPredecessors(lo)) {
+                printName(predecessor);
+            }
+            mStream.print("Schema: ");
+            try {
+                printSchema(lo.getSchema());
+            } catch (FrontendException fe) {
+                // ignore it, nothing we can do
+                mStream.print("()");
+            }
+        }
+        mStream.print(" : ");
+    }
+
+    private void printName(LogicalOperator lo) {
+        mStream.println(lo.name() + " key(" + lo.getOperatorKey().scope + 
+            ", " + lo.getOperatorKey().id + ") ");
+    }
+
+    private void printSchema(Schema schema) {
+        mStream.print("(");
+        for (Schema.FieldSchema fs : schema.getFields()) {
+            if (fs.alias != null) mStream.print(fs.alias + ": ");
+            mStream.print(DataType.findTypeName(fs.type));
+            if (fs.schema != null) {
+                if (fs.type == DataType.BAG) mStream.print("{");
+                printSchema(fs.schema);
+                if (fs.type == DataType.BAG) mStream.print("}");
+            }
+        }
+        mStream.print(")");
+    }
 }
 
         

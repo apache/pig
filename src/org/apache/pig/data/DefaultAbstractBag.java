@@ -348,7 +348,8 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Report progress to HDFS.
      */
     protected void reportProgress() {
-        // TODO FIX
+        // TODO FIX Need to hook this into the progress reporting
+        // infrastructure once Shravan finishs that.
         /*
         if (PigMapReduce.reporter != null) {
             PigMapReduce.reporter.progress();

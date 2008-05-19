@@ -426,7 +426,8 @@ public class DataType {
     public static boolean isAtomic(byte dataType) {
         return ((dataType == BYTEARRAY) || (dataType == CHARARRAY) ||
             (dataType == INTEGER) || (dataType == LONG) || 
-            (dataType == FLOAT) || (dataType == BOOLEAN));
+            (dataType == FLOAT) || (dataType == DOUBLE) ||
+            (dataType == FLOAT));
     }
 
     /**

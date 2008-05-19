@@ -257,7 +257,6 @@ public class PigServer {
         
         LogicalPlan readFrom = (LogicalPlan) aliases.get(id);
 
-        // TODO FIX Make this work
         try {
             ExecPhysicalPlan pp = 
                 pigContext.getExecutionEngine().compile(readFrom, null);

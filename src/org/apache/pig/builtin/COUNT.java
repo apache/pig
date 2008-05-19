@@ -127,9 +127,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
 
     @Override
     public Schema outputSchema(Schema input) {
-        // TODO FIX 
-        // return new AtomSchema("count" + count++);
-        return null;
+        return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
     }
 
     private static int count = 1;

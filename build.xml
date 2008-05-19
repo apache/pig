@@ -134,6 +134,7 @@
     <target name="compile-sources">
         <javac encoding="${build.encoding}" srcdir="${sources}"
             includes="**/plan/*.java, **/plan/optimizer/*.java, **/data/*.java, **/pig/builtin/*.java,
+                **/impl/io/*.java, **/impl/mapReduceLayer/*.java,
                 **/test/utils/*.java, **/test/TestOperatorPlan.java, **/test/TestBuiltin.java,
                 **/test/TestConstExpr.java, **/test/TestFilter.java, **/test/TestPhyOp.java,
                 **/test/TestAdd.java, **/test/TestSubtract.java, **/test/TestMultiply.java,

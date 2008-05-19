@@ -112,9 +112,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
 
     @Override
     public Schema outputSchema(Schema input) {
-        // TODO FIX
-        // return new AtomSchema("sum" + count++);
-        return null;
+        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
     }
 
     private static int count = 1;

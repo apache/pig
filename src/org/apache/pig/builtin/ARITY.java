@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -32,8 +33,6 @@ public class ARITY extends EvalFunc<Integer> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        // TODO FIX
-        // return new AtomSchema("arity");
-        return null;
+        return new Schema(new Schema.FieldSchema(null, DataType.INTEGER)); 
     }
 }

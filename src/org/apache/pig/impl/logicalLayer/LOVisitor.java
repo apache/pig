@@ -120,6 +120,9 @@ abstract public class LOVisitor extends
         for(LogicalOperator op: cg.getInputs()) {
             for(LogicalPlan lp: mapGByPlans.get(op)) {
                 if (null != lp) {
+                    // TODO FIX - How do we know this should be a
+                    // DependencyOrderWalker?  We should be replicating the
+                    // walker the current visitor is using.
                     PlanWalker w = new DependencyOrderWalker(lp);
                     pushWalker(w);
                     for(LogicalOperator logicalOp: lp.getRoots()) {

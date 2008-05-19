@@ -115,6 +115,10 @@ public class LOProject extends ExpressionOperator {
         return mExp;
     }
 
+    public boolean isStar() { 
+        return mIsStar;
+    }
+
     public List<Integer> getProjection() {
         return mProjection;
     }
