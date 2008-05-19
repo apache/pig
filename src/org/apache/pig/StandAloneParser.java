@@ -24,8 +24,9 @@ import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
 public class StandAloneParser {
@@ -68,12 +69,14 @@ public class StandAloneParser {
             for (Iterator<String> it = pig.getAliases().keySet().iterator(); it.hasNext(); ) {
                 String alias = it.next();
                 LogicalPlan lp = pig.getAliases().get(alias);
-                System.out.print(alias + "->" + lp.getOpTable().get(lp.getRoot()).outputSchema());
+                System.out.print(alias + "->" + lp.getLeaves().get(0).getSchema());
                 if (it.hasNext()) System.out.print(", \n");
                 else System.out.print("\n");
             }
         } catch (IOException e) {
             log.error(e);
+        } catch (FrontendException fe) {
+            log.error(fe);
         }
     }
 }

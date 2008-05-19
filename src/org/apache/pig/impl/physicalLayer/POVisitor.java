@@ -19,6 +19,7 @@ package org.apache.pig.impl.physicalLayer;
 
 import java.util.Map;
 
+/*
 import org.apache.pig.backend.hadoop.executionengine.POMapreduce;
 import org.apache.pig.backend.local.executionengine.POCogroup;
 import org.apache.pig.backend.local.executionengine.POEval;
@@ -29,6 +30,7 @@ import org.apache.pig.backend.local.executionengine.POStore;
 import org.apache.pig.backend.local.executionengine.POUnion;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
+*/
 
 /**
  * A visitor mechanism for navigating and operating on a tree of Physical
@@ -52,12 +54,17 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
  * These methods are only public to make them accessible to the PO* objects.
  */
 abstract public class POVisitor {
+    // TODO FIX This whole class needs to be removed (it's been superceded
+    // by PhysOpVisitor) but not yet as there are other classes 
+    // extending it.
 
+    /*
     protected Map<OperatorKey, ExecPhysicalOperator> mOpTable;
 
     /**
      * @param opTable Operator table for the physical plan.
      */
+    /*
     protected POVisitor(Map<OperatorKey, ExecPhysicalOperator> opTable) {
         mOpTable = opTable;
     }
@@ -66,6 +73,7 @@ abstract public class POVisitor {
      * Only POMapreduce.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitMapreduce(POMapreduce mr) {
         basicVisit(mr);
     }
@@ -74,6 +82,7 @@ abstract public class POVisitor {
      * Only POLoad.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitLoad(POLoad load) {
         basicVisit(load);
     }
@@ -82,6 +91,7 @@ abstract public class POVisitor {
      * Only POSort.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitSort(POSort s) {
         basicVisit(s);
     }
@@ -90,6 +100,7 @@ abstract public class POVisitor {
      * Only POStore.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitStore(POStore s) {
         basicVisit(s);
     }
@@ -98,6 +109,7 @@ abstract public class POVisitor {
      * Only POCogroup.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitCogroup(POCogroup g) {
         basicVisit(g);
     }
@@ -106,6 +118,7 @@ abstract public class POVisitor {
      * Only POEval.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitEval(POEval e) {
         basicVisit(e);
     }
@@ -114,6 +127,7 @@ abstract public class POVisitor {
      * Only POSplit.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitSplit(POSplit s) {
         basicVisit(s);
     }
@@ -122,6 +136,7 @@ abstract public class POVisitor {
      * Only POUnion.visit() and subclass implementations of this function
      * should ever call this method.
      */
+    /*
     public void visitUnion(POUnion u) {
         basicVisit(u);
     }
@@ -131,6 +146,7 @@ abstract public class POVisitor {
             ((PhysicalOperator)mOpTable.get(po.inputs[i])).visit(this);
         }
     }
+    */
 
 }
 

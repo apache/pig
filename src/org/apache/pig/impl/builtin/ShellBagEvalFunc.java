@@ -34,6 +34,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultAbstractBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.backend.executionengine.ExecException;
 
 
 public class ShellBagEvalFunc extends EvalFunc<DataBag> {
@@ -123,10 +124,17 @@ public class ShellBagEvalFunc extends EvalFunc<DataBag> {
         if (os == null) {
             startProcess();
         }
-        os.write(input.toDelimitedString(fieldDelimString).getBytes());
-        os.write(recordDelim);
-        os.write(groupDelim);
-        os.flush();
+        try {
+            os.write(input.toDelimitedString(fieldDelimString).getBytes());
+            os.write(recordDelim);
+            os.write(groupDelim);
+            os.flush();
+        } catch (ExecException ee) {
+            IOException ioe = new IOException(ee.getMessage());
+            ioe.initCause(ee);
+            throw ioe;
+        }
+
         try{
             bags.put(output);
         }catch(InterruptedException e){}

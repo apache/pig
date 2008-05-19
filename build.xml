@@ -133,32 +133,9 @@
 
     <target name="compile-sources">
         <javac encoding="${build.encoding}" srcdir="${sources}"
-            includes="**/plan/*.java, **/plan/optimizer/*.java, **/data/*.java, **/pig/builtin/*.java,
-                **/impl/io/*.java, **/impl/mapReduceLayer/*.java,
-                **/test/utils/*.java, **/test/TestOperatorPlan.java, **/test/TestBuiltin.java,
-                **/test/TestConstExpr.java, **/test/TestFilter.java, **/test/TestPhyOp.java,
-                **/test/TestAdd.java, **/test/TestSubtract.java, **/test/TestMultiply.java,
-                **/test/TestDivide.java, **/test/TestMod.java, **/test/TestGreaterThan.java,
-        	    **/test/TestGTOrEqual.java,**/test/TestLessThan.java,**/test/TestLTOrEqual.java,
-        	    **/test/TestEqualTo.java,**/test/TestNotEqualTo.java, **/test/TestPOGenerate.java,
-                **/test/TestProject.java, **/test/TestLoad.java, **/test/TestStore.java,
-                **/test/FakeFSOutputStream.java, **/test/TestPackage.java, **/test/TestForEach.java,
-        		**/test/TestLocalRearrange.java, **/test/TestPOUserFunc.java,
-        		**/test/TestPODistinct.java, **/test/TestPOSort.java, **/test/TestPOCast.java,
-        		**/test/TestSchema.java, **/test/TestLogicalPlanBuilder.java,**/test/TestUnion.java, **/test/TestMRCompiler.java,
-                **/test/FakeFSInputStream.java, **/test/Util.java, **/test/TestJobSubmission.java,
-        		**/test/TestLocalJobSubmission.java, **/test/TestPOMapLookUp.java, 
-        		**/test/TestPOBinCond.java, **/test/TestPONegative.java, **/pig/impl/builtin/GFCross.java,
-                **/logicalLayer/*.java, **/logicalLayer/parser/NodeIdGenerator.java,
-                **/logicalLayer/schema/*.java, **/physicalLayer/topLevelOperators/*.java,
-                **/physicalLayer/topLevelOperators/**/*.java, **/physicalLayer/plans/*.java,
-                **/physicalLayer/Result.java, **/mapReduceLayer/**/*.java, 
-                **/physicalLayer/POStatus.java, **/bzip2r/*.java,
-                **/validators/*.java , **/test/TestInputOutputFileValidator.java ,
-				**/test/TestTypeCheckingValidator.java, 
-                **/backend/executionengine/ExecException.java,
-                **/tools/grunt/*.java, **/test/TestGrunt.java"
-            destdir="${dist}" debug="${javac.debug}" optimize="${javac.optimize}" target="${javac.version}" source="${javac.version}" deprecation="${javac.deprecation}">
+                includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
+                optimize="${javac.optimize}" target="${javac.version}"
+                source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="${cp}" />
         </javac>
@@ -245,6 +222,7 @@
 
             <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
                 <fileset dir="test">
+                    <!--
                     <include name="**/TestBuiltin.java" />
                     <include name="**/TestOperatorPlan.java" />
                 	<include name="**/TestPhyOp.java" />
@@ -284,13 +262,26 @@
                 	<include name="**/TestPONegative.java" />
                 	<include name="**/TestGrunt.java" />
                 	<include name="**/TestPOCast.java" />
-                    <!--
+                    -->
                     <include name="**/*Test*.java" />
+                    <!-- Excluced because they are end-to-end, don't work yet.  -->
+                    <exclude name="**/TestAlgebraicEval.java" />
+                    <exclude name="**/TestCombiner.java" />
+                    <exclude name="**/TestCompressedFiles.java" />
+                    <exclude name="**/TestEvalPipeline.java" />
+                    <exclude name="**/TestFilterOpNumeric.java" />
+                    <exclude name="**/TestFilterOpString.java" />
+                    <exclude name="**/TestInfixArithmetic.java" />
+                    <exclude name="**/TestMapReduce.java" />
+                    <exclude name="**/TestPigFile.java" />
+                    <exclude name="**/TestPigSplit.java" />
+                    <exclude name="**/TestStoreOld.java" />
+                    <!-- Excluced because we don't want to run them -->
+                    <exclude name="**/TestHelper.java" />
                     <exclude name="**/TestLargeFile.java" />
                     <exclude name="**/TestOrderBy.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
-                    -->
                 </fileset>
             </batchtest>
         </junit>

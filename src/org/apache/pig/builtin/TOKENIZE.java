@@ -24,6 +24,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -52,12 +53,8 @@ public class TOKENIZE extends EvalFunc<DataBag> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        // TODO FIX
-        /*
-        TupleSchema schema = new TupleSchema();
-        schema.add(new AtomSchema("token"));
+        Schema schema = new Schema(new Schema.FieldSchema("token",
+            DataType.CHARARRAY));
         return schema;
-        */
-        return null;
     }
 }

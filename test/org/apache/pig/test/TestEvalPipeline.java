@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.TextLoader;
@@ -172,22 +173,28 @@ public class TestEvalPipeline extends TestCase {
         
         @Override
         public DataBag exec(Tuple input) throws IOException {    
-            DataBag output = BagFactory.getInstance().newDefaultBag();
-            String str = input.get(0).toString();
+            try {
+                DataBag output = BagFactory.getInstance().newDefaultBag();
+                String str = input.get(0).toString();
             
-            String title = str;
+                String title = str;
 
-            if (title != null) {
-                List<String> nGrams = makeNGrams(title);
-                
-                for (Iterator<String> it = nGrams.iterator(); it.hasNext(); ) {
-                    Tuple t = TupleFactory.getInstance().newTuple(1);
-                    t.set(0, it.next());
-                    output.add(t);
+                if (title != null) {
+                    List<String> nGrams = makeNGrams(title);
+                    
+                    for (Iterator<String> it = nGrams.iterator(); it.hasNext(); ) {
+                        Tuple t = TupleFactory.getInstance().newTuple(1);
+                        t.set(0, it.next());
+                        output.add(t);
+                    }
                 }
+    
+                return output;
+            } catch (ExecException ee) {
+                IOException ioe = new IOException(ee.getMessage());
+                ioe.initCause(ee);
+                throw ioe;
             }
-
-            return output;
         }
         
         

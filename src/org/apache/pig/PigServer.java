@@ -45,9 +45,14 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.ExpressionOperator;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -209,34 +214,30 @@ public class PigServer {
             return;
         }
             
-        // TODO FIX Need to change so that only syntax parsing is done here, and so that logical plan is additive.
-        // parse the query into a logical plan
         LogicalPlan lp = null;
-//      TODO FIX Need to uncomment this with the right logic
-        /*try {
-            lp = (new LogicalPlanBuilder(pigContext).parse(scope, query, aliases, opTable));
+        Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+        Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
+        try {
+            lp = (new LogicalPlanBuilder(pigContext).parse(scope, query,
+                    aliases, opTable, aliasOp, defineAliases));
         } catch (ParseException e) {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
-        }*/
-        
-        /*
-        if (lp.getAlias() != null) {
-            aliases.put(lp.getAlias(), lp);
         }
-        */
     }
       
     public void dumpSchema(String alias) throws IOException{
-        // TODO FIX Need to rework so we can get an appropriate output schema
-        /*
         LogicalPlan lp = aliases.get(alias);
         if (lp == null)
             throw new IOException("Invalid alias - " + alias);
 
-        TupleSchema schema = lp.getOpTable().get(lp.getRoot()).outputSchema();
-
-        System.out.println(schema.toString());    
-        */
+        try {
+            Schema schema = lp.getLeaves().get(0).getSchema();
+            System.out.println(schema.toString());    
+        } catch (FrontendException fe) {
+            IOException ioe = new IOException(fe.getMessage());
+            ioe.initCause(fe);
+            throw ioe;
+        }
     }
 
     public void setJobName(String name){
@@ -303,7 +304,6 @@ public class PigServer {
     }
         
     public void store(LogicalPlan readFrom, String filename, String func) throws IOException {
-        // TODO FIX
         /*
         LogicalPlan storePlan = QueryParser.generateStorePlan(readFrom.getOpTable(),
                                                               scope,

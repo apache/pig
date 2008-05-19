@@ -17,14 +17,15 @@
  */
 package org.apache.pig.test;
 
+import java.util.Comparator;
+
 import org.apache.pig.data.*;
-import org.apache.pig.impl.eval.EvalSpec;
 
 // Test data bag factory, for testing that we can propery provide a non
 // default bag factory.
 public class NonDefaultBagFactory extends BagFactory {
     public DataBag newDefaultBag() { return null; }
-    public DataBag newSortedBag(EvalSpec sortSpec) { return null; }
+    public DataBag newSortedBag(Comparator<Tuple> comp) { return null; }
     public DataBag newDistinctBag() { return null; }
 
     public NonDefaultBagFactory() { super(); }

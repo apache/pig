@@ -17,23 +17,12 @@
  */
 package org.apache.pig.test;
 
-/*
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.Iterator;
-import java.util.Random;
-*/
-
 import java.util.*;
 import java.io.IOException;
 
 import org.junit.Test;
 
 import org.apache.pig.data.*;
-import org.apache.pig.impl.eval.*;
 import org.apache.pig.impl.util.Spillable;
 
 /**
@@ -74,8 +63,8 @@ public class TestDataBag extends junit.framework.TestCase {
             return bag;
         }
 
-        public DataBag newSortedBag(EvalSpec sortSpec) {
-            DataBag bag = new SortedDataBag(sortSpec);
+        public DataBag newSortedBag(Comparator<Tuple> comp) {
+            DataBag bag = new SortedDataBag(comp);
             mMemMgr.register(bag);
             return bag;
         }

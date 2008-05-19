@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Iterator;
 
+/*
 import org.apache.pig.backend.hadoop.executionengine.POMapreduce;
 import org.apache.pig.backend.local.executionengine.POCogroup;
 import org.apache.pig.backend.local.executionengine.POEval;
@@ -36,10 +37,13 @@ import org.apache.pig.impl.eval.EvalSpec;
 import org.apache.pig.impl.eval.EvalSpecPrinter;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
+*/
 
 
 public class POPrinter extends POVisitor {
 
+    // TODO FIX
+    /*
     private PrintStream mStream = null;
 
     public POPrinter(Map<OperatorKey, ExecPhysicalOperator> opTable,
@@ -48,10 +52,6 @@ public class POPrinter extends POVisitor {
         mStream = ps;
     }
 
-    /**
-     * Only POMapreduce.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
     public void visitMapreduce(POMapreduce mr) {
         mStream.println("MAPREDUCE");
         printHeader(mr);
@@ -95,30 +95,18 @@ public class POPrinter extends POVisitor {
         super.visitMapreduce(mr);
     }
         
-    /**
-     * Only POLoad.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
     public void visitLoad(POLoad load) {
         mStream.println("LOAD");
         printHeader(load);
         super.visitLoad(load);
     }
         
-    /**
-     * Only POSort.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
     public void visitSort(POSort s) {
         mStream.println("SORT");
         printHeader(s);
         super.visitSort(s);
     }
         
-    /**
-     * Only POStore.visit() and subclass implementations of this function
-     * should ever call this method.
-     */
     public void visitStore(POStore s) {
         mStream.println("STORE");
         printHeader(s);
@@ -141,6 +129,7 @@ public class POPrinter extends POVisitor {
         }
         mStream.println();
     }
+    */
 
 }
 

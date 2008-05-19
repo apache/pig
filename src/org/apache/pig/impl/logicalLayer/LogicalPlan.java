@@ -42,7 +42,7 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
     */
 
     public void explain(OutputStream out) {
-        // TODO
+        // TODO FIX
         /*
         LOVisitor lprinter = new LOPrinter(new PrintStream(out));
         

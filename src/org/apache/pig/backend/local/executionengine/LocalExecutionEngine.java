@@ -42,7 +42,6 @@ import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
-import org.apache.pig.impl.eval.cond.Cond;
 import org.apache.pig.impl.io.FileSpec;
 import java.util.Iterator;
 
@@ -104,11 +103,15 @@ public class LocalExecutionEngine implements ExecutionEngine {
             throw new ExecException("No Plan to compile");
         }
 
-        return compile(new ExecLogicalPlan[]{ plan } , properties);
+        // TODO FIX
+        // return compile(new ExecLogicalPlan[]{ plan } , properties);
+        return null;
     }
 
     public LocalPhysicalPlan compile(LogicalPlan[] plans,
                                      Properties properties) throws ExecException {
+        // TODO FIX
+        /*
         if (plans == null) {
             throw new ExecException("No Plans to compile");
         }
@@ -133,6 +136,8 @@ public class LocalExecutionEngine implements ExecutionEngine {
         }
         
         return new LocalPhysicalPlan(physicalKey, physicalOpTable);
+        */
+        return null;
     }
 
     public LocalJob execute(ExecPhysicalPlan plan) throws ExecException {
@@ -177,6 +182,8 @@ public class LocalExecutionEngine implements ExecutionEngine {
                                   Properties properties) 
             throws ExecException {
         
+        // TODO FIX
+        /*
         LocalResult materializedResult = materializedResults.get(logicalKey);
         
         if (materializedResult != null) {
@@ -202,6 +209,8 @@ public class LocalExecutionEngine implements ExecutionEngine {
         }
 
         return physicalKey;
+        */
+        return null;
     }
     
     private boolean compileOperator(OperatorKey logicalKey, 
@@ -209,9 +218,11 @@ public class LocalExecutionEngine implements ExecutionEngine {
                                     Properties properties,
                                     OperatorKey physicalKey) 
             throws ExecException {
+                // TODO FIX
+                /* 
         ExecPhysicalOperator pp;
         LogicalOperator lo = logicalOpTable.get(logicalKey);
-        String scope = lo.getScope();
+        String scope = lo.getOperatorKey().getScope();
         boolean compileInputs = true;
         
         if (lo instanceof LOEval) {
@@ -287,6 +298,8 @@ public class LocalExecutionEngine implements ExecutionEngine {
         logicalToPhysicalKeys.put(logicalKey, physicalKey);
         
         return compileInputs;
+        */
+            return false;
     }
 }
 

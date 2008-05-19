@@ -35,10 +35,11 @@ import org.junit.Test;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.*;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.PigContext;
 
@@ -140,11 +141,17 @@ public class TestPigFile extends TestCase {
     
     private Tuple getRandomTuple(int nestingLevel) throws IOException{
         
-        int cardinality = rand.nextInt(2)+1;
-        Tuple t = TupleFactory.getInstance().newTuple(cardinality);
-        for (int i=0; i<cardinality; i++)
-            t.set(i, getRandomDatum(nestingLevel+1));
-        return t;
+        try {
+            int cardinality = rand.nextInt(2)+1;
+            Tuple t = TupleFactory.getInstance().newTuple(cardinality);
+            for (int i=0; i<cardinality; i++)
+                t.set(i, getRandomDatum(nestingLevel+1));
+            return t;
+        } catch (ExecException ee) {
+            IOException ioe = new IOException(ee.getMessage());
+            ioe.initCause(ee);
+            throw ioe;
+        }
     }
     
     private DataBag getRandomBag(int maxCardinality, int nestingLevel) throws IOException{

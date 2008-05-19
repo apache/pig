@@ -53,9 +53,12 @@ public class LocalPhysicalPlan implements ExecPhysicalPlan {
     }
              
     public void explain(OutputStream out) {
+        // TODO FIX
+        /*
         POVisitor lprinter = new POPrinter(opTable, new PrintStream(out));
         
         ((PhysicalOperator)opTable.get(root)).visit(lprinter);
+        */
     }
     
     public Map<OperatorKey, ExecPhysicalOperator> getOpTable() {

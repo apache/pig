@@ -25,7 +25,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
@@ -35,16 +38,18 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class TestMapReduce extends TestCase {
@@ -80,25 +85,37 @@ public class TestMapReduce extends TestCase {
         }
         @Override
         public DataBag exec(Tuple input) throws IOException {
-            DataBag output = BagFactory.getInstance().newDefaultBag();
-            Iterator<Tuple> it = (DataType.toBag(input.get(0))).iterator();
-            while(it.hasNext()) {
-                Tuple t = it.next();
-                Tuple newT = TupleFactory.getInstance().newTuple(2);
-                newT.set(0, field0);
-                newT.set(1, t.get(0).toString());
-                output.add(newT);
-            }
+            try {
+                DataBag output = BagFactory.getInstance().newDefaultBag();
+                Iterator<Tuple> it = (DataType.toBag(input.get(0))).iterator();
+                while(it.hasNext()) {
+                    Tuple t = it.next();
+                    Tuple newT = TupleFactory.getInstance().newTuple(2);
+                    newT.set(0, field0);
+                    newT.set(1, t.get(0).toString());
+                    output.add(newT);
+                }
 
-            return output;
+                return output;
+            } catch (ExecException ee) {
+                IOException ioe = new IOException(ee.getMessage());
+                ioe.initCause(ee);
+                throw ioe;
+            }
         }
     }
     static public class MyGroup extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException{
-            Tuple output = TupleFactory.getInstance().newTuple(1);
-            output.set(0, new String("g"));
-            return output;
+            try {
+                Tuple output = TupleFactory.getInstance().newTuple(1);
+                output.set(0, new String("g"));
+                return output;
+            } catch (ExecException ee) {
+                IOException ioe = new IOException(ee.getMessage());
+                ioe.initCause(ee);
+                throw ioe;
+            }
         }
     }
     static public class MyStorage implements LoadFunc, StoreFunc {
@@ -121,8 +138,57 @@ public class TestMapReduce extends TestCase {
             
         }
         public void putNext(Tuple f) throws IOException {
-            os.write((f.toDelimitedString("-")+"\n").getBytes());            
+            try {
+                os.write((f.toDelimitedString("-")+"\n").getBytes());            
+            } catch (ExecException ee) {
+                IOException ioe = new IOException(ee.getMessage());
+                ioe.initCause(ee);
+                throw ioe;
+            }
         }
+
+        public Boolean bytesToBoolean(byte[] b) throws IOException {
+            return false;
+        }
+    
+        public Integer bytesToInteger(byte[] b) throws IOException {
+            return 0;
+        }
+
+        public Long bytesToLong(byte[] b) throws IOException {
+            return 0L;
+        }
+
+        public Float bytesToFloat(byte[] b) throws IOException {
+            return 0.0f;
+        }
+
+        public Double bytesToDouble(byte[] b) throws IOException {
+            return 0.0;
+        }
+
+        public String bytesToCharArray(byte[] b) throws IOException {
+            return "";
+        }
+
+        public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+            return new HashMap<Object, Object>();
+        }
+
+        public Tuple bytesToTuple(byte[] b) throws IOException {
+            return null;
+        }
+
+        public DataBag bytesToBag(byte[] b) throws IOException {
+            return null;
+        }
+
+        public void fieldsToRead(Schema schema) {}
+
+        public Schema determineSchema(URL fileName) throws IOException {
+            return null;
+        }
+
     }
     @Test
     public void testStoreFunction() throws Throwable {
