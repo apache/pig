@@ -25,8 +25,10 @@ import org.apache.pig.impl.plan.VisitorException;
 public class Launcher {
     private static final Log log = LogFactory.getLog(Launcher.class);
     
+    int totalHadoopTimeSpent;
+    
     protected Launcher(){
-        
+        totalHadoopTimeSpent = 0;
     }
     /**
      * Method to launch pig for hadoop either for a cluster's
@@ -57,7 +59,7 @@ public class Launcher {
      * @throws ExecException
      * @throws JobCreationException
      */
-    protected void launchPig(PhysicalPlan<PhysicalOperator> php, String grpName, PigContext pc)
+    protected boolean launchPig(PhysicalPlan<PhysicalOperator> php, String grpName, PigContext pc)
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException {
         long sleepTime = 500;
@@ -87,20 +89,48 @@ public class Launcher {
             lastProg = prog;
         }
         lastProg = calculateProgress(jc, jobClient)/numMRJobs;
-        if(lastProg==1.0)
+        if(isComplete(lastProg))
             log.info("Completed Successfully");
         else{
             log.info("Unsuccessful attempt. Completed " + lastProg * 100 + "% of the job");
             List<Job> failedJobs = jc.getFailedJobs();
+            if(failedJobs==null)
+                throw new ExecException("Something terribly wrong with Job Control.");
             for (Job job : failedJobs) {
-                String MRJobID = job.getMapredJobID();
-                getErrorMessages(jobClient.getMapTaskReports(MRJobID), "map");
-                getErrorMessages(jobClient.getReduceTaskReports(MRJobID), "reduce");
+                getStats(job,jobClient);
             }
         }
+        List<Job> succJobs = jc.getSuccessfulJobs();
+        if(succJobs!=null)
+            for(Job job : succJobs){
+                getStats(job,jobClient);
+            }
 
         jc.stop(); 
         
+        return isComplete(lastProg);
+    }
+    
+    private boolean isComplete(double prog){
+        return (int)(Math.ceil(prog)) == (int)1;
+    }
+    
+    private void getStats(Job job, JobClient jobClient) throws IOException{
+        String MRJobID = job.getMapredJobID();
+        TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
+        getErrorMessages(mapRep, "map");
+        totalHadoopTimeSpent += computeTimeSpent(mapRep);
+        TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
+        getErrorMessages(redRep, "reduce");
+        totalHadoopTimeSpent += computeTimeSpent(mapRep);
+    }
+    
+    private int computeTimeSpent(TaskReport[] mapReports) {
+        int timeSpent = 0;
+        for (TaskReport r : mapReports) {
+            timeSpent += (r.getFinishTime() - r.getStartTime());
+        }
+        return timeSpent;
     }
     
     protected static void getErrorMessages(TaskReport reports[], String type)
@@ -158,5 +188,8 @@ public class Launcher {
             double redProg = rj.reduceProgress();
             return (mapProg + redProg)/2;
         }
+    }
+    public int getTotalHadoopTimeSpent() {
+        return totalHadoopTimeSpent;
     }
 }

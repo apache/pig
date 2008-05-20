@@ -34,20 +34,4 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
     public LogicalPlan() {
         super();
     }
-
-    /*
-    public LogicalPlan(Map<OperatorKey, LogicalOperator> keys) {
-        super(keys);
-    }
-    */
-
-    public void explain(OutputStream out) {
-        // TODO FIX
-        /*
-        LOVisitor lprinter = new LOPrinter(new PrintStream(out));
-        
-        opTable.get(root).visit(lprinter);
-        */
-    }
-
 }

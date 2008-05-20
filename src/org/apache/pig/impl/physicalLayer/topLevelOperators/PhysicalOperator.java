@@ -90,7 +90,7 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
-    protected static PigProgressable reporter;
+    public static PigProgressable reporter;
 
     // Dummy types used to access the getNext of appropriate
     // type. These will be null

@@ -29,8 +29,8 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.util.Spillable;
-//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 
 /**
  * A collection of Tuples.  A DataBag may or may not fit into memory.
@@ -348,13 +348,9 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Report progress to HDFS.
      */
     protected void reportProgress() {
-        // TODO FIX Need to hook this into the progress reporting
-        // infrastructure once Shravan finishs that.
-        /*
-        if (PigMapReduce.reporter != null) {
-            PigMapReduce.reporter.progress();
+        if (PhysicalOperator.reporter != null) {
+            PhysicalOperator.reporter.progress();
         }
-        */
     }
 
     public static abstract class BagDelimiterTuple extends DefaultTuple{}

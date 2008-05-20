@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -42,13 +43,20 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
-import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
+import org.apache.pig.impl.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.shock.SSHSocketImplFactory;
 
 
@@ -204,15 +212,15 @@ public class HExecutionEngine implements ExecutionEngine {
         throw new UnsupportedOperationException();
     }
 
-    public ExecPhysicalPlan compile(LogicalPlan plan,
-                                    Properties properties) throws ExecException {
+    public PhysicalPlan compile(LogicalPlan plan,
+                                Properties properties) throws ExecException {
         return compile(new LogicalPlan[] { plan }, properties);
     }
 
-    public ExecPhysicalPlan compile(LogicalPlan[] plans,
-                                    Properties properties)
+    public PhysicalPlan compile(LogicalPlan[] plans,
+                                Properties properties)
             throws ExecException {
-        // TODO FIX Need to uncomment this with the right logic
+        // TODO FIX Plug in Shubham's translator here.
         /*if (plans == null) {
             throw new ExecException("No Plans to compile");
         }
@@ -247,8 +255,35 @@ public class HExecutionEngine implements ExecutionEngine {
         throw new ExecException("Unsupported Operation");
     }
 
-    public ExecJob execute(ExecPhysicalPlan plan) 
-            throws ExecException {
+    public ExecJob execute(PhysicalPlan plan,
+                           String jobName) throws ExecException {
+        try {
+            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
+            FileSpec spec = null;
+            if(!(leaf instanceof POStore)){
+                POStore str = new POStore(new OperatorKey("HExecEngine",
+                    NodeIdGenerator.getGenerator().getNextNodeId("HExecEngine")));
+                str.setPc(pigContext);
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                    pigContext).toString(),
+                    BinStorage.class.getName());
+                str.setSFile(spec);
+            }
+            else{
+                spec = ((POStore)leaf).getSFile();
+            }
+
+            MapReduceLauncher launcher = new MapReduceLauncher();
+            launcher.launchPig(plan, jobName, pigContext);
+            return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+
+        } catch (Exception e) {
+            // There are a lot of exceptions thrown by the launcher.  If this
+            // is an ExecException, just let it through.  Else wrap it.
+            if (e instanceof ExecException) throw (ExecException)e;
+            else throw new ExecException(e.getMessage(), e);
+        }
+
         // TODO FIX Need to uncomment this with the right logic
         /*POMapreduce pom = (POMapreduce) physicalOpTable.get(plan.getRoot());
 
@@ -287,12 +322,16 @@ public class HExecutionEngine implements ExecutionEngine {
         }
         
         return new HJob(JOB_STATUS.COMPLETED, pigContext, pom.outputFileSpec);*/
-        throw new ExecException("Unsupported Operation");
 
     }
 
-    public ExecJob submit(ExecPhysicalPlan plan) throws ExecException {
+    public ExecJob submit(PhysicalPlan plan,
+                          String jobName) throws ExecException {
         throw new UnsupportedOperationException();
+    }
+
+    public void explain(PhysicalPlan plan, PrintStream stream) {
+        // TODO FIX
     }
 
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {

@@ -39,8 +39,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-//TODO FIX Need to uncomment this with the right imports
-//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
+import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -50,9 +49,14 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.physicalLayer.POPrinter;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -82,7 +86,8 @@ public class PigServer {
 
     Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
-    
+    Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+    Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
     PigContext pigContext;
     
     private String scope = constructScope();
@@ -215,8 +220,6 @@ public class PigServer {
         }
             
         LogicalPlan lp = null;
-        Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-        Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
         try {
             lp = (new LogicalPlanBuilder(pigContext).parse(scope, query,
                     aliases, opTable, aliasOp, defineAliases));
@@ -252,10 +255,25 @@ public class PigServer {
         if (!aliases.containsKey(id))
             throw new IOException("Invalid alias: " + id);
 
+        try {
+            ExecJob job = execute(id);
+            // invocation of "execute" is synchronous!
+            if (job.getStatus() == JOB_STATUS.COMPLETED) {
+                    return job.getResults();
+            } else {
+                throw new IOException("Job terminated with anomalous status "
+                    + job.getStatus().toString());
+            }
+        } catch (ExecException ee) {
+            throw WrappedIOException.wrap(
+                "Unable to open iterator for alias: " + id, ee);
+        }
+
         // TODO: front-end could actually remember what logical plans have been
         // already submitted to the back-end for compilation and
         // execution.
         
+        /*
         LogicalPlan readFrom = (LogicalPlan) aliases.get(id);
 
         try {
@@ -275,6 +293,7 @@ public class PigServer {
         catch (ExecException e) {
             throw WrappedIOException.wrap("Unable to open iterator for alias: " + id, e);
         }
+        */
     }
     
     /**
@@ -300,18 +319,20 @@ public class PigServer {
 
         LogicalPlan readFrom = aliases.get(id);
         
-        store(readFrom,filename,func);
+        store(id, readFrom, filename, func);
     }
         
-    public void store(LogicalPlan readFrom, String filename, String func) throws IOException {
-        /*
-        LogicalPlan storePlan = QueryParser.generateStorePlan(readFrom.getOpTable(),
-                                                              scope,
-                                                              readFrom,
-                                                              filename,
-                                                              func,
-                                                              pigContext);
+    public void store(String id, LogicalPlan readFrom, String filename, String func) throws IOException {
+        try {
+            LogicalPlan storePlan = QueryParser.generateStorePlan(opTable,
+                scope, readFrom, filename, func, pigContext);
+            execute(id);
+        } catch (ExecException e) {
+            throw WrappedIOException.wrap("Unable to store for alias: " + id,
+                e);
+        }
 
+        /*
         try {
             ExecPhysicalPlan pp = 
                 pigContext.getExecutionEngine().compile(storePlan, null);
@@ -334,32 +355,28 @@ public class PigServer {
      */
     public void explain(String alias,
                         PrintStream stream) throws IOException {
-        stream.println("Logical Plan:");
-        LogicalPlan lp = aliases.get(alias);
-        if (lp == null) {
-            log.error("Invalid alias: " + alias);
-            stream.println("Invalid alias: " + alias);
-            throw new IOException("Invalid alias: " + alias);
-        }
-
-        lp.explain(stream);
-        
-        // TODO FIX
-        /*
-        stream.println("-----------------------------------------------");
-        stream.println("Physical Plan:");
         try {
-            ExecPhysicalPlan pp = 
-                pigContext.getExecutionEngine().compile(lp, null);
+            stream.println("Logical Plan:");
+            LogicalPlan lp = compileLp();
+            LOPrinter lv = new LOPrinter(stream, lp);
+            lv.visit();
+
+            PhysicalPlan pp = compilePp(lp);
+            stream.println("-----------------------------------------------");
+            stream.println("Physical Plan:");
+            POPrinter pv = new POPrinter(stream, pp);
+            pv.visit();
+
+            stream.println("-----------------------------------------------");
+            pigContext.getExecutionEngine().explain(pp, stream);
         
-            pp.explain(stream);
+        } catch (VisitorException ve) {
+            throw WrappedIOException.wrap("Unable to explain alias " + alias,
+                ve);
+        } catch (ExecException ee) {
+            throw WrappedIOException.wrap("Unable to explain alias " + alias,
+                ee);
         }
-        catch (ExecException e) {
-            log.error("Failed to compile to physical plan: " + alias);
-            stream.println("Failed to compile the logical plan for " + alias + " into a physical plan");
-            throw WrappedIOException.wrap("Failed to compile to phyiscal plan: " + alias, e);
-        }
-        */
     }
 
     /**
@@ -464,5 +481,35 @@ public class PigServer {
             // hence, for now, we won't call it.
         //
         // pigContext.getExecutionEngine().reclaimScope(this.scope);
+    }
+
+    private ExecJob execute(String jobName) throws ExecException {
+        ExecJob job = null;
+
+        LogicalPlan lp = compileLp();
+        PhysicalPlan pp = compilePp(lp);
+        // execute using appropriate engine
+        return pigContext.getExecutionEngine().execute(pp, jobName);
+    }
+
+    // TODO FIX
+    private LogicalPlan compileLp() {
+        LogicalPlan lp = null;
+        // TODO, stitch together logical plans
+
+        // TODO run through validator
+
+        // TODO optimize
+
+        return lp;
+    }
+
+    private PhysicalPlan compilePp(LogicalPlan lp) throws ExecException {
+        // translate lp to physical plan
+        PhysicalPlan pp = pigContext.getExecutionEngine().compile(lp, null);
+
+        // TODO optimize
+
+        return pp;
     }
 }

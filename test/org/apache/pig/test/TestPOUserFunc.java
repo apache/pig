@@ -59,9 +59,7 @@ public class TestPOUserFunc extends TestCase {
 
 		@Override
 		public Schema outputSchema(Schema input) {
-			// TODO FIX
-			// return new AtomSchema("arity");
-			return null;
+            return new Schema(new Schema.FieldSchema(null, DataType.INTEGER)); 
 		}
 	}
 
@@ -219,9 +217,7 @@ public class TestPOUserFunc extends TestCase {
 
 		@Override
 		public Schema outputSchema(Schema input) {
-			// TODO FIX
-			// return new AtomSchema("average");
-			return null;
+            return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
 		}
 
 	}

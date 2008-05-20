@@ -29,18 +29,16 @@ import org.junit.Test;
 
 import org.apache.pig.FilterFunc;
 import org.apache.pig.LoadFunc;
-// TODO FIX
-// import org.apache.pig.PigServer;
-// import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.ExecType;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.*;
 import org.apache.pig.data.*;
-// TODO FIX
-// import org.apache.pig.impl.builtin.ShellBagEvalFunc;
-// import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.builtin.ShellBagEvalFunc;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-// import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigContext;
 
 public class TestBuiltin extends TestCase {
     
@@ -439,8 +437,8 @@ public class TestBuiltin extends TestCase {
         assertTrue(f1.equals(f2));        
     }
     
-        // TODO FIX
-        /*
+    // TODO FIX
+    /*
     @Test
     public void testShellFuncSingle() throws Throwable {
         //ShellBagEvalFunc func = new ShellBagEvalFunc("tr o 0");

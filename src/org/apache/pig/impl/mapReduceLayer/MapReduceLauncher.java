@@ -16,7 +16,13 @@ import org.apache.pig.impl.plan.VisitorException;
 public class MapReduceLauncher extends Launcher{
 
     @Override
-    public void launchPig(PhysicalPlan<PhysicalOperator> php, String grpName, PigContext pc) throws PlanException, VisitorException, IOException, ExecException, JobCreationException {
-        super.launchPig(php, grpName, pc);
+    public boolean launchPig(PhysicalPlan<PhysicalOperator> php,
+                             String grpName,
+                             PigContext pc) throws PlanException,
+                                                   VisitorException,
+                                                   IOException,
+                                                   ExecException,
+                                                   JobCreationException {
+        return super.launchPig(php, grpName, pc);
     }
 }

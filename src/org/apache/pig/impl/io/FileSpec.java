@@ -19,7 +19,7 @@ package org.apache.pig.impl.io;
 
 import java.io.Serializable;
 
-//import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigContext;
 
 
 /**
@@ -52,16 +52,9 @@ public class FileSpec implements Serializable {
         return fileName + ":" + funcSpec;
     }
 
-    //TODO FIX
-    //Commenting out the method getFuncName as it calls getClassNameFromSpec
-    //which is part of PigContext. PigContext pulls in HExecutionEngine which
-    //is completely commented out. The import org.apache.pig.impl.PigContext
-    //is also commented out
-    /*    
     public String getFuncName(){
             return PigContext.getClassNameFromSpec(funcSpec);
     }
-    */
 
     public int getSize() {
         throw new UnsupportedOperationException("File Size not implemented yet");

@@ -18,9 +18,10 @@
 
 package org.apache.pig.backend.local.executionengine;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Properties;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
@@ -35,14 +36,19 @@ import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.HJob;
+import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
-import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.mapReduceLayer.LocalLauncher;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import java.util.Iterator;
 
 
@@ -56,7 +62,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
     // val: the operator key for the root of the phyisical plan
     protected Map<OperatorKey, OperatorKey> logicalToPhysicalKeys;
     
-    protected Map<OperatorKey, ExecPhysicalOperator> physicalOpTable;
+    protected Map<OperatorKey, PhysicalOperator> physicalOpTable;
     
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, LocalResult> materializedResults;
@@ -66,7 +72,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
         this.ds = pigContext.getLfs();
         this.nodeIdGenerator = NodeIdGenerator.getGenerator(); 
         this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
-        this.physicalOpTable = new HashMap<OperatorKey, ExecPhysicalOperator>();
+        this.physicalOpTable = new HashMap<OperatorKey, PhysicalOperator>();
         this.materializedResults = new HashMap<OperatorKey, LocalResult>();
     }
 
@@ -97,20 +103,18 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
 
     
-    public LocalPhysicalPlan compile(LogicalPlan plan,
-                                     Properties properties) throws ExecException {
+    public PhysicalPlan compile(LogicalPlan plan,
+                                Properties properties) throws ExecException {
         if (plan == null) {
             throw new ExecException("No Plan to compile");
         }
 
-        // TODO FIX
-        // return compile(new ExecLogicalPlan[]{ plan } , properties);
-        return null;
+        return compile(new LogicalPlan[]{ plan } , properties);
     }
 
-    public LocalPhysicalPlan compile(LogicalPlan[] plans,
-                                     Properties properties) throws ExecException {
-        // TODO FIX
+    public PhysicalPlan compile(LogicalPlan[] plans,
+                                Properties properties) throws ExecException {
+        // TODO FIX Plug in logical to physical translator
         /*
         if (plans == null) {
             throw new ExecException("No Plans to compile");
@@ -140,7 +144,37 @@ public class LocalExecutionEngine implements ExecutionEngine {
         return null;
     }
 
-    public LocalJob execute(ExecPhysicalPlan plan) throws ExecException {
+    public ExecJob execute(PhysicalPlan plan,
+                            String jobName) throws ExecException {
+        try {
+            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
+            FileSpec spec = null;
+            if(!(leaf instanceof POStore)){
+                POStore str = new POStore(new OperatorKey("HExecEngine",
+                    NodeIdGenerator.getGenerator().getNextNodeId("HExecEngine")));
+                str.setPc(pigContext);
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                    pigContext).toString(),
+                    BinStorage.class.getName());
+                str.setSFile(spec);
+            }
+            else{
+                spec = ((POStore)leaf).getSFile();
+            }
+
+            LocalLauncher launcher = new LocalLauncher();
+            launcher.launchPig(plan, jobName, pigContext);
+            return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+        } catch (Exception e) {
+            // There are a lot of exceptions thrown by the launcher.  If this
+            // is an ExecException, just let it through.  Else wrap it.
+            if (e instanceof ExecException) throw (ExecException)e;
+            else throw new ExecException(e.getMessage(), e);
+        }
+
+
+        // TODO Fix connect to local job runner
+        /*
         DataBag results = BagFactory.getInstance().newDefaultBag();
         try {
             PhysicalOperator pp = (PhysicalOperator)physicalOpTable.get(plan.getRoot());
@@ -159,10 +193,16 @@ public class LocalExecutionEngine implements ExecutionEngine {
         }
         
         return new LocalJob(results, JOB_STATUS.COMPLETED);
+        */
     }
 
-    public LocalJob submit(ExecPhysicalPlan plan) throws ExecException {
+    public LocalJob submit(PhysicalPlan plan,
+                           String jobName) throws ExecException {
         throw new UnsupportedOperationException();
+    }
+
+    public void explain(PhysicalPlan plan, PrintStream stream) {
+        // TODO FIX
     }
 
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
