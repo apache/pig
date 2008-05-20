@@ -742,17 +742,17 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     public void testQuery64() {
         buildPlan("a = load 'a' as (name: chararray, details: tuple(age, gpa), mymap: map[]);");
-        buildPlan("c = load 'a' as (name, details: bag{mytuple: tuple(age: integer, gpa)});");
+        buildPlan("c = load 'a' as (name, details: bag{mytuple: tuple(age: int, gpa)});");
         buildPlan("b = group a by details;");
         String query = "d = foreach b generate group.age;";
         buildPlan(query);
 		buildPlan("e = foreach a generate name, details;");
-		buildPlan("f = LOAD 'myfile' AS (garage: bag{tuple1: tuple(num_tools: integer)}, links: bag{tuple2: tuple(websites: chararray)}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray, bag_of_unknown: bag{})});");
+		buildPlan("f = LOAD 'myfile' AS (garage: bag{tuple1: tuple(num_tools: int)}, links: bag{tuple2: tuple(websites: chararray)}, page: bag{something_stupid: tuple(yeah_double: double)}, coordinates: bag{another_tuple: tuple(ok_float: float, bite_the_array: bytearray, bag_of_unknown: bag{})});");
     }
 
     @Test
     public void testQueryFail64() {
-        String query = "foreach (load 'myfile' as (col1, col2 : bag{age: integer})) generate col1 ;";
+        String query = "foreach (load 'myfile' as (col1, col2 : bag{age: int})) generate col1 ;";
         try {
         	buildPlan(query);
         } catch (AssertionFailedError e) {
@@ -782,14 +782,14 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testQuery66() {
-        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(integer i, chararray c);");
+        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(int i, chararray c);");
         buildPlan("a = load 'input1' as (name, age, gpa);");
         buildPlan("b = foreach a generate myFunc($0, $1);");
 	}
 
     @Test
     public void testQueryFail66() {
-        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(integer i, chararray c);");
+        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(int i, chararray c);");
         buildPlan("a = load 'input1' as (name, age, gpa);");
         try {
         	buildPlan("b = foreach a generate myFunc($0, $1, $2);");
@@ -853,9 +853,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     public void testQuery72() {
         buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
-        buildPlan("b = foreach x generate (integer)$0;");
+        buildPlan("b = foreach x generate (int)$0;");
         buildPlan("c = foreach y generate (bag)$1;");
-        buildPlan("d = foreach y generate (integer)($1/2);");
+        buildPlan("d = foreach y generate (int)($1/2);");
     }
 
     @Test
@@ -865,6 +865,21 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("c = foreach y generate $0, ($0 matches 'yuri.*' ? $1 - 10 : $1);");
     }
 
+    @Test
+    public void testQuery74() {
+        buildPlan("a = load 'a' as (field1: int, field2: long);");
+        buildPlan("b = load 'a' as (field1: bytearray, field2: double);");
+        buildPlan("c = group a by field1, b by field1;");
+        buildPlan("d = cogroup a by ((field1+field2)*field1), b by field1;");
+    }
+
+    @Test
+    public void testQuery75() {
+        buildPlan("union (load 'a'), (load 'b'), (load 'c');");
+    }
+    
+    // Helper Functions
+    
     // Helper Functions
     // =================
     public LogicalPlan buildPlan(String query) {
@@ -914,6 +929,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
                 }
             }
             */
+
             assertTrue(lp != null);
             return lp;
         } catch (IOException e) {

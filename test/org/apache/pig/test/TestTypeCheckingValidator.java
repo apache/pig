@@ -1428,18 +1428,15 @@ public class TestTypeCheckingValidator extends TestCase {
         // split
         LOSplit split1 = new LOSplit(plan,
                                      genNewOperatorKey(),
-                                     new ArrayList<LogicalOperator>(),
-                                     new HashMap<String,LogicalPlan>());
+                                     new ArrayList<LogicalOperator>());
 
         // output1
-        LOSplitOutput splitOutput1 = new LOSplitOutput(plan, genNewOperatorKey(), 0) ;
+        LOSplitOutput splitOutput1 = new LOSplitOutput(plan, genNewOperatorKey(), 0, innerPlan1) ;
         split1.addOutput(splitOutput1);
-        split1.addOutputAlias("output1", innerPlan1);
 
         // output2
-        LOSplitOutput splitOutput2 = new LOSplitOutput(plan, genNewOperatorKey(), 1) ;
+        LOSplitOutput splitOutput2 = new LOSplitOutput(plan, genNewOperatorKey(), 1, innerPlan2) ;
         split1.addOutput(splitOutput2);
-        split1.addOutputAlias("output2", innerPlan2);
 
         plan.add(load1);
         plan.add(split1);
@@ -1557,18 +1554,15 @@ public class TestTypeCheckingValidator extends TestCase {
         // split
         LOSplit split1 = new LOSplit(plan,
                                      genNewOperatorKey(),
-                                     new ArrayList<LogicalOperator>(),
-                                     new HashMap<String,LogicalPlan>());
+                                     new ArrayList<LogicalOperator>());
 
         // output1
-        LOSplitOutput splitOutput1 = new LOSplitOutput(plan, genNewOperatorKey(), 0) ;
+        LOSplitOutput splitOutput1 = new LOSplitOutput(plan, genNewOperatorKey(), 0, innerPlan1) ;
         split1.addOutput(splitOutput1);
-        split1.addOutputAlias("output1", innerPlan1);
 
         // output2
-        LOSplitOutput splitOutput2 = new LOSplitOutput(plan, genNewOperatorKey(), 1) ;
+        LOSplitOutput splitOutput2 = new LOSplitOutput(plan, genNewOperatorKey(), 1, innerPlan2) ;
         split1.addOutput(splitOutput2);
-        split1.addOutputAlias("output2", innerPlan2);
 
         plan.add(load1);
         plan.add(split1);

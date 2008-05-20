@@ -194,15 +194,8 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOSplit split) throws VisitorException {
         // Visit each of split's conditions
-        for(LogicalPlan lp: split.getConditionPlans()) {
-            if (null != lp) {
-                PlanWalker w = new DependencyOrderWalker(lp);
-                pushWalker(w);
-                for(LogicalOperator logicalOp: lp.getRoots()) {
-                    logicalOp.visit(this);
-                }
-                popWalker();
-            }
+        for(LogicalOperator logicalOp: split.getOutputs()) {
+            logicalOp.visit(this);
         }
     }
 
@@ -295,7 +288,15 @@ abstract public class LOVisitor extends
     }
 
     protected void visit(LOSplitOutput sop) throws VisitorException {
-
+        LogicalPlan lp = sop.getConditionPlan();
+        if (null != lp) {
+            PlanWalker w = new DependencyOrderWalker(lp);
+            pushWalker(w);
+            for(LogicalOperator logicalOp: lp.getRoots()) {
+                logicalOp.visit(this);
+            }
+            popWalker();
+        }
     }
 
     protected void visit(LODistinct dt) throws VisitorException {

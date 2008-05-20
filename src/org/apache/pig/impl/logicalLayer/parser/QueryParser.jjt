@@ -268,9 +268,9 @@ public class QueryParser {
 	}					
 
 	 void addSplitOutput(LogicalPlan lp, LOSplit splitOp, String alias, LogicalPlan condPlan, int index) throws PlanException{
-		LogicalOperator splitOutput = new LOSplitOutput(lp, new OperatorKey(scope, getNextId()), index);
+		LogicalOperator splitOutput = new LOSplitOutput(lp, new OperatorKey(scope, getNextId()), index, condPlan);
 		splitOp.addOutput(splitOutput);
-		splitOp.addOutputAlias(alias, condPlan);
+		//splitOp.addOutputAlias(alias, condPlan);
 		addAlias(alias, splitOutput);
 		
 		lp.add(splitOutput);
@@ -383,7 +383,7 @@ TOKEN : { <FLATTEN : "flatten"> }
 TOKEN : { <EVAL : "eval"> }
 TOKEN : { <ASC : "asc"> }
 TOKEN : { <DESC : "desc"> }
-TOKEN : { <INT : "integer"> }
+TOKEN : { <INT : "int"> }
 TOKEN : { <LONG : "long"> }
 TOKEN : { <FLOAT : "float"> }
 TOKEN : { <DOUBLE : "double"> }
@@ -435,10 +435,7 @@ LogicalPlan Parse() :
 	)
 	{ 
 		if(null != root) {
-			if(null != root.getSchema()) {
-				log.debug("Root: " + root.getClass().getName() + " schema aliases");
-				root.getSchema().printAliases();
-			}
+				log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
 		}
 		
 		log.trace("Exiting Parse");
@@ -460,7 +457,7 @@ LogicalOperator SplitClause(LogicalPlan lp):
 	(
 	input = NestedExpr(lp) <INTO> 
 	{
-		splitOp = new LOSplit(lp, input.getOperatorKey(), new ArrayList<LogicalOperator>(), new HashMap<String,LogicalPlan>());
+		splitOp = new LOSplit(lp, input.getOperatorKey(), new ArrayList<LogicalOperator>());
 		lp.add(splitOp);
 		log.debug("Adding operator " + splitOp.getClass().getName() + " to the logical plan");		
         lp.connect(input, splitOp);
@@ -1863,9 +1860,13 @@ byte BasicType() :
 {
  (t = <INT>| t = <LONG>| t = <FLOAT>| t = <DOUBLE>| t = <CHARARRAY>| t = <BYTEARRAY>) 
  {
+    String typeName = t.image;
 	log.debug(" nameToTypeMap: " + nameToTypeMap);
-	log.debug("t: " + t + " type: " + nameToTypeMap.get(t.image.toUpperCase()));
- 	type = nameToTypeMap.get(t.image.toUpperCase());
+	log.debug("t: " + t + " type: " + nameToTypeMap.get(typeName.toUpperCase()));
+    if(typeName.equalsIgnoreCase("int")) {
+        typeName = "integer";
+    }
+ 	type = nameToTypeMap.get(typeName.toUpperCase());
 	log.trace("Exiting BasicType");
  	return type;
  }

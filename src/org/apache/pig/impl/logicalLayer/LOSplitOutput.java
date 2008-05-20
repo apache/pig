@@ -32,6 +32,7 @@ public class LOSplitOutput extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
     protected int mIndex;
+    private LogicalPlan mCondPlan;
     
     /**
      * @param plan
@@ -43,9 +44,14 @@ public class LOSplitOutput extends LogicalOperator {
      * @param conditions
      *            list of conditions for the split
      */
-    public LOSplitOutput(LogicalPlan plan, OperatorKey key, int index) {
+    public LOSplitOutput(LogicalPlan plan, OperatorKey key, int index, LogicalPlan condPlan) {
         super(plan, key);
         this.mIndex = index;
+        this.mCondPlan = condPlan;
+    }
+
+    public LogicalPlan getConditionPlan() {
+        return mCondPlan;
     }
     
     @Override

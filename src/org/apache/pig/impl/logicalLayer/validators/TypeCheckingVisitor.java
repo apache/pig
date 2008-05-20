@@ -856,8 +856,29 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new AssertionError("LOSplitOutput can only have 1 input") ;
         }
 
+        LogicalOperator input = list.get(0);
+        LogicalPlan condPlan = op.getConditionPlan() ;
+
+        // Check that the inner plan has only 1 output port
+        if (!condPlan.isSingleLeafPlan()) {
+            String msg = "Split's cond plan can only have one output (leaf)" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new VisitorException(msg) ;
+        }
+            
+        checkInnerPlan(condPlan, input) ;
+                 
+        byte innerCondType = condPlan.getLeaves().get(0).getType() ;
+        if (innerCondType != DataType.BOOLEAN) {
+            String msg = "Split's condition must evaluate to boolean" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new VisitorException(msg) ;
+        }
+
+        op.setType(input.getType()) ; // This should be bag always
+
         try {
-            op.setSchema(list.get(0).getSchema()) ;
+            op.setSchema(input.getSchema()) ;
         } 
         catch (ParseException pe) {
             String msg = "Problem while reading schemas from"
@@ -1082,32 +1103,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         
         LogicalOperator input = inputList.get(0) ;
-        
-        // Checking internal plans.
-        ArrayList<LogicalPlan> condPlans
-                        = new ArrayList<LogicalPlan>(split.getConditionPlans()) ;
-
-        for(int i=0;i < split.getConditionPlans().size(); i++) {
-            
-            LogicalPlan condPlan = condPlans.get(i) ;
-
-            // Check that the inner plan has only 1 output port
-            if (!condPlan.isSingleLeafPlan()) {
-                String msg = "Split's cond plan can only have one output (leaf)" ;
-                msgCollector.collect(msg, MessageType.Error) ;
-                throw new VisitorException(msg) ;
-            }
-            
-            checkInnerPlan(condPlan, input) ;
-                  
-            byte innerCondType = condPlan.getLeaves().get(0).getType() ;
-            if (innerCondType != DataType.BOOLEAN) {
-                String msg = "Split's condition must evaluate to boolean" ;
-                msgCollector.collect(msg, MessageType.Error) ;
-                throw new VisitorException(msg) ;
-            }
-                       
-        }         
         
         split.setType(input.getType()) ; // This should be bag always
         
