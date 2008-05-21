@@ -145,11 +145,11 @@ public class TestPOGenerate extends TestCase {
         for(int i = 0; i < 4; ++i) {
             simpleGenerate.add(inputA[i]);
         }
-        /*
-        System.out.println("Cogroup : " + cogroup);
-        System.out.println("Partial : " + partialFlatten);
-        System.out.println("Simple : " + simpleGenerate);
-        */
+        
+        //System.out.println("Cogroup : " + cogroup);
+        //System.out.println("Partial : " + partialFlatten);
+        //System.out.println("Simple : " + simpleGenerate);
+        
     }
     
     public void testJoin() throws Exception {
@@ -171,8 +171,9 @@ public class TestPOGenerate extends TestCase {
         //DataBag obtained = bf.newDefaultBag();
         for(Iterator<Tuple> it = cogroup.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
-            plan1.attachInput(t); 
-            plan2.attachInput(t);
+            /*plan1.attachInput(t); 
+            plan2.attachInput(t);*/
+            poGen.attachInput(t);
             Result output = poGen.getNext(t);
             while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
                 //System.out.println(output.result);
@@ -206,8 +207,9 @@ public class TestPOGenerate extends TestCase {
         List<String> obtained = new LinkedList<String>();
         for(Iterator<Tuple> it = cogroup.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
-            plan1.attachInput(t); 
-            plan2.attachInput(t);
+            /*plan1.attachInput(t); 
+            plan2.attachInput(t);*/
+            poGen.attachInput(t);
             Result output = poGen.getNext(t);
             while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
                 //System.out.println(output.result);
@@ -246,8 +248,9 @@ public class TestPOGenerate extends TestCase {
         List<String> obtained = new LinkedList<String>();
         for(Iterator<Tuple> it = simpleGenerate.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
-            plan1.attachInput(t); 
-            plan2.attachInput(t);
+            /*plan1.attachInput(t); 
+            plan2.attachInput(t);*/
+            poGen.attachInput(t);
             Result output = poGen.getNext(t);
             while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
                 //System.out.println(output.result);

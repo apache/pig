@@ -1,0 +1,7 @@
+Union - Test-Plan-Builder-188
+|
+|---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-185
+|
+|---Load(b:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-186
+|
+|---Load(c:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-187

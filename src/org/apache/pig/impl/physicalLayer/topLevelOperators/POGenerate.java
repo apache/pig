@@ -51,7 +51,7 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
     //private Boolean outputIsDataBag;
     private List<Tuple> outputBuffer = new LinkedList<Tuple>();
     private List<ExprPlan> inputPlans;
-    private List<ExpressionOperator> inputs = new LinkedList<ExpressionOperator>();
+    private List<ExpressionOperator> inputsLeaves = new LinkedList<ExpressionOperator>();
     
     //its holds the iterators of the databags given by the input expressions which need flattening.
     Iterator<Tuple> [] its = null;
@@ -114,7 +114,7 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
      */    
     @Override
     public Result getNext(Tuple tIn) throws ExecException{
-        int noItems = inputs.size();
+        int noItems = inputsLeaves.size();
         Result res = new Result();
         
         //We check if all the databags have exhausted the tuples. If so we enforce the reading of new data by setting data and its to null
@@ -136,41 +136,55 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
             its = new Iterator[noItems];
             bags = new Object[noItems];
             
+            Result temp = null;
+            while (true) {
+            	temp = processInput();
+            	if (temp.returnStatus == POStatus.STATUS_EOP || temp.returnStatus == POStatus.STATUS_ERR)
+            		return temp;
+            	if (temp.returnStatus == POStatus.STATUS_NULL)
+            		continue;
+
+            	break;
+            }
+
+            attachInputToPlans((Tuple) temp.result);
+
+
             for(int i = 0; i < noItems; ++i) {
                 //Getting the iterators
                 //populate the input data
                 Result inputData = null;
-                Byte resultType = ((PhysicalOperator)inputs.get(i)).resultType;
+                Byte resultType = ((PhysicalOperator)inputsLeaves.get(i)).resultType;
                 switch(resultType) {
                 case DataType.BAG : DataBag b = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(b);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(b);
                 break;
                 case DataType.TUPLE : Tuple t = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(t);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(t);
                 break;
                 case DataType.BYTEARRAY : DataByteArray db = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(db);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(db);
                 break; 
                 case DataType.MAP : Map map = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(map);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(map);
                 break;
                 case DataType.BOOLEAN : Boolean bool = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(bool);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(bool);
                 break;
                 case DataType.INTEGER : Integer integer = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(integer);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(integer);
                 break;
                 case DataType.DOUBLE : Double d = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(d);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(d);
                 break;
                 case DataType.LONG : Long l = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(l);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(l);
                 break;
                 case DataType.FLOAT : Float f = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(f);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(f);
                 break;
                 case DataType.CHARARRAY : String str = null;
-                inputData = ((PhysicalOperator)inputs.get(i)).getNext(str);
+                inputData = ((PhysicalOperator)inputsLeaves.get(i)).getNext(str);
                 break;
                 }
                 
@@ -285,8 +299,9 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
         return out;
     }
 
-    @Override
-    public void attachInput(Tuple t) {
+    
+    public void attachInputToPlans(Tuple t) {
+    	//super.attachInput(t);
         for(ExprPlan p : inputPlans) {
             p.attachInput(t);
         }
@@ -294,7 +309,7 @@ public class POGenerate extends PhysicalOperator<PhyPlanVisitor> {
     
     private void getLeaves() {
         for(ExprPlan p : inputPlans) {
-            inputs.add(p.getLeaves().get(0));
+            inputsLeaves.add(p.getLeaves().get(0));
         }
     }
 

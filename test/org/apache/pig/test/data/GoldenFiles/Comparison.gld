@@ -1,0 +1,25 @@
+Filter - Test-Plan-Builder-103
+|   |
+|   Greater Than - Test-Plan-Builder-114
+|   |
+|   |---Add - Test-Plan-Builder-106
+|   |   |
+|   |   |---Project(0) - Test-Plan-Builder-104
+|   |   |
+|   |   |---Project(1) - Test-Plan-Builder-105
+|   |
+|   |---Multiply - Test-Plan-Builder-113
+|       |
+|       |---Subtract - Test-Plan-Builder-109
+|       |   |
+|       |   |---Project(0) - Test-Plan-Builder-107
+|       |   |
+|       |   |---Project(1) - Test-Plan-Builder-108
+|       |
+|       |---Divide - Test-Plan-Builder-112
+|           |
+|           |---Constant(4) - Test-Plan-Builder-110
+|           |
+|           |---Constant(2) - Test-Plan-Builder-111
+|
+|---Load(a:org.apache.pig.builtin.PigStorage(':')) - Test-Plan-Builder-102

@@ -75,7 +75,7 @@ public class LOMapLookup extends ExpressionOperator {
         return mMap;
     }
 
-    public Object getKey() {
+    public Object getLookUpKey() {
         return mMapKey;
     }
 

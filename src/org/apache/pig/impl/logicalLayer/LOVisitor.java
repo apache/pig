@@ -314,5 +314,86 @@ abstract public class LOVisitor extends
             project.getExpression().visit(this);
         }
     }
+    
+    public void visit(LOGreaterThan op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOLesserThan op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOGreaterThanEqual op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOLesserThanEqual op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOEqual op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LONotEqual op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOAdd op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOSubtract op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOMultiply op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LODivide op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOMod op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	
+	public void visit(LONegative op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOMapLookup op) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOAnd binOp) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LOOr binOp) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
+
+	public void visit(LONot uniOp) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
 
 }

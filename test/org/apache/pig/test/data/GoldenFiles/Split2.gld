@@ -1,0 +1,23 @@
+Filter - Test-Plan-Builder-200
+|   |
+|   Greater Than - Test-Plan-Builder-203
+|   |
+|   |---Project(0) - Test-Plan-Builder-201
+|   |
+|   |---Constant(7) - Test-Plan-Builder-202
+|
+|---Split - Test-Plan-Builder-199
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-198
+
+Filter - Test-Plan-Builder-204
+|   |
+|   Less Than - Test-Plan-Builder-207
+|   |
+|   |---Project(0) - Test-Plan-Builder-205
+|   |
+|   |---Constant(7) - Test-Plan-Builder-206
+|
+|---Split - Test-Plan-Builder-199
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-198

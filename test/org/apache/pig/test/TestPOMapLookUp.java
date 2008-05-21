@@ -54,7 +54,7 @@ public class TestPOMapLookUp extends TestCase {
 			Tuple t = TupleFactory.getInstance().newTuple();
 			t.append(map);
 			for(Map.Entry<Integer, String> e : map.entrySet()) {
-				op.setKey(e.getKey());
+				op.setLookUpKey(e.getKey());
 				plan.attachInput(t);
 				Result res = op.getNext(map);
 				//System.out.println(e.getValue() + " : " + res.result);

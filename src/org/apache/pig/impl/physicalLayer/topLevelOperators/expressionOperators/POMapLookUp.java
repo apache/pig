@@ -46,8 +46,12 @@ public class POMapLookUp extends ExpressionOperator {
 		this.key = key;
 	}
 	
-	public void setKey(Object key) {
+	public void setLookUpKey(Object key) {
 		this.key = key;
+	}
+	
+	public Object getLookUpKey() {
+		return key;
 	}
 
 	@Override

@@ -1,0 +1,35 @@
+Package - Test-Plan-Builder-46
+|
+|---Global Rearrange - Test-Plan-Builder-45
+    |
+    |---Local Rearrange - Test-Plan-Builder-47
+    |   |   |
+    |   |   Add - Test-Plan-Builder-50
+    |   |   |
+    |   |   |---Project(0) - Test-Plan-Builder-48
+    |   |   |
+    |   |   |---Project(1) - Test-Plan-Builder-49
+    |   |   |
+    |   |   Subtract - Test-Plan-Builder-53
+    |   |   |
+    |   |   |---Project(0) - Test-Plan-Builder-51
+    |   |   |
+    |   |   |---Project(1) - Test-Plan-Builder-52
+    |   |
+    |   |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-43
+    |
+    |---Local Rearrange - Test-Plan-Builder-54
+        |   |
+        |   Add - Test-Plan-Builder-57
+        |   |
+        |   |---Project(0) - Test-Plan-Builder-55
+        |   |
+        |   |---Project(1) - Test-Plan-Builder-56
+        |   |
+        |   Subtract - Test-Plan-Builder-60
+        |   |
+        |   |---Project(0) - Test-Plan-Builder-58
+        |   |
+        |   |---Project(1) - Test-Plan-Builder-59
+        |
+        |---Load(b:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-44

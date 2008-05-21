@@ -131,4 +131,9 @@ public class PhyPlanVisitor<O extends PhysicalOperator, P extends PhysicalPlan<O
             epv.visit();
         }
 	}
+
+	public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
+		// TODO Auto-generated method stub
+		return;
+	}
 }

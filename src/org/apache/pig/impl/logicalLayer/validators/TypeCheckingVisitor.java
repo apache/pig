@@ -5,6 +5,14 @@ import java.util.List ;
 import java.util.ArrayList;
 
 import org.apache.pig.impl.logicalLayer.LOConst;
+import org.apache.pig.impl.logicalLayer.LOEqual;
+import org.apache.pig.impl.logicalLayer.LOGreaterThan;
+import org.apache.pig.impl.logicalLayer.LOGreaterThanEqual;
+import org.apache.pig.impl.logicalLayer.LOLesserThan;
+import org.apache.pig.impl.logicalLayer.LOLesserThanEqual;
+import org.apache.pig.impl.logicalLayer.LOMod;
+import org.apache.pig.impl.logicalLayer.LONegative;
+import org.apache.pig.impl.logicalLayer.LONotEqual;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
@@ -173,292 +181,603 @@ public class TypeCheckingVisitor extends LOVisitor {
         rg.setOperand(cast) ;
     }
 
-    /**
-     * For all binary operators
-     */
     @Override
-    protected void visit(BinaryExpressionOperator binOp)
-            throws VisitorException {       
-        
-        ExpressionOperator lhs = binOp.getLhsOperand() ;
-        ExpressionOperator rhs = binOp.getRhsOperand() ;
-        
-        byte lhsType = lhs.getType() ;
+    public void visit(LOAnd binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+
+    	byte lhsType = lhs.getType() ;
+    	byte rhsType = rhs.getType() ;
+
+    	if (  (lhsType != DataType.BOOLEAN)  ||
+    			(rhsType != DataType.BOOLEAN)  ) {
+    		String msg = "Operands of AND/OR can be boolean only" ;
+    		msgCollector.collect(msg, MessageType.Error);
+    		throw new VisitorException(msg) ;
+    	}
+
+    	binOp.setType(DataType.BOOLEAN) ;
+
+    }
+    
+    @Override
+    public void visit(LOOr binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+
+    	byte lhsType = lhs.getType() ;
+    	byte rhsType = rhs.getType() ;
+
+    	if (  (lhsType != DataType.BOOLEAN)  ||
+    			(rhsType != DataType.BOOLEAN)  ) {
+    		String msg = "Operands of AND/OR can be boolean only" ;
+    		msgCollector.collect(msg, MessageType.Error);
+    		throw new VisitorException(msg) ;
+    	}
+
+    	binOp.setType(DataType.BOOLEAN) ;
+    }
+    
+    @Override
+    public void visit(LOMultiply binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+    	
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+              
+               // return the bigger type
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               }
+               else if (rhsType != biggerType) {
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }
+               binOp.setType(biggerType) ;
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (DataType.isNumberType(rhsType)) ) {
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+               // Set output type
+               binOp.setType(rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                   (DataType.isNumberType(lhsType)) ) {
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+               // Set output type
+               binOp.setType(lhsType) ;
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // Cast both operands to double
+               insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               // Set output type
+               binOp.setType(DataType.DOUBLE) ;
+           }
+           else {
+               String msg = "Cannot evaluate output type of Mul/Div Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
+    }
+    
+    @Override
+    public void visit(LODivide binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+    	
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+              
+               // return the bigger type
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               }
+               else if (rhsType != biggerType) {
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }
+               binOp.setType(biggerType) ;
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (DataType.isNumberType(rhsType)) ) {
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+               // Set output type
+               binOp.setType(rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                   (DataType.isNumberType(lhsType)) ) {
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+               // Set output type
+               binOp.setType(lhsType) ;
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // Cast both operands to double
+               insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               // Set output type
+               binOp.setType(DataType.DOUBLE) ;
+           }
+           else {
+               String msg = "Cannot evaluate output type of Mul/Div Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
+    }
+    
+    @Override
+    public void visit(LOAdd binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
         
-        
-        /**
-         * For AND/OR, all operands must be boolean
-         * Output is always boolean
-         */
-        if ( (binOp instanceof LOAnd) ||
-             (binOp instanceof LOOr)  ) {
-            
-            if (  (lhsType != DataType.BOOLEAN)  ||
-                  (rhsType != DataType.BOOLEAN)  ) {
-                String msg = "Operands of AND/OR can be boolean only" ;
-                msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
-            }
-            
-            binOp.setType(DataType.BOOLEAN) ;
-        } 
-        
-        /**
-         * Mul/Div
-         * 1) If both operands are numbers, that's ok.
-         * 2) If one operand is number, the other can be bytearray
-         * 3) ByteArray and ByteArray is OK. Output will be Double
-         */
-        else if ( (binOp instanceof LOMultiply) ||
-                  (binOp instanceof LODivide)  ) {
-                     
-            if ( DataType.isNumberType(lhsType) &&
-                 DataType.isNumberType(rhsType) ) {
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
                
-                // return the bigger type
-                byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
-
-                // Cast smaller type to the bigger type
-                if (lhsType != biggerType) {
-                    insertLeftCastForBinaryOp(binOp, biggerType) ;
-                }
-                else if (rhsType != biggerType) {
-                    insertRightCastForBinaryOp(binOp, biggerType) ;
-                }
-                binOp.setType(biggerType) ;
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                      (DataType.isNumberType(rhsType)) ) {
-                insertLeftCastForBinaryOp(binOp, rhsType) ;
-                // Set output type
-                binOp.setType(rhsType) ;
-            }
-            else if ( (rhsType == DataType.BYTEARRAY) &&
-                    (DataType.isNumberType(lhsType)) ) {
-                insertRightCastForBinaryOp(binOp, lhsType) ;
-                // Set output type
-                binOp.setType(lhsType) ;
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                      (rhsType == DataType.BYTEARRAY) ) {
-                // Cast both operands to double
-                insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
-                insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
-                // Set output type
-                binOp.setType(DataType.DOUBLE) ;
-            }
-            else {
-                String msg = "Cannot evaluate output type of Mul/Div Operator" ;
-                msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
-            }
-       }        
-        
-        /**
-         * Add/Subtract
-         * 1) If both operands are numbers, that's ok.
-         * 2) If one operand is number, the other can be bytearray
-         * 3) ByteArray and ByteArray is OK. Output will be Double
-         */
-        else if ( (binOp instanceof LOAdd) ||
-                  (binOp instanceof LOSubtract) ) {       
-            
-            if ( DataType.isNumberType(lhsType) &&
-                 DataType.isNumberType(rhsType) ) {
-                
-                // return the bigger type
-                byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
-                
-                // Cast smaller type to the bigger type
-                if (lhsType != biggerType) {            
-                    insertLeftCastForBinaryOp(binOp, biggerType) ;
-                } 
-                else if (rhsType != biggerType) { 
-                    insertRightCastForBinaryOp(binOp, biggerType) ;
-                }              
-                binOp.setType(biggerType) ;
-            } 
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                    (DataType.isNumberType(rhsType)) ) {
-                insertLeftCastForBinaryOp(binOp, rhsType) ;
-                // Set output type
-                binOp.setType(rhsType) ;
-            }
-            else if ( (rhsType == DataType.BYTEARRAY) &&
-                  (DataType.isNumberType(lhsType)) ) {
-                insertRightCastForBinaryOp(binOp, lhsType) ;
-                // Set output type
-                binOp.setType(lhsType) ;
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                    (rhsType == DataType.BYTEARRAY) ) {
-                // Cast both operands to double
-                insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
-                insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
-                // Set output type
-                binOp.setType(DataType.DOUBLE) ;
-            }
-            else {
-                String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
-                msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
-            }
-        }
-        
-        /**
-         * GreaterThan/LesserThan/GreaterThanEqual/LesserThanEqual
-         * 1) Both operands are numbers is ok
-         * 2) CharArray and CharArray is ok
-         * 3) ByteArray and ByteArray is ok
-         * 4) ByteArray and (Number or CharArray) is ok
-         * Output is always boolean
-         */
-        else if ( (binOp instanceof LOGreaterThan) ||
-                  (binOp instanceof LOGreaterThanEqual) ||
-                  (binOp instanceof LOLesserThan) ||
-                  (binOp instanceof LOLesserThanEqual) ) {            
-            
-            if ( DataType.isNumberType(lhsType) &&
-                 DataType.isNumberType(rhsType) ) {
-                // If not the same type, we cast them to the same
-                byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
-                
-                // Cast smaller type to the bigger type
-                if (lhsType != biggerType) {            
-                    insertLeftCastForBinaryOp(binOp, biggerType) ;
-                } 
-                else if (rhsType != biggerType) { 
-                    insertRightCastForBinaryOp(binOp, biggerType) ;
-                }       
-            } 
-            else if ( (lhsType == DataType.CHARARRAY) &&
-                      (rhsType == DataType.CHARARRAY) ) {
-                // good
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                      (rhsType == DataType.BYTEARRAY) ) {
-                // good
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                      ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
-                    ) {
-                // Cast byte array to the type on rhs
-                insertLeftCastForBinaryOp(binOp, rhsType) ;
-            }
-            else if ( (rhsType == DataType.BYTEARRAY) &&
-                      ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
-                    ) {
-                // Cast byte array to the type on lhs
-                insertRightCastForBinaryOp(binOp, lhsType) ;
-            }
-            else {
-                throw new VisitorException("Cannot evaluate output type of "
-                             + binOp.getClass().getSimpleName()
-                             + " LHS:" + DataType.findTypeName(lhsType)
-                             + " RHS:" + DataType.findTypeName(rhsType)) ;
-            }
-            
-            binOp.setType(DataType.BOOLEAN) ;
-        }
-        
-        /**
-         * For Equal/NotEqual
-         * 1) Both operands are numbers is ok
-         * 2) Both are CharArray is ok
-         * 3) Both are ByteArray is ok
-         * 4) ByteArray and (Number or CharArray) is ok
-         * 5) Both are tuples is ok
-         * 6) Both are maps is ok
-         * Output is boolean
-         */      
-        else if ( (binOp instanceof LOEqual) ||
-                  (binOp instanceof LONotEqual) ) {
-            
-            if ( DataType.isNumberType(lhsType) &&
-                 DataType.isNumberType(rhsType) ) {
-                
-                byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
-                
-                // Cast smaller type to the bigger type
-                if (lhsType != biggerType) {            
-                    insertLeftCastForBinaryOp(binOp, biggerType) ;
-                } 
-                else if (rhsType != biggerType) { 
-                    insertRightCastForBinaryOp(binOp, biggerType) ;
-                } 
-                
-            } 
-            else if ( (lhsType == DataType.CHARARRAY) &&
-                      (rhsType == DataType.CHARARRAY) ) {
-                // good
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                      (rhsType == DataType.BYTEARRAY) ) {
-                // good
-            }
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                      ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
-                    ) {
-                // Cast byte array to the type on rhs
-                insertLeftCastForBinaryOp(binOp, rhsType) ;
-            }
-            else if ( (rhsType == DataType.BYTEARRAY) &&
-                      ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
-                    ) {
-                // Cast byte array to the type on lhs
-                insertRightCastForBinaryOp(binOp, lhsType) ;
-            }
-            else if ( (lhsType == DataType.TUPLE) &&
-                      (rhsType == DataType.TUPLE) ) {
-                // good
-            }
-            else if ( (lhsType == DataType.MAP) &&
-                      (rhsType == DataType.MAP) ) {
-                // good
-            }
-            else {
-                String msg = "Cannot evaluate output type of Equal/NotEqual Operator" ;
-                msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
-            }
-            
-            binOp.setType(DataType.BOOLEAN) ;
-        }
-        
-        /**
-         * Modulo. 
-         * This operator is non-commutative so the implementation 
-         * doesn't have to be symmetric.
-         */
-        else if (binOp instanceof LOMod) {
-           
-            if ( (lhsType == DataType.INTEGER) &&
-                 (rhsType == DataType.INTEGER) ) {
-                binOp.setType(DataType.INTEGER) ;
-            }           
-            else if ( (lhsType == DataType.LONG) &&
-                      ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )) {
-                if (rhsType == DataType.INTEGER) {
-                    insertRightCastForBinaryOp(binOp, DataType.LONG) ;
-                }
-                binOp.setType(DataType.LONG) ;
-            }            
-            else if ( (lhsType == DataType.BYTEARRAY) &&
-                    ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )) {
-                insertLeftCastForBinaryOp(binOp, rhsType) ;
-                binOp.setType(rhsType) ;
-            }          
-            else {
-                String msg = "Cannot evaluate output type of Mod Operator" ;
-                msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
-            }
-        }
-        
+               // return the bigger type
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }              
+               binOp.setType(biggerType) ;
+           } 
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                   (DataType.isNumberType(rhsType)) ) {
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+               // Set output type
+               binOp.setType(rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                 (DataType.isNumberType(lhsType)) ) {
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+               // Set output type
+               binOp.setType(lhsType) ;
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                   (rhsType == DataType.BYTEARRAY) ) {
+               // Cast both operands to double
+               insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               // Set output type
+               binOp.setType(DataType.DOUBLE) ;
+           }
+           else {
+               String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
     }
+    
+    @Override
+    public void visit(LOSubtract binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               
+               // return the bigger type
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }              
+               binOp.setType(biggerType) ;
+           } 
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                   (DataType.isNumberType(rhsType)) ) {
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+               // Set output type
+               binOp.setType(rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                 (DataType.isNumberType(lhsType)) ) {
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+               // Set output type
+               binOp.setType(lhsType) ;
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                   (rhsType == DataType.BYTEARRAY) ) {
+               // Cast both operands to double
+               insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
+               // Set output type
+               binOp.setType(DataType.DOUBLE) ;
+           }
+           else {
+               String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
+    }
+    
+    
      
-    private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
+    @Override
+	public void visit(LOGreaterThan binOp) throws VisitorException {
+    	ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               // If not the same type, we cast them to the same
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }       
+           } 
+           else if ( (lhsType == DataType.CHARARRAY) &&
+                     (rhsType == DataType.CHARARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                   ) {
+               // Cast byte array to the type on rhs
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                     ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                   ) {
+               // Cast byte array to the type on lhs
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+           }
+           else {
+               throw new VisitorException("Cannot evaluate output type of "
+                            + binOp.getClass().getSimpleName()
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType)) ;
+           }
+           
+           binOp.setType(DataType.BOOLEAN) ;
+	}
+
+	@Override
+	public void visit(LOGreaterThanEqual binOp) throws VisitorException {
+		ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               // If not the same type, we cast them to the same
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }       
+           } 
+           else if ( (lhsType == DataType.CHARARRAY) &&
+                     (rhsType == DataType.CHARARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                   ) {
+               // Cast byte array to the type on rhs
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                     ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                   ) {
+               // Cast byte array to the type on lhs
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+           }
+           else {
+               throw new VisitorException("Cannot evaluate output type of "
+                            + binOp.getClass().getSimpleName()
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType)) ;
+           }
+           
+           binOp.setType(DataType.BOOLEAN) ;
+	}
+
+	@Override
+	public void visit(LOLesserThan binOp) throws VisitorException {
+		ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               // If not the same type, we cast them to the same
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }       
+           } 
+           else if ( (lhsType == DataType.CHARARRAY) &&
+                     (rhsType == DataType.CHARARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                   ) {
+               // Cast byte array to the type on rhs
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                     ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                   ) {
+               // Cast byte array to the type on lhs
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+           }
+           else {
+               throw new VisitorException("Cannot evaluate output type of "
+                            + binOp.getClass().getSimpleName()
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType)) ;
+           }
+           
+           binOp.setType(DataType.BOOLEAN) ;
+	}
+
+	@Override
+	public void visit(LOLesserThanEqual binOp) throws VisitorException {
+		ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+    	if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               // If not the same type, we cast them to the same
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               }       
+           } 
+           else if ( (lhsType == DataType.CHARARRAY) &&
+                     (rhsType == DataType.CHARARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                   ) {
+               // Cast byte array to the type on rhs
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                     ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                   ) {
+               // Cast byte array to the type on lhs
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+           }
+           else {
+               throw new VisitorException("Cannot evaluate output type of "
+                            + binOp.getClass().getSimpleName()
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType)) ;
+           }
+           
+           binOp.setType(DataType.BOOLEAN) ;
+	}
+
+	
+	
+	@Override
+	public void visit(LOEqual binOp) throws VisitorException {
+		ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+		if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               } 
+               
+           } 
+           else if ( (lhsType == DataType.CHARARRAY) &&
+                     (rhsType == DataType.CHARARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                   ) {
+               // Cast byte array to the type on rhs
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                     ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                   ) {
+               // Cast byte array to the type on lhs
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+           }
+           else if ( (lhsType == DataType.TUPLE) &&
+                     (rhsType == DataType.TUPLE) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.MAP) &&
+                     (rhsType == DataType.MAP) ) {
+               // good
+           }
+           else {
+               String msg = "Cannot evaluate output type of Equal/NotEqual Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
+           
+           binOp.setType(DataType.BOOLEAN) ;
+	}
+
+	@Override
+	public void visit(LONotEqual binOp) throws VisitorException {
+		ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+		if ( DataType.isNumberType(lhsType) &&
+                DataType.isNumberType(rhsType) ) {
+               
+               byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
+               
+               // Cast smaller type to the bigger type
+               if (lhsType != biggerType) {            
+                   insertLeftCastForBinaryOp(binOp, biggerType) ;
+               } 
+               else if (rhsType != biggerType) { 
+                   insertRightCastForBinaryOp(binOp, biggerType) ;
+               } 
+               
+           } 
+           else if ( (lhsType == DataType.CHARARRAY) &&
+                     (rhsType == DataType.CHARARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     (rhsType == DataType.BYTEARRAY) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                     ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                   ) {
+               // Cast byte array to the type on rhs
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+           }
+           else if ( (rhsType == DataType.BYTEARRAY) &&
+                     ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                   ) {
+               // Cast byte array to the type on lhs
+               insertRightCastForBinaryOp(binOp, lhsType) ;
+           }
+           else if ( (lhsType == DataType.TUPLE) &&
+                     (rhsType == DataType.TUPLE) ) {
+               // good
+           }
+           else if ( (lhsType == DataType.MAP) &&
+                     (rhsType == DataType.MAP) ) {
+               // good
+           }
+           else {
+               String msg = "Cannot evaluate output type of Equal/NotEqual Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
+           
+           binOp.setType(DataType.BOOLEAN) ;
+	}
+	
+	
+
+	@Override
+	public void visit(LOMod binOp) throws VisitorException {
+		ExpressionOperator lhs = binOp.getLhsOperand() ;
+    	ExpressionOperator rhs = binOp.getRhsOperand() ;
+    	
+    	byte lhsType = lhs.getType() ;
+        byte rhsType = rhs.getType() ;
+        
+		if ( (lhsType == DataType.INTEGER) &&
+                (rhsType == DataType.INTEGER) ) {
+               binOp.setType(DataType.INTEGER) ;
+           }           
+           else if ( (lhsType == DataType.LONG) &&
+                     ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )) {
+               if (rhsType == DataType.INTEGER) {
+                   insertRightCastForBinaryOp(binOp, DataType.LONG) ;
+               }
+               binOp.setType(DataType.LONG) ;
+           }            
+           else if ( (lhsType == DataType.BYTEARRAY) &&
+                   ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )) {
+               insertLeftCastForBinaryOp(binOp, rhsType) ;
+               binOp.setType(rhsType) ;
+           }          
+           else {
+               String msg = "Cannot evaluate output type of Mod Operator" ;
+               msgCollector.collect(msg, MessageType.Error);
+               throw new VisitorException(msg) ;
+           }
+	}
+
+	private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
                                            byte toType ) {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
         collectCastWarning(binOp,
@@ -479,7 +798,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         } 
         binOp.setLhsOperand(cast) ;
     }
-    
+	
     private void insertRightCastForBinaryOp(BinaryExpressionOperator binOp,
                                             byte toType ) {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
@@ -541,7 +860,41 @@ public class TypeCheckingVisitor extends LOVisitor {
             
     }
     
-    private void insertCastForUniOp(UnaryExpressionOperator uniOp, byte toType) {
+    @Override
+	public void visit(LONegative uniOp) throws VisitorException {
+    	byte type = uniOp.getOperand().getType() ;
+
+
+    	if (DataType.isNumberType(type)) {
+    		uniOp.setType(type) ;
+    	}
+    	else if (type == DataType.BYTEARRAY) {
+    		insertCastForUniOp(uniOp, DataType.DOUBLE) ;
+    		uniOp.setType(DataType.DOUBLE) ;              
+    	}
+    	else {
+    		String msg = "NEG can be used with numbers or Bytearray only" ;
+    		msgCollector.collect(msg, MessageType.Error);
+    		throw new VisitorException(msg) ;
+    	}
+         
+	}
+    
+    @Override
+    public void visit(LONot uniOp) throws VisitorException {
+    	byte type = uniOp.getOperand().getType() ;
+    	
+    	if (type == DataType.BOOLEAN) {
+            uniOp.setType(DataType.BOOLEAN) ;                
+        }
+        else {
+            String msg = "NOT can be used with boolean only" ;
+            msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+    }
+
+	private void insertCastForUniOp(UnaryExpressionOperator uniOp, byte toType) {
         collectCastWarning(uniOp,
                            uniOp.getOperand().getType(),
                            toType) ;
