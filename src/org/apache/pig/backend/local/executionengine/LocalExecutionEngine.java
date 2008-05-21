@@ -42,13 +42,16 @@ import org.apache.pig.backend.hadoop.executionengine.HJob;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.*;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.mapReduceLayer.LocalLauncher;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
+import org.apache.pig.impl.plan.VisitorException;
 import java.util.Iterator;
 
 
@@ -114,12 +117,23 @@ public class LocalExecutionEngine implements ExecutionEngine {
 
     public PhysicalPlan compile(LogicalPlan[] plans,
                                 Properties properties) throws ExecException {
-        // TODO FIX Plug in logical to physical translator
-        /*
         if (plans == null) {
             throw new ExecException("No Plans to compile");
         }
 
+        // TODO FIX Need to stich togther the plans.
+        try {
+            LogicalPlan lp = null;
+            LogToPhyTranslationVisitor translator = 
+                new LogToPhyTranslationVisitor(lp);
+            translator.setPigContext(pigContext);
+            translator.visit();
+            return translator.getPhysicalPlan();
+        } catch (VisitorException ve) {
+            throw new ExecException(ve);
+        }
+
+        /*
         OperatorKey physicalKey = null;
         for (int i = 0; i < plans.length; ++i) {
             LogicalPlan curPlan = null;
@@ -141,7 +155,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
         
         return new LocalPhysicalPlan(physicalKey, physicalOpTable);
         */
-        return null;
     }
 
     public ExecJob execute(PhysicalPlan plan,

@@ -51,12 +51,14 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
+import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.shock.SSHSocketImplFactory;
 
 
@@ -218,13 +220,24 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     public PhysicalPlan compile(LogicalPlan[] plans,
-                                Properties properties)
-            throws ExecException {
-        // TODO FIX Plug in Shubham's translator here.
-        /*if (plans == null) {
+                                Properties properties) throws ExecException {
+        if (plans == null) {
             throw new ExecException("No Plans to compile");
         }
 
+        // TODO FIX Need to stich togther the plans.
+        try {
+            LogicalPlan lp = null;
+            LogToPhyTranslationVisitor translator = 
+                new LogToPhyTranslationVisitor(lp);
+            translator.setPigContext(pigContext);
+            translator.visit();
+            return translator.getPhysicalPlan();
+        } catch (VisitorException ve) {
+            throw new ExecException(ve);
+        }
+
+        /*
         OperatorKey physicalKey = null;
         for (int i = 0; i < plans.length; ++i) {
             LogicalPlan curPlan = null;
@@ -252,7 +265,6 @@ public class HExecutionEngine implements ExecutionEngine {
         }
         
         return new MapRedPhysicalPlan(physicalKey, physicalOpTable);*/
-        throw new ExecException("Unsupported Operation");
     }
 
     public ExecJob execute(PhysicalPlan plan,
