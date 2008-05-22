@@ -93,8 +93,10 @@ public interface ExecutionEngine {
     public PhysicalPlan compile(LogicalPlan plan,
                                 Properties properties) throws ExecException;
 
+    /*
     public PhysicalPlan compile(LogicalPlan[] plans,
                                 Properties properties) throws ExecException;
+                                */
 
     /**
      * Execute the physical plan in blocking mode.

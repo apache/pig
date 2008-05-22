@@ -216,20 +216,20 @@ public class HExecutionEngine implements ExecutionEngine {
 
     public PhysicalPlan compile(LogicalPlan plan,
                                 Properties properties) throws ExecException {
+        /*
         return compile(new LogicalPlan[] { plan }, properties);
     }
 
     public PhysicalPlan compile(LogicalPlan[] plans,
                                 Properties properties) throws ExecException {
-        if (plans == null) {
-            throw new ExecException("No Plans to compile");
+                                */
+        if (plan == null) {
+            throw new ExecException("No Plan to compile");
         }
 
-        // TODO FIX Need to stich togther the plans.
         try {
-            LogicalPlan lp = null;
             LogToPhyTranslationVisitor translator = 
-                new LogToPhyTranslationVisitor(lp);
+                new LogToPhyTranslationVisitor(plan);
             translator.setPigContext(pigContext);
             translator.visit();
             return translator.getPhysicalPlan();

@@ -54,8 +54,10 @@ import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
 import org.apache.pig.impl.physicalLayer.POPrinter;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -356,8 +358,8 @@ public class PigServer {
     public void explain(String alias,
                         PrintStream stream) throws IOException {
         try {
+            LogicalPlan lp = compileLp(alias, "explain");
             stream.println("Logical Plan:");
-            LogicalPlan lp = compileLp();
             LOPrinter lv = new LOPrinter(stream, lp);
             lv.visit();
 
@@ -493,18 +495,53 @@ public class PigServer {
     private ExecJob execute(String jobName) throws ExecException {
         ExecJob job = null;
 
-        LogicalPlan lp = compileLp();
+        LogicalPlan lp = compileLp(jobName, "execute");
         PhysicalPlan pp = compilePp(lp);
         // execute using appropriate engine
         return pigContext.getExecutionEngine().execute(pp, jobName);
     }
 
-    // TODO FIX
-    private LogicalPlan compileLp() {
-        LogicalPlan lp = null;
-        // TODO, stitch together logical plans
+    private LogicalPlan compileLp(String alias, String op) throws ExecException {
+        // Look up the logical plan in the aliases map.  That plan will be
+        // properly connected to all the others.
+        LogicalPlan lp = aliases.get(alias);
+        if (lp == null) {
+            throw new ExecException("No alias " + alias + " to " + op);
+        }
 
-        // TODO run through validator
+        // run through validator
+        LogicalPlanValidationExecutor validator = 
+            new LogicalPlanValidationExecutor(lp, pigContext);
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        validator.validate(lp, collector);
+        // Check to see if we had any problems.
+        StringBuilder sb = new StringBuilder();
+        for (CompilationMessageCollector.Message msg : collector) {
+            switch (msg.getMessageType()) {
+            case Info:
+                log.info(msg.getMessage());
+                break;
+
+            case Warning:
+                log.warn(msg.getMessage());
+                break;
+
+            case Unknown:
+            case Error:
+                log.error(msg.getMessage());
+                sb.append(msg.getMessage());
+                break;
+
+            default:
+                throw new AssertionError("Unknown message type " +
+                    msg.getMessageType());
+
+            }
+        }
+
+        if (sb.length() > 0) {
+            throw new ExecException(sb.toString());
+        }
 
         // TODO optimize
 
