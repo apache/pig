@@ -23,8 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -33,15 +32,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 
-
-public class SortPartitioner implements Partitioner {
+public class SortPartitioner implements Partitioner<Tuple, Writable> {
     Tuple[] quantiles;
-    WritableComparator comparator;
+    RawComparator comparator;
     
-    public int getPartition(WritableComparable key, Writable value,
+    public int getPartition(Tuple key, Writable value,
             int numPartitions) {
-        Tuple keyTuple = (Tuple)key;
-        int index = Arrays.binarySearch(quantiles, keyTuple.getTupleField(0), comparator);
+        int index = Arrays.binarySearch(quantiles, key.getTupleField(0), comparator);
         if (index < 0)
             index = -index-1;
         return Math.min(index, numPartitions - 1);

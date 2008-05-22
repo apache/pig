@@ -2,13 +2,16 @@ package org.apache.pig.backend.hadoop.datastorage;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.dfs.DistributedFileSystem;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -183,15 +186,21 @@ public class HDataStorage implements DataStorage {
 
     public HPath[] asCollection(String pattern) throws DataStorageException {
         try {
-            Path[] paths = this.fs.globPaths(new Path(pattern));
+            FileStatus[] paths = this.fs.globStatus(new Path(pattern));
 
-            HPath[] hpaths = new HPath[paths.length];
+            if (paths == null)
+                return new HPath[0];
 
+            List<HPath> hpaths = new ArrayList<HPath>();
+            
             for (int i = 0; i < paths.length; ++i) {
-                hpaths[i] = ((HPath) this.asElement(paths[i].toString()));
+                HPath hpath = (HPath)this.asElement(paths[i].getPath().toString());
+                if (!hpath.systemElement()) {
+                    hpaths.add(hpath);
+                }
             }
 
-            return hpaths;
+            return hpaths.toArray(new HPath[hpaths.size()]);
         } catch (IOException e) {
             throw new DataStorageException("Failed to obtain glob for "
                     + pattern, e);

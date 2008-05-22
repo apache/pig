@@ -295,3 +295,5 @@ Trunk (unreleased changes)
     PIG-237: validation of the output directory (pi_song via olgan)
 
     PIG-236: Fix properties so that values specified via the command line (-D) are not ignored (pkamath via gates).
+
+    PIG-198: integration with hadoop 17

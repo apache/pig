@@ -66,6 +66,10 @@ public class PigSlicer implements Slicer {
         for (int j = 0; j < paths.size(); j++) {
             ElementDescriptor fullPath = store.asElement(store
                     .getActiveContainer(), paths.get(j));
+            // Skip hadoop's private/meta files ...
+            if (fullPath.systemElement()) {
+                continue;
+            }
             if (fullPath instanceof ContainerDescriptor) {
                 for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
                     paths.add(child);

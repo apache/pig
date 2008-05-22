@@ -11,6 +11,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImplFactory;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -576,16 +578,33 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     private String fixUpDomain(String hostPort,Properties properties) throws UnknownHostException {
-        String parts[] = hostPort.split(":");
-        if (parts[0].indexOf('.') == -1) {
+        URI uri = null;
+        try {
+            uri = new URI(hostPort);
+        } catch (URISyntaxException use) {
+            throw new RuntimeException("Illegal hostPort: " + hostPort);
+        }
+        
+        String hostname = uri.getHost();
+        int port = uri.getPort();
+        
+        // Parse manually if hostPort wasn't non-opaque URI
+        // e.g. hostPort is "myhost:myport"
+        if (hostname == null || port == -1) {
+            String parts[] = hostPort.split(":");
+            hostname = parts[0];
+            port = Integer.valueOf(parts[1]);
+        }
+        
+        if (hostname.indexOf('.') == -1) {
           //jz: fallback to systemproperty cause this not handled in Main 
             String domain = properties.getProperty("cluster.domain",System.getProperty("cluster.domain"));
             if (domain == null) 
                 throw new RuntimeException("Missing cluster.domain property!");
-            parts[0] = parts[0] + "." + domain;
+            hostname = hostname + "." + domain;
         }
-        InetAddress.getByName(parts[0]);
-        return parts[0] + ":" + parts[1];
+        InetAddress.getByName(hostname);
+        return hostname + ":" + Integer.toString(port);
     }
 
     // create temp dir to store hod output; removed on exit

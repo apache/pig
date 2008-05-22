@@ -136,6 +136,10 @@ public abstract class LocalPath implements ElementDescriptor {
     public int compareTo(ElementDescriptor other) {
         return this.path.compareTo(((LocalPath)other).path);
     }
+
+    public boolean systemElement(){
+        return false;
+    }
     
     public String toString() {
         return this.path.toString();

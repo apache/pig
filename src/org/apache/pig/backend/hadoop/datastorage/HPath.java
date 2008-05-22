@@ -151,6 +151,12 @@ public abstract class HPath implements ElementDescriptor {
     public FileSystem getHFS() {
         return fs.getHFS();
     }
+
+    public boolean systemElement() {
+        return (path != null && 
+                (path.getName().startsWith("_") ||
+                 path.getName().startsWith(".")));
+    }
     
     @Override
     public String toString() {
