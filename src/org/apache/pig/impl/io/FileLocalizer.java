@@ -166,6 +166,8 @@ public class FileLocalizer {
         if (elem.exists()) {
             try {
                 if(! elem.getDataStorage().isContainer(elem.toString())) {
+                    if (elem.systemElement())
+                        throw new IOException ("Attempt is made to open system file " + elem.toString());
                     return elem.open();
                 }
             }
@@ -183,7 +185,9 @@ public class FileLocalizer {
                 ((ContainerDescriptor)elem).iterator();
             
             while (allElements.hasNext()) {
-                arrayList.add(allElements.next());
+                ElementDescriptor nextElement = allElements.next();
+                if (!nextElement.systemElement())
+                    arrayList.add(nextElement);
             }
             
             elements = new ElementDescriptor[ arrayList.size() ];

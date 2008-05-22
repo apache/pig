@@ -77,7 +77,8 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
  * 
  * @author breed
  */
-public class PigMapReduce implements MapRunnable, Reducer {
+public class PigMapReduce implements MapRunnable<WritableComparable, Tuple, WritableComparable, Writable>, 
+                                    Reducer<Tuple, IndexedTuple, WritableComparable, Writable> {
 
     private final Log log = LogFactory.getLog(getClass());
     
@@ -100,7 +101,8 @@ public class PigMapReduce implements MapRunnable, Reducer {
      * the tuples from our PigRecordReader (see ugly ThreadLocal hack), pipe the tuples through the
      * function pipeline and then close the writer.
      */
-    public void run(RecordReader input, OutputCollector output, Reporter reporter) throws IOException {
+public void run(RecordReader<WritableComparable, Tuple> input, 
+                OutputCollector<WritableComparable, Writable> output, Reporter reporter) throws IOException {
         PigMapReduce.reporter = reporter;
 
         oc = output;
@@ -110,9 +112,9 @@ public class PigMapReduce implements MapRunnable, Reducer {
 
             // allocate key & value instances that are re-used for all entries
             WritableComparable key = input.createKey();
-            Writable value = input.createValue();
+            Tuple value = input.createValue();
             while (input.next(key, value)) {
-                evalPipe.add((Tuple) value);
+                evalPipe.add(value);
             }
         } finally {
             try {
@@ -130,7 +132,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
         }
     }
 
-    public void reduce(WritableComparable key, Iterator values, OutputCollector output, Reporter reporter)
+    public void reduce(Tuple key, Iterator<IndexedTuple> values, OutputCollector<WritableComparable, Writable>  output, Reporter reporter)
             throws IOException {
 
         PigMapReduce.reporter = reporter;
@@ -142,7 +144,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
             }
 
             DataBag[] bags = new DataBag[inputCount];
-            Datum groupName = ((Tuple) key).getField(0);
+            Datum groupName = key.getField(0);
             Tuple t = new Tuple(1 + inputCount);
             t.setField(0, groupName);
             for (int i = 1; i < 1 + inputCount; i++) {
@@ -151,7 +153,7 @@ public class PigMapReduce implements MapRunnable, Reducer {
             }
 
             while (values.hasNext()) {
-                IndexedTuple it = (IndexedTuple) values.next();
+                IndexedTuple it = values.next();
                 t.getBagField(it.index + 1).add(it.toTuple());
             }
             
@@ -254,8 +256,8 @@ public class PigMapReduce implements MapRunnable, Reducer {
             if (splitSpec == null){
                 pigWriter = (PigRecordWriter) job.getOutputFormat().getRecordWriter(FileSystem.get(job), job, fileName,
                         reporter);
-                oc = new OutputCollector() {
-                    public void collect(WritableComparable key, Writable value) throws IOException {
+                oc = new OutputCollector<WritableComparable, Tuple>() {
+                    public void collect(WritableComparable key, Tuple value) throws IOException {
                         pigWriter.write(key, value);
                     }
                 };
@@ -280,15 +282,14 @@ public class PigMapReduce implements MapRunnable, Reducer {
         for (String name: splitSpec.tempFiles){
             sideFileWriters.add( outputFormat.getRecordWriter(FileSystem.get(job), job, new Path(name), "split-" + getTaskId(), reporter));
         }
-        return new OutputCollector(){
-            public void collect(WritableComparable key, Writable value) throws IOException {
-                Tuple t = (Tuple) value;
+        return new OutputCollector<WritableComparable, Tuple>(){
+            public void collect(WritableComparable key, Tuple value) throws IOException {
                 ArrayList<Cond> conditions = splitSpec.conditions;
                 for (int i=0; i< conditions.size(); i++){
                     Cond cond = conditions.get(i);
-                    if (cond.eval(t)){
+                    if (cond.eval(value)){
                         //System.out.println("Writing " + t + " to condition " + cond);
-                        sideFileWriters.get(i).write(null, t);
+                        sideFileWriters.get(i).write(null, value);
                     }
                 }
                 

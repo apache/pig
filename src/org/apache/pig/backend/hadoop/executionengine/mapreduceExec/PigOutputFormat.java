@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.RecordWriter;
@@ -43,7 +44,7 @@ public class PigOutputFormat implements OutputFormat {
 
     public RecordWriter getRecordWriter(FileSystem fs, JobConf job, String name, Progressable progress)
     throws IOException {
-           Path outputDir = job.getOutputPath();
+        Path outputDir = FileOutputFormat.getOutputPath(job);
         return getRecordWriter(fs, job, outputDir, name, progress);
     }
 
@@ -56,12 +57,8 @@ public class PigOutputFormat implements OutputFormat {
         } else {
             store = (StoreFunc) PigContext.instantiateFuncFromSpec(storeFunc);
         }
-        // The outputDir is going to be a temporary name we need to look at the
-        // real thing!
-        // XXX This is a wretched implementation dependent hack! Need to find
-        // out from the Hadoop guys if there is a better way.
-        String parentName = job.getOutputPath().getParent().getParent()
-                .getName();
+
+        String parentName = FileOutputFormat.getOutputPath(job).getName();
         int suffixStart = parentName.lastIndexOf('.');
         if (suffixStart != -1) {
             String suffix = parentName.substring(suffixStart);
@@ -77,7 +74,7 @@ public class PigOutputFormat implements OutputFormat {
         return;
     }
 
-    static public class PigRecordWriter implements RecordWriter {
+    static public class PigRecordWriter implements RecordWriter<WritableComparable, Tuple> {
         private OutputStream os    = null;
         private StoreFunc          sfunc = null;
 
@@ -98,8 +95,8 @@ public class PigOutputFormat implements OutputFormat {
          * @see org.apache.hadoop.mapred.RecordWriter#write(org.apache.hadoop.io.WritableComparable,
          *      org.apache.hadoop.io.Writable)
          */
-        public void write(WritableComparable key, Writable value) throws IOException {
-            this.sfunc.putNext((Tuple) value);
+        public void write(WritableComparable key, Tuple value) throws IOException {
+            this.sfunc.putNext(value);
         }
 
         public void close(Reporter reporter) throws IOException {

@@ -40,7 +40,8 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 
-public class PigCombine implements Reducer {
+public class PigCombine implements 
+                Reducer<Tuple, IndexedTuple, Tuple, IndexedTuple>  {
 
     private final Log log = LogFactory.getLog(getClass());
     
@@ -53,7 +54,8 @@ public class PigCombine implements Reducer {
     private PigContext pigContext;
     private EvalSpec esp;
 
-    public void reduce(WritableComparable key, Iterator values, OutputCollector output, Reporter reporter)
+    public void reduce(Tuple key, Iterator<IndexedTuple> values, 
+                        OutputCollector<Tuple, IndexedTuple> output, Reporter reporter)
             throws IOException {
 
         try {
@@ -70,8 +72,8 @@ public class PigCombine implements Reducer {
 
             index = PigInputFormat.getActiveSplit().getIndex();
 
-            Datum groupName = ((Tuple) key).getField(0);
-            finalout.group = ((Tuple) key);
+            Datum groupName = key.getField(0);
+            finalout.group = key;
             finalout.index = index;
             
             Tuple t = new Tuple(1 + inputCount);
@@ -82,7 +84,7 @@ public class PigCombine implements Reducer {
             }
 
             while (values.hasNext()) {
-                IndexedTuple it = (IndexedTuple) values.next();
+                IndexedTuple it = values.next();
                 t.getBagField(it.index + 1).add(it.toTuple());
             }
             for (int i = 0; i < inputCount; i++) {  // XXX: shouldn't we only do this if INNER flag is set?
@@ -124,8 +126,9 @@ public class PigCombine implements Reducer {
     public void close() throws IOException {
     }
 
-    private static class CombineDataOutputCollector extends DataCollector {
-        OutputCollector oc    = null;
+    private static class CombineDataOutputCollector 
+                        extends DataCollector {
+        OutputCollector<Tuple, IndexedTuple> oc    = null;
         Tuple           group = null;
         int             index = -1;
 
