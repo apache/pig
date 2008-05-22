@@ -15,35 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.logicalLayer;
+package org.apache.pig.impl.logicalLayer.schema ;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
-import org.apache.pig.impl.plan.OperatorPlan;
+public class SchemaMergeException extends FrontendException {
 
-public class LogicalPlan extends OperatorPlan<LogicalOperator> {
-    private static final long serialVersionUID = 2L;
-
-    public LogicalPlan() {
-        super();
-    }
-    public LogicalOperator getSingleLeafPlanOutputOp()  {
-        List<LogicalOperator> list = this.getLeaves() ;
-        if (list.size() != 1) {
-            throw new AssertionError("The plan has more than one leaf node") ;
-        }
-        return list.get(0) ;
+    public SchemaMergeException (String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public byte getSingleLeafPlanOutputType()  {
-        return getSingleLeafPlanOutputOp().getType() ;
+    public SchemaMergeException() {
+        this(null, null);
     }
 
+    public SchemaMergeException(String message) {
+        this(message, null);
+    }
+
+    public SchemaMergeException(Throwable cause) {
+        this(null, cause);
+    }
 }

@@ -140,6 +140,16 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     }
 
     /**
+     * Directly force the schema without reconcilation
+     * Please use with great care
+     * @param schema
+     */
+    public void forceSchema(Schema schema) {
+        this.mSchema = schema;
+    }
+
+
+    /**
      * Get a copy of the schema for the output of this operator.
      */
     public abstract Schema getSchema() throws FrontendException;

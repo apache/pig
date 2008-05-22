@@ -424,10 +424,13 @@ public class DataType {
      * float, or boolean.
      */
     public static boolean isAtomic(byte dataType) {
-        return ((dataType == BYTEARRAY) || (dataType == CHARARRAY) ||
-            (dataType == INTEGER) || (dataType == LONG) || 
-            (dataType == FLOAT) || (dataType == DOUBLE) ||
-            (dataType == FLOAT));
+        return ((dataType == BYTEARRAY) ||
+                (dataType == CHARARRAY) ||
+                (dataType == INTEGER) ||
+                (dataType == LONG) ||
+                (dataType == FLOAT) ||
+                (dataType == DOUBLE) ||
+                (dataType == BOOLEAN));
     }
 
     /**
@@ -821,5 +824,46 @@ public class DataType {
             case ERROR:      return false ;
             default :return true ;
         }
+    }
+
+        /***
+     * Merge types if possible
+     * @param type1
+     * @param type2
+     * @return the merged type, or DataType.ERROR if not successful
+     */
+    public static byte mergeType(byte type1, byte type2) {
+        // Only legal types can be merged
+        if ( (!DataType.isUsableType(type1)) ||
+             (!DataType.isUsableType(type2)) ) {
+            return DataType.ERROR ;
+        }
+
+        // Same type is OK
+        if (type1==type2) {
+            return type1 ;
+        }
+
+        // Both are number so we return the bigger type
+        if ( (DataType.isNumberType(type1)) &&
+             (DataType.isNumberType(type2)) ) {
+            return type1>type2 ? type1:type2 ;
+        }
+
+        // One is bytearray and the other is (number or chararray)
+        if ( (type1 == DataType.BYTEARRAY) &&
+                ( (type2 == DataType.CHARARRAY) || (DataType.isNumberType(type2)) )
+              ) {
+            return type2 ;
+        }
+
+        if ( (type2 == DataType.BYTEARRAY) &&
+                ( (type1 == DataType.CHARARRAY) || (DataType.isNumberType(type1)) )
+              ) {
+            return type1 ;
+        }
+
+        // else return just ERROR
+        return DataType.ERROR ;
     }
 }

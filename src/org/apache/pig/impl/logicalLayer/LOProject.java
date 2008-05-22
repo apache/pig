@@ -125,6 +125,7 @@ public class LOProject extends ExpressionOperator {
 
     public int getCol() {
         if (mProjection.size() != 1)
+            
             throw new RuntimeException(
                     "Internal error: improper use of getCol in "
                             + LOProject.class.getName());
@@ -281,9 +282,67 @@ public class LOProject extends ExpressionOperator {
         return mFieldSchema;
     }
 
+    public boolean isSingleProjection()  {
+        return mProjection.size() == 1 ;
+    }
+
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
+    }
+
+    @Override
+    public byte getType() {                         
+        // Called to make sure we've constructed the field schema before trying
+        // to read it.
+        try {
+            getFieldSchema();
+        } catch (FrontendException fe) {
+            return DataType.UNKNOWN;
+        }
+
+        if (mFieldSchema != null){
+            return mFieldSchema.type ;
+        }
+        else {
+            return DataType.UNKNOWN ;
+        }
+    }
+
+    @Override
+    public Schema getSchema() throws FrontendException{
+        // Called to make sure we've constructed the field schema before trying
+        // to read it.
+        getFieldSchema();
+        if (mFieldSchema != null){
+            return mFieldSchema.schema ;
+        }
+        else {
+            return null ;
+        }
+    }
+
+    /* For debugging only */
+    public String toDetailString() {
+        StringBuilder sb = new StringBuilder() ;
+        sb.append("LOProject") ;
+        sb.append(" Id=" + this.mKey.id) ;
+        sb.append(" Projection=") ;
+        boolean isFirst = true ;
+        for(int i=0;i< mProjection.size();i++) {
+            if (isFirst) {
+                isFirst = false ;
+            }
+            else {
+                sb.append(",") ;
+            }
+            sb.append(mProjection.get(i)) ;
+        }
+        sb.append(" isStart=") ;
+        sb.append(mIsStar) ;
+        sb.append(" isSentinel=") ;
+        sb.append(mSentinel) ;
+        return sb.toString() ;
     }
 
 }

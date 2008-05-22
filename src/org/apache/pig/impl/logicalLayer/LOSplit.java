@@ -27,6 +27,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -114,4 +115,10 @@ public class LOSplit extends LogicalOperator {
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
+
+    @Override
+    public byte getType() {
+        return DataType.BAG;
+    }
+    
 }

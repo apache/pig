@@ -129,6 +129,10 @@ public class LOLoad extends LogicalOperator {
         return mEnforcedSchema;
     }
 
+    /***
+     * Set this when user enforces schema
+     * @param enforcedSchema
+     */
     public void setEnforcedSchema(Schema enforcedSchema) {
         this.mEnforcedSchema = enforcedSchema;
     }

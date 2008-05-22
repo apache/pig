@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
-import java.io.IOException;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -289,49 +288,55 @@ public class Schema {
      * @throws ParseException if this cannot be reconciled.
      */
     public void reconcile(Schema other) throws ParseException {
-        if (other.size() != size()) {
-            throw new ParseException("Cannot reconcile schemas with different "
-                + "sizes.  This schema has size " + size() + " other has size "
-                + "of " + other.size());
-        }
 
-        Iterator<FieldSchema> i = other.mFields.iterator();
-        for (int j = 0; i.hasNext(); j++) {
-            FieldSchema otherFs = i.next();
-            FieldSchema ourFs = mFields.get(j);
-            log.debug("ourFs: " + ourFs + " otherFs: " + otherFs);
-            if (otherFs.alias != null) {
-                log.debug("otherFs.alias: " + otherFs.alias);
-                if (ourFs.alias != null) {
-                    log.debug("Removing ourFs.alias: " + ourFs.alias);
-                    mAliases.remove(ourFs.alias);
-                    Collection<String> aliases = mFieldSchemas.get(ourFs);
-                    List<String> listAliases = new ArrayList<String>();
-                    for(String alias: aliases) {
-                        listAliases.add(new String(alias));
-                    }
-                    for(String alias: listAliases) {
-                        log.debug("Removing alias " + alias + " from multimap");
-                        mFieldSchemas.remove(ourFs, alias);
-                    }
-                }
-                ourFs.alias = otherFs.alias;
-                log.debug("Setting alias to: " + otherFs.alias);
-                mAliases.put(ourFs.alias, ourFs);
-                if(null != ourFs.alias) {
-                    mFieldSchemas.put(ourFs, ourFs.alias);
-                }
-            }
-            if (otherFs.type != DataType.UNKNOWN) {
-                ourFs.type = otherFs.type;
-                log.debug("Setting type to: "
-                        + DataType.findTypeName(otherFs.type));
-            }
-            if (otherFs.schema != null) {
-                ourFs.schema = otherFs.schema;
-                log.debug("Setting schema to: " + otherFs.schema);
+        if (other != null) {
+        
+            if (other.size() != size()) {
+                throw new ParseException("Cannot reconcile schemas with different "
+                    + "sizes.  This schema has size " + size() + " other has size "
+                    + "of " + other.size());
             }
 
+            Iterator<FieldSchema> i = other.mFields.iterator();
+            for (int j = 0; i.hasNext(); j++) {
+                FieldSchema otherFs = i.next();
+                FieldSchema ourFs = mFields.get(j);
+                log.debug("ourFs: " + ourFs + " otherFs: " + otherFs);
+                if (otherFs.alias != null) {
+                    log.debug("otherFs.alias: " + otherFs.alias);
+                    if (ourFs.alias != null) {
+                        log.debug("Removing ourFs.alias: " + ourFs.alias);
+                        mAliases.remove(ourFs.alias);
+                        Collection<String> aliases = mFieldSchemas.get(ourFs);
+                        if (aliases != null) {
+                            List<String> listAliases = new ArrayList<String>();
+                            for(String alias: aliases) {
+                                listAliases.add(new String(alias));
+                            }
+                            for(String alias: listAliases) {
+                                log.debug("Removing alias " + alias + " from multimap");
+                                mFieldSchemas.remove(ourFs, alias);
+                            }
+                        }
+                    }
+                    ourFs.alias = otherFs.alias;
+                    log.debug("Setting alias to: " + otherFs.alias);
+                    mAliases.put(ourFs.alias, ourFs);
+                    if(null != ourFs.alias) {
+                        mFieldSchemas.put(ourFs, ourFs.alias);
+                    }
+                }
+                if (otherFs.type != DataType.UNKNOWN) {
+                    ourFs.type = otherFs.type;
+                    log.debug("Setting type to: "
+                            + DataType.findTypeName(otherFs.type));
+                }
+                if (otherFs.schema != null) {
+                    ourFs.schema = otherFs.schema;
+                    log.debug("Setting schema to: " + otherFs.schema);
+                }
+
+            }
         }
     }
 
@@ -369,15 +374,78 @@ public class Schema {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("(");
-        boolean first = true;
-        for (FieldSchema fs : mFields) {
-            if (first) first = false;
-            else sb.append(", ");
-            sb.append(fs.toString());
+        StringBuilder sb = new StringBuilder();
+        try {
+            stringifySchema(sb, this, DataType.BAG) ;
         }
-        sb.append(")");
+        catch (ParseException pe) {
+            throw new RuntimeException("PROBLEM PRINTING SCHEMA")  ;
+        }
         return sb.toString();
+    }
+
+
+    // This is used for building up output string
+    // type can only be BAG or TUPLE
+    public static void stringifySchema(StringBuilder sb,
+                                       Schema schema,
+                                       byte type)
+                                            throws ParseException{
+
+        if (type == DataType.TUPLE) {
+            sb.append("(") ;
+        }
+        else if (type == DataType.BAG) {
+            sb.append("{") ;
+        }
+        // TODO: Map Support
+
+        if (schema == null) {
+            sb.append("null") ;
+        }
+        else {
+            boolean isFirst = true ;
+            for (int i=0; i< schema.size() ;i++) {
+
+                if (!isFirst) {
+                    sb.append(",") ;
+                }
+                else {
+                    isFirst = false ;
+                }
+
+                FieldSchema fs = schema.getField(i) ;
+
+                if (fs.alias != null) {
+                    sb.append(fs.alias);
+                    sb.append(": ");
+                }
+
+                if (DataType.isAtomic(fs.type)) {
+                    sb.append(DataType.findTypeName(fs.type)) ;
+                }
+                else if ( (fs.type == DataType.TUPLE) ||
+                          (fs.type == DataType.BAG) ) {
+                    // safety net
+                    if (schema != fs.schema) {
+                        stringifySchema(sb, fs.schema, fs.type) ;
+                    }
+                    else {
+                        throw new AssertionError("Schema refers to itself "
+                                                 + "as inner schema") ;
+                    }
+                }
+                // TODO: Support Map
+            }
+        }
+
+        if (type == DataType.TUPLE) {
+            sb.append(")") ;
+        }
+        else if (type == DataType.BAG) {
+            sb.append("}") ;
+        }
+
     }
 
     public void add(FieldSchema f) {
@@ -506,31 +574,99 @@ public class Schema {
      *                                  schema take precedence
      * @return the merged schema, null if they are not compatible
      */
-    private Schema mergeSchema(Schema schema, Schema other,
+    public static Schema mergeSchema(Schema schema, Schema other,
                                boolean otherTakesAliasPrecedence) {
+        try {
+            Schema newSchema = mergeSchema(schema,
+                                        other,
+                                        otherTakesAliasPrecedence,
+                                        false,
+                                        false) ;
+            return newSchema;
+        }
+        catch(SchemaMergeException sme) {
+            // just mean they are not compatible
+        }
+        return null ;
+    }
 
-        if (other == null) {
-            return null ;
+    /***
+     * Recursively merge two schemas
+     * @param schema the initial schema
+     * @param other the other schema to be merged with
+     * @param otherTakesAliasPrecedence true if aliases from the other
+     *                                  schema take precedence
+     * @param allowDifferentSizeMerge allow merging of schemas of different types
+     * @param allowIncompatibleTypes 1) if types in schemas are not compatible
+     *                               they will be treated as ByteArray (untyped)
+     *                               2) if schemas in schemas are not compatible
+     *                               and allowIncompatibleTypes is true
+     *                               those inner schemas in the output
+     *                               will be null.
+     * @return the merged schema this can be null if one schema is null and
+     *         allowIncompatibleTypes is true
+     *
+     * @throws SchemaMergeException if they cannot be merged
+     */
+
+    public static Schema mergeSchema(Schema schema,
+                               Schema other,
+                               boolean otherTakesAliasPrecedence,
+                               boolean allowDifferentSizeMerge,
+                               boolean allowIncompatibleTypes)
+                                    throws SchemaMergeException {
+        if (schema == null) {
+            if (allowIncompatibleTypes) {
+                return null ;
+            }
+            else {
+                throw new SchemaMergeException("One schema is null") ;
+            }
         }
 
-        if (schema.size() != other.size()) {
-            return null ;
+        if (other == null) {
+            if (allowIncompatibleTypes) {
+                return null ;
+            }
+            else {
+                throw new SchemaMergeException("One schema is null") ;
+            }
+        }
+
+        if ( (schema.size() != other.size()) &&
+             (!allowDifferentSizeMerge) ) {
+            throw new SchemaMergeException("Different schema size") ;
         }
 
         List<FieldSchema> outputList = new ArrayList<FieldSchema>() ;
 
-        Iterator<FieldSchema> mylist = schema.mFields.iterator() ;
-        Iterator<FieldSchema> otherlist = other.mFields.iterator() ;
+        List<FieldSchema> mylist = schema.mFields ;
+        List<FieldSchema> otherlist = other.mFields ;
 
-        while (mylist.hasNext()) {
+        // We iterate up to the smaller one's size
+        int iterateLimit = schema.mFields.size() > other.mFields.size()?
+                            other.mFields.size() : schema.mFields.size() ;
 
-            FieldSchema myFs = mylist.next() ;
-            FieldSchema otherFs = otherlist.next() ;
+        int idx = 0;
+        for (; idx< iterateLimit ; idx ++) {
 
-            byte mergedType = mergeType(myFs.type, otherFs.type) ;
-            // if the types cannot be merged, the schemas cannot be merged
+            // Just for readability
+            FieldSchema myFs = mylist.get(idx) ;
+            FieldSchema otherFs = otherlist.get(idx) ;
+
+            byte mergedType = DataType.mergeType(myFs.type, otherFs.type) ;
+
+            // If the types cannot be merged
             if (mergedType == DataType.ERROR) {
-                return null ;
+                // If  treatIncompatibleAsByteArray is true,
+                // we will treat it as bytearray
+                if (allowIncompatibleTypes) {
+                    mergedType = DataType.BYTEARRAY ;
+                }
+                // otherwise the schemas cannot be merged
+                else {
+                    throw new SchemaMergeException("Incompatible types") ;
+                }
             }
 
             String mergedAlias = mergeAlias(myFs.alias,
@@ -546,16 +682,61 @@ public class Schema {
                 // merge inner tuple because both sides are tuples
                 Schema mergedSubSchema = mergeSchema(myFs.schema,
                                                      otherFs.schema,
-                                                     otherTakesAliasPrecedence) ;
-                // return null if they cannot be merged
-                if (mergedSubSchema == null) {
-                    return null ;
+                                                     otherTakesAliasPrecedence,
+                                                     allowDifferentSizeMerge,
+                                                     allowIncompatibleTypes) ;
+                // if they cannot be merged and we don't allow incompatible
+                // types, just return null meaning cannot merge
+                if ( (mergedSubSchema == null) &&
+                     (!allowIncompatibleTypes) ) {
+                    throw new SchemaMergeException("Incompatible inner schemas") ;
                 }
 
+                // create the merged field
+                // the mergedSubSchema can be true if allowIncompatibleTypes
                 mergedFs = new FieldSchema(mergedAlias, mergedSubSchema) ;
 
             }
             outputList.add(mergedFs) ;
+        }
+
+        // Handle different schema size
+        if (allowDifferentSizeMerge) {
+            
+            // if the first schema has leftover, then append the rest
+            for(int i=idx; i < mylist.size(); i++) {
+
+                FieldSchema fs = mylist.get(i) ;
+
+                // for non-schema types
+                if (!DataType.isSchemaType(fs.type)) {
+                    outputList.add(new FieldSchema(fs.alias, fs.type)) ;
+                }
+                // for TUPLE & BAG
+                else {
+                    FieldSchema tmp = new FieldSchema(fs.alias, fs.schema) ;
+                    tmp.type = fs.type ;
+                    outputList.add(tmp) ;
+                }
+            }
+
+             // if the second schema has leftover, then append the rest
+            for(int i=idx; i < otherlist.size(); i++) {
+
+                FieldSchema fs = otherlist.get(i) ;
+
+                // for non-schema types
+                if (!DataType.isSchemaType(fs.type)) {
+                    outputList.add(new FieldSchema(fs.alias, fs.type)) ;
+                }
+                // for TUPLE & BAG
+                else {
+                    FieldSchema tmp = new FieldSchema(fs.alias, fs.schema) ;
+                    tmp.type = fs.type ;
+                    outputList.add(tmp) ;
+                }
+            }
+
         }
 
         return new Schema(outputList) ;
@@ -569,7 +750,7 @@ public class Schema {
      * @param otherTakesPrecedence
      * @return
      */
-    private String mergeAlias(String alias, String other
+    private static String mergeAlias(String alias, String other
                               ,boolean otherTakesPrecedence) {
         if (alias == null) {
             return other ;
@@ -583,47 +764,6 @@ public class Schema {
         else {
             return alias ;
         }
-    }
-
-    /***
-     * Merge types if possible
-     * @param type1
-     * @param type2
-     * @return the merged type, or DataType.ERROR if not successful
-     */
-    private byte mergeType(byte type1, byte type2) {
-        // Only legal types can be merged
-        if ( (!DataType.isUsableType(type1)) ||
-             (!DataType.isUsableType(type2)) ) {
-            return DataType.ERROR ;
-        }
-
-        // Same type is OK
-        if (type1==type2) {
-            return type1 ;
-        }
-
-        // Both are number so we return the bigger type
-        if ( (DataType.isNumberType(type1)) &&
-             (DataType.isNumberType(type2)) ) {
-            return type1>type2 ? type1:type2 ;
-        }
-
-        // One is bytearray and the other is (number or chararray)
-        if ( (type1 == DataType.BYTEARRAY) &&
-                ( (type2 == DataType.CHARARRAY) || (DataType.isNumberType(type2)) )
-              ) {
-            return type2 ;
-        }
-
-        if ( (type2 == DataType.BYTEARRAY) &&
-                ( (type1 == DataType.CHARARRAY) || (DataType.isNumberType(type1)) )
-              ) {
-            return type1 ;
-        }
-
-        // else return just ERROR
-        return DataType.ERROR ;
     }
 
 

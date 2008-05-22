@@ -1,9 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.pig.test;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import junit.framework.TestCase;
 
@@ -14,12 +30,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema ;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.MultiMap;
-import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
 import org.apache.pig.data.*;
-import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.junit.Test;
+import static org.apache.pig.test.utils.TypeCheckingTestUtil.* ;
 
 public class TestTypeCheckingValidator extends TestCase {
 
@@ -54,7 +69,7 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;    
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (collector.hasError()) {
@@ -110,7 +125,7 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;    
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (collector.hasError()) {
@@ -156,7 +171,7 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;               
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (collector.hasError()) {
@@ -204,7 +219,7 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;             
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (collector.hasError()) {
@@ -253,7 +268,7 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;             
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (collector.hasError()) {
@@ -298,7 +313,7 @@ public class TestTypeCheckingValidator extends TestCase {
         catch (PlanValidationException pve) {
             // good
         }
-        printMessageCollector(collector) ;             
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (!collector.hasError()) {
@@ -340,7 +355,7 @@ public class TestTypeCheckingValidator extends TestCase {
         catch (PlanValidationException pve) {
             // good
         }        
-        printMessageCollector(collector) ;    
+        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
         if (!collector.hasError()) {
@@ -372,7 +387,7 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;       
+        printMessageCollector(collector) ;
         
         printTypeGraph(plan) ;
         
@@ -607,6 +622,8 @@ public class TestTypeCheckingValidator extends TestCase {
     // This tests when both inputs need casting
     @Test
     public void testUnionCastingInsert1() throws Throwable {
+
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -729,6 +746,8 @@ public class TestTypeCheckingValidator extends TestCase {
     // This tests when both only on input needs casting
     @Test
     public void testUnionCastingInsert2() throws Throwable {
+
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -827,6 +846,8 @@ public class TestTypeCheckingValidator extends TestCase {
 
     }
 
+    // This has to fail under strict typing mode
+    /*
     // This is a negative test
     // Two inputs cannot be merged due to incompatible schemas
     @Test
@@ -893,9 +914,12 @@ public class TestTypeCheckingValidator extends TestCase {
         printMessageCollector(collector) ;
 
     }
+    */
 
     @Test
     public void testDistinct1() throws Throwable {
+
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -961,7 +985,9 @@ public class TestTypeCheckingValidator extends TestCase {
 
     // Filter test helper
     public void testFilterWithInnerPlan(byte field1Type, byte field2Type) throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1029,7 +1055,9 @@ public class TestTypeCheckingValidator extends TestCase {
     // Negative test
     @Test
     public void testFilterWithInnerPlan3() throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1097,7 +1125,9 @@ public class TestTypeCheckingValidator extends TestCase {
     // Simple project sort columns
     @Test
     public void testSortWithInnerPlan1() throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1167,15 +1197,17 @@ public class TestTypeCheckingValidator extends TestCase {
         assertEquals(endResultSchema.getField(1).type, DataType.INTEGER) ;
 
         // inner
-        assertEquals(getSingleLeafPlanOutputType(innerPlan1), DataType.INTEGER);
-        assertEquals(getSingleLeafPlanOutputType(innerPlan2), DataType.LONG);
+        assertEquals(innerPlan1.getSingleLeafPlanOutputType(), DataType.INTEGER);
+        assertEquals(innerPlan2.getSingleLeafPlanOutputType(), DataType.LONG);
 
     }
 
     // Positive expression sort columns
     @Test
     public void testSortWithInnerPlan2() throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1263,15 +1295,17 @@ public class TestTypeCheckingValidator extends TestCase {
         assertEquals(endResultSchema.getField(1).type, DataType.INTEGER) ;
 
         // inner
-        assertEquals(getSingleLeafPlanOutputType(innerPlan1), DataType.INTEGER);
-        assertEquals(getSingleLeafPlanOutputType(innerPlan2), DataType.LONG);
+        assertEquals(innerPlan1.getSingleLeafPlanOutputType(), DataType.INTEGER);
+        assertEquals(innerPlan2.getSingleLeafPlanOutputType(), DataType.LONG);
 
     }
     
     // Negative test on expression sort columns
     @Test
     public void testSortWithInnerPlan3() throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1364,7 +1398,9 @@ public class TestTypeCheckingValidator extends TestCase {
     // Positive expression cond columns
     @Test
     public void testSplitWithInnerPlan1() throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1482,15 +1518,17 @@ public class TestTypeCheckingValidator extends TestCase {
         }
 
         // inner conditions: all have to be boolean
-        assertEquals(getSingleLeafPlanOutputType(innerPlan1), DataType.BOOLEAN);
-        assertEquals(getSingleLeafPlanOutputType(innerPlan2), DataType.BOOLEAN);
+        assertEquals(innerPlan1.getSingleLeafPlanOutputType(), DataType.BOOLEAN);
+        assertEquals(innerPlan2.getSingleLeafPlanOutputType(), DataType.BOOLEAN);
 
     }
 
     // Negative test: expression cond columns not evaluate to boolean
     @Test
     public void testSplitWithInnerPlan2() throws Throwable {
+
         // Create outer plan
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1592,7 +1630,9 @@ public class TestTypeCheckingValidator extends TestCase {
 
     // Positive test
     @Test
-    public void testCOGroupWithInnerPlan1() throws Throwable {
+    public void testCOGroupWithInnerPlan1GroupByTuple1() throws Throwable {
+
+        printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
         String pigStorage = PigStorage.class.getName() ;
@@ -1684,6 +1724,12 @@ public class TestTypeCheckingValidator extends TestCase {
         innerPlan12.connect(project121, subtract121);
         innerPlan12.connect(const121, subtract121) ;
 
+        // Create expression inner plan #2 of input #2
+        LogicalPlan innerPlan22 = new LogicalPlan() ;
+        LOConst const122 = new LOConst(innerPlan22, genNewOperatorKey(), 26) ;
+        const122.setType(DataType.INTEGER);
+        innerPlan22.add(const122) ;
+
         // Create Cogroup
         ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>() ;
         inputs.add(load1) ;
@@ -1694,6 +1740,7 @@ public class TestTypeCheckingValidator extends TestCase {
         maps.put(load1, innerPlan11);
         maps.put(load1, innerPlan21);
         maps.put(load2, innerPlan12);
+        maps.put(load2, innerPlan22);
 
         boolean[] isInner = new boolean[inputs.size()] ;
         for (int i=0; i < isInner.length ; i++) {
@@ -1726,8 +1773,12 @@ public class TestTypeCheckingValidator extends TestCase {
         
         // check outer schema
         Schema endResultSchema = cogroup1.getSchema() ;
-        // TODO: First column has to be discussed again
-        //assertEquals(endResultSchema.getField(0).type, DataType.BYTEARRAY) ;
+
+        // Tuple group column
+        assertEquals(endResultSchema.getField(0).type, DataType.TUPLE) ;
+        assertEquals(endResultSchema.getField(0).schema.getField(0).type, DataType.DOUBLE) ;
+        assertEquals(endResultSchema.getField(0).schema.getField(1).type, DataType.LONG);
+
         assertEquals(endResultSchema.getField(1).type, DataType.BAG) ;
         assertEquals(endResultSchema.getField(2).type, DataType.BAG) ;
 
@@ -1742,11 +1793,746 @@ public class TestTypeCheckingValidator extends TestCase {
         assertEquals(innerSchema2.getField(1).type, DataType.INTEGER);
 
         // check group by col end result
-        assertEquals(getSingleLeafPlanOutputType(innerPlan11), DataType.FLOAT) ;
-        assertEquals(getSingleLeafPlanOutputType(innerPlan21), DataType.LONG) ;
-        assertEquals(getSingleLeafPlanOutputType(innerPlan12), DataType.DOUBLE) ;       
+        assertEquals(innerPlan11.getSingleLeafPlanOutputType(), DataType.DOUBLE) ;
+        assertEquals(innerPlan21.getSingleLeafPlanOutputType(), DataType.LONG) ;
+        assertEquals(innerPlan12.getSingleLeafPlanOutputType(), DataType.DOUBLE) ;
+        assertEquals(innerPlan22.getSingleLeafPlanOutputType(), DataType.LONG) ;
     }
 
+
+    // Positive test
+    @Test
+    public void testCOGroupWithInnerPlan1GroupByAtom1() throws Throwable {
+
+        printCurrentMethodName();
+        LogicalPlan plan = new LogicalPlan() ;
+
+        String pigStorage = PigStorage.class.getName() ;
+
+        LOLoad load1 = new LOLoad(plan,
+                                  genNewOperatorKey(),
+                                  new FileSpec("pi", pigStorage),
+                                  null) ;
+        LOLoad load2 = new LOLoad(plan,
+                                  genNewOperatorKey(),
+                                  new FileSpec("pi", pigStorage),
+                                  null) ;
+
+        // schema for input#1
+        Schema inputSchema1 = null ;
+        {
+            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+            fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
+            inputSchema1 = new Schema(fsList1) ;
+        }
+
+        // schema for input#2
+        Schema inputSchema2 = null ;
+        {
+            List<FieldSchema> fsList2 = new ArrayList<FieldSchema>() ;
+            fsList2.add(new FieldSchema("field1b", DataType.DOUBLE)) ;
+            fsList2.add(new FieldSchema(null, DataType.INTEGER)) ;
+            inputSchema2 = new Schema(fsList2) ;
+        }
+
+        // set schemas
+        load1.setEnforcedSchema(inputSchema1) ;
+        load2.setEnforcedSchema(inputSchema2) ;
+
+        // Create expression inner plan #1 of input #1
+        LogicalPlan innerPlan11 = new LogicalPlan() ;
+        LOProject project111 = new LOProject(innerPlan11, genNewOperatorKey(), load1, 0) ;
+        project111.setSentinel(true);
+        LOConst const111 = new LOConst(innerPlan11, genNewOperatorKey(), 26F) ;
+        const111.setType(DataType.FLOAT);
+        LOSubtract subtract111 = new LOSubtract(innerPlan11,
+                                                genNewOperatorKey(),
+                                                project111,
+                                                const111) ;
+
+        innerPlan11.add(project111) ;
+        innerPlan11.add(const111) ;
+        innerPlan11.add(subtract111) ;
+
+        innerPlan11.connect(project111, subtract111);
+        innerPlan11.connect(const111, subtract111) ;
+
+        // Create expression inner plan #1 of input #2
+        LogicalPlan innerPlan12 = new LogicalPlan() ;
+        LOProject project121 = new LOProject(innerPlan12, genNewOperatorKey(), load2, 0) ;
+        project121.setSentinel(true);
+        LOConst const121 = new LOConst(innerPlan12, genNewOperatorKey(), 26) ;
+        const121.setType(DataType.INTEGER);
+        LOSubtract subtract121 = new LOSubtract(innerPlan12,
+                                                genNewOperatorKey(),
+                                                project121,
+                                                const121) ;
+
+        innerPlan12.add(project121) ;
+        innerPlan12.add(const121) ;
+        innerPlan12.add(subtract121) ;
+
+        innerPlan12.connect(project121, subtract121);
+        innerPlan12.connect(const121, subtract121) ;
+
+        // Create Cogroup
+        ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>() ;
+        inputs.add(load1) ;
+        inputs.add(load2) ;
+
+        MultiMap<LogicalOperator, LogicalPlan> maps
+                            = new MultiMap<LogicalOperator, LogicalPlan>() ;
+        maps.put(load1, innerPlan11);
+        maps.put(load2, innerPlan12);
+
+        boolean[] isInner = new boolean[inputs.size()] ;
+        for (int i=0; i < isInner.length ; i++) {
+            isInner[i] = false ;
+        }
+
+        LOCogroup cogroup1 = new LOCogroup(plan,
+                                           genNewOperatorKey(),
+                                           inputs,
+                                           maps,
+                                           isInner) ;
+
+        // construct the main plan
+        plan.add(load1) ;
+        plan.add(load2) ;
+        plan.add(cogroup1) ;
+
+        plan.connect(load1, cogroup1);
+        plan.connect(load2, cogroup1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no error") ;
+        }
+
+        // check outer schema
+        Schema endResultSchema = cogroup1.getSchema() ;
+
+        // Tuple group column
+        assertEquals(endResultSchema.getField(0).type, DataType.DOUBLE) ;
+
+        assertEquals(endResultSchema.getField(1).type, DataType.BAG) ;
+        assertEquals(endResultSchema.getField(2).type, DataType.BAG) ;
+
+        // check inner schema1
+        Schema innerSchema1 = endResultSchema.getField(1).schema ;
+        assertEquals(innerSchema1.getField(0).type, DataType.INTEGER);
+        assertEquals(innerSchema1.getField(1).type, DataType.LONG);
+
+        // check inner schema2
+        Schema innerSchema2 = endResultSchema.getField(2).schema ;
+        assertEquals(innerSchema2.getField(0).type, DataType.DOUBLE);
+        assertEquals(innerSchema2.getField(1).type, DataType.INTEGER);
+
+        // check group by col end result
+        assertEquals(innerPlan11.getSingleLeafPlanOutputType(), DataType.DOUBLE) ;
+        assertEquals(innerPlan12.getSingleLeafPlanOutputType(), DataType.DOUBLE) ;
+    }
+
+
+    // Positive test
+    @Test
+    public void testCOGroupWithInnerPlan1GroupByIncompatibleAtom1() throws Throwable {
+
+        printCurrentMethodName();
+        LogicalPlan plan = new LogicalPlan() ;
+
+        String pigStorage = PigStorage.class.getName() ;
+
+        LOLoad load1 = new LOLoad(plan,
+                                  genNewOperatorKey(),
+                                  new FileSpec("pi", pigStorage),
+                                  null) ;
+        LOLoad load2 = new LOLoad(plan,
+                                  genNewOperatorKey(),
+                                  new FileSpec("pi", pigStorage),
+                                  null) ;
+
+        // schema for input#1
+        Schema inputSchema1 = null ;
+        {
+            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+            fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
+            inputSchema1 = new Schema(fsList1) ;
+        }
+
+        // schema for input#2
+        Schema inputSchema2 = null ;
+        {
+            List<FieldSchema> fsList2 = new ArrayList<FieldSchema>() ;
+            fsList2.add(new FieldSchema("field1b", DataType.DOUBLE)) ;
+            fsList2.add(new FieldSchema(null, DataType.INTEGER)) ;
+            inputSchema2 = new Schema(fsList2) ;
+        }
+
+        // set schemas
+        load1.setEnforcedSchema(inputSchema1) ;
+        load2.setEnforcedSchema(inputSchema2) ;
+
+        // Create expression inner plan #1
+        LogicalPlan innerPlan11 = new LogicalPlan() ;
+        LOProject project111 = new LOProject(innerPlan11, genNewOperatorKey(), load1, 0) ;
+        project111.setSentinel(true);
+        LOConst const111 = new LOConst(innerPlan11, genNewOperatorKey(), 26F) ;
+        const111.setType(DataType.FLOAT);
+        LOSubtract subtract111 = new LOSubtract(innerPlan11,
+                                                genNewOperatorKey(),
+                                                project111,
+                                                const111) ;
+
+        innerPlan11.add(project111) ;
+        innerPlan11.add(const111) ;
+        innerPlan11.add(subtract111) ;
+
+        innerPlan11.connect(project111, subtract111);
+        innerPlan11.connect(const111, subtract111) ;
+
+        // Create expression inner plan #2
+        LogicalPlan innerPlan12 = new LogicalPlan() ;
+        LOConst const121 = new LOConst(innerPlan12, genNewOperatorKey(), 26) ;
+        const121.setType(DataType.CHARARRAY);
+        innerPlan12.add(const121) ;
+
+        // Create Cogroup
+        ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>() ;
+        inputs.add(load1) ;
+        inputs.add(load2) ;
+
+        MultiMap<LogicalOperator, LogicalPlan> maps
+                            = new MultiMap<LogicalOperator, LogicalPlan>() ;
+        maps.put(load1, innerPlan11);
+        maps.put(load2, innerPlan12);
+
+        boolean[] isInner = new boolean[inputs.size()] ;
+        for (int i=0; i < isInner.length ; i++) {
+            isInner[i] = false ;
+        }
+
+        LOCogroup cogroup1 = new LOCogroup(plan,
+                                           genNewOperatorKey(),
+                                           inputs,
+                                           maps,
+                                           isInner) ;
+
+        // construct the main plan
+        plan.add(load1) ;
+        plan.add(load2) ;
+        plan.add(cogroup1) ;
+
+        plan.connect(load1, cogroup1);
+        plan.connect(load2, cogroup1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no error") ;
+        }
+
+        // check outer schema
+        Schema endResultSchema = cogroup1.getSchema() ;
+
+        // Tuple group column
+        assertEquals(endResultSchema.getField(0).type, DataType.BYTEARRAY) ;
+
+        assertEquals(endResultSchema.getField(1).type, DataType.BAG) ;
+        assertEquals(endResultSchema.getField(2).type, DataType.BAG) ;
+
+        // check inner schema1
+        Schema innerSchema1 = endResultSchema.getField(1).schema ;
+        assertEquals(innerSchema1.getField(0).type, DataType.INTEGER);
+        assertEquals(innerSchema1.getField(1).type, DataType.LONG);
+
+        // check inner schema2
+        Schema innerSchema2 = endResultSchema.getField(2).schema ;
+        assertEquals(innerSchema2.getField(0).type, DataType.DOUBLE);
+        assertEquals(innerSchema2.getField(1).type, DataType.INTEGER);
+
+        // check group by col end result
+        assertEquals(innerPlan11.getSingleLeafPlanOutputType(), DataType.BYTEARRAY) ;
+        assertEquals(innerPlan12.getSingleLeafPlanOutputType(), DataType.BYTEARRAY) ;
+    }
+
+
+    // Positive test
+    @Test
+    public void testForEachGenerate1() throws Throwable {
+
+        printCurrentMethodName() ;
+
+        LogicalPlan plan = new LogicalPlan() ;
+        LOLoad load1 = genDummyLOLoad(plan) ;
+
+        // schema for input#1
+        Schema inputSchema1 = null ;
+        {
+            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+            fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
+            inputSchema1 = new Schema(fsList1) ;
+        }
+
+        // set schemas
+        load1.setEnforcedSchema(inputSchema1) ;
+
+        // Create expression inner plan #1
+        LogicalPlan innerPlan1 = new LogicalPlan() ;
+        LOProject project11 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
+        project11.setSentinel(true);
+        LOConst const11 = new LOConst(innerPlan1, genNewOperatorKey(), 26F) ;
+        const11.setType(DataType.FLOAT);
+        LOSubtract subtract11 = new LOSubtract(innerPlan1,
+                                                genNewOperatorKey(),
+                                                project11,
+                                                const11) ;
+
+        innerPlan1.add(project11) ;
+        innerPlan1.add(const11) ;
+        innerPlan1.add(subtract11) ;
+
+        innerPlan1.connect(project11, subtract11);
+        innerPlan1.connect(const11, subtract11) ;
+
+        // Create expression inner plan #2
+        LogicalPlan innerPlan2 = new LogicalPlan() ;
+        LOProject project21 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
+        project21.setSentinel(true);
+        LOProject project22 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 1) ;
+        project21.setSentinel(true);
+        LOAdd add21 = new LOAdd(innerPlan1,
+                                genNewOperatorKey(),
+                                project21,
+                                project22) ;
+
+        innerPlan2.add(project21) ;
+        innerPlan2.add(project22) ;
+        innerPlan2.add(add21) ;
+
+        innerPlan2.connect(project21, add21);
+        innerPlan2.connect(project22, add21);
+
+        // List of plans
+        ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>() ;
+        generatePlans.add(innerPlan1);
+        generatePlans.add(innerPlan2);
+
+        // List of flatten flags
+        ArrayList<Boolean> flattens = new ArrayList<Boolean>() ;
+        flattens.add(true) ;
+        flattens.add(false) ;
+
+        // Create LOGenerate
+        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
+
+        LogicalPlan foreachPlan = new LogicalPlan() ;
+        foreachPlan.add(generate1) ;
+
+        // Create LOForEach
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+
+        // construct the main plan
+        plan.add(load1) ;
+        plan.add(foreach1) ;
+
+        plan.connect(load1, foreach1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no error") ;
+        }
+
+        // check outer schema
+        Schema endResultSchema = foreach1.getSchema() ;
+
+        assertEquals(endResultSchema.getField(0).type, DataType.FLOAT) ;
+        assertEquals(endResultSchema.getField(1).type, DataType.LONG) ;
+
+    }
+
+    // Negative test
+    @Test
+    public void testForEachGenerate2() throws Throwable {
+
+        printCurrentMethodName() ;
+
+        LogicalPlan plan = new LogicalPlan() ;
+        LOLoad load1 = genDummyLOLoad(plan) ;
+
+        // schema for input#1
+        Schema inputSchema1 = null ;
+        {
+            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+            fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
+            inputSchema1 = new Schema(fsList1) ;
+        }
+
+        // set schemas
+        load1.setEnforcedSchema(inputSchema1) ;
+
+        // Create expression inner plan #1
+        LogicalPlan innerPlan1 = new LogicalPlan() ;
+        LOProject project11 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
+        project11.setSentinel(true);
+        LOConst const11 = new LOConst(innerPlan1, genNewOperatorKey(), 26F) ;
+        const11.setType(DataType.CHARARRAY);
+        LOSubtract subtract11 = new LOSubtract(innerPlan1,
+                                                genNewOperatorKey(),
+                                                project11,
+                                                const11) ;
+
+        innerPlan1.add(project11) ;
+        innerPlan1.add(const11) ;
+        innerPlan1.add(subtract11) ;
+
+        innerPlan1.connect(project11, subtract11);
+        innerPlan1.connect(const11, subtract11) ;
+
+        // Create expression inner plan #2
+        LogicalPlan innerPlan2 = new LogicalPlan() ;
+        LOProject project21 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
+        project21.setSentinel(true);
+        LOProject project22 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 1) ;
+        project21.setSentinel(true);
+        LOAdd add21 = new LOAdd(innerPlan1,
+                                genNewOperatorKey(),
+                                project21,
+                                project22) ;
+
+        innerPlan2.add(project21) ;
+        innerPlan2.add(project22) ;
+        innerPlan2.add(add21) ;
+
+        innerPlan2.connect(project21, add21);
+        innerPlan2.connect(project22, add21);
+
+        // List of plans
+        ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>() ;
+        generatePlans.add(innerPlan1);
+        generatePlans.add(innerPlan2);
+
+        // List of flatten flags
+        ArrayList<Boolean> flattens = new ArrayList<Boolean>() ;
+        flattens.add(true) ;
+        flattens.add(false) ;
+
+        // Create LOGenerate
+        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
+
+        LogicalPlan foreachPlan = new LogicalPlan() ;
+        foreachPlan.add(generate1) ;
+
+        // Create LOForEach
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+
+        // construct the main plan
+        plan.add(load1) ;
+        plan.add(foreach1) ;
+
+        plan.connect(load1, foreach1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+            fail("Exception expected") ;
+        }
+        catch (PlanValidationException pve) {
+            // good
+        }
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        if (!collector.hasError()) {
+            throw new AssertionError("Expect error") ;
+        }
+
+    }
+
+    /*
+
+    // Positive test
+    // This one does project bag in inner plans
+    @Test
+    public void testForEachGenerate3() throws Throwable {
+
+        printCurrentMethodName() ;
+
+        LogicalPlan plan = new LogicalPlan() ;
+        LOLoad load1 = genDummyLOLoad(plan) ;
+
+        String[] aliases = new String[]{ "a", "b", "c" } ;
+        byte[] types = new byte[] { DataType.INTEGER, DataType.LONG, DataType.BYTEARRAY } ;
+        Schema innerSchema1 = genFlatSchema(aliases, types) ;
+
+        // schema for input#1
+        Schema inputSchema1 = null ;
+        {
+            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+            fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
+            fsList1.add(new FieldSchema("field3a", innerSchema1, DataType.BAG)) ;
+            inputSchema1 = new Schema(fsList1) ;
+        }
+
+        // set schemas
+        load1.setEnforcedSchema(inputSchema1) ;
+
+        // Create expression inner plan #1 of input #1
+        LogicalPlan innerPlan1 = new LogicalPlan() ;
+        LOProject project11 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 2) ;
+        project11.setSentinel(true);
+        List<Integer> projections1 = new ArrayList<Integer>() ;
+        projections1.add(1) ;
+        projections1.add(2) ;
+        LOProject project12 = new LOProject(innerPlan1, genNewOperatorKey(), project11, projections1) ;
+        project12.setSentinel(false);
+
+        innerPlan1.add(project12) ;
+
+        // Create expression inner plan #1 of input #2
+        LogicalPlan innerPlan2 = new LogicalPlan() ;
+        LOProject project21 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
+        project21.setSentinel(true);
+        LOProject project22 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 1) ;
+        project21.setSentinel(true);
+        LOAdd add21 = new LOAdd(innerPlan1,
+                                genNewOperatorKey(),
+                                project21,
+                                project22) ;
+
+        innerPlan2.add(project21) ;
+        innerPlan2.add(project22) ;
+        innerPlan2.add(add21) ;
+
+        innerPlan2.connect(project21, add21);
+        innerPlan2.connect(project22, add21);
+
+        // List of plans
+        ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>() ;
+        generatePlans.add(innerPlan1);
+        generatePlans.add(innerPlan2);
+
+        // List of flatten flags
+        ArrayList<Boolean> flattens = new ArrayList<Boolean>() ;
+        flattens.add(false) ;
+        flattens.add(false) ;
+
+        // Create LOGenerate
+        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
+
+        LogicalPlan foreachPlan = new LogicalPlan() ;
+        foreachPlan.add(generate1) ;
+
+        // Create LOForEach
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+
+        // construct the main plan
+        plan.add(load1) ;
+        plan.add(foreach1) ;
+
+        plan.connect(load1, foreach1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+        
+        // check outer schema
+        Schema endResultSchema = foreach1.getSchema() ;
+        assertEquals(endResultSchema.getField(0).type, DataType.BAG) ;
+        assertEquals(endResultSchema.getField(1).type, DataType.LONG) ;
+
+        // check inner bag schema
+        Schema bagSchema = endResultSchema.getField(0).schema ;
+        assertEquals(bagSchema.getField(0).type, DataType.LONG) ;
+        assertEquals(bagSchema.getField(1).type, DataType.BYTEARRAY) ;
+
+    }
+
+    */
+
+    // Positive test
+    // This one does project bag in inner plans with flatten
+    @Test
+    public void testForEachGenerate4() throws Throwable {
+
+        printCurrentMethodName() ;
+
+        LogicalPlan plan = new LogicalPlan() ;
+        LOLoad load1 = genDummyLOLoad(plan) ;
+
+        String[] aliases = new String[]{ "a", "b", "c" } ;
+        byte[] types = new byte[] { DataType.INTEGER, DataType.LONG, DataType.BYTEARRAY } ;
+        Schema innerSchema1 = genFlatSchema(aliases, types) ;
+
+        // schema for input#1
+        Schema inputSchema1 = null ;
+        {
+            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+            fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
+            fsList1.add(new FieldSchema("field3a", innerSchema1, DataType.BAG)) ;
+            inputSchema1 = new Schema(fsList1) ;
+        }
+
+        // set schemas
+        load1.setEnforcedSchema(inputSchema1) ;
+
+        // Create expression inner plan #1 of input #1
+        LogicalPlan innerPlan1 = new LogicalPlan() ;
+        LOProject project11 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 2) ;
+        project11.setSentinel(true);
+        List<Integer> projections1 = new ArrayList<Integer>() ;
+        projections1.add(1) ;
+        projections1.add(2) ;
+        LOProject project12 = new LOProject(innerPlan1, genNewOperatorKey(), project11, projections1) ;
+        project12.setSentinel(false);
+
+        innerPlan1.add(project12) ;
+
+        // Create expression inner plan #1 of input #2
+        LogicalPlan innerPlan2 = new LogicalPlan() ;
+        LOProject project21 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
+        project21.setSentinel(true);
+        LOProject project22 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 1) ;
+        project21.setSentinel(true);
+        LOAdd add21 = new LOAdd(innerPlan1,
+                                genNewOperatorKey(),
+                                project21,
+                                project22) ;
+
+        innerPlan2.add(project21) ;
+        innerPlan2.add(project22) ;
+        innerPlan2.add(add21) ;
+
+        innerPlan2.connect(project21, add21);
+        innerPlan2.connect(project22, add21);
+
+        // List of plans
+        ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>() ;
+        generatePlans.add(innerPlan1);
+        generatePlans.add(innerPlan2);
+
+        // List of flatten flags
+        ArrayList<Boolean> flattens = new ArrayList<Boolean>() ;
+        flattens.add(true) ;
+        flattens.add(false) ;
+
+        // Create LOGenerate
+        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
+
+        LogicalPlan foreachPlan = new LogicalPlan() ;
+        foreachPlan.add(generate1) ;
+
+        // Create LOForEach
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+
+        // construct the main plan
+        plan.add(load1) ;
+        plan.add(foreach1) ;
+
+        plan.connect(load1, foreach1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        // check outer schema
+        Schema endResultSchema = foreach1.getSchema() ;
+        assertEquals(endResultSchema.getField(0).type, DataType.LONG) ;
+        assertEquals(endResultSchema.getField(1).type, DataType.BYTEARRAY) ;
+        assertEquals(endResultSchema.getField(2).type, DataType.LONG) ;
+    }
+
+    @Test
+    public void testCross1() throws Throwable {
+
+        printCurrentMethodName();
+        LogicalPlan plan = new LogicalPlan() ;
+
+        String pigStorage = PigStorage.class.getName() ;
+
+        LOLoad load1 = genDummyLOLoad(plan) ;
+        LOLoad load2 = genDummyLOLoad(plan) ;
+
+        String[] aliases1 = new String[]{ "a", "b", "c" } ;
+        byte[] types1 = new byte[] { DataType.INTEGER, DataType.LONG, DataType.BYTEARRAY } ;
+        Schema schema1 = genFlatSchema(aliases1, types1) ;
+
+        String[] aliases2 = new String[]{ "e", "f" } ;
+        byte[] types2 = new byte[] { DataType.FLOAT, DataType.DOUBLE } ;
+        Schema schema2 = genFlatSchema(aliases2, types2) ;
+
+        // set schemas
+        load1.setEnforcedSchema(schema1) ;
+        load2.setEnforcedSchema(schema2) ;
+
+        // create union operator
+        ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
+        inputList.add(load1) ;
+        inputList.add(load2) ;
+        LOCross cross = new LOCross(plan, genNewOperatorKey(), inputList) ;
+
+        // wiring
+        plan.add(load1) ;
+        plan.add(load2) ;
+        plan.add(cross) ;
+
+        plan.connect(load1, cross);
+        plan.connect(load2, cross);
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+
+        assertEquals(cross.getSchema().size(), 5) ;
+        assertEquals(cross.getSchema().getField(0).type, DataType.INTEGER);
+        assertEquals(cross.getSchema().getField(1).type, DataType.LONG);
+        assertEquals(cross.getSchema().getField(2).type, DataType.BYTEARRAY);
+        assertEquals(cross.getSchema().getField(3).type, DataType.FLOAT);
+        assertEquals(cross.getSchema().getField(4).type, DataType.DOUBLE);
+
+    }
+
+
+    ////////////////////////// Helper //////////////////////////////////
     private void checkForEachCasting(LOForEach foreach, int idx, boolean isCast, byte toType) {
         LOGenerate generate = (LOGenerate) foreach.getForEachPlan().getRoots().get(0) ;
         LogicalPlan plan = generate.getGeneratePlans().get(idx) ;
@@ -1764,36 +2550,6 @@ public class TestTypeCheckingValidator extends TestCase {
         }
         
     }
-
-    private byte getSingleLeafPlanOutputType(LogicalPlan plan) throws Throwable {
-        List<LogicalOperator> list = plan.getLeaves() ;
-        if (list.size() != 1) {
-            throw new AssertionError("The plan has more than one leaf node") ;
-        }
-        return list.get(0).getType() ;
-    }
     
-    private OperatorKey genNewOperatorKey() {
-        long newId = NodeIdGenerator.getGenerator().getNextNodeId("scope") ;
-        return new OperatorKey("scope", newId) ;
-    }   
-    
-    private void printTypeGraph(LogicalPlan plan) {
-        System.out.println("*****Type Graph*******") ;
-        TypeGraphPrinter printer = new TypeGraphPrinter(plan) ;
-        String rep = printer.printToString() ;
-        System.out.println(rep) ;
-    }
-    
-    private void printMessageCollector(CompilationMessageCollector collector) {
-        if (collector.hasMessage()) {
-            System.out.println("*****MessageCollector dump*******") ;
-            Iterator<Message> it1 = collector.iterator() ;
-            while (it1.hasNext()) {
-                Message msg = it1.next() ;
-                System.out.println(msg.getMessageType() + ":" + msg.getMessage());
-            }
-        }
-    }
 
 }

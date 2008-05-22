@@ -183,4 +183,9 @@ public class LOCross extends LogicalOperator {
         v.visit(this);
     }
 
+    @Override
+    public byte getType() {
+        return DataType.BAG ;
+    }
+
 }

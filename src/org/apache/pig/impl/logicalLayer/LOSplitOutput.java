@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.data.DataType;
 
 
 public class LOSplitOutput extends LogicalOperator {
@@ -96,5 +97,9 @@ public class LOSplitOutput extends LogicalOperator {
 
     public int getReadFrom() {
         return mIndex;
+    }
+
+    public byte getType() {
+        return DataType.BAG ;
     }
 }

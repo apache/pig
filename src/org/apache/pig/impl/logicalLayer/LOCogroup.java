@@ -29,7 +29,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.plan.MultiMap;
@@ -260,6 +259,14 @@ public class LOCogroup extends LogicalOperator {
             mSchema = new Schema(fss);
         }
         return mSchema;
+    }
+
+    public boolean isTupleGroupCol() {
+        if (mInputs == null || mInputs.size() == 0) {
+            throw new AssertionError("COGroup.isTupleGroupCol() can be called "
+                                     + "after it has an input only") ;
+        }
+        return mGroupByPlans.get(mInputs.get(0)).size() > 1 ;
     }
 
     @Override
