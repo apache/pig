@@ -37,6 +37,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
@@ -382,13 +383,12 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
                                            defineAliases);
             List<LogicalOperator> roots = lp.getRoots();
             
+            
             if(roots.size() > 0) {
-                if (logicalOpTable.get(roots.get(0)) instanceof LogicalOperator){
-                    System.out.println(query);
-                    System.out.println(logicalOpTable.get(roots.get(0)));
-                }
-                if ((roots.get(0)).getAlias()!=null){
-                    aliases.put((roots.get(0)).getAlias(), lp);
+                for(LogicalOperator op: roots) {
+                    if (!(op instanceof LOLoad)){
+                        throw new Exception("Cannot have a root that is not the load operator LOLoad. Found " + op.getClass().getName());
+                    }
                 }
             }
             
@@ -427,7 +427,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         return null;
     }
     
-    Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
+    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();

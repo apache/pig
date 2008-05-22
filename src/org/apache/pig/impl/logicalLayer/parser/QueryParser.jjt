@@ -52,7 +52,7 @@ import org.apache.pig.data.DataBag;
 
 public class QueryParser {
 	private PigContext pigContext;
-	private Map<String, LogicalPlan> aliases;
+	private Map<LogicalOperator, LogicalPlan> aliases;
 	private Map<OperatorKey, LogicalOperator> opTable;
 	private String scope;
 	private NodeIdGenerator nodeIdGen;
@@ -68,7 +68,7 @@ public class QueryParser {
 	public QueryParser(InputStream in,
 					   PigContext pigContext, 
 					   String scope, 
-					   Map<String, LogicalPlan> aliases,
+					   Map<LogicalOperator, LogicalPlan> aliases,
 					   Map<OperatorKey, LogicalOperator> opTable,
 					   Map<String, LogicalOperator> aliasOp,
 					   Map<String, ExpressionOperator> defineAliases) {
@@ -270,8 +270,8 @@ public class QueryParser {
 	 void addSplitOutput(LogicalPlan lp, LOSplit splitOp, String alias, LogicalPlan condPlan, int index) throws PlanException{
 		LogicalOperator splitOutput = new LOSplitOutput(lp, new OperatorKey(scope, getNextId()), index, condPlan);
 		splitOp.addOutput(splitOutput);
-		//splitOp.addOutputAlias(alias, condPlan);
 		addAlias(alias, splitOutput);
+        addLogicalPlan(splitOutput, lp);
 		
 		lp.add(splitOutput);
 		log.debug("Added alias: " + splitOutput.getAlias() + " class: " 
@@ -332,6 +332,34 @@ public class QueryParser {
 	 //END
 	
 	private static Map<String, Byte> nameToTypeMap = DataType.genNameToTypeMap();
+
+    public void addLogicalPlan(LogicalOperator op, LogicalPlan plan) {
+        aliases.put(op, plan);
+    }
+
+    public LogicalPlan getLogicalPlan(LogicalOperator op) {
+        return aliases.get(op);
+    }
+
+    public void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan) throws ParseException {
+        log.trace("Entering attachPlan");
+        lp.add(root);
+        log.debug("Added operator " + root + " to the logical plan " + lp);
+        if(null == rootPlan.getPredecessors(root)) {
+            log.trace("Exiting attachPlan");
+            return;
+        }
+        for(LogicalOperator rootPred: rootPlan.getPredecessors(root)) {
+            attachPlan(lp, rootPred, rootPlan);
+            try {
+                lp.connect(rootPred, root);
+                log.debug("Connected operator " + rootPred + " to " + root + " in the logical plan " + lp);
+            } catch (FrontendException fee) {
+                throw new ParseException(fee.getMessage());
+            }
+        }
+        log.trace("Exiting attachPlan");
+    }
 }
 
 	
@@ -435,8 +463,29 @@ LogicalPlan Parse() :
 	)
 	{ 
 		if(null != root) {
-				log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
+            log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
+            addLogicalPlan(root, lp);
+			log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
 		}
+
+        ArrayList<LogicalOperator> roots = new ArrayList<LogicalOperator>(lp.getRoots().size());
+        for(LogicalOperator op: lp.getRoots()) {
+            roots.add(op);
+        }
+        
+        for(LogicalOperator op: roots) {
+            //At this point we have a logical plan for the pig statement
+            //In order to construct the entire logical plan we need to traverse
+            //each root and get the logical plan it belongs to. From each of those
+            //plans we need the predecessors of the root of the current logical plan
+            //and so on. This is a computationally intensive operatton but should
+            //be fine as its restricted to the parser
+
+            LogicalPlan rootPlan = aliases.get(op);
+            if(null != rootPlan) {
+                attachPlan(lp, op, rootPlan);
+            }
+        }
 		
 		log.trace("Exiting Parse");
 		return lp; 
@@ -564,7 +613,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 {
 	(
 	(
-	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema);log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.info("Load as atomschema()");schema.printAliases();}) ])
+	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema);log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
 |   (<ORDER> op = OrderClause(lp))
@@ -1485,10 +1534,8 @@ ExpressionOperator MultiplicativeExpr(Schema over, Map<String, LogicalOperator> 
 }
 {
 		(
-//		lhs = UnaryExpr(over,specs,lp,input)
 		lhs = CastExpr(over,specs,lp,input)
 		(
-//		( t = <STAR> | t = "/" | t = "%") rhs = UnaryExpr(over,specs,lp,input) 			
 		( t = <STAR> | t = "/" | t = "%") rhs = CastExpr(over,specs,lp,input) 			
 		{
 			assertAtomic(lhs,true);
@@ -1564,7 +1611,6 @@ ExpressionOperator NegativeExpr(Schema over, Map<String, LogicalOperator> specs,
 	log.trace("Entering NegativeExpr");
 }
 {
-//	"-" c1=UnaryExpr(over,specs,lp,input)
 	"-" c1=CastExpr(over,specs,lp,input)
 	{
 		ExpressionOperator eOp = new LONegative(lp, new OperatorKey(scope, getNextId()), c1);
@@ -1768,12 +1814,6 @@ ExpressionOperator FuncDeclareSpec(LogicalPlan lp) :
 	[type = Type()] funcName=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
 	{
 		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
-		//lp.add(userFunc);
-		//log.debug("FuncDeclareSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
-		//for(ExpressionOperator exprOp: args) {
-			//lp.connect(exprOp, userFunc);
-			//log.debug("FuncDeclareSpec: Connected operator " + exprOp.getClass().getName() + " " + exprOp+ " to " + userFunc + " logical plan " + lp);
-		//}
 		log.trace("Exiting FuncDeclareSpec");
 		return userFunc;
 	}
@@ -1815,8 +1855,6 @@ ExpressionOperator FuncDeclareArgsItem(LogicalPlan lp):
 			project.setAlias(t.image); 
 		}
 		item = project;
-		//lp.add(project);
-		log.debug("FuncDeclareArgsItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
 	}
 	)
 	{log.trace("Exiting FuncDeclareArgsItem");return item;}

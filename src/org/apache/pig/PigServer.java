@@ -84,7 +84,7 @@ public class PigServer {
     }
 
 
-    Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
+    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
@@ -252,7 +252,7 @@ public class PigServer {
      * result
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
-        if (!aliases.containsKey(id))
+        if (!aliases.containsKey(aliasOp.get(id)))
             throw new IOException("Invalid alias: " + id);
 
         try {
@@ -471,7 +471,14 @@ public class PigServer {
     }
   
     public Map<String, LogicalPlan> getAliases() {
-        return this.aliases;
+        Map<String, LogicalPlan> aliasPlans = new HashMap<String, LogicalPlan>();
+        for(LogicalOperator op: this.aliases.keySet()) {
+            String alias = op.getAlias();
+            if(null != alias) {
+                aliasPlans.put(alias, this.aliases.get(op));
+            }
+        }
+        return aliasPlans;
     }
     
     public void shutdown() {

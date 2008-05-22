@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +29,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 
 public class StandAloneParser {
     
@@ -66,9 +68,10 @@ public class StandAloneParser {
         try{        
             pig.registerQuery(query);
             System.out.print("Current aliases: ");
-            for (Iterator<String> it = pig.getAliases().keySet().iterator(); it.hasNext(); ) {
+            Map<String, LogicalPlan> aliasPlan = pig.getAliases();
+            for (Iterator<String> it = aliasPlan.keySet().iterator(); it.hasNext(); ) {
                 String alias = it.next();
-                LogicalPlan lp = pig.getAliases().get(alias);
+                LogicalPlan lp = aliasPlan.get(alias);
                 System.out.print(alias + "->" + lp.getLeaves().get(0).getSchema());
                 if (it.hasNext()) System.out.print(", \n");
                 else System.out.print("\n");

@@ -40,7 +40,7 @@ public class LogicalPlanBuilder {
 
     public LogicalPlan parse(String scope, 
                              String query, 
-                             Map<String, LogicalPlan> aliases,
+                             Map<LogicalOperator, LogicalPlan> aliases,
                              Map<OperatorKey, LogicalOperator> opTable,
                              Map<String, LogicalOperator> aliasOp,
                              Map<String, ExpressionOperator> defineAliases)

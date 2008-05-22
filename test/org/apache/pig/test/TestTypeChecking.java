@@ -207,7 +207,7 @@ public class TestTypeChecking extends TestCase {
                     System.out.println(logicalOpTable.get(roots.get(0)));
                 }
                 if ((roots.get(0)).getAlias()!=null){
-                    aliases.put((roots.get(0)).getAlias(), lp);
+                    aliases.put(roots.get(0), lp);
                 }
             }
 
@@ -232,7 +232,7 @@ public class TestTypeChecking extends TestCase {
         TypeCheckingTestUtil.printTypeGraph(plan) ;
     }
 
-    Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
+    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();

@@ -807,7 +807,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     public void testQuery68() {
         buildPlan(" a = load 'input1';");
-        buildPlan(" b = foreach a generate {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12l, {()})};");
+        buildPlan(" b = foreach a generate 10, {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12l, {()})};");
     }
 
     @Test
@@ -875,7 +875,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testQuery75() {
-        buildPlan("union (load 'a'), (load 'b'), (load 'c');");
+        buildPlan("a = union (load 'a'), (load 'b'), (load 'c');");
+        buildPlan("b = foreach a {generate $0;} parallel 10;");
     }
     
     // Helper Functions
@@ -901,12 +902,10 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             List<LogicalOperator> roots = lp.getRoots();
             
             if(roots.size() > 0) {
-                if (logicalOpTable.get(roots.get(0)) instanceof LogicalOperator){
-                    System.out.println(query);
-                    System.out.println(logicalOpTable.get(roots.get(0)));
-                }
-                if ((roots.get(0)).getAlias()!=null){
-                    aliases.put((roots.get(0)).getAlias(), lp);
+                for(LogicalOperator op: roots) {
+                    if (!(op instanceof LOLoad)){
+                        throw new Exception("Cannot have a root that is not the load operator LOLoad. Found " + op.getClass().getName());
+                    }
                 }
             }
             
@@ -946,7 +945,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         return null;
     }
     
-    Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
+    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
