@@ -25,12 +25,11 @@ import java.util.List;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.mapReduceLayer.plans.MROpPlanVisitor;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.PlanException;
-//import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**

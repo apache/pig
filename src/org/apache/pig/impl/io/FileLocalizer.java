@@ -142,6 +142,7 @@ public class FileLocalizer {
      * @throws IOException
      */
     
+    /*
     public static InputStream openDFSFile(String fileName) throws IOException{
 //      TODO FIX Need to uncomment this with the right logic
         /*PigRecordReader prr = PigInputFormat.PigRecordReader.getPigRecordReader();
@@ -150,8 +151,10 @@ public class FileLocalizer {
             throw new RuntimeException("can't open DFS file while executing locally");
     
         return openDFSFile(fileName, prr.getJobConf());*/
+    /*
         throw new IOException("Unsupported Operation");
     }
+    */
 
     public static InputStream openDFSFile(String fileName, JobConf conf) throws IOException{
         DataStorage dds = new HDataStorage(conf);

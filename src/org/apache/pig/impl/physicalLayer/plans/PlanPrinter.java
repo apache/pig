@@ -27,16 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POSort;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
+import org.apache.pig.impl.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;

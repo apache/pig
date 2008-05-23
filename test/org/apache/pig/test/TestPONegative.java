@@ -28,8 +28,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POProject;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.unaryExprOps.PONegative;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.impl.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.impl.plan.PlanException;
 import org.junit.Before;
 

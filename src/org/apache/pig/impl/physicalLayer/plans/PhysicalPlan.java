@@ -23,7 +23,7 @@ import java.io.OutputStream;
 import java.util.List;
 
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;

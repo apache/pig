@@ -5,8 +5,8 @@ import java.util.List;
 
 import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
+import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;

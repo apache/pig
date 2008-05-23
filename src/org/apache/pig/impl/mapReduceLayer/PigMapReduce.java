@@ -38,11 +38,11 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -65,6 +65,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
  *
  */
 public class PigMapReduce {
+
+    public static JobConf sJobConf = null;
     
     public static class Map extends PigMapBase implements
             Mapper<Text, TargetedTuple, WritableComparable, Writable> {
@@ -102,6 +104,7 @@ public class PigMapReduce {
         @Override
         public void configure(JobConf jConf) {
             super.configure(jConf);
+            sJobConf = jConf;
             try {
                 rp = (PhysicalPlan<PhysicalOperator>) ObjectSerializer.deserialize(jConf
                         .get("pig.reducePlan"));

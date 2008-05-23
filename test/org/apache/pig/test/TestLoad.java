@@ -32,7 +32,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;

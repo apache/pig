@@ -19,23 +19,10 @@ package org.apache.pig.impl.physicalLayer.plans;
 
 import java.util.List;
 
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POFilter;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POForEach;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POGenerate;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POGlobalRearrange;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POLocalRearrange;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POSplit;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PORead;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POSort;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PODistinct;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POUnion;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.relationalOperators.*;
+import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanWalker;

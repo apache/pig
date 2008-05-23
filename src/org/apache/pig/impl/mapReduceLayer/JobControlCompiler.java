@@ -38,11 +38,11 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POLoad;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POPackage;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 

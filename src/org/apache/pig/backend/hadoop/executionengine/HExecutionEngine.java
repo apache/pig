@@ -55,9 +55,9 @@ import org.apache.pig.impl.logicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.POStore;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.shock.SSHSocketImplFactory;
 

@@ -37,12 +37,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PORead;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserComparisonFunc;
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.POUserFunc;
+import org.apache.pig.impl.physicalLayer.relationalOperators.PORead;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POUserComparisonFunc;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Test;
 

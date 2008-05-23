@@ -17,7 +17,7 @@
  */
 package org.apache.pig.impl.physicalLayer.plans;
 
-import org.apache.pig.impl.physicalLayer.topLevelOperators.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 
 /**
  * A plan that supports expressions by combining the
