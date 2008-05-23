@@ -110,5 +110,23 @@ public class TestStore extends PigExecTestCase {
 		tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString() + "'";
 		f.delete();
 	}
-	
-}
+
+
+    public void testDelimiter() throws IOException{
+        System.out.println("Temp files: " + tmpFile1 + ", " + tmpFile2);
+        pigServer.registerQuery("A = load " + fileName + ";");
+        pigServer.store("A", tmpFile1, "PigStorage('\u0001')");
+        pigServer.registerQuery("B = load " + tmpFile1 + "using PigStorage('\\u0001') ;");
+        pigServer.registerQuery("C = foreach B generate $0, $1;");
+        pigServer.store("C", tmpFile2);
+        pigServer.registerQuery("E = load " + tmpFile2 + ";");
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        int i =0;
+        while (iter.hasNext()) {
+            Tuple t = iter.next();
+            assertEquals(t.getAtomField(0).numval().intValue(),i);
+            assertEquals(t.getAtomField(1).numval().intValue(),i); i++; 
+        }
+    }
+
+ }

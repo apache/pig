@@ -216,7 +216,8 @@ public class MapReduceLauncher {
             conf.set("pig.inputs", ObjectSerializer.serialize(pom.inputFileSpecs));
             
             conf.setOutputPath(new Path(pom.outputFileSpec.getFileName()));
-            conf.set("pig.storeFunc", pom.outputFileSpec.getFuncSpec());
+            conf.set("pig.storeFunc",
+                     ObjectSerializer.serialize(pom.outputFileSpec.getFuncSpec()));
 
             // Setup the DistributedCache for this job
             setupDistributedCache(pom.pigContext, conf, pom.properties, 
