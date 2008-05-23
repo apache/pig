@@ -297,3 +297,5 @@ Trunk (unreleased changes)
     PIG-236: Fix properties so that values specified via the command line (-D) are not ignored (pkamath via gates).
 
     PIG-198: integration with hadoop 17
+
+    PIG-85: allowing control characters as delimiters for PigStorage

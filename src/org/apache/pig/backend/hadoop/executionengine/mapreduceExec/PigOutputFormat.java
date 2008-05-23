@@ -35,6 +35,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.tools.bzip2r.BZip2Constants;
 import org.apache.tools.bzip2r.CBZip2OutputStream;
 
@@ -51,7 +52,7 @@ public class PigOutputFormat implements OutputFormat {
     public PigRecordWriter getRecordWriter(FileSystem fs, JobConf job, Path outputDir, String name, Progressable progress)
             throws IOException {
         StoreFunc store;
-        String storeFunc = job.get("pig.storeFunc", "");
+        String storeFunc = (String) ObjectSerializer.deserialize(job.get("pig.storeFunc", "")) ;
         if (storeFunc.length() == 0) {
             store = new PigStorage();
         } else {

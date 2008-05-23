@@ -727,14 +727,14 @@ String StringList() : {StringBuilder sb = new StringBuilder(); Token t; String a
 	(
 	LOOKAHEAD(2)
 	(
-	t = <QUOTEDSTRING> {sb.append(t.image);}
+	t = <QUOTEDSTRING> {sb.append(StringUtils.unescapeInputString(t.image));}
 	| 
     t = <NUMBER> {sb.append(t.image);}
     )
     ( 
         "," 
         (
-        t = <QUOTEDSTRING> {sb.append(t.image);}
+        t = <QUOTEDSTRING> {sb.append(StringUtils.unescapeInputString(t.image));}
         | 
         t = <NUMBER> {sb.append(t.image);}
         )

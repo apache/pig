@@ -69,18 +69,32 @@ public class Tuple extends Datum implements WritableComparable {
      * 
      * @param textLine
      *            the line containing fields of data
-     * @param delimiter
-     *            a regular expression of the form specified by String.split(). If null, the default
-     *            delimiter "[,\t]" will be used.
+     * @param delimiter 
+     *              the delimiter (normal string, NO REGEX!!)
      */
     public Tuple(String textLine, String delimiter) {
         if (delimiter == null) {
             delimiter = defaultDelimiter;
         }
-        String[] splitString = textLine.split(delimiter, -1);
-        fields = new ArrayList<Datum>(splitString.length);
-        for (int i = 0; i < splitString.length; i++) {
-            fields.add(new DataAtom(splitString[i]));
+        
+        fields = new ArrayList<Datum>() ;
+        int delimSize = delimiter.length() ;
+        boolean done = false ;
+        
+        int lastIdx = 0 ;
+        
+        while (!done) {
+            int newIdx = textLine.indexOf(delimiter, lastIdx) ;
+            if (newIdx != (-1)) {
+                String token = textLine.substring(lastIdx, newIdx) ;
+                fields.add(new DataAtom(token));
+                lastIdx = newIdx + delimSize  ;
+            }
+            else {
+                String token = textLine.substring(lastIdx) ;
+                fields.add(new DataAtom(token));
+                done = true ;
+            }
         }
     }
 
