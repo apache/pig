@@ -30,7 +30,7 @@ import org.apache.pig.data.DataType;
 public class IsEmpty extends FilterFunc {
 
     @Override
-    public boolean exec(Tuple input) throws IOException {
+    public Boolean exec(Tuple input) throws IOException {
         try {
             Object values = input.get(0);        
             if (values instanceof DataBag)

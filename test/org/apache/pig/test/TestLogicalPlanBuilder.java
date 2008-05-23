@@ -35,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
 //TODO
 //Not able to include PigServer.java
-//import org.apache.pig.PigServer;
+import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -72,7 +72,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
 
-    /* TODO FIX
+    // TODO FIX Query3 and Query4
     @Test
     public void testQuery3() {
         String query = "foreach (cogroup (load 'a') by $1, (load 'b') by $1) generate org.apache.pig.builtin.AVG($1) ;";
@@ -84,7 +84,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         String query = "foreach (load 'a') generate AVG($1, $2) ;";
         buildPlan(query);
     }
-    */
 
     @Test
     public void testQuery5() {
@@ -113,7 +112,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
 
-    /* TODO FIX
+    // TODO FIX Query11 and Query12
     @Test
     public void testQuery11() {
         String query = " foreach (group (load 'a') by $1, (load 'b') by $2) generate group, AVG($1) ;";
@@ -125,7 +124,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         String query = "foreach (load 'a' using " + PigStorage.class.getName() + "()) generate AVG($1) ;";
         buildPlan(query);
     }
-    */
 
     @Test
     public void testQuery13() {
@@ -203,13 +201,12 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
      * User generate functions must be in default package Bug 831620 - fixed
      */
  
-    /* TODO FIX
+    // TODO FIX Query17
     @Test
     public void testQuery17() {
         String query =  "foreach (load 'A')" + "generate " + TestApplyFunc.class.getName() + "($1);";
         buildPlan(query);
     }
-    */
 
 
     static public class TestApplyFunc extends org.apache.pig.EvalFunc<Tuple> {
@@ -333,7 +330,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
     
-    /* TODO FIX
+    // TODO FIX Query27 and Query28
     @Test
     public void testQuery27() {
         String query =  "foreach (load 'a'){" +
@@ -348,7 +345,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         String query = "foreach (load 'a') generate " + TestApplyFunc.class.getName() + "($2, " + TestApplyFunc.class.getName() + "($2.$3));";
         buildPlan(query);
     }
-    */
     
     @Test
     public void testQuery29() {
@@ -482,25 +478,34 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
     
     
-    /* TODO FIX
+    // TODO FIX Query39 and Query40
     @Test
-    // TODO: Schemas don't quite work yet
     public void testQuery39(){
         buildPlan("a = load 'a' as (url, host, rank);");
         buildPlan("b = group a by (url,host); ");
         LogicalPlan lp = buildPlan("c = foreach b generate flatten(group.url), SUM(a.rank) as totalRank;");
         buildPlan("d = filter c by totalRank > '10';");
-        buildPlan("e = foreach d generate url;");
-        
+        buildPlan("e = foreach d generate totalRank;");
     }
     
-
+    @Test
+    public void testQueryFail39(){
+        buildPlan("a = load 'a' as (url, host, rank);");
+        buildPlan("b = group a by (url,host); ");
+        LogicalPlan lp = buildPlan("c = foreach b generate flatten(group.url), SUM(a.rank) as totalRank;");
+        buildPlan("d = filter c by totalRank > '10';");
+        try {
+            buildPlan("e = foreach d generate url;");//url has been falttened and hence the failure
+        } catch(AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+    
     @Test
     public void testQuery40() {
         buildPlan("a = FILTER (load 'a') BY IsEmpty($2);");
         buildPlan("a = FILTER (load 'a') BY (IsEmpty($2) AND ($3 == $2));");
     }
-    */
     
     @Test
     public void testQuery41() {
@@ -548,7 +553,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
 //TODO
 //Commented out testQueryFail44 as I am not able to include org.apache.pig.PigServer;
-/*
     @Test
     public void testQueryFail44() throws Throwable {
         PigServer pig = null;
@@ -565,7 +569,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         }
         assertTrue(false);
     }
-*/    
     
     /*
     // Select
@@ -782,14 +785,14 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testQuery66() {
-        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(int i, chararray c);");
+        buildPlan("define myFunc = " + TestApplyFunc.class.getName() + "(int i, chararray c);");
         buildPlan("a = load 'input1' as (name, age, gpa);");
         buildPlan("b = foreach a generate myFunc($0, $1);");
 	}
 
     @Test
     public void testQueryFail66() {
-        buildPlan("define myFunc = com.mycompany.myudfs.myfunc(int i, chararray c);");
+        buildPlan("define myFunc = " + TestApplyFunc.class.getName() + "(int i, chararray c);");
         buildPlan("a = load 'input1' as (name, age, gpa);");
         try {
         	buildPlan("b = foreach a generate myFunc($0, $1, $2);");

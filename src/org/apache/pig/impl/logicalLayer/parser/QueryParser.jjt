@@ -48,6 +48,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.EvalFunc;
 
 
 public class QueryParser {
@@ -2048,13 +2049,11 @@ String EvalFunction() :
 		if(null == userFunc) {
 		//TODO
 		//Commented out the code for instaniateFunc as it's failing
-		/*
 			try{
-				LOUserFunc ef = (LOUserFunc) pigContext.instantiateFuncFromAlias(funcName);
+				EvalFunc ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
 			}catch (Exception e){
 				throw new ParseException(e.getMessage());
 			}
-		*/
 		}
 		log.trace("Exiting EvalFunction");
 		
