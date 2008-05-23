@@ -222,47 +222,6 @@
 
             <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
                 <fileset dir="test">
-                    <!--
-                    <include name="**/TestBuiltin.java" />
-                    <include name="**/TestOperatorPlan.java" />
-                	<include name="**/TestPhyOp.java" />
-                	<include name="**/TestConstExpr.java" />
-                	<include name="**/TestProject.java" />
-                	<include name="**/TestFilter.java" />
-                	<include name="**/TestAdd.java" />
-                	<include name="**/TestSubtract.java" />
-                	<include name="**/TestMultiply.java" />
-                	<include name="**/TestDivide.java" />
-                	<include name="**/TestMod.java" />
-                	<include name="**/TestGreaterThan.java" />
-                	<include name="**/TestGTOrEqual.java" />
-                	<include name="**/TestLessThan.java" />
-                	<include name="**/TestLTOrEqual.java" />
-                	<include name="**/TestEqualTo.java" />
-                	<include name="**/TestNotEqualTo.java" />
-                	<include name="**/TestPOGenerate.java" />
-                	<include name="**/TestPOSort.java" />
-                	<include name="**/TestPOUserFunc.java" />
-                	<include name="**/TestPODistinct.java" />
-                	<include name="**/TestLoad.java" />
-                	<include name="**/TestStore.java" />
-                	<include name="**/TestPackage.java" />  
-                	<include name="**/TestLocalRearrange.java" /> 
-                	<include name="**/TestForEach.java" />
-					<include name="**/TestUnion.java" /> 
-                	<include name="**/TestMRCompiler.java" /> 
-                	<include name="**/TestJobSubmission.java" /> 
-                	<include name="**/TestInputOutputFileValidator.java" /> 
-                	<include name="**/TestTypeCheckingValidator.java" /> 
-                	<include name="**/TestSchema.java" /> 
-                	<include name="**/TestLogicalPlanBuilder.java" />
-                    <include name="**/TestLocalJobSubmission.java" />
-                	<include name="**/TestPOMapLookUp.java" />
-                	<include name="**/TestPOBinCond.java" />
-                	<include name="**/TestPONegative.java" />
-                	<include name="**/TestGrunt.java" />
-                	<include name="**/TestPOCast.java" />
-                    -->
                     <include name="**/*Test*.java" />
                     <!-- Excluced because they are end-to-end, don't work yet.  -->
                     <exclude name="**/TestAlgebraicEval.java" />
@@ -272,7 +231,7 @@
                     <exclude name="**/TestFilterOpNumeric.java" />
                     <exclude name="**/TestFilterOpString.java" />
                     <exclude name="**/TestInfixArithmetic.java" />
-                    <exclude name="**/TestMapReduce.java" />
+                    <!-- <exclude name="**/TestMapReduce.java" /> -->
                     <exclude name="**/TestPigFile.java" />
                     <exclude name="**/TestPigSplit.java" />
                     <exclude name="**/TestStoreOld.java" />
