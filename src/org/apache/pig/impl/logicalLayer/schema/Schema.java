@@ -157,7 +157,7 @@ public class Schema {
                 return false ;
             }
 
-            if ( (!relaxAlias) && (fschema.alias != fother.alias) ) {
+            if ( (!relaxAlias) && (!fschema.alias.equals(fother.alias)) ) {
                 return false ;
             }
 
@@ -535,7 +535,7 @@ public class Schema {
             FieldSchema myFs = i.next() ;
             FieldSchema otherFs = j.next() ;
 
-            if ( (!relaxAlias) && (myFs.alias != otherFs.alias) ) {
+            if ( (!relaxAlias) && (!myFs.alias.equals(otherFs.alias)) ) {
                 return false ;
             }
 

@@ -23,6 +23,7 @@ import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.ExecType;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
