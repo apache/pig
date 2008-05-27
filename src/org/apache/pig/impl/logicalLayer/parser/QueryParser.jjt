@@ -103,7 +103,8 @@ public class QueryParser {
                                                 LogicalPlan readFrom,
                                                 String fileName,
                                                 String func,
-                                                PigContext pigContext) throws IOException {
+                                                LogicalOperator input) throws FrontendException {
+
         if (func == null) {
             func = PigStorage.class.getName();
         }
@@ -112,12 +113,25 @@ public class QueryParser {
 
         long storeNodeId = NodeIdGenerator.getGenerator().getNextNodeId(scope);
 
-		LogicalOperator root = new LOStore(readFrom,
-										   new OperatorKey(scope, storeNodeId),
-                                           new FileSpec(fileName, func));
-                                         
-                                           
-        readFrom.add(root);
+        LogicalPlan rootPlan = new LogicalPlan();
+
+        LogicalOperator store;
+        try {
+		store = new LOStore(rootPlan,
+							   new OperatorKey(scope, storeNodeId),
+                               new FileSpec(fileName, func));
+        } catch (IOException ioe) {
+            throw new FrontendException(ioe.getMessage());
+        }
+        
+        try {
+	        rootPlan.add(store);
+	        rootPlan.add(input);
+	        rootPlan.connect(input, store);
+	        attachPlan(rootPlan, input, readFrom);
+        } catch (ParseException pe) {
+            throw new FrontendException(pe.getMessage());
+        }
 				
         return readFrom;
     }
@@ -344,7 +358,7 @@ public class QueryParser {
         return aliases.get(op);
     }
 
-    public void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan) throws ParseException {
+    public static void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan) throws ParseException {
         log.trace("Entering attachPlan");
         lp.add(root);
         log.debug("Added operator " + root + " to the logical plan " + lp);
@@ -363,6 +377,7 @@ public class QueryParser {
         }
         log.trace("Exiting attachPlan");
     }
+
 }
 
 	

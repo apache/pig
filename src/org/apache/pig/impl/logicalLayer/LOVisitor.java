@@ -224,11 +224,7 @@ abstract public class LOVisitor extends
      * @throws VisitorException
      */
     protected void visit(LOUserFunc func) throws VisitorException {
-        // Visit each of the arguments
-        Iterator<ExpressionOperator> i = func.getArguments().iterator();
-        while (i.hasNext()) {
-            i.next().visit(this);
-        }
+
     }
 
     /**
@@ -237,14 +233,7 @@ abstract public class LOVisitor extends
      * @throws VisitorException
      */
     protected void visit(LOBinCond binCond) throws VisitorException {
-        /*
-         * Visit the conditional expression followed by the left hand operator
-         * and the right hand operator respectively
-         */
 
-        binCond.getCond().visit(this);
-        binCond.getLhsOp().visit(this);
-        binCond.getRhsOp().visit(this);
     }
 
     /**
@@ -254,9 +243,7 @@ abstract public class LOVisitor extends
      * @throws VisitorException
      */
     protected void visit(LOCast cast) throws VisitorException {
-        // Visit the expression to be cast
 
-        cast.getExpression().visit(this);
     }
     
     /**
@@ -266,8 +253,7 @@ abstract public class LOVisitor extends
      * @throws ParseException
      */
     protected void visit(LORegexp regexp) throws VisitorException {
-        // Visit the operand of the regexp
-        regexp.getOperand().visit(this);
+
     }
 
     protected void visit(LOLoad load) throws VisitorException{

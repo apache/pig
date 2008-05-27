@@ -301,7 +301,7 @@ public class PigServer {
             String func) throws IOException {
         try {
             LogicalPlan storePlan = QueryParser.generateStorePlan(opTable,
-                scope, readFrom, filename, func, pigContext);
+                scope, readFrom, filename, func, aliasOp.get(id));
             execute(id);
         } catch (Exception e) {
             throw WrappedIOException.wrap("Unable to store for alias: " +
