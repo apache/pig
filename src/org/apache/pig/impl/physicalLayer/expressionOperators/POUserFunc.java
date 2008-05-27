@@ -32,10 +32,12 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -78,35 +80,93 @@ public class POUserFunc extends ExpressionOperator {
 		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(this.funcSpec);
         this.func.setReporter(reporter);
 	}
+	
+	public Result processInput() throws ExecException {
+
+		Result res = new Result();
+		Tuple inpValue = null;
+		if (input == null && (inputs == null || inputs.size()==0)) {
+//			log.warn("No inputs found. Signaling End of Processing.");
+			res.returnStatus = POStatus.STATUS_EOP;
+			return res;
+		}
+
+		//Should be removed once the model is clear
+		if(reporter!=null) reporter.progress();
+
+		
+		if(isInputAttached()) {
+			res.result = input;
+			res.returnStatus = POStatus.STATUS_OK;
+			detachInput();
+			return res;
+		} else {
+			res.result = TupleFactory.getInstance().newTuple();
+			
+			Result temp = null;
+			for(PhysicalOperator op : inputs) {
+				switch(op.getResultType()){
+                case DataType.BAG:
+                    temp = op.getNext(dummyBag);
+                    break;
+                case DataType.BOOLEAN:
+                    temp = op.getNext(dummyBool);
+                    break;
+                case DataType.BYTEARRAY:
+                    temp = op.getNext(dummyDBA);
+                    break;
+                case DataType.CHARARRAY:
+                    temp = op.getNext(dummyString);
+                    break;
+                case DataType.DOUBLE:
+                    temp = op.getNext(dummyDouble);
+                    break;
+                case DataType.FLOAT:
+                    temp = op.getNext(dummyFloat);
+                    break;
+                case DataType.INTEGER:
+                    temp = op.getNext(dummyInt);
+                    break;
+                case DataType.LONG:
+                    temp = op.getNext(dummyLong);
+                    break;
+                case DataType.MAP:
+                    temp = op.getNext(dummyMap);
+                    break;
+                case DataType.TUPLE:
+                    temp = op.getNext(dummyTuple);
+                    break;
+                }
+                if(temp.returnStatus!=POStatus.STATUS_OK)
+                    return temp;
+                ((Tuple)res.result).append(temp.result);
+                
+			}
+			res.returnStatus = temp.returnStatus;
+			return res;
+		}
+	}
 
 	private Result getNext() throws ExecException {
 		Tuple t = null;
-		Result result = new Result();
+		Result result;
 		// instantiate the function if its null
 		if (func == null)
 			instantiateFunc();
 
+		result = processInput();
 		try {
-			if (inputAttached) {
-				result.result = func.exec(input);
-                if(reporter!=null) reporter.progress();
-				result.returnStatus = (result.result != null) ? POStatus.STATUS_OK
-						: POStatus.STATUS_EOP;
-				return result;
-			} else {
-				Result in = inputs.get(0).getNext(t);
-				if (in.returnStatus == POStatus.STATUS_EOP) {
-					result.returnStatus = POStatus.STATUS_EOP;
-					return result;
-				}
-				result.result = func.exec((Tuple) in.result);
-				result.returnStatus = POStatus.STATUS_OK;
+			if(result.returnStatus == POStatus.STATUS_OK) {
+				result.result = func.exec((Tuple) result.result);
 				return result;
 			}
-		} catch (IOException e) {
-			log.error(e);
-			//throw new ExecException(e.getCause());
+			return result;
+			
+		} catch (IOException e1) {
+			log.error(e1);
 		}
+		
+		
 		result.returnStatus = POStatus.STATUS_ERR;
 		return result;
 	}
@@ -272,7 +332,7 @@ public class POUserFunc extends ExpressionOperator {
 	@Override
 	public boolean supportsMultipleInputs() {
 
-		return false;
+		return true;
 	}
 
 	@Override

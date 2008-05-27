@@ -238,7 +238,7 @@ public class TestPOUserFunc extends TestCase {
 		while (res.returnStatus != POStatus.STATUS_EOP) {
 			// System.out.println(res.result);
 			int result = (Integer) res.result;
-			assertEquals(2, result);
+			assertEquals(1, result);
 			res = userFunc.getNext(i);
 		}
 	}

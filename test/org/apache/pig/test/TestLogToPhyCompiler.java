@@ -32,6 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
@@ -342,6 +343,16 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         assertEquals(true, flag);
     	
     }
+    
+    /*@Test
+    public void testUserFunc() throws VisitorException {
+    	String query = "foreach (group (load 'file:ABCD') all) generate " + COUNT.class.getName() + "($1) ;";
+    	LogicalPlan plan = buildPlan(query);
+    	
+    	PhysicalPlan pp = buildPhysicalPlan(plan);
+    	
+    	pp.explain(System.out);
+    }*/
     
     /*@Test
     public void testQuery4() throws VisitorException {

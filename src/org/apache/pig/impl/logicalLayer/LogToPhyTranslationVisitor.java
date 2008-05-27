@@ -663,7 +663,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 		}
 		p.setResultType(func.getType());
 		currentPlan.add(p);
-		List<LogicalOperator> fromList = mPlan.getPredecessors(func);
+		List<LogicalOperator> fromList = func.getPlan().getPredecessors(func);
 		for(LogicalOperator op : fromList) {
 			PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(op);
 			try {
@@ -695,7 +695,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 		store.setSFile(loStore.getOutputFile());
 		store.setPc(pc);
 		currentPlan.add(store);
-		PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(mPlan.getPredecessors(loStore).get(0));
+		PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(loStore.getPlan().getPredecessors(loStore).get(0));
 		try {
 			currentPlan.connect(from, store);
 		} catch (PlanException e) {
@@ -730,7 +730,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 		
 		currentPlan.add(physOp);
 		
-		List<LogicalOperator> ops = op.mPlan.getPredecessors(op);
+		List<LogicalOperator> ops = op.getPlan().getPredecessors(op);
 		
 		for(LogicalOperator l : ops) {
 			ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(l);
@@ -750,7 +750,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 		currentPlan.add(physOp);
 		
 		LogToPhyMap.put(op, physOp);
-		ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op.mPlan.getPredecessors(op).get(0));
+		ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op.getPlan().getPredecessors(op).get(0));
 		((PONegative)physOp).setInput(from);
 		try {
 			currentPlan.connect(from, physOp);
