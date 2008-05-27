@@ -17,7 +17,7 @@
  */
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * This is a base class for all comparison operators. Supports the

@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * A tuple composed with the operators to which

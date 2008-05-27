@@ -20,7 +20,7 @@ package org.apache.pig.backend.executionengine;
 
 import java.io.Serializable;
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 public interface ExecScopedLogicalOperator extends Serializable {
     

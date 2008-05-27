@@ -48,7 +48,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.impl.mapReduceLayer.MRCompiler;
 import org.apache.pig.impl.mapReduceLayer.MapReduceLauncher;

@@ -17,7 +17,7 @@
  */
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * A base class for all Binary expression operators.

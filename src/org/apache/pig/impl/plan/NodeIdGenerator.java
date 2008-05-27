@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.pig.impl.logicalLayer.parser;
+package org.apache.pig.impl.plan;
 
 import java.util.Map;
 import java.util.HashMap;

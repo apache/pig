@@ -36,7 +36,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.GFCross;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MRCompiler;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;

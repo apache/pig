@@ -18,7 +18,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.plan.VisitorException;

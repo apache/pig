@@ -23,7 +23,7 @@ import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * Base class for all types of operators.

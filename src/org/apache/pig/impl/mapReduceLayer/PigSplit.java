@@ -34,7 +34,7 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * The main split class that maintains important

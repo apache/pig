@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.HashMap;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;

@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOUserFunc extends ExpressionOperator {

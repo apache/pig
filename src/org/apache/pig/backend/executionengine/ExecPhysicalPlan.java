@@ -23,7 +23,7 @@ import java.util.Properties;
 import java.io.OutputStream;
 import java.io.Serializable;
 
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * 

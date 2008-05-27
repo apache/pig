@@ -45,7 +45,7 @@ import org.apache.pig.ExecType;
 //import org.apache.pig.impl.builtin.ShellBagEvalFunc;
 import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 //import org.apache.pig.impl.logicalLayer.LOEval;

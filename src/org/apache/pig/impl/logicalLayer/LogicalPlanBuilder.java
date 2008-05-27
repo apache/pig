@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.plan.OperatorKey;
 
 
 /**
