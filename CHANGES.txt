@@ -299,3 +299,5 @@ Trunk (unreleased changes)
     PIG-198: integration with hadoop 17
 
     PIG-85: allowing control characters as delimiters for PigStorage
+
+    PIG-250: disabling speculative execution

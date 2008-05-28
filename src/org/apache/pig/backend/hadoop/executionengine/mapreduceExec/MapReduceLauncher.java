@@ -225,8 +225,6 @@ public class MapReduceLauncher {
             setupDistributedCache(pom.pigContext, conf, pom.properties, 
                                   "pig.streaming.cache.files", false);
 
-            //TODO - Remove this
-            conf.setBoolean("keep.failed.task.files", true);
             
             // Setup the logs directory for this job
             String jobOutputFileName = pom.pigContext.getJobOutputFile();
@@ -237,6 +235,12 @@ public class MapReduceLauncher {
                 conf.set("pig.streaming.log.dir", 
                         new Path(jobOutputFile, LOG_DIR).toString());
             }
+
+            // Speculative execution is broken with hadoop 17
+            // See https://issues.apache.org/jira/browse/PIG-250
+            // till it is resolved, disabling it
+            conf.setMapSpeculativeExecution(false);
+            conf.setReduceSpeculativeExecution(false);
             
             //
             // Now, actually submit the job (using the submit name)
