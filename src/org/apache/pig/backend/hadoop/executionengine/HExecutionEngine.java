@@ -280,6 +280,7 @@ public class HExecutionEngine implements ExecutionEngine {
                     pigContext).toString(),
                     BinStorage.class.getName());
                 str.setSFile(spec);
+                plan.addAsLeaf(str);
             }
             else{
                 spec = ((POStore)leaf).getSFile();
