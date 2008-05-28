@@ -439,6 +439,8 @@ TOKEN : { <BAG : "bag"> }
 TOKEN : { <TUPLE : "tuple"> }
 TOKEN : { <MAP : "map"> }
 TOKEN : { <DEFINE : "define"> }
+TOKEN : { <IS : "is"> }
+TOKEN : { <NULL : "null"> }
 
 TOKEN:
 {
@@ -923,6 +925,7 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 				}
 			}
 		)
+|	cond = PNullCond(over,specs,lp,input)
 |	cond = PNotCond(over,specs,lp,input)
 
 	)
@@ -943,6 +946,34 @@ ExpressionOperator PNotCond(Schema over, Map<String, LogicalOperator> specs,Logi
 		lp.connect(c1, eOp);
 		log.debug("PNotCond: Connected operator " + eOp.getClass().getName() + " " + eOp + " to " + c1 + " logical plan " + lp);
 		log.trace("Exiting PNotCond");
+		return eOp;
+	}
+}
+
+ExpressionOperator PNullCond(Schema over, Map<String, LogicalOperator> specs,LogicalPlan lp,LogicalOperator input) : 
+{
+	ExpressionOperator c1;
+    boolean not = false;
+	log.trace("Entering PNullCond");
+}
+{
+	c1=InfixExpr(over,specs,lp,input) <IS> [<NOT> {not = true;}] <NULL>
+	{
+		ExpressionOperator eOp = new LOIsNull(lp, new OperatorKey(scope, getNextId()), c1);
+		lp.add(eOp);
+		log.debug("PNullCond: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
+		lp.connect(c1, eOp);
+		log.debug("PNullCond: Connected operator " + eOp.getClass().getName() + " " + eOp + " to " + c1 + " logical plan " + lp);
+        ExpressionOperator notNull = null;
+        if (not) {
+            notNull = new LONot(lp, new OperatorKey(scope, getNextId()), eOp); 
+            lp.add(notNull);
+		    log.debug("PNullCond: Added operator " + notNull.getClass().getName() + " " + notNull + " to logical plan " + lp);
+            lp.connect(eOp, notNull);
+		    log.debug("PNullCond: Connected operator " + notNull.getClass().getName() + " " + notNull + " to " + eOp + " logical plan " + lp);
+            eOp = notNull;
+        }
+		log.trace("Exiting PNullCond");
 		return eOp;
 	}
 }

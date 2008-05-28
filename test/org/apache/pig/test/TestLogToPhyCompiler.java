@@ -344,6 +344,45 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	
     }
     
+    @Test
+    public void testIsNull() throws VisitorException, IOException {
+        //TODO
+        //PONot is not implemented. The query below translates to POIsNull istead
+        //of PONOt(POIsNull)
+    	String query = "split (load 'a') into x if $0 IS NULL, y if $0 IS NOT NULL;";
+    	LogicalPlan plan = buildPlan(query);
+    	
+    	PhysicalPlan pp = buildPhysicalPlan(plan);
+    	
+    	int MAX_SIZE = 100000;
+    	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        pp.explain(baos);
+        String compiledPlan = baos.toString();
+        compiledPlan += "\n"; //for the string compare, the files contain an additional \n
+    	FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull1.gld");
+    	FileInputStream fis2 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull2.gld");
+        byte[] b1 = new byte[MAX_SIZE];
+        byte[] b2 = new byte[MAX_SIZE];
+        int len = fis1.read(b1);
+        int test = fis2.read(b2);
+        //System.out.println("Length of first plan = " + len + " of second = " + test + " Length of compiled plan = " + compiledPlan.length());
+        String goldenPlan1 = new String(b1, 0, len);
+        String goldenPlan2 = new String(b2, 0, len);
+
+
+        System.out.println();
+        System.out.println(compiledPlan);
+        System.out.println("-------------");
+        boolean flag = false;
+        //System.out.println("GoldenPlan1\n" + goldenPlan1 + "\nGoldenPlan2\n" + goldenPlan2);
+        if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0)
+        	flag = true;
+        
+        //assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(true, flag);
+    	
+    }
+
     /*@Test
     public void testUserFunc() throws VisitorException {
     	String query = "foreach (group (load 'file:ABCD') all) generate " + COUNT.class.getName() + "($1) ;";

@@ -761,6 +761,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	}
 	
 	@Override
+	public void visit(LOIsNull op) throws VisitorException {
+		String scope = op.getKey().scope;
+		ExpressionOperator physOp = new POIsNull(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism(), null);
+		currentPlan.add(physOp);
+		
+		LogToPhyMap.put(op, physOp);
+		ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op.getPlan().getPredecessors(op).get(0));
+		((POIsNull)physOp).setInput(from);
+		try {
+			currentPlan.connect(from, physOp);
+		} catch (PlanException e) {
+			log.error("Invalid physical operator in the plan" + e.getMessage());
+		}
+		
+	}
+	
+	@Override
 	public void visit(LOMapLookup op) throws VisitorException {
 		String scope = ((OperatorKey)op.getKey()).scope;
 		ExpressionOperator physOp = new POMapLookUp(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism(), op.getLookUpKey());

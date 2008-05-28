@@ -1,0 +1,19 @@
+Filter - Test-Plan-Builder-218
+|   |
+|   POIsNull - Test-Plan-Builder-220
+|   |
+|   |---Project(0) - Test-Plan-Builder-219
+|
+|---Split - Test-Plan-Builder-217
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-216
+
+Filter - Test-Plan-Builder-221
+|   |
+|   POIsNull - Test-Plan-Builder-223
+|   |
+|   |---Project(0) - Test-Plan-Builder-222
+|
+|---Split - Test-Plan-Builder-217
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-216

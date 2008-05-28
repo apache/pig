@@ -382,4 +382,7 @@ abstract public class LOVisitor extends
 		return;
 	}
 
+	public void visit(LOIsNull uniOp) throws VisitorException {
+		return;
+	}
 }

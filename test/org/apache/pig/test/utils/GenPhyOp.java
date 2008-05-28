@@ -88,6 +88,12 @@ public class GenPhyOp{
         return ret;
     }
 
+    public static POIsNull compIsNullExpr() {
+        POIsNull ret = new POIsNull(new OperatorKey("", r
+                .nextLong()));
+        return ret;
+    }
+
     public static LessThanExpr compLessThanExpr() {
         LessThanExpr ret = new LessThanExpr(new OperatorKey("", r.nextLong()));
         return ret;

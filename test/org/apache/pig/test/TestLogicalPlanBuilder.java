@@ -228,19 +228,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         LogicalPlan lp = buildPlan(query);
         LogicalOperator root = lp.getRoots().get(0);   
         
-        //System.err.println("testQuery18: root: " + root.getClass().getName());
-        //TODO
-        //Here I am looking out for LOLoad explicitly as the nested plan
-        //is not in place. This is a hack for now
-        if (!(root instanceof LOLoad)) root = lp.getRoots().get(1);
-        //System.err.println("testQuery18: root: " + root.getClass().getName());
-        
         List<LogicalOperator> listOp = lp.getSuccessors(root);
-        //listOp = lp.getSuccessors(listOp.get(0));
         
         LogicalOperator lo = listOp.get(0);
-        
-        //System.err.println("testQuery18: lo: " + lo.getClass().getName());
         
         if (lo instanceof LOCogroup) {
             assertTrue(((LOCogroup) lo).getRequestedParallelism() == 16);
@@ -882,6 +872,15 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("b = foreach a {generate $0;} parallel 10;");
     }
     
+    @Test
+    public void testQuery76() {
+        buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
+        buildPlan("b = filter x by $0 IS NULL;");
+        buildPlan("c = filter y by $0 IS NOT NULL;");
+        buildPlan("d = foreach b generate $0, ($1 IS NULL ? 0 : $1 - 7);");
+        buildPlan("e = foreach c generate $0, ($1 IS NOT NULL ? $1 - 5 : 0);");
+    }
+
     // Helper Functions
     
     // Helper Functions
