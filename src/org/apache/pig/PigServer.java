@@ -251,7 +251,11 @@ public class PigServer {
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
         try {
-            ExecJob job = execute(id);
+            LogicalOperator op = aliasOp.get(id);
+            if(null == op) {
+                throw new IOException("Unable to find an operator for alias " + id);
+            }
+            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
             // invocation of "execute" is synchronous!
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
                     return job.getResults();
@@ -301,8 +305,8 @@ public class PigServer {
             String func) throws IOException {
         try {
             LogicalPlan storePlan = QueryParser.generateStorePlan(opTable,
-                scope, readFrom, filename, func, aliasOp.get(id));
-            execute(id);
+                scope, readFrom, filename, func, aliasOp.get(id), aliases);
+            execute(storePlan);
         } catch (Exception e) {
             throw WrappedIOException.wrap("Unable to store for alias: " +
                 id, e);
@@ -321,7 +325,11 @@ public class PigServer {
     public void explain(String alias,
                         PrintStream stream) throws IOException {
         try {
-            LogicalPlan lp = compileLp(alias, "explain");
+            LogicalOperator op = aliasOp.get(alias);
+            if(null == op) {
+                throw new IOException("Unable to find an operator for alias " + alias);
+            }
+            LogicalPlan lp = compileLp(getPlanFromAlias(alias, op.getClass().getName()), "explain");
             stream.println("Logical Plan:");
             LOPrinter lv = new LOPrinter(stream, lp);
             lv.visit();
@@ -453,21 +461,24 @@ public class PigServer {
     }
 
     private ExecJob execute(
-            String jobName) throws FrontendException, ExecException {
+            LogicalPlan lp) throws FrontendException, ExecException {
         ExecJob job = null;
 
-        LogicalPlan lp = compileLp(jobName, "execute");
-        PhysicalPlan pp = compilePp(lp);
+        LogicalPlan typeCheckedLp = compileLp(lp, "execute");
+        PhysicalPlan pp = compilePp(typeCheckedLp);
         // execute using appropriate engine
-        return pigContext.getExecutionEngine().execute(pp, jobName);
+        return pigContext.getExecutionEngine().execute(pp, "execute");
     }
 
     private LogicalPlan compileLp(
-            String alias,
-            String op) throws ExecException, FrontendException {
+            LogicalPlan lp,
+            String operation) throws ExecException, FrontendException {
         // Look up the logical plan in the aliases map.  That plan will be
         // properly connected to all the others.
-        LogicalPlan lp = getPlanFromAlias(alias, op);
+
+        if(null == lp) {
+            throw new FrontendException("Cannot operate on null logical plan");
+        }
 
         // run through validator
         LogicalPlanValidationExecutor validator = 

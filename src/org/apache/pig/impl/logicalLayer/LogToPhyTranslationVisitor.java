@@ -379,6 +379,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 		}
 		poPackage.setKeyType(type);
 		poPackage.setResultType(DataType.TUPLE);
+        poPackage.setNumInps(count);
+        poPackage.setInner(cg.getInner());
 		LogToPhyMap.put(cg, poPackage);
 	}
 

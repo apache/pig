@@ -31,6 +31,7 @@ PARSER_BEGIN(QueryParser)
 package org.apache.pig.impl.logicalLayer.parser;
 import java.io.*;
 import java.util.*;
+import java.lang.reflect.Type;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.*;
 import org.apache.pig.data.DataType;
@@ -103,7 +104,8 @@ public class QueryParser {
                                                 LogicalPlan readFrom,
                                                 String fileName,
                                                 String func,
-                                                LogicalOperator input) throws FrontendException {
+                                                LogicalOperator input,
+                                                Map<LogicalOperator, LogicalPlan> aliases) throws FrontendException {
 
         if (func == null) {
             func = PigStorage.class.getName();
@@ -113,11 +115,11 @@ public class QueryParser {
 
         long storeNodeId = NodeIdGenerator.getGenerator().getNextNodeId(scope);
 
-        LogicalPlan rootPlan = new LogicalPlan();
+        LogicalPlan storePlan = new LogicalPlan();
 
         LogicalOperator store;
         try {
-		store = new LOStore(rootPlan,
+		store = new LOStore(storePlan,
 							   new OperatorKey(scope, storeNodeId),
                                new FileSpec(fileName, func));
         } catch (IOException ioe) {
@@ -125,15 +127,16 @@ public class QueryParser {
         }
         
         try {
-	        rootPlan.add(store);
-	        rootPlan.add(input);
-	        rootPlan.connect(input, store);
-	        attachPlan(rootPlan, input, readFrom);
+	        storePlan.add(store);
+	        storePlan.add(input);
+	        storePlan.connect(input, store);
+	        attachPlan(storePlan, input, readFrom);
         } catch (ParseException pe) {
             throw new FrontendException(pe.getMessage());
         }
-				
-        return readFrom;
+	    
+        aliases.put(store, storePlan);
+        return storePlan;
     }
 
     static String unquote(String s) {
@@ -814,6 +817,7 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 	Token t1; 
 	String funcName; 
 	List<ExpressionOperator> args;
+    byte type = DataType.BOOLEAN;
 	log.trace("Entering PUnaryCond");
 }
 {
@@ -913,10 +917,10 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 				log.debug("PUnaryCond: Connected operator " + cond.getClass().getName() + " " + cond + " to " + lhs + " logical plan " + lp);
 			}
 		)
-|	LOOKAHEAD(EvalFunction() "(") 
-		(funcName=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
+|	LOOKAHEAD(EvalFunction(type) "(") 
+		(funcName=EvalFunction(type) "(" args=EvalArgs(over,specs,lp,input) ")" 
 			{
-				cond = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, DataType.BOOLEAN);
+				cond = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
 				lp.add(cond);
 				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
 				for(ExpressionOperator exprOp: args) {
@@ -1031,6 +1035,7 @@ CogroupInput GroupItem(LogicalPlan lp) :
 			)	
 		|	<ALL> {
 					es = new LOConst(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), "all"); 
+                    es.setType(DataType.CHARARRAY);
 					groupByPlan.add(es);
 					log.debug("GroupItem: Added operator " + es.getClass().getName() + " " + es + " to logical plan " + groupByPlan);
 					listPlans.add(groupByPlan);
@@ -1776,10 +1781,11 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 	String funcName; 
 	List<ExpressionOperator> args;
 	ExpressionOperator userFunc;
+    byte type = DataType.BYTEARRAY;
 	log.trace("Entering FuncEvalSpec");
 }
 {
-	funcName=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
+	funcName=EvalFunction(type) "(" args=EvalArgs(over,specs,lp,input) ")" 
 	{
 		//check if the function name is an alias
 		//if the user has defined an alias then 
@@ -1791,7 +1797,7 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 
 		if(null == userAliasFunc) {
 
-			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, DataType.BYTEARRAY);
+			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
 		} else {
 			//we have an alias
 			int expectedNumArgs = userAliasFunc.getArguments().size();
@@ -1856,12 +1862,17 @@ ExpressionOperator FuncDeclareSpec(LogicalPlan lp) :
 {
 	String funcName; 
 	List<ExpressionOperator> args;
+	byte userSpecifiedType = DataType.BYTEARRAY;
+    boolean userSpecified = false;
 	byte type = DataType.BYTEARRAY;
 	log.trace("Entering FuncDeclareSpec");
 }
 {
-	[type = Type()] funcName=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
+	[userSpecifiedType = Type() {userSpecified = true;}] funcName=EvalFunction(type) "(" args=FuncDeclareArgs(lp) ")" 
 	{
+        if(userSpecified && (userSpecifiedType != type)) {
+            throw new ParseException("User specified return type " + DataType.findTypeName(userSpecifiedType) + " and deduced return type " + DataType.findTypeName(type) + " are not the same");
+        }
 		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
 		log.trace("Exiting FuncDeclareSpec");
 		return userFunc;
@@ -2085,7 +2096,7 @@ Schema TupleSchema() :
 
 // These the simple non-terminals that are shared across many
 
-String EvalFunction() : 
+String EvalFunction(byte type) : 
 {
 	String funcName;
 	log.trace("Entering EvalFunction");
@@ -2099,6 +2110,9 @@ String EvalFunction() :
 		//Commented out the code for instaniateFunc as it's failing
 			try{
 				EvalFunc ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
+                Type javaType = ((EvalFunc)ef).getReturnType();
+                log.debug("Type: " + javaType);
+                type = DataType.findType(javaType);
 			}catch (Exception e){
 				throw new ParseException(e.getMessage());
 			}
