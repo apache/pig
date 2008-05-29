@@ -45,7 +45,7 @@ public class PigOutputFormat implements OutputFormat {
 
     public RecordWriter getRecordWriter(FileSystem fs, JobConf job, String name, Progressable progress)
     throws IOException {
-        Path outputDir = FileOutputFormat.getOutputPath(job);
+        Path outputDir = FileOutputFormat.getWorkOutputPath(job);
         return getRecordWriter(fs, job, outputDir, name, progress);
     }
 
