@@ -236,12 +236,6 @@ public class MapReduceLauncher {
                         new Path(jobOutputFile, LOG_DIR).toString());
             }
 
-            // Speculative execution is broken with hadoop 17
-            // See https://issues.apache.org/jira/browse/PIG-250
-            // till it is resolved, disabling it
-            conf.setMapSpeculativeExecution(false);
-            conf.setReduceSpeculativeExecution(false);
-            
             //
             // Now, actually submit the job (using the submit name)
             //

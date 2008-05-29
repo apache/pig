@@ -301,3 +301,6 @@ Trunk (unreleased changes)
     PIG-85: allowing control characters as delimiters for PigStorage
 
     PIG-250: disabling speculative execution
+
+    PIG-250: re-enabling speculative execution and fixing the failure
+
