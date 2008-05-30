@@ -103,7 +103,17 @@ public class DataType {
             // implements
             if (t instanceof Class) {
                 Class c = (Class)t;
-                Class[] interfaces = c.getInterfaces();
+                Class[] ioeInterfaces = c.getInterfaces();
+                Class[] interfaces = null;
+                if(c.isInterface()){
+                    interfaces = new Class[ioeInterfaces.length+1];
+                    interfaces[0] = c;
+                    for (int i = 1; i < interfaces.length; i++) {
+                     interfaces[i] = ioeInterfaces[i-1];
+                    }
+                }  else {
+                    interfaces = ioeInterfaces;
+                }
                 for (int i = 0; i < interfaces.length; i++) {
                     if (interfaces[i].getName().equals("org.apache.pig.data.Tuple")) {
                         return TUPLE;
@@ -851,15 +861,11 @@ public class DataType {
         }
 
         // One is bytearray and the other is (number or chararray)
-        if ( (type1 == DataType.BYTEARRAY) &&
-                ( (type2 == DataType.CHARARRAY) || (DataType.isNumberType(type2)) )
-              ) {
+        if (type1 == DataType.BYTEARRAY) {
             return type2 ;
         }
 
-        if ( (type2 == DataType.BYTEARRAY) &&
-                ( (type1 == DataType.CHARARRAY) || (DataType.isNumberType(type1)) )
-              ) {
+        if (type2 == DataType.BYTEARRAY) {
             return type1 ;
         }
 

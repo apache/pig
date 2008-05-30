@@ -458,7 +458,7 @@ public class TestSchema extends TestCase {
         // Generate expected schema
         List<FieldSchema> expectedList = new ArrayList<FieldSchema>() ;
         expectedList.add(new FieldSchema("2a", DataType.BYTEARRAY)) ;
-        expectedList.add(new FieldSchema("2b", DataType.BYTEARRAY)) ;
+        expectedList.add(new FieldSchema("2b", DataType.TUPLE)) ;
         expectedList.add(new FieldSchema("2c", DataType.BYTEARRAY)) ;
 
         Schema expected = new Schema(expectedList) ;

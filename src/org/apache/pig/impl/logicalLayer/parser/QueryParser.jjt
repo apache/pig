@@ -817,7 +817,7 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 	Token t1; 
 	String funcName; 
 	List<ExpressionOperator> args;
-    byte type = DataType.BOOLEAN;
+    EvalFunc evalFunc = null;
 	log.trace("Entering PUnaryCond");
 }
 {
@@ -917,9 +917,14 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 				log.debug("PUnaryCond: Connected operator " + cond.getClass().getName() + " " + cond + " to " + lhs + " logical plan " + lp);
 			}
 		)
-|	LOOKAHEAD(EvalFunction(type) "(") 
-		(funcName=EvalFunction(type) "(" args=EvalArgs(over,specs,lp,input) ")" 
+|	LOOKAHEAD(EvalFunction() "(") 
+		(evalFunc=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
 			{
+                funcName = evalFunc.getClass().getName();
+                Type javaType = evalFunc.getReturnType();
+                byte type = DataType.findType(javaType);
+
+                log.debug("Return type of UDF: " + DataType.findTypeName(type));
 				cond = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
 				lp.add(cond);
 				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
@@ -1778,14 +1783,19 @@ ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, Logi
 
 ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
 {
-	String funcName; 
+	String funcName = null; 
 	List<ExpressionOperator> args;
 	ExpressionOperator userFunc;
-    byte type = DataType.BYTEARRAY;
+    LOUserFunc userAliasFunc = null;
+    EvalFunc evalFunc = null;
 	log.trace("Entering FuncEvalSpec");
 }
 {
-	funcName=EvalFunction(type) "(" args=EvalArgs(over,specs,lp,input) ")" 
+	(
+    LOOKAHEAD({getDefineOp(getToken(1).image) != null}) funcName=QualifiedFunction()
+|   evalFunc=EvalFunction()
+    )
+    "(" args=EvalArgs(over,specs,lp,input) ")" 
 	{
 		//check if the function name is an alias
 		//if the user has defined an alias then 
@@ -1793,13 +1803,15 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 		//and create a new LOUserFunc with the information
 		//from the lookup table
 
-		LOUserFunc userAliasFunc = (LOUserFunc)getDefineOp(funcName);
-
-		if(null == userAliasFunc) {
-
+		if(null != evalFunc) {
+            funcName = evalFunc.getClass().getName();
+            Type javaType = evalFunc.getReturnType();
+            byte type = DataType.findType(javaType);
+            log.debug("Return type of UDF: " + DataType.findTypeName(type));
 			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
 		} else {
 			//we have an alias
+		    userAliasFunc = (LOUserFunc)getDefineOp(funcName);
 			int expectedNumArgs = userAliasFunc.getArguments().size();
 			int numArgs = args.size();
 			if(expectedNumArgs != numArgs) {
@@ -1864,12 +1876,16 @@ ExpressionOperator FuncDeclareSpec(LogicalPlan lp) :
 	List<ExpressionOperator> args;
 	byte userSpecifiedType = DataType.BYTEARRAY;
     boolean userSpecified = false;
-	byte type = DataType.BYTEARRAY;
+    EvalFunc evalFunc = null;
 	log.trace("Entering FuncDeclareSpec");
 }
 {
-	[userSpecifiedType = Type() {userSpecified = true;}] funcName=EvalFunction(type) "(" args=FuncDeclareArgs(lp) ")" 
+	[userSpecifiedType = Type() {userSpecified = true;}] evalFunc=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
 	{
+        funcName = evalFunc.getClass().getName();
+        Type javaType = evalFunc.getReturnType();
+        byte type = DataType.findType(javaType);
+        log.debug("Return type of UDF: " + DataType.findTypeName(type));
         if(userSpecified && (userSpecifiedType != type)) {
             throw new ParseException("User specified return type " + DataType.findTypeName(userSpecifiedType) + " and deduced return type " + DataType.findTypeName(type) + " are not the same");
         }
@@ -2096,30 +2112,26 @@ Schema TupleSchema() :
 
 // These the simple non-terminals that are shared across many
 
-String EvalFunction(byte type) : 
+EvalFunc  EvalFunction() : 
 {
 	String funcName;
+    EvalFunc ef;
 	log.trace("Entering EvalFunction");
 }
 {
 	funcName = QualifiedFunction()
 	{
-		ExpressionOperator userFunc = getDefineOp(funcName);
-		if(null == userFunc) {
-		//TODO
-		//Commented out the code for instaniateFunc as it's failing
-			try{
-				EvalFunc ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
-                Type javaType = ((EvalFunc)ef).getReturnType();
-                log.debug("Type: " + javaType);
-                type = DataType.findType(javaType);
-			}catch (Exception e){
-				throw new ParseException(e.getMessage());
-			}
+		try{
+			ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
+            Type javaType = ef.getReturnType();
+            log.debug("Type: " + javaType);
+            log.debug("funcName: " + funcName + " class name: " + ef.getClass().getName() + " return type: " + DataType.findType(javaType));
+		}catch (Exception e){
+			throw new ParseException(e.getMessage());
 		}
 		log.trace("Exiting EvalFunction");
 		
-		return funcName;
+		return ef;
 	}
 }
 

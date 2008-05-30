@@ -1975,10 +1975,16 @@ public class TypeCheckingVisitor extends LOVisitor {
                         // flattening, we unfold field by field
                         if (flattens.get(i)) {
                             Schema innerSchema = leaf.getSchema() ;
-                            for (int j=0;j < innerSchema.size(); j++) {
-                                FieldSchema fs = innerSchema.getField(j) ;
-                                schema.getField(outputSchemaIdx).type = fs.type ;
-                                schema.getField(outputSchemaIdx).schema = fs.schema ;
+                            if(null != innerSchema) {
+                                for (int j=0;j < innerSchema.size(); j++) {
+                                    FieldSchema fs = innerSchema.getField(j) ;
+                                    schema.getField(outputSchemaIdx).type = fs.type ;
+                                    schema.getField(outputSchemaIdx).schema = fs.schema ;
+                                    outputSchemaIdx++ ;
+                                }
+                            } else {
+                                schema.getField(outputSchemaIdx).type = leaf.getType() ;
+                                schema.getField(outputSchemaIdx).schema = leaf.getSchema() ;
                                 outputSchemaIdx++ ;
                             }
                         }
