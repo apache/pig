@@ -82,7 +82,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         reducePlan = new PhysicalPlan<PhysicalOperator>();
         UDFs = new ArrayList<String>();
         nig = NodeIdGenerator.getGenerator();
-        scope = "MapReduceOper";
+        scope = k.getScope();
     }
 
     /*@Override

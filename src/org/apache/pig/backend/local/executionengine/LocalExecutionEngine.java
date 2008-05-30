@@ -108,17 +108,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
     
     public PhysicalPlan compile(LogicalPlan plan,
                                 Properties properties) throws ExecException {
-        /*
-        if (plan == null) {
-            throw new ExecException("No Plan to compile");
-        }
-
-        return compile(new LogicalPlan[]{ plan } , properties);
-    }
-
-    public PhysicalPlan compile(LogicalPlan[] plans,
-                                Properties properties) throws ExecException {
-                                */
         if (plan == null) {
             throw new ExecException("No Plan to compile");
         }
@@ -132,29 +121,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
         } catch (VisitorException ve) {
             throw new ExecException(ve);
         }
-
-        /*
-        OperatorKey physicalKey = null;
-        for (int i = 0; i < plans.length; ++i) {
-            LogicalPlan curPlan = null;
-
-            curPlan = plans[ i ];
-     
-            OperatorKey logicalKey = curPlan.getRoot();
-            
-            physicalKey = logicalToPhysicalKeys.get(logicalKey);
-            
-            if (physicalKey == null) {
-                physicalKey = doCompile(curPlan.getRoot(),
-                                        curPlan.getOpTable(),
-                                        properties);
-                
-                logicalToPhysicalKeys.put(logicalKey, physicalKey);
-            }
-        }
-        
-        return new LocalPhysicalPlan(physicalKey, physicalOpTable);
-        */
     }
 
     public ExecJob execute(PhysicalPlan plan,
@@ -163,8 +129,9 @@ public class LocalExecutionEngine implements ExecutionEngine {
             PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
             FileSpec spec = null;
             if(!(leaf instanceof POStore)){
-                POStore str = new POStore(new OperatorKey("HExecEngine",
-                    NodeIdGenerator.getGenerator().getNextNodeId("HExecEngine")));
+                String scope = leaf.getOperatorKey().getScope();
+                POStore str = new POStore(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                     pigContext).toString(),
@@ -184,29 +151,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
             if (e instanceof ExecException) throw (ExecException)e;
             else throw new ExecException(e.getMessage(), e);
         }
-
-
-        // TODO Fix connect to local job runner
-        /*
-        DataBag results = BagFactory.getInstance().newDefaultBag();
-        try {
-            PhysicalOperator pp = (PhysicalOperator)physicalOpTable.get(plan.getRoot());
-
-            pp.open();
-            
-            Tuple t;
-            while ((t = (Tuple) pp.getNext()) != null) {
-                results.add(t);
-            }
-            
-            pp.close();
-        }
-        catch (IOException e) {
-            throw new ExecException(e);
-        }
-        
-        return new LocalJob(results, JOB_STATUS.COMPLETED);
-        */
     }
 
     public LocalJob submit(PhysicalPlan plan,
@@ -235,125 +179,9 @@ public class LocalExecutionEngine implements ExecutionEngine {
                                   Properties properties) 
             throws ExecException {
         
-        // TODO FIX
-        /*
-        LocalResult materializedResult = materializedResults.get(logicalKey);
-        
-        if (materializedResult != null) {
-            ExecPhysicalOperator pp = new POLoad(logicalKey.getScope(),
-                                             nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-                                             physicalOpTable,
-                                             pigContext, 
-                                             materializedResult.outFileSpec,
-                                             LogicalOperator.FIXED);
-            
-            OperatorKey ppKey = new OperatorKey(pp.getScope(), pp.getId());
-            
-            return ppKey;
-        }
-
-        OperatorKey physicalKey = new OperatorKey();
-        
-        if (compileOperator(logicalKey, logicalOpTable, properties, physicalKey)) {
-            for (int i = 0; i < logicalOpTable.get(logicalKey).getInputs().size(); ++i) {
-                ((PhysicalOperator)physicalOpTable.get(physicalKey)).inputs[i] = 
-                    doCompile(logicalOpTable.get(logicalKey).getInputs().get(i), logicalOpTable, properties);
-            }
-        }
-
-        return physicalKey;
-        */
         return null;
     }
     
-    private boolean compileOperator(OperatorKey logicalKey, 
-                                    Map<OperatorKey, LogicalOperator> logicalOpTable,
-                                    Properties properties,
-                                    OperatorKey physicalKey) 
-            throws ExecException {
-                // TODO FIX
-                /* 
-        ExecPhysicalOperator pp;
-        LogicalOperator lo = logicalOpTable.get(logicalKey);
-        String scope = lo.getOperatorKey().getScope();
-        boolean compileInputs = true;
-        
-        if (lo instanceof LOEval) {
-            
-            pp = new POEval(scope,
-                           nodeIdGenerator.getNextNodeId(scope),
-                           physicalOpTable,
-                           ((LOEval) lo).getSpec(),
-                           lo.getOutputType());
-        } 
-        else if (lo instanceof LOCogroup) {
-            pp = new POCogroup(scope,
-                               nodeIdGenerator.getNextNodeId(scope),
-                               physicalOpTable,
-                               ((LOCogroup) lo).getSpecs(),
-                               lo.getOutputType());
-        }  
-        else if (lo instanceof LOLoad) {
-            pp = new POLoad(scope,
-                            nodeIdGenerator.getNextNodeId(scope),
-                            physicalOpTable,
-                            pigContext, 
-                            ((LOLoad)lo).getInputFileSpec(),
-                            lo.getOutputType());
-        }
-        else if (lo instanceof LOSplitOutput) {
-            LOSplitOutput loso = (LOSplitOutput)lo;
-            LOSplit los = ((LOSplit)(logicalOpTable.get(loso.getInputs().get(0))));
-            
-            pp = new POSplit(scope,
-                             nodeIdGenerator.getNextNodeId(scope),
-                             physicalOpTable,
-                             doCompile(los.getInputs().get(0),
-                                       logicalOpTable,
-                                       properties), 
-                             los.getConditions(),
-                             loso.getReadFrom(),
-                             lo.getOutputType());
-            
-            compileInputs = false;
-        }
-        else if (lo instanceof LOStore) {
-            pp = new POStore(scope,
-                             nodeIdGenerator.getNextNodeId(scope),
-                             physicalOpTable,
-                             lo.getInputs().get(0),
-                             materializedResults,
-                             ((LOStore)lo).getOutputFileSpec(),
-                             ((LOStore)lo).isAppend(),
-                             pigContext);
-        } 
-        else if (lo instanceof LOUnion) {
-            pp = new POUnion(scope,
-                             nodeIdGenerator.getNextNodeId(scope),
-                             physicalOpTable,
-                             ((LOUnion)lo).getInputs().size(),
-                             lo.getOutputType());
-        } 
-        else if (lo instanceof LOSort) {
-            pp = new POSort(scope,
-                            nodeIdGenerator.getNextNodeId(scope),
-                            physicalOpTable,
-                            ((LOSort)lo).getSortSpec(),
-                            lo.getOutputType());
-        }
-        else {
-            throw new ExecException("Internal error: Unknown logical operator.");
-        }
-        
-        physicalKey.scope = pp.getScope();
-        physicalKey.id = pp.getId();
-        
-        logicalToPhysicalKeys.put(logicalKey, physicalKey);
-        
-        return compileInputs;
-        */
-            return false;
-    }
 }
 
 

@@ -161,7 +161,7 @@ public class LOPrinter extends LOVisitor {
         print(mlu);
         mStream.print("(");
         mlu.getMap().visit(this);
-        mStream.print(")# " + mlu.getKey());
+        mStream.print(")# " + mlu.getOperatorKey());
     }
 
     public void visit(LOMod m) throws VisitorException {

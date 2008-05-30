@@ -238,8 +238,4 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public LogicalPlan getPlan() {
         return mPlan ;
     }
-    
-    public OperatorKey getKey() {
-    	return mKey;
-    }
 }

@@ -874,10 +874,14 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
             php.explain(System.out);
             System.out.println();
-            System.out.println(compiledPlan);
+            System.out.println("<<<" + compiledPlan + ">>>");
+            System.out.println("-------------");
+            System.out.println("Golden");
+            System.out.println("<<<" + goldenPlan + ">>>");
             System.out.println("-------------");
             //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-            assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+            //assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+            assertEquals(goldenPlan, compiledPlan);
         }
     }
 

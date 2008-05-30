@@ -1,23 +1,23 @@
-MapReduce(-1) - MRCompiler-50:
+MapReduce(-1) - -51:
 |   Store(DummyFil:DummyLdr) - -370083002387034672
 |   |
 |   |---Package - --7096529877081178520
-|   Union - MapReduceOper-1
+|   Union - -52
 |   |
 |   |---Filter - --7868505214447593853
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - --5177745552827005198
 |   |
+|   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -53
+|   |
+|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -55
+|   |
 |   |---Filter - -6305091296204163466
-|   |   |
-|   |   |---Load(DummyFil:DummyLdr) - -1236980712440527800
-|   |
-|   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-51
-|   |
-|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-53
+|       |
+|       |---Load(DummyFil:DummyLdr) - -1236980712440527800
 |
-|---MapReduce(-1) - MRCompiler-48:
-|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-52
+|---MapReduce(-1) - -49:
+|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -54
 |   |   |
 |   |   |---Local Rearrange - -6790164331631653200
 |   |       |
@@ -26,8 +26,8 @@ MapReduce(-1) - MRCompiler-50:
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - -6620645493024302760
 |
-|---MapReduce(-1) - MRCompiler-49:
-    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-54
+|---MapReduce(-1) - -50:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -56
     |   |
     |   |---Local Rearrange - -8729990799028586395
     |       |

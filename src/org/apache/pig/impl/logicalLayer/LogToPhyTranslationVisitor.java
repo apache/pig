@@ -78,7 +78,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOGreaterThan op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new GreaterThanExpr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getLhsOperand().getType());
 		LogicalPlan lp = op.mPlan;
@@ -102,7 +102,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOLesserThan op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new LessThanExpr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getLhsOperand().getType());
 		LogicalPlan lp = op.mPlan;
@@ -125,7 +125,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOGreaterThanEqual op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new GTOrEqualToExpr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getLhsOperand().getType());
 		LogicalPlan lp = op.mPlan;
@@ -147,7 +147,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOLesserThanEqual op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new LTOrEqualToExpr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getLhsOperand().getType());
 		LogicalPlan lp = op.mPlan;
@@ -169,7 +169,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOEqual op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new EqualToExpr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getLhsOperand().getType());
 		LogicalPlan lp = op.mPlan;
@@ -191,7 +191,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LONotEqual op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new NotEqualToExpr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getLhsOperand().getType());
 		LogicalPlan lp = op.mPlan;
@@ -213,7 +213,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOAdd op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new Add(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getType());
 		LogicalPlan lp = op.mPlan;
@@ -235,7 +235,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOSubtract op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new Subtract(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getType());
 		LogicalPlan lp = op.mPlan;
@@ -257,7 +257,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOMultiply op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new Multiply(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getType());
 		LogicalPlan lp = op.mPlan;
@@ -279,7 +279,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LODivide op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new Divide(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getType());
 		LogicalPlan lp = op.mPlan;
@@ -301,7 +301,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOMod op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator exprOp = new Mod(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getType());
 		LogicalPlan lp = op.mPlan;
@@ -324,7 +324,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	@Override
 	public void visit(LOCogroup cg) throws VisitorException {
 		boolean currentPhysicalPlan = false;
-		String scope = cg.getKey().scope;
+		String scope = cg.getOperatorKey().scope;
 		List<LogicalOperator> inputs = cg.getInputs();
 		
 		POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cg.getRequestedParallelism());
@@ -386,7 +386,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
 	@Override
 	public void visit(LOFilter filter) throws VisitorException {
-		String scope = filter.getKey().scope;
+		String scope = filter.getOperatorKey().scope;
 		POFilter poFilter = new POFilter(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), filter.getRequestedParallelism());
 		poFilter.setResultType(filter.getType());
 		currentPlan.add(poFilter);
@@ -415,7 +415,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOProject op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		POProject exprOp = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		exprOp.setResultType(op.getType());
 		exprOp.setColumn(op.getCol());
@@ -442,7 +442,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
 	@Override
 	public void visit(LOForEach forEach) throws VisitorException {
-		String scope = forEach.getKey().scope;
+		String scope = forEach.getOperatorKey().scope;
 		//This needs to be handled specially.
 		//We need to be able to handle arbitrary levels of nesting
 		
@@ -479,7 +479,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	@Override
 	public void visit(LOGenerate g) throws VisitorException {
 		boolean currentPhysicalPlan = false;
-		String scope = g.getKey().scope;
+		String scope = g.getOperatorKey().scope;
 		List<ExprPlan> exprPlans = new ArrayList<ExprPlan>();
 		List<LogicalPlan> plans = g.getGeneratePlans();
 		
@@ -518,7 +518,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
 	@Override
 	public void visit(LOSort s) throws VisitorException {
-		String scope = s.getKey().scope;
+		String scope = s.getOperatorKey().scope;
 		List<LogicalPlan> logPlans = s.getSortColPlans();
 		List<ExprPlan> sortPlans = new ArrayList<ExprPlan>(logPlans.size());
 		
@@ -560,7 +560,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LODistinct op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		//This is simpler. No plans associated with this. Just create the physical operator,
 		//push it in the current plan and make the connections
 		PhysicalOperator physOp = new PODistinct(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
@@ -614,7 +614,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOSplit split) throws VisitorException {
-		String scope = split.getKey().scope;
+		String scope = split.getOperatorKey().scope;
 		PhysicalOperator physOp = new POSplit(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), split.getRequestedParallelism());
 		LogToPhyMap.put(split, physOp);
 		
@@ -629,7 +629,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOSplitOutput split) throws VisitorException {
-		String scope = split.getKey().scope;
+		String scope = split.getOperatorKey().scope;
 		PhysicalOperator physOp = new POFilter(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), split.getRequestedParallelism());
 		LogToPhyMap.put(split, physOp);
 		
@@ -655,7 +655,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOUserFunc func) throws VisitorException {
-		String scope = func.getKey().scope;
+		String scope = func.getOperatorKey().scope;
 		Object f = PigContext.instantiateFuncFromSpec(func.getFuncName());
 		PhysicalOperator p;
 		if(f instanceof EvalFunc) { 
@@ -680,7 +680,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOLoad loLoad) throws VisitorException {
-		String scope = loLoad.getKey().scope;
+		String scope = loLoad.getOperatorKey().scope;
 		//This would be a root operator. We don't need to worry about finding its predecessors
 		POLoad load = new POLoad(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
 		load.setLFile(loLoad.getInputFile());
@@ -692,7 +692,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOStore loStore) throws VisitorException {
-		String scope = loStore.getKey().scope;
+		String scope = loStore.getOperatorKey().scope;
 		POStore store = new POStore(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
 		store.setSFile(loStore.getOutputFile());
 		store.setPc(pc);
@@ -708,7 +708,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOConst op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ConstantExpression ce = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
 		ce.setValue(op.getValue());
 		ce.setResultType(op.getType());
@@ -719,7 +719,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOBinCond op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator physOp = new POBinCond(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		LogToPhyMap.put(op, physOp);
 		POBinCond phy = (POBinCond)physOp;
@@ -747,7 +747,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LONegative op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator physOp = new PONegative(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism(), null);
 		currentPlan.add(physOp);
 		
@@ -764,7 +764,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOIsNull op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator physOp = new POIsNull(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism(), null);
 		currentPlan.add(physOp);
 		
@@ -781,7 +781,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOMapLookup op) throws VisitorException {
-		String scope = ((OperatorKey)op.getKey()).scope;
+		String scope = ((OperatorKey)op.getOperatorKey()).scope;
 		ExpressionOperator physOp = new POMapLookUp(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism(), op.getLookUpKey());
 		physOp.setResultType(op.getType());
 		currentPlan.add(physOp);
@@ -799,7 +799,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOCast op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		ExpressionOperator physOp = new POCast(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		currentPlan.add(physOp);
 		
@@ -817,7 +817,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	
 	@Override
 	public void visit(LOUnion op) throws VisitorException {
-		String scope = op.getKey().scope;
+		String scope = op.getOperatorKey().scope;
 		POUnion physOp = new POUnion(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), op.getRequestedParallelism());
 		currentPlan.add(physOp);
 		physOp.setResultType(op.getType());

@@ -216,13 +216,6 @@ public class HExecutionEngine implements ExecutionEngine {
 
     public PhysicalPlan compile(LogicalPlan plan,
                                 Properties properties) throws ExecException {
-        /*
-        return compile(new LogicalPlan[] { plan }, properties);
-    }
-
-    public PhysicalPlan compile(LogicalPlan[] plans,
-                                Properties properties) throws ExecException {
-                                */
         if (plan == null) {
             throw new ExecException("No Plan to compile");
         }
@@ -236,35 +229,6 @@ public class HExecutionEngine implements ExecutionEngine {
         } catch (VisitorException ve) {
             throw new ExecException(ve);
         }
-
-        /*
-        OperatorKey physicalKey = null;
-        for (int i = 0; i < plans.length; ++i) {
-            LogicalPlan curPlan = null;
-
-            curPlan = plans[ i ];
-     
-            OperatorKey logicalKey = curPlan.getRoot();
-            
-            physicalKey = logicalToPhysicalKeys.get(logicalKey);
-            
-            if (physicalKey == null) {
-                try {
-                physicalKey = new MapreducePlanCompiler(pigContext).
-                                        compile(curPlan.getRoot(),
-                                                curPlan.getOpTable(),
-                                                this);
-                }
-                catch (IOException e) {
-                    throw new ExecException("Failed to compile plan (" + i + ") " + logicalKey,
-                                                       e);
-                }
-                
-                logicalToPhysicalKeys.put(logicalKey, physicalKey);
-            }            
-        }
-        
-        return new MapRedPhysicalPlan(physicalKey, physicalOpTable);*/
     }
 
     public ExecJob execute(PhysicalPlan plan,
@@ -273,8 +237,9 @@ public class HExecutionEngine implements ExecutionEngine {
             PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
             FileSpec spec = null;
             if(!(leaf instanceof POStore)){
-                POStore str = new POStore(new OperatorKey("HExecEngine",
-                    NodeIdGenerator.getGenerator().getNextNodeId("HExecEngine")));
+                String scope = leaf.getOperatorKey().getScope();
+                POStore str = new POStore(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                     pigContext).toString(),
@@ -296,45 +261,6 @@ public class HExecutionEngine implements ExecutionEngine {
             if (e instanceof ExecException) throw (ExecException)e;
             else throw new ExecException(e.getMessage(), e);
         }
-
-        // TODO FIX Need to uncomment this with the right logic
-        /*POMapreduce pom = (POMapreduce) physicalOpTable.get(plan.getRoot());
-
-        MapReduceLauncher.initQueryStatus(pom.numMRJobs());  // initialize status, for bookkeeping purposes.
-        MapReduceLauncher.setConf(this.conf.getConfiguration());
-        MapReduceLauncher.setExecEngine(this);
-        
-        // if the final operator is a MapReduce with no output file, then send to a temp
-        // file.
-        if (pom.outputFileSpec==null) {
-            try {
-                pom.outputFileSpec = new FileSpec(FileLocalizer.getTemporaryPath(null, pigContext).toString(),
-                                                  BinStorage.class.getName());
-            }
-            catch (IOException e) {
-                throw new ExecException("Failed to obtain temp file for " + plan.getRoot().toString(), e);
-            }
-        }
-
-        try {
-            pom.open();
-            
-            Tuple t;
-            while ((t = (Tuple) pom.getNext()) != null) {
-                ;
-            }
-            
-            pom.close();
-            
-            this.materializedResults.put(pom.sourceLogicalKey,
-                                         new MapRedResult(pom.outputFileSpec,
-                                                           pom.reduceParallelism));
-        }
-        catch (IOException e) {
-            throw new ExecException(e);
-        }
-        
-        return new HJob(JOB_STATUS.COMPLETED, pigContext, pom.outputFileSpec);*/
 
     }
 

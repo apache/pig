@@ -143,7 +143,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         splitsSeen = new HashMap<OperatorKey, MapReduceOper>();
         MRPlan = new MROperPlan();
         nig = NodeIdGenerator.getGenerator();
-        scope = "MRCompiler";
+        scope = plan.getRoots().get(0).getOperatorKey().getScope();
         r = new Random(1331);
         FileLocalizer.setR(r);
         udfFinderForExpr = new UDFFinderForExpr();
@@ -943,6 +943,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         return mro;
     }
     
+    /*
     public static void main(String[] args) throws PlanException, IOException, ExecException, VisitorException {
         PigContext pc = new PigContext();
         pc.connect();
@@ -960,8 +961,8 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         POLoad ld = comp.getLoad();
         pj.mapPlan.add(ld);
 
-        /*POSort op = new POSort(new OperatorKey("", r.nextLong()), -1, null,
-                sortPlans, mAscCols, null);*/
+        //POSort op = new POSort(new OperatorKey("", r.nextLong()), -1, null,
+        //      sortPlans, mAscCols, null);
         PODistinct op = new PODistinct(new OperatorKey("", r.nextLong()),
                 -1, null);
         pj.mapPlan.addAsLeaf(op);
@@ -975,4 +976,5 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         PlanPrinter<MapReduceOper, MROperPlan> pp = new PlanPrinter<MapReduceOper, MROperPlan>(plan);
         pp.print(System.out);
     }
+    */
 }

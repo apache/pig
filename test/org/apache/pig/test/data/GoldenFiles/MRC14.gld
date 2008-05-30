@@ -1,4 +1,4 @@
-MapReduce(100) - MRCompiler-126:
+MapReduce(100) - -135:
 Reduce Plan Empty
 |   Store(DummyFil:DummyLdr) - --7335024873119453444
 |   |
@@ -6,60 +6,60 @@ Reduce Plan Empty
 |       |
 |       |---Filter - --4248200967728536480
 |       |   |
-|       |   |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-122
+|       |   |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -131
 |       |
 |       |---Filter - -4589138876054328603
 |           |
-|           |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-124
+|           |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -133
 |
-|---MapReduce(40) - MRCompiler-120:
-    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - MRCompiler-121
+|---MapReduce(40) - -128:
+    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -130
     |   |
     |   |---Package - --1848504978980807369
-    |   Union - MapReduceOper-8
+    |   Union - -129
     |   |
     |   |---Local Rearrange - --5908426805312852480
     |   |   |
     |   |   |---Filter - --8479692259657755370
     |   |       |
-    |   |       |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-111
+    |   |       |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -119
     |   |
     |   |---Local Rearrange - -5965044993061572808
     |   |   |
     |   |   |---Filter - --2247078527532208396
     |   |       |
-    |   |       |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-113
+    |   |       |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -121
     |   |
     |   |---Local Rearrange - -8914265632748254170
     |       |
     |       |---Filter - -9193928674704944093
     |           |
-    |           |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-118
+    |           |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -126
     |
-    |---MapReduce(20) - MRCompiler-109:
+    |---MapReduce(20) - -117:
     |   Reduce Plan Empty
-    |   |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - MRCompiler-110
+    |   |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -118
     |   |   |
     |   |   |---Filter - --2771799342014688397
     |   |       |
-    |   |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-108
+    |   |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -116
     |   |
-    |   |---MapReduce(-1) - MRCompiler-106:
+    |   |---MapReduce(-1) - -114:
     |       Reduce Plan Empty
-    |       |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-107
+    |       |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -115
     |       |   |
     |       |   |---Load(DummyFil:DummyLdr) - -7955165653808522445
     |
-    |---MapReduce(10) - MRCompiler-116:
+    |---MapReduce(10) - -124:
         Reduce Plan Empty
-        |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - MRCompiler-117
+        |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -125
         |   |
         |   |---Filter - --997494992827460962
         |       |
-        |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-115
+        |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -123
         |
-        |---MapReduce(-1) - MRCompiler-106:
+        |---MapReduce(-1) - -114:
             Reduce Plan Empty
-            |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - MRCompiler-107
+            |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -115
             |   |
             |   |---Load(DummyFil:DummyLdr) - -7955165653808522445
