@@ -35,7 +35,7 @@ public class TestPigSplit extends PigExecTestCase {
 		pw.println("0\ta");
 		pw.close();
 		
-		pigServer.registerQuery("a = load 'file:" + f + "';");
+		pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(f.toString()) + "';");
 		for (int i=0; i< 500; i++){
 			pigServer.registerQuery("a = filter a by $0 == '1';");
 		}
@@ -55,7 +55,7 @@ public class TestPigSplit extends PigExecTestCase {
         pw.println("12");
         pw.println("42");
         pw.close();
-        pigServer.registerQuery("a = load 'file:" + f + "' as (value);");
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(f.toString()) + "' as (value);");
         pigServer.registerQuery("split a into b if value < 20, c if value > 10;");
         pigServer.registerQuery("b1 = order b by value;");
         pigServer.registerQuery("c1 = order c by value;");

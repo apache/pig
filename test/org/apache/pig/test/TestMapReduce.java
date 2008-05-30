@@ -72,7 +72,7 @@ public class TestMapReduce extends TestCase {
             ps.println(i);
         }
         ps.close();
-        String query = "foreach (group (load 'file:" + tmpFile + "') all) generate " + COUNT.class.getName() + "($1) ;";
+        String query = "foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "') all) generate " + COUNT.class.getName() + "($1) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         Iterator it = pig.openIterator("asdf_id");
@@ -138,7 +138,7 @@ public class TestMapReduce extends TestCase {
             ps.println(i+"\t"+i);
         }
         ps.close();
-        String query = "foreach (load 'file:"+tmpFile+"') generate $0,$1;";
+        String query = "foreach (load 'file:"+Util.encodeEscape(tmpFile.toString())+"') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         try {
@@ -164,7 +164,7 @@ public class TestMapReduce extends TestCase {
             ps.println(i);
         }
         ps.close();
-        String query = "foreach (group (load 'file:"+tmpFile+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
+        String query = "foreach (group (load 'file:"+Util.encodeEscape(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         Iterator it = pig.openIterator("asdf_id");
@@ -189,7 +189,7 @@ public class TestMapReduce extends TestCase {
         }
         ps.close();
         pig.registerFunction("foo", MyApply.class.getName()+"('foo')");
-        String query = "foreach (group (load 'file:"+tmpFile+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
+        String query = "foreach (group (load 'file:"+Util.encodeEscape(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         Iterator it = pig.openIterator("asdf_id");

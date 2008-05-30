@@ -32,7 +32,7 @@ public class TestReversibleLoadStore extends PigExecTestCase {
         File tmpFile = createTempFile() ;
         
         PigServer pig = new PigServer(ExecType.LOCAL);
-        pig.registerQuery("A = LOAD 'file:" + tmpFile.getAbsolutePath() + "' USING "
+        pig.registerQuery("A = LOAD 'file:" + Util.encodeEscape(tmpFile.getAbsolutePath().toString()) + "' USING "
                         + DummyLoadFunc.class.getName() + "();");
 
         String file1 = "/tmp/testPigOutput" ;
@@ -68,7 +68,7 @@ public class TestReversibleLoadStore extends PigExecTestCase {
         File tmpFile = createTempFile() ;
         
         PigServer pig = new PigServer(ExecType.LOCAL);
-        pig.registerQuery("A = LOAD 'file:" + tmpFile.getAbsolutePath() + "' USING "
+        pig.registerQuery("A = LOAD 'file:" + Util.encodeEscape(tmpFile.getAbsolutePath().toString()) + "' USING "
                         + DummyLoadStoreFunc.class.getName() + "();");
 
         String file1 = "/tmp/testPigOutput" ;

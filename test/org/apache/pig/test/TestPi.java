@@ -122,12 +122,12 @@ public class TestPi extends TestCase {
 	@Test
 	public void testPi () throws Exception {
 		
-		pig.registerQuery("A = load " + fileName + " using PigStorage(':');");
+		pig.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + " using PigStorage(':');");
 		pig.registerQuery("B = foreach A generate $0 - '0.5' as d1, $1 - '0.5' as d2;");
 		pig.registerQuery("C = foreach B generate $0 * $0 as m1, $1 * $1 as m2;");
 		pig.registerQuery("D = foreach C generate $0 + $1 as s1;");
 		pig.registerQuery("D = foreach D generate $0, ARITY($0);");
-		pig.store("D", tmpFile1);
+		pig.store("D", Util.encodeEscape(tmpFile1.toString()));
 
 		pig.registerQuery("E = filter D by $0 <= '0.25';");
 

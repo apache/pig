@@ -113,9 +113,9 @@ public class TestLargeFile extends TestCase {
 	@Test
 	public void testLargeFile () throws Exception {
 		System.out.println("Running testLargeFile...");
-		pig.registerQuery("A = load " + fileName + ";");
+		pig.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + ";");
 		pig.registerQuery("A = group A by $0;");
-		pig.store("A", tmpFile1, "BinStorage()");
+		pig.store("A", Util.encodeEscape(tmpFile1.toString()), "BinStorage()");
 //		pig.store("A", tmpFile1);
 		pig.registerQuery("B = foreach A generate group, COUNT($1);");
 		
@@ -137,7 +137,7 @@ public class TestLargeFile extends TestCase {
 	public void testOrder () throws Exception {
 		System.out.println("Running testOrder...");
 		int N = 0, Nplus1 = 0;
-		pig.registerQuery("A = load " + fileName + ";");
+		pig.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + ";");
 		pig.registerQuery("B = order A by $0;");
 		
 		Iterator <Tuple> B = pig.openIterator("B");
@@ -164,7 +164,7 @@ public class TestLargeFile extends TestCase {
 	@Test
 	public void testDistinct () throws Exception {
 		System.out.println("Running testDistinct...");
-		pig.registerQuery("A = load " + fileName + ";");
+		pig.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + ";");
 		pig.registerQuery("B = distinct A;");
 		
 		Iterator <Tuple> B = pig.openIterator("B");

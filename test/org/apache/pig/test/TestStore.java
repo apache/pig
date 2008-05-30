@@ -37,11 +37,11 @@ public class TestStore extends PigExecTestCase {
 	String tmpFile1, tmpFile2;
 
 	public void testSingleStore() throws Exception{
-		pigServer.registerQuery("A = load " + fileName + ";");
+		pigServer.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + ";");
 		
-		pigServer.store("A", tmpFile1);
+		pigServer.store("A", Util.encodeEscape(tmpFile1.toString()));
 		
-		pigServer.registerQuery("B = load " + tmpFile1 + ";");
+		pigServer.registerQuery("B = load " + Util.encodeEscape(tmpFile1.toString()) + ";");
 		Iterator<Tuple> iter  = pigServer.openIterator("B");
 		
 		int i =0;
@@ -54,13 +54,13 @@ public class TestStore extends PigExecTestCase {
 	}
 	
 	public void testMultipleStore() throws Exception{
-		pigServer.registerQuery("A = load " + fileName + ";");
+		pigServer.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + ";");
 		
-		pigServer.store("A", tmpFile1);
+		pigServer.store("A", Util.encodeEscape(tmpFile1.toString()));
 		
 		pigServer.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
-		pigServer.store("B", tmpFile2);
-		pigServer.registerQuery("C = load " + tmpFile2 + ";");
+		pigServer.store("B", Util.encodeEscape(tmpFile2.toString()));
+		pigServer.registerQuery("C = load " + Util.encodeEscape(tmpFile2.toString()) + ";");
 		Iterator<Tuple> iter  = pigServer.openIterator("C");
 		
 		int i =0;
@@ -75,13 +75,13 @@ public class TestStore extends PigExecTestCase {
 	}
 	
 	public void testStoreWithMultipleMRJobs() throws Exception{
-		pigServer.registerQuery("A = load " + fileName + ";");		
+		pigServer.registerQuery("A = load " + Util.encodeEscape(fileName.toString()) + ";");
 		pigServer.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
 		pigServer.registerQuery("C = foreach (group B by $0) generate $0, SUM($1);");
 		pigServer.registerQuery("D = foreach (group C by $0) generate $0, SUM($1);");
 
-		pigServer.store("D", tmpFile2);
-		pigServer.registerQuery("E = load " + tmpFile2 + ";");
+		pigServer.store("D", Util.encodeEscape(tmpFile2.toString()));
+		pigServer.registerQuery("E = load " + Util.encodeEscape(tmpFile2.toString()) + ";");
 		Iterator<Tuple> iter  = pigServer.openIterator("E");
 		
 		int i =0;

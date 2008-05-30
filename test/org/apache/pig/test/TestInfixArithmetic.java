@@ -58,7 +58,7 @@ public class TestInfixArithmetic extends TestCase {
             ps.println(i + ":" + i);
         }
         ps.close();
-        String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
+        String query = "A = foreach (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
         log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
@@ -79,7 +79,7 @@ public class TestInfixArithmetic extends TestCase {
             ps.println(i + ":" + i);
         }
         ps.close();
-        String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
+        String query = "A = foreach (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
         log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
@@ -99,7 +99,7 @@ public class TestInfixArithmetic extends TestCase {
             ps.println(i + ":" + i);
         }
         ps.close();
-        String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
+        String query = "A = foreach (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
         log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
@@ -120,7 +120,7 @@ public class TestInfixArithmetic extends TestCase {
             ps.println(i + ":" + i);
         }
         ps.close();
-        String query = "A =  foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1;";
+        String query = "A =  foreach (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1;";
         log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");

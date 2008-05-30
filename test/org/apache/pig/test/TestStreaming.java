@@ -32,8 +32,13 @@ import org.junit.Test;
 
 public class TestStreaming extends PigExecTestCase {
 
-	private static final String simpleEchoStreamingCommand = 
-		"perl -ne 'chomp $_; print \"$_\n\"'";
+	private static final String simpleEchoStreamingCommand;
+        static {
+            if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+                simpleEchoStreamingCommand = "perl -ne 'print \\\"$_\\\"'";
+            else
+                simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
+        }
 
     private Tuple[] setupExpectedResults(String[] firstField, int[] secondField) {
 		Assert.assertEquals(firstField.length, secondField.length);
@@ -63,7 +68,7 @@ public class TestStreaming extends PigExecTestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
 				                PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("S1 = stream FILTERED_DATA through `" +
@@ -90,7 +95,7 @@ public class TestStreaming extends PigExecTestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
 				                PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
 		pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA through `" +
@@ -116,7 +121,7 @@ public class TestStreaming extends PigExecTestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
 				                PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
 		pigServer.registerQuery("GROUPED_DATA = group FILTERED_DATA by $0;");
@@ -159,7 +164,7 @@ public class TestStreaming extends PigExecTestCase {
 			setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
 		// Pig query to run
-		pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+		pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
 				                PigStorage.class.getName() + "(',');");
 		pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("S1 = stream FILTERED_DATA through `" +
@@ -223,7 +228,7 @@ public class TestStreaming extends PigExecTestCase {
                 "ship ('" + command2 + "') " +
                 "input('bar' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA " +
@@ -296,7 +301,7 @@ public class TestStreaming extends PigExecTestCase {
                 "cache ('" + c2 + "#script2.pl') " +
                 "input('bar' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA " +
@@ -359,7 +364,7 @@ public class TestStreaming extends PigExecTestCase {
         		"output('foo' using " + PigStorage.class.getName() + "(','), " +
         		"'bar' using " + PigStorage.class.getName() + "(',')) " +
         		"stderr();"); 
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
@@ -424,7 +429,7 @@ public class TestStreaming extends PigExecTestCase {
                 "output('bar', " +
                 "'foobar' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");
@@ -468,7 +473,7 @@ public class TestStreaming extends PigExecTestCase {
         // Pig query to run
         pigServer.registerQuery("define CMD `" + simpleEchoStreamingCommand + 
                                 " | " + simpleEchoStreamingCommand + "`;");
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("OP = stream IP through CMD;");
         
@@ -502,7 +507,7 @@ public class TestStreaming extends PigExecTestCase {
         // Pig query to run
         pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
                                 "` input(stdin using PigDump);");
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 PigStorage.class.getName() + "(',') " +
                                 "split by 'file';");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");

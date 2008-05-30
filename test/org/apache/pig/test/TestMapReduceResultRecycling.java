@@ -14,7 +14,7 @@ public class TestMapReduceResultRecycling extends PigExecTestCase {
     public void testPlanRecycling() throws Throwable {
         File tmpFile = this.createTempFile();
         {            
-            String query = "a = load 'file:" + tmpFile + "'; " ;
+            String query = "a = load 'file:" + Util.encodeEscape(tmpFile.toString()) + "'; " ;
             System.out.println(query);
             pigServer.registerQuery(query);
             pigServer.explain("a", System.out) ;
