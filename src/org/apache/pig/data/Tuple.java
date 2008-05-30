@@ -35,6 +35,7 @@ import org.apache.hadoop.io.WritableComparable;
 public class Tuple extends Datum implements WritableComparable {
     
     private static final Log log = LogFactory.getLog(Tuple.class);
+    private static int numFields = 5;
     
     protected ArrayList<Datum> fields;
     static String              defaultDelimiter = "[,\t]";
@@ -77,7 +78,7 @@ public class Tuple extends Datum implements WritableComparable {
             delimiter = defaultDelimiter;
         }
         
-        fields = new ArrayList<Datum>() ;
+        fields = new ArrayList<Datum>(numFields) ;
         int delimSize = delimiter.length() ;
         boolean done = false ;
         
@@ -96,6 +97,8 @@ public class Tuple extends Datum implements WritableComparable {
                 done = true ;
             }
         }
+
+        numFields = fields.size();
     }
 
     /**
