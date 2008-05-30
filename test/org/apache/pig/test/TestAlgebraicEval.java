@@ -40,7 +40,7 @@ public class TestAlgebraicEval extends PigExecTestCase {
         ps.close();
         StringBuilder query = new StringBuilder();
         query.append("myid =  foreach (group (load 'file:");
-        query.append(tmpFile);
+        query.append(Util.encodeEscape(tmpFile.toString()));
         query.append("') all) generate COUNT($1);");
         if (log.isDebugEnabled()) {
             log.debug(query.toString());
@@ -63,7 +63,7 @@ public class TestAlgebraicEval extends PigExecTestCase {
         ps.close();
         StringBuilder query = new StringBuilder();
         query.append("myid = foreach (group (load 'file:");
-        query.append(tmpFile);
+        query.append(Util.encodeEscape(tmpFile.toString()));
         query.append("') all) generate group, COUNT($1) ;");
         if (log.isDebugEnabled()) {
             log.debug(query.toString());
@@ -86,7 +86,7 @@ public class TestAlgebraicEval extends PigExecTestCase {
         ps.close();
         StringBuilder query = new StringBuilder();
         query.append("myid = foreach (group (load 'file:");
-        query.append(tmpFile);
+        query.append(Util.encodeEscape(tmpFile.toString()));
         query.append("') all) generate COUNT($1), group ;");
         if (log.isDebugEnabled()) {
             log.debug(query.toString());
@@ -111,7 +111,7 @@ public class TestAlgebraicEval extends PigExecTestCase {
             ps.println(i%10 + ":" + i);
         }
         ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
+        String query = "myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
         System.out.println(query);
         pigServer.registerQuery(query);
         Iterator it = pigServer.openIterator("myid");
@@ -137,7 +137,7 @@ public class TestAlgebraicEval extends PigExecTestCase {
             ps.println(i%10 + ":" + i);
         }
         ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
+        String query = "myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
         System.out.println(query);
         pigServer.registerQuery(query);
         Iterator it = pigServer.openIterator("myid");

@@ -76,7 +76,7 @@ public class TestCompressedFiles extends PigExecTestCase {
         // FIXME : this should be tested in all modes
         if(execType == ExecType.LOCAL)
             return;
-        pigServer.registerQuery("A = foreach (cogroup (load 'file:"+gzFile+"') by $1, (load 'file:"+datFile + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
+        pigServer.registerQuery("A = foreach (cogroup (load 'file:"+Util.encodeEscape(gzFile.toString())+"') by $1, (load 'file:"+Util.encodeEscape(datFile.toString()) + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
         Iterator it = pigServer.openIterator("A");
         boolean success = true;
         while(it.hasNext()) {

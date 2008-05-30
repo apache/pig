@@ -52,7 +52,7 @@ public class TestFilterOpString extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
         log.info(query);
@@ -79,7 +79,7 @@ public class TestFilterOpString extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
         log.info(query);
@@ -106,7 +106,7 @@ public class TestFilterOpString extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
         log.info(query);
@@ -138,7 +138,7 @@ public class TestFilterOpString extends PigExecTestCase {
         }
         ps.close();
         
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
         log.info(query);
@@ -166,7 +166,7 @@ public class TestFilterOpString extends PigExecTestCase {
         }
         ps.close();
         
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
         log.info(query);
@@ -196,7 +196,7 @@ public class TestFilterOpString extends PigExecTestCase {
         }
         ps.close();
         
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 
         log.info(query);

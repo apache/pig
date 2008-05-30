@@ -472,7 +472,7 @@ public class TestBuiltin extends TestCase {
     	writer.close();
     	
     	pig.registerFunction("myTr",ShellBagEvalFunc.class.getName() + "('tr o 0')");
-    	pig.registerQuery("a = load 'file:" + tempFile + "';");
+    	pig.registerQuery("a = load 'file:" + Util.encodeEscape(tempFile.toString()) + "';");
     	pig.registerQuery("b = foreach a generate myTr(*);");
     	Iterator<Tuple> iter = pig.openIterator("b");
     	    	
@@ -503,7 +503,7 @@ public class TestBuiltin extends TestCase {
     	
     	pig.registerFunction("tr1",ShellBagEvalFunc.class.getName() + "('tr o A')");
     	pig.registerFunction("tr2",ShellBagEvalFunc.class.getName() + "('tr o B')");
-    	pig.registerQuery("a = load 'file:" + tempFile + "';");
+    	pig.registerQuery("a = load 'file:" + Util.encodeEscape(tempFile.toString()) + "';");
     	pig.registerQuery("b = foreach a generate tr1(*),tr2(*);");
     	Iterator<Tuple> iter = pig.openIterator("b");
     	

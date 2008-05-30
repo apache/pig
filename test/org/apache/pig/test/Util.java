@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
+import static java.util.regex.Matcher.quoteReplacement;
 
 import org.apache.pig.data.*;
 import org.junit.Assert;
@@ -128,4 +129,17 @@ public class Util {
         System.out.println("---End----") ;
     }
 
+	/**
+     * Helper method to replace all occurrences of "\" with "\\" in a 
+     * string. This is useful to fix the file path string on Windows
+     * where "\" is used as the path separator.
+     * 
+     * @param str Any string
+     * @return The resulting string
+     */
+	public static String encodeEscape(String str) {
+	    String regex = "\\\\";
+	    String replacement = quoteReplacement("\\\\");
+	    return str.replaceAll(regex, replacement);
+}
 }

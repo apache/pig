@@ -59,6 +59,8 @@ public class PigStorage implements ReversibleLoadStoreFunc {
         }
         String line;
         if((line = in.readLine(utf8, recordDel)) != null) {            
+            if (line.length()>0 && line.charAt(line.length()-1)=='\r')
+                line = line.substring(0, line.length()-1);
             return new Tuple(line, fieldDel);
         }
         return null;

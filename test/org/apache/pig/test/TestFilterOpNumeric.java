@@ -52,7 +52,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using "+PigStorage.class.getName() +"(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by $0 == $1;";
         log.info(query);
         pigServer.registerQuery(query);
@@ -82,7 +82,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
         log.info(query);
         pigServer.registerQuery(query);
@@ -108,7 +108,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 > $1;";
 
         log.info(query);
@@ -131,7 +131,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "';");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "';");
         String query = "A = foreach A generate ($1 >= '"+ LOOP_COUNT+"'-'10'?'1':'0');";
         log.info(query);
         pigServer.registerQuery(query);
@@ -159,7 +159,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "';");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "';");
         String query = "A = foreach A generate ($0 < '10'?($1 >= '5' ? '2': '1') : '0');";
         log.info(query);
         pigServer.registerQuery(query);
@@ -190,7 +190,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 < $1;";
 
         log.info(query);
@@ -220,7 +220,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 >= $1;";
 
         log.info(query);
@@ -249,7 +249,7 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 <= $1;";
 
         log.info(query);

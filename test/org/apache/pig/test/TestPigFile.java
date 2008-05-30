@@ -81,12 +81,12 @@ public class TestPigFile extends TestCase {
         
         log.info("Running Store...");
         String initialdata = File.createTempFile("pig-tmp", "").getAbsolutePath();
-        PigFile store = new PigFile(initialdata);
+        PigFile store = new PigFile(Util.encodeEscape(initialdata.toString()));
         store.store(bag, new PigStorage(), pigContext);
         log.info("Done.");
 
         log.info("Running Load...");
-        PigFile load = new PigFile(initialdata);
+        PigFile load = new PigFile(Util.encodeEscape(initialdata.toString()));
         DataBag loaded = load.load(new PigStorage(), pigContext);
         log.info("Done.");
 
@@ -191,7 +191,7 @@ public class TestPigFile extends TestCase {
             ps.println(i);
         }
         ps.close();
-        pig.registerQuery("a = load 'file:" + tmpFile+"';");
+        pig.registerQuery("a = load 'file:" + Util.encodeEscape(tmpFile.toString())+"';");
         pig.store("a", "/tmp/abc/xyz");
         
         tmpFile.delete();

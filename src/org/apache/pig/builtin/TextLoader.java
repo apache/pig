@@ -49,6 +49,9 @@ public class TextLoader implements LoadFunc{
             return null;
         String line;
         if ((line = in.readLine(utf8, (byte)'\n')) != null) {
+            if (line.length()>0 && line.charAt(line.length()-1)=='\r')
+                line = line.substring(0, line.length()-1);
+
             Tuple t = new Tuple(1);
             t.setField(0, new DataAtom(line));
             return t;

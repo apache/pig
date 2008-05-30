@@ -78,7 +78,7 @@ public class TestBinaryStorage extends PigExecTestCase {
                                 simpleEchoStreamingCommand + "` " +
                                 "input(stdin using BinaryStorage()) " +
                                 "output(stdout using BinaryStorage());");
-        pigServer.registerQuery("IP = load 'file:" + input + "' using " + 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                                 "BinaryStorage() split by 'file';");
         pigServer.registerQuery("OP = stream IP through CMD;");
 
@@ -97,6 +97,7 @@ public class TestBinaryStorage extends PigExecTestCase {
                                                 outputData, 0, outputLen) == 0);
         
         // Cleanup
+        out.close();
         pigServer.deleteFile(output);
     }
 

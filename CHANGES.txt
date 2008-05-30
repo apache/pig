@@ -306,3 +306,5 @@ Trunk (unreleased changes)
 
     PIG-85: memory optimization
 
+    PIG-243: Fixing unit tests on windows
+

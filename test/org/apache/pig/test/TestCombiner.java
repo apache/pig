@@ -39,7 +39,7 @@ public class TestCombiner extends PigExecTestCase {
         }
         ps.close();
         pig.registerQuery(loadAlias + " = load 'file:"
-                + inputFile + "' using "
+                + Util.encodeEscape(inputFile.toString()) + "' using "
                 + PigStorage.class.getName() + "(',');");
     }
 
