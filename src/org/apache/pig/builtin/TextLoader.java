@@ -46,7 +46,7 @@ public class TextLoader implements LoadFunc{
         this.in = in;
         this.end = end;
         // Since we are not block aligned we throw away the first
-        // record and cound on a different instance to read it
+        // record and count on a different instance to read it
         if (offset != 0)
             getNext();
     }
@@ -71,6 +71,7 @@ public class TextLoader implements LoadFunc{
     
     /**
      * TextLoader does not support conversion to Integer
+     * @throws IOException if the value cannot be cast.
      */
     public Integer bytesToInteger(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Integer");
@@ -78,6 +79,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * TextLoader does not support conversion to Long
+     * @throws IOException if the value cannot be cast.
      */
     public Long bytesToLong(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Long");
@@ -85,6 +87,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * TextLoader does not support conversion to Float
+     * @throws IOException if the value cannot be cast.
      */
     public Float bytesToFloat(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Float");
@@ -92,6 +95,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * TextLoader does not support conversion to Double
+     * @throws IOException if the value cannot be cast.
      */
     public Double bytesToDouble(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Double");
@@ -109,6 +113,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * TextLoader does not support conversion to Map
+     * @throws IOException if the value cannot be cast.
      */
     public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Map");
@@ -116,6 +121,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * TextLoader does not support conversion to Tuple
+     * @throws IOException if the value cannot be cast.
      */
     public Tuple bytesToTuple(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Tuple");
@@ -123,6 +129,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * TextLoader does not support conversion to Bag
+     * @throws IOException if the value cannot be cast.
      */
     public DataBag bytesToBag(byte[] b) throws IOException {
         throw new IOException("TextLoader does not support conversion to Bag");

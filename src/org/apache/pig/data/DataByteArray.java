@@ -47,6 +47,20 @@ public class DataByteArray implements Comparable {
     }
 
     /**
+     * Construct a byte array using a portion of the provided bytes as content.
+     * @param b byte array to read from.  A copy of the underlying bytes will be
+     * made.
+     * @param start starting point to copy from
+     * @param ending point to copy to, exclusive.
+     */
+    public DataByteArray(byte[] b, int start, int end) {
+        mData = new byte[end - start];
+        for (int i = start; i < end; i++) {
+            mData[i - start] = b[i];
+        }
+    }
+
+    /**
      * Construct a byte array from a String.  The contents of the string
      * are copied.
      * @param s String to make a byte array out of.

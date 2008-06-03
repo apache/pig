@@ -27,7 +27,6 @@ import java.util.Map;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -41,7 +40,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
-public class PigStorage implements LoadFunc, StoreFunc {
+public class PigStorage extends Utf8StorageConverter
+        implements LoadFunc, StoreFunc {
     protected BufferedPositionedInputStream in = null;
         
     long                end            = Long.MAX_VALUE;
@@ -49,7 +49,6 @@ public class PigStorage implements LoadFunc, StoreFunc {
     private byte fieldDel = '\t';
     private ByteArrayOutputStream mBuf = null;
     private ArrayList<Object> mProtoTuple = null;
-    private TupleFactory mTupleFactory = TupleFactory.getInstance();
     
     public PigStorage() {
     }
@@ -195,59 +194,12 @@ public class PigStorage implements LoadFunc, StoreFunc {
         mBuf.reset();
     }
 
-    public DataBag bytesToBag(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Boolean bytesToBoolean(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public String bytesToCharArray(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Double bytesToDouble(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Float bytesToFloat(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Integer bytesToInteger(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Long bytesToLong(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Tuple bytesToTuple(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     public Schema determineSchema(URL fileName) throws IOException {
-        // TODO Auto-generated method stub
         return null;
     }
 
     public void fieldsToRead(Schema schema) {
-        // TODO Auto-generated method stub
-        
+        // do nothing
     }
 
 }

@@ -18,6 +18,7 @@
 package org.apache.pig.builtin;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -111,48 +112,91 @@ public class BinStorage implements LoadFunc, StoreFunc {
     }
 
     public DataBag bytesToBag(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Boolean bytesToBoolean(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (DataBag)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }        
     }
 
     public String bytesToCharArray(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (String)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Double bytesToDouble(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (Double)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Float bytesToFloat(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (Float)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Integer bytesToInteger(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (Integer)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Long bytesToLong(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (Long)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (Map<Object, Object>)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Tuple bytesToTuple(byte[] b) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
+        try {
+            return (Tuple)DataReaderWriter.readDatum(dis);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public Schema determineSchema(URL fileName) throws IOException {

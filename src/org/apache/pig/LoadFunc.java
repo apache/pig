@@ -71,13 +71,6 @@ public interface LoadFunc {
      */
     public Tuple getNext() throws IOException;
     
-    /**
-     * Cast data from bytes to boolean value.  
-     * @param bytes byte array to be cast.
-     * @return Boolean value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Boolean bytesToBoolean(byte[] b) throws IOException;
     
     /**
      * Cast data from bytes to integer value.  
