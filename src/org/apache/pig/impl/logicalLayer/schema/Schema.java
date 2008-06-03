@@ -517,6 +517,13 @@ public class Schema {
                                  Schema other,
                                  boolean relaxInner,
                                  boolean relaxAlias) {
+
+        // If both of them are null, they are equal
+        if ((schema == null) && (other == null)) {
+            return true ;
+        }
+
+        // otherwise
         if (schema == null) {
             return false ;
         }

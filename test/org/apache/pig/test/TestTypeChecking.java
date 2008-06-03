@@ -20,30 +20,92 @@ package org.apache.pig.test;
 
 import junit.framework.TestCase;
 import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanValidationException;
-import org.apache.pig.ExecType;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.io.IOException;
+import org.junit.Before;
 
 public class TestTypeChecking extends TestCase {
 
+    final String FILE_BASE_LOCATION = "test/org/apache/pig/test/data/DotFiles/" ;
+
+    LogicalPlanTester planTester = new LogicalPlanTester() ;
+
+    @Before
+    public void setUp() {
+        planTester.reset();
+    }
+
+
+    @Test
+    public void testSimple1() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.buildPlan("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
+        LogicalPlan plan = planTester.buildPlan("b = distinct a ;") ;
+        planTester.typeCheckAgainstDotFile(plan, FILE_BASE_LOCATION + "plan1.dot");
+    }
+
+
+    @Test
+    public void testByScript1() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript1.dot");
+    }
+
+    @Test
+    public void testByScript2() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript2.dot");
+    }
+
+    // Problem with schema parser in QueryParser
+    /*
+        @Test
+    public void testByScript4() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript4.dot");
+    }
+    */
+
+    /*
+
+    @Test
+    public void testByScript3() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript3.dot");
+    }
+
+    */
+
+    // TODO: Convert all of these to dot files
+
+    /*
     @Test
     public void testValidation1() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
-        buildPlan("a = load 'a' as (field1: chararray, field2: tuple(inner1 : bytearray, inner2 : int));");
-        LogicalPlan plan = buildPlan("b = group a by field1;");
-        validatePlan(plan) ;
-    }
+        planTester.buildPlan("a = load 'a' as (" 
+                            + "group: tuple(field1:int, field2:double) ,"
+                            + "a: bag{tuple1:tuple(field1: int,field2: long)},"
+                            + "b: bag{tuple1:tuple(field1: bytearray,field2: double)} "
+                            + " ) ;") ;
+        LogicalPlan plan = planTester.buildPlan("b = group a by field1;");
+        planTester.typeCheckPlan(plan);
 
+
+    }
+    */
+
+    /*
+    @Test
+    public void testValidation1() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.buildPlan("a = load 'a' as (field1: chararray, field2: tuple(inner1 : bytearray, inner2 : int));");
+        LogicalPlan plan = planTester.buildPlan("b = group a by field1;");
+        planTester.typeCheckPlan(plan);
+    }
+    */
+
+    /*
     @Test
     public void testValidation2() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
@@ -119,7 +181,7 @@ public class TestTypeChecking extends TestCase {
 		LogicalPlan plan = buildPlan("e = foreach a generate name, details.(age, gpa), field3.(a,b) ;");
         validatePlan(plan) ;
     }
-    
+
     @Test
     public void testValidation11_2() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
@@ -137,6 +199,7 @@ public class TestTypeChecking extends TestCase {
         LogicalPlan plan = buildPlan("d = foreach c generate a.(field1, field2), b.(field1, field2)  ;");
         validatePlan(plan) ;
     }
+    */
 
     // I suspect there is something wrong in Schema.reconcile()
     /*
@@ -164,6 +227,7 @@ public class TestTypeChecking extends TestCase {
     }
     */
 
+    /*
    @Test
     public void testQuery20() throws Throwable {
        TypeCheckingTestUtil.printCurrentMethodName() ;
@@ -179,62 +243,9 @@ public class TestTypeChecking extends TestCase {
         String query = "b = foreach a generate (field1+field2)*(field1-field2) ;";
         validatePlan(buildPlan(query));
     }
-    
-    /***************** Helpers ******************/
 
-    public LogicalPlan buildPlan(String query) {
-        return buildPlan(query, LogicalPlanBuilder.class.getClassLoader());
-    }
+    */
 
-    public LogicalPlan buildPlan(String query, ClassLoader cldr) {
 
-        LogicalPlanBuilder.classloader = TestTypeChecking.class.getClassLoader() ;
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
-        LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
 
-        try {
-            LogicalPlan lp = builder.parse("Test-Plan-Builder",
-                                           query,
-                                           aliases,
-                                           logicalOpTable,
-                                           aliasOp,
-                                           defineAliases);
-
-            List<LogicalOperator> roots = lp.getRoots();
-
-            if(roots.size() > 0) {
-                if (logicalOpTable.get(roots.get(0)) instanceof LogicalOperator){
-                    System.out.println(query);
-                    System.out.println(logicalOpTable.get(roots.get(0)));
-                }
-                if ((roots.get(0)).getAlias()!=null){
-                    aliases.put(roots.get(0), lp);
-                }
-            }
-
-            assertTrue(lp != null);
-
-            return lp ;
-        }
-        catch (IOException e) {
-            fail("IOException: " + e.getMessage());
-        }
-        catch (Exception e) {
-            fail(e.getClass().getName() + ": " + e.getMessage() + " -- " + query);
-        }
-        return null;
-    }
-
-    public void validatePlan(LogicalPlan plan) throws PlanValidationException {
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-        typeValidator.validate(plan, collector) ;
-        TypeCheckingTestUtil.printMessageCollector(collector) ;
-        TypeCheckingTestUtil.printTypeGraph(plan) ;
-    }
-
-    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-    Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
-    Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-    Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
 }

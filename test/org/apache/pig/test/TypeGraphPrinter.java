@@ -19,9 +19,12 @@ package org.apache.pig.test;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.*;
+import org.apache.pig.impl.logicalLayer.parser.ParseException ;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.* ;
 
 /**
@@ -31,10 +34,17 @@ import org.apache.pig.impl.plan.* ;
 public class TypeGraphPrinter extends LOVisitor {
     
     private StringBuilder sb = null ;
+    private int currentTabCount = 0 ;
     
     public TypeGraphPrinter(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
         sb = new StringBuilder() ;
+    }
+
+    private void printTabs() {
+        for (int i=0; i< currentTabCount; i++) {
+            sb.append("\t") ;
+        }
     }
     
     protected void visit(LogicalOperator op) {
@@ -53,12 +63,42 @@ public class TypeGraphPrinter extends LOVisitor {
         appendOp(op) ;
     }
     
-    protected void visit(LOCogroup op) {
+    protected void visit(LOCogroup op) throws VisitorException {
         appendOp(op) ;
+        List<LogicalOperator> inputs = op.getInputs() ;
+        if (inputs != null) {
+            for(LogicalOperator input: inputs) {
+                List<LogicalPlan> plans
+                    = new ArrayList<LogicalPlan>(op.getGroupByPlans().get(input)) ;
+                if (plans != null) {
+                    for(LogicalPlan plan: plans) {
+                        currentTabCount++ ;
+                        printTabs() ;
+                        sb.append("<COGroup Inner Plan>\n") ;
+                        pushWalker(mCurrentWalker.spawnChildWalker(plan)) ;
+                        visit();
+                        popWalker();
+                        currentTabCount-- ;
+                    }
+                }
+            }
+        }
     }
     
-    protected void visit(LOGenerate op) {
+    protected void visit(LOGenerate op) throws VisitorException {
         appendOp(op) ;
+        List<LogicalPlan> plans = op.getGeneratePlans() ;
+        if (plans != null) {
+            for (LogicalPlan plan: plans) {
+                currentTabCount++ ;
+                printTabs() ;
+                sb.append("<Generate Inner Plan>\n") ;
+                pushWalker(mCurrentWalker.spawnChildWalker(plan)) ;
+                visit();
+                popWalker();
+                currentTabCount-- ;
+            }
+        }
     }
     
     protected void visit(LOSort op) {
@@ -67,19 +107,32 @@ public class TypeGraphPrinter extends LOVisitor {
     
     protected void visit(LOFilter op) throws VisitorException {
         appendOp(op) ;
-        sb.append("Filter Inner Plan:\n") ;
-        pushWalker(mCurrentWalker.spawnChildWalker(op.getComparisonPlan())) ;
-        visit();
-        popWalker();
-        sb.append("\n") ;
+        if (op.getComparisonPlan() != null) {
+            currentTabCount++ ;
+            printTabs() ;
+            sb.append("<Filter Inner Plan>\n") ;
+            pushWalker(mCurrentWalker.spawnChildWalker(op.getComparisonPlan())) ;
+            visit();
+            popWalker();
+            currentTabCount-- ;
+        }
     }
     
     protected void visit(LOSplit op) {
         appendOp(op) ;
     }
     
-    protected void visit(LOForEach op) {
+    protected void visit(LOForEach op) throws VisitorException {
         appendOp(op) ;
+        if (op.getForEachPlan() != null) {
+            currentTabCount++ ;
+            printTabs() ;
+            sb.append("<ForEach Inner Plan>\n") ;
+            pushWalker(mCurrentWalker.spawnChildWalker(op.getForEachPlan())) ;
+            visit();
+            popWalker();
+            currentTabCount-- ;
+        }
     }
     
     protected void visit(LOUserFunc op) {
@@ -87,6 +140,14 @@ public class TypeGraphPrinter extends LOVisitor {
     }
     
     protected void visit(LOBinCond op) {
+        appendOp(op) ;
+    }
+
+    protected void visit(LOCross op) {
+        appendOp(op) ;
+    }
+    
+    protected void visit(LOUnion op) {
         appendOp(op) ;
     }
     
@@ -119,15 +180,42 @@ public class TypeGraphPrinter extends LOVisitor {
     }
 
 
-    private void appendOp(LogicalOperator op) {
+    private void appendOp(LogicalOperator op)  {
+        printTabs() ;
         sb.append("(") ;
         sb.append(op.getOperatorKey().getId()) ;
         sb.append(":") ;
         sb.append(op.getClass().getSimpleName()) ;
         sb.append("=") ;
-        sb.append(DataType.findTypeName(op.getType())) ;
-        sb.append("{") ;
-        List<LogicalOperator> list = mPlan.getSuccessors(op) ;
+        Schema schema = null ;
+
+        if (!DataType.isComplex(op.getType())) {
+            sb.append(DataType.findTypeName(op.getType())) ;
+        }
+        else {
+            try {
+                if (op instanceof ExpressionOperator) {
+                    ExpressionOperator eOp = (ExpressionOperator) op ;
+                    Schema.FieldSchema fs = eOp.getFieldSchema() ;
+                    Schema.stringifySchema(sb, fs.schema, DataType.TUPLE) ;
+                }
+                else {
+                    schema = op.getSchema() ;
+                    Schema.stringifySchema(sb, schema, op.getType()) ;
+                }
+            }
+            catch (FrontendException fe) {
+                throw new RuntimeException("PROBLEM PRINTING SCHEMA") ;
+            }
+            catch (ParseException pe) {
+                throw new RuntimeException("PROBLEM PRINTING SCHEMA") ;
+            }
+        }
+
+        sb.append("==>") ;
+        List<LogicalOperator> list
+                    = mCurrentWalker.getPlan().getSuccessors(op) ;
+
         if (list!=null) {
             boolean isFirst = true ;
             for(LogicalOperator tmp: list) {         
@@ -140,7 +228,9 @@ public class TypeGraphPrinter extends LOVisitor {
                 sb.append(tmp.getOperatorKey().getId()) ;                
             }
         }
-        sb.append("}") ;
+        else {
+            sb.append("TERMINAL") ;
+        }
         sb.append(")") ;
         sb.append("\n") ;
     }

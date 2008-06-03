@@ -238,4 +238,13 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public LogicalPlan getPlan() {
         return mPlan ;
     }
+
+
+    /***
+     * IMPORTANT:
+     * This method is only used for unit testing purpose.
+     */
+    public void setSchemaComputed(boolean computed) {
+       mIsSchemaComputed = computed ;   
+    }
 }

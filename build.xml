@@ -17,10 +17,6 @@
     <property name="src.lib.dir" value="${basedir}/lib-src/" />
     <property name="src.gen.dir" value="${basedir}/src-gen/" />
 
-    <!-- javacc properties -->
-    <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
-    <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
-
     <property name="javacc.home" value="${basedir}/lib" />
 
     <!-- javac properties -->
@@ -63,6 +59,11 @@
     <property name="test.log.dir" value="${basedir}/test/logs"/>
     <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
 
+    <!-- javacc properties -->
+    <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
+    <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
+    <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
+
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
@@ -88,6 +89,7 @@
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
+        <mkdir dir="${src.gen.dot.parser.dir}" />
     </target>
 
     <!-- ================================================================== -->
@@ -96,6 +98,7 @@
     <target name="clean">
         <delete dir="${src.gen.dir}" />
         <delete dir="${build.dir}" />
+        <delete dir="${src.gen.dot.parser.dir}" />
     </target>
 
     <!-- ================================================================== -->
@@ -105,6 +108,8 @@
         <jjtree target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.query.parser.dir}/QueryParser.jj" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
+        <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/Dot.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.gen.dot.parser.dir}/Dot.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
     </target>
 
     <!-- ================================================================== -->
@@ -238,6 +243,7 @@
                     <!-- Excluced because we don't want to run them -->
                     <exclude name="**/TypeCheckingTestUtil.java" />
                     <exclude name="**/TypeGraphPrinter.java" />
+                    <exclude name="**/LogicalPlanTester.java" />
                     <exclude name="**/TestHelper.java" />
                     <exclude name="**/TestLargeFile.java" />
                     <exclude name="**/TestOrderBy.java" />

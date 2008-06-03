@@ -16,39 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.pig.impl.plan;
+package org.apache.pig.test.utils.dotGraph;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 
-public class NodeIdGenerator {
+/***
+ * This represents graph structure in DOT format
+ */
+public class DotGraph {
 
-    private Map<String, Long> scopeToIdMap;
-    private static NodeIdGenerator theGenerator = new NodeIdGenerator();
-    
-    private NodeIdGenerator() {
-        scopeToIdMap = new HashMap<String, Long>();
-    }
-    
-    public static NodeIdGenerator getGenerator() {
-        return theGenerator;
-    }
-    
-    public long getNextNodeId(String scope) {
-        Long val = scopeToIdMap.get(scope);
-        
-        long nextId = 0;
-        
-        if (val != null) {
-            nextId = val.longValue();
-        }
+    public String name;
+    public List<DotEdge> edges = new ArrayList<DotEdge>() ;
+    public List<DotNode> nodes = new ArrayList<DotNode>() ;
+    public Map<String, String> attributes = new HashMap<String,String>() ;
 
-        scopeToIdMap.put(scope, nextId + 1);
-        
-        return nextId;
+
+    public DotGraph(String name) {
+        this.name = name ;
     }
 
-    public static void reset(String scope) {
-        theGenerator.scopeToIdMap.put(scope, 0L) ;
-    }
 }

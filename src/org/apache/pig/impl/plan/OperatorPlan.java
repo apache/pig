@@ -107,21 +107,19 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
      * Get the map of operator key and associated operators
      * @return map of operator key and operators.
      */
-/*
     public Map<OperatorKey, E> getKeys() {
         return mKeys;
     }
-*/
+
     /**
      * Get the map of operators and associated operator keys
      * @return map of operator and operator keys.
      */
-/*
+    /*
     public Map<E, OperatorKey> getOps() {
         return mOps;
     }
-*/
-    
+    */
     /**
      * Insert an operator into the plan.  This only inserts it as a node in
      * the graph, it does not connect it to any other operators.  That should
@@ -341,6 +339,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
     public boolean isSingleLeafPlan() {
         List<E> tmpList = getLeaves() ;
         return tmpList.size() == 1 ;
+    }
+
+    public int size() {
+        return mKeys.size() ;
     }
 
 
