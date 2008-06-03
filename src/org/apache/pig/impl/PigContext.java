@@ -439,7 +439,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
         if (funcSpec != null) {
             className = getClassNameFromSpec(funcSpec);
         }else{
-            className = alias;
+            className = getClassNameFromSpec(alias);
         }
         return resolveClassName(className);
     }
@@ -454,5 +454,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
     public void setExecType(ExecType execType) {
         this.execType = execType;
+    }
+
+    public String getFuncSpecFromAlias(String alias) {
+        String funcSpec;
+        if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
+            return funcSpec;
+        else
+            return null;
     }
 }

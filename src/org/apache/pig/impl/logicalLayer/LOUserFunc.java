@@ -27,7 +27,7 @@ import org.apache.pig.impl.plan.PlanVisitor;
 public class LOUserFunc extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
-    private String mFuncName;
+    private String mFuncSpec;
     private List<ExpressionOperator> mArgs;
 
     /**
@@ -42,16 +42,16 @@ public class LOUserFunc extends ExpressionOperator {
      * @param returnType
      *            return type of this function.
      */
-    public LOUserFunc(LogicalPlan plan, OperatorKey k, String funcName,
+    public LOUserFunc(LogicalPlan plan, OperatorKey k, String funcSpec,
             List<ExpressionOperator> args, byte returnType) {
         super(plan, k, -1);
-        mFuncName = funcName;
+        mFuncSpec = funcSpec;
         mArgs = args;
         mType = returnType;
     }
 
-    public String getFuncName() {
-        return mFuncName;
+    public String getFuncSpec() {
+        return mFuncSpec;
     }
 
     public List<ExpressionOperator> getArguments() {

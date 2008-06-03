@@ -656,12 +656,12 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	@Override
 	public void visit(LOUserFunc func) throws VisitorException {
 		String scope = func.getOperatorKey().scope;
-		Object f = PigContext.instantiateFuncFromSpec(func.getFuncName());
+		Object f = PigContext.instantiateFuncFromSpec(func.getFuncSpec());
 		PhysicalOperator p;
 		if(f instanceof EvalFunc) { 
-			p = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), func.getRequestedParallelism(), null, func.getFuncName(), (EvalFunc)f);
+			p = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), func.getRequestedParallelism(), null, func.getFuncSpec(), (EvalFunc)f);
 		} else {
-			p = new POUserComparisonFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), func.getRequestedParallelism(), null, func.getFuncName(), (ComparisonFunc)f);
+			p = new POUserComparisonFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), func.getRequestedParallelism(), null, func.getFuncSpec(), (ComparisonFunc)f);
 		}
 		p.setResultType(func.getType());
 		currentPlan.add(p);

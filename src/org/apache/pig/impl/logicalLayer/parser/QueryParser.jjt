@@ -672,7 +672,7 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 		<USING>  funcName = QualifiedFunction() "(" funcArgs = StringList() ")"
 		{
 			funcSpec = funcName + "(" + funcArgs + ")";
-			log.debug("LoadClause: funcSpec = + funcSpec");
+			log.debug("LoadClause: funcSpec = " + funcSpec);
 		}
 		)?
 	)
@@ -815,7 +815,6 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 	ExpressionOperator cond = null; 
 	ExpressionOperator lhs, rhs; 
 	Token t1; 
-	String funcName; 
 	List<ExpressionOperator> args;
     EvalFunc evalFunc = null;
 	log.trace("Entering PUnaryCond");
@@ -920,12 +919,12 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 |	LOOKAHEAD(EvalFunction() "(") 
 		(evalFunc=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
 			{
-                funcName = evalFunc.getClass().getName();
+                String funcSpec = evalFunc.getClass().getName();
                 Type javaType = evalFunc.getReturnType();
                 byte type = DataType.findType(javaType);
 
                 log.debug("Return type of UDF: " + DataType.findTypeName(type));
-				cond = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
+				cond = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
 				lp.add(cond);
 				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
 				for(ExpressionOperator exprOp: args) {
@@ -1784,6 +1783,9 @@ ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, Logi
 ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
 {
 	String funcName = null; 
+	String funcSpec = null; 
+	String funcNameAlias = null; 
+    boolean registeredFunction = false;
 	List<ExpressionOperator> args;
 	ExpressionOperator userFunc;
     LOUserFunc userAliasFunc = null;
@@ -1792,7 +1794,21 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 }
 {
 	(
-    LOOKAHEAD({getDefineOp(getToken(1).image) != null}) funcName=QualifiedFunction()
+    LOOKAHEAD({ null != getDefineOp(getToken(1).image) }) funcName=QualifiedFunction()
+|   (
+    LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
+    {
+        
+		try{
+			evalFunc = (EvalFunc) pigContext.instantiateFuncFromAlias(funcNameAlias);
+            Type javaType = evalFunc.getReturnType();
+            log.debug("Type: " + javaType);
+            log.debug("funcName: " + funcName + " class name: " + evalFunc.getClass().getName() + " return type: " + DataType.findType(javaType));
+		}catch (Exception e){
+			throw new ParseException(e.getMessage());
+		}
+    }
+    )
 |   evalFunc=EvalFunction()
     )
     "(" args=EvalArgs(over,specs,lp,input) ")" 
@@ -1805,19 +1821,31 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 
 		if(null != evalFunc) {
             funcName = evalFunc.getClass().getName();
+            if(null != funcNameAlias) {
+                funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
+            } else {
+                funcSpec = funcName;
+            }
             Type javaType = evalFunc.getReturnType();
             byte type = DataType.findType(javaType);
             log.debug("Return type of UDF: " + DataType.findTypeName(type));
-			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
+            log.debug("FuncEvalSpec: funcSpec: " + funcSpec);
+			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
 		} else {
 			//we have an alias
 		    userAliasFunc = (LOUserFunc)getDefineOp(funcName);
-			int expectedNumArgs = userAliasFunc.getArguments().size();
-			int numArgs = args.size();
-			if(expectedNumArgs != numArgs) {
-				throw new ParseException("Expected " + expectedNumArgs + " argument(s) found " + numArgs + " argument(s)");
-			}
-			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), userAliasFunc.getFuncName(), userAliasFunc.getArguments(), userAliasFunc.getType());
+            if(null != userAliasFunc) {
+                int expectedNumArgs = userAliasFunc.getArguments().size();
+                int numArgs = args.size();
+                if(expectedNumArgs != numArgs) {
+                    throw new ParseException("Expected " + expectedNumArgs + " argument(s) found " + numArgs + " argument(s)");
+                }
+                funcSpec = userAliasFunc.getFuncSpec();
+                log.debug("FuncEvalSpec: funcSpec: " + funcSpec);
+                userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, userAliasFunc.getType());
+            } else {
+                throw new ParseException("Could not locate function declaration for " + funcName);
+            }
 
 		}
 		lp.add(userFunc);
@@ -1872,7 +1900,7 @@ ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs,
 
 ExpressionOperator FuncDeclareSpec(LogicalPlan lp) : 
 {
-	String funcName; 
+	String funcSpec; 
 	List<ExpressionOperator> args;
 	byte userSpecifiedType = DataType.BYTEARRAY;
     boolean userSpecified = false;
@@ -1882,14 +1910,14 @@ ExpressionOperator FuncDeclareSpec(LogicalPlan lp) :
 {
 	[userSpecifiedType = Type() {userSpecified = true;}] evalFunc=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
 	{
-        funcName = evalFunc.getClass().getName();
+        funcSpec = evalFunc.getClass().getName();
         Type javaType = evalFunc.getReturnType();
         byte type = DataType.findType(javaType);
         log.debug("Return type of UDF: " + DataType.findTypeName(type));
         if(userSpecified && (userSpecifiedType != type)) {
             throw new ParseException("User specified return type " + DataType.findTypeName(userSpecifiedType) + " and deduced return type " + DataType.findTypeName(type) + " are not the same");
         }
-		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcName, args, type);
+		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
 		log.trace("Exiting FuncDeclareSpec");
 		return userFunc;
 	}
