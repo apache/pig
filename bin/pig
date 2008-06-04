@@ -17,7 +17,7 @@
 #
 #     PIG_ROOT_LOGGER The root appender. Default is INFO,console
 #
-#     PIG_HADOOP_VERSION Version of hadoop to run with.    Default is 15 (0.15).
+#     PIG_HADOOP_VERSION Version of hadoop to run with.    Default is 17 (0.17).
 
 cygwin=false
 case "`uname`" in
@@ -118,8 +118,8 @@ for f in $PIG_HOME/build/pig-*-core.jar; do
     CLASSPATH=${CLASSPATH}:$f;
 done
 
-# Set the version for Hadoop, default to 15
-PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-15}"
+# Set the version for Hadoop, default to 17
+PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-17}"
 # add libs to CLASSPATH.    There can be more than one version of the hadoop
 # libraries in the lib dir, so don't blindly add them all.    Only add the one
 # that matche PIG_HADOOP_VERSION.
