@@ -308,3 +308,4 @@ Trunk (unreleased changes)
 
     PIG-243: Fixing unit tests on windows
 
+    PIG-198: Fixed pig script to pick up hadoop 17 instead of 15 (pi_song via gates). 
