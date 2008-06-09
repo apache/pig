@@ -71,6 +71,10 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
         //do nothing
     }
     
+    public void visitRegexp(PORegexp re) throws VisitorException{
+        //do nothing
+    }
+    
     public void visitAdd(Add add) throws VisitorException{
         //do nothing
     }
@@ -91,6 +95,18 @@ public class ExprPlanVisitor extends PhyPlanVisitor<ExpressionOperator, ExprPlan
         //do nothing
     }
     
+    public void visitAnd(POAnd and) throws VisitorException {
+        //do nothing
+    }
+
+    public void visitOr(POOr or) throws VisitorException {
+        //do nothing
+    }
+
+    public void visitNot(PONot not) throws VisitorException {
+        //do nothing
+    }
+
     public void visitBinCond(POBinCond binCond) {
         // do nothing
         

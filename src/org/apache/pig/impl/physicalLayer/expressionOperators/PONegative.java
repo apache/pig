@@ -38,7 +38,7 @@ public class PONegative extends UnaryExpressionOperator {
     
     public PONegative(OperatorKey k, int rp, ExpressionOperator input) {
         super(k, rp);
-        this.input = input;
+        this.expr = input;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class PONegative extends UnaryExpressionOperator {
 
     @Override
     public Result getNext(Double d) throws ExecException {
-        Result res = input.getNext(d);
+        Result res = expr.getNext(d);
         if(res.returnStatus == POStatus.STATUS_OK) {
             res.result = -1*((Double)res.result);
         }
@@ -63,7 +63,7 @@ public class PONegative extends UnaryExpressionOperator {
 
     @Override
     public Result getNext(Float f) throws ExecException {
-        Result res = input.getNext(f);
+        Result res = expr.getNext(f);
         if(res.returnStatus == POStatus.STATUS_OK) {
             res.result = -1*((Float)res.result);
         }
@@ -72,7 +72,7 @@ public class PONegative extends UnaryExpressionOperator {
 
     @Override
     public Result getNext(Integer i) throws ExecException {
-        Result res = input.getNext(i);
+        Result res = expr.getNext(i);
         if(res.returnStatus == POStatus.STATUS_OK) {
             res.result = -1*((Integer)res.result);
         }
@@ -81,7 +81,7 @@ public class PONegative extends UnaryExpressionOperator {
 
     @Override
     public Result getNext(Long l) throws ExecException {
-        Result res = input.getNext(l);
+        Result res = expr.getNext(l);
         if(res.returnStatus == POStatus.STATUS_OK) {
             res.result = -1*((Long)res.result);
         }
@@ -89,7 +89,7 @@ public class PONegative extends UnaryExpressionOperator {
     }
     
     public void setInput(ExpressionOperator in) {
-        this.input = in;
+        this.expr = in;
     }
     
     

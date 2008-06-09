@@ -28,7 +28,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.executionengine.ExecException;
 
 
-public class GTOrEqualToExpr extends ComparisonOperator {
+public class GTOrEqualToExpr extends BinaryComparisonOperator {
 
     /**
      * 

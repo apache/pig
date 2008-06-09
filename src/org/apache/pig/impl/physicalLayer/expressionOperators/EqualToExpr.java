@@ -32,7 +32,7 @@ import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
-public class EqualToExpr extends ComparisonOperator {
+public class EqualToExpr extends BinaryComparisonOperator {
 
     /**
      * 

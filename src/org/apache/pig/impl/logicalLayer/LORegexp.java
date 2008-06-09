@@ -29,14 +29,12 @@ import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LORegexp extends ExpressionOperator {
+public class LORegexp extends BinaryExpressionOperator {
     private static final long serialVersionUID = 2L;
 
     /**
      * The expression and the column to be projected.
      */
-    private ExpressionOperator mOperand;
-    private String mRegexp;
     private static Log log = LogFactory.getLog(LORegexp.class);
 
     /**
@@ -52,21 +50,31 @@ public class LORegexp extends ExpressionOperator {
      */
     public LORegexp(LogicalPlan plan, OperatorKey key,
             ExpressionOperator operand, String regexp) {
-        super(plan, key);
-        mOperand = operand;
-        mRegexp = regexp;
+        super(plan, key, operand, new LOConst(plan, key, regexp));
     }
 
     public ExpressionOperator getOperand() {
-        return mOperand;
+        return getLhsOperand();
     }
 
     public void setOperand(ExpressionOperator op) {
-        mOperand = op ;
+        setLhsOperand(op) ;
     }
 
     public String getRegexp() {
-        return mRegexp;
+        ExpressionOperator op = getRhsOperand();
+        if (!(op instanceof LOConst)) {
+            throw new RuntimeException(
+                "Regular expression patterns must be a constant.");
+        }
+        Object o = ((LOConst)op).getValue();
+        // better be a string
+        if (!(o instanceof String)) {
+            throw new RuntimeException(
+                "Regular expression patterns must be a string.");
+        }
+
+        return (String)o;
     }
     
     @Override

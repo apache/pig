@@ -27,7 +27,7 @@ import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.executionengine.ExecException;
 
-public class LessThanExpr extends ComparisonOperator {
+public class LessThanExpr extends BinaryComparisonOperator {
 
     /**
      * 

@@ -17,39 +17,56 @@
  */
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
+import java.util.Map;
+
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
- * This is a base class for all comparison operators. Supports the
+ * This is an interface for all comparison operators. Supports the
  * use of operand type instead of result type as the result type is
  * always boolean.
  * 
- * All comparison operators fetch the lhs and rhs operands and compare
- * them for each type using different comparison methods based on what
- * comparison is being implemented.
- *
  */
-public abstract class ComparisonOperator extends BinaryExpressionOperator {
-    //The result type for comparison operators is always
-    //Boolean. So the plans evaluating these should consider
-    //the type of the operands instead of the result.
-    //The result will be comunicated using the Status object.
-    //This is a slight abuse of the status object.
-    protected byte operandType;
+public interface ComparisonOperator {
     
-    public ComparisonOperator(OperatorKey k) {
-        this(k,-1);
-    }
+    /**
+     * Determine the type of the operand(s) of this comparator.
+     * @return type, as a byte (using DataType types).
+     */
+    byte getOperandType();
 
-    public ComparisonOperator(OperatorKey k, int rp) {
-        super(k, rp);
-    }
+    /**
+     * Set the type of the operand(s) of this comparator.
+     * @param operandType Type of the operand(s), as a byte (using DataType
+     * types).
+     */
+    void setOperandType(byte operandType);
 
-    public byte getOperandType() {
-        return operandType;
-    }
+    // Stupid java doesn't allow multiple inheritence, so I have to duplicate
+    // all the getNext functions here so that comparitors can have them.
+    public Result getNext(Integer i) throws ExecException;
 
-    public void setOperandType(byte operandType) {
-        this.operandType = operandType;
-    }
+    public Result getNext(Long l) throws ExecException;
+
+    public Result getNext(Double d) throws ExecException;
+
+    public Result getNext(Float f) throws ExecException;
+
+    public Result getNext(String s) throws ExecException;
+
+    public Result getNext(DataByteArray ba) throws ExecException;
+
+    public Result getNext(Map m) throws ExecException;
+
+    public Result getNext(Boolean b) throws ExecException;
+
+    public Result getNext(Tuple t) throws ExecException;
+
+    public Result getNext(DataBag db) throws ExecException;
+
 }

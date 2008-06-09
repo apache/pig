@@ -19,12 +19,13 @@ package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public abstract class UnaryExpressionOperator extends ExpressionOperator {
 
-    ExpressionOperator input;
+    ExpressionOperator expr;
     
     public UnaryExpressionOperator(OperatorKey k, int rp) {
         super(k, rp);
@@ -41,7 +42,27 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
         // TODO Auto-generated method stub
         return false;
     }
-    
-    
 
+    /**
+     * Set the contained expression to the be the input value.
+     */
+    public void setInputAsExpr(PhysicalPlan<ExpressionOperator> plan) {
+        expr = plan.getPredecessors(this).get(0);
+    }
+
+    /**
+     * Set the contained expression explicitly.  This is mostly for testing.
+     * @param e Expression to contain.
+     */
+    public void setExpr(ExpressionOperator e) {
+        expr = e;
+    }
+
+    /**
+     * Get the contained expression.
+     * @return contained expression.
+     */
+    public ExpressionOperator getExpr() { 
+        return expr;
+    }
 }

@@ -607,7 +607,7 @@ public class GenPhyOp{
         ConstantExpression ce2 = GenPhyOp.exprConst();
         ce2.setValue(rhsVal);
 
-        ComparisonOperator cop = null;
+        BinaryComparisonOperator cop = null;
         switch (CompType) {
         case GenPhyOp.GTE:
             cop = GenPhyOp.compGTOrEqualToExpr();
@@ -652,7 +652,7 @@ public class GenPhyOp{
         ConstantExpression ce2 = GenPhyOp.exprConst();
         ce2.setValue(rhsVal);
         
-        ComparisonOperator cop = null;
+        BinaryComparisonOperator cop = null;
         switch(CompType){
         case GenPhyOp.GTE:
             cop = GenPhyOp.compGTOrEqualToExpr();

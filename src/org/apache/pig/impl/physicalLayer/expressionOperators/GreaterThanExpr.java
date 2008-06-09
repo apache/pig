@@ -27,7 +27,7 @@ import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.executionengine.ExecException;
 
-public class GreaterThanExpr extends ComparisonOperator {
+public class GreaterThanExpr extends BinaryComparisonOperator {
 
     /**
      * 
