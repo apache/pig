@@ -5,40 +5,41 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
-  PIG-123: requires escape of '\' in chars and string
+    PIG-123: requires escape of '\' in chars and string
 
   NEW FEATURES
 
   OPTIMIZATIONS
 
   BUG FIXES
-  	PIG-24 Files that were incorrectly placed under test/reports have been
-	removed.  ant clean now cleans test/reports.  (milindb via gates)
 
-	PIG-25 com.yahoo.pig dir left under pig/test by mistake. removed it (olgan@)
+    PIG-24 Files that were incorrectly placed under test/reports have been
+    removed.  ant clean now cleans test/reports.  (milindb via gates)
 
-	PIG-23 Made pig work with java 1.5. (milindb via gates)
+    PIG-25 com.yahoo.pig dir left under pig/test by mistake. removed it (olgan@)
 
-	PIG-8 added binary comparator (olgan)
+    PIG-23 Made pig work with java 1.5. (milindb via gates)
 
-	PIG-17 integrated with Hadoop 0.15 (olgan@)
+    PIG-8 added binary comparator (olgan)
+
+    PIG-17 integrated with Hadoop 0.15 (olgan@)
 
     PIG-11 Add capability to search for jar file to register. (antmagna via
-	olgan)
+    olgan)
 
-	PIG-20 Added custom comparator functions for order by (phunt via gates)
+    PIG-20 Added custom comparator functions for order by (phunt via gates)
 
-	PIG-33 Help was commented out - uncommented (olgan)
+    PIG-33 Help was commented out - uncommented (olgan)
 
-	PIG-31: second half of concurrent mode problem addressed (olgan)
+    PIG-31: second half of concurrent mode problem addressed (olgan)
 
-	PIG-14: added heartbeat functionality (olgan)
+    PIG-14: added heartbeat functionality (olgan)
 
-	PIG-17: updated hadoop15.jar to match hadoop 0.15.1 release
+    PIG-17: updated hadoop15.jar to match hadoop 0.15.1 release
 
-	PIG-7: Added use of combiner in some restricted cases. (gates)
-	
-	PIG-29: fixed bag factory to be properly initialized (utkarsh)
+    PIG-7: Added use of combiner in some restricted cases. (gates)
+
+    PIG-29: fixed bag factory to be properly initialized (utkarsh)
 
     PIG-43: fixed problem where using the combiner prevented a pig alias
     from being evaluated more than once. (gates)
@@ -51,72 +52,73 @@ Trunk (unreleased changes)
 
     PIG-47: Added methods to DataMap to provide access to its content
 
-	PIG-12: Added time stamps to log4j messages (phunt via gates).
+    PIG-12: Added time stamps to log4j messages (phunt via gates).
 
-	PIG-44: Added adaptive decision of the number of records to hold in memory 
-	before spilling (utkarsh)
+    PIG-44: Added adaptive decision of the number of records to hold in memory
+    before spilling (utkarsh)
+
     PIG-39: created more efficient version of read (spullara via olgan)
 
     PIG-41: Added patterns to svn:ignore
 
     PIG-51: Fixed combiner in the presence of flattening
 
-	PIG-30: Rewrote DataBags to better handle decisions of when to spill to
-	disk and to spill more intelligently. (gates)
+    PIG-30: Rewrote DataBags to better handle decisions of when to spill to
+    disk and to spill more intelligently. (gates)
 
-	PIG-61: Fixed MapreducePlanCompiler to use PigContext to load up the
-	comparator function instead of Class.forName.  (gates)
+    PIG-61: Fixed MapreducePlanCompiler to use PigContext to load up the
+    comparator function instead of Class.forName.  (gates)
 
-	PIG-56: Made DataBag implement Iterable. (groves via gates)
+    PIG-56: Made DataBag implement Iterable. (groves via gates)
 
-	PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)
+    PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)
 
-	PIG-77: Added eclipse specific files to svn:ignore
+    PIG-77: Added eclipse specific files to svn:ignore
 
-	PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
+    PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
 
-	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
+    PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
 
-	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arun
-	via olgan)
+    PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arun
+    via olgan)
 
-	PIG-32: ABstraction layer (olgan)
+    PIG-32: ABstraction layer (olgan)
 
-	PIG-87: Fix pig.pl to find java via JAVA_HOME instead of hardcoded default
-	path.  Also fix it to not die if pigclient.conf is missing. (craigm via
-	gates).
+    PIG-87: Fix pig.pl to find java via JAVA_HOME instead of hardcoded default
+    path.  Also fix it to not die if pigclient.conf is missing. (craigm via
+    gates).
 
-	PIG-89: Fix DefaultDataBag, DistinctDataBag, SortedDataBag to close spill
-	files when they are done spilling (contributions by craigm, breed, and
-	gates, committed by gates).
+    PIG-89: Fix DefaultDataBag, DistinctDataBag, SortedDataBag to close spill
+    files when they are done spilling (contributions by craigm, breed, and
+    gates, committed by gates).
 
-	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
+    PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
 
-	PIG-65: convert tabs to spaces (groves via olgan)
+    PIG-65: convert tabs to spaces (groves via olgan)
 
-	PIG-97: Turn off combiner in the case of Cogroup, as it doesn't work when
-	more than one bag is involved (gates).
+    PIG-97: Turn off combiner in the case of Cogroup, as it doesn't work when
+    more than one bag is involved (gates).
 
-	PIG-92: Fix NullPointerException in PIgContext due to uninitialized conf
-	reference. (francisoud via gates)
+    PIG-92: Fix NullPointerException in PIgContext due to uninitialized conf
+    reference. (francisoud via gates)
 
-	PIG-83: Change everything except grunt and Main (PigServer on down) to use
-	common logging abstraction instead of log4j.  By default in grunt, log4j
-	still used as logging layer.  Also converted all System.out/err.println
-	statements to use logging instead. (francisoud via gates)
+    PIG-83: Change everything except grunt and Main (PigServer on down) to use
+    common logging abstraction instead of log4j.  By default in grunt, log4j
+    still used as logging layer.  Also converted all System.out/err.println
+    statements to use logging instead. (francisoud via gates)
 
-	PIG-80: In a number of places stack trace information was being lost by an
-	exception being caught, and a different exception then thrown.  All those
-	locations have been changed so that the new exception now wraps the old.
-	(francisoud via gates).
+    PIG-80: In a number of places stack trace information was being lost by an
+    exception being caught, and a different exception then thrown.  All those
+    locations have been changed so that the new exception now wraps the old.
+    (francisoud via gates).
 
-	PIG-84: Converted printStackTrace calls to calls to the logger.
-	(francisoud via gates).
+    PIG-84: Converted printStackTrace calls to calls to the logger.
+    (francisoud via gates).
 
-	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
+    PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
 
-	PIG-99: Fix to make unit tests not run out of memory. (francisoud via
-	gates).
+    PIG-99: Fix to make unit tests not run out of memory. (francisoud via
+    gates).
 
     PIG-107: enabled several tests. (francisoud via olgan)
 
@@ -125,13 +127,13 @@ Trunk (unreleased changes)
 
     PIG-109: improved exception handling (oae via olgan)
 
-	PIG-72: Move unit tests to use MiniDFS and MiniMR so that unit tests can
-	be run w/o access to a hadoop cluster. (xuzh via gates)
+    PIG-72: Move unit tests to use MiniDFS and MiniMR so that unit tests can
+    be run w/o access to a hadoop cluster. (xuzh via gates)
 
     PIG-68: improvements to build.xml (joa23 via olgan)
 
-	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
-	flattening the combiner case. (gates and oae)
+    PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
+    flattening the combiner case. (gates and oae)
 
     PIG-68 broke the build process by hardwiring hadoop15 jar for the purpose
     of compile. Fixed that (olgan)
@@ -144,9 +146,9 @@ Trunk (unreleased changes)
 
     PIG-101: changes in tests to use enum type (francisoud via olgan)
 
-	PIG-125: Improve exception handling in cases when an attempt is made to
-	access a field as a tuple, and it turns out not to be a tuple (oae via
-	gates).
+    PIG-125: Improve exception handling in cases when an attempt is made to
+    access a field as a tuple, and it turns out not to be a tuple (oae via
+    gates).
 
     PIG-13: adding version to the system (joa23 via olgan)
 
@@ -154,11 +156,11 @@ Trunk (unreleased changes)
 
     PIG-118: make sure union/join/cross takes 2 params (pi_song vi olgan)
 
-	PIG-113:  Make explain output more understandable (pi_song via gates)
+    PIG-113:  Make explain output more understandable (pi_song via gates)
 
-	PIG-120:  Support map reduce in local mode.  To do this user needs to
-	specify execution type as mapreduce and cluster name as local (joa23 via
-	gates).
+    PIG-120:  Support map reduce in local mode.  To do this user needs to
+    specify execution type as mapreduce and cluster name as local (joa23 via
+    gates).
 
     PIG-94: M1 for streaming: maps and reduce side support with default
     (de)serializer (acmurthy via olgan)
@@ -169,14 +171,14 @@ Trunk (unreleased changes)
     PIG-115: Removed Yahoo specific scripts/pig.pl, replaced with generic
     bash script bin/pig.  Moved startHOD.expect to bin (joa23 via gates).
 
-	PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud
-	via gates).
+    PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud
+    via gates).
 
     PIG-18: changes to make pig work with Hadoop 0.16 and HOD 0.4 (olgan)
 
-	PIG-164:  Fix memory issue in SpillableMemoryManager to partially clean the list of
-	bags each time a new bag is added rather than waiting until the garbage
-	collector tells us we are out of memory (gates).
+    PIG-164:  Fix memory issue in SpillableMemoryManager to partially clean the list of
+    bags each time a new bag is added rather than waiting until the garbage
+    collector tells us we are out of memory (gates).
 
     PIG-154: moving parsing for DEFINE and STORE into QueryParser
 
@@ -184,22 +186,22 @@ Trunk (unreleased changes)
 
     PIG-94: changes for M2 of streaming: input/ouptut/ ship/cache error
     handling
-	
-	PIG-108: Fixed PigCombine to not do initialization on every call to 
-	reduce, but instead only do it once in the call to configure.  (joa23 via
-	gates).
+
+    PIG-108: Fixed PigCombine to not do initialization on every call to
+    reduce, but instead only do it once in the call to configure.  (joa23 via
+    gates).
 
     PIG-172: dealing with NULL error messages in exceptions (olgan)
 
     PIG-170: sort bags so that largest ones are released first
 
-	PIG-122: Added build and src-gen to the list of ignore files in
-	the top level directory (joa23 via gates).
+    PIG-122: Added build and src-gen to the list of ignore files in
+    the top level directory (joa23 via gates).
 
     PIG-94: M3 code update for streaming (arunc via olgan)
 
-	PIG-179: Changed PigRecordReader to be a static singleton rather than
-	thread local.  (gates).
+    PIG-179: Changed PigRecordReader to be a static singleton rather than
+    thread local.  (gates).
     
     PIG-55: added custom splitter (groves via olgan)
 
@@ -211,44 +213,44 @@ Trunk (unreleased changes)
 
     PIG-184: streaming bug fixes
 
-	PIG-153: Incorrect result caused by dump in between statements (pi_song
-	via gates).
+    PIG-153: Incorrect result caused by dump in between statements (pi_song
+    via gates).
 
     PIG-58: parameter substitution integration
 
-	PIG-111: Reworked configuration to be setable via properties.
-	(Contributions from joa23, pi_song, and oae via gates).
+    PIG-111: Reworked configuration to be setable via properties.
+    (Contributions from joa23, pi_song, and oae via gates).
 
-	PIG-178: Use of schema on secondary output of SPLIT throws
-	IndexOutOfBoundsException (kali via gates).
+    PIG-178: Use of schema on secondary output of SPLIT throws
+    IndexOutOfBoundsException (kali via gates).
 
-	PIG-59: Add a new ILLUSTRATE command (shubhamc via gates).
+    PIG-59: Add a new ILLUSTRATE command (shubhamc via gates).
 
-	PIG-203: Fix bug in parameter substitution code where any pig script over
-	1k caused pig to freeze. (kali via gates)
+    PIG-203: Fix bug in parameter substitution code where any pig script over
+    1k caused pig to freeze. (kali via gates)
 
-	PIG-204: Repair broken input splits (acmurthy via gates).
+    PIG-204: Repair broken input splits (acmurthy via gates).
 
-	PIG-188: Fix mismatches between pig slicer changes and new streaming
-	feature (acmurthy via gates).
+    PIG-188: Fix mismatches between pig slicer changes and new streaming
+    feature (acmurthy via gates).
 
-	PIG-149, PIG-150:  Fix doc target so that ant can generate docs (xuzh via
-	gates).
+    PIG-149, PIG-150:  Fix doc target so that ant can generate docs (xuzh via
+    gates).
 
-	PIG-183:  Catch when a UDF has been compiled with the wrong version of
-	java and give a RuntimeException (pi_song via gates).
+    PIG-183:  Catch when a UDF has been compiled with the wrong version of
+    java and give a RuntimeException (pi_song via gates).
 
-	PIG-114: store one alias/logicalPlan twice leads to instantiation of
-	StoreFunc as LoadFunc (pi_song via gates).
+    PIG-114: store one alias/logicalPlan twice leads to instantiation of
+    StoreFunc as LoadFunc (pi_song via gates).
 
-	PIG-213: Remove non-static references to logger from data bags and tuples,
-	as it causes significant overhead (vgeschel via gates).
+    PIG-213: Remove non-static references to logger from data bags and tuples,
+    as it causes significant overhead (vgeschel via gates).
 
-	PIG-216: Fix streaming to work with commands that use unix pipes (acmurthy
-	via gates).
+    PIG-216: Fix streaming to work with commands that use unix pipes (acmurthy
+    via gates).
 
-	PIG-207: Fix illustrate command to work in mapreduce mode (shubhamc via
-	gates).
+    PIG-207: Fix illustrate command to work in mapreduce mode (shubhamc via
+    gates).
 
     PIG-218: Fixed param generation to work with arbitrary commands
 
@@ -264,9 +266,9 @@ Trunk (unreleased changes)
 
     PIG-224: fix to error handling code to produce correct error code
 
-	PIG-176: Change bag spilling so that bags below a certain threshold are
-	not spilled, thus avoiding proliferation of small files (pi_song via
-	gates).
+    PIG-176: Change bag spilling so that bags below a certain threshold are
+    not spilled, thus avoiding proliferation of small files (pi_song via
+    gates).
 
     PIG-227: making load/store function optional in stream input/output spec
     (acmurthy via olgan)
@@ -278,9 +280,11 @@ Trunk (unreleased changes)
     PIG-230: Handling shipment for multiple ship/cache commands (acmurthy via
     olgan)
 
-	PIG-219: Change unit tests to run both local and map reduce modes (kali via gates).
+    PIG-219: Change unit tests to run both local and map reduce modes
+    (kali via gates).
 
-	PIG-202: Fix Order by so that user provided comparator func is used for quantile determination (kali via gates).
+    PIG-202: Fix Order by so that user provided comparator func is used for
+    quantile determination (kali via gates).
 
     PIG-231: validation for ship, cache, and skippath  (acmurthy via olgan)
 
@@ -294,7 +298,8 @@ Trunk (unreleased changes)
 
     PIG-237: validation of the output directory (pi_song via olgan)
 
-    PIG-236: Fix properties so that values specified via the command line (-D) are not ignored (pkamath via gates).
+    PIG-236: Fix properties so that values specified via the
+    command line (-D) are not ignored (pkamath via gates).
 
     PIG-198: integration with hadoop 17
 
