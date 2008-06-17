@@ -317,4 +317,6 @@ Trunk (unreleased changes)
 
     PIG-256: Added variable argument support for UDFs (pi_song)
 
-    PIG-266: fix warnings caused by HOD
+    PIG-266: fix warnings caused by HOD (olgan)
+
+    PIG-245: added math functions to the piggybank (ajaygarg via olgan)
