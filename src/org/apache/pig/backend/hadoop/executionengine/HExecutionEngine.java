@@ -415,8 +415,10 @@ public class HExecutionEngine implements ExecutionEngine {
                 throw new ExecException("Missing mapred.job.tracker from hadoop configuration");
             log.info("JobTracker: " + mapred);
 
-            hdfs = fixUpDomain(hdfs, properties);
-            mapred = fixUpDomain(mapred, properties);
+            // this is not longer needed as hadoop-site.xml given to us by HOD
+            // contains data in the correct format
+            // hdfs = fixUpDomain(hdfs, properties);
+            // mapred = fixUpDomain(mapred, properties);
             hodHDFS = hdfs;
             hodMapRed = mapred;
 
