@@ -515,7 +515,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
         if (funcSpec != null) {
             className = getClassNameFromSpec(funcSpec);
         }else{
-            className = alias;
+            className = getClassNameFromSpec(alias);
         }
         return resolveClassName(className);
     }

@@ -320,3 +320,6 @@ Trunk (unreleased changes)
     PIG-266: fix warnings caused by HOD (olgan)
 
     PIG-245: added math functions to the piggybank (ajaygarg via olgan)
+
+    PIG-255: make non-default constructors work for algebraic functions
+    (ajaygarg via olgan)
