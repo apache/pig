@@ -100,12 +100,18 @@ public class LOSort extends LogicalOperator {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // get our parent's schema
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {
                     throw new FrontendException("Could not find operator in plan");
                 }
-                mSchema = op.getSchema();
+                if(op instanceof ExpressionOperator) {
+                    fss.add(((ExpressionOperator)op).getFieldSchema());
+                    mSchema = new Schema(fss);
+                } else {
+                    mSchema = op.getSchema();
+                }
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;

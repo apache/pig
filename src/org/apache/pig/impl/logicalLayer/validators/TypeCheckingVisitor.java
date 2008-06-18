@@ -93,6 +93,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         else if (eOp instanceof LONot) {
             visit((LONot) eOp) ;
         }
+        else if (eOp instanceof LOMapLookup) {
+            visit((LOMapLookup) eOp) ;
+        }
         // TODO: Check that all operators are included here
     }
 
@@ -272,6 +275,19 @@ public class TypeCheckingVisitor extends LOVisitor {
     @Override
     protected void visit(LOConst cs)
                         throws VisitorException {
+
+    }
+
+    @Override
+    public void visit(LOMapLookup map)
+                        throws VisitorException {
+        if(!DataType.isAtomic(DataType.findType(map.getLookUpKey()))) {
+            String msg = "Map key should be a basic type" ;
+            msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+
+        map.setType(map.getValueType());
 
     }
 
@@ -955,6 +971,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
+    }
+
+    @Override
+    public void visit(LOIsNull uniOp) throws VisitorException {
+        uniOp.setType(DataType.BOOLEAN) ;
     }
 
     private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
@@ -1983,8 +2004,8 @@ public class TypeCheckingVisitor extends LOVisitor {
                                     outputSchemaIdx++ ;
                                 }
                             } else {
-                                schema.getField(outputSchemaIdx).type = leaf.getType() ;
-                                schema.getField(outputSchemaIdx).schema = leaf.getSchema() ;
+                                schema.getField(outputSchemaIdx).type = DataType.BYTEARRAY;
+                                schema.getField(outputSchemaIdx).schema = null;
                                 outputSchemaIdx++ ;
                             }
                         }
@@ -1996,8 +2017,8 @@ public class TypeCheckingVisitor extends LOVisitor {
                         }
                     }
                     else {
-                        throw new AssertionError("Unsupported inner plan type"
-                                                 + " in LOGenerate" ) ;
+                        throw new AssertionError("Unsupported inner plan type: "
+                                                 + DataType.findTypeName(leaf.getType()) + " in LOGenerate" ) ;
                     }
                 }
 

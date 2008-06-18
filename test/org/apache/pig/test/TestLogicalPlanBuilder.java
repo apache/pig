@@ -53,6 +53,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
@@ -881,6 +882,16 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("e = foreach c generate $0, ($1 IS NOT NULL ? $1 - 5 : 0);");
     }
 
+    private void printPlan(LogicalPlan lp) {
+        LOPrinter graphPrinter = new LOPrinter(System.err, lp);
+        System.err.println("Printing the logical plan");
+        try {
+            graphPrinter.visit();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
+    
     // Helper Functions
     
     // Helper Functions

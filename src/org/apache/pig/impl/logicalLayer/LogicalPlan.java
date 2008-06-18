@@ -19,6 +19,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class LogicalPlan extends OperatorPlan<LogicalOperator> {
     private static final long serialVersionUID = 2L;
@@ -46,4 +48,17 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
         return getSingleLeafPlanOutputOp().getType() ;
     }
 
+    public void explain(OutputStream out, PrintStream ps){
+        LOPrinter lpp = new LOPrinter(ps, this);
+
+        try {
+            lpp.print(out);
+        } catch (VisitorException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 }

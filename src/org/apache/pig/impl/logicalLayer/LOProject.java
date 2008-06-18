@@ -148,7 +148,7 @@ public class LOProject extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "Project " + mKey.scope + "-" + mKey.id;
+        return "Project " + mKey.scope + "-" + mKey.id + " Projections: " + (mIsStar? " [*] ": mProjection);
     }
 
     @Override
@@ -184,10 +184,10 @@ public class LOProject extends ExpressionOperator {
                             log.debug("expression operator schema: " + expressionOperator.getSchema());
                             log.debug("expression operator type: " + expressionOperator.getType());
                             //TODO
-                            //the type of the operator will be unkown. when type checking is in place
+                            //the type of the operator will be unknown. when type checking is in place
                             //add the type of the operator as a parameter to the fieldschema creation
-                            //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), expressionOperator.getType());
-                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
+                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), expressionOperator.getType());
+                            //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                         }
                     } else {
                         log.warn("The input for a projection operator cannot be null");
@@ -246,8 +246,13 @@ public class LOProject extends ExpressionOperator {
                                 Schema.FieldSchema expOpFs = ((ExpressionOperator)expressionOperator).getFieldSchema();
                                 if(null != expOpFs) {
                                     Schema s = expOpFs.schema;
+                                    log.debug("Schema s: " + s);
                                     if(null != s) {
-                                        fss.add(s.getField(colNum));
+                                        if(colNum < s.size()) {
+                                            fss.add(s.getField(colNum));
+                                        } else {
+                                            fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                        }
                                     } else {
                                         fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
                                     }

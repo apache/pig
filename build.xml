@@ -234,11 +234,7 @@
                     <exclude name="**/TestCompressedFiles.java" />
                     <exclude name="**/TestEvalPipeline.java" />
                     <exclude name="**/TestFilterOpNumeric.java" />
-                    <exclude name="**/TestFilterOpString.java" />
-                    <exclude name="**/TestInfixArithmetic.java" />
-                    <!-- <exclude name="**/TestMapReduce.java" /> -->
                     <exclude name="**/TestPigFile.java" />
-                    <exclude name="**/TestPigSplit.java" />
                     <exclude name="**/TestStoreOld.java" />
                     <!-- Excluced because we don't want to run them -->
                     <exclude name="**/TypeCheckingTestUtil.java" />

@@ -18,6 +18,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
+import java.util.ArrayList;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -64,8 +65,14 @@ public class LOFilter extends LogicalOperator {
     @Override
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
+            ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {
-                mSchema = mInput.getSchema();
+                if(mInput instanceof ExpressionOperator) {
+                    fss.add(((ExpressionOperator)mInput).getFieldSchema());
+                    mSchema = new Schema(fss);
+                } else {
+                    mSchema = mInput.getSchema();
+                }
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;

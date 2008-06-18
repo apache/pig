@@ -19,6 +19,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 import java.io.IOException;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -60,13 +61,18 @@ public class LODistinct extends LogicalOperator {
         if (!mIsSchemaComputed && (null == mSchema)) {
             // Get the schema of the parent
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {
-                    log.debug("getSchema: Operator not in plan");
                     throw new FrontendException("Could not find operator in plan");
                 }
-                mSchema = s.iterator().next().getSchema();
+                if(op instanceof ExpressionOperator) {
+                    fss.add(((ExpressionOperator)op).getFieldSchema());
+                    mSchema = new Schema(fss);
+                } else {
+                    mSchema = op.getSchema();
+                }
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;

@@ -236,6 +236,10 @@ public class QueryParser {
 			flattenedColumns.add(column);
 			(gis.get(i)).isInner = true;
 			projectPlan.add(column);
+            if(projectInput instanceof ExpressionOperator) {
+			    projectPlan.add(projectInput);
+			    projectPlan.connect(projectInput, column);
+            }
 			log.debug("parseCogroup: Added operator " + column.getClass().getName() + " " + column + " to logical plan " + projectPlan);
 			generatePlans.add(projectPlan);
 		}
@@ -647,6 +651,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 		log.debug("Added operator: " + distinct.getClass().getName() + " to the logical plan"); 
 		lp.connect(op, distinct);
 		log.debug("Connected alias: " + op.getAlias() + " operator " + op.getClass().getName() + " to operator " + distinct.getClass().getName());
+        op = distinct;
 	})
 |	(<CROSS> op = CrossClause(lp))
 |   (<JOIN> op = JoinClause(lp))
@@ -1521,6 +1526,10 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 			project.setStar(true); 
 			item = project;
 			lp.add(project);
+            if(input instanceof ExpressionOperator) {
+			    lp.add(input);
+			    lp.connect(input, project);
+            }
 			log.debug("FGItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
 		}
 	)
@@ -1728,7 +1737,6 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 			"." projection = BracketedSimpleProj(subSchema,lp,item) 
 			{
 				assertAtomic(item,false); 
-				lp.remove(item);
 				item = projection;
 			}
 		)
@@ -1892,6 +1900,10 @@ ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs,
 		project.setStar(true); 
 		item = project;
 		lp.add(project);
+        if(input instanceof ExpressionOperator) {
+		    lp.add(input);
+		    lp.connect(input, project);
+        }
 		log.debug("EvalArgsItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
 	}
 	)
@@ -2215,6 +2227,10 @@ ExpressionOperator SimpleProj(Schema over, LogicalPlan lp, LogicalOperator eOp):
 		ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, colList);
 		lp.add(project);
 		log.debug("SimpleProj: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+        if(eOp instanceof ExpressionOperator) {
+		    lp.add(eOp);
+		    lp.connect(eOp, project);
+        }
 		log.trace("Exiting SimpleProj");
 		return project;
 	}
@@ -2389,6 +2405,10 @@ ExpressionOperator DollarVar(LogicalPlan lp, LogicalOperator eOp) :
 			log.debug("eOp: " + eOp.getClass().getName() + " " + eOp);
 			lp.add(project);
 			log.debug("DollarVar: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+            if(eOp instanceof ExpressionOperator) {
+			    lp.add(eOp);
+			    lp.connect(eOp, project);
+            }
 		} catch (Exception planException) {
 			ParseException parseException = new ParseException(planException.getMessage());
 			throw parseException;
@@ -2429,6 +2449,10 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 				try {
 					lp.add(item);
 					log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
+                    if(op instanceof ExpressionOperator) {
+					    lp.add(op);
+					    lp.connect(op, item);
+                    }
 				} catch (Exception planException) {
 					ParseException parseException = new ParseException(planException.getMessage());
 					throw parseException;
@@ -2457,6 +2481,10 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 			try {
 				lp.add(item);
 				log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
+                if(eOp instanceof ExpressionOperator) {
+				    lp.add(eOp);
+				    lp.connect(eOp, item);
+                }
 			} catch (Exception planException) {
 				ParseException parseException = new ParseException(planException.getMessage());
 				throw parseException;
