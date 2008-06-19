@@ -16,8 +16,7 @@
     <property name="src.dir" value="${basedir}/src/" />
     <property name="src.lib.dir" value="${basedir}/lib-src/" />
     <property name="src.gen.dir" value="${basedir}/src-gen/" />
-
-    <property name="javacc.home" value="${basedir}/lib" />
+    <property name="src.docs.dir" value="${basedir}/docs/" />
 
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
@@ -25,9 +24,9 @@
     <property name="javac.deprecation" value="off" />
     <property name="javac.version" value="1.5" />
     <property name="javac.args" value="" />
- 	<!-- TODO we should use warning...   <property name="javac.args.warnings" value="-Xlint:unchecked" /> -->
+    <!-- TODO we should use warning...   <property name="javac.args.warnings" value="-Xlint:unchecked" /> -->
     <property name="javac.args.warnings" value="" />
-    
+
     <!-- build properties -->
     <property name="build.dir" value="${basedir}/build" />
     <property name="build.classes" value="${build.dir}/classes" />
@@ -58,11 +57,17 @@
     <property name="junit.hadoop.conf" value="" />
     <property name="test.log.dir" value="${basedir}/test/logs"/>
     <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
-
+    <property name="test.output" value="no"/>
+	
     <!-- javacc properties -->
     <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
     <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
+    <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
+    <property name="javacc.home" value="${basedir}/lib" />
+
+	<!-- javadoc properties  -->
+	<property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
 
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
@@ -75,27 +80,52 @@
         <fileset file="${lib.dir}/junit-4.1.jar" />
         <fileset file="${lib.dir}/commons-collections-3.2.jar" />
     </path>
-    
+
     <path id="test.classpath">
-      <pathelement location="${build.classes}"/>
-      <pathelement location="${test.src.dir}"/>
-      <path refid="classpath"/>
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${test.src.dir}"/>
+        <path refid="classpath"/>
     </path>
 
-        
+
     <target name="init">
         <mkdir dir="${src.gen.query.parser.dir}" />
         <mkdir dir="${src.gen.script.parser.dir}" />
+        <mkdir dir="${src.gen.param.parser.dir}" />
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
         <mkdir dir="${src.gen.dot.parser.dir}" />
+        <tstamp>
+            <format property="timestamp" pattern="MMM dd yyyy, HH:mm:ss" />
+        </tstamp>
+        <svnversion outputproperty="svn.revision"/>
     </target>
+
+    <macrodef name="svnversion">
+        <!-- the path needs to be small content otherwise it will take AGES ! -->
+        <attribute name="wcpath" default="${basedir}" />
+        <attribute name="outputproperty" />
+        <sequential>
+            <exec executable="svnversion" outputproperty="@{outputproperty}" failonerror="false" failifexecutionfails="false" >
+                <arg value="@{wcpath}" />
+                <redirector>
+                    <outputfilterchain>
+                        <tokenfilter>
+                            <!-- version can be xxxx, xxxx:yyyy, xxxxM, xxxxS or xxxx:yyyyMS , ... just get the working copy one -->
+                            <replaceregex pattern="((\d+).*)" replace="\2" />
+                        </tokenfilter>
+                    </outputfilterchain>
+                </redirector>
+            </exec>
+        </sequential>
+    </macrodef>
+
 
     <!-- ================================================================== -->
     <!-- Clean.  Delete the build files, and their directories              -->
     <!-- ================================================================== -->
-    <target name="clean">
+    <target name="clean" description="Cleanup build artifacts">
         <delete dir="${src.gen.dir}" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
@@ -104,10 +134,12 @@
     <!-- ================================================================== -->
     <!-- Java Compiler Compiler, generate Parsers                           -->
     <!-- ================================================================== -->
-    <target name="cc-compile" depends="init">
+    <target name="cc-compile" depends="init" description="Create and Compile Parser">
         <jjtree target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.query.parser.dir}/QueryParser.jj" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.dir}/org/apache/pig/tools/parameters/PigFileParser.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.dir}/org/apache/pig/tools/parameters/ParamLoader.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
         <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/Dot.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.dot.parser.dir}/Dot.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
     </target>
@@ -115,7 +147,7 @@
     <!-- ================================================================== -->
     <!-- Build sources                                          -->
     <!-- ================================================================== -->
-    <target name="compile" depends="init, cc-compile">
+    <target name="compile" depends="init, cc-compile" description="Compile all artifacts">
         <echo>*** Building Main Sources ***</echo>
         <antcall target="compile-sources">
             <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2" />
@@ -125,9 +157,6 @@
     </target>
 
     <target name="compile-test" depends="compile">
-       
-       
-        
         <echo>*** Building Test Sources ***</echo>
         <antcall target="compile-sources">
             <param name="sources" value="${test.src.dir}" />
@@ -149,14 +178,15 @@
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
     <!-- ================================================================== -->
-    <target name="javadoc" depends="init">
+    <target name="javadoc" depends="jar" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
-        <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+        <javadoc overview="${src.docs.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="classpath" />
                 <pathelement path="${java.class.path}" />
+            	<pathelement path="${output.jarfile}" />
             </classpath>
             <group title="pig" packages="org.apache.*" />
         </javadoc>
@@ -173,25 +203,47 @@
     <!-- ================================================================== -->
     <!-- TODO we should also exculte test here...                           -->
     <!-- ================================================================== -->
-    <target name="jar" depends="compile">
+    <target name="jar" depends="compile" description="Create pig jar">
+        <antcall target="jarWithSvn"/>
+        <antcall target="jarWithOutSvn"/>
+    </target>
+    
+    <target name="jarWithSvn" if="svn.revision">
+        <antcall target="buildJar">
+            <param name="svnString" value="${svn.revision}" />
+        </antcall>
+    </target>
+    
+    <target name="jarWithOutSvn" unless="svn.revision">
+        <antcall target="buildJar">
+            <param name="svnString" value=": unknown" />
+        </antcall>
+    </target>
+    
+    <target name="buildJar">
+        <echo>svnString ${svnString}</echo>
         <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
                 <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
                     <attribute name="Implementation-Title" value="Pig" />
                     <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Build-TimeStamp" value="${timestamp}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
         </jar>
-       <!-- @depricated -->
+        <!-- @depricated -->
         <jar jarfile="${output.jarfile}" basedir="${build.classes}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
                 <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
                     <attribute name="Implementation-Title" value="Pig" />
                     <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Build-TimeStamp" value="${timestamp}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
             <zipfileset src="${lib.dir}/junit-4.1.jar" />
@@ -221,9 +273,6 @@
             </classpath>
             <formatter type="${test.junit.output.format}" />
 
-            <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
-                <fileset dir="test" includes="**/${testcase}.java"/>
-            </batchtest>
 
             <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
                 <fileset dir="test">
@@ -247,6 +296,9 @@
                     <exclude name="**/nightly/**" />
                 </fileset>
             </batchtest>
+            <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
+                <fileset dir="test" includes="**/${testcase}.java"/>
+            </batchtest>
         </junit>
         <fail if="tests.failed">Tests failed!</fail>
     </target>
@@ -254,7 +306,7 @@
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
-    <target name="package" depends="jar, javadoc">
+    <target name="package" depends="jar, javadoc" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
         <mkdir dir="${dist.dir}/scripts" />
@@ -298,7 +350,7 @@
     <!-- ================================================================== -->
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
-    <target name="tar" depends="package">
+    <target name="tar" depends="package" description="Create release tarball">
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
             <tarfileset dir="${dist.dir}" mode="664">
                 <exclude name="scripts/*" />
