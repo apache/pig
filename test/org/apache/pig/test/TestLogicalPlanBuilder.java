@@ -848,8 +848,33 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     public void testQuery72() {
         buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
         buildPlan("b = foreach x generate (int)$0;");
-        buildPlan("c = foreach y generate (bag)$1;");
+        buildPlan("c = foreach y generate (bag{})$1;");
         buildPlan("d = foreach y generate (int)($1/2);");
+        buildPlan("e = foreach y generate (bag{tuple(int, float)})($1/2);");
+        buildPlan("f = foreach x generate (tuple(int, float))($1/2);");
+        buildPlan("g = foreach x generate (tuple())($1/2);");
+        buildPlan("h = foreach x generate (chararray)($1/2);");
+        buildPlan("i = foreach x generate (bytearray)($1/2);");
+    }
+
+    @Test
+    public void testQueryFail72() {
+        buildPlan("split (load 'a') into x if $0 > '7', y if $0 < '7';");
+        try {
+            buildPlan("c = foreach y generate (bag)$1;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+        try {
+            buildPlan("c = foreach y generate (bag{int, float})$1;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+        try {
+            buildPlan("c = foreach y generate (tuple)$1;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
     }
 
     @Test
@@ -890,6 +915,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
+        System.err.println();
     }
     
     // Helper Functions

@@ -279,7 +279,6 @@
                     <include name="**/*Test*.java" />
                     <!-- Excluced because they are end-to-end, don't work yet.  -->
                     <exclude name="**/TestAlgebraicEval.java" />
-                    <exclude name="**/TestCombiner.java" />
                     <exclude name="**/TestCompressedFiles.java" />
                     <exclude name="**/TestEvalPipeline.java" />
                     <exclude name="**/TestFilterOpNumeric.java" />

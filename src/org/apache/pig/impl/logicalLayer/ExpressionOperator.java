@@ -114,6 +114,15 @@ public abstract class ExpressionOperator extends LogicalOperator {
 				throw new FrontendException(pe.getMessage());
 			}
         }
+        mIsFieldSchemaComputed = true;
+    }
+
+    void setFieldSchemaComputed(boolean b) {
+        mIsFieldSchemaComputed = b;
+    }
+
+    boolean getFieldSchemaComputed() {
+        return mIsFieldSchemaComputed;
     }
 
 }

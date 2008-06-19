@@ -133,6 +133,71 @@ public class Schema {
                     + ( (alias==null? 0:alias.hashCode()) * 29 ) ;
         }
 
+        /**
+         * Recursively compare two schemas to check if the input schema 
+         * can be cast to the cast schema
+         * @param cast schema of the cast operator
+         * @param  input schema of the cast input
+         * @return true or falsew!
+         */
+        public static boolean castable(Schema.FieldSchema castFs, Schema.FieldSchema inputFs) {
+            if(castFs == null && inputFs == null) {
+                return false;
+            }
+            
+            if (castFs == null) {
+                return false ;
+            }
+    
+            if (inputFs == null) {
+                return false ;
+            }
+            byte inputType = inputFs.type;
+            byte castType = castFs.type;
+    
+            if (DataType.isSchemaType(castFs.type)) {
+                if(inputType == DataType.BYTEARRAY) {
+                    //good
+                } else if (inputType == castType) {
+                    // Don't do the comparison if both embedded schemas are
+                    // null.  That will cause Schema.equals to return false,
+                    // even though we want to view that as true.
+                    if (!(castFs.schema == null && inputFs.schema == null)) { 
+                        // compare recursively using schema
+                        if (!Schema.castable(castFs.schema, inputFs.schema)) {
+                            return false ;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                if (inputType == castType) {
+                    //good
+                }
+                else if (DataType.isNumberType(inputType) &&
+                    DataType.isNumberType(castType) ) {
+                    //good
+                }
+                else if (inputType == DataType.BYTEARRAY) {
+                    //good
+                }
+                else if (  ( DataType.isNumberType(inputType) || 
+                             inputType == DataType.CHARARRAY 
+                           )  &&
+                           (  (castType == DataType.CHARARRAY) ||
+                              (castType == DataType.BYTEARRAY)    
+                           ) 
+                        ) {
+                    //good
+                } else {
+                    return false;
+                }
+            }
+    
+            return true ;
+        }
+
         /***
          * Compare two field schema for equality
          * @param fschema
@@ -504,6 +569,49 @@ public class Schema {
 
     public List<FieldSchema> getFields() {
         return mFields;
+    }
+
+    /**
+     * Recursively compare two schemas to check if the input schema 
+     * can be cast to the cast schema
+     * @param cast schema of the cast operator
+     * @param  input schema of the cast input
+     * @return true or falsew!
+     */
+    public static boolean castable(Schema cast, Schema input) {
+
+        // If both of them are null, they are castable
+        if ((cast == null) && (input == null)) {
+            return false ;
+        }
+
+        // otherwise
+        if (cast == null) {
+            return false ;
+        }
+
+        if (input == null) {
+            return false ;
+        }
+
+        if (cast.size() > input.size()) return false;
+
+        Iterator<FieldSchema> i = cast.mFields.iterator();
+        Iterator<FieldSchema> j = input.mFields.iterator();
+
+        while (i.hasNext()) {
+        //iterate only for the number of fields in cast
+
+            FieldSchema castFs = i.next() ;
+            FieldSchema inputFs = j.next() ;
+
+            // Compare recursively using field schema
+            if (!FieldSchema.castable(castFs, inputFs)) {
+                return false ;
+            }
+
+        }
+        return true;
     }
 
     /**

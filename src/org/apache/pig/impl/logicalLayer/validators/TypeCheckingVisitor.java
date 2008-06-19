@@ -1241,46 +1241,35 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     /**
+     * For Basic Types:
      * 0) Casting to itself is always ok
      * 1) Casting from number to number is always ok 
      * 2) ByteArray to anything is ok
      * 3) (number or chararray) to (bytearray or chararray) is ok
+     * For Composite Types:
+     * Recursively traverse the schemas till you get a basic type
      */
     @Override
     protected void visit(LOCast cast) throws VisitorException {      
         
-        // TODO: Add support for tuple casting????
-        if (cast.getType() == DataType.TUPLE) {
-            throw new AssertionError("Tuple schema casting is not supported yet") ;
+        byte inputType = cast.getExpression().getType(); 
+        byte expectedType = cast.getType();
+        Schema.FieldSchema castFs;
+        Schema.FieldSchema inputFs;
+        try {
+            castFs = cast.getFieldSchema();
+            inputFs = cast.getExpression().getFieldSchema();
+        } catch(FrontendException fee) {
+            throw new VisitorException(fee.getMessage());
         }
-        
-        byte inputType = cast.getExpression().getType() ; 
-        byte expectedType = cast.getType() ;     
-        
-        if (inputType == cast.getType()) {
-            // good
-        }
-        else if (DataType.isNumberType(inputType) &&
-            DataType.isNumberType(expectedType) ) {
-            // good
-        }
-        else if (inputType == DataType.BYTEARRAY) {
-            // good
-        }
-        else if (  ( DataType.isNumberType(inputType) || 
-                     inputType == DataType.CHARARRAY 
-                   )  &&
-                   (  (expectedType == DataType.CHARARRAY) ||
-                      (expectedType == DataType.BYTEARRAY)    
-                   ) 
-                ) {
-            // good
-        }
-        else {
+        boolean castable = castable = Schema.FieldSchema.castable(castFs, inputFs);
+        if(!castable) {
             String msg = "Cannot cast "
                            + DataType.findTypeName(inputType)
+                           + ((DataType.isSchemaType(inputType))? " with schema " + inputFs : "")
                            + " to "
-                           + DataType.findTypeName(expectedType) ;
+                           + DataType.findTypeName(expectedType)
+                           + ((DataType.isSchemaType(expectedType))? " with schema " + castFs : "");
             msgCollector.collect(msg, MessageType.Error) ;
             throw new VisitorException(msg) ; 
         }

@@ -364,6 +364,178 @@ public class TestTypeCheckingValidator extends TestCase {
     }
     
     @Test
+    public void testExpressionTypeChecking8() throws Throwable {
+        LogicalPlan plan = new LogicalPlan() ;
+        
+	    TupleFactory tupleFactory = TupleFactory.getInstance();
+
+	    ArrayList<Object> innerObjList = new ArrayList<Object>(); 
+	    ArrayList<Object> objList = new ArrayList<Object>(); 
+
+        innerObjList.add(10);
+        innerObjList.add(3);
+        innerObjList.add(7);
+        innerObjList.add(17);
+
+		Tuple innerTuple = tupleFactory.newTuple(innerObjList);
+
+        objList.add("World");
+        objList.add(42);
+        objList.add(innerTuple);
+        
+		Tuple tuple = tupleFactory.newTuple(objList);
+        
+        ArrayList<Schema.FieldSchema> innerFss = new ArrayList<Schema.FieldSchema>();
+        ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
+        ArrayList<Schema.FieldSchema> castFss = new ArrayList<Schema.FieldSchema>();
+
+        Schema.FieldSchema stringFs = new Schema.FieldSchema(null, DataType.CHARARRAY);
+        Schema.FieldSchema intFs = new Schema.FieldSchema(null, DataType.INTEGER);
+
+        for(int i = 0; i < innerObjList.size(); ++i) {
+            innerFss.add(intFs);
+        }
+
+        Schema innerTupleSchema = new Schema(innerFss);
+
+        fss.add(stringFs);
+        fss.add(intFs);
+        fss.add(new Schema.FieldSchema(null, innerTupleSchema, DataType.TUPLE));
+
+        Schema tupleSchema = new Schema(fss);
+
+        for(int i = 0; i < 3; ++i) {
+            castFss.add(stringFs);
+        }
+
+        Schema castSchema = new Schema(castFss);
+
+
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), innerTuple) ;
+        constant1.setType(DataType.TUPLE) ;
+        constant1.setFieldSchema(new Schema.FieldSchema(null, innerTupleSchema, DataType.TUPLE));
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), tuple) ;
+        constant2.setType(DataType.TUPLE) ;
+        constant2.setFieldSchema(new Schema.FieldSchema(null, tupleSchema, DataType.TUPLE));
+        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant1, DataType.TUPLE) ;
+        cast1.setFieldSchema(new FieldSchema(null, castSchema, DataType.TUPLE));
+        
+        LOEqual equal1 = new LOEqual(plan, genNewOperatorKey(), cast1, constant2) ;
+        
+        plan.add(constant1) ;
+        plan.add(constant2) ;
+        plan.add(cast1) ;
+        plan.add(equal1) ;
+              
+        plan.connect(constant1, cast1) ;
+        plan.connect(cast1, equal1) ;
+        plan.connect(constant2, equal1) ;
+                      
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;    
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        
+        if (collector.hasError()) {
+            throw new Exception("Error during type checking") ;
+        }   
+
+        assertEquals(DataType.BOOLEAN, equal1.getType()) ;
+        assertEquals(DataType.TUPLE, equal1.getRhsOperand().getType()) ;
+        assertEquals(DataType.TUPLE, equal1.getLhsOperand().getType()) ;
+    }
+
+    @Test
+    public void testExpressionTypeCheckingFail8() throws Throwable {
+        LogicalPlan plan = new LogicalPlan() ;
+        
+	    TupleFactory tupleFactory = TupleFactory.getInstance();
+
+	    ArrayList<Object> innerObjList = new ArrayList<Object>(); 
+	    ArrayList<Object> objList = new ArrayList<Object>(); 
+
+        innerObjList.add("10");
+        innerObjList.add("3");
+        innerObjList.add(7);
+        innerObjList.add("17");
+
+		Tuple innerTuple = tupleFactory.newTuple(innerObjList);
+
+        objList.add("World");
+        objList.add(42);
+        objList.add(innerTuple);
+        
+		Tuple tuple = tupleFactory.newTuple(objList);
+        
+        ArrayList<Schema.FieldSchema> innerFss = new ArrayList<Schema.FieldSchema>();
+        ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
+        ArrayList<Schema.FieldSchema> castFss = new ArrayList<Schema.FieldSchema>();
+
+        Schema.FieldSchema stringFs = new Schema.FieldSchema(null, DataType.CHARARRAY);
+        Schema.FieldSchema intFs = new Schema.FieldSchema(null, DataType.INTEGER);
+        Schema.FieldSchema doubleFs = new Schema.FieldSchema(null, DataType.DOUBLE);
+
+        innerFss.add(stringFs);
+        innerFss.add(stringFs);
+        innerFss.add(intFs);
+        innerFss.add(stringFs);
+
+        Schema innerTupleSchema = new Schema(innerFss);
+
+        fss.add(stringFs);
+        fss.add(intFs);
+        fss.add(new Schema.FieldSchema(null, innerTupleSchema, DataType.TUPLE));
+
+        Schema tupleSchema = new Schema(fss);
+
+        castFss.add(stringFs);
+        castFss.add(stringFs);
+        castFss.add(doubleFs);
+        castFss.add(intFs);
+
+        Schema castSchema = new Schema(castFss);
+
+
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), innerTuple) ;
+        constant1.setType(DataType.TUPLE) ;
+        constant1.setFieldSchema(new Schema.FieldSchema(null, innerTupleSchema, DataType.TUPLE));
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), tuple) ;
+        constant2.setType(DataType.TUPLE) ;
+        constant2.setFieldSchema(new Schema.FieldSchema(null, tupleSchema, DataType.TUPLE));
+        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant1, DataType.TUPLE) ;
+        cast1.setFieldSchema(new FieldSchema(null, castSchema, DataType.TUPLE));
+        
+        LOEqual equal1 = new LOEqual(plan, genNewOperatorKey(), cast1, constant2) ;
+        
+        plan.add(constant1) ;
+        plan.add(constant2) ;
+        plan.add(cast1) ;
+        plan.add(equal1) ;
+              
+        plan.connect(constant1, cast1) ;
+        plan.connect(cast1, equal1) ;
+        plan.connect(constant2, equal1) ;
+                      
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+
+        try {
+            typeValidator.validate(plan, collector) ; 
+            fail("Exception expected") ;
+        } catch(PlanValidationException pve) {
+            //good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        
+        if (!collector.hasError()) {
+            throw new Exception("Error expected") ;
+        }   
+    }
+
+    @Test
     public void testArithmeticOpCastInsert1() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;

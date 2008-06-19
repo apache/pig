@@ -1633,16 +1633,18 @@ ExpressionOperator MultiplicativeExpr(Schema over, Map<String, LogicalOperator> 
 ExpressionOperator CastExpr(Schema over, Map<String, LogicalOperator> specs,LogicalPlan lp,LogicalOperator input) :
 {
     byte type = DataType.BYTEARRAY;
+    Schema.FieldSchema fs = null;
     ExpressionOperator cast;
     ExpressionOperator exprOp;
     boolean castRequired = false;
     log.trace("Entering Cast");
 }
 {
-    [LOOKAHEAD(2)"(" type = Type() {castRequired = true;}")"] exprOp = UnaryExpr(over, specs, lp, input)
+    [LOOKAHEAD(2)"(" fs = TypeFieldSchema() {castRequired = true;}")"] exprOp = UnaryExpr(over, specs, lp, input)
     {
         if(castRequired) {
-            cast = new LOCast(lp, new OperatorKey(scope, getNextId()), exprOp, type);
+            cast = new LOCast(lp, new OperatorKey(scope, getNextId()), exprOp, fs.type);
+            cast.setFieldSchema(fs);
             lp.add(cast);
 		    log.debug("Added operator " + cast.getClass().getName() + " " + cast + " to logical plan " + lp);
             lp.connect(exprOp, cast);
@@ -2148,6 +2150,130 @@ Schema TupleSchema() :
 	{log.debug("Printing Aliases in TupleSchema"); list.printAliases();log.trace("Exiting TupleSchema");return list;}
 }
 
+
+Schema.FieldSchema TypeFieldSchema() : 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.FieldSchema fs = null; 
+	log.trace("Entering TypeFieldSchema");
+}
+{
+	(
+	LOOKAHEAD(TypeSchemaTuple()) fs = TypeSchemaTuple()
+|	LOOKAHEAD(TypeSchemaBag()) fs = TypeSchemaBag()
+|	LOOKAHEAD(TypeSchemaMap()) fs = TypeSchemaMap()
+|	LOOKAHEAD(TypeAtomSchema()) fs = TypeAtomSchema()
+	)
+	//{log.debug("Printing Aliases"); item.printAliases();log.trace("Exiting Schema");return item;}
+	{log.trace("Exiting TypeFieldSchema");return fs;}
+}
+
+Schema.FieldSchema TypeAtomSchema() : 
+{
+	Token t1 = null;
+	byte type = DataType.BYTEARRAY;
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeAtomSchema");
+}
+{
+	//(  ( [t1 = <IDENTIFIER> ":"] type = BasicType() )
+	(  ( type = BasicType() )
+		{ 
+			if(null != t1) {
+				log.debug("AtomSchema: " + t1.image);
+				fs = new Schema.FieldSchema(t1.image, type); 
+			} else {
+				fs = new Schema.FieldSchema(null, type); 
+			}
+			
+			log.trace("Exiting TypeAtomSchema");
+			return fs;
+		} 
+	)
+}
+
+Schema.FieldSchema TypeSchemaMap() :
+{
+	Token t1 = null; 
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeSchemaMap");
+}
+{
+	( <MAP> "[" "]")
+	{
+		if (null != t1) {
+			log.debug("MAP alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, DataType.MAP);
+		} else {
+			fs = new Schema.FieldSchema(null, DataType.MAP);
+		}
+		log.trace("Exiting TypeSchemaMap");
+		return fs;
+	} 
+}
+
+Schema.FieldSchema TypeSchemaTuple() : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeSchemaTuple");
+}
+{ 
+	( <TUPLE> "(" s = TypeTupleSchema() ")") 
+	{
+		if (null != t1) {
+			log.debug("TUPLE alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.TUPLE);
+		} else {
+			fs = new Schema.FieldSchema(null, s, DataType.TUPLE);
+		}
+		log.trace("Exiting TypeSchemaTuple");
+		return fs;
+	} 
+}
+
+Schema.FieldSchema TypeSchemaBag() : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeSchemaBag");
+}
+{ 
+	( <BAG> "{" (fs = TypeSchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" ) 
+	{
+        s = new Schema(fs);
+		if (null != t1) {
+			log.debug("BAG alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.BAG);
+		} else {
+			fs = new Schema.FieldSchema(null, s, DataType.BAG);
+		}
+		log.trace("Exiting TypeSchemaBag");
+		return fs;
+	} 
+}
+
+
+Schema TypeTupleSchema() : 
+{
+	Schema item = null; 
+	Schema list = new Schema(); 
+	Schema.FieldSchema fs = null;
+	log.trace("Entering TypeTupleSchema");
+}
+{
+	(	
+	(	
+		fs = TypeFieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);} 
+		( "," fs = TypeFieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);})* 
+	)
+|		{}
+	)
+	{log.debug("Printing Aliases in TypeTupleSchema"); list.printAliases();log.trace("Exiting TypeTupleSchema");return list;}
+}
 
 // These the simple non-terminals that are shared across many
 

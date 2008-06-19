@@ -22,6 +22,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
 
 public class LOCast extends ExpressionOperator {
 
@@ -64,6 +65,12 @@ public class LOCast extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
+        if(!mIsFieldSchemaComputed && (null == mFieldSchema)) {
+            if(DataType.isAtomic(mType)) {
+                mFieldSchema = new Schema.FieldSchema(null, mType);
+                mIsFieldSchemaComputed = true;
+            }
+        }
         return mFieldSchema;
     }
 

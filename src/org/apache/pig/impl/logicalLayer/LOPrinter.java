@@ -153,13 +153,6 @@ public class LOPrinter extends LOVisitor {
         }
         
         List<LogicalOperator> predecessors = mPlan.getPredecessors(node);
-        if(node instanceof LOProject) {
-            System.err.println("LOProject " + node + " predecessors: " + predecessors + " in plan " + mPlan);
-            System.err.println("mPlan size: " + mPlan.size());
-        } else if(node instanceof LOSort) {
-            System.err.println("LOSort : " + node + " predecessors: " + predecessors + " in plan " + mPlan);
-            System.err.println("mPlan size: " + mPlan.size());
-        }
         
         if (predecessors == null)
             return sb.toString();
