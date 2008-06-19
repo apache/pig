@@ -18,6 +18,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -28,6 +29,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -41,8 +43,8 @@ import org.apache.pig.impl.plan.VisitorException;
  * Need the full operator implementation.
  */
 public class POCast extends ExpressionOperator {
-
-	LoadFunc load;
+    private String loadFSpec;
+	transient private LoadFunc load;
 	private Log log = LogFactory.getLog(getClass());
 	
     private static final long serialVersionUID = 1L;
@@ -57,8 +59,14 @@ public class POCast extends ExpressionOperator {
         // TODO Auto-generated constructor stub
     }
     
-    public void setLoad(LoadFunc load) {
-    	this.load = load;
+    private void instantiateFunc() {
+        if(load!=null) return;
+        this.load = (LoadFunc) PigContext.instantiateFuncFromSpec(this.loadFSpec);
+    }
+    
+    public void setLoadFSpec(String fSpec) {
+    	this.loadFSpec = fSpec;
+        instantiateFunc();
     }
 
     @Override
@@ -69,7 +77,7 @@ public class POCast extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "Cast - " + mKey.toString();
+        return "Cast" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override
@@ -738,6 +746,11 @@ public class POCast extends ExpressionOperator {
         Result res = new Result();
         res.returnStatus = POStatus.STATUS_ERR;
         return res;
+    }
+    
+    private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{
+        is.defaultReadObject();
+        instantiateFunc();
     }
     
 

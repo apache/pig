@@ -270,6 +270,7 @@ public class TestEvalPipeline extends TestCase {
         pigServer.registerQuery("answer = FOREACH cogrouped GENERATE COUNT(queryLog),group;");
         
         Iterator<Tuple> iter = pigServer.openIterator("answer");
+        if(!iter.hasNext()) fail("No Output received");
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertEquals(expectedResults.get(t.get(1).toString()).doubleValue(),(DataType.toDouble(t.get(0))).doubleValue());

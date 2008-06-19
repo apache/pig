@@ -18,6 +18,10 @@
 package org.apache.pig.data;
 
 public class AmendableTuple extends DefaultTuple {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
     Object amendKey;       // the identifier of the group to which this tuple belongs.
 
     public AmendableTuple(int numFields, Object amendKey) {

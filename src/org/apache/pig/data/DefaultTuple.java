@@ -36,6 +36,10 @@ import org.apache.pig.backend.executionengine.ExecException;
  * DefaultTupleFactory.
  */
 public class DefaultTuple implements Tuple {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
     protected List<Object> mFields;
 
     /**

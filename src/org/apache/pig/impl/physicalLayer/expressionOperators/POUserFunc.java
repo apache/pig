@@ -19,6 +19,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -52,9 +53,10 @@ public class POUserFunc extends ExpressionOperator {
 	Tuple t1, t2;
 	private final Log log = LogFactory.getLog(getClass());
 	String funcSpec;
-	private final byte INITIAL = 0;
-	private final byte INTERMEDIATE = 1;
-	private final byte FINAL = 2;
+    String origFSpec;
+	public static final byte INITIAL = 0;
+	public static final byte INTERMEDIATE = 1;
+	public static final byte FINAL = 2;
 
 	public POUserFunc(OperatorKey k, int rp, List inp) {
 		super(k, rp);
@@ -64,8 +66,6 @@ public class POUserFunc extends ExpressionOperator {
 
 	public POUserFunc(OperatorKey k, int rp, List inp, String funcSpec) {
 		this(k, rp, inp, funcSpec, null);
-
-		instantiateFunc();
 	}
 	
 	public POUserFunc(OperatorKey k, int rp, List inp, String funcSpec, EvalFunc func) {
@@ -73,11 +73,13 @@ public class POUserFunc extends ExpressionOperator {
         super(k, rp);
         super.setInputs(inp);
 		this.funcSpec = funcSpec;
+        this.origFSpec = funcSpec;
 		this.func = func;
+        instantiateFunc(funcSpec);
 	}
 
-	private void instantiateFunc() {
-		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(this.funcSpec);
+	private void instantiateFunc(String fSpec) {
+		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
         this.func.setReporter(reporter);
 	}
 	
@@ -140,7 +142,6 @@ public class POUserFunc extends ExpressionOperator {
                 if(temp.returnStatus!=POStatus.STATUS_OK)
                     return temp;
                 ((Tuple)res.result).append(temp.result);
-                
 			}
 			res.returnStatus = temp.returnStatus;
 			return res;
@@ -148,13 +149,8 @@ public class POUserFunc extends ExpressionOperator {
 	}
 
 	private Result getNext() throws ExecException {
-		Tuple t = null;
-		Result result;
-		// instantiate the function if its null
-		if (func == null)
-			instantiateFunc();
-
-		result = processInput();
+        Result result = processInput();
+        
 		try {
 			if(result.returnStatus == POStatus.STATUS_OK) {
 				result.result = func.exec((Tuple) result.result);
@@ -239,25 +235,22 @@ public class POUserFunc extends ExpressionOperator {
 		// func is being changed.
 		switch (Function) {
 		case INITIAL:
-			func = (EvalFunc) PigContext.instantiateFuncFromSpec(getInitial());
-			setResultType(DataType.findType(((EvalFunc) func).getReturnType()));
+            funcSpec = getInitial();
 			break;
 		case INTERMEDIATE:
-			func = (EvalFunc) PigContext.instantiateFuncFromSpec(getIntermed());
-			setResultType(DataType.findType(((EvalFunc) func).getReturnType()));
+            funcSpec = getIntermed();
 			break;
 		case FINAL:
-			func = (EvalFunc) PigContext.instantiateFuncFromSpec(getFinal());
-			setResultType(DataType.findType(((EvalFunc) func).getReturnType()));
+            funcSpec = getFinal();
 			break;
 
 		}
+        instantiateFunc(funcSpec);
+        setResultType(DataType.findType(((EvalFunc) func).getReturnType()));
 	}
 
 	public String getInitial() {
-		if (func == null)
-			instantiateFunc();
-
+	    instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getInitial();
 		} else {
@@ -268,9 +261,7 @@ public class POUserFunc extends ExpressionOperator {
 	}
 
 	public String getIntermed() {
-		if (func == null)
-			instantiateFunc();
-
+        instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getIntermed();
 		} else {
@@ -281,9 +272,7 @@ public class POUserFunc extends ExpressionOperator {
 	}
 
 	public String getFinal() {
-		if (func == null)
-			instantiateFunc();
-
+        instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getFinal();
 		} else {
@@ -294,39 +283,24 @@ public class POUserFunc extends ExpressionOperator {
 	}
 
 	public Type getReturnType() {
-		if (func == null)
-			instantiateFunc();
-
 		return func.getReturnType();
 	}
 
 	public void finish() {
-		if (func == null)
-			instantiateFunc();
-
 		func.finish();
 	}
 
 	public Schema outputSchema(Schema input) {
-		if (func == null)
-			instantiateFunc();
-
 		return func.outputSchema(input);
 	}
 
 	public Boolean isAsynchronous() {
-		if (func == null)
-			instantiateFunc();
-		
 		return func.isAsynchronous();
 	}
 
 	@Override
 	public String name() {
-	    if(funcSpec!=null)
-	        return "POUserFunc" + "(" + funcSpec + ")" + " - " + mKey.toString();
-        else
-            return "POUserFunc" + "(" + "DummySpec" + ")" + " - " + mKey.toString();
+	    return "POUserFunc" + "(" + func.getClass().getName() + ")" + " - " + mKey.toString();
 	}
 
 	@Override
@@ -350,5 +324,9 @@ public class POUserFunc extends ExpressionOperator {
     public String getFuncSpec() {
         return funcSpec;
     }
-
+    
+    private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{
+        is.defaultReadObject();
+        instantiateFunc(funcSpec);
+    }
 }

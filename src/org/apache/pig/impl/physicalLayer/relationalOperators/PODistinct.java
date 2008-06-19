@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
@@ -104,7 +105,7 @@ public class PODistinct extends PhysicalOperator<PhyPlanVisitor> {
     @Override
     public String name() {
         // TODO Auto-generated method stub
-        return "PODistinct - " + mKey.toString();
+        return "PODistinct" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

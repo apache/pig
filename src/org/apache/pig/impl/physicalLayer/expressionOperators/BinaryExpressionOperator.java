@@ -60,9 +60,4 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
     public void setRhs(ExpressionOperator rhs) {
         this.rhs = rhs;
     }
-
-    // TODO Don't we need something here that hooks lhs and rhs to our inputs in
-    // the plan?  Extenders of this class, such as Add, are depending on lhs and
-    // rhs being set.  LogToPhyTranslator is setting inputs.  I don't see
-    // anywhere connecting them together.
 }

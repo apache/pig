@@ -18,6 +18,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -46,7 +47,7 @@ public class Divide extends BinaryExpressionOperator {
 
     @Override
     public String name() {
-        return "Divide - " + mKey.toString();
+        return "Divide" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

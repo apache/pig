@@ -55,7 +55,7 @@ public class POIsNull extends UnaryComparisonOperator {
     @Override
     public String name() {
         // TODO Auto-generated method stub
-        return "POIsNull - " + mKey.toString();
+        return "POIsNull" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override
@@ -187,11 +187,4 @@ public class POIsNull extends UnaryComparisonOperator {
         }
         return res;
     }
-    
-    public void setInput(ExpressionOperator in) {
-        this.expr = in;
-    }
-    
-    
-
 }

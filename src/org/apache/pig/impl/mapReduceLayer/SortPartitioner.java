@@ -39,16 +39,11 @@ public class SortPartitioner implements Partitioner {
     WritableComparator comparator;
     
     public int getPartition(WritableComparable key, Writable value,
-            int numPartitions) {
-        try{
-            Tuple keyTuple = (Tuple)key;
-            int index = Arrays.binarySearch(quantiles, (Tuple)keyTuple.get(0), comparator);
-            if (index < 0)
-                index = -index-1;
-            return Math.min(index, numPartitions - 1);
-        }catch(ExecException e){
-            throw new RuntimeException(e);
-        }
+            int numPartitions){
+        int index = Arrays.binarySearch(quantiles, key, comparator);
+        if (index < 0)
+            index = -index-1;
+        return Math.min(index, numPartitions - 1);
     }
 
     public void configure(JobConf job) {

@@ -41,7 +41,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
             return sum(input);
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }
@@ -67,7 +67,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
                 return tfact.newTuple(sum(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }
@@ -79,7 +79,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
                 return sum(input);
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }

@@ -26,6 +26,11 @@ import java.io.IOException;
  */
 public class IndexedTuple extends DefaultTuple {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
+    
     public int index = -1;
     
     public IndexedTuple() {

@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.physicalLayer.relationalOperators;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -29,6 +30,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -54,7 +56,11 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 
-	//private List<Integer> mSortCols;
+	/**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    //private List<Integer> mSortCols;
 	private List<ExprPlan> sortPlans;
 	private List<Byte> ExprOutputTypes;
 	private List<Boolean> mAscCols;
@@ -108,8 +114,13 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 
 	}
 	
-	public class SortComparator implements Comparator<Tuple> {
-		public int compare(Tuple o1, Tuple o2) {
+	public class SortComparator implements Comparator<Tuple>,Serializable {
+		/**
+         * 
+         */
+        private static final long serialVersionUID = 1L;
+
+        public int compare(Tuple o1, Tuple o2) {
 			int count = 0;
 			int ret = 0;
 			if(sortPlans == null || sortPlans.size() == 0) 
@@ -165,9 +176,14 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 		}
 	}
 
-	public class UDFSortComparator implements Comparator<Tuple> {
+	public class UDFSortComparator implements Comparator<Tuple>,Serializable {
 
-		public int compare(Tuple t1, Tuple t2) {
+		/**
+         * 
+         */
+        private static final long serialVersionUID = 1L;
+
+        public int compare(Tuple t1, Tuple t2) {
 
 			mSortFunc.attachInput(t1, t2);
 			Integer i = null;
@@ -190,7 +206,7 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 	@Override
 	public String name() {
 
-		return "POSort - " + mKey.toString();
+		return "POSort" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
 	}
 
 	@Override
@@ -220,13 +236,13 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 
 		}
 		if (it == null) {
-			it = sortedBag.iterator();
-		}
-		res.result = it.next();
-		if (res.result == null)
-			res.returnStatus = POStatus.STATUS_EOP;
-		else
-			res.returnStatus = POStatus.STATUS_OK;
+            it = sortedBag.iterator();
+        }
+        if (it.hasNext()) {
+            res.result = it.next();
+            res.returnStatus = POStatus.STATUS_OK;
+        } else
+            res.returnStatus = POStatus.STATUS_EOP;
 		return res;
 	}
 
@@ -262,6 +278,10 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 
     public void setMSortFunc(POUserComparisonFunc sortFunc) {
         mSortFunc = sortFunc;
+    }
+
+    public List<Boolean> getMAscCols() {
+        return mAscCols;
     }
 
 }

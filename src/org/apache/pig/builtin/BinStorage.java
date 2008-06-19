@@ -82,7 +82,7 @@ public class BinStorage implements LoadFunc, StoreFunc {
             return (Tuple)DataReaderWriter.readDatum(inData);
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }

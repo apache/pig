@@ -1,25 +1,25 @@
-For Each - Test-Plan-Builder-140
+For Each[tuple] - Test-Plan-Builder-140
 |   |
 |   POGenerate(false)  - Test-Plan-Builder-139
 |   |   |
-|   |   POBinCond - Test-Plan-Builder-138
+|   |   POBinCond[Unknown] - Test-Plan-Builder-138
 |   |   |
-|   |   |---Equal To - Test-Plan-Builder-131
+|   |   |---Equal To[tuple] - Test-Plan-Builder-131
 |   |   |   |
-|   |   |   |---Project(1) - Test-Plan-Builder-129
+|   |   |   |---Project[bytearray](1) - Test-Plan-Builder-129
 |   |   |   |
 |   |   |   |---Constant(3) - Test-Plan-Builder-130
 |   |   |
-|   |   |---Add - Test-Plan-Builder-134
+|   |   |---Add[Unknown] - Test-Plan-Builder-134
 |   |   |   |
-|   |   |   |---Project(2) - Test-Plan-Builder-132
+|   |   |   |---Project[bytearray](2) - Test-Plan-Builder-132
 |   |   |   |
-|   |   |   |---Project(3) - Test-Plan-Builder-133
+|   |   |   |---Project[bytearray](3) - Test-Plan-Builder-133
 |   |   |
-|   |   |---Subtract - Test-Plan-Builder-137
+|   |   |---Subtract[Unknown] - Test-Plan-Builder-137
 |   |       |
-|   |       |---Project(2) - Test-Plan-Builder-135
+|   |       |---Project[bytearray](2) - Test-Plan-Builder-135
 |   |       |
-|   |       |---Project(3) - Test-Plan-Builder-136
+|   |       |---Project[bytearray](3) - Test-Plan-Builder-136
 |
 |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-128

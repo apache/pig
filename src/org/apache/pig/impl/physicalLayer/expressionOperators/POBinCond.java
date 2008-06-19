@@ -22,6 +22,7 @@ import java.util.Map;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -124,7 +125,7 @@ public class POBinCond extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "POBinCond - " + mKey.toString();
+        return "POBinCond" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
     
     @Override

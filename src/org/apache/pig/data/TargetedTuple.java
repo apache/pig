@@ -32,6 +32,11 @@ import org.apache.pig.impl.plan.OperatorKey;
  *
  */
 public class TargetedTuple implements Tuple {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
+    
     private Tuple t;
     // The list of operators to which this tuple
     // has to be attached as input.

@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.IndexedTuple;
@@ -81,7 +82,7 @@ public class POForEach extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "For Each - " + mKey.toString();
+        return "For Each" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

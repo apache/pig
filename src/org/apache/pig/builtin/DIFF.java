@@ -69,7 +69,7 @@ public class DIFF extends EvalFunc<DataBag> {
             return output;
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }

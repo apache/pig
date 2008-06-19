@@ -17,6 +17,7 @@
  */
 package org.apache.pig.data;
 
+import java.io.Serializable;
 import java.util.List;
 
 import org.apache.hadoop.io.WritableComparable;
@@ -35,7 +36,7 @@ import org.apache.pig.backend.executionengine.ExecException;
  *
  * Fields are numbered from 0.
  */
-public interface Tuple extends WritableComparable {
+public interface Tuple extends WritableComparable, Serializable {
     /**
      * Make this tuple reference the contents of another.  This method does not copy
      * the underlying data.   It maintains references to the data from the original

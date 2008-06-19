@@ -1,17 +1,17 @@
-For Each - Test-Plan-Builder-17
+For Each[tuple] - Test-Plan-Builder-17
 |   |
 |   POGenerate(false)  - Test-Plan-Builder-16
 |   |   |
-|   |   Project(*) - Test-Plan-Builder-15
+|   |   Project[bag](*) - Test-Plan-Builder-15
 |   |
-|   |---Filter - Test-Plan-Builder-11
+|   |---Filter[bag] - Test-Plan-Builder-11
 |       |   |
-|       |   Equal To - Test-Plan-Builder-14
+|       |   Equal To[tuple] - Test-Plan-Builder-14
 |       |   |
-|       |   |---Project(1) - Test-Plan-Builder-12
+|       |   |---Project[bytearray](1) - Test-Plan-Builder-12
 |       |   |
-|       |   |---Project(2) - Test-Plan-Builder-13
+|       |   |---Project[bytearray](2) - Test-Plan-Builder-13
 |       |
-|       |---Project(0) - Test-Plan-Builder-10
+|       |---Project[bytearray](0) - Test-Plan-Builder-10
 |
 |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-9

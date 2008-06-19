@@ -42,7 +42,7 @@ public class IsEmpty extends FilterFunc {
                     DataType.findTypeName(values) + " for emptiness.");
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }

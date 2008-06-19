@@ -137,14 +137,18 @@ public class LocalExecutionEngine implements ExecutionEngine {
                     pigContext).toString(),
                     BinStorage.class.getName());
                 str.setSFile(spec);
+                plan.addAsLeaf(str);
             }
             else{
                 spec = ((POStore)leaf).getSFile();
             }
 
             LocalLauncher launcher = new LocalLauncher();
-            launcher.launchPig(plan, jobName, pigContext);
-            return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            boolean success = launcher.launchPig(plan, jobName, pigContext);
+            if(success)
+                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            else
+                return new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.

@@ -146,7 +146,7 @@ public class POFilter extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Filter - " + mKey.toString();
+        return "Filter" + "[" + DataType.findTypeName(resultType) + "]" + " - " + mKey.toString();
     }
 
     @Override

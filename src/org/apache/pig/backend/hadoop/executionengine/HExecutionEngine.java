@@ -252,8 +252,11 @@ public class HExecutionEngine implements ExecutionEngine {
             }
 
             MapReduceLauncher launcher = new MapReduceLauncher();
-            launcher.launchPig(plan, jobName, pigContext);
-            return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            boolean success = launcher.launchPig(plan, jobName, pigContext);
+            if(success)
+                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            else
+                return new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
 
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this

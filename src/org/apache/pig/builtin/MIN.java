@@ -42,7 +42,7 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
             return min(input);
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }
@@ -68,7 +68,7 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
                 return tfact.newTuple(min(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }
@@ -80,7 +80,7 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
                 return min(input);
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }

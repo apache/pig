@@ -38,6 +38,11 @@ import org.apache.commons.logging.LogFactory;
  */
 public class DefaultDataBag extends DefaultAbstractBag {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
+
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
     private final Log log = LogFactory.getLog(getClass());

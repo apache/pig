@@ -26,6 +26,10 @@ import org.apache.commons.logging.LogFactory;
 
 public class TimestampedTuple extends DefaultTuple {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
     private final Log log = LogFactory.getLog(getClass());
     static String defaultDelimiter = "[,\t]";
 

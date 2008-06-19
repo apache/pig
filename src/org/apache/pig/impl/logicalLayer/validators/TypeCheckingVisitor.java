@@ -958,7 +958,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
 
     }
-
+    
     @Override
     public void visit(LONot uniOp) throws VisitorException {
         byte type = uniOp.getOperand().getType() ;

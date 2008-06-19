@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -66,7 +67,7 @@ import org.apache.pig.impl.util.Spillable;
  * DataBag come in several types, default, sorted, and distinct.  The type
  * must be chosen up front, there is no way to convert a bag on the fly.
  */
-public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple> {
+public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>, Serializable {
     /**
      * Get the number of elements in the bag, both in memory and on disk.
      */

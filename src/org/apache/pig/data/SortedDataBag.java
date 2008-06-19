@@ -46,7 +46,13 @@ import org.apache.commons.logging.LogFactory;
  * We allow a user defined comparator, but provide a default comparator in
  * cases where the user doesn't specify one.
  */
-public class SortedDataBag extends DefaultAbstractBag {
+public class SortedDataBag extends DefaultAbstractBag{
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
+
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
     private final Log log = LogFactory.getLog(getClass());

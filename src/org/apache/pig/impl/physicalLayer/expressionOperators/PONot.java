@@ -18,6 +18,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -50,7 +51,7 @@ public class PONot extends UnaryComparisonOperator {
 
     @Override
     public String name() {
-        return "Not - " + mKey.toString();
+        return "Not" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

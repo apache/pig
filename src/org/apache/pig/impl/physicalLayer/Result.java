@@ -33,4 +33,11 @@ public class Result implements Serializable {
         returnStatus = POStatus.STATUS_ERR;
         result = null;
     }
+
+    @Override
+    public String toString() {
+        return (result!=null)?result.toString():"NULL";
+    }
+    
+    
 }

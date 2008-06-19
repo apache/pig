@@ -84,7 +84,7 @@ public class TestGTOrEqual extends junit.framework.TestCase {
             lt.setValue(inpba1);
             rt.setValue(inpba2);
             Result resba = g.getNext(inpba1);
-            boolean retba = (inpba1.compareTo(inpba2) == -1 || inpba1
+            boolean retba = (inpba1.compareTo(inpba2) == 1 || inpba1
                     .compareTo(inpba2) == 0);
             if ((Boolean) resba.result == retba)
                 return true;

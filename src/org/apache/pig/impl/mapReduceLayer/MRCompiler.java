@@ -398,6 +398,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     
     
     private MapReduceOper endSingleInputPlanWithStr(FileSpec fSpec) throws PlanException{
+        if(compiledInputs.length>1) throw new PlanException("Received a multi input plan when expecting only a single input one.");
         MapReduceOper mro = compiledInputs[0];
         POStore str = getStore();
         str.setSFile(fSpec);
@@ -779,7 +780,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prj.setColumn(1);
         prj.setOverloaded(false);
-        prj.setResultType(DataType.BYTEARRAY);
+        prj.setResultType(DataType.BAG);
         ep.add(prj);
         List<ExprPlan> eps2 = new ArrayList<ExprPlan>();
         eps2.add(ep);
@@ -798,10 +799,13 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         return mro;
     }
 
-    public MapReduceOper getQuantileJob(POSort sort, MapReduceOper prevJob, FileSpec lFile, FileSpec quantFile, int rp, int[] fields) throws PlanException, VisitorException {
+    public MapReduceOper getQuantileJob(POSort inpSort, MapReduceOper prevJob, FileSpec lFile, FileSpec quantFile, int rp, int[] fields) throws PlanException, VisitorException {
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),RandomSampleLoader.class.getName());
         MapReduceOper mro = startNew(quantLdFilName, prevJob);
         mro.UDFs.add(FindQuantiles.class.getName());
+        POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
+                .getRequestedParallelism(), null, inpSort.getSortPlans(),
+                inpSort.getMAscCols(), inpSort.getMSortFunc());
         if(sort.isUDFComparatorUsed)
             mro.UDFs.add(sort.getMSortFunc().getFuncSpec());
         
@@ -832,6 +836,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         ExprPlan ep1 = new ExprPlan();
         ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
         ce.setValue("all");
+        ce.setResultType(DataType.CHARARRAY);
         ep1.add(ce);
         
         List<ExprPlan> eps = new ArrayList<ExprPlan>();
@@ -858,8 +863,8 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         
         POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         topPrj.setColumn(1);
-        topPrj.setOverloaded(true);
         topPrj.setResultType(DataType.TUPLE);
+        topPrj.setOverloaded(true);
         fe2Plan.add(topPrj);
         
         ExprPlan nesSortPlan = new ExprPlan();
@@ -872,19 +877,22 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         nesSortPlanLst.add(nesSortPlan);
         
         sort.setSortPlans(nesSortPlanLst);
+        sort.setResultType(DataType.TUPLE);
         fe2Plan.add(sort);
         fe2Plan.connect(topPrj, sort);
         
         ExprPlan ep3 = new ExprPlan();
         POProject prjStar3 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        prjStar3.setResultType(DataType.TUPLE);
-        prjStar3.setStar(true);
+        prjStar3.setResultType(DataType.BAG);
+        prjStar3.setColumn(0);
+        prjStar3.setStar(false);
         ep3.add(prjStar3);
         
         ExprPlan rpep = new ExprPlan();
         ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
         rpce.setRequestedParallelism(rp);
         rpce.setValue(rp<=0?1:rp);
+        rpce.setResultType(DataType.INTEGER);
         rpep.add(rpce);
         
         List<ExprPlan> genEps = new ArrayList<ExprPlan>();

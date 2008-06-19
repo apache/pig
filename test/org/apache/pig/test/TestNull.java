@@ -51,7 +51,7 @@ public class TestNull extends junit.framework.TestCase {
         ConstantExpression lt = (ConstantExpression) GenPhyOp.exprConst();
         lt.setResultType(type);
         POIsNull isNullExpr = (POIsNull) GenPhyOp.compIsNullExpr();
-        isNullExpr.setInput(lt);
+        isNullExpr.setExpr(lt);
 
         Object inp1;
         Result res;

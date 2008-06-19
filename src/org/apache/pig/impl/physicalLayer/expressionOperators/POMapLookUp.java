@@ -22,6 +22,7 @@ import java.util.Map;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -63,7 +64,7 @@ public class POMapLookUp extends ExpressionOperator {
 	@Override
 	public String name() {
 		// TODO Auto-generated method stub
-		return "POMapLookUp - " + mKey.toString();
+		return "POMapLookUp" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
 	}
 
 	@Override

@@ -20,6 +20,7 @@ package org.apache.pig.impl.physicalLayer.expressionOperators;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -45,7 +46,7 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
 
     @Override
     public String name() {
-        return "Greater Than - " + mKey.toString();
+        return "Greater Than" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override
@@ -75,7 +76,7 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
         right = (DataByteArray) res.result;
 
         int ret = left.compareTo(right);
-        if (ret == -1) {
+        if (ret == 1) {
             res.result = new Boolean(true);
             // left = right = null;
             return res;

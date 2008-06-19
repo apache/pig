@@ -55,7 +55,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
 
     @Override
     public String name() {
-        return "Equal To - " + mKey.toString();
+        return "Equal To" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

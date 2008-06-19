@@ -1,13 +1,13 @@
 MapReduce(-1) - -59:
 |   Store(DummyFil:DummyLdr) - -7506868571066332964
 |   |
-|   |---Package - -7034055442337723447
-|   Union - -60
+|   |---Package[tuple]{Unknown} - -7034055442337723447
+|   Union[tuple] - -60
 |   |
-|   |---Filter - -2468262982799101733
+|   |---Filter[tuple] - -2468262982799101733
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - --6380139708906526553
 |   |
-|   |---Filter - -2910267342587130351
+|   |---Filter[tuple] - -2910267342587130351
 |       |
 |       |---Load(DummyFil:DummyLdr) - -7123718043666602037

@@ -21,6 +21,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
@@ -82,7 +83,7 @@ public class POUnion extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Union - " + mKey.toString();
+        return "Union" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

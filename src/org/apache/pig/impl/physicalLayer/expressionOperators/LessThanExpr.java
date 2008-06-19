@@ -20,6 +20,7 @@ package org.apache.pig.impl.physicalLayer.expressionOperators;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -50,7 +51,7 @@ public class LessThanExpr extends BinaryComparisonOperator {
 
     @Override
     public String name() {
-        return "Less Than - " + mKey.toString();
+        return "Less Than" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override
@@ -75,7 +76,7 @@ public class LessThanExpr extends BinaryComparisonOperator {
         right = (DataByteArray) res.result;
 
         int ret = left.compareTo(right);
-        if (ret == 1) {
+        if (ret == -1) {
             res.result = new Boolean(true);
             //left = right = null;
             return res;

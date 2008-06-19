@@ -1,41 +1,41 @@
 MapReduce(-1) - -185:
 |   Store(DummyFil:DummyLdr) - -6079615556647418436
 |   |
-|   |---For Each - -189
+|   |---For Each[tuple] - -189
 |       |   |
 |       |   POGenerate(false)  - -188
 |       |   |   |
-|       |   |   Project(0) - -187
+|       |   |   Project[tuple](0) - -187
 |       |
-|       |---Package - -186
+|       |---Package[tuple]{tuple} - -186
 |   Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -184
 |
 |---MapReduce(-1) - -180:
     |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -183
     |   |
-    |   |---Local Rearrange - -182
+    |   |---Local Rearrange[tuple]{tuple} - -182
     |       |   |
-    |       |   Project(*) - -181
+    |       |   Project[tuple](*) - -181
     |       |
-    |       |---Package - -8219725798912083822
+    |       |---Package[tuple]{Unknown} - -8219725798912083822
     |   Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -179
     |
     |---MapReduce(-1) - -171:
         |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -178
         |   |
-        |   |---Local Rearrange - --3889827013424534115
+        |   |---Local Rearrange[tuple]{Unknown} - --3889827013424534115
         |       |
-        |       |---For Each - -177
+        |       |---For Each[tuple] - -177
         |           |   |
         |           |   POGenerate(false)  - -176
         |           |   |   |
-        |           |   |   Project(0) - -175
+        |           |   |   Project[tuple](0) - -175
         |           |
-        |           |---Package - -174
-        |   Local Rearrange - -173
+        |           |---Package[tuple]{tuple} - -174
+        |   Local Rearrange[tuple]{tuple} - -173
         |   |   |
-        |   |   Project(*) - -172
+        |   |   Project[tuple](*) - -172
         |   |
-        |   |---Filter - --1613182091613226659
+        |   |---Filter[tuple] - --1613182091613226659
         |       |
         |       |---Load(DummyFil:DummyLdr) - -5321755951016030071

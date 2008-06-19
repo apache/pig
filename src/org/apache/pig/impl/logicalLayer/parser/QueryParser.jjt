@@ -1666,7 +1666,6 @@ ExpressionOperator UnaryExpr(Schema over,  Map<String, LogicalOperator> specs, L
 	LOOKAHEAD(BaseEvalSpec(over,specs,lp,input)) expr = BaseEvalSpec(over,specs,lp,input)
 |	( "(" expr = InfixExpr(over,specs,lp,input) ")" )
 |	expr = NegativeExpr(over,specs,lp,input)
-
 	)
 	{log.trace("Exiting UnaryExpr");return expr;}
 }

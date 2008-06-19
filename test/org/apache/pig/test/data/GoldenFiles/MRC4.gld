@@ -2,32 +2,32 @@ MapReduce(-1) - -23:
 Reduce Plan Empty
 |   Store(DummyFil:DummyLdr) - -956528893337238225
 |   |
-|   |---Union - -3055962796670893316
+|   |---Union[tuple] - -3055962796670893316
 |       |
 |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -24
 |       |
 |       |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -26
 |       |
-|       |---Filter - -2288440041178982968
+|       |---Filter[tuple] - -2288440041178982968
 |       |   |
 |       |   |---Load(DummyFil:DummyLdr) - -913150185705910016
 |       |
-|       |---Filter - -4024598850351165272
+|       |---Filter[tuple] - -4024598850351165272
 |           |
 |           |---Load(DummyFil:DummyLdr) - --5840807574562740596
 |
 |---MapReduce(-1) - -19:
 |   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -25
 |   |   |
-|   |   |---Package - --4083686173685839766
-|   |   Local Rearrange - --5733160635931065595
+|   |   |---Package[tuple]{Unknown} - --4083686173685839766
+|   |   Local Rearrange[tuple]{Unknown} - --5733160635931065595
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - -3742910951635599848
 |
 |---MapReduce(-1) - -21:
     |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -27
     |   |
-    |   |---Package - -3943647700946858188
-    |   Local Rearrange - -4962214768762054129
+    |   |---Package[tuple]{Unknown} - -3943647700946858188
+    |   Local Rearrange[tuple]{Unknown} - -4962214768762054129
     |   |
     |   |---Load(DummyFil:DummyLdr) - -2833954415250116776

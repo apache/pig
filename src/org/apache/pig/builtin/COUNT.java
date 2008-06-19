@@ -42,7 +42,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             return count(input);
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }
@@ -68,7 +68,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
                 return tfact.newTuple(count(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }
@@ -83,7 +83,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
                 return tfact.newTuple(count(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }
@@ -96,7 +96,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
                 return sum(input);
             } catch (Exception ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }

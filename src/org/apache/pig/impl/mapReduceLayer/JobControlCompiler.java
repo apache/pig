@@ -27,13 +27,14 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -238,6 +239,13 @@ public class JobControlCompiler{
             else{
                 //Map Reduce Job
                 //Process the POPackage operator and remove it from the reduce plan
+                if(!mro.combinePlan.isEmpty()){
+                    POPackage combPack = (POPackage)mro.combinePlan.getRoots().get(0);
+                    mro.combinePlan.remove(combPack);
+                    jobConf.setCombinerClass(PigCombiner.Combine.class);
+                    jobConf.set("pig.combinePlan", ObjectSerializer.serialize(mro.combinePlan));
+                    jobConf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
+                }
                 POPackage pack = (POPackage)mro.reducePlan.getRoots().get(0);
                 mro.reducePlan.remove(pack);
                 jobConf.setMapperClass(PigMapReduce.Map.class);
@@ -246,7 +254,11 @@ public class JobControlCompiler{
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 jobConf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
                 jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                jobConf.setOutputKeyClass(DataType.getWritableComparableTypes(pack.getKeyType()).getClass());
+                Class<? extends WritableComparable> keyClass = DataType.getWritableComparableTypes(pack.getKeyType()).getClass();
+                jobConf.setOutputKeyClass(keyClass);
+                if(keyClass.equals(TupleFactory.getInstance().tupleClass())){
+                    jobConf.setOutputKeyComparatorClass(PigWritableComparator.class);
+                }
                 jobConf.setOutputValueClass(IndexedTuple.class);
             }
             
@@ -268,5 +280,15 @@ public class JobControlCompiler{
             ret.add(operator);
         }
         return ret;
+    }
+    
+    public static class PigWritableComparator extends WritableComparator {
+        public PigWritableComparator() {
+            super(TupleFactory.getInstance().tupleClass());
+        }
+
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
+            return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
+        }
     }
 }

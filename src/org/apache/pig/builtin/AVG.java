@@ -51,7 +51,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
             return new Double(avg);
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
+            oughtToBeEE.initCause(ee);
             throw oughtToBeEE;
         }
     }
@@ -80,7 +80,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
                 throw new RuntimeException(t.getMessage() + ": " + input);
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
                 
@@ -95,7 +95,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
                 return combine(b);
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }
@@ -118,7 +118,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
                 return new Double(avg);
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
-                ee.initCause(ee);
+                oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
         }

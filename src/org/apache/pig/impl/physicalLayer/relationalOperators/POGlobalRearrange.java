@@ -20,6 +20,7 @@ package org.apache.pig.impl.physicalLayer.relationalOperators;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
@@ -63,7 +64,7 @@ public class POGlobalRearrange extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Global Rearrange - " + mKey.toString();
+        return "Global Rearrange" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

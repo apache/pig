@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -93,7 +94,7 @@ public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Package - " + mKey.toString();
+        return "Package" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
     }
 
     @Override

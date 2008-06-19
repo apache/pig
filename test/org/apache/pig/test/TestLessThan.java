@@ -84,7 +84,7 @@ public class TestLessThan extends junit.framework.TestCase {
             lt.setValue(inpba1);
             rt.setValue(inpba2);
             Result resba = g.getNext(inpba1);
-            boolean retba = (inpba1.compareTo(inpba2) == 1);
+            boolean retba = (inpba1.compareTo(inpba2) == -1);
             if ((Boolean) resba.result == retba)
                 return true;
             return false;

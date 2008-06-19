@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -78,7 +79,7 @@ public class POProject extends ExpressionOperator {
     @Override
     public String name() {
         
-        return "Project(" + ((star) ? "*" : column) + ") - " + mKey.toString();
+        return "Project" + "[" + DataType.findTypeName(resultType) + "]" +"(" + ((star) ? "*" : column) + ") - " + mKey.toString();
     }
 
     @Override

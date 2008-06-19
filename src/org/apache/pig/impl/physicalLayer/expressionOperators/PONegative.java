@@ -18,6 +18,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -49,7 +50,7 @@ public class PONegative extends UnaryExpressionOperator {
     @Override
     public String name() {
         // TODO Auto-generated method stub
-        return "PONegative - " + mKey.toString();
+        return "PONegative" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override
@@ -87,11 +88,4 @@ public class PONegative extends UnaryExpressionOperator {
         }
         return res;
     }
-    
-    public void setInput(ExpressionOperator in) {
-        this.expr = in;
-    }
-    
-    
-
 }

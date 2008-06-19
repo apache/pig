@@ -662,7 +662,7 @@ public class TestPOCast extends TestCase {
 	public void testByteArrayToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoad(load);
+		op.setLoadFSpec(load.getClass().getName());
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		ExprPlan plan = new ExprPlan();
 		plan.add(prj);

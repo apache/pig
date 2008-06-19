@@ -55,7 +55,7 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
 
     @Override
     public String name() {
-        return "Not Equal To - " + mKey.toString();
+        return "Not Equal To" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override

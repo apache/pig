@@ -1,5 +1,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -27,13 +29,13 @@ public class POUserComparisonFunc extends POUserFunc {
 	public POUserComparisonFunc(OperatorKey k, int rp, List inp, String funcSpec, ComparisonFunc func) {
 		super(k, rp, inp);
 		this.funcSpec = funcSpec;
-		this.func = func;		
+		this.func = func;
+        if(func==null)
+            instantiateFunc();
 	}
 	
 	public POUserComparisonFunc(OperatorKey k, int rp, List inp, String funcSpec) {
 		this(k, rp, inp, funcSpec, null);
-		
-		instantiateFunc();
 	}
 	
 	private void instantiateFunc() {
@@ -42,18 +44,12 @@ public class POUserComparisonFunc extends POUserFunc {
 	}
 	
 	public ComparisonFunc getComparator() {
-		if (func == null)
-			instantiateFunc();
 		return func;
 	}
 	
 	@Override
 	public Result getNext(Integer i) throws ExecException {
 		Result result = new Result();
-
-		if (func == null)
-			instantiateFunc();
-
 
 		result.result = func.compare(t1, t2);
 		result.returnStatus = (t1 != null && t2 != null) ? POStatus.STATUS_OK
@@ -117,13 +113,15 @@ public class POUserComparisonFunc extends POUserFunc {
 	}
 
 	public void attachInput(Tuple t1, Tuple t2) {
-		if (func == null)
-			instantiateFunc();
-
 		this.t1 = t1;
 		this.t2 = t2;
 		inputAttached = true;
 
 	}
+    
+    private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{
+        is.defaultReadObject();
+        instantiateFunc();
+    }
 
 }

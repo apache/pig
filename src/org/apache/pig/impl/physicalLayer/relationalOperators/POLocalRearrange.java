@@ -87,7 +87,7 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
 
     @Override
     public String name() {
-        return "Local Rearrange - " + mKey.toString();
+        return "Local Rearrange" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
     }
 
     @Override
