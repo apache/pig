@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="tar" name="pigudf">
+    <!-- javac properties -->
+    <property name="javac.version" value="1.5" />
+
+    <!-- build properties -->
+    <property name="build.dir" value="${basedir}/build" />
+    <property name="build.classes" value="${build.dir}/classes" />
+    <property name="pigjar" value="../pig.jar" />
+    <property name="tar.file" value="${build.dir}/pigtutorial.tar" />
+    <property name="tar.dir" value="${build.dir}/output" />
+    <property name="tar.dir.final" value="${tar.dir}/pigtmp" />
+    <property name="zip.file" value="pigtutorial.tar.gz"/>
+    <property name="tutorialjar" value="${tar.dir.final}/tutorial.jar" />
+    <property name="src.dir" value="src/org/apache/pig/tutorial" />
+    <property name="data.dir" value="data" />
+    <property name="scripts.dir" value="scripts" />
+
+    <path id="tutorial.classpath">
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${pigjar}"/>
+    </path>
+
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes}"/>
+        <mkdir dir="${tar.dir}"/>
+        <mkdir dir="${tar.dir.final}"/>
+    </target>
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+    <target depends="jar" name="cp" description="prepare tar creation">
+        <echo> *** Preparing tar creation ***</echo>
+        <copy includeemptydirs="false" todir="${tar.dir.final}">
+        <fileset dir="${data.dir}"/>
+        <fileset dir="${scripts.dir}"/>
+        <fileset file="${pigjar}"/>
+        </copy>
+    </target>
+    <target depends="init" name="compile" description="compiles tutorial udfs">
+        <echo> *** Compiling Tutorial files ***</echo>
+        <javac srcdir="${src.dir}" destdir="${build.classes}" source="${javac.version}"
+        target="${javac.version}">
+            <classpath refid="tutorial.classpath"/>
+        </javac>
+    </target>
+    <target depends="compile" name="jar" description="create tutorial jar file">
+        <echo> *** Creating tutorial.jar ***</echo>
+      <jar destfile="${tutorialjar}">
+        <fileset dir="${build.classes}"/>
+      </jar>
+    </target>
+    <target depends="cp" name="tar" description="constract tutorial tar file">
+        <echo> *** Creating tutorial.jar ***</echo>
+        <tar destfile="${tar.file}" basedir="${tar.dir}" />
+        <gzip zipfile="${zip.file}" src="${tar.file}"/>
+    </target>
+</project>
