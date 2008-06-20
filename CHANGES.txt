@@ -323,3 +323,5 @@ Trunk (unreleased changes)
 
     PIG-255: make non-default constructors work for algebraic functions
     (ajaygarg via olgan)
+
+    PIG-271: added tutorial to SVN (olgan)
