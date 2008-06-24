@@ -33,43 +33,8 @@ import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.util.Spillable;
 
 /**
- * A collection of Tuples.  A DataBag may or may not fit into memory.
- * DataBag extends spillable, which means that it registers with a memory
- * manager.  By default, it attempts to keep all of its contents in memory.
- * If it is asked by the memory manager to spill to disk (by a call to
- * spill()), it takes whatever it has in memory, opens a spill file, and
- * writes the contents out.  This may happen multiple times.  The bag
- * tracks all of the files it's spilled to.
- * 
- * DataBag provides an Iterator interface, that allows callers to read
- * through the contents.  The iterators are aware of the data spilling.
- * They have to be able to handle reading from files, as well as the fact
- * that data they were reading from memory may have been spilled to disk
- * underneath them.
- *
- * The DataBag interface assumes that all data is written before any is
- * read.  That is, a DataBag cannot be used as a queue.  If data is written
- * after data is read, the results are undefined.  This condition is not
- * checked on each add or read, for reasons of speed.  Caveat emptor.
- *
- * Since spills are asynchronous (the memory manager requesting a spill
- * runs in a separate thread), all operations dealing with the mContents
- * Collection (which is the collection of tuples contained in the bag) have
- * to be synchronized.  This means that reading from a DataBag is currently
- * serialized.  This is ok for the moment because pig execution is
- * currently single threaded.  A ReadWriteLock was experimented with, but
- * it was found to be about 10x slower than using the synchronize keyword.
- * If pig changes its execution model to be multithreaded, we may need to
- * return to this issue, as synchronizing reads will most likely defeat the
- * purpose of multi-threading execution.
- *
- * DataBag come in several types, default, sorted, and distinct.  The type
- * must be chosen up front, there is no way to convert a bag on the fly.
- * 
- * This is the default implementation.  Users are free to provide their
- * own implementation, but they should keep in mind the need to support
- * bags that do not fit in memory, and handle spilling in an efficient
- * manner.
+ * Default implementation of DataBag.  This is the an abstract class used as a
+ * parent for all three of the types of data bags.
  */
 public abstract class DefaultAbstractBag implements DataBag {
     // Container that holds the tuples. Actual object instantiated by

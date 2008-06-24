@@ -1,0 +1,41 @@
+<html>
+<body>
+
+<p>
+The logical operators that represent a pig script and tools for manipulating
+those operators.  The logical layer contains the logical operators themselves,
+as well as validators that check the logical plan, an optimizer, and a general
+visitor utility for working with the logical plans.
+
+<h2> Design </h2>
+<p>
+Logical operators use the operator, plan, visitor, and optimizer framework
+provided by the {@link org.apache.pig.impl.plan} package.
+<p>
+Logical operators consist of both relational and expression operators.
+Relational operators work on an entire bag.  Expression operators work on an
+element of a tuple (which may also be a bag).  Due to Pig's nested data and
+execution model the distinction between relational and expression operators is
+not always clear.  And some operators such as LOProject function as both.
+<p>
+In a traditional data base system, a query execution plan is constructed from
+relational operators, such as project, filter, sort, aggregate, join.  Each of
+these may contain an expression tree, made up of expression operators.  For
+example, consider a SQL query <code>select a from T where a = 5;</code>.  The
+where clause would be represented by a filter operator with an expression tree
+for <code>a=5</code>.
+<p>
+Pig takes a similar approach, except that the operators contained inside of a
+relational operator may also be relational.  For example, a foreach statement
+that has a nested script, such as <code>foreach B { C = distinct $1; generate
+group, COUNT(C);}</code>.  This foreach needs to contain not just an
+expression tree but the distinct relational operator.  For this reason, Pig's
+relational operators do not contain expression trees.  Instead they contain
+one or more LogicalPlans themselves.  This allows Pig to arbitrarily nest
+the logical plan.  In this sense Pig is more similar to a traditional
+procedural language where certain statements (e.g. if, while) can contain any
+other statement in the language rather than being like SQL where the statement
+execution tends to be more linear.
+
+</body>
+</html>

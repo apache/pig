@@ -22,8 +22,7 @@ import java.util.Comparator;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
 /**
- * A bag factory.  Can be used to generate different types of bags
- * depending on what is needed.
+ * Default implementation of BagFactory.
  */
 public class DefaultBagFactory extends BagFactory {
     /**

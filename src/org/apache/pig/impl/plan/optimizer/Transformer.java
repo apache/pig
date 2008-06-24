@@ -45,7 +45,7 @@ public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>>
      * @param nodes - List of nodes declared in transform ($1 = nodes[0],
      * etc.)  Remember that somes entries in node[] may be NULL since they may
      * not be created until after the transform.
-     * @returns - true if the transform should be done.
+     * @return - true if the transform should be done.
      */
     public abstract boolean check(List<O> nodes);
 

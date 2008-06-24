@@ -38,8 +38,7 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable, C
     protected OperatorKey mKey;
 
     /**
-     * @param -
-     *            k Operator key to assign to this node.
+     * @param k Operator key to assign to this node.
      */
     public Operator(OperatorKey k) {
         mKey = k;

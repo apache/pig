@@ -42,12 +42,12 @@ public class Rule<O extends Operator, P extends OperatorPlan<O>> {
     public Transformer<O, P> transformer;
 
     /**
-     * @param nodes List of node types to look for.
-     * @param edges Map of integers to integers.  Each integer
+     * @param n List of node types to look for.
+     * @param e Map of integers to integers.  Each integer
      * represents the offset into nodes list.
-     * @param required List of boolean indicating whether given nodes are
+     * @param r List of boolean indicating whether given nodes are
      * required for the pattern to match.
-     * @param transformer Transformer to apply if the rule matches.
+     * @param t Transformer to apply if the rule matches.
      */
     public Rule(List<String> n,
                 Map<Integer, Integer> e, 

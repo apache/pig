@@ -41,12 +41,12 @@ public class LORegexp extends BinaryExpressionOperator {
      * 
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param k
+     * @param key
      *            Operator key to assign to this node.
-     * @param exp
-     *            the expression which might contain the column to project
-     * @param projection
-     *            the list of columns to project
+     * @param operand
+     *            input expression to be tested against
+     * @param regexp
+     *            regular expression to match
      */
     public LORegexp(LogicalPlan plan, OperatorKey key,
             ExpressionOperator operand, String regexp) {

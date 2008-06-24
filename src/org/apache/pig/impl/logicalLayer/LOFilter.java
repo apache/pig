@@ -41,7 +41,7 @@ public class LOFilter extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param cond
+     * @param comparisonPlan
      *            the filter condition
      * @param input
      *            the input that needs filtering

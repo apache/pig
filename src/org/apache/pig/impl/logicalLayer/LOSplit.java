@@ -35,7 +35,6 @@ import org.apache.commons.logging.LogFactory;
 public class LOSplit extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-    //private Map<String, LogicalPlan> mCondPlans;
     private ArrayList<LogicalOperator> mOutputs;
     private static Log log = LogFactory.getLog(LOSplit.class);
 
@@ -46,33 +45,17 @@ public class LOSplit extends LogicalOperator {
      *            OperatorKey for this operator
      * @param outputs
      *            list of aliases that are the output of the split
-     * @param conditions
-     *            list of conditions for the split
      */
     public LOSplit(LogicalPlan plan, OperatorKey key,
             ArrayList<LogicalOperator> outputs) {
-           // Map<String, LogicalPlan> condPlans) {
         super(plan, key);
         mOutputs = outputs;
-        //mCondPlans = condPlans;
     }
 
     public List<LogicalOperator> getOutputs() {
         return mOutputs;
     }
-/*
-    public Collection<LogicalPlan> getConditionPlans() {
-        return mCondPlans.values();
-    }
 
-    public Set<String> getOutputAliases() {
-        return mCondPlans.keySet();
-    }
-
-    public void addOutputAlias(String output, LogicalPlan cond) {
-        mCondPlans.put(output, cond);
-    }
-*/
     public void addOutput(LogicalOperator lOp) {
         mOutputs.add(lOp);
     }

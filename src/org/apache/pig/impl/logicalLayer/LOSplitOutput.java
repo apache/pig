@@ -41,12 +41,16 @@ public class LOSplitOutput extends LogicalOperator {
      *            LogicalPlan this operator is a part of.
      * @param key
      *            OperatorKey for this operator
-     * @param outputs
-     *            list of aliases that are the output of the split
-     * @param conditions
-     *            list of conditions for the split
+     * @param index
+     *            index of this output in the split
+     * @param condPlan
+     *            logical plan containing the condition for this split output
      */
-    public LOSplitOutput(LogicalPlan plan, OperatorKey key, int index, LogicalPlan condPlan) {
+    public LOSplitOutput(
+            LogicalPlan plan,
+            OperatorKey key,
+            int index,
+            LogicalPlan condPlan) {
         super(plan, key);
         this.mIndex = index;
         this.mCondPlan = condPlan;

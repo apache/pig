@@ -35,7 +35,7 @@ public class LOUserFunc extends ExpressionOperator {
      *            LogicalPlan this operator is a part of.
      * @param k
      *            OperatorKey for this operator.
-     * @param funcName
+     * @param funcSpec
      *            name of the user defined function.
      * @param args
      *            List of expressions that form the arguments for this function.

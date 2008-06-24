@@ -48,10 +48,12 @@ public class LOGenerate extends LogicalOperator {
      * 
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param k
+     * @param key
      *            Operator key to assign to this node.
-     * @param projections
-     *            the projection list of the generate
+     * @param generatePlans
+     *            Plans for each projection element
+     * @param flatten
+     *            Whether to flatten each projection element
      */
 
     public LOGenerate(LogicalPlan plan, OperatorKey key,
@@ -65,10 +67,12 @@ public class LOGenerate extends LogicalOperator {
      * 
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param k
+     * @param key
      *            Operator key to assign to this node.
-     * @param projection
+     * @param generatePlan
      *            the projection of the generate
+     * @param flatten
+     *            whether the result needs to be flattened
      */
 
     public LOGenerate(LogicalPlan plan, OperatorKey key,

@@ -18,7 +18,9 @@
 package org.apache.pig;
 
 /**
- * Suppose we have to compute an function f over a bag X. In general, we need to know the entire X
+ * An interface to declare that an EvalFunc's 
+ * calculation can be decomposed into intitial, intermediate, and final steps.
+ * More formally, suppose we have to compute an function f over a bag X. In general, we need to know the entire X
  * before we can make any progress on f. However, some functions are <i>algebraic</i> e.g. SUM. In
  * these cases, you can apply some initital function f_init on subsets of X to get partial results. 
  * You can then combine partial results from different subsets of X using an intermediate function

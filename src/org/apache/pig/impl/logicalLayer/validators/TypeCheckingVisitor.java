@@ -1818,11 +1818,11 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
     }
 
-        /**
+    /**
      * This can be used to get the merged type of output group col
      * only when the group col is of atomic type
      * TODO: This doesn't work with group by complex type
-     * @return
+     * @return The type of the group by
      */
     public byte getAtomicGroupByType(LOCogroup cg) throws VisitorException {
         if (cg.isTupleGroupCol()) {

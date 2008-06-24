@@ -46,7 +46,7 @@ public class LOMapLookup extends ExpressionOperator {
      * 
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param k
+     * @param key
      *            Operator key to assign to this node.
      * @param map
      *            the map expression

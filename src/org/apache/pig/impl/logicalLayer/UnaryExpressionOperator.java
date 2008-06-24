@@ -45,8 +45,6 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
      *            node.
      * @param operand
      *            ExpressionOperator the left hand side operand
-     * @param operator
-     *            LogicalExperssion the actual operator
      */
     public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp,
             ExpressionOperator operand) {
@@ -61,8 +59,6 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
      *            Operator key to assign to this node.
      * @param operand
      *            ExpressionOperator the left hand side operand
-     * @param operator
-     *            LogicalExperssion the actual operator
      */
     public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k,
             ExpressionOperator operand) {

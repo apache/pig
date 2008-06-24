@@ -266,7 +266,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
      * a combined graph with each one as a component
      * It doesn't support merging of shared plans
      * @param inpPlan
-     * @return
+     * @return this pointer
      * @throws PlanException
      */
     public OperatorPlan<E> merge(OperatorPlan<E> inpPlan) throws PlanException {

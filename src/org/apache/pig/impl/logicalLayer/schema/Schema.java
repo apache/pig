@@ -136,11 +136,13 @@ public class Schema {
         /**
          * Recursively compare two schemas to check if the input schema 
          * can be cast to the cast schema
-         * @param cast schema of the cast operator
-         * @param  input schema of the cast input
+         * @param castFs schema of the cast operator
+         * @param  inputFs schema of the cast input
          * @return true or falsew!
          */
-        public static boolean castable(Schema.FieldSchema castFs, Schema.FieldSchema inputFs) {
+        public static boolean castable(
+                Schema.FieldSchema castFs,
+                Schema.FieldSchema inputFs) {
             if(castFs == null && inputFs == null) {
                 return false;
             }
@@ -204,7 +206,7 @@ public class Schema {
          * @param fother
          * @param relaxInner If true, we don't check inner tuple schemas
          * @param relaxAlias If true, we don't check aliases
-         * @return
+         * @return true if FieldSchemas are equal, false otherwise
          */
         public static boolean equals(FieldSchema fschema,
                                      FieldSchema fother,
@@ -619,7 +621,8 @@ public class Schema {
      * @param schema
      * @param other
      * @param relaxInner if true, inner schemas will not be checked
-     * @return
+     * @param relaxAlias if true, aliases will not be checked
+     * @return true if schemas are equal, false otherwise
      */
     public static boolean equals(Schema schema,
                                  Schema other,

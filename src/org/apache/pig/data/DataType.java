@@ -34,9 +34,11 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
- * A class of static final values used to encode data type.  This could be
- * done as an enumeration, but it done as byte codes instead to save
- * creating objects.  A few utility functions are also included.
+ * A class of static final values used to encode data type and a number of
+ * static helper funcitons for manipulating data objects.  The data type
+ * values could be
+ * done as an enumeration, but it is done as byte codes instead to save
+ * creating objects.
  */
 public class DataType {
     // IMPORTANT! This list can be used to record values of data on disk,
@@ -454,18 +456,18 @@ public class DataType {
     }
 
     /**
-     * Determine whether the this data type has a schema.
+     * Determine whether the this object can have a schema.
      * @param o Object to determine if it has a schema
-     * @return true if the type can have a alid schema (i.e., bag or tuple)
+     * @return true if the type can have a valid schema (i.e., bag or tuple)
      */
     public static boolean isSchemaType(Object o) {
         return isSchemaType(findType(o));
     }
 
     /**
-     * Determine whether the this data type has a schema.
-     * @param o Object to determine if it has a schema
-     * @return true if the type can have a alid schema (i.e., bag or tuple)
+     * Determine whether the this data type can have a schema.
+     * @param dataType dataType to determine if it has a schema
+     * @return true if the type can have a valid schema (i.e., bag or tuple)
      */
     public static boolean isSchemaType(byte dataType) {
         return ((dataType == BAG) || (dataType == TUPLE)); 

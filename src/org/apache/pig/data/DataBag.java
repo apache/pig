@@ -64,7 +64,7 @@ import org.apache.pig.impl.util.Spillable;
  * return to this issue, as synchronizing reads will most likely defeat the
  * purpose of multi-threading execution.
  *
- * DataBag come in several types, default, sorted, and distinct.  The type
+ * DataBags come in several types, default, sorted, and distinct.  The type
  * must be chosen up front, there is no way to convert a bag on the fly.
  */
 public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>, Serializable {

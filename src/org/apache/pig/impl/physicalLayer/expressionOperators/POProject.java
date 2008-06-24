@@ -111,7 +111,7 @@ public class POProject extends ExpressionOperator {
     /**
      * Fetches the input tuple and returns the requested
      * column
-     * @return
+     * @return next value.
      * @throws ExecException
      */
     public Result getNext() throws ExecException{

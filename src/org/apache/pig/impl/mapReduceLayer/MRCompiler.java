@@ -152,7 +152,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     
     /**
      * Used to get the compiled plan
-     * @return
+     * @return map reduce plan built by the compiler
      */
     public MROperPlan getMRPlan() {
         return MRPlan;
@@ -160,7 +160,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     
     /**
      * Used to get the plan that was compiled
-     * @return
+     * @return physical plan
      */
     public PhysicalPlan<PhysicalOperator> getPlan() {
         return plan;
@@ -170,7 +170,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
      * The front-end method that the user calls to compile
      * the plan. Assumes that all submitted plans have a Store
      * operators as the leaf.
-     * @return
+     * @return A map reduce plan
      * @throws IOException
      * @throws PlanException
      * @throws VisitorException

@@ -139,7 +139,7 @@ public class PigServer {
      * is useful for functions that require arguments to the 
      * constructor.
      * 
-     * @param aliases - the new function alias to define.
+     * @param function - the new function alias to define.
      * @param functionSpec - the name of the function and any arguments.
      * It should have the form: classname('arg1', 'arg2', ...)
      */
@@ -208,7 +208,6 @@ public class PigServer {
      * 
      * @param query
      *            a Pig Latin expression to be evaluated.
-     * @return a handle to the query.
      * @throws IOException
      */
     public void registerQuery(String query) throws IOException {
@@ -271,8 +270,8 @@ public class PigServer {
     
     /**
      * Store an alias into a file
-     * @param id: The alias to store
-     * @param filename: The file to which to store to
+     * @param id The alias to store
+     * @param filename The file to which to store to
      * @throws IOException
      */
 
@@ -355,7 +354,7 @@ public class PigServer {
      * to file. Thus if you are using this to determine if you data set will fit
      * in the HDFS, you need to divide the result of this call by your specific replication
      * setting. 
-     * @return
+     * @return unused byte capacity of the file system.
      * @throws IOException
      */
     public long capacity() throws IOException {
@@ -384,7 +383,7 @@ public class PigServer {
     /**
      * Returns the length of a file in bytes which exists in the HDFS (accounts for replication).
      * @param filename
-     * @return
+     * @return length of the file in bytes
      * @throws IOException
      */
     public long fileSize(String filename) throws IOException {

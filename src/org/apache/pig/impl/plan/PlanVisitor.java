@@ -68,7 +68,7 @@ abstract public class PlanVisitor <O extends Operator, P extends OperatorPlan<O>
     /**
      * Push the current walker onto the stack of saved walkers and begin using
      * the newly passed walker as the current walker.
-     * @param newWalker new walker to set as the current walker.
+     * @param walker new walker to set as the current walker.
      */
     protected void pushWalker(PlanWalker<O, P> walker) {
         mWalkers.push(mCurrentWalker);

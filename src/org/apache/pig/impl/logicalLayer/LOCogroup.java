@@ -52,9 +52,11 @@ public class LOCogroup extends LogicalOperator {
      * 
      * @param plan
      *            LogicalPlan this operator is a part of.
-     * @param key
+     * @param k
      *            OperatorKey for this operator
-     * @param groupByCols
+     * @param inputs
+     *            List of input operators
+     * @param groupByPlans
      *            the group by columns
      */
     public LOCogroup(LogicalPlan plan, OperatorKey k,

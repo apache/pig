@@ -138,7 +138,7 @@ public class FileLocalizer {
     /**
      * This function is meant to be used if the mappers/reducers want to access any HDFS file
      * @param fileName
-     * @return
+     * @return InputStream of the open file.
      * @throws IOException
      */
     

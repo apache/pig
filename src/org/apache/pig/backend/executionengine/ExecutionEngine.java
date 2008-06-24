@@ -86,7 +86,7 @@ public interface ExecutionEngine {
      * parallelism for this plan, which could be different from the "default"
      * one set at the execution engine level.
      * 
-     * @param logical plan
+     * @param plan logical plan to compile
      * @param properties
      * @return physical plan
      */
@@ -129,7 +129,7 @@ public interface ExecutionEngine {
     /**
      * Return currently running jobs (can be useful for admin purposes)
      * 
-     * @return
+     * @return All jobs that are currently active in hte execution engine.
      * @throws ExecException
      */
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException;
@@ -137,7 +137,8 @@ public interface ExecutionEngine {
     /**
      * List scopes that are active in the back-end
      * 
-     * @return
+     * @return All scopes that are currently active in the execution
+     * engine.
      * @throws ExecException
      */
     public Collection<String> activeScopes() throws ExecException;

@@ -300,7 +300,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
      * is useful for functions that require arguments to the 
      * constructor.
      * 
-     * @param aliases - the new function alias to define.
+     * @param function - the new function alias to define.
      * @param functionSpec - the name of the function and any arguments.
      * It should have the form: classname('arg1', 'arg2', ...)
      */
@@ -315,7 +315,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     /**
      * Returns the type of execution currently in effect.
      * 
-     * @return
+     * @return current execution type
      */
     public ExecType getExecType() {
         return execType;

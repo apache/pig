@@ -47,7 +47,7 @@ public class LOForEach extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param operators
+     * @param foreachPlan
      *            the list of operators that are applied for each input
      */
 

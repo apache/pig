@@ -106,7 +106,6 @@ public interface ElementDescriptor extends
         /**
          * Checks whether the entity exists or not
          * 
-         * @param name of entity
          * @return true if entity exists, false otherwise.
          */
         public boolean exists() throws IOException;

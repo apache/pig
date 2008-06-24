@@ -69,7 +69,7 @@ public class LOProject extends ExpressionOperator {
      * 
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param k
+     * @param key
      *            Operator key to assign to this node.
      * @param exp
      *            the expression which might contain the column to project
@@ -92,7 +92,7 @@ public class LOProject extends ExpressionOperator {
      * 
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param k
+     * @param key
      *            Operator key to assign to this node.
      * @param exp
      *            the expression which might contain the column to project

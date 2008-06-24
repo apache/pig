@@ -48,17 +48,22 @@ public class LOSort extends LogicalOperator {
      *            OperatorKey for this operator
      * @param input
      *            Input to sort
-     * @param sortCols
+     * @param sortColPlans
      *            Array of column numbers that will be used for sorting data.
      * @param ascCols
      *            Array of booleans. Should be same size as sortCols. True
      *            indicates sort ascending (default), false sort descending. If
      *            this array is null, then all columns will be sorted ascending.
-     * @param sorFunc
+     * @param sortFunc
      *            the user defined sorting function
      */
-    public LOSort(LogicalPlan plan, OperatorKey key, LogicalOperator input,
-            List<LogicalPlan> sortColPlans, List<Boolean> ascCols, String sortFunc) {
+    public LOSort(
+            LogicalPlan plan,
+            OperatorKey key,
+            LogicalOperator input,
+            List<LogicalPlan> sortColPlans,
+            List<Boolean> ascCols,
+            String sortFunc) {
         super(plan, key);
         mInput = input;
         mSortColPlans = sortColPlans;

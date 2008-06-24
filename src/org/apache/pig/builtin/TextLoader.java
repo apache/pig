@@ -103,7 +103,7 @@ public class TextLoader implements LoadFunc{
 
     /**
      * Cast data from bytes to chararray value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return String value.
      * @throws IOException if the value cannot be cast.
      */

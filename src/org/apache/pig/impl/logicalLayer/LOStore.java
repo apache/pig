@@ -47,8 +47,6 @@ public class LOStore extends LogicalOperator {
      *            OperatorKey for this operator
      * @param outputFileSpec
      *            the file to be stored
-     * @param storeFunc
-     *            the store function, pre-defined or user defined
      */
     public LOStore(LogicalPlan plan, OperatorKey key,
             FileSpec outputFileSpec) throws IOException {

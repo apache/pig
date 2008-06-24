@@ -139,8 +139,9 @@ public abstract class EvalFunc<T>  {
     
     /**
      * This function should be overriden to return true for functions that return their values
-     * asynchronously. 
-     * @return
+     * asynchronously.  Currently pig never attempts to execute a function
+     * asynchronously.
+     * @return true if the function can be executed asynchronously.
      */
     public boolean isAsynchronous(){
         return false;

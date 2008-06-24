@@ -26,15 +26,15 @@ import java.util.Comparator;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
 /**
- * A bag factory.  Can be used to generate different types of bags
- * depending on what is needed.  This class is abstract so that users can
+ * Factory for constructing different types of bags.
+ * This class is abstract so that users can
  * override the bag factory if they desire to provide their own that
  * returns their implementation of a bag.  If the property
  * pig.data.bag.factory.name is set to a class name and
  * pig.data.bag.factory.jar is set to a URL pointing to a jar that
  * contains the above named class, then getInstance() will create a
  * a instance of the named class using the indicatd jar.  Otherwise, it
- * will create and instance of DefaultBagFactory.
+ * will create an instance of DefaultBagFactory.
  */
 public abstract class BagFactory {
     private static BagFactory gSelf = null;

@@ -93,10 +93,8 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     /**
      * @param plan
      *            Logical plan this operator is a part of.
-     * @param -
-     *            k Operator key to assign to this node.
-     * @param =
-     *            rp degree of requested parallelism with which to execute this
+     * @param k Operator key to assign to this node.
+     * @param rp degree of requested parallelism with which to execute this
      *            node.
      */
     public LogicalOperator(LogicalPlan plan, OperatorKey k, int rp) {
@@ -159,7 +157,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * Set the type of this operator. This should only be called by the type
      * checking routines.
      * 
-     * @param type -
+     * @param t 
      *            Type to set this operator to.
      */
     final public void setType(byte t) {

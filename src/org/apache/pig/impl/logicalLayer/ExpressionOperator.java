@@ -77,9 +77,9 @@ public abstract class ExpressionOperator extends LogicalOperator {
      * Set the output schema for this operator. If a schema already exists, an
      * attempt will be made to reconcile it with this new schema.
      * 
-     * @param schema
-     *            Schema to set.
-     * @throws ParseException
+     * @param fs
+     *            FieldSchema to set.
+     * @throws FrontendException
      *             if there is already a schema and the existing schema cannot
      *             be reconciled with this new schema.
      */

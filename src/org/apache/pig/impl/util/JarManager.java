@@ -91,7 +91,6 @@ public class JarManager {
      * @param funcs
      *            the functions that will be used in a job and whose jar files need to be included
      *            in the final merged jar file.
-     * @return the temporary path to the merged jar file.
      * @throws ClassNotFoundException
      * @throws IOException
      */
@@ -248,7 +247,6 @@ public class JarManager {
      * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
      * that is not the first thing on the class path that has a class with the same name.
      * 
-     * @author Owen O'Malley (Copied from JobConf)
      * @param my_class
      *            the class to find
      * @return a jar file that contains the class, or null

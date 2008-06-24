@@ -51,7 +51,7 @@ public class DataByteArray implements Comparable {
      * @param b byte array to read from.  A copy of the underlying bytes will be
      * made.
      * @param start starting point to copy from
-     * @param ending point to copy to, exclusive.
+     * @param end ending point to copy to, exclusive.
      */
     public DataByteArray(byte[] b, int start, int end) {
         mData = new byte[end - start];

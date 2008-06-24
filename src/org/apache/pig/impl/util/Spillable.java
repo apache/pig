@@ -23,12 +23,12 @@ public interface Spillable {
     /**
      * Instructs an object to spill whatever it can to disk and release
      * references to any data structures it spills.
-     * @returns number of objects spilled.
+     * @return number of objects spilled.
      */
     long spill();
     
     /**
      * Requests that an object return an estimate of its in memory size.
-     * @returns estimated in memory size. */
+     * @return estimated in memory size. */
     long getMemorySize();
 }

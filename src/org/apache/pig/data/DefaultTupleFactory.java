@@ -23,8 +23,7 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
- * A bag factory.  Can be used to generate different types of bags
- * depending on what is needed.
+ * Default implementation of TupleFactory.
  */
 public class DefaultTupleFactory extends TupleFactory {
     public Tuple newTuple() {

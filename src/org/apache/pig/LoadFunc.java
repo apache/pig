@@ -74,7 +74,7 @@ public interface LoadFunc {
     
     /**
      * Cast data from bytes to integer value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Integer value.
      * @throws IOException if the value cannot be cast.
      */
@@ -82,7 +82,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to long value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Long value.
      * @throws IOException if the value cannot be cast.
      */
@@ -90,7 +90,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to float value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Float value.
      * @throws IOException if the value cannot be cast.
      */
@@ -98,7 +98,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to double value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Double value.
      * @throws IOException if the value cannot be cast.
      */
@@ -106,7 +106,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to chararray value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return String value.
      * @throws IOException if the value cannot be cast.
      */
@@ -114,7 +114,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to map value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Map value.
      * @throws IOException if the value cannot be cast.
      */
@@ -122,7 +122,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to tuple value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Tuple value.
      * @throws IOException if the value cannot be cast.
      */
@@ -130,7 +130,7 @@ public interface LoadFunc {
 
     /**
      * Cast data from bytes to bag value.  
-     * @param bytes byte array to be cast.
+     * @param b byte array to be cast.
      * @return Bag value.
      * @throws IOException if the value cannot be cast.
      */
