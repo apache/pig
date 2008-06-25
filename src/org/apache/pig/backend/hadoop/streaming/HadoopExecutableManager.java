@@ -194,12 +194,7 @@ public class HadoopExecutableManager extends ExecutableManager {
     private void writeDebugHeader() {
         processError("===== Task Information Header =====" );
 
-        StringBuffer sb = new StringBuffer();
-        for (String arg : command.getCommandArgs()) {
-            sb.append(arg);
-            sb.append(" ");
-        }
-        processError("\nCommand: " + sb.toString());
+        processError("\nCommand: " + command);
         processError("\nStart time: " + new Date(System.currentTimeMillis()));
         if (job.getBoolean("mapred.task.is.map", false)) {
             processError("\nInput-split file: " + job.get("map.input.file"));
