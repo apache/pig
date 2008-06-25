@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +27,7 @@ import org.apache.pig.impl.io.FileLocalizer;
  * details such as input/output/error specifications and also files to be
  * shipped to the cluster and files to be cached.
  */
-public class StreamingCommand implements Serializable {
+public class StreamingCommand implements Serializable, Cloneable {
     private static final long serialVersionUID = 1L;
 
     // External command to be executed and it's parsed components
@@ -360,9 +362,40 @@ public class StreamingCommand implements Serializable {
     }
 
     public String toString() {
-        return executable;
+        StringBuffer sb = new StringBuffer();
+        for (String arg : getCommandArgs()) {
+            sb.append(arg);
+            sb.append(" ");
+        }
+        sb.append("(" + getInputSpec().toString() + "/"+getOutputSpec() + ")");
+
+        return sb.toString();
     }
     
+    public Object clone() {
+      try {
+        StreamingCommand clone = (StreamingCommand)super.clone();
+
+        clone.shipSpec = new ArrayList<String>(shipSpec);
+        clone.cacheSpec = new ArrayList<String>(cacheSpec);
+        
+        clone.handleSpecs = new HashMap<Handle, List<HandleSpec>>();
+        for (Map.Entry<Handle, List<HandleSpec>> e : handleSpecs.entrySet()) {
+          List<HandleSpec> values = new ArrayList<HandleSpec>();
+          for (HandleSpec spec : e.getValue()) {
+            values.add((HandleSpec)spec.clone());
+          }
+          clone.handleSpecs.put(e.getKey(), values);
+        }
+
+        return clone;
+      } catch (CloneNotSupportedException cnse) {
+        // Shouldn't happen since we do implement Clonable
+        throw new InternalError(cnse.toString());
+      }
+    }
+
+
     /**
      * Specification about the usage of the {@link Handle} to communicate
      * with the external process.
@@ -373,7 +406,7 @@ public class StreamingCommand implements Serializable {
      * to/from the stream.
      */
     public static class HandleSpec 
-    implements Comparable<HandleSpec>, Serializable {
+    implements Comparable<HandleSpec>, Serializable, Cloneable {
         private static final long serialVersionUID = 1L;
 
         String name;
@@ -408,7 +441,7 @@ public class StreamingCommand implements Serializable {
         }
         
         public String toString() {
-            return name + " using " + spec;
+            return name + "-" + spec;
         }
 
         /**
@@ -449,6 +482,21 @@ public class StreamingCommand implements Serializable {
          */
         public void setSpec(String spec) {
             this.spec = spec;
+        }
+        
+        public boolean equals(Object obj) {
+          HandleSpec other = (HandleSpec)obj;
+          return (name.equals(other.name) && spec.equals(other.spec));
+        }
+
+
+        public Object clone() {
+          try {
+            return super.clone();
+          } catch (CloneNotSupportedException cnse) {
+            // Shouldn't happen since we do implement Clonable
+            throw new InternalError(cnse.toString());
+          }
         }
     }
 }

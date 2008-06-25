@@ -37,6 +37,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.optimizer.Optimizer;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
@@ -62,6 +63,11 @@ public class StoreOptimizer extends Optimizer {
         super.visitEval(e);
         eval = e;
         parentEval = true;
+
+        if (e.getSpec() instanceof StreamSpec) {
+            StreamSpec streamSpec = (StreamSpec)e.getSpec();
+            streamSpec.revertOptimizedCommand(Handle.OUTPUT);
+        }
     }
 
     public void visitLoad(LOLoad load) {
@@ -133,10 +139,8 @@ public class StoreOptimizer extends Optimizer {
                     // Since they both are the same, we can flip them 
                     // for BinaryStorage
                     s.setOutputFileSpec(new FileSpec(storeFileSpec.getFileName(), BinaryStorage.class.getName()));
-                    
-                    streamOutputSpec.setSpec(BinaryStorage.class.getName());
-                    command.setOutputSpec(streamOutputSpec);
-                    
+                    streamSpec.setOptimizedSpec(Handle.OUTPUT, 
+                                                   BinaryStorage.class.getName());
                     optimize = true;
                 }
             }

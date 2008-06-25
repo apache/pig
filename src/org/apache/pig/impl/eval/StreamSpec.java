@@ -28,6 +28,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.Handle;
+import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.data.Datum;
 import org.apache.pig.impl.eval.collector.DataCollector;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -40,10 +42,13 @@ public class StreamSpec extends EvalSpec {
 
     private String executableManager;               // ExecutableManager to use
     private StreamingCommand command;               // Actual command to be run
+    private StreamingCommand originalCommand;       // Original command
+    private StreamingCommand optimizedCommand;      // Optimized command
 
     public StreamSpec(ExecutableManager executableManager, 
                       StreamingCommand command) {
         this.executableManager = executableManager.getClass().getName();
+        this.originalCommand = command;
         this.command = command;
 
         // Setup streaming-specific properties
@@ -75,10 +80,52 @@ public class StreamSpec extends EvalSpec {
 
     /**
      * Get the {@link StreamingCommand} for this <code>StreamSpec</code>.
-     * @return
+     * @return the {@link StreamingCommand} for this <code>StreamSpec</code>
      */
     public StreamingCommand getCommand() {
         return command;
+    }
+    
+    /**
+     * Set the optimized {@link HandleSpec} for the given {@link Handle} of the 
+     * <code>StreamSpec</code>.
+     * 
+     * @param handle <code>Handle</code> to optimize
+     * @param spec optimized specification for the handle
+     */ 
+    public void setOptimizedSpec(Handle handle, String spec) {
+        if (optimizedCommand == null) {
+            optimizedCommand = (StreamingCommand)command.clone();
+        }
+        
+        if (handle == Handle.INPUT) {
+            HandleSpec streamInputSpec = optimizedCommand.getInputSpec();
+            streamInputSpec.setSpec(spec);
+        } else if (handle == Handle.OUTPUT) {
+            HandleSpec streamOutputSpec = optimizedCommand.getOutputSpec();
+            streamOutputSpec.setSpec(spec);
+        }
+        
+        command = optimizedCommand;
+    }
+    
+    /**
+     * Revert the optimized {@link StreamingCommand} for this 
+     * <code>StreamSpec</code>.
+     */
+    public void revertOptimizedCommand(Handle handle) {
+        if (optimizedCommand == null) {
+            return;
+        }
+
+        if (handle == Handle.INPUT &&
+            !command.getInputSpec().equals(originalCommand.getInputSpec())) {
+            command.setInputSpec(originalCommand.getInputSpec());
+        } else if (handle == Handle.OUTPUT && 
+                   !command.getOutputSpec().equals(
+                           originalCommand.getOutputSpec())) {
+            command.setOutputSpec(originalCommand.getOutputSpec());
+        }
     }
     
     public List<String> getFuncs() {
@@ -101,6 +148,10 @@ public class StreamSpec extends EvalSpec {
         v.visitStream(this);
     }
 
+    public String toString() {
+      return command.toString();
+    }
+    
     /**
      * A simple {@link DataCollector} which wraps a {@link ExecutableManager}
      * and lets it handle the input and the output to the managed executable.
