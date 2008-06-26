@@ -301,17 +301,19 @@ Trunk (unreleased changes)
     PIG-236: Fix properties so that values specified via the
     command line (-D) are not ignored (pkamath via gates).
 
-    PIG-198: integration with hadoop 17
+    PIG-198: integration with hadoop 17 (acmurthy via olgan)
 
-    PIG-85: allowing control characters as delimiters for PigStorage
+    PIG-85: allowing control characters as delimiters for PigStorage (pi_song
+    via olgan)
 
-    PIG-250: disabling speculative execution
+    PIG-250: disabling speculative execution (olgan)
 
     PIG-250: re-enabling speculative execution and fixing the failure
+    (acmurthy via olgan)
 
-    PIG-85: memory optimization
+    PIG-85: memory optimization (pi_song via olgan)
 
-    PIG-243: Fixing unit tests on windows
+    PIG-243: Fixing unit tests on windows (daijy via olgan)
 
     PIG-198: Fixed pig script to pick up hadoop 17 instead of 15 (pi_song via gates). 
 
@@ -323,5 +325,9 @@ Trunk (unreleased changes)
 
     PIG-255: make non-default constructors work for algebraic functions
     (ajaygarg via olgan)
+
+    PIG-272: problem with streaming and intermediate store (acmurthy via olgan)
+
+    PIG-243: make unit tests work on windows (daijy via olgan)
 
     PIG-271: added tutorial to SVN (olgan)
