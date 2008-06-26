@@ -38,9 +38,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestPhyOp extends junit.framework.TestCase {
-    PhysicalOperator<PhyPlanVisitor> op;
+    PhysicalOperator op;
 
-    PhysicalOperator<PhyPlanVisitor> inpOp;
+    PhysicalOperator inpOp;
 
     Tuple t;
 

@@ -462,8 +462,9 @@ public class PigServer {
     private ExecJob execute(
             LogicalPlan lp) throws FrontendException, ExecException {
         ExecJob job = null;
-
+//        lp.explain(System.out, System.err);
         LogicalPlan typeCheckedLp = compileLp(lp, "execute");
+//        typeCheckedLp.explain(System.out, System.err);
         PhysicalPlan pp = compilePp(typeCheckedLp);
         // execute using appropriate engine
         return pigContext.getExecutionEngine().execute(pp, "execute");

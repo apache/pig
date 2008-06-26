@@ -32,7 +32,6 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.relationalOperators.*;
@@ -40,6 +39,7 @@ import org.apache.pig.impl.physicalLayer.expressionOperators.*;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.DependencyOrderWalkerWOSeenChk;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -52,7 +52,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
     Random r = new Random();
 
-    Stack<PhysicalPlan<? extends PhysicalOperator>> currentPlans;
+    Stack<PhysicalPlan> currentPlans;
 
     PhysicalPlan currentPlan;
 
@@ -68,8 +68,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(
                 plan));
 
-        currentPlans = new Stack<PhysicalPlan<? extends PhysicalOperator>>();
-        currentPlan = new PhysicalPlan<PhysicalOperator>();
+        currentPlans = new Stack<PhysicalPlan>();
+        currentPlan = new PhysicalPlan();
         LogToPhyMap = new HashMap<LogicalOperator, PhysicalOperator>();
     }
 
@@ -77,7 +77,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         this.pc = pc;
     }
 
-    public PhysicalPlan<PhysicalOperator> getPhysicalPlan() {
+    public PhysicalPlan getPhysicalPlan() {
 
         return currentPlan;
     }
@@ -507,15 +507,15 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
                     scope, nodeGen.getNextNodeId(scope)), cg
                     .getRequestedParallelism());
-            List<ExprPlan> exprPlans = new ArrayList<ExprPlan>();
+            List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
             currentPlans.push(currentPlan);
             for (LogicalPlan lp : plans) {
-                currentPlan = new ExprPlan();
+                currentPlan = new PhysicalPlan();
                 PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
                         .spawnChildWalker(lp);
                 pushWalker(childWalker);
                 mCurrentWalker.walk(this);
-                exprPlans.add((ExprPlan) currentPlan);
+                exprPlans.add((PhysicalPlan) currentPlan);
                 popWalker();
 
             }
@@ -559,7 +559,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         LogToPhyMap.put(filter, poFilter);
         currentPlans.push(currentPlan);
 
-        currentPlan = new ExprPlan();
+        currentPlan = new PhysicalPlan();
 
         PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
                 .spawnChildWalker(filter.getComparisonPlan());
@@ -567,7 +567,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         mCurrentWalker.walk(this);
         popWalker();
 
-        poFilter.setPlan((ExprPlan) currentPlan);
+        poFilter.setPlan((PhysicalPlan) currentPlan);
         currentPlan = currentPlans.pop();
 
         List<LogicalOperator> op = filter.getPlan().getPredecessors(filter);
@@ -612,60 +612,66 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     }
 
     @Override
-    public void visit(LOForEach forEach) throws VisitorException {
-        String scope = forEach.getOperatorKey().scope;
-        // This needs to be handled specially.
-        // We need to be able to handle arbitrary levels of nesting
+    public void visit(LOForEach g) throws VisitorException {
+        boolean currentPhysicalPlan = false;
+        String scope = g.getOperatorKey().scope;
+        List<PhysicalPlan> innerPlans = new ArrayList<PhysicalPlan>();
+        List<LogicalPlan> plans = g.getForEachPlans();
 
-        // push the current physical plan in the stack.
         currentPlans.push(currentPlan);
-
-        // create a new physical plan
-        currentPlan = new PhysicalPlan<PhysicalOperator>();
-        PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
-                .spawnChildWalker(forEach.getForEachPlan());
-
-        // now populate the physical plan by walking
-        pushWalker(childWalker);
-        mCurrentWalker.walk(this);
-        popWalker();
-
-        POForEach fe = new POForEach(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), forEach.getRequestedParallelism());
-        fe.setPlan(currentPlan);
-        fe.setResultType(DataType.TUPLE);
-        LogToPhyMap.put(forEach, fe);
-
-        // now connect foreach to its inputs
+        for (LogicalPlan plan : plans) {
+            currentPlan = new PhysicalPlan();
+            PlanWalker<LogicalOperator, LogicalPlan> childWalker = new DependencyOrderWalkerWOSeenChk<LogicalOperator, LogicalPlan>(
+                    plan);
+            pushWalker(childWalker);
+            childWalker.walk(this);
+            innerPlans.add(currentPlan);
+            popWalker();
+        }
         currentPlan = currentPlans.pop();
-        currentPlan.add(fe);
-        PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(mPlan
-                .getPredecessors(forEach).get(0));
+
+        // PhysicalOperator poGen = new POGenerate(new OperatorKey("",
+        // r.nextLong()), inputs, toBeFlattened);
+        POForEach poFE = new POForEach(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), g.getRequestedParallelism(), innerPlans,
+                g.getFlatten());
+        poFE.setResultType(g.getType());
+        LogToPhyMap.put(g, poFE);
+        currentPlan.add(poFE);
+
+        // generate cannot have multiple inputs
+        List<LogicalOperator> op = g.getPlan().getPredecessors(g);
+
+        // generate may not have any predecessors
+        if (op == null)
+            return;
+
+        PhysicalOperator from = LogToPhyMap.get(op.get(0));
         try {
-            currentPlan.connect(from, fe);
+            currentPlan.connect(from, poFE);
         } catch (PlanException e) {
             log.error("Invalid physical operators in the physical plan"
                     + e.getMessage());
-
         }
 
     }
 
+    /*
     @Override
     public void visit(LOGenerate g) throws VisitorException {
         boolean currentPhysicalPlan = false;
         String scope = g.getOperatorKey().scope;
-        List<ExprPlan> exprPlans = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
         List<LogicalPlan> plans = g.getGeneratePlans();
 
         currentPlans.push(currentPlan);
         for (LogicalPlan plan : plans) {
-            currentPlan = new ExprPlan();
+            currentPlan = new PhysicalPlan();
             PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
                     .spawnChildWalker(plan);
             pushWalker(childWalker);
             childWalker.walk(this);
-            exprPlans.add((ExprPlan) currentPlan);
+            exprPlans.add((PhysicalPlan) currentPlan);
             popWalker();
         }
         currentPlan = currentPlans.pop();
@@ -695,22 +701,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
 
     }
+    */
 
     @Override
     public void visit(LOSort s) throws VisitorException {
         String scope = s.getOperatorKey().scope;
         List<LogicalPlan> logPlans = s.getSortColPlans();
-        List<ExprPlan> sortPlans = new ArrayList<ExprPlan>(logPlans.size());
+        List<PhysicalPlan> sortPlans = new ArrayList<PhysicalPlan>(logPlans.size());
 
         // convert all the logical expression plans to physical expression plans
         currentPlans.push(currentPlan);
         for (LogicalPlan plan : logPlans) {
-            currentPlan = new ExprPlan();
+            currentPlan = new PhysicalPlan();
             PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
                     .spawnChildWalker(plan);
             pushWalker(childWalker);
             childWalker.walk(this);
-            sortPlans.add((ExprPlan) currentPlan);
+            sortPlans.add((PhysicalPlan) currentPlan);
             popWalker();
         }
         currentPlan = currentPlans.pop();
@@ -732,7 +739,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         // sort.setRequestedParallelism(s.getType());
         LogToPhyMap.put(s, sort);
         currentPlan.add(sort);
-        PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(s.mPlan
+        PhysicalOperator from = LogToPhyMap.get(s.mPlan
                 .getPredecessors(s).get(0));
         try {
             currentPlan.connect(from, sort);
@@ -791,14 +798,14 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
         currentPlan.add(physOp);
         currentPlans.push(currentPlan);
-        currentPlan = new ExprPlan();
+        currentPlan = new PhysicalPlan();
         PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
                 .spawnChildWalker(split.getConditionPlan());
         pushWalker(childWalker);
         mCurrentWalker.walk(this);
         popWalker();
 
-        ((POFilter) physOp).setPlan((ExprPlan) currentPlan);
+        ((POFilter) physOp).setPlan((PhysicalPlan) currentPlan);
         currentPlan = currentPlans.pop();
         currentPlan.add(physOp);
         PhysicalOperator from = LogToPhyMap.get(split.getPlan()
@@ -828,7 +835,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         currentPlan.add(p);
         List<LogicalOperator> fromList = func.getPlan().getPredecessors(func);
         for (LogicalOperator op : fromList) {
-            PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(op);
+            PhysicalOperator from = LogToPhyMap.get(op);
             try {
                 currentPlan.connect(from, p);
             } catch (PlanException e) {
@@ -863,7 +870,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         store.setSFile(loStore.getOutputFile());
         store.setPc(pc);
         currentPlan.add(store);
-        PhysicalOperator<PhyPlanVisitor> from = LogToPhyMap.get(loStore
+        PhysicalOperator from = LogToPhyMap.get(loStore
                 .getPlan().getPredecessors(loStore).get(0));
         try {
             currentPlan.connect(from, store);

@@ -28,7 +28,7 @@ public abstract class PigMapBase extends MapReduceBase{
     private final Log log = LogFactory.getLog(getClass());
     
     //Map Plan
-    protected PhysicalPlan<PhysicalOperator> mp;
+    protected PhysicalPlan mp;
     
     // Reporter that will be used by operators
     // to transmit heartbeat
@@ -54,7 +54,7 @@ public abstract class PigMapBase extends MapReduceBase{
         super.configure(job);
         PigMapReduce.sJobConf = job;
         try {
-            mp = (PhysicalPlan<PhysicalOperator>) ObjectSerializer.deserialize(job
+            mp = (PhysicalPlan) ObjectSerializer.deserialize(job
                     .get("pig.mapPlan"));
             
             // To be removed
@@ -104,7 +104,7 @@ public abstract class PigMapBase extends MapReduceBase{
         }
         
         for (OperatorKey targetKey : inpTuple.targetOps) {
-            PhysicalOperator<PhyPlanVisitor> target = mp.getOperator(targetKey);
+            PhysicalOperator target = mp.getOperator(targetKey);
             Tuple t = inpTuple.toTuple();
             target.attachInput(t);
         }

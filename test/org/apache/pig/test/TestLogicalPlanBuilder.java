@@ -290,7 +290,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         //a split statement. Currently it breaks as adding an
         //additional output to the filter fails as filter supports
         //single output
-        //"C = FILTER A BY $2 == $3;" +
+        "C = FILTER A BY $2 == $3;" +
         "B = ARRANGE B BY $1;" +
         "GENERATE A, FLATTEN(B.$0);" +
         "};";

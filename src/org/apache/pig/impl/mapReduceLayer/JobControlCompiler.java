@@ -274,7 +274,7 @@ public class JobControlCompiler{
         }
     }
     
-    private List<PhysicalOperator> getRoots(PhysicalPlan<PhysicalOperator> php){
+    private List<PhysicalOperator> getRoots(PhysicalPlan php){
         List<PhysicalOperator> ret = new ArrayList<PhysicalOperator>();
         for (PhysicalOperator operator : php.getRoots()) {
             ret.add(operator);

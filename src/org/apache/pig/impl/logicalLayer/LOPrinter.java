@@ -130,7 +130,7 @@ public class LOPrinter extends LOVisitor {
             sb.append(planString(((LOFilter)node).getComparisonPlan()));
         }
         else if(node instanceof LOForEach){
-            sb.append(planString(((LOForEach)node).getForEachPlan()));        
+            sb.append(planString(((LOForEach)node).getForEachPlans()));        
         }
         else if(node instanceof LOGenerate){
             sb.append(planString(((LOGenerate)node).getGeneratePlans())); 

@@ -27,7 +27,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POBinCond;
@@ -80,7 +80,7 @@ public class TestPOBinCond extends TestCase {
         POBinCond op = new POBinCond(new OperatorKey("", r.nextLong()), -1, equal, prjLhs, prjRhs);
         op.setResultType(DataType.INTEGER);
         
-        ExprPlan plan = new ExprPlan();
+        PhysicalPlan plan = new PhysicalPlan();
         plan.add(op);
         plan.add(prjLhs);
         plan.add(prjRhs);

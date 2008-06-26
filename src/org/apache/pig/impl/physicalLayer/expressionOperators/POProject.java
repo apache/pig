@@ -21,14 +21,16 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -93,7 +95,7 @@ public class POProject extends ExpressionOperator {
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws VisitorException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitProject(this);
     }
     
@@ -126,7 +128,25 @@ public class POProject extends ExpressionOperator {
 
     @Override
     public Result getNext(DataBag db) throws ExecException {
-        return getNext();
+        Result res = processInputBag();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
+        DataBag inpBag = (DataBag) res.result;
+
+        if(isInputAttached() || star){
+            res.result = inpBag;
+            res.returnStatus = POStatus.STATUS_OK;
+            detachInput();
+            return res;
+        }
+        DataBag outBag = BagFactory.getInstance().newDefaultBag();
+        for (Tuple tuple : inpBag) {
+            Tuple tmpTuple = TupleFactory.getInstance().newTuple(tuple.get(column));
+            outBag.add(tmpTuple);
+        }
+        res.result = outBag;
+        res.returnStatus = POStatus.STATUS_OK;
+        return res;
     }
 
     @Override
@@ -238,6 +258,27 @@ public class POProject extends ExpressionOperator {
 
     public void setStar(boolean star) {
         this.star = star;
+    }
+    
+    private Result processInputBag() throws ExecException {
+        
+        Result res = new Result();
+        if (input==null && (inputs == null || inputs.size()==0)) {
+//            log.warn("No inputs found. Signaling End of Processing.");
+            res.returnStatus = POStatus.STATUS_EOP;
+            return res;
+        }
+        
+        //Should be removed once the model is clear
+        if(reporter!=null) reporter.progress();
+        
+        if(!isInputAttached())
+            return inputs.get(0).getNext(dummyBag);
+        else{
+            res.result = (DataBag)input.get(column);
+            res.returnStatus = POStatus.STATUS_OK;
+            return res;
+        }
     }
 
 }

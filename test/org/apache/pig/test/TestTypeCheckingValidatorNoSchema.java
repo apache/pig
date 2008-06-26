@@ -968,14 +968,8 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         flattens.add(true) ;
         flattens.add(false) ;
 
-        // Create LOGenerate
-        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
-
-        LogicalPlan foreachPlan = new LogicalPlan() ;
-        foreachPlan.add(generate1) ;
-
         // Create LOForEach
-        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), generatePlans, flattens) ;
 
         // construct the main plan
         plan.add(load1) ;

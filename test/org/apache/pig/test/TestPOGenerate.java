@@ -49,8 +49,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
-import org.apache.pig.impl.physicalLayer.relationalOperators.POGenerate;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.test.utils.GenRandomData;
@@ -158,14 +158,14 @@ public class TestPOGenerate extends TestCase {
         List<Boolean> toBeFlattened = new LinkedList<Boolean>();
         toBeFlattened.add(true);
         toBeFlattened.add(true);
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
-        ExprPlan plan2 = new ExprPlan();
+        PhysicalPlan plan2 = new PhysicalPlan();
         plan2.add(prj2);
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1); 
         inputs.add(plan2);
-        PhysicalOperator poGen = new POGenerate(new OperatorKey("", r.nextLong()), inputs, toBeFlattened);
+        PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
         //DataBag obtained = bf.newDefaultBag();
         for(Iterator<Tuple> it = cogroup.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
@@ -192,14 +192,14 @@ public class TestPOGenerate extends TestCase {
         List<Boolean> toBeFlattened = new LinkedList<Boolean>();
         toBeFlattened.add(true);
         toBeFlattened.add(false);
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
-        ExprPlan plan2 = new ExprPlan();
+        PhysicalPlan plan2 = new PhysicalPlan();
         plan2.add(prj2);
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1); 
         inputs.add(plan2);
-        PhysicalOperator poGen = new POGenerate(new OperatorKey("", r.nextLong()), inputs, toBeFlattened);
+        PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
         
         //DataBag obtained = bf.newDefaultBag();
         List<String> obtained = new LinkedList<String>();
@@ -228,19 +228,19 @@ public class TestPOGenerate extends TestCase {
     public void testSimpleGenerate() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
-        prj1.setResultType(DataType.BAG);
-        prj2.setResultType(DataType.BAG);
+        prj1.setResultType(DataType.INTEGER);
+        prj2.setResultType(DataType.INTEGER);
         List<Boolean> toBeFlattened = new LinkedList<Boolean>();
         toBeFlattened.add(true);
         toBeFlattened.add(false);
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
-        ExprPlan plan2 = new ExprPlan();
+        PhysicalPlan plan2 = new PhysicalPlan();
         plan2.add(prj2);
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1); 
         inputs.add(plan2);
-        PhysicalOperator poGen = new POGenerate(new OperatorKey("", r.nextLong()), inputs, toBeFlattened);
+        PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
         
         //DataBag obtained = bf.newDefaultBag();
         List<String> obtained = new LinkedList<String>();

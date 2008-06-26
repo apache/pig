@@ -69,6 +69,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((DataBag) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((DataBag) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -83,6 +84,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Boolean) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Boolean) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -97,6 +99,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((DataByteArray) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((DataByteArray) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -111,6 +114,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((String) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((String) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -125,6 +129,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Double) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Double) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -139,6 +144,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Float) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Float) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -153,6 +159,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Integer) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Integer) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -167,6 +174,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Long) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Long) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -181,6 +189,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Map) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Map) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);
@@ -195,6 +204,7 @@ public class TestEqualTo extends junit.framework.TestCase {
             res = g.getNext((Tuple) inp1);
             if ((Boolean) res.result == false)
                 return false;
+            lt.setValue(inp1);
             rt.setValue(inp2);
             res = g.getNext((Tuple) inp1);
             ret = (DataType.compare(inp1, inp2) == 0);

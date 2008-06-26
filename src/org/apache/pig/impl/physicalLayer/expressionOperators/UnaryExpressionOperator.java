@@ -18,7 +18,7 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.plan.VisitorException;
@@ -46,8 +46,8 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
     /**
      * Set the contained expression to the be the input value.
      */
-    public void setInputAsExpr(PhysicalPlan<ExpressionOperator> plan) {
-        expr = plan.getPredecessors(this).get(0);
+    public void setInputAsExpr(PhysicalPlan plan) {
+        expr = (ExpressionOperator)plan.getPredecessors(this).get(0);
     }
 
     /**

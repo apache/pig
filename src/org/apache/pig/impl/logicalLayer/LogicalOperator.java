@@ -224,15 +224,6 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      */
     public abstract void visit(LOVisitor v) throws VisitorException;
 
-	/*
-    public boolean isFlatten() {
-        return mIsFlatten;
-    }
-
-    public void setFlatten(boolean b) {
-        mIsFlatten = b;
-    }
-	*/
     public LogicalPlan getPlan() {
         return mPlan ;
     }
@@ -245,4 +236,10 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public void setSchemaComputed(boolean computed) {
        mIsSchemaComputed = computed ;   
     }
+
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return true;
+    }
+
 }

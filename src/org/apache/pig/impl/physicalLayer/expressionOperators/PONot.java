@@ -22,7 +22,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -45,7 +45,7 @@ public class PONot extends UnaryComparisonOperator {
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws VisitorException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitNot(this);
     }
 

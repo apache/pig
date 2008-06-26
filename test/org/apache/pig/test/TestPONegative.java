@@ -27,7 +27,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.impl.plan.PlanException;
@@ -54,7 +54,7 @@ public class TestPONegative extends TestCase {
         PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
         pn.setResultType(DataType.INTEGER);
         
-        ExprPlan plan = new ExprPlan();
+        PhysicalPlan plan = new PhysicalPlan();
         plan.add(prj); plan.add(pn);
         plan.connect(prj, pn);
         
@@ -80,7 +80,7 @@ public class TestPONegative extends TestCase {
         PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
         pn.setResultType(DataType.LONG);
         
-        ExprPlan plan = new ExprPlan();
+        PhysicalPlan plan = new PhysicalPlan();
         plan.add(prj); plan.add(pn);
         plan.connect(prj, pn);
         
@@ -106,7 +106,7 @@ public class TestPONegative extends TestCase {
         PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
         pn.setResultType(DataType.DOUBLE);
         
-        ExprPlan plan = new ExprPlan();
+        PhysicalPlan plan = new PhysicalPlan();
         plan.add(prj); plan.add(pn);
         plan.connect(prj, pn);
         
@@ -132,7 +132,7 @@ public class TestPONegative extends TestCase {
         PONegative pn = new PONegative(new OperatorKey("", r.nextLong()), -1, prj);
         pn.setResultType(DataType.FLOAT);
         
-        ExprPlan plan = new ExprPlan();
+        PhysicalPlan plan = new PhysicalPlan();
         plan.add(prj); plan.add(pn);
         plan.connect(prj, pn);
         

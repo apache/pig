@@ -64,7 +64,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * also allows to reuse this data stored from the split
  * job whenever necessary.
  */
-public class POSplit extends PhysicalOperator<PhyPlanVisitor> {
+public class POSplit extends PhysicalOperator {
     /**
      * 
      */

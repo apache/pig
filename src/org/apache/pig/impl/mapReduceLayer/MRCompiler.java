@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -31,7 +30,6 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -39,22 +37,29 @@ import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.mapReduceLayer.plans.UDFFinder;
-import org.apache.pig.impl.mapReduceLayer.plans.UDFFinderForExpr;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
-import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
-import org.apache.pig.impl.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.impl.physicalLayer.relationalOperators.PODistinct;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -92,14 +97,14 @@ import org.apache.pig.impl.plan.VisitorException;
  * 
  *
  */
-public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<PhysicalOperator>> {
+public class MRCompiler extends PhyPlanVisitor {
     
     private Log log = LogFactory.getLog(getClass());
     
     PigContext pigContext;
     
     //The plan that is being compiled
-    PhysicalPlan<PhysicalOperator> plan;
+    PhysicalPlan plan;
 
     //The plan of MapReduce Operators
     MROperPlan MRPlan;
@@ -127,17 +132,15 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     
     private Random r;
     
-    private UDFFinderForExpr udfFinderForExpr;
-    
     private UDFFinder udfFinder;
     
-    public MRCompiler(PhysicalPlan<PhysicalOperator> plan) {
+    public MRCompiler(PhysicalPlan plan) {
         this(plan,null);
     }
     
-    public MRCompiler(PhysicalPlan<PhysicalOperator> plan,
+    public MRCompiler(PhysicalPlan plan,
             PigContext pigContext) {
-        super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan<PhysicalOperator>>(plan));
+        super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         this.plan = plan;
         this.pigContext = pigContext;
         splitsSeen = new HashMap<OperatorKey, MapReduceOper>();
@@ -146,7 +149,6 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         scope = plan.getRoots().get(0).getOperatorKey().getScope();
         r = new Random(1331);
         FileLocalizer.setR(r);
-        udfFinderForExpr = new UDFFinderForExpr();
         udfFinder = new UDFFinder();
     }
     
@@ -162,7 +164,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
      * Used to get the plan that was compiled
      * @return physical plan
      */
-    public PhysicalPlan<PhysicalOperator> getPlan() {
+    public PhysicalPlan getPlan() {
         return plan;
     }
     
@@ -471,7 +473,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         Set<MapReduceOper> toBeConnected = new HashSet<MapReduceOper>();
         List<MapReduceOper> remLst = new ArrayList<MapReduceOper>();
 
-        List<PhysicalPlan<PhysicalOperator>> mpLst = new ArrayList<PhysicalPlan<PhysicalOperator>>();
+        List<PhysicalPlan> mpLst = new ArrayList<PhysicalPlan>();
 
         for (MapReduceOper mro : compiledInputs) {
             if (!mro.isMapDone()) {
@@ -519,15 +521,15 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         }
     }
 
-    private void addUDFs(ExprPlan plan) throws VisitorException{
+    /*private void addUDFs(PhysicalPlan plan) throws VisitorException{
         if(plan!=null){
             udfFinderForExpr.setPlan(plan);
             udfFinderForExpr.visit();
             curMROp.UDFs.addAll(udfFinderForExpr.getUDFs());
         }
-    }
+    }*/
     
-    private void addUDFs(PhysicalPlan<PhysicalOperator> plan) throws VisitorException{
+    private void addUDFs(PhysicalPlan plan) throws VisitorException{
         if(plan!=null){
             udfFinder.setPlan(plan);
             udfFinder.visit();
@@ -596,9 +598,9 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     public void visitLocalRearrange(POLocalRearrange op) throws VisitorException {
         try{
             nonBlocking(op);
-            List<ExprPlan> plans = op.getPlans();
+            List<PhysicalPlan> plans = op.getPlans();
             if(plans!=null)
-                for(ExprPlan ep : plans)
+                for(PhysicalPlan ep : plans)
                     addUDFs(ep);
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
@@ -607,10 +609,14 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         }
     }
     
-    public void visitForEach(POForEach op) throws VisitorException{
+    public void visitPOForEach(POForEach op) throws VisitorException{
         try{
             nonBlocking(op);
-            addUDFs(op.getPlan());
+            List<PhysicalPlan> plans = op.getInputPlans();
+            if(plans!=null)
+                for (PhysicalPlan plan : plans) {
+                    addUDFs(plan);
+                }
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -654,13 +660,13 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     public void visitDistinct(PODistinct op) throws VisitorException {
         try{
             MapReduceOper mro = compiledInputs[0];
-            ExprPlan ep = new ExprPlan();
+            PhysicalPlan ep = new PhysicalPlan();
             POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
             prjStar.setResultType(DataType.TUPLE);
             prjStar.setStar(true);
             ep.add(prjStar);
             
-            List<ExprPlan> eps = new ArrayList<ExprPlan>();
+            List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
             eps.add(ep);
             
             POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
@@ -684,9 +690,9 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             pkg.setInner(inner);
             curMROp.reducePlan.add(pkg);
             
-            List<ExprPlan> eps1 = new ArrayList<ExprPlan>();
+            List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
             List<Boolean> flat1 = new ArrayList<Boolean>();
-            ExprPlan ep1 = new ExprPlan();
+            PhysicalPlan ep1 = new PhysicalPlan();
             POProject prj1 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
             prj1.setResultType(DataType.TUPLE);
             prj1.setStar(false);
@@ -695,14 +701,11 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             ep1.add(prj1);
             eps1.add(ep1);
             flat1.add(false);
-            POGenerate fe1Gen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)),eps1,flat1);
-            fe1Gen.setResultType(DataType.TUPLE);
-            PhysicalPlan<PhysicalOperator> fe1Plan = new PhysicalPlan<PhysicalOperator>();
-            fe1Plan.add(fe1Gen);
-            POForEach fe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            fe1.setPlan(fe1Plan);
-            fe1.setResultType(DataType.TUPLE);
-            curMROp.reducePlan.addAsLeaf(fe1);
+            POForEach nfe1 = new POForEach(new OperatorKey(scope, nig
+                    .getNextNodeId(scope)), op.getRequestedParallelism(), eps1,
+                    flat1);
+            nfe1.setResultType(DataType.BAG);
+            curMROp.reducePlan.addAsLeaf(nfe1);
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -728,11 +731,11 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
     }
     
     private int[] getSortCols(POSort sort){
-        List<ExprPlan> plans = sort.getSortPlans();
+        List<PhysicalPlan> plans = sort.getSortPlans();
         if(plans!=null){
             int[] ret = new int[plans.size()]; 
             int i=-1;
-            for (ExprPlan plan : plans) {
+            for (PhysicalPlan plan : plans) {
                 ret[++i] = ((POProject)plan.getLeaves().get(0)).getColumn();
             }
             return ret;
@@ -746,12 +749,12 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         mro.setGlobalSort(true);
         mro.requestedParallelism = rp;
         
-        List<ExprPlan> eps1 = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         
         if(fields==null)
             throw new PlanException("No Expression Plan found in POSort");
         for (int i : fields) {
-            ExprPlan ep = new ExprPlan();
+            PhysicalPlan ep = new PhysicalPlan();
             POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
             prj.setColumn(i);
             prj.setOverloaded(false);
@@ -776,25 +779,19 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         pkg.setInner(inner);
         mro.reducePlan.add(pkg);
         
-        ExprPlan ep = new ExprPlan();
+        PhysicalPlan ep = new PhysicalPlan();
         POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prj.setColumn(1);
         prj.setOverloaded(false);
         prj.setResultType(DataType.BAG);
         ep.add(prj);
-        List<ExprPlan> eps2 = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> eps2 = new ArrayList<PhysicalPlan>();
         eps2.add(ep);
         List<Boolean> flattened = new ArrayList<Boolean>();
         flattened.add(true);
-        POGenerate fe1Gen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)),eps2,flattened);
-        fe1Gen.setResultType(DataType.TUPLE);
-        PhysicalPlan<PhysicalOperator> fe1Plan = new PhysicalPlan<PhysicalOperator>();
-        fe1Plan.add(fe1Gen);
-        POForEach fe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        fe1.setPlan(fe1Plan);
-        fe1.setResultType(DataType.TUPLE);
-        mro.reducePlan.add(fe1);
-        mro.reducePlan.connect(pkg, fe1);
+        POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps2,flattened);
+        mro.reducePlan.add(nfe1);
+        mro.reducePlan.connect(pkg, nfe1);
 //        ep1.add(innGen);
         return mro;
     }
@@ -809,13 +806,13 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         if(sort.isUDFComparatorUsed)
             mro.UDFs.add(sort.getMSortFunc().getFuncSpec());
         
-        List<ExprPlan> eps1 = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();
         
         if(fields==null)
             throw new PlanException("No Expression Plan found in POSort");
         for (int i : fields) {
-            ExprPlan ep = new ExprPlan();
+            PhysicalPlan ep = new PhysicalPlan();
             POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
             prj.setColumn(i);
             prj.setOverloaded(false);
@@ -824,22 +821,16 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
             eps1.add(ep);
             flat1.add(true);
         }
-        POGenerate fe1Gen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)),eps1,flat1);
-        fe1Gen.setResultType(DataType.TUPLE);
-        PhysicalPlan<PhysicalOperator> fe1Plan = new PhysicalPlan<PhysicalOperator>();
-        fe1Plan.add(fe1Gen);
-        POForEach fe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        fe1.setPlan(fe1Plan);
-        fe1.setResultType(DataType.TUPLE);
-        mro.mapPlan.addAsLeaf(fe1);
+        POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps1,flat1);
+        mro.mapPlan.addAsLeaf(nfe1);
         
-        ExprPlan ep1 = new ExprPlan();
+        PhysicalPlan ep1 = new PhysicalPlan();
         ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
         ce.setValue("all");
         ce.setResultType(DataType.CHARARRAY);
         ep1.add(ce);
         
-        List<ExprPlan> eps = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
         eps.add(ep1);
         
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
@@ -848,7 +839,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         lr.setPlans(eps);
         lr.setResultType(DataType.TUPLE);
         mro.mapPlan.add(lr);
-        mro.mapPlan.connect(fe1, lr);
+        mro.mapPlan.connect(nfe1, lr);
         
         mro.setMapDone(true);
         
@@ -859,7 +850,7 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         pkg.setInner(inner);
         mro.reducePlan.add(pkg);
         
-        PhysicalPlan<PhysicalOperator> fe2Plan = new PhysicalPlan<PhysicalOperator>();
+        PhysicalPlan fe2Plan = new PhysicalPlan();
         
         POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         topPrj.setColumn(1);
@@ -867,13 +858,13 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         topPrj.setOverloaded(true);
         fe2Plan.add(topPrj);
         
-        ExprPlan nesSortPlan = new ExprPlan();
+        PhysicalPlan nesSortPlan = new PhysicalPlan();
         POProject prjStar2 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar2.setResultType(DataType.TUPLE);
         prjStar2.setStar(true);
         nesSortPlan.add(prjStar2);
         
-        List<ExprPlan> nesSortPlanLst = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> nesSortPlanLst = new ArrayList<PhysicalPlan>();
         nesSortPlanLst.add(nesSortPlan);
         
         sort.setSortPlans(nesSortPlanLst);
@@ -881,39 +872,33 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         fe2Plan.add(sort);
         fe2Plan.connect(topPrj, sort);
         
-        ExprPlan ep3 = new ExprPlan();
+        PhysicalPlan ep3 = new PhysicalPlan();
         POProject prjStar3 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar3.setResultType(DataType.BAG);
-        prjStar3.setColumn(0);
+        prjStar3.setColumn(1);
         prjStar3.setStar(false);
         ep3.add(prjStar3);
         
-        ExprPlan rpep = new ExprPlan();
+        PhysicalPlan rpep = new PhysicalPlan();
         ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
         rpce.setRequestedParallelism(rp);
         rpce.setValue(rp<=0?1:rp);
         rpce.setResultType(DataType.INTEGER);
         rpep.add(rpce);
         
-        List<ExprPlan> genEps = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> genEps = new ArrayList<PhysicalPlan>();
         genEps.add(rpep);
         genEps.add(ep3);
         
         List<Boolean> flattened2 = new ArrayList<Boolean>();
         flattened2.add(false);
         flattened2.add(false);
-        POGenerate nesGen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)), genEps, flattened2);
-        fe2Plan.add(nesGen);
-        fe2Plan.connect(sort, nesGen);
         
-        POForEach fe2 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        fe2.setPlan(fe2Plan);
-        fe2.setResultType(DataType.TUPLE);
+        POForEach nfe2 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1, genEps, flattened2);
+        mro.reducePlan.add(nfe2);
+        mro.reducePlan.connect(pkg, nfe2);
         
-        mro.reducePlan.add(fe2);
-        mro.reducePlan.connect(pkg, fe2);
-        
-        ExprPlan ep4 = new ExprPlan();
+        PhysicalPlan ep4 = new PhysicalPlan();
         POProject prjStar4 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar4.setResultType(DataType.TUPLE);
         prjStar4.setStar(true);
@@ -925,26 +910,19 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         ep4.add(uf);
         ep4.connect(prjStar4, uf);
         
-        List<ExprPlan> ep4s = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> ep4s = new ArrayList<PhysicalPlan>();
         ep4s.add(ep4);
         List<Boolean> flattened3 = new ArrayList<Boolean>();
         flattened3.add(false);
-        POGenerate finGen = new POGenerate(new OperatorKey(scope,nig.getNextNodeId(scope)), ep4s, flattened3);
+        POForEach nfe3 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ep4s, flattened3);
         
-        PhysicalPlan<PhysicalOperator> fe3Plan = new PhysicalPlan<PhysicalOperator>();
-        fe3Plan.add(finGen);
-        
-        POForEach fe3 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        fe3.setPlan(fe3Plan);
-        fe3.setResultType(DataType.TUPLE);
-        
-        mro.reducePlan.add(fe3);
-        mro.reducePlan.connect(fe2, fe3);
+        mro.reducePlan.add(nfe3);
+        mro.reducePlan.connect(nfe2, nfe3);
         
         POStore str = getStore();
         str.setSFile(quantFile);
         mro.reducePlan.add(str);
-        mro.reducePlan.connect(fe3, str);
+        mro.reducePlan.connect(nfe3, str);
         
         mro.setReduceDone(true);
 //        mro.requestedParallelism = rp;
@@ -957,10 +935,10 @@ public class MRCompiler extends PhyPlanVisitor<PhysicalOperator, PhysicalPlan<Ph
         pc.connect();
         MRCompiler comp = new MRCompiler(null, pc);
         Random r = new Random();
-        List<ExprPlan> sortPlans = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
         POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
         pr1.setResultType(DataType.INTEGER);
-        ExprPlan expPlan = new ExprPlan();
+        PhysicalPlan expPlan = new PhysicalPlan();
         expPlan.add(pr1);
         sortPlans.add(expPlan);
         List<Boolean> mAscCols = new LinkedList<Boolean>();

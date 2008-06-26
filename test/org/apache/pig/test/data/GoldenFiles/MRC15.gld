@@ -1,19 +1,19 @@
-MapReduce(-1,GFCross) - -170:
+MapReduce(-1,GFCross) - -166:
 |   Store(DummyFil:DummyLdr) - -5165956429696944631
 |   |
 |   |---For Each[tuple] - -2197807331204639125
 |       |   |
 |       |   POGenerate(false)  - --8447156979210379761
 |       |   |   |
-|       |   |   POUserFunc(org.apache.pig.impl.builtin.GFCross) - -6139496040975471496
+|       |   |   POUserFunc(org.apache.pig.impl.builtin.GFCross)[tuple] - -6139496040975471496
 |       |   |   |
 |       |   |   |---Project[tuple](*) - -5878058249424113280
 |       |
 |       |---Package[tuple]{Unknown} - -7085374960058856883
-|   Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -169
+|   Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -165
 |
-|---MapReduce(-1,AVG) - -167:
-    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -168
+|---MapReduce(-1,AVG) - -163:
+    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -164
     |   |
     |   |---Local Rearrange[tuple]{Unknown} - -7398260302074824818
     |       |
@@ -21,15 +21,15 @@ MapReduce(-1,GFCross) - -170:
     |           |   |
     |           |   POGenerate(false)  - -7973970339130605847
     |           |   |   |
-    |           |   |   POUserFunc(org.apache.pig.builtin.AVG) - --6860857982727545176
+    |           |   |   POUserFunc(org.apache.pig.builtin.AVG)[tuple] - --6860857982727545176
     |           |   |   |
     |           |   |   |---Project[tuple](*) - -2082992246427879202
     |           |
     |           |---Package[tuple]{Unknown} - -737965411848544085
-    |   Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -166
+    |   Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -162
     |
-    |---MapReduce(20,FindQuantiles,SUM) - -158:
-        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -165
+    |---MapReduce(20,FindQuantiles,SUM) - -155:
+        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -161
         |   |
         |   |---Local Rearrange[tuple]{Unknown} - --3359714221559579809
         |       |
@@ -37,62 +37,48 @@ MapReduce(-1,GFCross) - -170:
         |           |   |
         |           |   POGenerate(false,false)  - -8639002377389679348
         |           |   |   |
-        |           |   |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles) - -727770031531364881
+        |           |   |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - -727770031531364881
         |           |   |   |
         |           |   |   |---Project[tuple](*) - -7128285064986147947
         |           |   |   |
-        |           |   |   POUserFunc(org.apache.pig.builtin.SUM) - --5683415113785058706
+        |           |   |   POUserFunc(org.apache.pig.builtin.SUM)[tuple] - --5683415113785058706
         |           |   |   |
         |           |   |   |---Project[tuple](*) - --8002381389674382470
         |           |
-        |           |---For Each[tuple] - -164
+        |           |---New For Each(true)[tuple] - -160
         |               |   |
-        |               |   POGenerate(true)  - -163
-        |               |   |   |
-        |               |   |   Project[bag](1) - -162
+        |               |   Project[bag](1) - -159
         |               |
-        |               |---Package[tuple]{bytearray} - -161
-        |   Local Rearrange[tuple]{bytearray} - -160
+        |               |---Package[tuple]{bytearray} - -158
+        |   Local Rearrange[tuple]{bytearray} - -157
         |   |   |
-        |   |   Project[bytearray](0) - -159
+        |   |   Project[bytearray](0) - -156
         |   |
-        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -157
+        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -154
         |
         |---MapReduce(-1,FindQuantiles,TestMRCompiler$WeirdComparator) - -139:
-            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -156
+            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -153
             |   |
-            |   |---For Each[tuple] - -155
+            |   |---New For Each(false)[tuple] - -152
             |       |   |
-            |       |   POGenerate(false)  - -154
-            |       |   |   |
-            |       |   |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles) - -153
-            |       |   |   |
-            |       |   |   |---Project[tuple](*) - -152
+            |       |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - -151
+            |       |   |
+            |       |   |---Project[tuple](*) - -150
             |       |
-            |       |---For Each[tuple] - -151
+            |       |---New For Each(false,false)[tuple] - -149
             |           |   |
-            |           |   POGenerate(false,false)  - -150
-            |           |   |   |
-            |           |   |   Constant(20) - -149
-            |           |   |   |
-            |           |   |   Project[bag](0) - -148
+            |           |   Constant(20) - -148
             |           |   |
-            |           |   |---POSort[tuple] - --776319888013965510
-            |           |       |   |
-            |           |       |   Project[tuple](*) - -147
-            |           |       |
-            |           |       |---Project[tuple](1) - -146
+            |           |   Project[bag](1) - -147
             |           |
-            |           |---Package[tuple]{chararray} - -145
-            |   Local Rearrange[tuple]{chararray} - -144
+            |           |---Package[tuple]{chararray} - -144
+            |   Local Rearrange[tuple]{chararray} - -143
             |   |   |
-            |   |   Constant(all) - -143
+            |   |   Constant(all) - -142
             |   |
-            |   |---For Each[tuple] - -142
+            |   |---New For Each(true)[tuple] - -141
             |       |   |
-            |       |   POGenerate(true)  - -141
-            |       |   |   |
-            |       |   |   Project[bytearray](0) - -140
+            |       |   Project[bytearray](0) - -140
             |       |
             |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader) - -138
             |

@@ -33,9 +33,8 @@ import org.apache.pig.impl.plan.VisitorException;
  * The base class for all types of physical plans. 
  * This extends the Operator Plan.
  *
- * @param <E>
  */
-public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
+public class PhysicalPlan extends OperatorPlan<PhysicalOperator> {
 
     /**
      * 
@@ -47,8 +46,8 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
     }
     
     public void attachInput(Tuple t){
-        List<E> roots = getRoots();
-        for (E operator : roots)
+        List<PhysicalOperator> roots = getRoots();
+        for (PhysicalOperator operator : roots)
             operator.attachInput(t);
     }
     
@@ -58,7 +57,7 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
      * @param out : OutputStream to which the visual representation is written
      */
     public void explain(OutputStream out){
-        PlanPrinter<E, PhysicalPlan<E>> mpp = new PlanPrinter<E, PhysicalPlan<E>>(
+        PlanPrinter<PhysicalOperator, PhysicalPlan> mpp = new PlanPrinter<PhysicalOperator, PhysicalPlan>(
                 this);
 
         try {
@@ -73,13 +72,13 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
     }
     
     @Override
-    public void connect(E from, E to)
+    public void connect(PhysicalOperator from, PhysicalOperator to)
             throws PlanException {
         super.connect(from, to);
         to.setInputs(getPredecessors(to));
     }
     
-    /*public void connect(List<E> from, E to) throws IOException{
+    /*public void connect(List<PhysicalOperator> from, PhysicalOperator to) throws IOException{
         if(!to.supportsMultipleInputs()){
             throw new IOException("Invalid Operation on " + to.name() + ". It doesn't support multiple inputs.");
         }
@@ -87,11 +86,11 @@ public class PhysicalPlan<E extends PhysicalOperator> extends OperatorPlan<E> {
     }*/
     
     @Override
-    public void remove(E op) {
+    public void remove(PhysicalOperator op) {
         op.setInputs(null);
-        List<E> sucs = getSuccessors(op);
+        List<PhysicalOperator> sucs = getSuccessors(op);
         if(sucs!=null && sucs.size()!=0){
-            for (E suc : sucs) {
+            for (PhysicalOperator suc : sucs) {
                 suc.setInputs(null);
             }
         }

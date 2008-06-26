@@ -41,7 +41,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * 
  * 
  */
-public class PODistinct extends PhysicalOperator<PhyPlanVisitor> {
+public class PODistinct extends PhysicalOperator {
 
     private boolean inputsAccumulated = false;
     private DataBag distinctBag = BagFactory.getInstance().newDistinctBag();

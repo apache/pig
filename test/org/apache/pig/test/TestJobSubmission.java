@@ -56,7 +56,7 @@ import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
@@ -78,7 +78,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
     static PigContext pc;
     String ldFile;
     String expFile;
-    PhysicalPlan<PhysicalOperator> php = new PhysicalPlan<PhysicalOperator>();
+    PhysicalPlan php = new PhysicalPlan();
     String stFile;
     String hadoopLdFile;
     String grpName;

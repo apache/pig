@@ -36,7 +36,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.plan.PlanException;
@@ -62,7 +62,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -171,7 +171,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -280,7 +280,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -389,7 +389,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -490,7 +490,7 @@ public class TestPOCast extends TestCase {
 	public void testStringToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -664,7 +664,7 @@ public class TestPOCast extends TestCase {
 		LoadFunc load = new TestLoader();
 		op.setLoadFSpec(load.getClass().getName());
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -783,7 +783,7 @@ public class TestPOCast extends TestCase {
 	public void testTupleToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -896,7 +896,7 @@ public class TestPOCast extends TestCase {
 	public void testBagToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
@@ -991,7 +991,7 @@ public class TestPOCast extends TestCase {
 	public void testMapToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);

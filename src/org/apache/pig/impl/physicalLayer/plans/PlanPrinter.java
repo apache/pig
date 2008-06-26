@@ -119,10 +119,10 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         return sb.toString();
     }
     
-    private String planString(List<ExprPlan> lep){
+    private String planString(List<PhysicalPlan> lep){
         StringBuilder sb = new StringBuilder();
         if(lep!=null)
-            for (ExprPlan ep : lep) {
+            for (PhysicalPlan ep : lep) {
                 sb.append(planString(ep));
             }
         return sb.toString();
@@ -133,18 +133,14 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         if(node instanceof POFilter){
             sb.append(planString(((POFilter)node).getPlan()));
         }
-        else if(node instanceof POForEach){
-            sb.append(planString(((POForEach)node).getPlan()));        
-        }
-        else if(node instanceof POGenerate){
-            sb.append(planString(((POGenerate)node).getInputPlans())); 
-            
-        }
         else if(node instanceof POLocalRearrange){
             sb.append(planString(((POLocalRearrange)node).getPlans()));
         }
         else if(node instanceof POSort){
             sb.append(planString(((POSort)node).getSortPlans())); 
+        }
+        else if(node instanceof POForEach){
+            sb.append(planString(((POForEach)node).getInputPlans()));
         }
         
         List<O> predecessors = mPlan.getPredecessors(node);
@@ -216,26 +212,4 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         System.out.print(op.name() + "   ");
     }
     
-    /*public static void main(String[] args) throws PlanException, ExecException {
-        ExprPlan ep = GenPhyOp.arithPlan();
-        GreaterThanExpr gt = GenPhyOp.compGreaterThanExpr();
-        ConstantExpression ce = GenPhyOp.exprConst();
-        ce.setValue(50);
-        ep.add(ce);
-        ep.addAsLeaf(gt);
-        
-        POFilter fil = GenPhyOp.topFilterOp();
-        fil.setPlan(ep);
-        
-        PhysicalPlan php = new PhysicalPlan();
-        php.add(fil);
-        int fields[] = {0};
-        Tuple sample = TupleFactory.getInstance().newTuple();
-        sample.append("S");
-//        POForEach fe = GenPhyOp.topForEachOPWithPlan(fields, sample);
-        POForEach fe = GenPhyOp.topForEachOp();
-        php.add(fe);
-        php.connect(fil, fe);
-        php.explain(System.out);
-    }*/
 }

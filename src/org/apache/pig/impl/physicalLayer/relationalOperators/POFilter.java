@@ -19,18 +19,16 @@ package org.apache.pig.impl.physicalLayer.relationalOperators;
 
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
-import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ComparisonOperator;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -44,17 +42,17 @@ import org.apache.pig.impl.plan.VisitorException;
  * on any other data type.
  * 
  */
-public class POFilter extends PhysicalOperator<PhyPlanVisitor> {
+public class POFilter extends PhysicalOperator {
 
     /**
      * 
      */
     private static final long serialVersionUID = 1L;
 
-    private Log log = LogFactory.getLog(getClass());
+//    private Log log = LogFactory.getLog(getClass());
 
     // The expression plan
-    ExprPlan plan;
+    PhysicalPlan plan;
 
     // The root comparison operator of the expression plan
     ComparisonOperator comOp;
@@ -164,13 +162,13 @@ public class POFilter extends PhysicalOperator<PhyPlanVisitor> {
         v.visitFilter(this);
     }
 
-    public void setPlan(ExprPlan plan) {
+    public void setPlan(PhysicalPlan plan) {
         this.plan = plan;
         comOp = (ComparisonOperator) (plan.getLeaves()).get(0);
         compOperandType = comOp.getOperandType();
     }
 
-    public ExprPlan getPlan() {
+    public PhysicalPlan getPlan() {
         return plan;
     }
 }

@@ -254,17 +254,18 @@ public class QueryParser {
 		
 		//Construct the generate operator from the list of projection plans
 		//Add the generate operator to the foreach logical plan
+        /*
 		LogicalOperator generate = new LOGenerate(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
 		foreachPlan.add(generate);
 		log.debug("Added operator " + generate.getClass().getName() + " to the logical plan " + lp);
-
+        */
 		
 		/*
 		 * Construct the foreach operator from the foreach logical plan
 		 * Add the foreach operator to the top level logical plan
 		 */
 		 
-		LogicalOperator foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), foreachPlan);
+		LogicalOperator foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
 		lp.add(foreach);
 		log.debug("Added operator " + foreach.getClass().getName() + " to the logical plan");
 		lp.connect(cogroup, foreach);
@@ -352,6 +353,14 @@ public class QueryParser {
 		insideGenerate = false;
 		resetGenerateInputs();
 	}
+
+    boolean checkGenerateInput(LogicalOperator in) {
+        if(null == generateInputs) return false;
+        for(LogicalOperator op: generateInputs) {
+            if(op == in) return true;
+        }
+        return false;
+    }
 
 	 //END
 	
@@ -1248,12 +1257,12 @@ LogicalOperator UnionClause(LogicalPlan lp) :
 	}
 }
 
-
 LogicalOperator ForEachClause(LogicalPlan lp) : 
 {
 	ArrayList<LogicalOperator> specList = new ArrayList<LogicalOperator>(); 
 	LogicalOperator input, foreach; 
 	LogicalPlan foreachPlan = new LogicalPlan();
+    ArrayList<LogicalPlan> foreachPlans = new ArrayList<LogicalPlan>();
 	log.trace("Entering ForEachClause");
 }
 {
@@ -1262,7 +1271,59 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
 	specList = NestedBlock(input.getSchema(), specList, foreachPlan, input)
 	)
 	{
-		foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), foreachPlan);
+        LOGenerate generate = (LOGenerate)specList.get(specList.size() - 1);
+        List<LogicalPlan> generatePlans = generate.getGeneratePlans();
+        List<Boolean> flattenList = generate.getFlatten();
+        /*
+        Generate's nested plans will be translated to foreach's nested plan
+        If generate contains an expression that does not require generate's
+        inputs then it should be made part of foreach without the generate
+        For the remaining expressions, the entire DAG till generate has to be
+        duplicated and then the nested plan attached to a new generate
+        */
+
+        for (int planCtr = 0; planCtr < generatePlans.size(); ++planCtr) {
+            LogicalPlan generatePlan = generatePlans.get(planCtr);
+            List<LogicalOperator> planRoots = generatePlan.getRoots();
+            boolean needGenerateInput = false;
+            boolean needForEachInput = false;
+            MultiMap<LogicalOperator, LogicalOperator> mapProjectInputs = null;
+            for(LogicalOperator root: planRoots) {
+                if(root instanceof LOProject) {
+                    LOProject project = (LOProject)root;
+                    LogicalOperator projectInput = project.getExpression();
+                    if(checkGenerateInput(projectInput)) {
+                        needGenerateInput = true;
+                        if(null == mapProjectInputs) {
+                            mapProjectInputs = new MultiMap<LogicalOperator, LogicalOperator>();
+                        }
+                        mapProjectInputs.put(root, projectInput);
+                    } else {
+                        needForEachInput = true;
+                    }
+                }
+            }
+            if(needGenerateInput) {
+                /*
+                Duplicate the logical plan until the generate but excluding generate
+                Create a new generate operator with the plan being iterated on
+                Attach the generate as the leaf and add the duplicated plan to
+                the list of foreach plans
+                */
+
+                for(LogicalOperator project: mapProjectInputs.keySet()) {
+                    for(LogicalOperator projectInput: mapProjectInputs.get(project)) {
+                        generatePlan.add(projectInput);
+                        generatePlan.connect(projectInput, project);
+                        attachPlan(generatePlan, projectInput, foreachPlan);
+                    }
+                }
+            }
+            foreachPlans.add(generatePlan);
+        }
+
+		resetGenerateState();
+		foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), (ArrayList)foreachPlans, (ArrayList)flattenList);
 		try {
 			lp.add(foreach);
 			log.debug("Added operator " + foreach.getClass().getName() + " to the logical plan");
@@ -1471,7 +1532,6 @@ LogicalOperator GenerateStatement(Schema over, Map<String, LogicalOperator> spec
 			lp.connect(op, spec);
 			log.debug("Connected operator: " + op.getClass().getName() + " to " + op + " " + spec + " in logical plan " + lp);
 		}
-		resetGenerateState();
 		log.trace("Exiting GenerateStatement");
 		return spec;
 	}

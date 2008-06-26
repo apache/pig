@@ -110,7 +110,7 @@ public class TestUnion extends junit.framework.TestCase {
         
         sp = GenPhyOp.topUnionOp();
         
-        PhysicalPlan<PhysicalOperator> plan = new PhysicalPlan<PhysicalOperator>();
+        PhysicalPlan plan = new PhysicalPlan();
         
         plan.add(ld1);
         plan.add(ld2);

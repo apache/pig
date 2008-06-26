@@ -85,14 +85,14 @@ public class TypeGraphPrinter extends LOVisitor {
         }
     }
     
-    protected void visit(LOGenerate op) throws VisitorException {
+    protected void visit(LOForEach op) throws VisitorException {
         appendOp(op) ;
-        List<LogicalPlan> plans = op.getGeneratePlans() ;
+        List<LogicalPlan> plans = op.getForEachPlans() ;
         if (plans != null) {
             for (LogicalPlan plan: plans) {
                 currentTabCount++ ;
                 printTabs() ;
-                sb.append("<Generate Inner Plan>\n") ;
+                sb.append("<ForEach Inner Plan>\n") ;
                 pushWalker(mCurrentWalker.spawnChildWalker(plan)) ;
                 visit();
                 popWalker();
@@ -122,6 +122,7 @@ public class TypeGraphPrinter extends LOVisitor {
         appendOp(op) ;
     }
     
+    /*
     protected void visit(LOForEach op) throws VisitorException {
         appendOp(op) ;
         if (op.getForEachPlan() != null) {
@@ -134,6 +135,7 @@ public class TypeGraphPrinter extends LOVisitor {
             currentTabCount-- ;
         }
     }
+    */
     
     protected void visit(LOUserFunc op) {
         appendOp(op) ;

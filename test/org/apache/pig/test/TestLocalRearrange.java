@@ -17,9 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,13 +28,12 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
-import org.apache.pig.impl.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.impl.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
@@ -107,9 +103,9 @@ public class TestLocalRearrange extends junit.framework.TestCase {
     
     private void setUp2() throws PlanException, ExecException{
         lr = GenPhyOp.topLocalRearrangeOPWithPlanPlain(0,0,db.iterator().next());
-        List<ExprPlan> plans = lr.getPlans();
+        List<PhysicalPlan> plans = lr.getPlans();
         POLocalRearrange lrT = GenPhyOp.topLocalRearrangeOPWithPlanPlain(0, 1, db.iterator().next());
-        List<ExprPlan> plansT = lrT.getPlans();
+        List<PhysicalPlan> plansT = lrT.getPlans();
         plans.add(plansT.get(0));
         lr.setPlans(plans);
         

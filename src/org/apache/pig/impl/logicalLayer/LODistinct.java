@@ -94,11 +94,6 @@ public class LODistinct extends LogicalOperator {
     }
 
     @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-
-    @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }

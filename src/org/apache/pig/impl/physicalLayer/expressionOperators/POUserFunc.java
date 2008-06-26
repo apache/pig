@@ -40,7 +40,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POUserFunc extends ExpressionOperator {
@@ -141,8 +141,13 @@ public class POUserFunc extends ExpressionOperator {
                 }
                 if(temp.returnStatus!=POStatus.STATUS_OK)
                     return temp;
+
                 ((Tuple)res.result).append(temp.result);
 			}
+            Tuple rslt = ((Tuple)res.result);
+            if(rslt.size()==1 && rslt.get(0) instanceof Tuple){
+                res.result = rslt.get(0);
+            }
 			res.returnStatus = temp.returnStatus;
 			return res;
 		}
@@ -300,7 +305,7 @@ public class POUserFunc extends ExpressionOperator {
 
 	@Override
 	public String name() {
-	    return "POUserFunc" + "(" + func.getClass().getName() + ")" + " - " + mKey.toString();
+	    return "POUserFunc" + "(" + func.getClass().getName() + ")" + "[" + DataType.findTypeName(resultType) + "]" + " - " + mKey.toString();
 	}
 
 	@Override
@@ -316,7 +321,7 @@ public class POUserFunc extends ExpressionOperator {
 	}
 
 	@Override
-	public void visit(ExprPlanVisitor v) throws VisitorException {
+	public void visit(PhyPlanVisitor v) throws VisitorException {
 
 		v.visitUserFunc(this);
 	}

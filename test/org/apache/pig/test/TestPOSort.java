@@ -32,7 +32,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.relationalOperators.PORead;
 import org.apache.pig.impl.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
@@ -49,10 +49,10 @@ public class TestPOSort extends TestCase {
 	public void testPOSortAscString() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
-		List<ExprPlan> sortPlans = new LinkedList<ExprPlan>();
+		List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
 		POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		pr1.setResultType(DataType.CHARARRAY);
-		ExprPlan expPlan = new ExprPlan();
+		PhysicalPlan expPlan = new PhysicalPlan();
 		expPlan.add(pr1);
 		sortPlans.add(expPlan);
 		List<Boolean> mAscCols = new LinkedList<Boolean>();
@@ -81,10 +81,10 @@ public class TestPOSort extends TestCase {
 	public void testPOSortDescString() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
-		List<ExprPlan> sortPlans = new LinkedList<ExprPlan>();
+		List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
 		POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		pr1.setResultType(DataType.CHARARRAY);
-		ExprPlan expPlan = new ExprPlan();
+		PhysicalPlan expPlan = new PhysicalPlan();
 		expPlan.add(pr1);
 		sortPlans.add(expPlan);
 		List<Boolean> mAscCols = new LinkedList<Boolean>();
@@ -113,10 +113,10 @@ public class TestPOSort extends TestCase {
 	public void testPOSortAsc() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
-		List<ExprPlan> sortPlans = new LinkedList<ExprPlan>();
+		List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
 		POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
 		pr1.setResultType(DataType.INTEGER);
-		ExprPlan expPlan = new ExprPlan();
+		PhysicalPlan expPlan = new PhysicalPlan();
 		expPlan.add(pr1);
 		sortPlans.add(expPlan);
 		List<Boolean> mAscCols = new LinkedList<Boolean>();
@@ -145,10 +145,10 @@ public class TestPOSort extends TestCase {
 	public void testPOSortDesc() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
-		List<ExprPlan> sortPlans = new LinkedList<ExprPlan>();
+		List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
 		POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
 		pr1.setResultType(DataType.INTEGER);
-		ExprPlan expPlan = new ExprPlan();
+		PhysicalPlan expPlan = new PhysicalPlan();
 		expPlan.add(pr1);
 		sortPlans.add(expPlan);
 		List<Boolean> mAscCols = new LinkedList<Boolean>();

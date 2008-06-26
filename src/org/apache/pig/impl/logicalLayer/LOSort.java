@@ -132,11 +132,6 @@ public class LOSort extends LogicalOperator {
         return false;
     }
 
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }

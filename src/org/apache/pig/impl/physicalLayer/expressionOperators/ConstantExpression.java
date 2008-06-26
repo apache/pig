@@ -23,10 +23,11 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
 
@@ -77,7 +78,7 @@ public class ConstantExpression extends ExpressionOperator {
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws VisitorException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitConstant(this);
     }
 
@@ -87,68 +88,79 @@ public class ConstantExpression extends ExpressionOperator {
 
     public void setValue(Object value) {
         this.value = value;
+        Tuple dummyTuple = TupleFactory.getInstance().newTuple(1);
+        attachInput(dummyTuple);
     }
 
     @Override
     public Result getNext(DataBag db) throws ExecException {
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         
-        res.returnStatus = POStatus.STATUS_OK;
         res.result = (DataBag)value;
         return res;
     }
 
     @Override
     public Result getNext(DataByteArray ba) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (DataByteArray)value;
         return res;
     }
 
     @Override
     public Result getNext(Double d) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Double)value;
         return res;
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Float)value;
         return res;
     }
 
     @Override
     public Result getNext(Integer i) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Integer)value;
         return res;
     }
 
     @Override
     public Result getNext(Long l) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Long)value;
         return res;
     }
 
     @Override
     public Result getNext(String s) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (String)value;
         return res;
     }
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Tuple)value;
         return res;
     }
@@ -157,16 +169,18 @@ public class ConstantExpression extends ExpressionOperator {
     
     @Override
     public Result getNext(Boolean b) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Boolean)value;
         return res;
     }
 
     @Override
     public Result getNext(Map m) throws ExecException {
-        
-        res.returnStatus = POStatus.STATUS_OK;
+        res = processInput();
+        if(res.returnStatus!=POStatus.STATUS_OK)
+            return res;
         res.result = (Map)value;
         return res;
     }

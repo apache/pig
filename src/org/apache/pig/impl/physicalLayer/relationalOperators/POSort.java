@@ -35,7 +35,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POUserComparisonFunc;
@@ -54,14 +54,14 @@ import org.apache.pig.impl.plan.VisitorException;
  * 
  * 
  */
-public class POSort extends PhysicalOperator<PhyPlanVisitor> {
+public class POSort extends PhysicalOperator {
 
 	/**
      * 
      */
     private static final long serialVersionUID = 1L;
     //private List<Integer> mSortCols;
-	private List<ExprPlan> sortPlans;
+	private List<PhysicalPlan> sortPlans;
 	private List<Byte> ExprOutputTypes;
 	private List<Boolean> mAscCols;
 	private POUserComparisonFunc mSortFunc;
@@ -72,7 +72,7 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
 
-	public POSort(OperatorKey k, int rp, List inp, List<ExprPlan> sortPlans,
+	public POSort(OperatorKey k, int rp, List inp, List<PhysicalPlan> sortPlans,
 			List<Boolean> mAscCols, POUserFunc mSortFunc) {
 		super(k, rp, inp);
 		//this.mSortCols = mSortCols;
@@ -84,7 +84,7 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 					new SortComparator());
 			ExprOutputTypes = new ArrayList<Byte>(sortPlans.size());
 
-			for(ExprPlan plan : sortPlans) {
+			for(PhysicalPlan plan : sortPlans) {
 				ExprOutputTypes.add(plan.getLeaves().get(0).getResultType());
 			}
 		} else {
@@ -125,7 +125,7 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 			int ret = 0;
 			if(sortPlans == null || sortPlans.size() == 0) 
 				return 0;
-			for(ExprPlan plan : sortPlans) {
+			for(PhysicalPlan plan : sortPlans) {
 				try {
 					plan.attachInput(o1);
 					Result res1 = getResult(plan, ExprOutputTypes.get(count));
@@ -148,8 +148,8 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 			return ret;
 		} 
 		
-		private Result getResult(ExprPlan plan, byte resultType) throws ExecException {
-			ExpressionOperator Op = plan.getLeaves().get(0);
+		private Result getResult(PhysicalPlan plan, byte resultType) throws ExecException {
+			ExpressionOperator Op = (ExpressionOperator) plan.getLeaves().get(0);
 			Result res = null;
 			
 			switch (resultType) {
@@ -264,11 +264,11 @@ public class POSort extends PhysicalOperator<PhyPlanVisitor> {
 		v.visitSort(this);
 	}
 
-    public List<ExprPlan> getSortPlans() {
+    public List<PhysicalPlan> getSortPlans() {
         return sortPlans;
     }
 
-    public void setSortPlans(List<ExprPlan> sortPlans) {
+    public void setSortPlans(List<PhysicalPlan> sortPlans) {
         this.sortPlans = sortPlans;
     }
 

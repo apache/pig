@@ -119,7 +119,7 @@ public class LogicalPlanLoader
     }
 
     private LOForEach createLOForEach(DotNode node, LogicalPlan plan) {
-        LOForEach foreach = new LOForEach(plan, getKey(node.attributes), null) ;
+        LOForEach foreach = new LOForEach(plan, getKey(node.attributes), null, null) ;
         fillSchema(foreach, node.attributes) ;
         return foreach ;
     }

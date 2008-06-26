@@ -24,18 +24,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
+import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -44,7 +42,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * generates tuples of the form (grpKey,(indxed inp Tuple)).
  *
  */
-public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
+public class POLocalRearrange extends PhysicalOperator {
 
     /**
      * 
@@ -53,7 +51,7 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
 
     private Log log = LogFactory.getLog(getClass());
 
-    List<ExprPlan> plans;
+    List<PhysicalPlan> plans;
     
     List<ExpressionOperator> leafOps;
 
@@ -134,7 +132,7 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
             if (inp.returnStatus == POStatus.STATUS_NULL)
                 continue;
             
-            for (ExprPlan ep : plans) {
+            for (PhysicalPlan ep : plans) {
                 ep.attachInput((Tuple)inp.result);
             }
             List<Result> resLst = new ArrayList<Result>();
@@ -216,15 +214,15 @@ public class POLocalRearrange extends PhysicalOperator<PhyPlanVisitor> {
         this.keyType = keyType;
     }
 
-    public List<ExprPlan> getPlans() {
+    public List<PhysicalPlan> getPlans() {
         return plans;
     }
 
-    public void setPlans(List<ExprPlan> plans) {
+    public void setPlans(List<PhysicalPlan> plans) {
         this.plans = plans;
         leafOps.clear();
-        for (ExprPlan plan : plans) {
-            leafOps.add(plan.getLeaves().get(0));
+        for (PhysicalPlan plan : plans) {
+            leafOps.add((ExpressionOperator)plan.getLeaves().get(0));
         }
     }
 }

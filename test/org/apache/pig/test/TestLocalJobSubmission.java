@@ -17,55 +17,34 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.jobcontrol.Job;
-import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.impl.mapReduceLayer.LocalLauncher;
-import org.apache.pig.impl.mapReduceLayer.MRCompiler;
-import org.apache.pig.impl.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.POStatus;
-import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
-import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.relationalOperators.*;
-import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.impl.physicalLayer.expressionOperators.ComparisonOperator;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.PlanException;
-import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
@@ -77,7 +56,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
     static PigContext pc;
     String ldFile;
     String expFile;
-    PhysicalPlan<PhysicalOperator> php = new PhysicalPlan<PhysicalOperator>();
+    PhysicalPlan php = new PhysicalPlan();
     String stFile;
     String grpName;
     String curDir;
@@ -163,7 +142,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         str.store();
     }
     
-    private void setUp1(boolean gen) throws Exception {
+    /*private void setUp1(boolean gen) throws Exception {
         
         ldFile = "file:" + inpDir + "jsTst1.txt";
         expFile = ldFile;
@@ -377,7 +356,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
         
-    }
+    }*/
     
     private void setUp5(boolean gen) throws Exception {
         ldFile = "file:" + inpDir + "jsTst5.txt";

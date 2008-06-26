@@ -140,9 +140,9 @@ abstract public class LOVisitor extends
      *            the logical generate operator that has to be visited
      * @throws VisitorException
      */
-    protected void visit(LOGenerate g) throws VisitorException {
+    protected void visit(LOForEach forEach) throws VisitorException {
         // Visit each of generates projection elements.
-        for(LogicalPlan lp: g.getGeneratePlans()) {
+        for(LogicalPlan lp: forEach.getForEachPlans()) {
             PlanWalker w = new DependencyOrderWalker(lp);
             pushWalker(w);
             for(LogicalOperator logicalOp: lp.getRoots()) {
@@ -205,15 +205,16 @@ abstract public class LOVisitor extends
      *            the logical foreach operator that has to be visited
      * @throws VisitorException
      */
-    protected void visit(LOForEach forEach) throws VisitorException {
+    protected void visit(LOGenerate g) throws VisitorException {
         // Visit the operators that are part of the foreach plan
-        LogicalPlan plan = forEach.getForEachPlan();
-        PlanWalker w = new DependencyOrderWalker(plan);
-        pushWalker(w);
-        for(LogicalOperator logicalOp: plan.getRoots()) {
-            logicalOp.visit(this);
+        for(LogicalPlan lp: g.getGeneratePlans()) {
+            PlanWalker w = new DependencyOrderWalker(lp);
+            pushWalker(w);
+            for(LogicalOperator logicalOp: lp.getRoots()) {
+                logicalOp.visit(this);
+            }
+            popWalker();
         }
-        popWalker();
     }
 
     /**

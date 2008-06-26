@@ -74,7 +74,7 @@ public class PigCombiner {
         private final Log log = LogFactory.getLog(getClass());
         
         //The reduce plan
-        private PhysicalPlan<PhysicalOperator> cp;
+        private PhysicalPlan cp;
         
         //The POPackage operator which is the
         //root of every Map Reduce plan is
@@ -94,7 +94,7 @@ public class PigCombiner {
             super.configure(jConf);
             sJobConf = jConf;
             try {
-                cp = (PhysicalPlan<PhysicalOperator>) ObjectSerializer.deserialize(jConf
+                cp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.combinePlan"));
                 pack = (POPackage)ObjectSerializer.deserialize(jConf.get("pig.combine.package"));
                 // To be removed
@@ -205,78 +205,4 @@ public class PigCombiner {
         }
     }
     
-    /*interface MapOutputCollector<K extends WritableComparable, V extends Writable>
-    extends OutputCollector<K, V> {
-
-        public void close() throws IOException;
-
-        public void flush() throws IOException;
-
-    }
-
-    static class DirectMapOutputCollector<K extends WritableComparable, V extends Writable>
-            implements MapOutputCollector<K, V> {
-
-        private RecordWriter<K, V> out = null;
-
-        private Reporter reporter = null;
-
-        @SuppressWarnings("unchecked")
-        public DirectMapOutputCollector(JobConf job, Reporter reporter)
-                throws IOException {
-            this.reporter = reporter;
-            String finalName = job.getOutputPath().toString();
-            FileSystem fs = FileSystem.get(job);
-
-            out = job.getOutputFormat().getRecordWriter(fs, job, finalName,
-                    reporter);
-        }
-
-        public void close() throws IOException {
-            if (this.out != null) {
-                out.close(this.reporter);
-            }
-
-        }
-
-        public void flush() throws IOException {
-            // TODO Auto-generated method stub
-
-        }
-
-        public void collect(K key, V value) throws IOException {
-            System.out.println(value.toString());
-        }
-    }
-    
-    public static void main(String[] args) throws IOException {
-        Random r = new Random();
-        PhysicalPlan<PhysicalOperator> rp = new PhysicalPlan<PhysicalOperator>();
-        POForEach fe = GenPhyOp.topForEachOPWithPlan(1);
-        rp.add(fe);
-        PigMapReduce.Reduce red = new PigMapReduce.Reduce();
-        POPackage pk = GenPhyOp.topPackageOp();
-        pk.setKeyType(DataType.INTEGER);
-        pk.setNumInps(1);
-        boolean[] inner = {false}; 
-        pk.setInner(inner);
-        
-        JobConf jConf = new JobConf();
-        jConf.set("pig.reducePlan", ObjectSerializer.serialize(rp));
-        jConf.set("pig.reduce.package",ObjectSerializer.serialize(pk));
-        jConf.setOutputFormat(PigOutputFormat.class);
-        jConf.setOutputPath(new Path("pigmrtst1"));
-        red.configure(jConf);
-        
-        WritableComparable key = new IntWritable(1);
-        List<IndexedTuple> itLst = new ArrayList<IndexedTuple>();
-        for(int i=0;i<2;i++){
-            Tuple t = TupleFactory.getInstance().newTuple();
-            t.append(GenRandomData.genRandString(r));
-            t.append(1);
-            IndexedTuple it = new IndexedTuple(t,0);
-            itLst.add(it);
-        }
-        red.reduce(key,itLst.iterator(),new DirectMapOutputCollector(jConf,reporter), reporter);
-    }*/
 }

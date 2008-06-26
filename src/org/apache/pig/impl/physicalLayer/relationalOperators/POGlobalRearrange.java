@@ -34,7 +34,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * getNext methods have to be implemented 
  *
  */
-public class POGlobalRearrange extends PhysicalOperator<PhyPlanVisitor> {
+public class POGlobalRearrange extends PhysicalOperator {
 
     /**
      * 

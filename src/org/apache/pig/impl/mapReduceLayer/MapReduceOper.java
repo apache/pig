@@ -42,16 +42,16 @@ import org.apache.pig.impl.plan.VisitorException;
 public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //The physical plan that should be executed
     //in the map phase
-    public PhysicalPlan<PhysicalOperator> mapPlan;
+    public PhysicalPlan mapPlan;
     
     //The physical plan that should be executed
     //in the reduce phase
-    public PhysicalPlan<PhysicalOperator> reducePlan;
+    public PhysicalPlan reducePlan;
     
     //The physical plan that should be executed
     //in the combine phase if one exists. Will be used
     //by the optimizer.
-    public PhysicalPlan<PhysicalOperator> combinePlan;
+    public PhysicalPlan combinePlan;
     
     //Indicates that the map plan creation
     //is complete
@@ -77,9 +77,9 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public MapReduceOper(OperatorKey k) {
         super(k);
-        mapPlan = new PhysicalPlan<PhysicalOperator>();
-        combinePlan = new PhysicalPlan<PhysicalOperator>();
-        reducePlan = new PhysicalPlan<PhysicalOperator>();
+        mapPlan = new PhysicalPlan();
+        combinePlan = new PhysicalPlan();
+        reducePlan = new PhysicalPlan();
         UDFs = new ArrayList<String>();
         nig = NodeIdGenerator.getGenerator();
         scope = k.getScope();

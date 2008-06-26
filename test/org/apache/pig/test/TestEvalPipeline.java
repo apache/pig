@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.StringTokenizer;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.pig.EvalFunc;
@@ -51,6 +52,10 @@ public class TestEvalPipeline extends TestCase {
 
     TupleFactory mTf = TupleFactory.getInstance();
     
+    @Before
+    public void setUp(){
+        FileLocalizer.setR(new Random());
+    }
     
     static public class MyBagFunction extends EvalFunc<DataBag>{
         @Override
@@ -83,7 +88,7 @@ public class TestEvalPipeline extends TestCase {
         File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 
         pigServer.registerQuery("a = load 'file:" + f1 + "' using " + PigStorage.class.getName() + "(':');");
-        pigServer.registerQuery("b = foreach a generate '1'-'1'/'1';");
+        pigServer.registerQuery("b = foreach a generate 1-1/1;");
         Iterator<Tuple> iter  = pigServer.openIterator("b");
         
         for (int i=0 ;i<3; i++){
@@ -122,8 +127,8 @@ public class TestEvalPipeline extends TestCase {
         pw.println("a");
         pw.println("a");
         pw.close();
-        pigServer.registerQuery("a = foreach (load 'file:" + f + "') generate '1', flatten(" + MyBagFunction.class.getName() + "(*));");
-        pigServer.registerQuery("b = foreach a generate $0, flatten($1);");
+        pigServer.registerQuery("a = foreach (load 'file:" + f + "') generate 1, flatten(" + MyBagFunction.class.getName() + "(*));");
+//        pigServer.registerQuery("b = foreach a generate $0, flatten($1);");
         Iterator<Tuple> iter = pigServer.openIterator("a");
         int count = 0;
         while(iter.hasNext()){
@@ -316,7 +321,7 @@ public class TestEvalPipeline extends TestCase {
         while (iter.hasNext()){
             Tuple t = iter.next();
             if (eliminateDuplicates){
-System.out.println("HERE " + DataType.findType(t.get(0)));
+                System.out.println("HERE " + DataType.findType(t.get(0)));
                 assertTrue(last < Integer.valueOf(t.get(0).toString()));
             }else{
                 assertTrue(last <= DataType.toDouble(t.get(0)));

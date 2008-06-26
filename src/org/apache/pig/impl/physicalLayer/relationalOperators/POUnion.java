@@ -41,7 +41,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * all the inputs are drained.
  *
  */
-public class POUnion extends PhysicalOperator<PhyPlanVisitor> {
+public class POUnion extends PhysicalOperator {
     /**
      * 
      */

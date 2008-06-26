@@ -23,7 +23,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -48,7 +48,7 @@ public class POIsNull extends UnaryComparisonOperator {
     }
 
     @Override
-    public void visit(ExprPlanVisitor v) throws VisitorException {
+    public void visit(PhyPlanVisitor v) throws VisitorException {
         //v.visitIsNull(this);
     }
 

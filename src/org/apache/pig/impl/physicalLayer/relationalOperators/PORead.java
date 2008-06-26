@@ -34,7 +34,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * for testing. It'd also be useful for the example generator
  * 
  */
-public class PORead extends PhysicalOperator<PhyPlanVisitor> {
+public class PORead extends PhysicalOperator {
 
     DataBag bag;
     transient Iterator<Tuple> it;

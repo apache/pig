@@ -120,9 +120,9 @@ public class DotGraphVisitor extends LOVisitor {
      *            the logical generate operator that has to be visited
      * @throws VisitorException
      */
-    protected void visit(LOGenerate g) throws VisitorException {
+    protected void visit(LOForEach g) throws VisitorException {
         // Visit each of generates projection elements.
-        for(LogicalPlan lp: g.getGeneratePlans()) {
+        for(LogicalPlan lp: g.getForEachPlans()) {
             PlanWalker w = new DependencyOrderWalker(lp);
             pushWalker(w);
             for(LogicalOperator logicalOp: lp.getRoots()) {
@@ -185,6 +185,7 @@ public class DotGraphVisitor extends LOVisitor {
      *            the logical foreach operator that has to be visited
      * @throws VisitorException
      */
+     /*
     protected void visit(LOForEach forEach) throws VisitorException {
         // Visit the operators that are part of the foreach plan
         LogicalPlan plan = forEach.getForEachPlan();
@@ -195,6 +196,7 @@ public class DotGraphVisitor extends LOVisitor {
         }
         popWalker();
     }
+    */
 
     /**
      * Iterate over each expression that is part of the function argument list

@@ -59,7 +59,7 @@ public abstract class Launcher {
      * @throws ExecException
      * @throws JobCreationException
      */
-    public abstract boolean launchPig(PhysicalPlan<PhysicalOperator> php, String grpName, PigContext pc)
+    public abstract boolean launchPig(PhysicalPlan php, String grpName, PigContext pc)
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException;
     

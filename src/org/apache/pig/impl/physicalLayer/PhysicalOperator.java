@@ -20,17 +20,16 @@ package org.apache.pig.impl.physicalLayer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.Operator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.backend.executionengine.ExecException;
 
 /**
  * 
@@ -55,10 +54,10 @@ import org.apache.pig.backend.executionengine.ExecException;
  * 
  * @param <V>
  */
-public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
-        Operator<V> {
+public abstract class PhysicalOperator extends
+        Operator<PhyPlanVisitor> {
 
-    private Log log = LogFactory.getLog(getClass());
+//    private Log log = LogFactory.getLog(getClass());
 
     protected static final long serialVersionUID = 1L;
 
@@ -222,7 +221,7 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
         }
     }
 
-    public abstract void visit(V v) throws VisitorException;
+    public abstract void visit(PhyPlanVisitor v) throws VisitorException;
 
     public Result getNext(Integer i) throws ExecException {
         return res;
@@ -261,7 +260,14 @@ public abstract class PhysicalOperator<V extends PhyPlanVisitor> extends
     }
 
     public Result getNext(DataBag db) throws ExecException {
-        return res;
+        Result ret = new Result();
+        DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
+        for(ret = getNext(dummyTuple);ret.returnStatus!=POStatus.STATUS_EOP;ret=getNext(dummyTuple)){
+            tmpBag.add((Tuple)ret.result);
+        }
+        ret.result = tmpBag;
+        ret.returnStatus = POStatus.STATUS_OK;
+        return ret;
     }
 
     public static void setReporter(PigProgressable reporter) {

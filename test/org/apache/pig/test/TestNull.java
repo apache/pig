@@ -27,6 +27,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POIsNull;
@@ -50,6 +51,8 @@ public class TestNull extends junit.framework.TestCase {
         Random r = new Random();
         ConstantExpression lt = (ConstantExpression) GenPhyOp.exprConst();
         lt.setResultType(type);
+        Tuple dummyTuple = TupleFactory.getInstance().newTuple(1);
+        lt.attachInput(dummyTuple);
         POIsNull isNullExpr = (POIsNull) GenPhyOp.compIsNullExpr();
         isNullExpr.setExpr(lt);
 

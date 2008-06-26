@@ -64,6 +64,7 @@ public class LOProject extends ExpressionOperator {
     private boolean mIsStar = false;
     private static Log log = LogFactory.getLog(LOProject.class);
     private boolean mSentinel;
+    private boolean mOverloaded = false;
 
     /**
      * 
@@ -146,9 +147,17 @@ public class LOProject extends ExpressionOperator {
         mSentinel = b;
     }
 
+    public boolean getOverlaoded() {
+        return mOverloaded;
+    }
+
+    public void setOverloaded(boolean b) {
+        mOverloaded = b;
+    }
+
     @Override
     public String name() {
-        return "Project " + mKey.scope + "-" + mKey.id + " Projections: " + (mIsStar? " [*] ": mProjection);
+        return "Project " + mKey.scope + "-" + mKey.id + " Projections: " + (mIsStar? " [*] ": mProjection) + " Overloaded: " + mOverloaded;
     }
 
     @Override
@@ -186,7 +195,7 @@ public class LOProject extends ExpressionOperator {
                             //TODO
                             //the type of the operator will be unknown. when type checking is in place
                             //add the type of the operator as a parameter to the fieldschema creation
-                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), expressionOperator.getType());
+                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
                             //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                         }
                     } else {

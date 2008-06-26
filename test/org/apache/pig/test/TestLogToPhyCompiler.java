@@ -66,6 +66,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     
     Random r = new Random();
     PigContext pc = new PigContext(ExecType.LOCAL);
+
+    private boolean generate = false;
     
     
     private void writeData(File input, int noTuples, int arityOfTuples, char separator) throws IOException {
@@ -102,6 +104,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/ComplexForeach.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/ComplexForeach.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -123,6 +132,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Sort.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Sort.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -146,6 +162,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Distinct.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Distinct.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -169,6 +192,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Cogroup.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Cogroup.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -197,6 +227,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Arithmetic.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Arithmetic.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -222,6 +259,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Comparison.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Comparison.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -247,6 +291,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/BinCond.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/BinCond.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -273,6 +324,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Generate.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Generate.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -296,6 +354,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Union.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Union.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -320,6 +385,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Split1.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
     	FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Split1.gld");
     	FileInputStream fis2 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Split2.gld");
         byte[] b1 = new byte[MAX_SIZE];
@@ -358,7 +430,14 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
-        compiledPlan += "\n"; //for the string compare, the files contain an additional \n
+        
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull1.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
+//        compiledPlan += "\n"; //for the string compare, the files contain an additional \n
     	FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull1.gld");
     	FileInputStream fis2 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull2.gld");
         byte[] b1 = new byte[MAX_SIZE];
@@ -399,7 +478,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         LogicalPlan lp = buildPlan(query);
         PhysicalPlan pp = buildPhysicalPlan(lp);
         
-        DependencyOrderWalker<PhysicalOperator, PhysicalPlan<PhysicalOperator>> walker = new DependencyOrderWalker<PhysicalOperator, PhysicalPlan<PhysicalOperator>>(pp);
+        DependencyOrderWalker<PhysicalOperator, PhysicalPlan> walker = new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(pp);
     	PhyPlanPrinterVisitor visitor = new PhyPlanPrinterVisitor(pp, walker);
     	visitor.visit();
     	System.out.println(visitor.output);

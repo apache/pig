@@ -48,7 +48,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * be packaged into their appropriate output
  * bags based on the index.
  */
-public class POPackage extends PhysicalOperator<PhyPlanVisitor> {
+public class POPackage extends PhysicalOperator {
     /**
      * 
      */

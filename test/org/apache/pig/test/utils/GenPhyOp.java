@@ -34,7 +34,6 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MapReduceOper;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
@@ -50,6 +49,16 @@ public class GenPhyOp{
     public static final byte GT = 2;
     public static final byte LTE = 3;
     public static final byte LT = 4;
+
+    public static class PlansAndFlattens {
+        public List<PhysicalPlan> plans;
+        public List<Boolean> flattens;
+
+        public PlansAndFlattens(List<PhysicalPlan> p, List<Boolean> f) {
+            plans = p;
+            flattens = f;
+        }
+    };
     
     public static PigContext pc;
 //    public static MiniCluster cluster = MiniCluster.buildCluster();
@@ -128,28 +137,25 @@ public class GenPhyOp{
         return ret;
     }
 
-    public static POGenerate topGenerateOp() {
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()));
-        return ret;
-    }
-    
     public static POUnion topUnionOp() {
         POUnion ret = new POUnion(new OperatorKey("", r.nextLong()));
         return ret;
     }
     
     /**
-     * creates the POGenerate operator for 
+     * creates the PlansAndFlattens struct for 
      * generate grpCol, *.
      * 
      * @param grpCol - The column to be grouped on
      * @param sample - The sample tuple that is used to infer
      *                  result types and #projects for *
-     * @return - The POGenerate operator which has the exprplan
+     * @return - The PlansAndFlattens struct which has the exprplan
      *              for generate grpCol, * set.
      * @throws ExecException
      */
-    public static POGenerate topGenerateOpWithExPlan(int grpCol, Tuple sample) throws ExecException {
+    public static PlansAndFlattens topGenerateOpWithExPlan(
+            int grpCol,
+            Tuple sample) throws ExecException {
         POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, grpCol);
         prj1.setResultType(sample.getType(grpCol));
         prj1.setOverloaded(false);
@@ -160,10 +166,10 @@ public class GenPhyOp{
         toBeFlattened.add(false);
         
 
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
         
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1);
         
         POProject rest[] = new POProject[sample.size()];
@@ -173,7 +179,7 @@ public class GenPhyOp{
             project.setResultType(sample.getType(i));
             project.setOverloaded(false);
             
-            ExprPlan pl = new ExprPlan();
+            PhysicalPlan pl = new PhysicalPlan();
             pl.add(project);
             
             toBeFlattened.add(false);
@@ -182,24 +188,24 @@ public class GenPhyOp{
 
         
 
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()),
-                inputs, toBeFlattened);
-        return ret;
+        return new PlansAndFlattens(inputs, toBeFlattened);
     }
     
     /**
-     * creates the POGenerate operator for 
+     * creates the PlansAndFlattens struct for 
      * generate grpCol, *.
      * 
      * @param grpCol - The column to be grouped on
      * @param sample - The sample tuple that is used to infer
      *                  result types and #projects for *
-     * @return - The POGenerate operator which has the exprplan
+     * @return - The PlansAndFlattens struct which has the exprplan
      *              for generate grpCol, * set.
      * @throws ExecException
      * @throws PlanException 
      */
-    public static POGenerate topGenerateOpWithExPlanLR(int grpCol, Tuple sample) throws ExecException, PlanException {
+    public static PlansAndFlattens topGenerateOpWithExPlanLR(
+            int grpCol,
+            Tuple sample) throws ExecException, PlanException {
         POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, grpCol);
         prj1.setResultType(sample.getType(grpCol));
         prj1.setOverloaded(false);
@@ -211,12 +217,12 @@ public class GenPhyOp{
         toBeFlattened.add(false);
         
 
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
         plan1.add(cst);
         plan1.connect(prj1, cst);
         
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1);
         
         POProject rest[] = new POProject[sample.size()];
@@ -230,7 +236,7 @@ public class GenPhyOp{
             csts[i] = new POCastDummy(new OperatorKey("",r.nextLong()));
             csts[i].setResultType(sample.getType(i));
             
-            ExprPlan pl = new ExprPlan();
+            PhysicalPlan pl = new PhysicalPlan();
             pl.add(project);
             pl.add(csts[i]);
             pl.connect(project, csts[i]);
@@ -241,23 +247,23 @@ public class GenPhyOp{
 
         
 
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()),
-                inputs, toBeFlattened);
-        return ret;
+        return new PlansAndFlattens(inputs, toBeFlattened);
     }
     
     /**
-     * creates the POGenerate operator for 
+     * creates the PlansAndFlattens struct for 
      * 'generate field'.
      * 
      * @param field - The column to be generated
      * @param sample - The sample tuple that is used to infer
      *                  result type
-     * @return - The POGenerate operator which has the exprplan
+     * @return - The PlansAndFlattens struct which has the exprplan
      *              for 'generate field' set.
      * @throws ExecException
      */
-    public static POGenerate topGenerateOpWithExPlanForFe(int field, Tuple sample) throws ExecException {
+    public static PlansAndFlattens topGenerateOpWithExPlanForFe(
+            int field,
+            Tuple sample) throws ExecException {
         POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, field);
         prj1.setResultType(sample.getType(field));
         prj1.setOverloaded(false);
@@ -268,29 +274,27 @@ public class GenPhyOp{
         toBeFlattened.add(false);
         
 
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
         
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1);
         
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()),
-                inputs, toBeFlattened);
-        return ret;
+        return new PlansAndFlattens(inputs, toBeFlattened);
     }
     
     /**
-     * creates the POGenerate operator for 
+     * creates the PlansAndFlattens struct for 
      * 'generate flatten(field)'.
      * 
      * @param field - The column to be generated
      * @param sample - The sample tuple that is used to infer
      *                  result type
-     * @return - The POGenerate operator which has the exprplan
+     * @return - The PlansAndFlattens struct which has the exprplan
      *              for 'generate field' set.
      * @throws ExecException
      */
-    public static POGenerate topGenerateOpWithExPlanForFeFlat(int field) throws ExecException {
+    public static PlansAndFlattens topGenerateOpWithExPlanForFeFlat(int field) throws ExecException {
         POProject prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, field);
         prj1.setResultType(DataType.BAG);
         prj1.setOverloaded(false);
@@ -298,30 +302,30 @@ public class GenPhyOp{
         List<Boolean> toBeFlattened = new LinkedList<Boolean>();
         toBeFlattened.add(true);
 
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
         
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
         inputs.add(plan1);
         
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()),
-                inputs, toBeFlattened);
-        return ret;
+        return new PlansAndFlattens(inputs, toBeFlattened);
     }
     
     /**
-     * creates the POGenerate operator for 
+     * creates the PlansAndFlattens struct for 
      * 'generate field[0] field[1] ...'.
      * 
      * @param field - The columns to be generated
      * @param sample - The sample tuple that is used to infer
      *                  result type
-     * @return - The POGenerate operator which has the exprplan
+     * @return - The PlansAndFlattens struct which has the exprplan
      *              for 'generate field[0] field[1]' set.
      * @throws ExecException
      * @throws PlanException 
      */
-    public static POGenerate topGenerateOpWithExPlanForFe(int[] fields, Tuple sample) throws ExecException, PlanException {
+    public static PlansAndFlattens topGenerateOpWithExPlanForFe(
+            int[] fields,
+            Tuple sample) throws ExecException, PlanException {
         POProject[] prj = new POProject[fields.length];
 
         for(int i=0;i<prj.length;i++){
@@ -339,10 +343,10 @@ public class GenPhyOp{
         
         
 
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
-        ExprPlan[] plans = new ExprPlan[fields.length];
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
+        PhysicalPlan[] plans = new PhysicalPlan[fields.length];
         for (int i=0;i<plans.length;i++) {
-            plans[i] = new ExprPlan();
+            plans[i] = new PhysicalPlan();
             plans[i].add(prj[i]);
             cst[i] = new POCastDummy(new OperatorKey("",r.nextLong()));
             cst[i].setResultType(sample.getType(fields[i]));
@@ -351,25 +355,26 @@ public class GenPhyOp{
             inputs.add(plans[i]);
         }
         
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()),
-                inputs, toBeFlattened);
-        return ret;
+        return new PlansAndFlattens(inputs, toBeFlattened);
     }
     
     /**
-     * creates the POGenerate operator for 
+     * creates the PlansAndFlattens struct for 
      * 'generate field[0] field[1] ...'.
      * with the flatten list as specified
      * @param field - The columns to be generated
      * @param toBeFlattened - The columns to be flattened
      * @param sample - The sample tuple that is used to infer
      *                  result type
-     * @return - The POGenerate operator which has the exprplan
+     * @return - The PlansAndFlattens struct which has the exprplan
      *              for 'generate field[0] field[1]' set.
      * @throws ExecException
      * @throws PlanException 
      */
-    public static POGenerate topGenerateOpWithExPlanForFe(int[] fields, Tuple sample, List<Boolean> toBeFlattened) throws ExecException, PlanException {
+    public static PlansAndFlattens topGenerateOpWithExPlanForFe(
+            int[] fields,
+            Tuple sample,
+            List<Boolean> toBeFlattened) throws ExecException, PlanException {
         POProject[] prj = new POProject[fields.length];
 
         for(int i=0;i<prj.length;i++){
@@ -381,14 +386,10 @@ public class GenPhyOp{
         
         POCastDummy[] cst = new POCastDummy[fields.length];
 
-        /*List<Boolean> toBeFlattened = new LinkedList<Boolean>();
-        for (POProject project : prj)
-            toBeFlattened.add(false);*/
-        
-        List<ExprPlan> inputs = new LinkedList<ExprPlan>();
-        ExprPlan[] plans = new ExprPlan[fields.length];
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
+        PhysicalPlan[] plans = new PhysicalPlan[fields.length];
         for (int i=0;i<plans.length;i++) {
-            plans[i] = new ExprPlan();
+            plans[i] = new PhysicalPlan();
             plans[i].add(prj[i]);
             cst[i] = new POCastDummy(new OperatorKey("",r.nextLong()));
             cst[i].setResultType(sample.getType(fields[i]));
@@ -397,9 +398,7 @@ public class GenPhyOp{
             inputs.add(plans[i]);
         }
         
-        POGenerate ret = new POGenerate(new OperatorKey("", r.nextLong()),
-                inputs, toBeFlattened);
-        return ret;
+        return new PlansAndFlattens(inputs, toBeFlattened);
     }
     
     /**
@@ -413,8 +412,8 @@ public class GenPhyOp{
      */
     public static POLocalRearrange topLocalRearrangeOPWithPlan(int index, int grpCol, Tuple sample) throws ExecException, PlanException{
         POLocalRearrange lr = topLocalRearrangeOPWithPlanPlain(index, grpCol, sample);
-        List<ExprPlan> plans = lr.getPlans(); 
-        ExprPlan ep = plans.get(0);
+        List<PhysicalPlan> plans = lr.getPlans(); 
+        PhysicalPlan ep = plans.get(0);
         POCastDummy cst = new POCastDummy(new OperatorKey("", r.nextLong()));
         cst.setResultType(sample.getType(grpCol));
         ep.addAsLeaf(cst);
@@ -436,10 +435,10 @@ public class GenPhyOp{
         prj1.setResultType(sample.getType(grpCol));
         prj1.setOverloaded(false);
 
-        ExprPlan plan1 = new ExprPlan();
+        PhysicalPlan plan1 = new PhysicalPlan();
         plan1.add(prj1);
         
-        List<ExprPlan> plans = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> plans = new ArrayList<PhysicalPlan>();
         plans.add(plan1);
         POLocalRearrange ret = topLocalRearrangeOp();
         ret.setPlans(plans);
@@ -458,12 +457,11 @@ public class GenPhyOp{
      * @throws ExecException
      */
     public static POForEach topForEachOPWithPlan(int field, Tuple sample) throws ExecException, PlanException{
-        POGenerate gen = topGenerateOpWithExPlanForFe(field, sample);
-        PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
-        pp.add(gen);
+        PlansAndFlattens pf = topGenerateOpWithExPlanForFe(field, sample);
         
         POForEach ret = topForEachOp();
-        ret.setPlan(pp);
+        ret.setInputPlans(pf.plans);
+        ret.setToBeFlattened(pf.flattens);
         ret.setResultType(DataType.TUPLE);
         return ret;
     }
@@ -477,12 +475,11 @@ public class GenPhyOp{
      * @throws ExecException
      */
     public static POForEach topForEachOPWithPlan(int[] fields, Tuple sample) throws ExecException, PlanException{
-        POGenerate gen = topGenerateOpWithExPlanForFe(fields, sample);
-        PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
-        pp.add(gen);
+        PlansAndFlattens pf = topGenerateOpWithExPlanForFe(fields, sample);
         
         POForEach ret = topForEachOp();
-        ret.setPlan(pp);
+        ret.setInputPlans(pf.plans);
+        ret.setToBeFlattened(pf.flattens);
         ret.setResultType(DataType.TUPLE);
         return ret;
     }
@@ -495,13 +492,16 @@ public class GenPhyOp{
      * @return - The POForEach operator
      * @throws ExecException
      */
-    public static POForEach topForEachOPWithPlan(int[] fields, Tuple sample, List<Boolean> toBeFlattened) throws ExecException, PlanException{
-        POGenerate gen = topGenerateOpWithExPlanForFe(fields, sample, toBeFlattened);
-        PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
-        pp.add(gen);
+    public static POForEach topForEachOPWithPlan(
+            int[] fields,
+            Tuple sample,
+            List<Boolean> toBeFlattened) throws ExecException, PlanException{
+        PlansAndFlattens pf =
+            topGenerateOpWithExPlanForFe(fields, sample, toBeFlattened);
         
         POForEach ret = topForEachOp();
-        ret.setPlan(pp);
+        ret.setInputPlans(pf.plans);
+        ret.setToBeFlattened(toBeFlattened);
         ret.setResultType(DataType.TUPLE);
         return ret;
     }
@@ -515,12 +515,11 @@ public class GenPhyOp{
      * @throws ExecException
      */
     public static POForEach topForEachOPWithPlan(int field) throws ExecException, PlanException{
-        POGenerate gen = topGenerateOpWithExPlanForFeFlat(field);
-        PhysicalPlan<PhysicalOperator> pp = new PhysicalPlan<PhysicalOperator>();
-        pp.add(gen);
+        PlansAndFlattens pf = topGenerateOpWithExPlanForFeFlat(field);
         
         POForEach ret = topForEachOp();
-        ret.setPlan(pp);
+        ret.setInputPlans(pf.plans);
+        ret.setToBeFlattened(pf.flattens);
         ret.setResultType(DataType.TUPLE);
         return ret;
     }
@@ -552,7 +551,7 @@ public class GenPhyOp{
         gr.setRhs(ce2);
         gr.setOperandType(DataType.INTEGER);
 
-        ExprPlan ep = new ExprPlan();
+        PhysicalPlan ep = new PhysicalPlan();
         ep.add(ce1);
         ep.add(ce2);
         ep.add(gr);
@@ -582,7 +581,7 @@ public class GenPhyOp{
         gr.setRhs(ce2);
         gr.setOperandType(DataType.INTEGER);
 
-        ExprPlan ep = new ExprPlan();
+        PhysicalPlan ep = new PhysicalPlan();
         ep.add(proj);
         ep.add(ce2);
         ep.add(gr);
@@ -627,7 +626,7 @@ public class GenPhyOp{
         cop.setRhs(ce2);
         cop.setOperandType(DataType.INTEGER);
 
-        ExprPlan ep = new ExprPlan();
+        PhysicalPlan ep = new PhysicalPlan();
         ep.add(proj);
         ep.add(ce2);
         ep.add(cop);
@@ -674,7 +673,7 @@ public class GenPhyOp{
         cop.setRhs(ce2);
         cop.setOperandType(DataType.INTEGER);
 
-        ExprPlan ep = new ExprPlan();
+        PhysicalPlan ep = new PhysicalPlan();
         ep.add(cst);
         ep.add(proj);
         ep.add(ce2);
@@ -714,8 +713,8 @@ public class GenPhyOp{
         return ret;
     }
     
-    public static PhysicalPlan<PhysicalOperator> grpChain() throws ExecException, PlanException{
-        PhysicalPlan<PhysicalOperator> grpChain = new PhysicalPlan<PhysicalOperator>();
+    public static PhysicalPlan grpChain() throws ExecException, PlanException{
+        PhysicalPlan grpChain = new PhysicalPlan();
         POLocalRearrange lr = GenPhyOp.topLocalRearrangeOp();
         POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
         POPackage pk = GenPhyOp.topPackageOp();
@@ -730,8 +729,8 @@ public class GenPhyOp{
         return grpChain;
     }
     
-    public static PhysicalPlan<PhysicalOperator> loadedGrpChain() throws ExecException, PlanException{
-        PhysicalPlan<PhysicalOperator> ret = new PhysicalPlan<PhysicalOperator>();
+    public static PhysicalPlan loadedGrpChain() throws ExecException, PlanException{
+        PhysicalPlan ret = new PhysicalPlan();
         POLoad ld = GenPhyOp.topLoadOp();
         POLocalRearrange lr = GenPhyOp.topLocalRearrangeOp();
         POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
@@ -749,8 +748,8 @@ public class GenPhyOp{
         return ret;
     }
     
-    public static PhysicalPlan<PhysicalOperator> loadedFilter() throws ExecException, PlanException{
-        PhysicalPlan<PhysicalOperator> ret = new PhysicalPlan<PhysicalOperator>();
+    public static PhysicalPlan loadedFilter() throws ExecException, PlanException{
+        PhysicalPlan ret = new PhysicalPlan();
         POLoad ld = GenPhyOp.topLoadOp();
         POFilter fl = GenPhyOp.topFilterOp();
         ret.add(ld);
@@ -761,10 +760,10 @@ public class GenPhyOp{
     }
     
     public static POForEach topForEachOPWithUDF(List<String> clsName) throws PlanException{
-        List<ExprPlan> ep4s = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> ep4s = new ArrayList<PhysicalPlan>();
         List<Boolean> flattened3 = new ArrayList<Boolean>();
         for (String string : clsName) {
-            ExprPlan ep4 = new ExprPlan();
+            PhysicalPlan ep4 = new PhysicalPlan();
             POProject prjStar4 = new POProject(new OperatorKey("", r.nextLong()));
             prjStar4.setResultType(DataType.TUPLE);
             prjStar4.setStar(true);
@@ -779,19 +778,14 @@ public class GenPhyOp{
             flattened3.add(false);
         }
         
-        POGenerate finGen = new POGenerate(new OperatorKey("", r.nextLong()), ep4s, flattened3);
-        
-        PhysicalPlan<PhysicalOperator> fe3Plan = new PhysicalPlan<PhysicalOperator>();
-        fe3Plan.add(finGen);
-        
-        POForEach fe3 = new POForEach(new OperatorKey("", r.nextLong()));
-        fe3.setPlan(fe3Plan);
+        POForEach fe3 = new POForEach(new OperatorKey("", r.nextLong()), 1,
+            ep4s, flattened3);
         fe3.setResultType(DataType.TUPLE);
         return fe3;
     }
     
-    public static ExprPlan arithPlan() throws PlanException{
-        ExprPlan ep = new ExprPlan();
+    public static PhysicalPlan arithPlan() throws PlanException{
+        PhysicalPlan ep = new PhysicalPlan();
         ConstantExpression ce[] = new ConstantExpression[7];
         for(int i=0;i<ce.length;i++){
             ce[i] = GenPhyOp.exprConst();

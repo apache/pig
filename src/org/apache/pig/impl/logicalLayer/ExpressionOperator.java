@@ -93,27 +93,8 @@ public abstract class ExpressionOperator extends LogicalOperator {
             // It's fine, it just means we don't have a schema yet.
         }
 		log.debug("After getFieldSchema()");
-        if (null == mFieldSchema) {
-            log.debug("Operator schema is null; Setting it to new schema");
-            mFieldSchema = fs;
-        } else {
-            log.debug("Reconciling schema");
-			log.debug("mFieldSchema: " + mFieldSchema + " fs: " + fs);
-            //log.debug("mSchema: " + mSchema + " schema: " + schema);
-			try {
-				if(null != mFieldSchema.schema) {
-            		mFieldSchema.schema.reconcile(fs.schema);
-				} else {
-					mFieldSchema.schema = fs.schema;
-				}
-				mFieldSchema.type = fs.type;
-				mFieldSchema.alias = fs.alias;
-				//the operator name is the name of the column being projected
-				setAlias(fs.alias);
-			} catch (ParseException pe) {
-				throw new FrontendException(pe.getMessage());
-			}
-        }
+        mFieldSchema = fs;
+        setAlias(fs.alias);
         mIsFieldSchemaComputed = true;
     }
 

@@ -13,7 +13,6 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -23,7 +22,7 @@ public class LocalLauncher extends Launcher{
     private static final Log log = LogFactory.getLog(Launcher.class);
     
     @Override
-    public boolean launchPig(PhysicalPlan<PhysicalOperator> php,
+    public boolean launchPig(PhysicalPlan php,
                              String grpName,
                              PigContext pc) throws PlanException,
                                                    VisitorException,
@@ -82,7 +81,7 @@ public class LocalLauncher extends Launcher{
     }
     
     //A purely testing method. Not to be used elsewhere
-    public boolean launchPigWithCombinePlan(PhysicalPlan<PhysicalOperator> php,
+    public boolean launchPigWithCombinePlan(PhysicalPlan php,
             String grpName, PigContext pc, PhysicalPlan combinePlan) throws PlanException,
             VisitorException, IOException, ExecException, JobCreationException {
         long sleepTime = 500;

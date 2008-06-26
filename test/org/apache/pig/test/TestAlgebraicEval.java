@@ -56,8 +56,11 @@ public class TestAlgebraicEval extends TestCase {
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()){
+            /*
             DataByteArray a = (DataByteArray)it.next().get(2);
             int sum = Double.valueOf(a.toString()).intValue();
+            */
+            int sum = ((Double)it.next().get(2)).intValue();
             assertEquals(LOOP_COUNT/2, sum);
             count++;
         }

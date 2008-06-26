@@ -18,9 +18,14 @@
 package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -29,7 +34,7 @@ import org.apache.pig.impl.plan.VisitorException;
  *
  */
 
-public abstract class ExpressionOperator extends PhysicalOperator<ExprPlanVisitor> {
+public abstract class ExpressionOperator extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
     
     public ExpressionOperator(OperatorKey k) {
@@ -45,5 +50,10 @@ public abstract class ExpressionOperator extends PhysicalOperator<ExprPlanVisito
         return false;
     }
     
-    public abstract void visit(ExprPlanVisitor v) throws VisitorException;
+    @Override
+    public Result getNext(DataBag db) throws ExecException {
+        return new Result();
+    }
+    
+    public abstract void visit(PhyPlanVisitor v) throws VisitorException;
 }

@@ -25,7 +25,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POMapLookUp;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.plan.PlanException;
@@ -44,7 +44,7 @@ public class TestPOMapLookUp extends TestCase {
 		
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		POMapLookUp op = new POMapLookUp(new OperatorKey("", r.nextLong()), -1);
-		ExprPlan plan = new ExprPlan();
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(op);
 		plan.add(prj);
 		plan.connect(prj, op);

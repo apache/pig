@@ -27,7 +27,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class MapReduceLauncher extends Launcher{
     private static final Log log = LogFactory.getLog(Launcher.class);
     @Override
-    public boolean launchPig(PhysicalPlan<PhysicalOperator> php,
+    public boolean launchPig(PhysicalPlan php,
                              String grpName,
                              PigContext pc) throws PlanException,
                                                    VisitorException,

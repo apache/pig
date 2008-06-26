@@ -91,11 +91,6 @@ public class LOCogroup extends LogicalOperator {
     }
 
     @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-
-    @Override
     public Schema getSchema() throws FrontendException {
         // TODO create schema
         /*

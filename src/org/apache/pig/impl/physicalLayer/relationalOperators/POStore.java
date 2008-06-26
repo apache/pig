@@ -44,7 +44,7 @@ import org.apache.pig.impl.plan.VisitorException;
  *    stores in the Map and Reduce Plans till the job is created
  *
  */
-public class POStore extends PhysicalOperator<PhyPlanVisitor> {
+public class POStore extends PhysicalOperator {
     /**
      * 
      */

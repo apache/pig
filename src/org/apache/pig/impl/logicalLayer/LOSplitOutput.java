@@ -95,11 +95,6 @@ public class LOSplitOutput extends LogicalOperator {
         return false;
     }
 
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-
     public int getReadFrom() {
         return mIndex;
     }

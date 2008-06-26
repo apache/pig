@@ -790,7 +790,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
     }
     */
-
+    
     // This tests when both inputs need casting
     @Test
     public void testUnionCastingInsert1() throws Throwable {
@@ -1017,7 +1017,7 @@ public class TestTypeCheckingValidator extends TestCase {
         }
 
     }
-
+    
     // This has to fail under strict typing mode
     /*
     // This is a negative test
@@ -2239,7 +2239,6 @@ public class TestTypeCheckingValidator extends TestCase {
         assertEquals(innerPlan12.getSingleLeafPlanOutputType(), DataType.BYTEARRAY) ;
     }
 
-
     // Positive test
     @Test
     public void testForEachGenerate1() throws Throwable {
@@ -2307,14 +2306,8 @@ public class TestTypeCheckingValidator extends TestCase {
         flattens.add(true) ;
         flattens.add(false) ;
 
-        // Create LOGenerate
-        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
-
-        LogicalPlan foreachPlan = new LogicalPlan() ;
-        foreachPlan.add(generate1) ;
-
         // Create LOForEach
-        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), generatePlans, flattens) ;
 
         // construct the main plan
         plan.add(load1) ;
@@ -2407,14 +2400,8 @@ public class TestTypeCheckingValidator extends TestCase {
         flattens.add(true) ;
         flattens.add(false) ;
 
-        // Create LOGenerate
-        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
-
-        LogicalPlan foreachPlan = new LogicalPlan() ;
-        foreachPlan.add(generate1) ;
-
         // Create LOForEach
-        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), generatePlans, flattens) ;
 
         // construct the main plan
         plan.add(load1) ;
@@ -2616,14 +2603,8 @@ public class TestTypeCheckingValidator extends TestCase {
         flattens.add(true) ;
         flattens.add(false) ;
 
-        // Create LOGenerate
-        LOGenerate generate1 = new LOGenerate(plan, genNewOperatorKey(), generatePlans, flattens) ;
-
-        LogicalPlan foreachPlan = new LogicalPlan() ;
-        foreachPlan.add(generate1) ;
-
         // Create LOForEach
-        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), foreachPlan) ;
+        LOForEach foreach1 = new LOForEach(plan, genNewOperatorKey(), generatePlans, flattens) ;
 
         // construct the main plan
         plan.add(load1) ;
@@ -2706,8 +2687,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
     ////////////////////////// Helper //////////////////////////////////
     private void checkForEachCasting(LOForEach foreach, int idx, boolean isCast, byte toType) {
-        LOGenerate generate = (LOGenerate) foreach.getForEachPlan().getRoots().get(0) ;
-        LogicalPlan plan = generate.getGeneratePlans().get(idx) ;
+        LogicalPlan plan = foreach.getForEachPlans().get(idx) ;
 
         if (isCast) {
             List<LogicalOperator> leaveList = plan.getLeaves() ;
@@ -2722,6 +2702,5 @@ public class TestTypeCheckingValidator extends TestCase {
         }
         
     }
-    
 
 }

@@ -40,7 +40,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MRCompiler;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.plans.ExprPlan;
+import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.impl.physicalLayer.relationalOperators.*;
@@ -56,7 +56,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestMRCompiler extends junit.framework.TestCase {
-    static PhysicalPlan<PhysicalOperator> php = new PhysicalPlan<PhysicalOperator>();
+    static PhysicalPlan php = new PhysicalPlan();
 
 //    MiniCluster cluster = MiniCluster.buildCluster();
     
@@ -116,9 +116,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     public static void intTestRun1() throws ExecException, PlanException, VisitorException,
             ExecException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> part1 = new PhysicalPlan<PhysicalOperator>();
+        PhysicalPlan part1 = new PhysicalPlan();
         POLoad lC = GenPhyOp.topLoadOp();
         POFilter fC = GenPhyOp.topFilterOp();
         fC.setRequestedParallelism(20);
@@ -225,9 +225,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     public static void intTestRun2() throws ExecException, PlanException, VisitorException,
             ExecException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> part1 = new PhysicalPlan<PhysicalOperator>();
+        PhysicalPlan part1 = new PhysicalPlan();
         POLoad lC = GenPhyOp.topLoadOp();
         POFilter fC = GenPhyOp.topFilterOp();
         POLocalRearrange lrC = GenPhyOp.topLocalRearrangeOp();
@@ -316,7 +316,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     public static void intTestSpl1() throws ExecException, VisitorException, PlanException,
             ExecException, IOException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
         POLoad lA = GenPhyOp.topLoadOp();
         POSplit spl = GenPhyOp.topSplitOp();
@@ -355,7 +355,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     public static void intTestSpl2() throws ExecException, VisitorException, PlanException,
             ExecException, IOException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
         POLoad lA = GenPhyOp.topLoadOp();
         POSplit spl = GenPhyOp.topSplitOp();
@@ -403,7 +403,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     public static void intTestSpl3() throws ExecException, VisitorException, PlanException,
             ExecException, IOException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
         POLoad lA = GenPhyOp.topLoadOp();
         POSplit spl = GenPhyOp.topSplitOp();
@@ -487,17 +487,17 @@ public class TestMRCompiler extends junit.framework.TestCase {
      * @throws ExecException
      */
     public static void intTestSim1() throws PlanException, ExecException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
         POLoad ld = GenPhyOp.topLoadOp();
         php.add(ld);
-        PhysicalPlan<PhysicalOperator> grpChain1 = GenPhyOp.grpChain();
+        PhysicalPlan grpChain1 = GenPhyOp.grpChain();
         php.merge(grpChain1);
 
         php.connect(ld, grpChain1.getRoots().get(0));
 
         PhysicalOperator leaf = php.getLeaves().get(0);
 
-        PhysicalPlan<PhysicalOperator> grpChain2 = GenPhyOp.grpChain();
+        PhysicalPlan grpChain2 = GenPhyOp.grpChain();
         php.merge(grpChain2);
 
         php.connect(leaf, grpChain2.getRoots().get(0));
@@ -516,10 +516,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim2() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> ldGrpChain1 = GenPhyOp.loadedGrpChain();
-        PhysicalPlan<PhysicalOperator> ldGrpChain2 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
 
         php.merge(ldGrpChain1);
         php.merge(ldGrpChain2);
@@ -535,10 +535,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim3() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> ldGrpChain1 = GenPhyOp.loadedGrpChain();
-        PhysicalPlan<PhysicalOperator> ldGrpChain2 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
 
         php.merge(ldGrpChain1);
         php.merge(ldGrpChain2);
@@ -546,7 +546,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POUnion un = GenPhyOp.topUnionOp();
         php.addAsLeaf(un);
 
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
 
         php.merge(ldFil1);
         php.connect(ldFil1.getLeaves().get(0), un);
@@ -558,10 +558,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim4() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> ldGrpChain1 = GenPhyOp.loadedGrpChain();
-        PhysicalPlan<PhysicalOperator> ldGrpChain2 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
 
         php.merge(ldGrpChain1);
         php.merge(ldGrpChain2);
@@ -569,8 +569,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POUnion un = GenPhyOp.topUnionOp();
         php.addAsLeaf(un);
 
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
-        PhysicalPlan<PhysicalOperator> ldFil2 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
 
         php.merge(ldFil1);
         php.connect(ldFil1.getLeaves().get(0), un);
@@ -585,9 +585,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim5() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
-        PhysicalPlan<PhysicalOperator> ldFil2 = GenPhyOp.loadedFilter();
+        php = new PhysicalPlan();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
         php.merge(ldFil1);
         php.merge(ldFil2);
 
@@ -601,10 +601,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim6() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> ldGrpChain1 = GenPhyOp.loadedGrpChain();
-        PhysicalPlan<PhysicalOperator> ldGrpChain2 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
 
         POLocalRearrange lr1 = GenPhyOp.topLocalRearrangeOp();
         POLocalRearrange lr2 = GenPhyOp.topLocalRearrangeOp();
@@ -627,10 +627,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim7() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> ldGrpChain1 = GenPhyOp.loadedGrpChain();
-        PhysicalPlan<PhysicalOperator> ldGrpChain2 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
 
         POLocalRearrange lr1 = GenPhyOp.topLocalRearrangeOp();
         POLocalRearrange lr2 = GenPhyOp.topLocalRearrangeOp();
@@ -644,7 +644,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
         php.addAsLeaf(gr);
 
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
 
         php.merge(ldFil1);
         php.connect(ldFil1.getLeaves().get(0), gr);
@@ -657,10 +657,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim8() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
-        PhysicalPlan<PhysicalOperator> ldGrpChain1 = GenPhyOp.loadedGrpChain();
-        PhysicalPlan<PhysicalOperator> ldGrpChain2 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
+        PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
 
         POLocalRearrange lr1 = GenPhyOp.topLocalRearrangeOp();
         POLocalRearrange lr2 = GenPhyOp.topLocalRearrangeOp();
@@ -674,8 +674,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
         php.addAsLeaf(gr);
 
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
-        PhysicalPlan<PhysicalOperator> ldFil2 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
 
         php.merge(ldFil1);
         php.connect(ldFil1.getLeaves().get(0), gr);
@@ -691,13 +691,13 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
     public static void intTestSim9() throws ExecException, PlanException {
-        php = new PhysicalPlan<PhysicalOperator>();
+        php = new PhysicalPlan();
 
         POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
         php.addAsLeaf(gr);
 
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
-        PhysicalPlan<PhysicalOperator> ldFil2 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
 
         php.merge(ldFil1);
         php.connect(ldFil1.getLeaves().get(0), gr);
@@ -713,8 +713,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
     
     public static void intTestSortUDF1() throws PlanException, ExecException{
-        php = new PhysicalPlan<PhysicalOperator>();
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
+        php = new PhysicalPlan();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
         php.merge(ldFil1);
         
         String funcName = WeirdComparator.class.getName();
@@ -723,7 +723,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, ldFil1.getLeaves(),
                 null, null, comparator);
         sort.setRequestedParallelism(20);
-        ExprPlan nesSortPlan = new ExprPlan();
+        PhysicalPlan nesSortPlan = new PhysicalPlan();
         POProject topPrj = new POProject(new OperatorKey("", r.nextLong()));
         topPrj.setColumn(1);
         topPrj.setOverloaded(true);
@@ -736,7 +736,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         nesSortPlan.add(prjStar2);
         
         nesSortPlan.connect(topPrj, prjStar2);
-        List<ExprPlan> nesSortPlanLst = new ArrayList<ExprPlan>();
+        List<PhysicalPlan> nesSortPlanLst = new ArrayList<PhysicalPlan>();
         nesSortPlanLst.add(nesSortPlan);
         
         sort.setSortPlans(nesSortPlanLst);
@@ -751,7 +751,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.add(fe3);
         php.connect(sort, fe3);
         
-        PhysicalPlan<PhysicalOperator> grpChain1 = GenPhyOp.grpChain();
+        PhysicalPlan grpChain1 = GenPhyOp.grpChain();
         php.merge(grpChain1);
         php.connect(fe3,grpChain1.getRoots().get(0));
         
@@ -760,7 +760,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POForEach fe4 = GenPhyOp.topForEachOPWithUDF(udfs);
         php.addAsLeaf(fe4);
         
-        PhysicalPlan<PhysicalOperator> grpChain2 = GenPhyOp.grpChain();
+        PhysicalPlan grpChain2 = GenPhyOp.grpChain();
         php.merge(grpChain2);
         php.connect(fe4,grpChain2.getRoots().get(0));
 
@@ -774,8 +774,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
     
     public static void intTestDistinct1() throws PlanException, ExecException{
-        php = new PhysicalPlan<PhysicalOperator>();
-        PhysicalPlan<PhysicalOperator> ldFil1 = GenPhyOp.loadedFilter();
+        php = new PhysicalPlan();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
         php.merge(ldFil1);
         
         PODistinct op = new PODistinct(new OperatorKey("", r.nextLong()),
@@ -783,7 +783,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         
         php.addAsLeaf(op);
         
-        PhysicalPlan<PhysicalOperator> grpChain1 = GenPhyOp.grpChain();
+        PhysicalPlan grpChain1 = GenPhyOp.grpChain();
         php.merge(grpChain1);
         php.connect(op,grpChain1.getRoots().get(0));
         
