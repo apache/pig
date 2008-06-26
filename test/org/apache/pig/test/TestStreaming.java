@@ -220,12 +220,12 @@ public class TestStreaming extends PigExecTestCase {
         // Pig query to run
         pigServer.registerQuery(
                 "define CMD1 `" + command1.getName() + " foo` " +
-                "ship ('" + command1 + "') " +
+                "ship ('" + Util.encodeEscape(command1.toString()) + "') " +
                 "input('foo' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
         pigServer.registerQuery(
                 "define CMD2 `" + command2.getName() + " bar` " +
-                "ship ('" + command2 + "') " +
+                "ship ('" + Util.encodeEscape(command2.toString()) + "') " +
                 "input('bar' using " + PigStorage.class.getName() + "(',')) " +
                 "stderr();"); 
         pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
@@ -360,7 +360,7 @@ public class TestStreaming extends PigExecTestCase {
         // Pig query to run
         pigServer.registerQuery(
                 "define CMD `" + command.getName() + " foo bar` " +
-                "ship ('" + command + "') " +
+                "ship ('" + Util.encodeEscape(command.toString()) + "') " +
         		"output('foo' using " + PigStorage.class.getName() + "(','), " +
         		"'bar' using " + PigStorage.class.getName() + "(',')) " +
         		"stderr();"); 
@@ -424,7 +424,7 @@ public class TestStreaming extends PigExecTestCase {
         // Pig query to run
         pigServer.registerQuery(
                 "define CMD `" + command.getName() + " foo bar foobar` " +
-                "ship ('" + command + "') " +
+                "ship ('" + Util.encodeEscape(command.toString()) + "') " +
                 "input('foo' using " + PigStorage.class.getName() + "(',')) " +
                 "output('bar', " +
                 "'foobar' using " + PigStorage.class.getName() + "(',')) " +

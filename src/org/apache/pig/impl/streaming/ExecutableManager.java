@@ -214,6 +214,46 @@ public class ExecutableManager {
 	}
 
 	/**
+	 * Convert path from Windows convention to Unix convention. Invoked under cygwin. 
+	 * 
+	 * @param path path in Windows convention
+	 * @return path in Unix convention, null if fail
+	 */
+    private String parseCygPath(String path)
+    {
+        String[] command = new String[] {"cygpath", "-u", path};
+        Process p=null;
+        try {
+            p = Runtime.getRuntime().exec(command);
+        }
+        catch (IOException e)
+        {
+            return null;
+        }
+        int exitVal=0;
+        try {
+            exitVal = p.waitFor();
+        }
+        catch (InterruptedException e)
+        {
+            return null;
+        }
+        if (exitVal!=0)
+        	return null;
+        String line=null;
+        try {
+            InputStreamReader isr = new InputStreamReader(p.getInputStream());
+            BufferedReader br = new BufferedReader(isr);
+            line = br.readLine();
+        }
+        catch (IOException e)
+        {
+            return null;
+        }
+        return line;
+    }
+
+	/**
 	 * Set up the run-time environment of the managed process.
 	 * 
 	 * @param pb {@link ProcessBuilder} used to exec the process
@@ -226,6 +266,15 @@ public class ExecutableManager {
 	    File dir = pb.directory();
 	    String cwd = (dir != null) ? 
 	            dir.getAbsolutePath() : System.getProperty("user.dir");
+	    
+	    if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+	    {
+	    	String unixCwd = parseCygPath(cwd);
+	    	if (unixCwd==null)
+	    		throw new RuntimeException("Can not convert Windows path to Unix path under cygwin");
+	    	cwd = unixCwd;
+	    }
+	    	
 	    String envPath = env.get(PATH);
 	    if (envPath == null) {
 	        envPath = cwd;
