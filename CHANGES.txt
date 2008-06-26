@@ -331,3 +331,5 @@ Trunk (unreleased changes)
     PIG-243: make unit tests work on windows (daijy via olgan)
 
     PIG-271: added tutorial to SVN (olgan)
+
+    PIG-235: memory management improvements (pkamath via olgan)
