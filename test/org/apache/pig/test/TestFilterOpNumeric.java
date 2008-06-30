@@ -138,7 +138,7 @@ public class TestFilterOpNumeric extends TestCase {
         }
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "';");
-        String query = "A = foreach A generate ($1 >= '"+ LOOP_COUNT+"'-'10'?'1':'0');";
+        String query = "A = foreach A generate ($1 >= "+ LOOP_COUNT+"-10?'1':'0');";
         log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
@@ -167,10 +167,10 @@ public class TestFilterOpNumeric extends TestCase {
         }
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "';");
-        String query = "B = foreach A generate ((int)$0 < 10?((int)$1 >= 5 ? 2: 1) : 0);";
+        String query = "A = foreach A generate ($0 < 10?($1 >= 5 ? '2': '1') : '0');";
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("B");
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
