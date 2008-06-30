@@ -45,9 +45,10 @@ public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>>
      * @param nodes - List of nodes declared in transform ($1 = nodes[0],
      * etc.)  Remember that somes entries in node[] may be NULL since they may
      * not be created until after the transform.
-     * @return - true if the transform should be done.
+     * @return true if the transform should be done.
+     * @throws OptimizerException
      */
-    public abstract boolean check(List<O> nodes);
+    public abstract boolean check(List<O> nodes) throws OptimizerException;
 
     /**
      * Transform the tree
@@ -56,8 +57,9 @@ public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>>
      * of the transform and remove them from the nodes vector and construct
      * any that are being created as part of the transform and add them at the
      * appropriate point to the nodes vector.
+     * @throws OptimizerException
      */
-    public abstract void transform(List<O> nodes);
+    public abstract void transform(List<O> nodes) throws OptimizerException;
 
 }
 

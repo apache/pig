@@ -59,6 +59,23 @@ public class MultiMap<K, V> implements Serializable {
     }
 
     /**
+     * Add a key to the map with a collection of elements.
+     * @param key The key to store the value under.  If the key already
+     * exists the value will be added to the collection for that key, it
+     * will not replace the existing value (as in a standard map).
+     * @param values collection of values to store.
+     */
+    public void put(K key, Collection<V> values) {
+        ArrayList<V> list = mMap.get(key);
+        if (list == null) {
+            list = new ArrayList<V>(values);
+            mMap.put(key, list);
+        } else {
+            list.addAll(values);
+        }
+    }
+
+    /**
      * Get the collection of values associated with a given key.
      * @param key Key to fetch values for.
      * @return collection of values, or null if the key is not in the map.
@@ -103,6 +120,26 @@ public class MultiMap<K, V> implements Serializable {
     public Set<K> keySet() {
         return mMap.keySet();
     }
+
+    /**
+     * Get a single collection of all the values in the map.  All of the
+     * values in the map will be conglomerated into one collection.  There
+     * will not be any duplicate removal.
+     * @return collection of values.
+     */
+    public Collection<V> values() {
+        Set<K> keys = mMap.keySet();
+        int size = 0;
+        for (K k : keys) {
+            size += mMap.get(k).size();
+        }
+        Collection<V> values = new ArrayList<V>(size);
+        for (K k : keys) {
+            values.addAll(mMap.get(k));
+        }
+        return values;
+    }
+
 
 
 

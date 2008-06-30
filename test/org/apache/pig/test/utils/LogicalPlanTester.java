@@ -19,12 +19,14 @@
 package org.apache.pig.test.utils;
 
 import org.apache.pig.impl.logicalLayer.*;
+import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.ExecType;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.* ;
 import org.apache.pig.test.utils.dotGraph.LogicalPlanLoader;
@@ -87,7 +89,14 @@ public class LogicalPlanTester {
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;
         printMessageCollector(collector) ;
-        System.out.println("Actual plan:") ;
+        System.out.println("Actual plan after type check:") ;
+        printTypeGraph(plan) ;
+    }
+
+    public void optimizePlan(LogicalPlan plan) throws OptimizerException {
+        LogicalOptimizer optimizer = new LogicalOptimizer(plan);
+        optimizer.optimize();
+        System.out.println("Actual plan after after optimization:") ;
         printTypeGraph(plan) ;
     }
 
@@ -98,10 +107,29 @@ public class LogicalPlanTester {
      * @param file
      * @throws PlanValidationException
      */
-    public void typeCheckAgainstDotFile(LogicalPlan plan, String file)
-                                            throws PlanValidationException {
+    public void typeCheckAgainstDotFile(
+            LogicalPlan plan,
+            String file) throws PlanValidationException, OptimizerException {
+        typeCheckAgainstDotFile(plan, file, false);
+    }
+
+    /***
+     * Run type checking and compare the result with  plan structure
+     * stored in Dot file
+     * @param plan
+     * @param file
+     * @param optimize if true, the plan will be run through the optimizer
+     * @throws PlanValidationException
+     */
+    public void typeCheckAgainstDotFile(
+            LogicalPlan plan,
+            String file,
+            boolean optimize) throws PlanValidationException,
+                                     OptimizerException {
         // validate the given plan
         typeCheckPlan(plan);
+
+        if (optimize) optimizePlan(plan);
 
         // load the expected plan from file
         LogicalPlanLoader planLoader = new LogicalPlanLoader() ;
@@ -120,8 +148,15 @@ public class LogicalPlanTester {
         System.out.println("Checking DONE!") ;
     }
 
-    public void typeCheckUsingDotFile(String file)
-                                            throws PlanValidationException {
+    public void typeCheckUsingDotFile(
+            String file) throws PlanValidationException, OptimizerException {
+        typeCheckUsingDotFile(file, false);
+    }
+
+    public void typeCheckUsingDotFile(
+            String file,
+            boolean optimize) throws PlanValidationException,
+                                     OptimizerException {
         DotGraphReader reader = new DotGraphReader() ;
         DotGraph graph = reader.loadFromFile(file) ;
         if (!graph.attributes.containsKey("pigScript")) {
@@ -138,7 +173,7 @@ public class LogicalPlanTester {
                 plan = buildPlan(query + ";") ;
             }
         }
-        typeCheckAgainstDotFile(plan, file) ;
+        typeCheckAgainstDotFile(plan, file, optimize) ;
 
     }
 

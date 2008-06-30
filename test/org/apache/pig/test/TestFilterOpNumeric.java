@@ -111,7 +111,9 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load 'file:" + tmpFile + "' using " +
+                PigStorage.class.getName() +
+                "(':') as (f1: double, f2:double);");
         String query = "A = filter A by $0 > $1;";
 
         log.info(query);
@@ -165,23 +167,21 @@ public class TestFilterOpNumeric extends TestCase {
         }
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "';");
-        String query = "A = foreach A generate ($0 < '10'?($1 >= '5' ? '2': '1') : '0');";
+        String query = "B = foreach A generate ((int)$0 < 10?((int)$1 >= 5 ? 2: 1) : 0);";
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator it = pig.openIterator("B");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = Double.valueOf(t.get(0).toString());
+            Integer first = (Integer)t.get(0);
             count+=first;
-               assertTrue(first == 1 || first == 2 || first == 0);
+            assertTrue(first == 1 || first == 2 || first == 0);
             
         }
         assertEquals("expected count of 15", 15, count);
     }
-    
-    
     
     @Test 
     public void testNumericLt() throws Throwable {

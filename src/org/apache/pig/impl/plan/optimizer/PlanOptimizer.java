@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.plan.optimizer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.plan.Operator;
@@ -29,18 +30,16 @@ import org.apache.pig.impl.plan.OperatorPlan;
  *
  */
 
-public class PlanOptimizer<O extends Operator, P extends OperatorPlan<O>> {
+public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O>> {
     
-    private List<Rule> mRules;
-    private P mPlan;
+    protected List<Rule> mRules;
+    protected P mPlan;
 
     /**
      * @param plan Plan to optimize
-     * @param rules List of rules to attempt to apply.
      */
-    public PlanOptimizer(P plan,
-                         List<Rule> rules) {
-        mRules = rules;
+    protected PlanOptimizer(P plan) {
+        mRules = new ArrayList<Rule>();
         mPlan = plan;
     }
 
@@ -50,8 +49,9 @@ public class PlanOptimizer<O extends Operator, P extends OperatorPlan<O>> {
      * method of the associated Transformer to give the it a chance to
      * check whether it really wants to do the optimization.  If that
      * returns true as well, then Transformer.transform is called. 
+     * @throws OptimizerException
      */
-    public void optimize() {
+    public final void optimize() throws OptimizerException {
         RuleMatcher matcher = new RuleMatcher();
         for (Rule rule : mRules) {
             if (matcher.match(rule)) {

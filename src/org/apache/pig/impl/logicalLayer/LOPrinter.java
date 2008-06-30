@@ -63,7 +63,7 @@ public class LOPrinter extends LOVisitor {
         try {
             mStream.write(depthFirstLP().getBytes());
         } catch (IOException e) {
-            throw new VisitorException(e.getMessage());
+            throw new VisitorException(e);
         }
     }
 
@@ -73,7 +73,7 @@ public class LOPrinter extends LOVisitor {
     }
 
 
-    protected String depthFirstLP() throws VisitorException {
+    protected String depthFirstLP() throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder();
         List<LogicalOperator> leaves = mPlan.getLeaves();
         Collections.sort(leaves);
@@ -86,7 +86,7 @@ public class LOPrinter extends LOVisitor {
         return sb.toString();
     }
     
-    private String planString(LogicalPlan lp){
+    private String planString(LogicalPlan lp) throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         if(lp!=null)
@@ -98,7 +98,8 @@ public class LOPrinter extends LOVisitor {
         return sb.toString();
     }
     
-    private String planString(List<LogicalPlan> logicalPlanList){
+    private String planString(
+            List<LogicalPlan> logicalPlanList) throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder();
         if(logicalPlanList!=null)
             for (LogicalPlan lp : logicalPlanList) {
@@ -107,7 +108,7 @@ public class LOPrinter extends LOVisitor {
         return sb.toString();
     }
 
-    private String depthFirst(LogicalOperator node) throws VisitorException {
+    private String depthFirst(LogicalOperator node) throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder(node.name());
         if(node instanceof ExpressionOperator) {
             sb.append(" FieldSchema: ");
@@ -150,6 +151,10 @@ public class LOPrinter extends LOVisitor {
         }
         else if(node instanceof LOSplitOutput){
             sb.append(planString(((LOSplitOutput)node).getConditionPlan()));
+        }
+        else if (node instanceof LOProject) {
+            sb.append("Connected to: ");
+            sb.append(((LOProject)node).getExpression().name());
         }
         
         List<LogicalOperator> predecessors = mPlan.getPredecessors(node);

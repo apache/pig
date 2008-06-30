@@ -48,17 +48,11 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
         return getSingleLeafPlanOutputOp().getType() ;
     }
 
-    public void explain(OutputStream out, PrintStream ps){
+    public void explain(
+            OutputStream out,
+            PrintStream ps) throws VisitorException, IOException {
         LOPrinter lpp = new LOPrinter(ps, this);
 
-        try {
-            lpp.print(out);
-        } catch (VisitorException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        lpp.print(out);
     }
 }

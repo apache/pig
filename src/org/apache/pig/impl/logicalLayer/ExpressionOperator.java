@@ -98,6 +98,16 @@ public abstract class ExpressionOperator extends LogicalOperator {
         mIsFieldSchemaComputed = true;
     }
 
+    /**
+     * Unset the field schema as if it had not been calculated.  This is used
+     * by anyone who reorganizes the tree and needs to have schemas
+     * recalculated.
+     */
+    public void unsetFieldSchema() {
+        mIsFieldSchemaComputed = false;
+        mFieldSchema = null;
+    }
+
     void setFieldSchemaComputed(boolean b) {
         mIsFieldSchemaComputed = b;
     }

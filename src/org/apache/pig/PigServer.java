@@ -50,7 +50,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
-import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -58,6 +58,7 @@ import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor
 import org.apache.pig.impl.physicalLayer.POPrinter;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -481,10 +482,18 @@ public class PigServer {
         }
 
         // run through validator
-        LogicalPlanValidationExecutor validator = 
-            new LogicalPlanValidationExecutor(lp, pigContext);
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        validator.validate(lp, collector);
+        FrontendException caught = null;
+        try {
+            LogicalPlanValidationExecutor validator = 
+                new LogicalPlanValidationExecutor(lp, pigContext);
+            validator.validate(lp, collector);
+        } catch (FrontendException fe) {
+            // Need to go through and see what the collector has in it.  But
+            // remember what we've caught so we can wrap it into what we
+            // throw.
+            caught = fe;
+        }
         // Check to see if we had any problems.
         StringBuilder sb = new StringBuilder();
         for (CompilationMessageCollector.Message msg : collector) {
@@ -510,11 +519,13 @@ public class PigServer {
             }
         }
 
-        if (sb.length() > 0) {
-            throw new ExecException(sb.toString());
+        if (sb.length() > 0 || caught != null) {
+            throw new ExecException(sb.toString(), caught);
         }
 
-        // TODO optimize
+        // optimize
+        LogicalOptimizer optimizer = new LogicalOptimizer(lp);
+        optimizer.optimize();
 
         return lp;
     }

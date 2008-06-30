@@ -78,4 +78,16 @@ public class OperatorKey implements Serializable, Comparable<OperatorKey> {
                 return -1;
         }
     }
+
+    /**
+     * Utility function for creating operator keys.
+     * @param scope Scope to use in creating the key.
+     * @return new operator key.
+     */
+    public static OperatorKey genOpKey(String scope) {
+        return new OperatorKey(scope,
+            NodeIdGenerator.getGenerator().getNextNodeId(scope));
+    }
+
+
 }

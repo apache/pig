@@ -44,7 +44,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
 
     private List<E> mRoots;
     private List<E> mLeaves;
-    private Log log = LogFactory.getLog(OperatorPlan.class);
+    protected static Log log = LogFactory.getLog(OperatorPlan.class);
     
     public OperatorPlan() {
         mRoots = new ArrayList<E>();
@@ -345,5 +345,25 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         return mKeys.size() ;
     }
 
+    /**
+     * Given two connected nodes add another node between them.
+     * @param after Node to insert this node after
+     * @param newNode new node to insert.  This node must have already been
+     * added to the plan.
+     * @param before Node to insert this node before
+     * @throws PlanException if it encounters trouble disconecting or
+     * connecting nodes.
+     */
+    public void insertBetween(
+            E after,
+            E newNode,
+            E before) throws PlanException {
+        if (!disconnect(after, before)) {
+            throw new PlanException("Attempt to insert between two nodes " +
+                "that were not connected.");
+        }
+        connect(after, newNode);
+        connect(newNode, before);
+    }
 
 }

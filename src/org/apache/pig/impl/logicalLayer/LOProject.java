@@ -117,12 +117,20 @@ public class LOProject extends ExpressionOperator {
         return mExp;
     }
 
+    public void setExpression(LogicalOperator exp) {
+        mExp = exp;
+    }
+
     public boolean isStar() { 
         return mIsStar;
     }
 
     public List<Integer> getProjection() {
         return mProjection;
+    }
+
+    public void setProjection(List<Integer> proj) {
+        mProjection = proj;
     }
 
     public int getCol() {
@@ -196,6 +204,8 @@ public class LOProject extends ExpressionOperator {
                             //the type of the operator will be unknown. when type checking is in place
                             //add the type of the operator as a parameter to the fieldschema creation
                             mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
+                            mFieldSchema.canonicalName =
+                                CanonicalNamer.getNewName();
                             //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                         }
                     } else {
@@ -228,9 +238,13 @@ public class LOProject extends ExpressionOperator {
                                         mFieldSchema = s.getField(mProjection.get(0));
                                     } else {
                                         mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                        mFieldSchema.canonicalName =
+                                            CanonicalNamer.getNewName();
                                     }
                                 } else {
                                     mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    mFieldSchema.canonicalName =
+                                        CanonicalNamer.getNewName();
                                 }
                             } else {
                                 log.debug("Input is a logical operator");
@@ -242,6 +256,8 @@ public class LOProject extends ExpressionOperator {
                                     log.debug("mFieldSchema schema: " + mFieldSchema.schema);
                                 } else {
                                     mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    mFieldSchema.canonicalName =
+                                        CanonicalNamer.getNewName();
                                 }
                                 mType = mFieldSchema.type ;
                             }
@@ -288,6 +304,7 @@ public class LOProject extends ExpressionOperator {
                     throw new FrontendException(pe.getMessage());
                 }
                 mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), new Schema(fss));
+                mFieldSchema.canonicalName = CanonicalNamer.getNewName();
                 mIsFieldSchemaComputed = true;
                 log.debug("mIsStar is false, returning computed field schema of expressionOperator");
             }

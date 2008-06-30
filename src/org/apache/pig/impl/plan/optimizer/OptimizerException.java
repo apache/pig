@@ -15,14 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.plan;
+package org.apache.pig.impl.plan.optimizer;
 
-/***
- * This is an abstract of classes for plan validation executor
- * 
- */
-public interface PlanValidationExecutor<P extends OperatorPlan> {
-   void validate(
-        P plan,
-        CompilationMessageCollector msgCollector) throws PlanValidationException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+
+public class OptimizerException extends FrontendException {
+
+    public OptimizerException (String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public OptimizerException() {
+        this(null, null);
+    }
+    
+    public OptimizerException(String message) {
+        this(message, null);
+    }
+    
+    public OptimizerException(Throwable cause) {
+        this(null, cause);
+    }
 }

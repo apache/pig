@@ -64,10 +64,14 @@ public class LOCast extends ExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed && (null == mFieldSchema)) {
             if(DataType.isAtomic(mType)) {
                 mFieldSchema = new Schema.FieldSchema(null, mType);
+                if (mExpr.getFieldSchema() != null) {
+                    mFieldSchema.canonicalName =
+                        mExpr.getFieldSchema().canonicalName;
+                }
                 mIsFieldSchemaComputed = true;
             }
         }

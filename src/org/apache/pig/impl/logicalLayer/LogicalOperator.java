@@ -147,6 +147,30 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         this.mSchema = schema;
     }
 
+    /**
+     * Unset the schema as if it had not been calculated.  This is used by
+     * anyone who reorganizes the tree and needs to have schemas recalculated.
+     */
+    public void unsetSchema() {
+        mIsSchemaComputed = false;
+        mSchema = null;
+    }
+    
+    /**
+     * Calculate canonical names for all fields in the schema.  This should
+     * only be used for loads or other operators that create all new fields.
+     */
+    public void setCanonicalNames() {
+        for (Schema.FieldSchema fs : mSchema.getFields()) {
+            if (fs.canonicalName != null) {
+                throw new RuntimeException("Attempt to rename field " +
+                        fs.alias + " in operator " + name() + " that " +
+                    "already has canonical name "  + fs.canonicalName);
+            }
+            fs.canonicalName = CanonicalNamer.getNewName();
+        }
+    }
+
 
     /**
      * Get a copy of the schema for the output of this operator.

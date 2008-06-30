@@ -57,6 +57,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.impl.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.shock.SSHSocketImplFactory;
@@ -273,7 +274,13 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     public void explain(PhysicalPlan plan, PrintStream stream) {
-        // TODO FIX
+        try {
+            PlanPrinter printer = new PlanPrinter(plan);
+            printer.visit();
+            System.out.println();
+        } catch (VisitorException ve) {
+            throw new RuntimeException(ve);
+        }
     }
 
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {

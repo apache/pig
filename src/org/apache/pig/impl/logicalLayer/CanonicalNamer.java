@@ -15,14 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.plan;
+package org.apache.pig.impl.logicalLayer;
 
-/***
- * This is an abstract of classes for plan validation executor
- * 
+import org.apache.pig.impl.plan.NodeIdGenerator;
+
+/**
+ * A visitor to walk the logical plan and give canonical names fields.
  */
-public interface PlanValidationExecutor<P extends OperatorPlan> {
-   void validate(
-        P plan,
-        CompilationMessageCollector msgCollector) throws PlanValidationException;
+
+public class CanonicalNamer {
+
+    private static NodeIdGenerator mNid = NodeIdGenerator.getGenerator();
+
+    private static final String SCOPE = "Canonical Names";
+
+    public static String getNewName() {
+        return String.valueOf(mNid.getNextNodeId(SCOPE));
+    }
+    
 }

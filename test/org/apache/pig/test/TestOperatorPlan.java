@@ -191,6 +191,18 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
     }
 
+    static class TOptimizer extends PlanOptimizer<TOperator, TPlan> {
+
+        public TOptimizer(TPlan plan) {
+            super(plan);
+        }
+
+        public void addRule(Rule rule) {
+            mRules.add(rule);
+        }
+    }
+
+
     @Test
     public void testAddRemove() throws Exception {
         // Test that we can add and remove nodes from the plan.  Also test
@@ -268,6 +280,88 @@ public class TestOperatorPlan extends junit.framework.TestCase {
 
         j = plan.iterator();
         assertFalse("Iterator should return nothing now", j.hasNext());
+    }
+
+    @Test
+    public void testInsertBetween() throws Exception {
+        // Test that insertBetween works.
+
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        for (int i = 0; i < 3; i++) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+
+        // Connect 0 to 2
+        plan.connect(ops[0], ops[2]);
+
+        Collection p = plan.getPredecessors(ops[0]);
+        assertNull(p);
+        p = plan.getSuccessors(ops[0]);
+        assertEquals(1, p.size());
+        Iterator i = p.iterator();
+        assertEquals(ops[2], i.next());
+
+        p = plan.getPredecessors(ops[1]);
+        assertNull(p);
+        p = plan.getSuccessors(ops[1]);
+        assertNull(p);
+
+        p = plan.getPredecessors(ops[2]);
+        assertEquals(1, p.size());
+        i = p.iterator();
+        assertEquals(ops[0], i.next());
+        p = plan.getSuccessors(ops[2]);
+        assertNull(p);
+
+        // Insert 1 in between 0 and 2
+        plan.insertBetween(ops[0], ops[1], ops[2]);
+
+        p = plan.getPredecessors(ops[0]);
+        assertNull(p);
+        p = plan.getSuccessors(ops[0]);
+        assertEquals(1, p.size());
+        i = p.iterator();
+        assertEquals(ops[1], i.next());
+
+        p = plan.getPredecessors(ops[1]);
+        assertEquals(1, p.size());
+        i = p.iterator();
+        assertEquals(ops[0], i.next());
+        p = plan.getSuccessors(ops[1]);
+        assertEquals(1, p.size());
+        i = p.iterator();
+        assertEquals(ops[2], i.next());
+
+        p = plan.getPredecessors(ops[2]);
+        assertEquals(1, p.size());
+        i = p.iterator();
+        assertEquals(ops[1], i.next());
+        p = plan.getSuccessors(ops[2]);
+        assertNull(p);
+    }
+
+    @Test
+    public void testInsertBetweenNegative() throws Exception {
+        // Test that insertBetween throws errors when it should.
+
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[4];
+        for (int i = 0; i < 4; i++) {
+            ops[i] = new MultiOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+
+        plan.connect(ops[0], ops[1]);
+
+        boolean caughtIt = false;
+        try {
+            plan.insertBetween(ops[0], ops[3], ops[2]);
+        } catch (PlanException pe) {
+            caughtIt = true;
+        }
+        assertTrue(caughtIt);
     }
 
     @Test
@@ -483,11 +577,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
 
         optimizer.optimize();
         assertFalse(transformer.mTransformed);
@@ -524,12 +615,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
-
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
         optimizer.optimize();
         assertFalse(transformer.mTransformed);
     }
@@ -566,11 +653,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
 
         optimizer.optimize();
         assertTrue(transformer.mTransformed);
@@ -611,11 +695,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
 
         optimizer.optimize();
         assertTrue(transformer.mTransformed);
@@ -654,11 +735,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
 
         optimizer.optimize();
         assertTrue(transformer.mTransformed);
@@ -694,11 +772,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
 
         optimizer.optimize();
         assertTrue(transformer.mTransformed);
@@ -752,11 +827,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         Rule<TOperator, TPlan> r =
             new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
 
-        ArrayList<Rule> rules = new ArrayList<Rule>(1);
-        rules.add(r);
-
-        PlanOptimizer<TOperator, TPlan> optimizer =
-            new PlanOptimizer<TOperator, TPlan>(plan, rules);
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
 
         optimizer.optimize();
         assertFalse(transformer.mTransformed);

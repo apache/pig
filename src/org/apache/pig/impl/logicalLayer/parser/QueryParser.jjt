@@ -649,7 +649,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 {
 	(
 	(
-	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema);log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
+	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema); op.setCanonicalNames(); log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
 |   (<ORDER> op = OrderClause(lp))

@@ -137,4 +137,5 @@ public class LOLoad extends LogicalOperator {
     public byte getType() {
         return DataType.BAG ;
     }
+
 }

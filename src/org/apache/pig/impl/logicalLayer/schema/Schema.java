@@ -30,6 +30,7 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 
@@ -51,6 +52,28 @@ public class Schema {
          * must be null.
          */
         public Schema schema;
+
+        /**
+         * Canonical name.  This name uniquely identifies a field throughout
+         * the query.  Unlike a an alias, it cannot be changed.  It will
+         * change when the field is transformed in some way (such as being
+         * used in an arithmetic expression or passed to a udf).  At that
+         * point a new canonical name will be generated for the field.
+         */
+        public String canonicalName = null;
+
+        /**
+         * Map of canonical names used for this field in other sections of the
+         * plan.  It can occur that a single field will have different
+         * canonical names in different branches of a plan.  For example, 
+         * C = cogroup A by x, B by y.  In subsequent statements, the grouping
+         * column will have canonical name, say, of 'r'.  But in branches
+         * above the cogroup it may have been known as 's' in the A branch and
+         * 't' in the B branch.  This map preserves that.  The key is a
+         * logical operator's key, and the value is the canonical name
+         * associated with the field for that operator.
+         */
+        public Map<OperatorKey, String> canonicalMap = null;
         
         private static Log log = LogFactory.getLog(Schema.FieldSchema.class);
 
@@ -257,7 +280,36 @@ public class Schema {
                 sb.append(schema.toString());
                 sb.append(")");
             }
+
+            if (canonicalName != null) {
+                sb.append(" cn: ");
+                sb.append(canonicalName);
+            }
             return sb.toString();
+        }
+
+        /**
+         * Make a deep copy of this FieldSchema and return it.
+         * @return clone of the this FieldSchema.
+         * @throws CloneNotSupportedException
+         */
+        @Override
+        public FieldSchema clone() throws CloneNotSupportedException {
+            // Strings are immutable, so we don't need to copy alias.  Schemas
+            // are mutable so we need to make a copy.
+            try {
+                FieldSchema fs = new FieldSchema(alias,
+                    (schema == null ? null : schema.clone()), type);
+                fs.canonicalName = canonicalName;
+                if (canonicalMap != null) {
+                    fs.canonicalMap =
+                        new HashMap<OperatorKey, String>(canonicalMap);
+                }
+                return fs;
+            } catch (FrontendException fe) {
+                throw new RuntimeException(
+                    "Should never fail to clone a FieldSchema", fe);
+            }
         }
 
     }
@@ -423,6 +475,45 @@ public class Schema {
         return Schema.equals(this, s, false, false) ;
 
     }
+
+    /**
+     * Make a deep copy of a schema.
+     * @throws CloneNotSupportedException
+     */
+    public Schema clone() throws CloneNotSupportedException {
+        Schema s = new Schema();
+
+        // Build a map between old and new field schemas, so we can properly
+        // construct the new alias and field schema maps.  Populate the field
+        // list with copies of the existing field schemas.
+        Map<FieldSchema, FieldSchema> fsMap =
+            new HashMap<FieldSchema, FieldSchema>(size());
+        for (FieldSchema fs : mFields) {
+            FieldSchema copy = fs.clone();
+            s.mFields.add(copy);
+            fsMap.put(fs, copy);
+        }
+
+        // Build the aliases map
+        for (String alias : mAliases.keySet()) {
+            FieldSchema oldFs = mAliases.get(alias);
+            assert(oldFs != null);
+            FieldSchema newFs = fsMap.get(oldFs);
+            assert(newFs != null);
+            s.mAliases.put(alias, newFs);
+        }
+
+        // Build the field schemas map
+        for (FieldSchema oldFs : mFieldSchemas.keySet()) {
+            FieldSchema newFs = fsMap.get(oldFs);
+            assert(newFs != null);
+            s.mFieldSchemas.put(newFs, mFieldSchemas.get(oldFs));
+        }
+
+        return s;
+    }
+
+
 
     static int[] primeList = { 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37,
                                41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
