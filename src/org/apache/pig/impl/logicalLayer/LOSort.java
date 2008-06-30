@@ -112,8 +112,13 @@ public class LOSort extends LogicalOperator {
                     throw new FrontendException("Could not find operator in plan");
                 }
                 if(op instanceof ExpressionOperator) {
-                    fss.add(((ExpressionOperator)op).getFieldSchema());
-                    mSchema = new Schema(fss);
+                    Schema.FieldSchema fs = ((ExpressionOperator)op).getFieldSchema();
+                    if(DataType.isSchemaType(fs.type)) {
+                        mSchema = fs.schema;
+                    } else {
+                        fss.add(fs);
+                        mSchema = new Schema(fss);
+                    }
                 } else {
                     mSchema = op.getSchema();
                 }

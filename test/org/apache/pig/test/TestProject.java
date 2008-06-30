@@ -22,10 +22,12 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.ArrayList;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -100,4 +102,58 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(t.get(9), res.result);
     }
 
+    @Test
+    public void testGetNextMultipleProjections() throws ExecException, IOException {
+        ArrayList<Integer> cols = new ArrayList<Integer>();
+        proj.attachInput(t);
+        for (int j = 0; j < t.size() - 1; j++) {
+            proj.attachInput(t);
+            cols.add(j);
+            cols.add(j+1);
+            proj.setColumns(cols);
+
+            res = proj.getNext();
+	        TupleFactory tupleFactory = TupleFactory.getInstance();
+	        ArrayList<Object> objList = new ArrayList<Object>(); 
+            objList.add(t.get(j)); 
+            objList.add(t.get(j+1)); 
+		    Tuple expectedResult = tupleFactory.newTuple(objList);
+            assertEquals(POStatus.STATUS_OK, res.returnStatus);
+            assertEquals(expectedResult, res.result);
+            cols.clear();
+        }
+    }
+
+    @Test
+    public void testGetNextTupleMultipleProjections() throws IOException, ExecException {
+        proj.attachInput(t);
+        proj.setOverloaded(true);
+        int j = 0;
+        ArrayList<Integer> cols = new ArrayList<Integer>();
+
+        while (true) {
+            cols.add(j);
+            cols.add(j+1);
+            proj.setColumns(cols);
+            res = proj.getNext(t);
+            if (res.returnStatus == POStatus.STATUS_EOP)
+                break;
+	        TupleFactory tupleFactory = TupleFactory.getInstance();
+	        ArrayList<Object> objList = new ArrayList<Object>(); 
+            objList.add(t.get(j)); 
+            objList.add(t.get(j+1)); 
+		    Tuple expectedResult = tupleFactory.newTuple(objList);
+            assertEquals(POStatus.STATUS_OK, res.returnStatus);
+            assertEquals(expectedResult, res.result);
+            ++j;
+            cols.clear();
+        }
+
+        proj.attachInput(t);
+        proj.setColumn(9);
+        proj.setOverloaded(false);
+        res = proj.getNext(t);
+        assertEquals(POStatus.STATUS_OK, res.returnStatus);
+        assertEquals(t.get(9), res.result);
+    }
 }

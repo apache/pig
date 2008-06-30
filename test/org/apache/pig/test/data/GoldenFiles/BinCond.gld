@@ -4,20 +4,20 @@ New For Each(false)[bag] - Test-Plan-Builder-137
 |   |
 |   |---Equal To[tuple] - Test-Plan-Builder-129
 |   |   |
-|   |   |---Project[bytearray](1) - Test-Plan-Builder-127
+|   |   |---Project[bytearray][1] - Test-Plan-Builder-127
 |   |   |
 |   |   |---Constant(3) - Test-Plan-Builder-128
 |   |
 |   |---Add[Unknown] - Test-Plan-Builder-132
 |   |   |
-|   |   |---Project[bytearray](2) - Test-Plan-Builder-130
+|   |   |---Project[bytearray][2] - Test-Plan-Builder-130
 |   |   |
-|   |   |---Project[bytearray](3) - Test-Plan-Builder-131
+|   |   |---Project[bytearray][3] - Test-Plan-Builder-131
 |   |
 |   |---Subtract[Unknown] - Test-Plan-Builder-135
 |       |
-|       |---Project[bytearray](2) - Test-Plan-Builder-133
+|       |---Project[bytearray][2] - Test-Plan-Builder-133
 |       |
-|       |---Project[bytearray](3) - Test-Plan-Builder-134
+|       |---Project[bytearray][3] - Test-Plan-Builder-134
 |
 |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-126

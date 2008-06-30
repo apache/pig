@@ -1,15 +1,15 @@
 New For Each(false)[bag] - Test-Plan-Builder-16
 |   |
-|   Project[tuple](*) - Test-Plan-Builder-15
+|   Project[tuple][*] - Test-Plan-Builder-15
 |   |
 |   |---Filter[bag] - Test-Plan-Builder-11
 |       |   |
 |       |   Equal To[tuple] - Test-Plan-Builder-14
 |       |   |
-|       |   |---Project[bytearray](1) - Test-Plan-Builder-12
+|       |   |---Project[bytearray][1] - Test-Plan-Builder-12
 |       |   |
-|       |   |---Project[bytearray](2) - Test-Plan-Builder-13
+|       |   |---Project[bytearray][2] - Test-Plan-Builder-13
 |       |
-|       |---Project[bytearray](0) - Test-Plan-Builder-10
+|       |---Project[bytearray][0] - Test-Plan-Builder-10
 |
 |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-9

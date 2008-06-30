@@ -19,6 +19,7 @@ package org.apache.pig.impl.physicalLayer.expressionOperators;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.ArrayList;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
@@ -32,6 +33,8 @@ import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.Tuple;
 
 /**
  * Implements the overloaded form of the project operator.
@@ -47,8 +50,10 @@ public class POProject extends ExpressionOperator {
      */
     private static final long serialVersionUID = 1L;
 
+	private static TupleFactory tupleFactory = TupleFactory.getInstance();
+
     //The column to project
-    int column = 0;
+    ArrayList<Integer> columns;
     
     //True if we are in the middle of streaming tuples
     //in a bag
@@ -75,13 +80,19 @@ public class POProject extends ExpressionOperator {
     
     public POProject(OperatorKey k, int rp, int col) {
         super(k, rp);
-        this.column = col;
+        columns = new ArrayList<Integer>();
+        columns.add(col);
+    }
+
+    public POProject(OperatorKey k, int rp, ArrayList<Integer> cols) {
+        super(k, rp);
+        columns = cols;
     }
 
     @Override
     public String name() {
         
-        return "Project" + "[" + DataType.findTypeName(resultType) + "]" +"(" + ((star) ? "*" : column) + ") - " + mKey.toString();
+        return "Project" + "[" + DataType.findTypeName(resultType) + "]" + ((star) ? "[*]" : columns) + " - " + mKey.toString();
     }
 
     @Override
@@ -118,11 +129,24 @@ public class POProject extends ExpressionOperator {
      */
     public Result getNext() throws ExecException{
         Result res = processInput();
+        Tuple inpValue = (Tuple)res.result;
 
+        Object ret;
         if(res.returnStatus != POStatus.STATUS_OK){
             return res;
         }
-        res.result = ((Tuple)res.result).get(column);
+        if(columns.size() == 1) {
+            ret = inpValue.get(columns.get(0));
+        } else {
+	        //TupleFactory tupleFactory = TupleFactory.getInstance();
+	        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+                
+            for(int i: columns) {
+               objList.add(inpValue.get(i)); 
+            }
+		    ret = tupleFactory.newTuple(objList);
+        }
+        res.result = ret;
         return res;
     }
 
@@ -141,7 +165,8 @@ public class POProject extends ExpressionOperator {
         }
         DataBag outBag = BagFactory.getInstance().newDefaultBag();
         for (Tuple tuple : inpBag) {
-            Tuple tmpTuple = TupleFactory.getInstance().newTuple(tuple.get(column));
+            //Tuple tmpTuple = TupleFactory.getInstance().newTuple(tuple.get(columns.get(0)));
+            Tuple tmpTuple = tupleFactory.newTuple(tuple.get(columns.get(0)));
             outBag.add(tmpTuple);
         }
         res.result = outBag;
@@ -210,7 +235,22 @@ public class POProject extends ExpressionOperator {
             inpValue = (Tuple)res.result;
             res.result = null;
             
-            Object ret = inpValue.get(column);
+            Object ret;
+
+            if(columns.size() == 1) {
+                ret = inpValue.get(columns.get(0));
+            } else {
+	            //TupleFactory tupleFactory = TupleFactory.getInstance();
+	            ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+                
+                for(int i: columns) {
+                   objList.add(inpValue.get(i)); 
+                }
+		        ret = tupleFactory.newTuple(objList);
+                res.result = (Tuple)ret;
+                return res;
+            }
+
             if(overloaded){
                 DataBag retBag = (DataBag)ret;
                 bagIterator = retBag.iterator();
@@ -236,12 +276,30 @@ public class POProject extends ExpressionOperator {
         }
     }
 
-    public int getColumn() {
-        return column;
+    public ArrayList<Integer> getColumns() {
+        return columns;
     }
 
-    public void setColumn(int column) {
-        this.column = column;
+    public int getColumn() {
+        if(columns.size() != 1) {
+            throw new RuntimeException(
+            "Internal error: improper use of getColumn in "
+            + POProject.class.getName());
+        }
+        return columns.get(0);
+    }
+
+    public void setColumns(ArrayList<Integer> cols) {
+        this.columns = cols;
+    }
+
+    public void setColumn(int col) {
+        if(null == columns) {
+            columns = new ArrayList<Integer>();
+        } else {
+            columns.clear();
+        }
+        columns.add(col);
     }
 
     public boolean isOverloaded() {
@@ -275,7 +333,7 @@ public class POProject extends ExpressionOperator {
         if(!isInputAttached())
             return inputs.get(0).getNext(dummyBag);
         else{
-            res.result = (DataBag)input.get(column);
+            res.result = (DataBag)input.get(columns.get(0));
             res.returnStatus = POStatus.STATUS_OK;
             return res;
         }

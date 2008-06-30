@@ -907,6 +907,34 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("e = foreach c generate $0, ($1 IS NOT NULL ? $1 - 5 : 0);");
     }
 
+    @Test 
+    public void testQuery80() {
+        buildPlan("a = load 'input1' as (name, age, gpa);");
+        buildPlan("b = filter a by age < '20';");
+        buildPlan("c = group b by age;");
+        String query = "d = foreach c {" 
+            + "cf = filter b by gpa < '3.0';"
+            + "cp = cf.gpa;"
+            + "cd = distinct cp;"
+            + "co = order cd by gpa;"
+            + "generate group, flatten(co);"
+            //+ "generate group, flatten(cd);"
+            + "};";
+        printPlan(buildPlan(query));
+    }
+
+    //TODO
+    //The parser does not handle logical operators (AND/OR) in conjunction
+    //with comparison operators (>, <, ...)
+    /*
+    @Test
+    public void testQuery81() {
+        buildPlan("a = load 'input1' using PigStorage() as (name, age, gpa);");
+        //buildPlan("split a into b if name lt 'f', c if (name ge 'f' and name le 'h'), d if name gt 'h';");
+        buildPlan("split a into b if name lt 'f', c if (name ge 'f') and (name le 'h');");
+    }
+    */
+    
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

@@ -1,8 +1,8 @@
 Filter[tuple] - Test-Plan-Builder-196
 |   |
-|   Less Than[tuple] - Test-Plan-Builder-199
+|   Greater Than[tuple] - Test-Plan-Builder-199
 |   |
-|   |---Project[bytearray](0) - Test-Plan-Builder-197
+|   |---Project[bytearray][0] - Test-Plan-Builder-197
 |   |
 |   |---Constant(7) - Test-Plan-Builder-198
 |
@@ -12,9 +12,9 @@ Filter[tuple] - Test-Plan-Builder-196
 
 Filter[tuple] - Test-Plan-Builder-200
 |   |
-|   Greater Than[tuple] - Test-Plan-Builder-203
+|   Less Than[tuple] - Test-Plan-Builder-203
 |   |
-|   |---Project[bytearray](0) - Test-Plan-Builder-201
+|   |---Project[bytearray][0] - Test-Plan-Builder-201
 |   |
 |   |---Constant(7) - Test-Plan-Builder-202
 |

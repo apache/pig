@@ -1393,13 +1393,18 @@ LogicalOperator NestedFilter(Schema over, Map<String, LogicalOperator> specs, Lo
 {
 	ExpressionOperator cond; 
 	Schema subSchema = null; 
-	ExpressionOperator eOp; 
+	LogicalOperator eOp; 
 	LogicalPlan conditionPlan = new LogicalPlan(); 
+    Token t;
 	log.trace("Entering NestedFilter");
 }
 {
 	(
-	<FILTER>  eOp = BaseEvalSpec(over, specs, lp, input)
+	<FILTER>
+    (
+    LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
 	{subSchema = eOp.getSchema();}
 	<BY> cond = PCond(subSchema,null,conditionPlan,input)
 	)
@@ -1426,25 +1431,17 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 	ArrayList<LogicalPlan> sortColPlans = new ArrayList<LogicalPlan>(); 
 	ArrayList<Boolean> ascOrder = new ArrayList<Boolean>(); 
 	String funcName = null; 
-	ExpressionOperator eOp;
+	LogicalOperator eOp;
 	Token t; 
 	boolean asc = true; 
 	log.trace("Entering NestedSortOrArrange");}
 {
 	(
-	( t = <ORDER> | t = <ARRANGE> )
-	(
-		eOp = BaseEvalSpec(over, specs, lp, input)
-		{
-			try{
-				eOp.getSchema();
-			}catch(FrontendException fe) {
-				ParseException pe = new ParseException(fe.getMessage());
-				throw pe;
-			}
-			log.debug("Before BY");
-		}		
-	)
+	( <ORDER> | <ARRANGE> )
+    (
+    LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
 	<BY> 
 	(
 		(
@@ -1491,12 +1488,16 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 LogicalOperator NestedDistinct(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
 {
 	Token t; 
-	ExpressionOperator eOp; 
+	LogicalOperator eOp; 
 	log.trace("Entering NestedDistinct");
 }
 {
 	(
-	<DISTINCT> eOp = BaseEvalSpec(over, specs, lp, input)
+	<DISTINCT>
+    (
+    LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
 	)
 	{ 
 		lp.add(eOp);

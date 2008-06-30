@@ -587,7 +587,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         POProject exprOp = new POProject(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), op.getRequestedParallelism());
         exprOp.setResultType(op.getType());
-        exprOp.setColumn(op.getCol());
+        exprOp.setColumns((ArrayList)op.getProjection());
         exprOp.setStar(op.isStar());
         LogicalPlan lp = op.mPlan;
         LogToPhyMap.put(op, exprOp);
