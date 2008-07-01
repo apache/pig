@@ -38,7 +38,6 @@ import org.apache.commons.logging.LogFactory;
 public class LOCross extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
-    private ArrayList<LogicalOperator> mInputs;
     private static Log log = LogFactory.getLog(LOCross.class);
 
     /**
@@ -48,29 +47,24 @@ public class LOCross extends LogicalOperator {
      * @param k
      *            Operator key to assign to this node.
      */
-    public LOCross(LogicalPlan plan, OperatorKey k, ArrayList<LogicalOperator> inputs) {
-
+    public LOCross(LogicalPlan plan, OperatorKey k) {
         super(plan, k);
-        mInputs = inputs;
     }
 
     public List<LogicalOperator>  getInputs() {
-        return mInputs;
-    }
-    
-    public void addInput(LogicalOperator input) {
-        mInputs.add(input);
+        return mPlan.getPredecessors(this);
     }
     
     @Override
     public Schema getSchema() throws FrontendException {
+        List<LogicalOperator> inputs = mPlan.getPredecessors(this);
         if (!mIsSchemaComputed && (null == mSchema)) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             Map<Schema.FieldSchema, String> flattenAlias = new HashMap<Schema.FieldSchema, String>();
             Map<String, Boolean> inverseFlattenAlias = new HashMap<String, Boolean>();
             Map<String, Integer> aliases = new HashMap<String, Integer>();
 
-            for (LogicalOperator op : mInputs) {
+            for (LogicalOperator op : inputs) {
                 String opAlias = op.getAlias();
                 Schema s = op.getSchema();
 

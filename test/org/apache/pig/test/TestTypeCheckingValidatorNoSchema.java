@@ -56,7 +56,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
         inputList.add(load1) ;
         inputList.add(load2) ;
-        LOUnion union = new LOUnion(plan, genNewOperatorKey(), inputList) ;
+        LOUnion union = new LOUnion(plan, genNewOperatorKey()) ;
 
         // wiring
         plan.add(load1) ;
@@ -101,7 +101,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
         inputList.add(load1) ;
         inputList.add(load2) ;
-        LOUnion union = new LOUnion(plan, genNewOperatorKey(), inputList) ;
+        LOUnion union = new LOUnion(plan, genNewOperatorKey()) ;
 
         // wiring
         plan.add(load1) ;
@@ -335,7 +335,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         // create union operator
         ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
         inputList.add(load1) ;
-        LODistinct distinct1 = new LODistinct(plan, genNewOperatorKey(), load1) ;
+        LODistinct distinct1 = new LODistinct(plan, genNewOperatorKey()) ;
 
         // wiring
         plan.add(load1) ;
@@ -410,7 +410,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         ascList.add(true);
 
         // Sort
-        LOSort sort1 = new LOSort(plan, genNewOperatorKey(), load1, innerPlans,  ascList, null) ;
+        LOSort sort1 = new LOSort(plan, genNewOperatorKey(), innerPlans,  ascList, null) ;
 
 
         plan.add(load1);
@@ -476,7 +476,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         innerPlan.connect(const1, gt1) ;
 
         // filter
-        LOFilter filter1 = new LOFilter(plan, genNewOperatorKey(), innerPlan, load1) ;
+        LOFilter filter1 = new LOFilter(plan, genNewOperatorKey(), innerPlan) ;
 
         plan.add(load1);
         plan.add(filter1);
@@ -542,7 +542,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         innerPlan.connect(const1, gt1) ;
 
         // filter
-        LOFilter filter1 = new LOFilter(plan, genNewOperatorKey(), innerPlan, load1) ;
+        LOFilter filter1 = new LOFilter(plan, genNewOperatorKey(), innerPlan) ;
 
         plan.add(load1);
         plan.add(filter1);
@@ -595,7 +595,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
         inputList.add(load1) ;
         inputList.add(load2) ;
-        LOCross cross = new LOCross(plan, genNewOperatorKey(), inputList) ;
+        LOCross cross = new LOCross(plan, genNewOperatorKey()) ;
 
         // wiring
         plan.add(load1) ;
@@ -637,7 +637,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
         inputList.add(load1) ;
         inputList.add(load2) ;
-        LOCross cross = new LOCross(plan, genNewOperatorKey(), inputList) ;
+        LOCross cross = new LOCross(plan, genNewOperatorKey()) ;
 
         // wiring
         plan.add(load1) ;
@@ -729,7 +729,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
         LOCogroup cogroup1 = new LOCogroup(plan,
                                            genNewOperatorKey(),
-                                           inputs,
                                            maps,
                                            isInner) ;
 
@@ -864,7 +863,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
         LOCogroup cogroup1 = new LOCogroup(plan,
                                            genNewOperatorKey(),
-                                           inputs,
                                            maps,
                                            isInner) ;
 

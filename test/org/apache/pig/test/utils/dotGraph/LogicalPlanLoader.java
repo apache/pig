@@ -100,20 +100,20 @@ public class LogicalPlanLoader
     }
 
     private LOFilter createLOFilter(DotNode node, LogicalPlan plan) {
-        LOFilter filter = new LOFilter(plan, getKey(node.attributes), null, null) ;
+        LOFilter filter = new LOFilter(plan, getKey(node.attributes), null) ;
         fillSchema(filter, node.attributes) ;
         return filter ;
     }
 
     private LODistinct createLODistinct(DotNode node, LogicalPlan plan) {
-        LODistinct distinct = new LODistinct(plan, getKey(node.attributes), null) ;
+        LODistinct distinct = new LODistinct(plan, getKey(node.attributes)) ;
         fillSchema(distinct, node.attributes) ;
         return distinct ;
     }
 
     private LOSort createLOSort(DotNode node, LogicalPlan plan) {
         LOSort sort = new LOSort(plan, getKey(node.attributes),
-                                 null, null, null, "") ;
+                                 null, null, "") ;
         fillSchema(sort, node.attributes) ;
         return sort ;
     }
@@ -139,19 +139,19 @@ public class LogicalPlanLoader
 
     private LOCogroup createLOCogroup(DotNode node, LogicalPlan plan) {
         LOCogroup cogroup = new LOCogroup(plan, getKey(node.attributes),
-                                          null, null, null) ;
+                                          null, null) ;
         fillSchema(cogroup, node.attributes) ;
         return cogroup ;
     }
 
     private LOUnion createLOUnion(DotNode node, LogicalPlan plan) {
-        LOUnion union = new LOUnion(plan, getKey(node.attributes),  null) ;
+        LOUnion union = new LOUnion(plan, getKey(node.attributes)) ;
         fillSchema(union, node.attributes) ;
         return union ;
     }
 
     private LOCross createLOCross(DotNode node, LogicalPlan plan) {
-        LOCross cross = new LOCross(plan, getKey(node.attributes),  null) ;
+        LOCross cross = new LOCross(plan, getKey(node.attributes)) ;
         fillSchema(cross, node.attributes) ;
         return cross ;
     }

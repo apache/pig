@@ -18,9 +18,12 @@
 
 package org.apache.pig.impl.logicalLayer.validators;
 
-import java.util.Iterator;
-import java.util.List ;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 
 import org.apache.pig.impl.logicalLayer.LOConst;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -1338,7 +1341,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     @Override
     protected void visit(LOUnion u) throws VisitorException {
-        List<LogicalOperator> inputs =  u.getInputs() ;
+        // Have to make a copy, because as we insert operators, this list will
+        // change under us.
+        List<LogicalOperator> inputs = 
+            new ArrayList<LogicalOperator>(u.getInputs());
 
         // There is no point to union only one operand
         // it should be a problem in the parser
@@ -1401,8 +1407,6 @@ public class TypeCheckingVisitor extends LOVisitor {
                 }
             }
         }
-
-
     }
 
     @Override
@@ -1512,7 +1516,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             vse.initCause(fe) ;
             throw vse ;
         }
-
     }
     
     /***
@@ -1521,7 +1524,6 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
 
     protected void visit(LOSort s) throws VisitorException {
-
         LogicalOperator input = s.getInput() ;
         
         // Type checking internal plans.
@@ -1563,7 +1565,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     @Override
     protected void visit(LOFilter filter) throws VisitorException {
-
         LogicalOperator input = filter.getInput() ;
         LogicalPlan comparisonPlan = filter.getComparisonPlan() ;
         
@@ -1595,7 +1596,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             vse.initCause(ioe) ;
             throw vse ;
         }
-
     }
 
     /***
@@ -1603,7 +1603,6 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
 
     protected void visit(LOSplit split) throws VisitorException {
-
         // TODO: Why doesn't LOSplit have getInput() ???
         List<LogicalOperator> inputList = mPlan.getPredecessors(split) ;
         
@@ -1632,7 +1631,6 @@ public class TypeCheckingVisitor extends LOVisitor {
      * same type
      */
     protected void visit(LOCogroup cg) throws VisitorException {
-
         MultiMap<LogicalOperator, LogicalPlan> groupByPlans
                                                     = cg.getGroupByPlans() ;
         List<LogicalOperator> inputs = cg.getInputs() ;
@@ -1790,9 +1788,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             vse.initCause(pe) ;
             throw vse ;
         }
-
-
-        
     }
 
 
@@ -1929,7 +1924,6 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
 
     protected void visit(LOForEach g) throws VisitorException {
-
         List<LogicalPlan> plans = g.getForEachPlans() ;
         List<Boolean> flattens = g.getFlatten() ;
 
@@ -2032,7 +2026,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             vse.initCause(pe) ;
             throw vse ;
         }
-
     }
     
     /***
@@ -2312,6 +2305,5 @@ public class TypeCheckingVisitor extends LOVisitor {
         long newId = NodeIdGenerator.getGenerator().getNextNodeId(scope) ;
         return new OperatorKey(scope, newId) ;
     }
-
 
 }

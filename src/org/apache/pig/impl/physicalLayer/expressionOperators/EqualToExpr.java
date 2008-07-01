@@ -118,7 +118,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
         }
         right = (Double) res.result;
 
-        if (left == right) {
+        if (left.equals(right)) {
 
             res.result = new Boolean(true);
             //left = right = null;
@@ -154,7 +154,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
         }
         right = (Float) res.result;
 
-        if (left == right) {
+        if (left.equals(right)) {
 
             res.result = new Boolean(true);
             //left = right = null;
@@ -190,7 +190,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
         }
         right = (Integer) res.result;
 
-        if (left == right) {
+        if (left.equals(right)) {
 
             res.result = new Boolean(true);
             //left = right = null;
@@ -226,7 +226,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
         }
         right = (Long) res.result;
 
-        if (left == right) {
+        if (left.equals(right)) {
 
             res.result = new Boolean(true);
             //left = right = null;

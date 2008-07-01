@@ -50,6 +50,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
+import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
@@ -480,6 +481,10 @@ public class PigServer {
         if(null == lp) {
             throw new FrontendException("Cannot operate on null logical plan");
         }
+
+        // Set the logical plan values correctly in all the operators
+        PlanSetter ps = new PlanSetter(lp);
+        ps.visit();
 
         // run through validator
         CompilationMessageCollector collector = new CompilationMessageCollector() ;

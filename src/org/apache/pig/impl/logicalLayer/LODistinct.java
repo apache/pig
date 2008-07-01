@@ -34,7 +34,6 @@ import org.apache.commons.logging.LogFactory;
 public class LODistinct extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
-    private LogicalOperator mInput;
     private static Log log = LogFactory.getLog(LODistinct.class);
 
     /**
@@ -46,14 +45,13 @@ public class LODistinct extends LogicalOperator {
      * @param input
      *            input over which distinct will be applied
      */
-    public LODistinct(LogicalPlan plan, OperatorKey k, LogicalOperator input) {
+    public LODistinct(LogicalPlan plan, OperatorKey k) {
 
         super(plan, k);
-        mInput = input;
     }
 
     public LogicalOperator getInput() {
-        return mInput;
+        return mPlan.getPredecessors(this).get(0);
     }
 
     @Override

@@ -31,7 +31,6 @@ import org.apache.commons.logging.LogFactory;
 public class LOFilter extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
-    private LogicalOperator mInput;
     private LogicalPlan mComparisonPlan;
     private static Log log = LogFactory.getLog(LOFilter.class);
 
@@ -48,14 +47,13 @@ public class LOFilter extends LogicalOperator {
      */
 
     public LOFilter(LogicalPlan plan, OperatorKey k,
-            LogicalPlan comparisonPlan, LogicalOperator input) {
+            LogicalPlan comparisonPlan) {
         super(plan, k);
         mComparisonPlan = comparisonPlan;
-        mInput = input;
     }
 
     public LogicalOperator getInput() {
-        return mInput;
+        return mPlan.getPredecessors(this).get(0);
     }
 
     public LogicalPlan getComparisonPlan() {
@@ -65,10 +63,11 @@ public class LOFilter extends LogicalOperator {
     @Override
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {
+            LogicalOperator input = mPlan.getPredecessors(this).get(0);
             ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {
-                if(mInput instanceof ExpressionOperator) {
-                    Schema.FieldSchema fs = ((ExpressionOperator)mInput).getFieldSchema();
+                if(input instanceof ExpressionOperator) {
+                    Schema.FieldSchema fs = ((ExpressionOperator)input).getFieldSchema();
                     if(DataType.isSchemaType(fs.type)) {
                         mSchema = fs.schema;
                     } else {
@@ -76,7 +75,7 @@ public class LOFilter extends LogicalOperator {
                         mSchema = new Schema(fss);
                     }
                 } else {
-                    mSchema = mInput.getSchema();
+                    mSchema = input.getSchema();
                 }
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {

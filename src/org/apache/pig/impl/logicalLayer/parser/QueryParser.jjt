@@ -195,7 +195,7 @@ public class QueryParser {
 			isInner[i] = gi.isInner;
 		}
 		
-		LogicalOperator cogroup = new LOCogroup(lp, new OperatorKey(scope, getNextId()), los, groupByPlans, isInner);
+		LogicalOperator cogroup = new LOCogroup(lp, new OperatorKey(scope, getNextId()), groupByPlans, isInner);
 		lp.add(cogroup);
 		log.debug("Added operator " + cogroup.getClass().getName() + " object " + cogroup + " to the logical plan " + lp);
 		
@@ -655,7 +655,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |   (<ORDER> op = OrderClause(lp))
 |	(<DISTINCT> op = NestedExpr(lp) 
 	{
-		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId()), op); 
+		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId())); 
 		lp.add(distinct);
 		log.debug("Added operator: " + distinct.getClass().getName() + " to the logical plan"); 
 		lp.connect(op, distinct);
@@ -741,7 +741,8 @@ LogicalOperator FilterClause(LogicalPlan lp):
 	 <BY> cond = PCond(input.getSchema(),null,conditionPlan,input)
 	 )
 	{
-		LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan, input);
+		//LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan, input);
+		LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan);
 		addAlias(input.getAlias(), input);
 		lp.add(filter);
 		log.debug("Added operator " + filter.getClass().getName() + " to the logical plan");
@@ -1116,7 +1117,7 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 
 	)
 	{
-		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), op, sortColPlans, ascOrder, funcName);
+		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, funcName);
 		sort.setStar(star);
 		lp.add(sort);
 		log.debug("Added operator " + sort.getClass().getName() + " to the logical plan");
@@ -1204,7 +1205,7 @@ LogicalOperator CrossClause(LogicalPlan lp) :
 	("," op = NestedExpr(lp) { inputs.add(op); })*
 	)
 	{
-		LogicalOperator cross = new LOCross(lp, new OperatorKey(scope, getNextId()), inputs);
+		LogicalOperator cross = new LOCross(lp, new OperatorKey(scope, getNextId()));
 		lp.add(cross);
 		log.debug("Added operator " + cross.getClass().getName() + " to the logical plan");
 		
@@ -1243,7 +1244,7 @@ LogicalOperator UnionClause(LogicalPlan lp) :
 	(op = NestedExpr(lp){inputs.add(op);} 
 	("," op = NestedExpr(lp) {inputs.add(op);})*)
 	{
-		LogicalOperator union = new LOUnion(lp, new OperatorKey(scope, getNextId()), inputs);
+		LogicalOperator union = new LOUnion(lp, new OperatorKey(scope, getNextId()));
 		lp.add(union);
 		log.debug("Added operator " + union.getClass().getName() + " to the logical plan");
 		
@@ -1411,7 +1412,8 @@ LogicalOperator NestedFilter(Schema over, Map<String, LogicalOperator> specs, Lo
 	{ 
 		lp.add(eOp);
 		log.debug("Added " + eOp.getAlias() + " to the logical plan");
-		LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan, eOp);
+		//LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan, eOp);
+		LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan);
 		lp.add(filter);
 		log.debug("Added nested filter operator " + filter.getClass().getName() + " to the logical plan");
 		
@@ -1464,7 +1466,7 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 	)
 	{	
 		log.debug("Before creating LOSort");
-		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), eOp, sortColPlans, ascOrder, funcName);
+		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, funcName);
 		sort.setStar(star);
 		log.debug("After creating LOSort");
 		try {
@@ -1502,7 +1504,7 @@ LogicalOperator NestedDistinct(Schema over, Map<String, LogicalOperator> specs, 
 	{ 
 		lp.add(eOp);
 		log.debug("Added " + eOp.getAlias() + " to the logical plan");
-		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId()), eOp);
+		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId()));
 		lp.add(distinct);
 		log.debug("Added operator " + distinct.getClass().getName() + " to the logical plan");
 		

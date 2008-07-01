@@ -34,7 +34,6 @@ import org.apache.commons.logging.LogFactory;
 public class LOSort extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-    private LogicalOperator mInput;
     private List<Boolean> mAscCols;
     private String mSortFunc;
     private boolean mIsStar = false;
@@ -60,19 +59,17 @@ public class LOSort extends LogicalOperator {
     public LOSort(
             LogicalPlan plan,
             OperatorKey key,
-            LogicalOperator input,
             List<LogicalPlan> sortColPlans,
             List<Boolean> ascCols,
             String sortFunc) {
         super(plan, key);
-        mInput = input;
         mSortColPlans = sortColPlans;
         mAscCols = ascCols;
         mSortFunc = sortFunc;
     }
 
     public LogicalOperator getInput() {
-        return mInput;
+        return mPlan.getPredecessors(this).get(0);
     }
     
     public List<LogicalPlan> getSortColPlans() {

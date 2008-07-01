@@ -32,7 +32,6 @@ import org.apache.commons.logging.LogFactory;
 public class LOUnion extends LogicalOperator {
 
     private static final long serialVersionUID = 2L;
-    private ArrayList<LogicalOperator> mInputs;
     private static Log log = LogFactory.getLog(LOUnion.class);
 
     /**
@@ -43,20 +42,14 @@ public class LOUnion extends LogicalOperator {
      * @param inputs
      *            List of operators that are input to the union
      */
-    public LOUnion(LogicalPlan plan, OperatorKey k,
-            ArrayList<LogicalOperator> inputs) {
+    public LOUnion(LogicalPlan plan, OperatorKey k) {
         super(plan, k);
-        mInputs = inputs;
     }
 
     public List<LogicalOperator> getInputs() {
-        return mInputs;
+        return mPlan.getPredecessors(this);
     }
     
-    public void addInput(LogicalOperator input) {
-        mInputs.add(input);
-    }
-
     @Override
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed && (null == mSchema)) {

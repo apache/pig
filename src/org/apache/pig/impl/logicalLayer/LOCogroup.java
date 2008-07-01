@@ -43,7 +43,6 @@ public class LOCogroup extends LogicalOperator {
      * operator. Each generate operator in turn contains a list of expressions
      * for the columns that are projected
      */
-    private ArrayList<LogicalOperator> mInputs;
     private boolean[] mIsInner;
     private static Log log = LogFactory.getLog(LOCogroup.class);
     private MultiMap<LogicalOperator, LogicalPlan> mGroupByPlans;
@@ -54,22 +53,23 @@ public class LOCogroup extends LogicalOperator {
      *            LogicalPlan this operator is a part of.
      * @param k
      *            OperatorKey for this operator
-     * @param inputs
-     *            List of input operators
      * @param groupByPlans
      *            the group by columns
+     * @param isInner
+     *            indicates whether the cogroup is inner for each relation
      */
-    public LOCogroup(LogicalPlan plan, OperatorKey k,
-            ArrayList<LogicalOperator> inputs,
-            MultiMap<LogicalOperator, LogicalPlan> groupByPlans, boolean[] isInner) {
+    public LOCogroup(
+            LogicalPlan plan,
+            OperatorKey k,
+            MultiMap<LogicalOperator, LogicalPlan> groupByPlans,
+            boolean[] isInner) {
         super(plan, k);
-        mInputs = inputs;
         mGroupByPlans = groupByPlans;
         mIsInner = isInner;
     }
 
     public List<LogicalOperator> getInputs() {
-        return mInputs;
+        return mPlan.getPredecessors(this);
     }
 
     public MultiMap<LogicalOperator, LogicalPlan> getGroupByPlans() {
@@ -92,7 +92,7 @@ public class LOCogroup extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
-        // TODO create schema
+        List<LogicalOperator> inputs = mPlan.getPredecessors(this);
         /*
          * Dumping my understanding of how the schema of a Group/CoGroup will
          * look. The first field of the resulting tuple will have the alias
@@ -103,7 +103,7 @@ public class LOCogroup extends LogicalOperator {
          */
         if (!mIsSchemaComputed && (null == mSchema)) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
-                    mInputs.size() + 1);
+                    inputs.size() + 1);
             // one more to account for the "group"
             // the alias of the first field is group and hence the
             // string "group"
@@ -129,7 +129,7 @@ public class LOCogroup extends LogicalOperator {
             MultiMap<String, ExpressionOperator> aliasExop = new MultiMap<String, ExpressionOperator>();
             MultiMap<Integer, String> positionAlias= new MultiMap<Integer, String>();
             
-            for (LogicalOperator op : mInputs) {
+            for (LogicalOperator op : inputs) {
                 log.debug("GBY Input: " + op.getClass().getName());
                 for(LogicalPlan plan: mGroupByPlans.get(op)) {
                     int position = 0;
@@ -158,7 +158,7 @@ public class LOCogroup extends LogicalOperator {
             
             log.debug("Computed the lookup table");
 
-            int arity = mGroupByPlans.get(mInputs.get(0)).size();
+            int arity = mGroupByPlans.get(inputs.get(0)).size();
             log.debug("Arity: " + arity);
             for (int i = 0; i < arity; ++i) {
                 Collection<String> cAliases;
@@ -235,7 +235,7 @@ public class LOCogroup extends LogicalOperator {
             } else {
                 fss.add(new Schema.FieldSchema("group", groupBySchema));
             }
-            for (LogicalOperator op : mInputs) {
+            for (LogicalOperator op : inputs) {
                 log.debug("Op: " + op.getClass().getName());
                 log.debug("Op Alias: " + op.getAlias());
                 try {
@@ -260,11 +260,12 @@ public class LOCogroup extends LogicalOperator {
     }
 
     public boolean isTupleGroupCol() {
-        if (mInputs == null || mInputs.size() == 0) {
+        List<LogicalOperator> inputs = mPlan.getPredecessors(this);
+        if (inputs == null || inputs.size() == 0) {
             throw new AssertionError("COGroup.isTupleGroupCol() can be called "
                                      + "after it has an input only") ;
         }
-        return mGroupByPlans.get(mInputs.get(0)).size() > 1 ;
+        return mGroupByPlans.get(inputs.get(0)).size() > 1 ;
     }
 
     @Override

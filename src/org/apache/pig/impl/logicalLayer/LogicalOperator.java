@@ -252,6 +252,14 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         return mPlan ;
     }
 
+    /**
+     * Change the reference to the plan for this operator.  Don't use this
+     * unless you're sure you know what you're doing.
+     */
+    public void setPlan(LogicalPlan plan) {
+        mPlan = plan;
+    }
+
 
     /***
      * IMPORTANT:

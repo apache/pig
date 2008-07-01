@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.plan;
 
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -111,15 +112,6 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         return mKeys;
     }
 
-    /**
-     * Get the map of operators and associated operator keys
-     * @return map of operator and operator keys.
-     */
-    /*
-    public Map<E, OperatorKey> getOps() {
-        return mOps;
-    }
-    */
     /**
      * Insert an operator into the plan.  This only inserts it as a node in
      * the graph, it does not connect it to any other operators.  That should
@@ -365,5 +357,26 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         connect(after, newNode);
         connect(newNode, before);
     }
+
+    public void dump(PrintStream ps) {
+        ps.println("Ops");
+        for (E op : mOps.keySet()) {
+            ps.println(op.name());
+        }
+        ps.println("from edges");
+        for (E op : mFromEdges.keySet()) {
+            for (E to : mFromEdges.get(op)) {
+                ps.println(op.name() + " -> " + to.name());
+            }
+        }
+        ps.println("to edges");
+        for (E op : mToEdges.keySet()) {
+            for (E to : mToEdges.get(op)) {
+                ps.println(op.name() + " -> " + to.name());
+            }
+        }
+    }
+    
+
 
 }
