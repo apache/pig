@@ -1,0 +1,3 @@
+PIG-246: created UDF repository (olgan)
+PIG-245: UDF wrappers for Java Math functions (ajaygarg via olgan)
+PIG-277: UDF for computing correlation and covariance between data sets (ajaygarg via olgan)
