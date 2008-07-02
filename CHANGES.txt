@@ -333,3 +333,5 @@ Trunk (unreleased changes)
     PIG-271: added tutorial to SVN (olgan)
 
     PIG-235: memory management improvements (pkamath via olgan)
+
+    PIG-284: target for building source jar (oae via olgan)
