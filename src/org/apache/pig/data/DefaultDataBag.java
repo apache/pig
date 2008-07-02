@@ -45,7 +45,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
 
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(DefaultDataBag.class);
  
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();

@@ -130,3 +130,6 @@ Trunk (unreleased changes)
 
 	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
 	flattening the combiner case. (gates and oae)
+
+    PIG-213: Remove non-static references to logger from data bags and tuples, 
+    as it causes significant overhead (vgeschel via gates).

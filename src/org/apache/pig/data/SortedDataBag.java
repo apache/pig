@@ -55,7 +55,7 @@ public class SortedDataBag extends DefaultAbstractBag{
 
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(SortedDataBag.class);
 
     private Comparator<Tuple> mComp;
     private boolean mReadStarted = false;

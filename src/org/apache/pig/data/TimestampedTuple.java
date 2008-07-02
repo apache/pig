@@ -30,7 +30,7 @@ public class TimestampedTuple extends DefaultTuple {
      * 
      */
     private static final long serialVersionUID = 2L;
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(TimestampedTuple.class);
     static String defaultDelimiter = "[,\t]";
 
     protected double timestamp = 0;      // timestamp of this tuple
