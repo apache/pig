@@ -133,3 +133,5 @@ Trunk (unreleased changes)
 
     PIG-213: Remove non-static references to logger from data bags and tuples, 
     as it causes significant overhead (vgeschel via gates).
+
+     PIG-284: target for building source jar (oae via olgan)

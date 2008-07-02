@@ -40,6 +40,7 @@
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
+    <property name="output.jarfile.sources" value="${build.dir}/${final.name}-sources.jar" />
     <!-- Maintain old pig.jar in top level directory. -->
     <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
 
@@ -196,6 +197,21 @@
     <!-- @depricated, Documentation                                         -->
     <!-- ================================================================== -->
     <target name="doc" depends="javadoc">
+    </target>
+	
+    <target name="source-jar" depends="cc-compile">
+	    <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}">
+            <manifest>
+                <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Implementation-Title" value="Pig" />
+                    <attribute name="Implementation-Version" value="${version}" />
+                </section>
+            </manifest>
+            <fileset dir="${src.gen.dir}"/>
+            <fileset dir="${src.lib.dir}/shock"/>
+            <fileset dir="${src.lib.dir}/bzip2"/>
+        </jar>
     </target>
 
     <!-- ================================================================== -->
