@@ -335,3 +335,5 @@ Trunk (unreleased changes)
     PIG-235: memory management improvements (pkamath via olgan)
 
     PIG-284: target for building source jar (oae via olgan)
+
+    PIG-34: added missing licenses
