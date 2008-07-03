@@ -38,7 +38,7 @@ public class TestRegexp extends TestCase{
 
     Random r = new Random();
     ConstantExpression lt, rt;
-    BinaryExpressionOperator op;
+    BinaryComparisonOperator op;
 
     @Before
     public void setUp() throws Exception {
@@ -49,6 +49,7 @@ public class TestRegexp extends TestCase{
         op = new PORegexp(new OperatorKey("", r.nextLong()));
         op.setLhs(lt);
         op.setRhs(rt);
+        op.setOperandType(DataType.CHARARRAY);
     }
 
     @Test
@@ -56,7 +57,7 @@ public class TestRegexp extends TestCase{
         lt.setValue(new String(
             "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(".*s.y.*");
-        Result res = op.getNext(new String());
+        Result res = op.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean)res.result);
     }
@@ -66,7 +67,7 @@ public class TestRegexp extends TestCase{
         lt.setValue(new String(
             "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(new String("zzz"));
-        Result res = op.getNext(new String());
+        Result res = op.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean)res.result);
     }

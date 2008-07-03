@@ -99,7 +99,13 @@ public class POFilter extends PhysicalOperator {
 
             plan.attachInput((Tuple) inp.result);
 
+            /*
             switch (compOperandType) {
+            case DataType.BOOLEAN:
+                res = comOp.getNext(dummyBool);
+                if (res.returnStatus != POStatus.STATUS_OK)
+                    continue;
+                break;
             case DataType.BYTEARRAY:
                 res = comOp.getNext(dummyDBA);
                 if (res.returnStatus != POStatus.STATUS_OK)
@@ -130,11 +136,15 @@ public class POFilter extends PhysicalOperator {
                 if (res.returnStatus != POStatus.STATUS_OK)
                     continue;
                 break;
-            }
 
-            if (res == null) {
-                return new Result();
+            default:
+                throw new RuntimeException("Unexpected type " +
+                    DataType.findTypeName(compOperandType));
             }
+            */
+            res = comOp.getNext(dummyBool);
+            if (res.returnStatus != POStatus.STATUS_OK) return res;
+
             if ((Boolean) res.result == true) {
                 return inp;
             }

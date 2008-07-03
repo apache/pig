@@ -68,6 +68,7 @@ public class TestPOBinCond extends TestCase {
         EqualToExpr equal = (EqualToExpr) GenPhyOp.compEqualToExpr();
         equal.setLhs(prj1);
         equal.setRhs(rt);
+        equal.setOperandType(DataType.INTEGER);
         
         POProject prjLhs = GenPhyOp.exprProject();
         prjLhs.setResultType(DataType.INTEGER);

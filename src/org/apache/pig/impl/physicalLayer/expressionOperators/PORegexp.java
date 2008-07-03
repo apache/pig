@@ -20,7 +20,7 @@ package org.apache.pig.impl.physicalLayer.expressionOperators;
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
@@ -40,6 +40,7 @@ public class PORegexp extends BinaryComparisonOperator {
 
     public PORegexp(OperatorKey k, int rp) {
         super(k, rp);
+        resultType = DataType.BOOLEAN;
     }
 
     @Override
@@ -53,42 +54,21 @@ public class PORegexp extends BinaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(DataByteArray inp) throws ExecException {
-        // TODO, no idea how to take this on.
-        return new Result();
-    }
-
-    @Override
-    public Result getNext(String inp) throws ExecException {
+    public Result getNext(Boolean bool) throws ExecException {
         byte status;
-        Result res;
+        Result left, right;
 
-        String left = null, right = null;
+        left = lhs.getNext(dummyString);
+        right = rhs.getNext(dummyString);
 
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if (status != POStatus.STATUS_OK) {
-
-            return res;
+        if (trueRef == null) initializeRefs();
+        if (left.returnStatus != POStatus.STATUS_OK) return left;
+        if (right.returnStatus != POStatus.STATUS_OK) return right;
+        if (((String)left.result).matches((String)right.result)) {
+            left.result = trueRef;
+        } else {
+            left.result = falseRef;
         }
-        left = (String) res.result;
-
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if (status != POStatus.STATUS_OK) {
-
-            return res;
-        }
-        right = (String) res.result;
-
-        // left is expression to match against, right is regular expression
-        try {
-            res.result = new Boolean(left.matches(right));
-            return res;
-        } catch (PatternSyntaxException pse) {
-            throw new ExecException("Unable to parse regular expression " +
-                right, pse);
-        }
+        return left;
     }
-
 }

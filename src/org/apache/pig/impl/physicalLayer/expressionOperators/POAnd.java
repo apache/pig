@@ -37,11 +37,12 @@ public class POAnd extends BinaryComparisonOperator {
     private static final long serialVersionUID = 1L;
 
     public POAnd(OperatorKey k) {
-        super(k);
+        this(k, -1);
     }
 
     public POAnd(OperatorKey k, int rp) {
         super(k, rp);
+        resultType = DataType.BOOLEAN;
     }
 
     @Override
@@ -56,26 +57,16 @@ public class POAnd extends BinaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean b) throws ExecException {
-        byte status;
-        Result res;
-        Boolean left = null, right = null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
-            return res;
+        Result left;
+        left = lhs.getNext(dummyBool);
+        if(left.returnStatus != POStatus.STATUS_OK) {
+            return left;
         }
-        left = (Boolean)res.result;
         // Short circuit.
-        if (!left) return res;
+        if (!(((Boolean)left.result).booleanValue())) return left;
         
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
-            return res;
-        }
-        right = (Boolean)res.result;
-        
-        res.result = new Boolean(left && right);
-        return res;
+        // No matter what, what we get from the right side is what we'll
+        // return, error, null, true, or false.
+        return rhs.getNext(dummyBool);
     }
 }

@@ -37,6 +37,12 @@ public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
     //The result will be comunicated using the Status object.
     //This is a slight abuse of the status object.
     protected byte operandType;
+
+    // Default instances of true and false, used so that all the equality
+    // operators don't have to instantiate a true or false object on each
+    // test.
+    protected Boolean trueRef;
+    protected Boolean falseRef;
     
     public BinaryComparisonOperator(OperatorKey k) {
         this(k,-1);
@@ -52,5 +58,12 @@ public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
 
     public void setOperandType(byte operandType) {
         this.operandType = operandType;
+    }
+
+    // Necessary because the objects are serialized, not constructed on the
+    // other side.
+    protected void initializeRefs() {
+        trueRef = new Boolean(true);
+        falseRef = new Boolean(false);
     }
 }

@@ -400,7 +400,10 @@ public class MRCompiler extends PhyPlanVisitor {
     
     
     private MapReduceOper endSingleInputPlanWithStr(FileSpec fSpec) throws PlanException{
-        if(compiledInputs.length>1) throw new PlanException("Received a multi input plan when expecting only a single input one.");
+        if(compiledInputs.length>1) {
+            log.error("Received a multi input plan when expecting only a single input one.");
+            throw new PlanException("Received a multi input plan when expecting only a single input one.");
+        }
         MapReduceOper mro = compiledInputs[0];
         POStore str = getStore();
         str.setSFile(fSpec);
@@ -751,8 +754,10 @@ public class MRCompiler extends PhyPlanVisitor {
         
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         
-        if(fields==null)
+        if(fields==null) {
+            log.error("No Expression Plan found in POSort");
             throw new PlanException("No Expression Plan found in POSort");
+        }
         for (int i : fields) {
             PhysicalPlan ep = new PhysicalPlan();
             POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
@@ -809,8 +814,10 @@ public class MRCompiler extends PhyPlanVisitor {
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();
         
-        if(fields==null)
+        if(fields==null) {
+            log.error("No Expression Plan found in POSort");
             throw new PlanException("No Expression Plan found in POSort");
+        }
         for (int i : fields) {
             PhysicalPlan ep = new PhysicalPlan();
             POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));

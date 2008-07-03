@@ -49,8 +49,8 @@ public class LORegexp extends BinaryExpressionOperator {
      *            regular expression to match
      */
     public LORegexp(LogicalPlan plan, OperatorKey key,
-            ExpressionOperator operand, String regexp) {
-        super(plan, key, operand, new LOConst(plan, key, regexp));
+            ExpressionOperator operand, ExpressionOperator regexp) {
+        super(plan, key, operand, regexp);
     }
 
     public ExpressionOperator getOperand() {
@@ -84,7 +84,7 @@ public class LORegexp extends BinaryExpressionOperator {
 
     @Override
     public boolean supportsMultipleInputs() {
-        return false;
+        return true;
     }
 
     @Override

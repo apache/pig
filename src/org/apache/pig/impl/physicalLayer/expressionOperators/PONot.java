@@ -36,12 +36,15 @@ public class PONot extends UnaryComparisonOperator {
      */
     private static final long serialVersionUID = 1L;
 
+    private Result trueRes, falseRes;
+
     public PONot(OperatorKey k) {
-        super(k);
+        this(k, -1);
     }
 
     public PONot(OperatorKey k, int rp) {
         super(k, rp);
+        resultType = DataType.BOOLEAN;
     }
 
     @Override
@@ -56,15 +59,19 @@ public class PONot extends UnaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean b) throws ExecException {
-        byte status;
-        Result res;
-        Boolean dummy = null;
-        res = expr.getNext(dummy);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if (trueRes == null) {
+            trueRes = new Result();
+            trueRes.returnStatus = POStatus.STATUS_OK;
+            trueRes.result = new Boolean(true);
+            falseRes = new Result();
+            falseRes.returnStatus = POStatus.STATUS_OK;
+            falseRes.result = new Boolean(false);
+        }
+        res = expr.getNext(dummyBool);
+        if(res.returnStatus != POStatus.STATUS_OK) {
             return res;
         }
-        res.result = !(Boolean)res.result;
-        return res;
+        if (((Boolean)res.result).booleanValue()) return falseRes;
+        else return trueRes;
     }
 }

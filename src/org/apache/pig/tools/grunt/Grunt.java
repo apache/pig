@@ -48,16 +48,16 @@ public class Grunt
     }
 
     public void run() {
-    parser.setInteractive(true);
-    parser.parseContOnError();
+        parser.setInteractive(true);
+        parser.parseContOnError();
     }
 
     public void exec() throws Throwable {
         try {
-        parser.setInteractive(false);
-        parser.parseStopOnError();
+            parser.setInteractive(false);
+            parser.parseStopOnError();
         } catch (Throwable e) {
-            log.error(e.getMessage());
+            log.error(e);
             throw e;
         }
     

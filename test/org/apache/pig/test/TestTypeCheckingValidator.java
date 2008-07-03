@@ -654,7 +654,8 @@ public class TestTypeCheckingValidator extends TestCase {
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.CHARARRAY) ;
 
-        LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1, "Regex") ;
+        LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1,
+            new LOConst(plan, genNewOperatorKey(), "Regex")) ;
 
         plan.add(constant1) ;
         plan.add(regex) ;
@@ -680,7 +681,8 @@ public class TestTypeCheckingValidator extends TestCase {
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.BYTEARRAY) ;
 
-        LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1, "Regex") ;
+        LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1,
+            new LOConst(plan, genNewOperatorKey(), "Regex"));
 
         plan.add(constant1) ;
         plan.add(regex) ;
@@ -714,7 +716,8 @@ public class TestTypeCheckingValidator extends TestCase {
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.INTEGER) ;
 
-        LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1, "Regex") ;
+        LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1,
+            new LOConst(plan, genNewOperatorKey(), "Regex"));
 
         plan.add(constant1) ;
         plan.add(regex) ;

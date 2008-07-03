@@ -56,7 +56,6 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
-import org.apache.pig.impl.physicalLayer.POPrinter;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -338,8 +337,6 @@ public class PigServer {
             PhysicalPlan pp = compilePp(lp);
             stream.println("-----------------------------------------------");
             stream.println("Physical Plan:");
-            POPrinter pv = new POPrinter(stream, pp);
-            pv.visit();
 
             stream.println("-----------------------------------------------");
             pigContext.getExecutionEngine().explain(pp, stream);

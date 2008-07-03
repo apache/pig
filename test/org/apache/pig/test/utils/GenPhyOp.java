@@ -25,6 +25,7 @@ import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -75,8 +76,36 @@ public class GenPhyOp{
         return ret;
     }
 
+    public static GreaterThanExpr compGreaterThanExpr(
+            ExpressionOperator lhs,
+            ExpressionOperator rhs,
+            byte type) {
+        GreaterThanExpr ret = new GreaterThanExpr(new OperatorKey("", r
+                .nextLong()));
+        ret.setLhs(lhs);
+        ret.setRhs(rhs);
+        ret.setOperandType(type);
+        return ret;
+    }
+
+    public static POAnd compAndExpr(
+            ExpressionOperator lhs,
+            ExpressionOperator rhs) {
+        POAnd ret = new POAnd(new OperatorKey("", r
+                .nextLong()));
+        ret.setLhs(lhs);
+        ret.setRhs(rhs);
+        ret.setOperandType(DataType.BOOLEAN);
+        return ret;
+    }
+
     public static POProject exprProject() {
         POProject ret = new POProject(new OperatorKey("", r.nextLong()));
+        return ret;
+    }
+
+    public static POProject exprProject(int col) {
+        POProject ret = new POProject(new OperatorKey("", r.nextLong()), 1, col);
         return ret;
     }
 
@@ -88,6 +117,18 @@ public class GenPhyOp{
 
     public static EqualToExpr compEqualToExpr() {
         EqualToExpr ret = new EqualToExpr(new OperatorKey("", r.nextLong()));
+        return ret;
+    }
+
+    public static EqualToExpr compEqualToExpr(
+            ExpressionOperator lhs,
+            ExpressionOperator rhs,
+            byte type) {
+        EqualToExpr ret = new EqualToExpr(new OperatorKey("", r
+                .nextLong()));
+        ret.setLhs(lhs);
+        ret.setRhs(rhs);
+        ret.setOperandType(type);
         return ret;
     }
 
@@ -535,6 +576,13 @@ public class GenPhyOp{
         POFilter ret = new POFilter(new OperatorKey("", r.nextLong()));
         return ret;
     }
+    
+    public static POFilter connectedFilterOp(PhysicalOperator input) {
+        List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(1);
+        ops.add(input);
+        POFilter ret = new POFilter(new OperatorKey("", r.nextLong()), ops);
+        return ret;
+    }
 
     public static POFilter topFilterOpWithExPlan(int lhsVal, int rhsVal)
             throws ExecException, PlanException {
@@ -688,6 +736,11 @@ public class GenPhyOp{
         return ret;
     }
     
+    public static PORead topReadOp(DataBag bag) {
+        PORead ret = new PORead(new OperatorKey("", r.nextLong()), bag);
+        return ret;
+    }
+
     public static POStore topStoreOp() {
         POStore ret = new POStore(new OperatorKey("", r.nextLong()));
         ret.setPc(pc);

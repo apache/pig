@@ -924,10 +924,13 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 |	LOOKAHEAD(InfixExpr(over,specs,lp,input) <MATCHES>) 
 		(lhs=InfixExpr(over,specs,lp,input) <MATCHES> t1=<QUOTEDSTRING> 
 			{
-				cond = new LORegexp(lp, new OperatorKey(scope, getNextId()), lhs, unquote(t1.image)); 
+                LOConst rconst = new LOConst(lp, new OperatorKey(scope, getNextId()), unquote(t1.image));
+				cond = new LORegexp(lp, new OperatorKey(scope, getNextId()), lhs, rconst); 
+				lp.add(rconst); 
 				lp.add(cond); 
 				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
 				lp.connect(lhs, cond);
+				lp.connect(rconst, cond);
 				log.debug("PUnaryCond: Connected operator " + cond.getClass().getName() + " " + cond + " to " + lhs + " logical plan " + lp);
 			}
 		)

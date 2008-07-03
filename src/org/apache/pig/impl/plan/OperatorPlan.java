@@ -144,18 +144,22 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         // whether it supports multiple outputs.
         if (mFromEdges.get(from) != null &&
                 !from.supportsMultipleOutputs()) {
-            throw new PlanException("Attempt to give operator of type " +
+            PlanException pe = new PlanException("Attempt to give operator of type " +
                 from.getClass().getName() + " multiple outputs.  This operator does "
                 + "not support multiple outputs.");
+            log.error(pe.getMessage());
+            throw pe;
         }
 
         // Check to see if the to operator already has inputs, and if so
         // whether it supports multiple inputs.
         if (mToEdges.get(to) != null &&
                 !to.supportsMultipleInputs()) {
-            throw new PlanException("Attempt to give operator of type " +
+            PlanException pe =  new PlanException("Attempt to give operator of type " +
                 from.getClass().getName() + " multiple inputs.  This operator does "
                 + "not support multiple inputs.");
+            log.error(pe.getMessage());
+            throw pe;
         }
 
         mFromEdges.put(from, to);
@@ -247,8 +251,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         if (mOps.get(op) == null) {
             log.debug("Attempt to connect operator " +
                 op.name() + " which is not in the plan.");
-            throw new PlanException("Attempt to connect operator " +
+            PlanException pe = new PlanException("Attempt to connect operator " +
                 op.name() + " which is not in the plan.");
+            log.error(pe.getMessage());
+            throw pe;
         }
     }
     
@@ -265,30 +271,39 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         Map<E, OperatorKey> inpOps = inpPlan.mOps;
         Set<E> curOpsKeySet = mOps.keySet();
         for (Map.Entry<E, OperatorKey> mapEnt : inpOps.entrySet()) {
-            if (curOpsKeySet.contains(mapEnt.getKey()))
-                throw new PlanException(
+            if (curOpsKeySet.contains(mapEnt.getKey())) {
+                PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
                                 + "mutually exclusive plans is the only supported merge.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
             mOps.put(mapEnt.getKey(), mapEnt.getValue());
         }
 
         Map<OperatorKey, E> inpKeys = inpPlan.mKeys;
         Set<OperatorKey> curOKKeySet = mKeys.keySet();
         for (Map.Entry<OperatorKey, E> mapEnt : inpKeys.entrySet()) {
-            if (curOKKeySet.contains(mapEnt.getKey()))
-                throw new PlanException(
+            if (curOKKeySet.contains(mapEnt.getKey())) {
+                PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
                                 + "mutually exclusive plans is the only supported merge.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
             mKeys.put(mapEnt.getKey(), mapEnt.getValue());
         }
 
         MultiMap<E, E> inpFromEdges = inpPlan.mFromEdges;
         Set<E> curFEKeySet = mFromEdges.keySet();
         for (E fromEdg : inpFromEdges.keySet()) {
-            if (curFEKeySet.contains(fromEdg))
-                throw new PlanException(
+            if (curFEKeySet.contains(fromEdg)) {
+                PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
                                 + "mutually exclusive plans is the only supported merge.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
             for (E e : inpFromEdges.get(fromEdg)) {
                 mFromEdges.put(fromEdg, e);
             }
@@ -297,10 +312,13 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         MultiMap<E, E> inpToEdges = inpPlan.mToEdges;
         Set<E> curTEKeySet = mToEdges.keySet();
         for (E toEdg : inpToEdges.keySet()) {
-            if (curTEKeySet.contains(toEdg))
-                throw new PlanException(
+            if (curTEKeySet.contains(toEdg)) {
+                PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
                                 + "mutually exclusive plans is the only supported merge.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
             for (E e : inpToEdges.get(toEdg)) {
                 mToEdges.put(toEdg, e);
             }
@@ -351,8 +369,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
             E newNode,
             E before) throws PlanException {
         if (!disconnect(after, before)) {
-            throw new PlanException("Attempt to insert between two nodes " +
+            PlanException pe = new PlanException("Attempt to insert between two nodes " +
                 "that were not connected.");
+            log.error(pe.getMessage());
+            throw pe;
         }
         connect(after, newNode);
         connect(newNode, before);

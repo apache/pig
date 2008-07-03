@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.Map;
 import java.util.Random;
 
@@ -37,6 +35,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.*;
+
 public class TestGTOrEqual extends junit.framework.TestCase {
 
     @Before
@@ -47,140 +47,283 @@ public class TestGTOrEqual extends junit.framework.TestCase {
     public void tearDown() throws Exception {
     }
 
-    public static boolean test(byte type) throws ExecException {
-        Random r = new Random();
-        ConstantExpression lt = (ConstantExpression) GenPhyOp.exprConst();
-        lt.setResultType(type);
-        ConstantExpression rt = (ConstantExpression) GenPhyOp.exprConst();
-        rt.setResultType(type);
-        GTOrEqualToExpr g = (GTOrEqualToExpr) GenPhyOp.compGTOrEqualToExpr();
+    @Test
+    public void testIntegerGt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Integer(1));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Integer(0));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
         g.setLhs(lt);
         g.setRhs(rt);
-
-        switch (type) {
-        case DataType.BAG:
-            DataBag inpdb1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
-            DataBag inpdb2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
-            lt.setValue(inpdb1);
-            rt.setValue(inpdb2);
-            Result resdb = g.getNext(inpdb1);
-            if (resdb.returnStatus == POStatus.STATUS_ERR) {
-                return true;
-            }
-            return false;
-        case DataType.BOOLEAN:
-            Boolean inpb1 = r.nextBoolean();
-            Boolean inpb2 = r.nextBoolean();
-            lt.setValue(inpb1);
-            rt.setValue(inpb2);
-            Result resb = g.getNext(inpb1);
-            if (resb.returnStatus == POStatus.STATUS_ERR) {
-                return true;
-            }
-            return false;
-        case DataType.BYTEARRAY:
-            DataByteArray inpba1 = GenRandomData.genRandDBA(r);
-            DataByteArray inpba2 = GenRandomData.genRandDBA(r);
-            lt.setValue(inpba1);
-            rt.setValue(inpba2);
-            Result resba = g.getNext(inpba1);
-            boolean retba = (inpba1.compareTo(inpba2) == 1 || inpba1
-                    .compareTo(inpba2) == 0);
-            if ((Boolean) resba.result == retba)
-                return true;
-            return false;
-        case DataType.CHARARRAY:
-            String inps1 = GenRandomData.genRandString(r);
-            String inps2 = GenRandomData.genRandString(r);
-            lt.setValue(inps1);
-            rt.setValue(inps2);
-            Result ress = g.getNext(inps1);
-            boolean rets = (inps1.compareTo(inps2) >= 0);
-            if ((Boolean) ress.result == rets)
-                return true;
-            return false;
-        case DataType.DOUBLE:
-            Double inpd1 = r.nextDouble();
-            Double inpd2 = r.nextDouble();
-            lt.setValue(inpd1);
-            rt.setValue(inpd2);
-            Result resd = g.getNext(inpd1);
-            boolean retd = (inpd1 >= inpd2);
-            if ((Boolean) resd.result == retd)
-                return true;
-            return false;
-        case DataType.FLOAT:
-            Float inpf1 = r.nextFloat();
-            Float inpf2 = r.nextFloat();
-            lt.setValue(inpf1);
-            rt.setValue(inpf2);
-            Result resf = g.getNext(inpf1);
-            boolean retf = (inpf1 >= inpf2);
-            if ((Boolean) resf.result == retf)
-                return true;
-            return false;
-        case DataType.INTEGER:
-            Integer inpi1 = r.nextInt();
-            Integer inpi2 = r.nextInt();
-            lt.setValue(inpi1);
-            rt.setValue(inpi2);
-            Result resi = g.getNext(inpi1);
-            boolean reti = (inpi1 >= inpi2);
-            if ((Boolean) resi.result == reti)
-                return true;
-            return false;
-        case DataType.LONG:
-            Long inpl1 = r.nextLong();
-            Long inpl2 = r.nextLong();
-            lt.setValue(inpl1);
-            rt.setValue(inpl2);
-            Result resl = g.getNext(inpl1);
-            boolean retl = (inpl1 >= inpl2);
-            if ((Boolean) resl.result == retl)
-                return true;
-            return false;
-        case DataType.MAP:
-            Map<Integer, String> inpm1 = GenRandomData.genRandMap(r, 10);
-            Map<Integer, String> inpm2 = GenRandomData.genRandMap(r, 10);
-            lt.setValue(inpm1);
-            rt.setValue(inpm2);
-            Result resm = g.getNext(inpm1);
-            if (resm.returnStatus == POStatus.STATUS_ERR) {
-                return true;
-            }
-            return false;
-        case DataType.TUPLE:
-            Tuple inpt1 = GenRandomData.genRandSmallBagTuple(r, 10, 100);
-            Tuple inpt2 = GenRandomData.genRandSmallBagTuple(r, 10, 100);
-            lt.setValue(inpt1);
-            rt.setValue(inpt2);
-            Result rest = g.getNext(inpt1);
-            if (rest.returnStatus == POStatus.STATUS_ERR) {
-                return true;
-            }
-            return false;
-        }
-        return true;
+        g.setOperandType(DataType.INTEGER);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
     }
 
     @Test
-    public void testOperator() throws ExecException {
-        int TRIALS = 10;
-        byte[] types = DataType.genAllTypes();
-        // Map<Byte,String> map = DataType.genTypeToNameMap();
-        // System.out.println("Testing Greater Than Or Equal To Expression:");
-        for (byte b : types) {
-            boolean succ = true;
-            // System.out.print( "\t With " + map.get(b) + ": ");
-            for (int i = 0; i < TRIALS; i++) {
-                succ &= test(b);
-            }
-            assertEquals(true, succ);
-            /*
-             * if(succ) System.out.println("Success!!"); else
-             * System.out.println("Failure");
-             */
-        }
+    public void testIntegerLt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Integer(0));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Integer(1));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.INTEGER);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
     }
+
+    @Test
+    public void testIntegerEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Integer(1));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Integer(1));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.INTEGER);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testLongGt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Long(1L));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Long(0L));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.LONG);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testLongLt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Long(0L));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Long(1L));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.LONG);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+
+    @Test
+    public void testLongEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Long(1L));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Long(1L));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.LONG);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testFloatGt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Float(1.0f));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Float(0.0f));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.FLOAT);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testFloatLt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Float(0.0f));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Float(1.0f));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.FLOAT);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+
+    @Test
+    public void testFloatEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Float(1.0f));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Float(1.0f));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.FLOAT);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testDoubleGt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Double(1.0));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Double(0.0));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.DOUBLE);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testDoubleLt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Double(0.0));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Double(1.0));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.DOUBLE);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+
+    @Test
+    public void testDoubleEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new Double(1.0));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new Double(1.0));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.DOUBLE);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testStringGt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new String("b"));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new String("a"));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.CHARARRAY);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testStringLt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new String("a"));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new String("b"));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.CHARARRAY);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+
+    @Test
+    public void testStringEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new String("b"));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new String("b"));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.CHARARRAY);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testDataByteArrayGt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new DataByteArray("b"));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new DataByteArray("a"));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.BYTEARRAY);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    @Test
+    public void testDataByteArrayLt() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new DataByteArray("a"));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new DataByteArray("b"));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.BYTEARRAY);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+
+    @Test
+    public void testDataByteArrayEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new DataByteArray("b"));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new DataByteArray("b"));
+        GTOrEqualToExpr g = GenPhyOp.compGTOrEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.BYTEARRAY);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+
+
+
+
+
+
+
+
 
 }

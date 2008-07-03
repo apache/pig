@@ -22,12 +22,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.executionengine.ExecException;
-
 
 public class GTOrEqualToExpr extends BinaryComparisonOperator {
 
@@ -36,13 +35,19 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
      */
     private static final long serialVersionUID = 1L;
     private final Log log = LogFactory.getLog(getClass());
-    
+
     public GTOrEqualToExpr(OperatorKey k) {
-        this(k,-1);
+        this(k, -1);
     }
 
     public GTOrEqualToExpr(OperatorKey k, int rp) {
         super(k, rp);
+        resultType = DataType.BOOLEAN;
+    }
+
+    @Override
+    public String name() {
+        return "Greater Than or Equal" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
     @Override
@@ -51,218 +56,65 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
     }
 
     @Override
-    public String name() {
-        return "Greater Than or Equal" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
-    }
-    
-    @Override
-    public Result getNext(DataByteArray ba) throws ExecException {
+    public Result getNext(Boolean bool) throws ExecException {
         byte status;
-        Result res;
-        DataByteArray left=null, right=null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if (status != POStatus.STATUS_OK) {
+        Result left, right;
 
-            return res;
-        }
-        left = (DataByteArray)res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        right = (DataByteArray)res.result;
-        
-        int ret = left.compareTo(right);
-        if(ret==1 || ret==0){
-            res.result = new Boolean(true);
-            //left = right = null;
-            return res;
-        }
-        else{
-            res.result = new Boolean(false);
-            //left = right = null;
-            return res;
-        }
-    }
+        switch (operandType) {
+        case DataType.BYTEARRAY: {
+            left = lhs.getNext(dummyDBA);
+            right = rhs.getNext(dummyDBA);
+            return doComparison(left, right);
+                            }
 
-    @Override
-    public Result getNext(Double d) throws ExecException {
-        byte status;
-        Result res;
-        Double left=null, right=null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        left = (Double)res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        right = (Double)res.result;
-        
-        if(left>=right){
-            res.result = new Boolean(true);
-            //left = right = null;
-            return res;
-        }
-        else{
-            res.result = new Boolean(false);
-            //left = right = null;
-            return res;
+        case DataType.DOUBLE: {
+            left = lhs.getNext(dummyDouble);
+            right = rhs.getNext(dummyDouble);
+            return doComparison(left, right);
+                            }
+
+        case DataType.FLOAT: {
+            left = lhs.getNext(dummyFloat);
+            right = rhs.getNext(dummyFloat);
+            return doComparison(left, right);
+                            }
+
+        case DataType.INTEGER: {
+            left = lhs.getNext(dummyInt);
+            right = rhs.getNext(dummyInt);
+            return doComparison(left, right);
+                            }
+
+        case DataType.LONG: {
+            left = lhs.getNext(dummyLong);
+            right = rhs.getNext(dummyLong);
+            return doComparison(left, right);
+                            }
+
+        case DataType.CHARARRAY: {
+            left = lhs.getNext(dummyString);
+            right = rhs.getNext(dummyString);
+            return doComparison(left, right);
+                            }
+
+
+        default:
+            throw new RuntimeException("Greater than or equal to doesn't know how to " +
+                "handle type " + DataType.findTypeName(operandType));
         }
     }
 
-    @Override
-    public Result getNext(Float f) throws ExecException {
-        byte status;
-        Result res;
-        Float left=null, right=null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
+    private Result doComparison(Result left, Result right) {
+        if (trueRef == null) initializeRefs();
+        if (left.returnStatus != POStatus.STATUS_OK) return left;
+        if (right.returnStatus != POStatus.STATUS_OK) return right;
+        assert(left instanceof Comparable);
+        assert(right instanceof Comparable);
+        if (((Comparable)left.result).compareTo((Comparable)right.result) >= 0) {
+            left.result = trueRef;
+        } else {
+            left.result = falseRef;
         }
-        left = (Float)res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        right = (Float)res.result;
-        
-        if(left>=right){
-            res.result = new Boolean(true);
-            //left = right = null;
-            return res;
-        }
-        else{
-            res.result = new Boolean(false);
-            //left = right = null;
-            return res;
-        }
-    }
-
-    @Override
-    public Result getNext(Integer i) throws ExecException {
-        byte status;
-        Result res;
-        Integer left=null, right=null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        left = (Integer)res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        right = (Integer)res.result;
-        
-        if(left>=right){
-            res.result = new Boolean(true);
-            //left = right = null;
-            return res;
-        }
-        else{
-            res.result = new Boolean(false);
-            //left = right = null;
-            return res;
-        }
-    }
-
-    @Override
-    public Result getNext(Long l) throws ExecException {
-        byte status;
-        Result res;
-        Long left=null, right=null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        left = (Long)res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        right = (Long)res.result;
-        
-        if(left>=right){
-            res.result = new Boolean(true);
-            //left = right = null;
-            return res;
-        }
-        else{
-            res.result = new Boolean(false);
-            //left = right = null;
-            return res;
-        }
-    }
-
-    @Override
-    public Result getNext(String s) throws ExecException {
-        byte status;
-        Result res;
-        String left=null, right=null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        left = (String)res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status!=POStatus.STATUS_OK) { 
-             
-                
-            return res;
-        }
-        right = (String)res.result;
-        
-        int ret = left.compareTo(right);
-        if(ret>=0){
-            res.result = new Boolean(true);
-            //left = right = null;
-            return res;
-        }
-        else{
-            res.result = new Boolean(false);
-            //left = right = null;
-            return res;
-        }
+        return left;
     }
 }

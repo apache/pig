@@ -159,7 +159,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         //do nothing
     }
     
-    public void visiLTOrEqual(LTOrEqualToExpr lte) throws VisitorException{
+    public void visitLTOrEqual(LTOrEqualToExpr lte) throws VisitorException{
         //do nothing
     }
     
