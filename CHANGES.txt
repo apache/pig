@@ -337,3 +337,5 @@ Trunk (unreleased changes)
     PIG-284: target for building source jar (oae via olgan)
 
     PIG-34: added missing licenses
+
+    PIG-34: added LICENSE, NOTICE and README file
