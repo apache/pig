@@ -2,7 +2,7 @@ New For Each(false)[bag] - Test-Plan-Builder-137
 |   |
 |   POBinCond[Unknown] - Test-Plan-Builder-136
 |   |
-|   |---Equal To[tuple] - Test-Plan-Builder-129
+|   |---Equal To[boolean] - Test-Plan-Builder-129
 |   |   |
 |   |   |---Project[bytearray][1] - Test-Plan-Builder-127
 |   |   |

@@ -1,6 +1,6 @@
 Filter[bag] - Test-Plan-Builder-101
 |   |
-|   Greater Than[tuple] - Test-Plan-Builder-112
+|   Greater Than[boolean] - Test-Plan-Builder-112
 |   |
 |   |---Add[Unknown] - Test-Plan-Builder-104
 |   |   |

@@ -375,8 +375,10 @@ public class DataType {
             return key;
         if (key instanceof BooleanWritable)
             return ((BooleanWritable) key).get();
-        if (key instanceof BytesWritable)
-            return new DataByteArray(((BytesWritable) key).get());
+        if (key instanceof BytesWritable) {
+            return new DataByteArray(((BytesWritable) key).get(), 0,
+                ((BytesWritable)key).getSize());
+        }
         if (key instanceof Text)
             return ((Text) key).toString();
         if (key instanceof FloatWritable)

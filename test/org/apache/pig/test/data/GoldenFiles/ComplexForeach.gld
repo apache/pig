@@ -4,7 +4,7 @@ New For Each(false)[bag] - Test-Plan-Builder-16
 |   |
 |   |---Filter[bag] - Test-Plan-Builder-11
 |       |   |
-|       |   Equal To[tuple] - Test-Plan-Builder-14
+|       |   Equal To[boolean] - Test-Plan-Builder-14
 |       |   |
 |       |   |---Project[bytearray][1] - Test-Plan-Builder-12
 |       |   |
