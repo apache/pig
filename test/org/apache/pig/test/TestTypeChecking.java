@@ -58,9 +58,9 @@ public class TestTypeChecking extends TestCase {
         planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript2.dot");
     }
 
-    // Problem with schema parser in QueryParser
+    // Problem with "group" keyword in QueryParser
     /*
-        @Test
+    @Test
     public void testByScript4() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
         planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript4.dot");
@@ -68,14 +68,24 @@ public class TestTypeChecking extends TestCase {
     */
 
     /*
-
     @Test
     public void testByScript3() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
         planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript3.dot");
     }
-
     */
+
+    @Test
+    public void testByScript5() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript5.dot");
+    }
+    
+    @Test
+    public void testByScript6() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.typeCheckUsingDotFile(FILE_BASE_LOCATION + "testScript6.dot");
+    }
 
     // TODO: Convert all of these to dot files
 
@@ -174,21 +184,7 @@ public class TestTypeChecking extends TestCase {
         validatePlan(plan) ;
     }
 
-    @Test
-    public void testValidation11() throws Throwable {
-        TypeCheckingTestUtil.printCurrentMethodName() ;
-        buildPlan("a = load 'a' as (name: chararray, details: tuple(age, gpa), field3: tuple(a,b));");
-		LogicalPlan plan = buildPlan("e = foreach a generate name, details.(age, gpa), field3.(a,b) ;");
-        validatePlan(plan) ;
-    }
 
-    @Test
-    public void testValidation11_2() throws Throwable {
-        TypeCheckingTestUtil.printCurrentMethodName() ;
-        buildPlan("a = load 'a' as (field1: tuple(a, b), field2: tuple(a, b), field3: tuple(a,b));");
-		LogicalPlan plan = buildPlan("e = foreach a generate field1.(a,b) , field2.(a, b), field3.(a,b) ;");
-        validatePlan(plan) ;
-    }
 
     @Test
     public void testValidation12() throws Throwable {

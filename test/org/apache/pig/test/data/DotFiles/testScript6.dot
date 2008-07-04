@@ -1,0 +1,9 @@
+digraph graph1 {
+    graph [pigScript=" a = load 'a' as (name: chararray, details: tuple(age, gpa), field3: tuple(a,b));
+                       e = foreach a generate name, details.(age, gpa), field3.(a,b) ; "] ;
+
+    load1 [key="10", type="LOLoad", schema="name: chararray, details: tuple(age, gpa), field3: tuple(a,b)"] ;
+    foreach1 [key="15", type="LOForEach", schema="name: chararray,details: tuple(age: bytearray,gpa: bytearray),field3: tuple(a: bytearray,b: bytearray)"] ;
+
+    load1 -> foreach1 ;
+}

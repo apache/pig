@@ -247,8 +247,23 @@ public class Schema {
                 return false ;
             }
 
-            if ( (!relaxAlias) && (!fschema.alias.equals(fother.alias)) ) {
-                return false ;
+
+            if (!relaxAlias) {
+                if ( (fschema.alias == null) &&
+                     (fother.alias == null) ) {
+                    // good
+                }
+                else if ( (fschema.alias != null) &&
+                          (fother.alias == null) ) {
+                    return false ;
+                }
+                else if ( (fschema.alias == null) &&
+                          (fother.alias != null) ) {
+                    return false ;
+                }
+                else if (!fschema.alias.equals(fother.alias)) {
+                    return false ;
+                }
             }
 
             if ( (!relaxInner) && (DataType.isSchemaType(fschema.type))) {
@@ -744,8 +759,22 @@ public class Schema {
             FieldSchema myFs = i.next() ;
             FieldSchema otherFs = j.next() ;
 
-            if ( (!relaxAlias) && (!myFs.alias.equals(otherFs.alias)) ) {
-                return false ;
+            if (!relaxAlias) {
+                if ( (myFs.alias == null) &&
+                     (otherFs.alias == null) ) {
+                    // good
+                }
+                else if ( (myFs.alias != null) &&
+                     (otherFs.alias == null) ) {
+                    return false ;
+                }
+                else if ( (myFs.alias == null) && 
+                     (otherFs.alias != null) ) {
+                    return false ;
+                }
+                else if (!myFs.alias.equals(otherFs.alias)) {
+                    return false ;
+                }
             }
 
             if (myFs.type != otherFs.type) {

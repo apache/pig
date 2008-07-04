@@ -24,10 +24,13 @@ import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataType;
 
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 
 public class LogicalPlanLoader
@@ -158,7 +161,17 @@ public class LogicalPlanLoader
 
     private void fillSchema(LogicalOperator op, Map<String,String> attributes) {
         String schemaString = attributes.get("schema") ;
+
         if (schemaString != null) {
+
+            // Replace [NoAlias] with dummy names before set back to null
+            // due to the fact that the parser doesn't allow null alias
+            int dummyAliasCounter = 0 ;
+            String DUMMY_ALIAS_PREFIX = "MY_DUMMY_ALIAS_" ;
+            while (schemaString.indexOf("[NoAlias]") != -1) {
+                schemaString = schemaString.replaceFirst("\\[NoAlias\\]",
+                                    DUMMY_ALIAS_PREFIX + dummyAliasCounter++) ;
+            }
 
             ByteArrayInputStream stream
                     = new ByteArrayInputStream(schemaString.getBytes()) ;
@@ -166,6 +179,12 @@ public class LogicalPlanLoader
             Schema schema = null ;
             try {
                 schema = queryParser.TupleSchema() ;
+                
+                // set all the [NoAlias] to null
+                for(int i=0; i < dummyAliasCounter; i++) {
+                    replaceAliasByNull(schema, DUMMY_ALIAS_PREFIX + i) ;
+                }
+
                 op.forceSchema(schema);
                 op.setSchemaComputed(true);
             }
@@ -177,5 +196,33 @@ public class LogicalPlanLoader
         else {
             op.forceSchema(null);
         }
+    }
+
+    private boolean replaceAliasByNull(Schema schema, String alias) {
+        if (schema != null) {
+            for(int i=0; i < schema.size(); i++) {
+                try {
+                    if ( (schema.getField(i).alias != null) &&
+                         (schema.getField(i).alias.equals(alias)) ) {
+                        schema.getField(i).alias = null ;
+                        return true ;
+                    }
+                    // We only do 1 alias per call so having an else
+                    // here is reasonable
+                    else {
+                        if ( (schema.getField(i).type == DataType.BAG) || 
+                             (schema.getField(i).type == DataType.TUPLE) ) {
+                            if (replaceAliasByNull(schema.getField(i).schema, alias)) {
+                                return true ;
+                            }
+                        }
+                    }
+
+                } catch (ParseException e) {
+                    throw new AssertionError("Cannot access schema internals") ;
+                }
+            }
+        }
+        return false ;
     }
 }
