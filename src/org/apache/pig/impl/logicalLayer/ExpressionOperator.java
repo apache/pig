@@ -84,17 +84,10 @@ public abstract class ExpressionOperator extends LogicalOperator {
      *             be reconciled with this new schema.
      */
     public final void setFieldSchema(Schema.FieldSchema fs) throws FrontendException {
-        // In general, operators don't generate their schema until they're
-        // asked, so ask them to do it.
 		log.debug("Inside setFieldSchema");
-        try {
-            getFieldSchema();
-        } catch (FrontendException fee) {
-            // It's fine, it just means we don't have a schema yet.
-        }
-		log.debug("After getFieldSchema()");
         mFieldSchema = fs;
         setAlias(fs.alias);
+        setType(fs.type);
         mIsFieldSchemaComputed = true;
     }
 

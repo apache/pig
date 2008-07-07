@@ -65,7 +65,7 @@ public class LOCast extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
-        if(!mIsFieldSchemaComputed && (null == mFieldSchema)) {
+        if(!mIsFieldSchemaComputed) {
             if(DataType.isAtomic(mType)) {
                 mFieldSchema = new Schema.FieldSchema(null, mType);
                 if (mExpr.getFieldSchema() != null) {

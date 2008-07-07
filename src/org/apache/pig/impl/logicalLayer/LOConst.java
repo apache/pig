@@ -61,7 +61,7 @@ public class LOConst extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
-        if(!mIsFieldSchemaComputed && (null == mFieldSchema)) {
+        if(!mIsFieldSchemaComputed) {
             if(DataType.isAtomic(mType)) {
                 mFieldSchema = new Schema.FieldSchema(null, mType);
                 mIsFieldSchemaComputed = true;

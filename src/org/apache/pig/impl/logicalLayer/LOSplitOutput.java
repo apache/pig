@@ -67,7 +67,7 @@ public class LOSplitOutput extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException{
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             // get our parent's schema
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             try {

@@ -263,10 +263,11 @@ public abstract class PhysicalOperator extends
         Result ret = new Result();
         DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
         for(ret = getNext(dummyTuple);ret.returnStatus!=POStatus.STATUS_EOP;ret=getNext(dummyTuple)){
+            if(ret.returnStatus == POStatus.STATUS_ERR) return ret;
             tmpBag.add((Tuple)ret.result);
         }
         ret.result = tmpBag;
-        ret.returnStatus = POStatus.STATUS_OK;
+        ret.returnStatus = (tmpBag.size() == 0)? POStatus.STATUS_EOP : POStatus.STATUS_OK;
         return ret;
     }
 

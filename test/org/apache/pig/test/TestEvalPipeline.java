@@ -235,6 +235,12 @@ public class TestEvalPipeline extends TestCase {
     }
 
     
+    static public class Identity extends EvalFunc<Tuple> {
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+           return input; 
+        }
+    }
     
     
     @Test
@@ -321,7 +327,6 @@ public class TestEvalPipeline extends TestCase {
         while (iter.hasNext()){
             Tuple t = iter.next();
             if (eliminateDuplicates){
-                System.out.println("HERE " + DataType.findType(t.get(0)));
                 assertTrue(last < Integer.valueOf(t.get(0).toString()));
             }else{
                 assertTrue(last <= DataType.toDouble(t.get(0)));
@@ -331,5 +336,45 @@ public class TestEvalPipeline extends TestCase {
         
     }
     
+    public void testNestedPlan() throws Exception{
+        int LOOP_COUNT = 10;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        PigServer pig = new PigServer(initString);
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pig.getPigContext()).toString();
+        pig.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        pig.registerQuery("B = group A by $0;");
+        String query = "C = foreach B {"
+        + "C1 = filter A by $0 > -1;"
+        + "C2 = distinct C1;"
+        + "C3 = distinct A;"
+        + "generate group," + Identity.class.getName() +"(*), COUNT(C2), SUM(C2.$1)," +  TitleNGrams.class.getName() + "(C3), MAX(C3.$1);"
+        + "};";
+
+        pig.registerQuery(query);
+        Iterator<Tuple> iter = pig.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertEquals((Long)5L, (Long)t.get(3));
+            assertEquals(LOOP_COUNT*2.0, (Double)t.get(4), 0.01);
+            assertEquals(8.0, (Double)t.get(6), 0.01);
+            assertEquals(7, t.size());
+            ++numIdentity;
+        }
+        assertEquals(LOOP_COUNT, numIdentity);
+    }
+
 
 }

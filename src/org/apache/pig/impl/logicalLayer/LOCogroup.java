@@ -101,7 +101,7 @@ public class LOCogroup extends LogicalOperator {
          * the alias of the input as the alias for a bag that contains the
          * tuples from the input that match the grouping criterion
          */
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
                     inputs.size() + 1);
             // one more to account for the "group"

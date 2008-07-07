@@ -86,7 +86,7 @@ public class LOLoad extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             // get the schema of the load function
             try {
                 //DEBUG

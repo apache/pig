@@ -138,7 +138,6 @@ public class POProject extends ExpressionOperator {
         if(columns.size() == 1) {
             ret = inpValue.get(columns.get(0));
         } else {
-	        //TupleFactory tupleFactory = TupleFactory.getInstance();
 	        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
             for(int i: columns) {
@@ -165,7 +164,6 @@ public class POProject extends ExpressionOperator {
         }
         DataBag outBag = BagFactory.getInstance().newDefaultBag();
         for (Tuple tuple : inpBag) {
-            //Tuple tmpTuple = TupleFactory.getInstance().newTuple(tuple.get(columns.get(0)));
             Tuple tmpTuple = tupleFactory.newTuple(tuple.get(columns.get(0)));
             outBag.add(tmpTuple);
         }
@@ -240,7 +238,6 @@ public class POProject extends ExpressionOperator {
             if(columns.size() == 1) {
                 ret = inpValue.get(columns.get(0));
             } else {
-	            //TupleFactory tupleFactory = TupleFactory.getInstance();
 	            ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
                 for(int i: columns) {

@@ -155,7 +155,7 @@ public class LOProject extends ExpressionOperator {
         mSentinel = b;
     }
 
-    public boolean getOverlaoded() {
+    public boolean getOverloaded() {
         return mOverloaded;
     }
 
@@ -184,7 +184,7 @@ public class LOProject extends ExpressionOperator {
         log.debug("expressionOperator = " + expressionOperator);
         log.debug("mIsStar: " + mIsStar);
 
-        if (!mIsFieldSchemaComputed && (null == mFieldSchema)) {
+        if (!mIsFieldSchemaComputed) {
 
             if (mIsStar) {
                 log.debug("mIsStar is true");

@@ -65,7 +65,7 @@ public class LOUserFunc extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "UserFunc " + mKey.scope + "-" + mKey.id;
+        return "UserFunc " + mKey.scope + "-" + mKey.id + " function: " + mFuncSpec;
     }
 
     @Override
@@ -75,7 +75,7 @@ public class LOUserFunc extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
-        if (!mIsFieldSchemaComputed && (mFieldSchema == null)) {
+        if (!mIsFieldSchemaComputed) {
             mFieldSchema = new Schema.FieldSchema(null, mType);
             mIsFieldSchemaComputed = true;
         }

@@ -52,7 +52,7 @@ public class LOUnion extends LogicalOperator {
     
     @Override
     public Schema getSchema() throws FrontendException {
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             log.debug("Number of predecessors in the graph: " + s.size());
             try {

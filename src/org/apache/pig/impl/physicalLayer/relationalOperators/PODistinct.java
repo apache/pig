@@ -44,7 +44,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class PODistinct extends PhysicalOperator {
 
     private boolean inputsAccumulated = false;
-    private DataBag distinctBag = BagFactory.getInstance().newDistinctBag();
+    private DataBag distinctBag = null;
     private final Log log = LogFactory.getLog(getClass());
     transient Iterator<Tuple> it;
 
@@ -76,8 +76,10 @@ public class PODistinct extends PhysicalOperator {
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
+        log.info("inputsAccumulated: " + inputsAccumulated);
         if (!inputsAccumulated) {
             Result in = processInput();
+            distinctBag = BagFactory.getInstance().newDistinctBag();
             while (in.returnStatus != POStatus.STATUS_EOP) {
                 if (in.returnStatus == POStatus.STATUS_ERR) {
                     log.error("Error in reading from inputs");
@@ -86,20 +88,25 @@ public class PODistinct extends PhysicalOperator {
                     continue;
                 }
                 distinctBag.add((Tuple) in.result);
+                log.info("Added tuple" + in.result + " to the distinct bag");
                 in = processInput();
             }
             inputsAccumulated = true;
+            log.info("Distinct bag: " + distinctBag);
         }
         if (it == null) {
             it = distinctBag.iterator();
         }
         res.result = it.next();
-        if (res.result == null)
+        if (res.result == null){
             res.returnStatus = POStatus.STATUS_EOP;
-        else
+            inputsAccumulated = false;
+            distinctBag = null;
+            it = null;
+        } else {
             res.returnStatus = POStatus.STATUS_OK;
+        }
         return res;
-
     }
 
     @Override

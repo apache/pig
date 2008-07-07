@@ -149,35 +149,44 @@ public class TypeCheckingVisitor extends LOVisitor {
         resolveLOProjectType(pj) ;
 
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-        List<LogicalOperator> list = currentPlan.getSuccessors(pj) ;
-        if((null != list) && !(list.get(0) instanceof ExpressionOperator)) {
-            pj.setOverloaded(true);
-            pj.setType(DataType.TUPLE);
-            Schema pjSchema;
+        List<LogicalOperator> succList = currentPlan.getSuccessors(pj) ;
+        List<LogicalOperator> predList = currentPlan.getPredecessors(pj) ;
+        if((null != succList) && !(succList.get(0) instanceof ExpressionOperator)) {
             try {
                 Schema.FieldSchema pjFs = pj.getFieldSchema();
-                pj.setFieldSchema(new Schema.FieldSchema(pjFs.alias, pjFs.schema, DataType.TUPLE));
+                if(!DataType.isSchemaType(pj.getType())) {
+                    Schema pjSchema = new Schema(pj.getFieldSchema());
+                    pj.setFieldSchema(new Schema.FieldSchema(pj.getAlias(), pjSchema, DataType.TUPLE));
+                } else {
+                    pjFs.type = DataType.TUPLE;
+                    pj.setFieldSchema(pjFs);
+                }
+                pj.setOverloaded(true);
+                pj.setType(DataType.TUPLE);
             } catch (FrontendException fe) {
                 String msg = "Error getting LOProject's input schema" ;
                 msgCollector.collect(msg, MessageType.Error);
                 VisitorException vse = new VisitorException(msg) ;
-                log.info("FrontendException: " + fe.getMessage());
                 vse.initCause(fe) ;
                 throw new VisitorException(msg) ;
              }
-        } else {
+        } else if(null != predList) {
             LogicalOperator projectInput = pj.getExpression();
-            if((projectInput instanceof LOProject) && (projectInput.getType() == DataType.BAG)) {
-                pj.setType(DataType.BAG);
-                Schema pjSchema;
+            if(((projectInput instanceof LOProject) || !(predList.get(0) instanceof ExpressionOperator)) && (projectInput.getType() == DataType.BAG)) {
                 try {
-                    pjSchema = new Schema(pj.getFieldSchema());
-                    pj.setFieldSchema(new Schema.FieldSchema(pj.getAlias(), pjSchema, DataType.BAG));
+                    Schema.FieldSchema pjFs = pj.getFieldSchema();
+                    if(!DataType.isSchemaType(pj.getType())) {
+                        Schema pjSchema = new Schema(pj.getFieldSchema());
+                        pj.setFieldSchema(new Schema.FieldSchema(pj.getAlias(), pjSchema, DataType.BAG));
+                    } else {
+                        pjFs.type = DataType.BAG;
+                        pj.setFieldSchema(pjFs);
+                    }
+                    pj.setType(DataType.BAG);
                 } catch (FrontendException fe) {
                     String msg = "Error getting LOProject's input schema" ;
                     msgCollector.collect(msg, MessageType.Error);
                     VisitorException vse = new VisitorException(msg) ;
-                    log.info("FrontendException: " + fe.getMessage());
                     vse.initCause(fe) ;
                     throw new VisitorException(msg) ;
                 }
@@ -379,6 +388,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
@@ -387,7 +397,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
 
     }
 
@@ -398,6 +416,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
@@ -406,7 +425,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     @Override
@@ -416,6 +443,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
 
         if ( DataType.isNumberType(lhsType) &&
              DataType.isNumberType(rhsType) ) {
@@ -430,19 +458,19 @@ public class TypeCheckingVisitor extends LOVisitor {
             else if (rhsType != biggerType) {
                 insertRightCastForBinaryOp(binOp, biggerType) ;
             }
-            binOp.setType(biggerType) ;
+            fs.type = biggerType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(rhsType)) ) {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
             // Set output type
-            binOp.setType(rhsType) ;
+            fs.type = rhsType;
         }
         else if ( (rhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(lhsType)) ) {
             insertRightCastForBinaryOp(binOp, lhsType) ;
             // Set output type
-            binOp.setType(lhsType) ;
+            fs.type = lhsType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (rhsType == DataType.BYTEARRAY) ) {
@@ -450,11 +478,21 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
             // Set output type
-            binOp.setType(DataType.DOUBLE) ;
+            fs.type = DataType.DOUBLE;
         }
         else {
             String msg = "Cannot evaluate output type of Mul/Div Operator" ;
             msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
             throw new VisitorException(msg) ;
         }
     }
@@ -466,6 +504,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
 
         if ( DataType.isNumberType(lhsType) &&
              DataType.isNumberType(rhsType) ) {
@@ -480,19 +519,19 @@ public class TypeCheckingVisitor extends LOVisitor {
             else if (rhsType != biggerType) {
                 insertRightCastForBinaryOp(binOp, biggerType) ;
             }
-            binOp.setType(biggerType) ;
+            fs.type = biggerType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(rhsType)) ) {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
             // Set output type
-            binOp.setType(rhsType) ;
+            fs.type = rhsType;
         }
         else if ( (rhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(lhsType)) ) {
             insertRightCastForBinaryOp(binOp, lhsType) ;
             // Set output type
-            binOp.setType(lhsType) ;
+            fs.type = lhsType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (rhsType == DataType.BYTEARRAY) ) {
@@ -500,11 +539,21 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
             // Set output type
-            binOp.setType(DataType.DOUBLE) ;
+            fs.type = DataType.DOUBLE;
         }
         else {
             String msg = "Cannot evaluate output type of Mul/Div Operator" ;
             msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
             throw new VisitorException(msg) ;
         }
     }
@@ -516,6 +565,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
 
         if ( DataType.isNumberType(lhsType) &&
              DataType.isNumberType(rhsType) ) {
@@ -530,19 +580,19 @@ public class TypeCheckingVisitor extends LOVisitor {
             else if (rhsType != biggerType) {
                 insertRightCastForBinaryOp(binOp, biggerType) ;
             }
-            binOp.setType(biggerType) ;
+            fs.type = biggerType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(rhsType)) ) {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
             // Set output type
-            binOp.setType(rhsType) ;
+            fs.type = rhsType;
         }
         else if ( (rhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(lhsType)) ) {
             insertRightCastForBinaryOp(binOp, lhsType) ;
             // Set output type
-            binOp.setType(lhsType) ;
+            fs.type = lhsType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (rhsType == DataType.BYTEARRAY) ) {
@@ -550,11 +600,20 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
             // Set output type
-            binOp.setType(DataType.DOUBLE) ;
+            fs.type = DataType.DOUBLE;
         }
         else {
             String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
             msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
             throw new VisitorException(msg) ;
         }
     }
@@ -566,6 +625,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
 
         if ( DataType.isNumberType(lhsType) &&
                 DataType.isNumberType(rhsType) ) {
@@ -580,19 +640,19 @@ public class TypeCheckingVisitor extends LOVisitor {
             else if (rhsType != biggerType) {
                 insertRightCastForBinaryOp(binOp, biggerType) ;
             }
-            binOp.setType(biggerType) ;
+            fs.type = biggerType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                 (DataType.isNumberType(rhsType)) ) {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
             // Set output type
-            binOp.setType(rhsType) ;
+            fs.type = rhsType;
         }
         else if ( (rhsType == DataType.BYTEARRAY) &&
                   (DataType.isNumberType(lhsType)) ) {
             insertRightCastForBinaryOp(binOp, lhsType) ;
             // Set output type
-            binOp.setType(lhsType) ;
+            fs.type = lhsType;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   (rhsType == DataType.BYTEARRAY) ) {
@@ -600,11 +660,20 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertLeftCastForBinaryOp(binOp, DataType.DOUBLE) ;
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
             // Set output type
-            binOp.setType(DataType.DOUBLE) ;
+            fs.type = DataType.DOUBLE;
         }
         else {
             String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
             msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
             throw new VisitorException(msg) ;
         }
     }
@@ -618,6 +687,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if ( DataType.isNumberType(lhsType) &&
              DataType.isNumberType(rhsType) ) {
@@ -661,7 +731,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     @Override
@@ -671,6 +749,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if ( DataType.isNumberType(lhsType) &&
              DataType.isNumberType(rhsType) ) {
@@ -714,7 +793,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     @Override
@@ -724,6 +811,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
         if ( DataType.isNumberType(lhsType) &&
                 DataType.isNumberType(rhsType) ) {
             // If not the same type, we cast them to the same
@@ -766,7 +854,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     @Override
@@ -776,6 +872,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if ( DataType.isNumberType(lhsType) &&
                 DataType.isNumberType(rhsType) ) {
@@ -819,7 +916,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
 
@@ -831,6 +936,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if ( DataType.isNumberType(lhsType) &&
                 DataType.isNumberType(rhsType) ) {
@@ -880,7 +986,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     @Override
@@ -890,6 +1004,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
 
         if ( DataType.isNumberType(lhsType) &&
@@ -940,7 +1055,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
-        binOp.setType(DataType.BOOLEAN) ;
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     @Override
@@ -950,11 +1073,12 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
 
         if ( (lhsType == DataType.INTEGER) &&
              (rhsType == DataType.INTEGER)
            ) {
-            binOp.setType(DataType.INTEGER) ;
+            fs.type = DataType.INTEGER;
         }
         else if ( (lhsType == DataType.LONG) &&
                   ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
@@ -962,17 +1086,26 @@ public class TypeCheckingVisitor extends LOVisitor {
             if (rhsType == DataType.INTEGER) {
                 insertRightCastForBinaryOp(binOp, DataType.LONG) ;
             }
-            binOp.setType(DataType.LONG) ;
+            fs.type = DataType.LONG;
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
                 ) {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
-            binOp.setType(rhsType) ;
+            fs.type = rhsType;
         }
         else {
             String msg = "Cannot evaluate output type of Mod Operator" ;
             msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+        try {
+            binOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
             throw new VisitorException(msg) ;
         }
     }
@@ -981,14 +1114,15 @@ public class TypeCheckingVisitor extends LOVisitor {
     @Override
     public void visit(LONegative uniOp) throws VisitorException {
         byte type = uniOp.getOperand().getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
 
 
         if (DataType.isNumberType(type)) {
-            uniOp.setType(type) ;
+            fs.type = type;
         }
         else if (type == DataType.BYTEARRAY) {
             insertCastForUniOp(uniOp, DataType.DOUBLE) ;
-            uniOp.setType(DataType.DOUBLE) ;
+            fs.type = DataType.DOUBLE;
         }
         else {
             String msg = "NEG can be used with numbers or Bytearray only" ;
@@ -996,25 +1130,51 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
+        try {
+            uniOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
     
     @Override
     public void visit(LONot uniOp) throws VisitorException {
         byte type = uniOp.getOperand().getType() ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
-        if (type == DataType.BOOLEAN) {
-            uniOp.setType(DataType.BOOLEAN) ;
-        }
-        else {
+        if (type != DataType.BOOLEAN) {
             String msg = "NOT can be used with boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg) ;
+        }
+
+        try {
+            uniOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
             throw new VisitorException(msg) ;
         }
     }
 
     @Override
     public void visit(LOIsNull uniOp) throws VisitorException {
-        uniOp.setType(DataType.BOOLEAN) ;
+        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
+        try {
+            uniOp.setFieldSchema(fs);
+        } catch (FrontendException fe) {
+            String msg = "Could not set LOSubtract field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw new VisitorException(msg) ;
+        }
     }
 
     private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
@@ -1923,9 +2083,9 @@ public class TypeCheckingVisitor extends LOVisitor {
      *
      */
 
-    protected void visit(LOForEach g) throws VisitorException {
-        List<LogicalPlan> plans = g.getForEachPlans() ;
-        List<Boolean> flattens = g.getFlatten() ;
+    protected void visit(LOForEach f) throws VisitorException {
+        List<LogicalPlan> plans = f.getForEachPlans() ;
+        List<Boolean> flattens = f.getFlatten() ;
 
         try {
 
@@ -1964,66 +2124,14 @@ public class TypeCheckingVisitor extends LOVisitor {
 
             }
 
-            Schema schema = g.getSchema() ;
-
-            // Propagate type information from inner plans back to LOForEach 
-            for(int i=0;i < plans.size(); i++) {
-
-                LogicalPlan plan = plans.get(i) ;
-                LogicalOperator leaf = plan.getSingleLeafPlanOutputOp() ;
-                // if it's atomic, we don't have to care about flattening
-                if (DataType.isAtomic(leaf.getType())) {
-                    schema.getField(outputSchemaIdx).type = leaf.getType() ;
-                    outputSchemaIdx++ ;
-                }
-                else {
-                    if ( (leaf.getType() == DataType.TUPLE) ||
-                         (leaf.getType() == DataType.BAG) ) {
-                        // flattening, we unfold field by field
-                        if (flattens.get(i)) {
-                            Schema innerSchema = leaf.getSchema() ;
-                            if(null != innerSchema) {
-                                for (int j=0;j < innerSchema.size(); j++) {
-                                    FieldSchema fs = innerSchema.getField(j) ;
-                                    schema.getField(outputSchemaIdx).type = fs.type ;
-                                    schema.getField(outputSchemaIdx).schema = fs.schema ;
-                                    outputSchemaIdx++ ;
-                                }
-                            } else {
-                                schema.getField(outputSchemaIdx).type = DataType.BYTEARRAY;
-                                schema.getField(outputSchemaIdx).schema = null;
-                                outputSchemaIdx++ ;
-                            }
-                        }
-                        // no-flattening, we just copy across
-                        else {
-                            schema.getField(outputSchemaIdx).type = leaf.getType() ;
-                            schema.getField(outputSchemaIdx).schema = leaf.getSchema() ;
-                            outputSchemaIdx++ ;
-                        }
-                    }
-                    else {
-                        throw new AssertionError("Unsupported inner plan type: "
-                                                 + DataType.findTypeName(leaf.getType()) + " in LOForEach" ) ;
-                    }
-                }
-
-            }
-
-            g.setSchema(schema);
+            f.setSchemaComputed(false);
+            f.getSchema();
 
         }
         catch (FrontendException pe) {
             String msg = "Problem resolving LOForEach schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
             VisitorException vse = new VisitorException(msg) ;
-            throw vse ;
-        }
-        catch (ParseException pe) {
-            String msg = "Problem resolving LOForEach schema" ;
-            msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
-            vse.initCause(pe) ;
             throw vse ;
         }
     }

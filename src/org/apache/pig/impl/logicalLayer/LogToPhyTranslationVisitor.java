@@ -593,6 +593,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         exprOp.setResultType(op.getType());
         exprOp.setColumns((ArrayList)op.getProjection());
         exprOp.setStar(op.isStar());
+        exprOp.setOverloaded(op.getOverloaded());
         LogicalPlan lp = op.mPlan;
         LogToPhyMap.put(op, exprOp);
         currentPlan.add(exprOp);

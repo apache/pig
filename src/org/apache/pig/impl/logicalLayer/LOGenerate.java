@@ -106,7 +106,7 @@ public class LOGenerate extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             // Get the schema of the parent
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
             ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();

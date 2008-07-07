@@ -58,7 +58,7 @@ public class LOCross extends LogicalOperator {
     @Override
     public Schema getSchema() throws FrontendException {
         List<LogicalOperator> inputs = mPlan.getPredecessors(this);
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             Map<Schema.FieldSchema, String> flattenAlias = new HashMap<Schema.FieldSchema, String>();
             Map<String, Boolean> inverseFlattenAlias = new HashMap<String, Boolean>();

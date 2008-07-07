@@ -92,12 +92,11 @@ public class LOBinCond extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
-		//TODO
 		//We need a check of LHS and RHS schemas
-        if (!mIsFieldSchemaComputed && (null == mFieldSchema)) {
+        //The type checker perform this task
+        if (!mIsFieldSchemaComputed) {
             try {
                 mFieldSchema = mLhsOp.getFieldSchema();
-                //mSchema = mLhsPlan.getRoots().get(0).getSchema();
                 mIsFieldSchemaComputed = true;
             } catch (FrontendException fee) {
                 mFieldSchema = null;

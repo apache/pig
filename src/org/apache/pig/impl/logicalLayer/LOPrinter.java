@@ -153,7 +153,7 @@ public class LOPrinter extends LOVisitor {
             sb.append(planString(((LOSplitOutput)node).getConditionPlan()));
         }
         else if (node instanceof LOProject) {
-            sb.append("Connected to: ");
+            sb.append("Input: ");
             sb.append(((LOProject)node).getExpression().name());
         }
         

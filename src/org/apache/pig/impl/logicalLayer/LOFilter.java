@@ -62,7 +62,7 @@ public class LOFilter extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
-        if (!mIsSchemaComputed && (null == mSchema)) {
+        if (!mIsSchemaComputed) {
             LogicalOperator input = mPlan.getPredecessors(this).get(0);
             ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {

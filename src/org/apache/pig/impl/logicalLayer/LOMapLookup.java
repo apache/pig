@@ -101,7 +101,7 @@ public class LOMapLookup extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
-        if (!mIsFieldSchemaComputed && (null == mFieldSchema)) {
+        if (!mIsFieldSchemaComputed) {
             Schema.FieldSchema fss;
             if (DataType.isSchemaType(mValueType)) {
                 fss = new Schema.FieldSchema(null, mValueSchema);
