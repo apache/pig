@@ -373,14 +373,13 @@ public class HExecutionEngine implements ExecutionEngine {
             int nodes = getNumNodes(hodParams);
 
             // command format: hod allocate - d <cluster_dir> -n <number_of_nodes> <other params>
-            String[] cmdarray = new String[7];
-            cmdarray[0] = "hod";
-            cmdarray[1] = "allocate";
-            cmdarray[2] = "-d";
-            cmdarray[3] = hodConfDir;
-            cmdarray[4] = "-n";
-            cmdarray[5] = Integer.toString(nodes);
-            cmdarray[6] = hodParams.toString();
+                       String[] fixedCmdArray = new String[] { "hod", "allocate", "-d",
+                                       hodConfDir, "-n", Integer.toString(nodes) };
+               String[] extraParams = hodParams.toString().split(" ");
+    
+               String[] cmdarray = new String[fixedCmdArray.length + extraParams.length];
+               System.arraycopy(fixedCmdArray, 0, cmdarray, 0, fixedCmdArray.length);
+               System.arraycopy(extraParams, 0, cmdarray, fixedCmdArray.length, extraParams.length);
 
             log.info("Connecting to HOD...");
             log.debug("sending HOD command " + cmdToString(cmdarray));

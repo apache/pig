@@ -339,3 +339,5 @@ Trunk (unreleased changes)
     PIG-34: added missing licenses
 
     PIG-34: added LICENSE, NOTICE and README file
+
+    PIG-291: hod.param parameters not passed properly (thatha via olgan)
