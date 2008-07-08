@@ -407,8 +407,17 @@ public class PigContext implements Serializable, FunctionInstantiator {
     private static Object instantiateFunc(String className, String argString)  {
         Object ret;
         List<String> args = parseArguments(argString);
-        try{
-            Class objClass = resolveClassName(className);
+        Class objClass = null ;
+
+        try {
+            objClass = resolveClassName(className);
+        }
+        catch(IOException ioe) {
+            throw new RuntimeException("Cannot instantiate:" + className, ioe) ;
+        }
+
+        try {
+            // Do normal instantiation
             if (args != null && args.size() > 0) {
                 Class paramTypes[] = new Class[args.size()];
                 for (int i = 0; i < paramTypes.length; i++) {
@@ -419,9 +428,36 @@ public class PigContext implements Serializable, FunctionInstantiator {
             } else {
                 ret = objClass.newInstance();
             }
-        }catch(Throwable e){
-            throw new RuntimeException("could not instantiate '" + className
-                    + "' with arguments '" + args + "'", e);
+        }
+        catch(NoSuchMethodException nme) {
+            // Second channce. Try with var arg constructor
+            try {
+                Constructor c = objClass.getConstructor(String[].class);
+                String[] argArr = args.toArray(new String[0]) ;
+                Object[] wrappedArgs = new Object[1] ;
+                wrappedArgs[0] = argArr ;
+                ret =  c.newInstance(wrappedArgs);
+            }
+            catch(Throwable e){
+                // bad luck
+                StringBuilder sb = new StringBuilder();
+                sb.append("could not instantiate '");
+                sb.append(className);
+                sb.append("' with arguments '");
+                sb.append(args);
+                sb.append("'");
+                throw new RuntimeException(sb.toString(), e);
+            }
+        }
+        catch(Throwable e){
+            // bad luck
+            StringBuilder sb = new StringBuilder();
+            sb.append("could not instantiate '");
+            sb.append(className);
+            sb.append("' with arguments '");
+            sb.append(args);
+            sb.append("'");
+            throw new RuntimeException(sb.toString(), e);
         }
         return ret;
     }
