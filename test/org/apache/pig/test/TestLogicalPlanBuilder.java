@@ -923,17 +923,22 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         printPlan(buildPlan(query));
     }
 
-    //TODO
-    //The parser does not handle logical operators (AND/OR) in conjunction
-    //with comparison operators (>, <, ...)
-    /*
     @Test
     public void testQuery81() {
         buildPlan("a = load 'input1' using PigStorage() as (name, age, gpa);");
-        //buildPlan("split a into b if name lt 'f', c if (name ge 'f' and name le 'h'), d if name gt 'h';");
-        buildPlan("split a into b if name lt 'f', c if (name ge 'f') and (name le 'h');");
+        buildPlan("split a into b if name lt 'f', c if (name gte 'f' and name lte 'h'), d if name gt 'h';");
     }
-    */
+
+    @Test
+    public void testQueryFail81() {
+        buildPlan("a = load 'input1' using PigStorage() as (name, age, gpa);");
+        try {
+            buildPlan("split a into b if name lt 'f', c if (name ge 'f' and name le 'h'), d if name gt 'h';");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+    
     
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
@@ -996,7 +1001,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             }
             */
 
-            assertTrue(lp != null);
+            assertNotNull(lp != null);
             return lp;
         } catch (IOException e) {
             // log.error(e);
