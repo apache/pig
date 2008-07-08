@@ -186,7 +186,7 @@ public class SchemaCalculator extends LOVisitor {
      * 
      * @param regexp
      *            the logical regexp operator that has to be visited
-     * @throws ParseException
+     * @throws VisitorException
      */
     protected void visit(LORegexp regexp) throws VisitorException {
         try {
@@ -207,12 +207,7 @@ public class SchemaCalculator extends LOVisitor {
     }
     
     protected void visit(LOStore store) throws VisitorException{
-        try {
-            store.getSchema();
-            super.visit(store);
-        } catch (FrontendException fe) {
-            throw new VisitorException(fe);
-        }
+        // We don't calculate schema of LOStore
     }
     
     protected void visit(LOConst c) throws VisitorException{

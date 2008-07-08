@@ -130,7 +130,7 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
      * successors and reconnecting them to the new node as well as rebuilding
      * all of the schemas.
      * @param after Node to insert the new node after
-     * @param newnode New node to insert
+     * @param newNode New node to insert
      * @param before Node to insert this node before
      * @param projectionMapping A map that defines how projections in after
      * relate to projections in newnode.  Keys are the projection offsets in
@@ -147,6 +147,12 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         // Insert it into the plan.
         mPlan.add(newNode);
         mPlan.insertBetween(after, newNode, before);
+
+        // Fix up COGroup internal wiring
+        if (before instanceof LOCogroup) {
+            LOCogroup cg = (LOCogroup) before ;
+            cg.switchGroupByPlanOp(after, newNode);
+        }
 
         // Visit all the inner plans of before and change their projects to
         // connect to newNode instead of after.
@@ -181,7 +187,7 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
      * all of the schemas.  This function
      * assumes that the node has only one predecessor.
      * @param after Node to insert the new node after
-     * @param newnode New node to insert
+     * @param newNode New node to insert
      * @param projectionMapping A map that defines how projections in after
      * relate to projections in newnode.  Keys are the projection offsets in
      * after, values are the new offsets in newnode.  If this field is null,

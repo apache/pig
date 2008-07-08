@@ -114,6 +114,15 @@ public class MultiMap<K, V> implements Serializable {
     }
 
     /**
+     * Remove all the values associated with the given key
+     * @param key the key to be removed
+     * @return list of all value being removed
+     */
+    public Collection<V> removeKey(K key) {
+        return mMap.remove(key) ;
+    }
+
+    /**
      * Get a set of all the keys in this map.
      * @return Set of keys.
      */

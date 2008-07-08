@@ -273,4 +273,23 @@ public class LOCogroup extends LogicalOperator {
         v.visit(this);
     }
 
+    /***
+     *
+     * This does switch the mapping
+     *
+     * oldOp -> List of inner plans
+     *         to
+     * newOp -> List of inner plans
+     *
+     * which is useful when there is a structural change in LogicalPlan
+     *
+     * @param oldOp the old operator
+     * @param newOp the new operator
+     */
+    public void switchGroupByPlanOp(LogicalOperator oldOp,
+                                    LogicalOperator newOp) {
+        Collection<LogicalPlan> innerPlans = mGroupByPlans.removeKey(oldOp) ;
+        mGroupByPlans.put(newOp, innerPlans);
+    }
+
 }
