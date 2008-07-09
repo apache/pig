@@ -235,6 +235,8 @@ public class HExecutionEngine implements ExecutionEngine {
     public ExecJob execute(PhysicalPlan plan,
                            String jobName) throws ExecException {
         try {
+            FileSpec spec = checkLeafIsStore(plan);
+            /*
             PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
             FileSpec spec = null;
             if(!(leaf instanceof POStore)){
@@ -251,6 +253,7 @@ public class HExecutionEngine implements ExecutionEngine {
             else{
                 spec = ((POStore)leaf).getSFile();
             }
+            */
 
             MapReduceLauncher launcher = new MapReduceLauncher();
             boolean success = launcher.launchPig(plan, jobName, pigContext);
@@ -277,8 +280,13 @@ public class HExecutionEngine implements ExecutionEngine {
         try {
             PlanPrinter printer = new PlanPrinter(plan);
             printer.visit();
-            System.out.println();
-        } catch (VisitorException ve) {
+            stream.println();
+
+            checkLeafIsStore(plan);
+
+            MapReduceLauncher launcher = new MapReduceLauncher();
+            launcher.explain(plan, pigContext, stream);
+        } catch (Exception ve) {
             throw new RuntimeException(ve);
         }
     }
@@ -459,7 +467,31 @@ public class HExecutionEngine implements ExecutionEngine {
         InetAddress.getByName(parts[0]);
         return parts[0] + ":" + parts[1];
     }
-    
+
+    private FileSpec checkLeafIsStore(PhysicalPlan plan) throws ExecException {
+        try {
+            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
+            FileSpec spec = null;
+            if(!(leaf instanceof POStore)){
+                String scope = leaf.getOperatorKey().getScope();
+                POStore str = new POStore(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+                str.setPc(pigContext);
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                    pigContext).toString(),
+                    BinStorage.class.getName());
+                str.setSFile(spec);
+                plan.addAsLeaf(str);
+            } else{
+                spec = ((POStore)leaf).getSFile();
+            }
+            return spec;
+        } catch (Exception e) {
+            throw new ExecException(e);
+        }
+    }
+
+   
 }
 
 

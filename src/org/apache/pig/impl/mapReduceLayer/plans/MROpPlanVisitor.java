@@ -32,13 +32,7 @@ public class MROpPlanVisitor extends PlanVisitor<MapReduceOper, MROperPlan> {
         super(plan, walker);
     }
 
-    @Override
-    public void visit() throws VisitorException {
-        // TODO Auto-generated method stub
-
-    }
-
-    public void visitMROp(MapReduceOper mr) {
+    public void visitMROp(MapReduceOper mr) throws VisitorException {
         // do nothing
     }
 

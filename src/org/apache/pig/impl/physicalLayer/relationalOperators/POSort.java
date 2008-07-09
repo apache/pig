@@ -66,6 +66,7 @@ public class POSort extends PhysicalOperator {
 	private List<Boolean> mAscCols;
 	private POUserComparisonFunc mSortFunc;
 	private final Log log = LogFactory.getLog(getClass());
+	private Comparator<Tuple> mComparator;
 
 	private boolean inputsAccumulated = false;
 	public boolean isUDFComparatorUsed = false;
@@ -80,16 +81,18 @@ public class POSort extends PhysicalOperator {
 		this.mAscCols = mAscCols;
 		this.mSortFunc = mSortFunc;
 		if (mSortFunc == null) {
-			sortedBag = BagFactory.getInstance().newSortedBag(
-					new SortComparator());
+            mComparator = new SortComparator();
+			/*sortedBag = BagFactory.getInstance().newSortedBag(
+					new SortComparator());*/
 			ExprOutputTypes = new ArrayList<Byte>(sortPlans.size());
 
 			for(PhysicalPlan plan : sortPlans) {
 				ExprOutputTypes.add(plan.getLeaves().get(0).getResultType());
 			}
 		} else {
-			sortedBag = BagFactory.getInstance().newSortedBag(
-					new UDFSortComparator());
+			/*sortedBag = BagFactory.getInstance().newSortedBag(
+					new UDFSortComparator());*/
+            mComparator = new UDFSortComparator();
 			isUDFComparatorUsed = true;
 		}
 	}
@@ -171,6 +174,15 @@ public class POSort extends PhysicalOperator {
             case DataType.LONG:
                 res = Op.getNext(dummyLong);
                 break;
+            case DataType.TUPLE:
+                res = Op.getNext(dummyTuple);
+                break;
+
+            default:
+                String msg = new String("Did not expect result of type " +
+                    DataType.findTypeName(resultType));
+                log.error(msg);
+                throw new RuntimeException(msg);
             }
 			return res;
 		}
@@ -220,6 +232,7 @@ public class POSort extends PhysicalOperator {
 		Result res = new Result();
 		if (!inputsAccumulated) {
 			res = processInput();
+            sortedBag = BagFactory.getInstance().newSortedBag(mComparator);
 			while (res.returnStatus != POStatus.STATUS_EOP) {
 				if (res.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");

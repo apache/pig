@@ -1,6 +1,7 @@
 package org.apache.pig.impl.mapReduceLayer;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -62,6 +63,22 @@ public abstract class Launcher {
     public abstract boolean launchPig(PhysicalPlan php, String grpName, PigContext pc)
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException;
+
+    /**
+     * Explain how a pig job will be executed on the underlying
+     * infrastructure.
+     * @param pp PhysicalPlan to explain
+     * @param pc PigContext to use for configuration
+     * @param ps PrintStream to write output on.
+     * @throws VisitorException
+     * @throws IOException
+     */
+    public abstract void explain(
+            PhysicalPlan pp,
+            PigContext pc,
+            PrintStream ps) throws PlanException,
+                                   VisitorException,
+                                   IOException;
     
     protected boolean isComplete(double prog){
         return (int)(Math.ceil(prog)) == (int)1;

@@ -1,6 +1,7 @@
 package org.apache.pig.impl.mapReduceLayer;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -13,6 +14,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.impl.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -79,7 +81,21 @@ public class LocalLauncher extends Launcher{
         
         return isComplete(lastProg);
     }
-    
+
+    @Override
+    public void explain(PhysicalPlan php,
+                        PigContext pc,
+                        PrintStream ps) throws PlanException,
+                                               VisitorException,
+                                               IOException {
+        MRCompiler comp = new MRCompiler(php, pc);
+        comp.compile();
+        MROperPlan mrp = comp.getMRPlan();
+
+        MRPrinter printer = new MRPrinter(ps, mrp);
+        printer.visit();
+    }
+ 
     //A purely testing method. Not to be used elsewhere
     public boolean launchPigWithCombinePlan(PhysicalPlan php,
             String grpName, PigContext pc, PhysicalPlan combinePlan) throws PlanException,

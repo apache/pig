@@ -18,6 +18,7 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 
 import org.apache.pig.EvalFunc;
@@ -30,6 +31,14 @@ import org.apache.pig.data.Tuple;
 public class FindQuantiles extends EvalFunc<DataBag>{
     BagFactory mBagFactory = BagFactory.getInstance();
     
+    private class SortComparator implements Comparator<Tuple> {
+        public int compare(Tuple t1, Tuple t2) {
+            return t1.compareTo(t2);
+        }
+    }
+
+    private Comparator<Tuple> mComparator = new SortComparator();
+
     /**
      * first field in the input tuple is the number of quantiles to generate
      * second field is the *sorted* bag of samples
@@ -47,7 +56,8 @@ public class FindQuantiles extends EvalFunc<DataBag>{
             ioe.initCause(e);
             throw ioe;
         }
-        DataBag output = mBagFactory.newDefaultBag();
+        // TODO If user provided a comparator we should be using that.
+        DataBag output = mBagFactory.newSortedBag(mComparator);
         
         long numSamples = samples.size();
         

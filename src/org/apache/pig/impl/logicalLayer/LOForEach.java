@@ -93,21 +93,21 @@ public class LOForEach extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
-        log.info("Entering getSchema");
+        log.trace("Entering getSchema");
         if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
                     mForEachPlans.size());
 
             for (LogicalPlan plan : mForEachPlans) {
-                log.info("Number of leaves in " + plan + " = " + plan.getLeaves().size());
+                log.debug("Number of leaves in " + plan + " = " + plan.getLeaves().size());
                 for(int i = 0; i < plan.getLeaves().size(); ++i) {
-                    log.info("Leaf" + i + "= " + plan.getLeaves().get(i));
+                    log.debug("Leaf" + i + "= " + plan.getLeaves().get(i));
                 }
                 //LogicalOperator op = plan.getRoots().get(0);
                 LogicalOperator op = plan.getLeaves().get(0);
-                log.info("op: " + op.getClass().getName() + " " + op);
+                log.debug("op: " + op.getClass().getName() + " " + op);
             }
-            log.info("Printed the leaves of the generate plans");
+            log.debug("Printed the leaves of the generate plans");
 
             Map<Schema.FieldSchema, String> flattenAlias = new HashMap<Schema.FieldSchema, String>();
             Map<String, Boolean> inverseFlattenAlias = new HashMap<String, Boolean>();
@@ -116,19 +116,19 @@ public class LOForEach extends LogicalOperator {
             for (int planCtr = 0; planCtr < mForEachPlans.size(); ++planCtr) {
                 LogicalPlan plan = mForEachPlans.get(planCtr);
                 LogicalOperator op = plan.getLeaves().get(0);
-                log.info("op: " + op.getClass().getName() + " " + op);
-                log.info("Flatten: " + mFlatten.get(planCtr));
+                log.debug("op: " + op.getClass().getName() + " " + op);
+                log.debug("Flatten: " + mFlatten.get(planCtr));
                 Schema.FieldSchema planFs;
 
                 try {
 	                planFs = ((ExpressionOperator)op).getFieldSchema();
-                    log.info("planFs: " + planFs);
+                    log.debug("planFs: " + planFs);
 					if(null != planFs) {
 						String outerCanonicalAlias = op.getAlias();
 						if(null == outerCanonicalAlias) {
 							outerCanonicalAlias = planFs.alias;
 						}
-						log.info("Outer canonical alias: " + outerCanonicalAlias);
+						log.debug("Outer canonical alias: " + outerCanonicalAlias);
 						if(mFlatten.get(planCtr)) {
 							//need to extract the children and create the aliases
 							//assumption here is that flatten is only for one column
@@ -137,8 +137,8 @@ public class LOForEach extends LogicalOperator {
 							Schema s = planFs.schema;
 							if(null != s) {
 								for(Schema.FieldSchema fs: s.getFields()) {
-									log.info("fs: " + fs);
-									log.info("fs.alias: " + fs.alias);
+									log.debug("fs: " + fs);
+									log.debug("fs.alias: " + fs.alias);
 									String innerCanonicalAlias = fs.alias;
 									if((null != outerCanonicalAlias) && (null != innerCanonicalAlias)) {
 										String disambiguatorAlias = outerCanonicalAlias + "::" + innerCanonicalAlias;
@@ -196,19 +196,19 @@ public class LOForEach extends LogicalOperator {
 			//check for duplicate column names and throw an error if there are duplicates
 			//ensure that flatten gets rid of duplicate column names when the checks are
 			//being done
-			log.info(" flattenAlias: " + flattenAlias);
-			log.info(" inverseFlattenAlias: " + inverseFlattenAlias);
-			log.info(" aliases: " + aliases);
-			log.info(" fss.size: " + fss.size());
+			log.debug(" flattenAlias: " + flattenAlias);
+			log.debug(" inverseFlattenAlias: " + inverseFlattenAlias);
+			log.debug(" aliases: " + aliases);
+			log.debug(" fss.size: " + fss.size());
 			boolean duplicates = false;
 			Map<String, Integer> duplicateAliases = new HashMap<String, Integer>();
 			for(String alias: aliases.keySet()) {
 				Integer count = aliases.get(alias);
 				if(count > 1) {//not checking for null here as counts are intitalized to 1
 					Boolean inFlatten = false;
-					log.info("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
+					log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
 					inFlatten = inverseFlattenAlias.get(alias);
-					log.info("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
+					log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
 					if((null == inFlatten) || (!inFlatten)) {
 						duplicates = true;
 						duplicateAliases.put(alias, count);
@@ -237,14 +237,14 @@ public class LOForEach extends LogicalOperator {
 				String alias = flattenAlias.get(fs);
 				Integer count = aliases.get(alias);
 				if (null == count) count = 1;
-				log.info("alias: " + alias);
+				log.debug("alias: " + alias);
 				if((null != alias) && (count == 1)) {
 					mSchema.addAlias(alias, fs);
 				}
 			}
             mIsSchemaComputed = true;
         }
-        log.info("Exiting getSchema");
+        log.trace("Exiting getSchema");
         return mSchema;
     }
 }

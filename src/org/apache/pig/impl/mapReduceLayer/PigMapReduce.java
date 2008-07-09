@@ -53,7 +53,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
  * key and indexed tuple and collect it into the output
  * collector.
  * 
- * The shuffle and sort phase sorts these key & indexed tuples
+ * The shuffle and sort phase sorts these key &amp; indexed tuples
  * and creates key, List<IndexedTuple> and passes the key and
  * iterator to the list. The deserialized POPackage operator
  * is used to package the key, List<IndexedTuple> into pigKey, 

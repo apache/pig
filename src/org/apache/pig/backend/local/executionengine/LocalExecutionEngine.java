@@ -50,6 +50,7 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.mapReduceLayer.LocalLauncher;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.impl.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import java.util.Iterator;
@@ -163,7 +164,16 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
 
     public void explain(PhysicalPlan plan, PrintStream stream) {
-        // TODO FIX
+        try {
+            PlanPrinter printer = new PlanPrinter(plan);
+            printer.visit();
+            stream.println();
+
+            LocalLauncher launcher = new LocalLauncher();
+            launcher.explain(plan, pigContext, stream);
+        } catch (Exception ve) {
+            throw new RuntimeException(ve);
+        }
     }
 
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {

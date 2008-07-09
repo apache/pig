@@ -25,13 +25,24 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BooleanWritable;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
@@ -61,6 +72,8 @@ public class JobControlCompiler{
     Configuration conf;
     PigContext pigContext;
     
+    private final Log log = LogFactory.getLog(getClass());
+
     /**
      * The map between MapReduceOpers and their corresponding Jobs
      */
@@ -257,9 +270,7 @@ public class JobControlCompiler{
                 jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
                 Class<? extends WritableComparable> keyClass = DataType.getWritableComparableTypes(pack.getKeyType()).getClass();
                 jobConf.setOutputKeyClass(keyClass);
-                if(keyClass.equals(TupleFactory.getInstance().tupleClass())){
-                    jobConf.setOutputKeyComparatorClass(PigWritableComparator.class);
-                }
+                selectComparator(mro, pack.getKeyType(), jobConf);
                 jobConf.setOutputValueClass(IndexedTuple.class);
             }
             
@@ -290,12 +301,128 @@ public class JobControlCompiler{
     }
     
     public static class PigWritableComparator extends WritableComparator {
-        public PigWritableComparator() {
-            super(TupleFactory.getInstance().tupleClass());
+        protected PigWritableComparator(Class c) {
+            super(c);
         }
 
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
         }
     }
+
+    public static class PigIntWritableComparator extends PigWritableComparator {
+        public PigIntWritableComparator() {
+            super(IntWritable.class);
+        }
+    }
+
+    public static class PigLongWritableComparator extends PigWritableComparator {
+        public PigLongWritableComparator() {
+            super(LongWritable.class);
+        }
+    }
+
+    public static class PigFloatWritableComparator extends PigWritableComparator {
+        public PigFloatWritableComparator() {
+            super(FloatWritable.class);
+        }
+    }
+
+    /*
+    public static class PigDoubleWritableComparator extends PigWritableComparator {
+        public PigDoubleWritableComparator() {
+            super(Double.class);
+        }
+    }
+    */
+
+    public static class PigCharArrayWritableComparator extends PigWritableComparator {
+        public PigCharArrayWritableComparator() {
+            super(Text.class);
+        }
+    }
+
+    public static class PigDBAWritableComparator extends PigWritableComparator {
+        public PigDBAWritableComparator() {
+            super(BytesWritable.class);
+        }
+    }
+
+    public static class PigTupleWritableComparator extends PigWritableComparator {
+        public PigTupleWritableComparator() {
+            super(TupleFactory.getInstance().tupleClass());
+        }
+    }
+
+    public static class PigBagWritableComparator extends PigWritableComparator {
+        public PigBagWritableComparator() {
+            super(BagFactory.getInstance().newDefaultBag().getClass());
+        }
+    }
+
+    private void selectComparator(
+            MapReduceOper mro,
+            byte keyType,
+            JobConf jobConf) throws JobCreationException {
+        // If this operator is involved in an order by, use the native
+        // comparators.  Otherwise use bytewise comparison.  Have to
+        // look at the next operator too because if we're the quantile
+        // operation we need to use the native comparators.
+        boolean involved = false;
+        if (mro.isGlobalSort()) {
+            involved = true;
+        } else {
+            List<MapReduceOper> succs = plan.getSuccessors(mro);
+            if (succs != null) {
+                MapReduceOper succ = succs.get(0);
+                if (succ.isGlobalSort()) involved = true;
+            }
+        }
+        if (!involved) {
+            switch (keyType) {
+            case DataType.INTEGER:
+                jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
+                break;
+
+            case DataType.LONG:
+                jobConf.setOutputKeyComparatorClass(PigLongWritableComparator.class);
+                break;
+
+            case DataType.FLOAT:
+                jobConf.setOutputKeyComparatorClass(PigFloatWritableComparator.class);
+                break;
+
+            case DataType.DOUBLE:
+                //jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
+                log.error("Waiting for Hadoop to support DoubleWritable");
+                throw new JobCreationException("Waiting for Hadoop to support DoubleWritable");
+
+            case DataType.CHARARRAY:
+                jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);
+                break;
+
+            case DataType.BYTEARRAY:
+                jobConf.setOutputKeyComparatorClass(PigDBAWritableComparator.class);
+                break;
+
+            case DataType.MAP:
+                log.error("Using Map as key not supported.");
+                throw new JobCreationException("Using Map as key not supported");
+
+            case DataType.TUPLE:
+                jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
+                break;
+
+            case DataType.BAG:
+                jobConf.setOutputKeyComparatorClass(PigBagWritableComparator.class);
+                break;
+
+            default:
+                throw new RuntimeException("Forgot case for type " +
+                    DataType.findTypeName(keyType));
+            }
+
+        }
+    }
+
 }

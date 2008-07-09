@@ -108,6 +108,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -137,6 +138,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -165,6 +167,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -193,6 +196,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -221,6 +225,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -249,6 +254,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -276,6 +282,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -303,6 +310,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -330,6 +338,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -357,6 +366,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -384,6 +394,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -411,6 +422,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -434,6 +446,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan" + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -457,6 +470,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan" + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -478,6 +492,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, exprOp);
         } catch (PlanException e) {
             log.error("Invalid physical operators in the physical plan" + e.getMessage());
+            throw new VisitorException(e);
         }
     }
 
@@ -501,6 +516,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         } catch (PlanException e1) {
             log.error("Invalid physical operators in the physical plan"
                     + e1.getMessage());
+            throw new VisitorException(e1);
         }
 
         int count = 0;
@@ -543,6 +559,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
 
         }
@@ -582,6 +599,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         } catch (PlanException e) {
             log.error("Invalid physical operators in the physical plan"
                     + e.getMessage());
+            throw new VisitorException(e);
         }
     }
 
@@ -612,6 +630,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
                 log.error("Invalid physical operators in the physical plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }
@@ -657,6 +676,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         } catch (PlanException e) {
             log.error("Invalid physical operators in the physical plan"
                     + e.getMessage());
+            throw new VisitorException(e);
         }
 
     }
@@ -703,6 +723,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, sort);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
 
         sort.setResultType(s.getType());
@@ -727,6 +748,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
     }
 
@@ -744,6 +766,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
     }
 
@@ -772,6 +795,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
     }
 
@@ -799,6 +823,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operator in the plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
         LogToPhyMap.put(func, p);
@@ -834,6 +859,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, store);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
         LogToPhyMap.put(loStore, store);
     }
@@ -878,6 +904,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operator in the plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
 
@@ -899,6 +926,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
 
     }
@@ -918,6 +946,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
 
     }
@@ -939,6 +968,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
 
     }
@@ -959,6 +989,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
             log.error("Invalid physical operator in the plan" + e.getMessage());
+            throw new VisitorException(e);
         }
 
     }
@@ -980,6 +1011,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             } catch (PlanException e) {
                 log.error("Invalid physical operator in the plan"
                         + e.getMessage());
+                throw new VisitorException(e);
             }
         }
     }

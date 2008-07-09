@@ -1,6 +1,7 @@
 package org.apache.pig.impl.mapReduceLayer;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -15,6 +16,7 @@ import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.impl.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
@@ -83,4 +85,19 @@ public class MapReduceLauncher extends Launcher{
         
         return isComplete(lastProg);
     }
+
+    @Override
+    public void explain(PhysicalPlan php,
+                        PigContext pc,
+                        PrintStream ps) throws PlanException,
+                                               VisitorException,
+                                               IOException {
+        MRCompiler comp = new MRCompiler(php, pc);
+        comp.compile();
+        MROperPlan mrp = comp.getMRPlan();
+
+        MRPrinter printer = new MRPrinter(ps, mrp);
+        printer.visit();
+    }
+ 
 }

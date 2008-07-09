@@ -314,6 +314,67 @@ public class TestDataModel extends junit.framework.TestCase {
     }
 
     @Test
+    public void testMultiFieldTupleCompareTo() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple();
+        Tuple t2 = tf.newTuple();
+
+        t1.append(new DataByteArray("bbb"));
+        t1.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("bbb"));
+
+        assertEquals("same data equal", 0,  t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("aaa"));
+        t2.append(new DataByteArray("aaa"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("ddd"));
+        t2.append(new DataByteArray("ddd"));
+        assertEquals("less than tuple with greater value", -1, t1.compareTo(t2));
+
+        // First column same, second lesser
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("aaa"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        // First column same, second greater
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("ccc"));
+        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+
+        // First column less, second same
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("aaa"));
+        t2.append(new DataByteArray("bbb"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        // First column greater, second same
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("ccc"));
+        t2.append(new DataByteArray("bbb"));
+        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+
+        // First column less, second greater
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("aaa"));
+        t2.append(new DataByteArray("ccc"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        // First column greater, second same
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("ccc"));
+        t2.append(new DataByteArray("aaa"));
+        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+    }
+
+    @Test
     public void testByteArrayToString() throws Exception {
         DataByteArray ba = new DataByteArray("hello world");
 
@@ -350,10 +411,23 @@ public class TestDataModel extends junit.framework.TestCase {
 
         assertTrue("same data", ba1.compareTo(ba2) == 0);
 
-        assertFalse("lexically lower value less than",
+        assertTrue("different length lexically lower value less than",
             ba3.compareTo(ba1) < 0);
-        assertFalse("lexically higher value greater than",
+        assertTrue("different length lexically higher value greater than",
             ba1.compareTo(ba3) > 0);
+
+        ba2 = new DataByteArray("hello worlc");
+        assertTrue("same length lexically lower value less than",
+            ba2.compareTo(ba1) < 0);
+        assertTrue("same length lexically higher value greater than",
+            ba1.compareTo(ba2) > 0);
+
+        ba2 = new DataByteArray("hello worlds");
+        assertTrue("shorter lexically same value less than",
+            ba1.compareTo(ba2) < 0);
+        assertTrue("longer lexically same value greater than",
+            ba2.compareTo(ba1) > 0);
+
     }
 
     private Tuple giveMeOneOfEach() throws Exception {

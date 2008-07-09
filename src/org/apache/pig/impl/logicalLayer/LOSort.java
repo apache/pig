@@ -88,6 +88,10 @@ public class LOSort extends LogicalOperator {
         mSortFunc = func;
     }
 
+    public boolean isStar() {
+        return mIsStar;
+    }
+
     public void setStar(boolean b) {
         mIsStar = b;
     }

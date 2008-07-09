@@ -179,14 +179,6 @@ public class MRCompiler extends PhyPlanVisitor {
      */
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
-        /*for (PhysicalOperator operator : leaves) {
-            compile(operator);
-            if (!curMROp.isMapDone()) {
-                curMROp.setMapDone(true);
-            } else if (!curMROp.isReduceDone()) {
-                curMROp.setReduceDone(true);
-            }
-        }*/
         POStore store = (POStore)leaves.get(0);
         compile(store);
         

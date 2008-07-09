@@ -29,6 +29,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -63,10 +64,18 @@ public class SortPartitioner implements Partitioner {
                 t = loader.getNext();
                 if (t==null)
                     break;
-                quantiles.add(t);
+                // Need to strip the outer tuple and bag.
+                Object o = t.get(0);
+                if (o instanceof DataBag) {
+                    for (Tuple it : (DataBag)o) {
+                        quantiles.add(it);
+                    }
+                } else {
+                    quantiles.add(t);
+                }
             }
             this.quantiles = quantiles.toArray(new Tuple[0]);
-        }catch (IOException e){
+        }catch (Exception e){
             throw new RuntimeException(e);
         }
 
