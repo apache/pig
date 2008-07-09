@@ -718,7 +718,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.merge(ldFil1);
         
         String funcName = WeirdComparator.class.getName();
-        POUserFunc comparator = new POUserComparisonFunc(
+        POUserComparisonFunc comparator = new POUserComparisonFunc(
                 new OperatorKey("", r.nextLong()), -1, null, funcName);
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, ldFil1.getLeaves(),
                 null, null, comparator);

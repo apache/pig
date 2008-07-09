@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
@@ -67,4 +68,11 @@ public class UDFFinder extends PhyPlanVisitor {
     public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
         UDFs.add(userFunc.getFuncSpec());
     }
+
+    @Override
+    public void visitComparisonFunc(POUserComparisonFunc compFunc) throws VisitorException {
+        UDFs.add(compFunc.getFuncSpec());
+    }
+    
+    
 }

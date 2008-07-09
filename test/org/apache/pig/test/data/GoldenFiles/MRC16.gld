@@ -1,36 +1,36 @@
-MapReduce(-1) - -180:
+MapReduce(-1) - -179:
 |   Store(DummyFil:DummyLdr) - --2783416442434419494
 |   |
-|   |---New For Each(false)[bag] - -183
+|   |---New For Each(false)[bag] - -182
 |       |   |
-|       |   Project[tuple][0] - -182
+|       |   Project[tuple][0] - -181
 |       |
-|       |---Package[tuple]{tuple} - -181
-|   Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -179
+|       |---Package[tuple]{tuple} - -180
+|   Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -178
 |
-|---MapReduce(-1) - -175:
-    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -178
+|---MapReduce(-1) - -174:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -177
     |   |
-    |   |---Local Rearrange[tuple]{tuple} - -177
+    |   |---Local Rearrange[tuple]{tuple} - -176
     |       |   |
-    |       |   Project[tuple][*] - -176
+    |       |   Project[tuple][*] - -175
     |       |
     |       |---Package[tuple]{Unknown} - -7714111612268358662
-    |   Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -174
+    |   Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -173
     |
-    |---MapReduce(-1) - -167:
-        |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -173
+    |---MapReduce(-1) - -166:
+        |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -172
         |   |
         |   |---Local Rearrange[tuple]{Unknown} - -5321755951016030071
         |       |
-        |       |---New For Each(false)[bag] - -172
+        |       |---New For Each(false)[bag] - -171
         |           |   |
-        |           |   Project[tuple][0] - -171
+        |           |   Project[tuple][0] - -170
         |           |
-        |           |---Package[tuple]{tuple} - -170
-        |   Local Rearrange[tuple]{tuple} - -169
+        |           |---Package[tuple]{tuple} - -169
+        |   Local Rearrange[tuple]{tuple} - -168
         |   |   |
-        |   |   Project[tuple][*] - -168
+        |   |   Project[tuple][*] - -167
         |   |
         |   |---Filter[tuple] - -2197807331204639125
         |       |

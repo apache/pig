@@ -50,7 +50,7 @@ public class POUserFunc extends ExpressionOperator {
      */
     private static final long serialVersionUID = 1L;
     transient EvalFunc func;
-	Tuple t1, t2;
+	
 	private final Log log = LogFactory.getLog(getClass());
 	String funcSpec;
     String origFSpec;

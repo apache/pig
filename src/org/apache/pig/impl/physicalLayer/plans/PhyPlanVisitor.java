@@ -40,6 +40,7 @@ import org.apache.pig.impl.physicalLayer.expressionOperators.PONot;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POOr;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.physicalLayer.expressionOperators.PORegexp;
+import org.apache.pig.impl.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.impl.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.impl.physicalLayer.relationalOperators.POForEach;
@@ -218,6 +219,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     }
     
     public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
+        //do nothing
+    }
+    
+    public void visitComparisonFunc(POUserComparisonFunc compFunc) throws VisitorException {
         //do nothing
     }
 

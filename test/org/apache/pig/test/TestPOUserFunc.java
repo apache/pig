@@ -248,14 +248,14 @@ public class TestPOUserFunc extends TestCase {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r, 2,
 				100);
 		String funcSpec = WeirdComparator.class.getName() + "()";
-		POUserFunc userFunc = new POUserComparisonFunc(new OperatorKey("", r.nextLong()),
+		POUserComparisonFunc userFunc = new POUserComparisonFunc(new OperatorKey("", r.nextLong()),
 				-1, null, funcSpec);
 		Iterator<Tuple> it = input.iterator();
 		Tuple t1 = it.next();
 		Tuple t2 = it.next();
 		t1.append(2);
 		t2.append(3);
-		((POUserComparisonFunc)userFunc).attachInput(t1, t2);
+		userFunc.attachInput(t1, t2);
 		Integer i = null;
 		// System.out.println(t1 + " " + t2);
 		int result = (Integer) (userFunc.getNext(i).result);

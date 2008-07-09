@@ -73,12 +73,12 @@ public class POSort extends PhysicalOperator {
 	transient Iterator<Tuple> it;
 
 	public POSort(OperatorKey k, int rp, List inp, List<PhysicalPlan> sortPlans,
-			List<Boolean> mAscCols, POUserFunc mSortFunc) {
+			List<Boolean> mAscCols, POUserComparisonFunc mSortFunc) {
 		super(k, rp, inp);
 		//this.mSortCols = mSortCols;
 		this.sortPlans = sortPlans;
 		this.mAscCols = mAscCols;
-		this.mSortFunc = (POUserComparisonFunc) mSortFunc;
+		this.mSortFunc = mSortFunc;
 		if (mSortFunc == null) {
 			sortedBag = BagFactory.getInstance().newSortedBag(
 					new SortComparator());
@@ -206,7 +206,7 @@ public class POSort extends PhysicalOperator {
 	@Override
 	public String name() {
 
-		return "POSort" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+		return "POSort" + "[" + DataType.findTypeName(resultType) + "]" + "(" + (mSortFunc!=null?mSortFunc.getFuncSpec():"") + ")" +" - " + mKey.toString();
 	}
 
 	@Override

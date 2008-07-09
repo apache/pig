@@ -726,6 +726,9 @@ public class MRCompiler extends PhyPlanVisitor {
             int[] fields = getSortCols(op);
             MapReduceOper quant = getQuantileJob(op, mro, fSpec, quantFile, rp, fields);
             curMROp = getSortJob(quant, fSpec, quantFile, rp, fields);
+            if(op.isUDFComparatorUsed){
+                curMROp.UDFs.add(op.getMSortFunc().getFuncSpec());
+            }
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);
@@ -875,16 +878,16 @@ public class MRCompiler extends PhyPlanVisitor {
         nesSortPlanLst.add(nesSortPlan);
         
         sort.setSortPlans(nesSortPlanLst);
-        sort.setResultType(DataType.TUPLE);
+        sort.setResultType(DataType.BAG);
         fe2Plan.add(sort);
         fe2Plan.connect(topPrj, sort);
         
-        PhysicalPlan ep3 = new PhysicalPlan();
+        /*PhysicalPlan ep3 = new PhysicalPlan();
         POProject prjStar3 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar3.setResultType(DataType.BAG);
         prjStar3.setColumn(1);
         prjStar3.setStar(false);
-        ep3.add(prjStar3);
+        ep3.add(prjStar3);*/
         
         PhysicalPlan rpep = new PhysicalPlan();
         ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
@@ -895,7 +898,7 @@ public class MRCompiler extends PhyPlanVisitor {
         
         List<PhysicalPlan> genEps = new ArrayList<PhysicalPlan>();
         genEps.add(rpep);
-        genEps.add(ep3);
+        genEps.add(fe2Plan);
         
         List<Boolean> flattened2 = new ArrayList<Boolean>();
         flattened2.add(false);

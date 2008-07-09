@@ -32,6 +32,7 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.ComparisonFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TupleFactory;
@@ -265,6 +266,12 @@ public class JobControlCompiler{
             if(mro.isGlobalSort()){
                 jobConf.set("pig.quantilesFile", mro.getQuantFile());
                 jobConf.setPartitionerClass(SortPartitioner.class);
+                if(mro.UDFs.size()==1){
+                    String compFuncSpec = mro.UDFs.get(0);
+                    Class comparator = Class.forName(compFuncSpec);
+                    if(ComparisonFunc.class.isAssignableFrom(comparator))
+                        jobConf.setOutputKeyComparatorClass(comparator);
+                }
             }
     
             return jobConf;

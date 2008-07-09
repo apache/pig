@@ -687,7 +687,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                     .getNextNodeId(scope)), s.getRequestedParallelism(), null,
                     sortPlans, s.getAscendingCols(), null);
         } else {
-            POUserFunc comparator = new POUserComparisonFunc(new OperatorKey(
+            POUserComparisonFunc comparator = new POUserComparisonFunc(new OperatorKey(
                     scope, nodeGen.getNextNodeId(scope)), s
                     .getRequestedParallelism(), null, s.getUserFunc());
             sort = new POSort(new OperatorKey(scope, nodeGen

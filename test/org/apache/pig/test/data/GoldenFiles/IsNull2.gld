@@ -4,7 +4,7 @@ Filter[tuple] - Test-Plan-Builder-214
 |   |
 |   |---POIsNull[tuple] - Test-Plan-Builder-216
 |       |
-|       |---Project[bytearray](0) - Test-Plan-Builder-215
+|       |---Project[bytearray][0] - Test-Plan-Builder-215
 |
 |---Split - Test-Plan-Builder-213
     |
@@ -14,7 +14,7 @@ Filter[tuple] - Test-Plan-Builder-218
 |   |
 |   POIsNull[tuple] - Test-Plan-Builder-220
 |   |
-|   |---Project[bytearray](0) - Test-Plan-Builder-219
+|   |---Project[bytearray][0] - Test-Plan-Builder-219
 |
 |---Split - Test-Plan-Builder-213
     |

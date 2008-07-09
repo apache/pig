@@ -11,24 +11,30 @@ import org.apache.pig.ComparisonFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.physicalLayer.POStatus;
 import org.apache.pig.impl.physicalLayer.Result;
+import org.apache.pig.impl.physicalLayer.plans.PhyPlanVisitor;
 
-public class POUserComparisonFunc extends POUserFunc {
+public class POUserComparisonFunc extends ExpressionOperator {
 
 	/**
      * 
      */
     private static final long serialVersionUID = 1L;
+    String funcSpec;
+    Tuple t1, t2;
     transient ComparisonFunc func;
 	private Log log = LogFactory.getLog(getClass());
 	
 	public POUserComparisonFunc(OperatorKey k, int rp, List inp, String funcSpec, ComparisonFunc func) {
-		super(k, rp, inp);
-		this.funcSpec = funcSpec;
+        super(k, rp);
+        super.setInputs(inp);
+        this.funcSpec = funcSpec;
 		this.func = func;
         if(func==null)
             instantiateFunc();
@@ -122,6 +128,25 @@ public class POUserComparisonFunc extends POUserFunc {
     private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{
         is.defaultReadObject();
         instantiateFunc();
+    }
+
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitComparisonFunc(this);
+    }
+
+    @Override
+    public String name() {
+        return "POUserComparisonFunc" + "(" + func.getClass().getName() + ")" + "[" + DataType.findTypeName(resultType) + "]" + " - " + mKey.toString();
+    }
+
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
+    }
+    
+    public String getFuncSpec() {
+        return funcSpec;
     }
 
 }

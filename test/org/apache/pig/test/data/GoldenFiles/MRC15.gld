@@ -1,4 +1,4 @@
-MapReduce(1,GFCross) - -166:
+MapReduce(1,GFCross) - -165:
 |   Store(DummyFil:DummyLdr) - -6139496040975471496
 |   |
 |   |---New For Each(false)[tuple] - -5878058249424113280
@@ -8,10 +8,10 @@ MapReduce(1,GFCross) - -166:
 |       |   |---Project[tuple][*] - -7856319821130535798
 |       |
 |       |---Package[tuple]{Unknown} - -7398260302074824818
-|   Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -165
+|   Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -164
 |
-|---MapReduce(1,AVG) - -163:
-    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -164
+|---MapReduce(1,AVG) - -162:
+    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -163
     |   |
     |   |---Local Rearrange[tuple]{Unknown} - -7973970339130605847
     |       |
@@ -22,10 +22,10 @@ MapReduce(1,GFCross) - -166:
     |           |   |---Project[tuple][*] - -737965411848544085
     |           |
     |           |---Package[tuple]{Unknown} - --3148893660811981376
-    |   Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -162
+    |   Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -161
     |
-    |---MapReduce(20,FindQuantiles,SUM) - -155:
-        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -161
+    |---MapReduce(20,TestMRCompiler$WeirdComparator,FindQuantiles,SUM) - -154:
+        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -160
         |   |
         |   |---Local Rearrange[tuple]{Unknown} - --7926255547935388282
         |       |
@@ -39,31 +39,35 @@ MapReduce(1,GFCross) - -166:
         |           |   |
         |           |   |---Project[tuple][*] - --8002381389674382470
         |           |
-        |           |---New For Each(true)[tuple] - -160
+        |           |---New For Each(true)[tuple] - -159
         |               |   |
-        |               |   Project[bag][1] - -159
+        |               |   Project[bag][1] - -158
         |               |
-        |               |---Package[tuple]{bytearray} - -158
-        |   Local Rearrange[tuple]{bytearray} - -157
+        |               |---Package[tuple]{bytearray} - -157
+        |   Local Rearrange[tuple]{bytearray} - -156
         |   |   |
-        |   |   Project[bytearray][0] - -156
+        |   |   Project[bytearray][0] - -155
         |   |
-        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -154
+        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -153
         |
         |---MapReduce(-1,FindQuantiles,TestMRCompiler$WeirdComparator) - -139:
-            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -153
+            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -152
             |   |
-            |   |---New For Each(false)[tuple] - -152
+            |   |---New For Each(false)[tuple] - -151
             |       |   |
-            |       |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - -151
+            |       |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - -150
             |       |   |
-            |       |   |---Project[tuple][*] - -150
+            |       |   |---Project[tuple][*] - -149
             |       |
-            |       |---New For Each(false,false)[tuple] - -149
+            |       |---New For Each(false,false)[tuple] - -148
             |           |   |
-            |           |   Constant(20) - -148
+            |           |   Constant(20) - -147
             |           |   |
-            |           |   Project[bag][1] - -147
+            |           |   POSort[bag](org.apache.pig.test.TestMRCompiler$WeirdComparator) - --776319888013965510
+            |           |   |   |
+            |           |   |   Project[tuple][*] - -146
+            |           |   |
+            |           |   |---Project[tuple][1] - -145
             |           |
             |           |---Package[tuple]{chararray} - -144
             |   Local Rearrange[tuple]{chararray} - -143

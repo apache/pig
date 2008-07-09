@@ -183,7 +183,7 @@ public class TestPOSort extends TestCase {
 		String funcName = WeirdComparator.class.getName() + "()";
 		/*POUserFunc comparator = new POUserFunc(
 				new OperatorKey("", r.nextLong()), -1, inputs, funcName);*/
-		POUserFunc comparator = new POUserComparisonFunc(
+		POUserComparisonFunc comparator = new POUserComparisonFunc(
 				new OperatorKey("", r.nextLong()), -1, null, funcName);
 		POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
 				null, null, comparator);

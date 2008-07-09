@@ -1,6 +1,6 @@
 Filter[tuple] - Test-Plan-Builder-196
 |   |
-|   Greater Than[boolean] - Test-Plan-Builder-199
+|   Less Than[boolean] - Test-Plan-Builder-199
 |   |
 |   |---Project[bytearray][0] - Test-Plan-Builder-197
 |   |
@@ -12,7 +12,7 @@ Filter[tuple] - Test-Plan-Builder-196
 
 Filter[tuple] - Test-Plan-Builder-200
 |   |
-|   Less Than[boolean] - Test-Plan-Builder-203
+|   Greater Than[boolean] - Test-Plan-Builder-203
 |   |
 |   |---Project[bytearray][0] - Test-Plan-Builder-201
 |   |
