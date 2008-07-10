@@ -1107,6 +1107,12 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 	)
 	|	<STAR> {star = true;} [<ASC> | <DESC> {asc = false;}] 
 		{
+            LogicalPlan sortColPlan = new LogicalPlan();
+		    LOProject projectStar = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), op, -1);
+			((LOProject)projectStar).setStar(true);
+            sortColPlan.add(projectStar);
+            sortColPlans.add(sortColPlan);
+			log.debug("Set star to true");
 			if(asc) {
 				ascOrder.add(true);
 			} else {	
@@ -1456,6 +1462,11 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 		)
 		| <STAR> {star = true;} [<ASC> | <DESC> {asc = false;}] 
 			{
+                LogicalPlan sortColPlan = new LogicalPlan();
+		        LOProject projectStar = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), eOp, -1);
+			    ((LOProject)projectStar).setStar(true);
+                sortColPlan.add(projectStar);
+                sortColPlans.add(sortColPlan);
 				if(asc) {
 					ascOrder.add(true);
 				} else {	

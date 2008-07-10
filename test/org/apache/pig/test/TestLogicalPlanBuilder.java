@@ -699,6 +699,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("d = order c by b::name, height, a::gpa;");
         buildPlan("e = order a by name, age, gpa desc;");
         buildPlan("f = order a by $0 asc, age, gpa desc;");
+        buildPlan("g = order a by * asc;");
+        buildPlan("h = cogroup a by name, b by name;");
+        buildPlan("i = foreach h {i1 = order a by *; generate i1;};");
     }
 
     @Test

@@ -306,6 +306,7 @@
                     <exclude name="**/TestHelper.java" />
                     <exclude name="**/TestLargeFile.java" />
                     <exclude name="**/TestOrderBy.java" />
+                    <exclude name="**/TestOrderBy2.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
                 </fileset>
