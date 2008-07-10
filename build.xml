@@ -262,6 +262,9 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
+            <zipfileset src="${lib.dir}/junit-4.1.jar" />
+            <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
+            <zipfileset src="${lib.dir}/jsch-0.1.33.jar" />
         </jar>
         <!-- @depricated -->
         <jar jarfile="${output.jarfile}" basedir="${build.classes}">
