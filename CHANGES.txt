@@ -341,3 +341,5 @@ Trunk (unreleased changes)
     PIG-34: added LICENSE, NOTICE and README file
 
     PIG-291: hod.param parameters not passed properly (thatha via olgan)
+
+    PIG-34: changes to build process to create distribution tar file

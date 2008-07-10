@@ -56,10 +56,13 @@
     <property name="build.classes" value="${build.dir}/classes" />
     <property name="build.docs" value="${build.dir}/docs" />
     <property name="build.javadoc" value="${build.docs}/api" />
-    <property name="dist.dir" value="${build.dir}/${final.name}" />
     <property name="build.encoding" value="ISO-8859-1" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
     <property name="hadoop.jarfile" value="hadoop17.jar" />
+
+    <!-- distribution properties -->
+    <property name="staging.dir" value="${build.dir}/staging"/>
+    <property name="dist.dir" value="${staging.dir}/${final.name}"/>
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
@@ -109,6 +112,7 @@
         <mkdir dir="${src.gen.query.parser.dir}" />
         <mkdir dir="${src.gen.script.parser.dir}" />
         <mkdir dir="${src.gen.param.parser.dir}" />
+        <mkdir dir="${staging.dir}" />
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
@@ -332,7 +336,7 @@
     <target name="package" depends="jar, javadoc" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
-        <mkdir dir="${dist.dir}/scripts" />
+        <mkdir dir="${dist.dir}/bin" />
         <mkdir dir="${dist.dir}/docs" />
         <mkdir dir="${dist.dir}/docs/api" />
 
@@ -343,8 +347,8 @@
 
         <copy file="${output.jarfile.core}" todir="${dist.dir}" />
 
-        <copy todir="${dist.dir}/scripts">
-            <fileset dir="scripts" />
+        <copy todir="${dist.dir}/bin">
+            <fileset dir="bin" />
         </copy>
 
         <copy todir="${dist.dir}/docs">
@@ -365,7 +369,7 @@
         </copy>
 
         <chmod perm="ugo+x" type="file">
-            <fileset dir="${dist.dir}/scripts" />
+            <fileset dir="${dist.dir}/bin" />
         </chmod>
 
     </target>
@@ -374,13 +378,13 @@
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Create release tarball">
-        <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
-            <tarfileset dir="${dist.dir}" mode="664">
-                <exclude name="scripts/*" />
+        <tar compression="gzip" longfile="gnu" basedir="${staging.dir}" destfile="${build.dir}/${final.name}.tar.gz">
+            <tarfileset dir="${staging.dir}" mode="664">
+                <exclude name="bin/*" />
                 <include name="**" />
             </tarfileset>
-            <tarfileset dir="${dist.dir}" mode="755">
-                <include name="scripts/*" />
+            <tarfileset dir="${staging.dir}" mode="755">
+                <include name="bin/*" />
             </tarfileset>
         </tar>
     </target>
