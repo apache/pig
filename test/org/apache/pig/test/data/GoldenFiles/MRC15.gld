@@ -43,10 +43,10 @@ MapReduce(1,GFCross) - -165:
         |               |   |
         |               |   Project[bag][1] - -158
         |               |
-        |               |---Package[tuple]{bytearray} - -157
-        |   Local Rearrange[tuple]{bytearray} - -156
+        |               |---Package[tuple]{tuple} - -157
+        |   Local Rearrange[tuple]{tuple} - -156
         |   |   |
-        |   |   Project[bytearray][0] - -155
+        |   |   Project[tuple][*] - -155
         |   |
         |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -153
         |
@@ -76,7 +76,7 @@ MapReduce(1,GFCross) - -165:
             |   |
             |   |---New For Each(true)[tuple] - -141
             |       |   |
-            |       |   Project[bytearray][0] - -140
+            |       |   Project[tuple][*] - -140
             |       |
             |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader) - -138
             |

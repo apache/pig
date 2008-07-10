@@ -744,6 +744,7 @@ public class GenPhyOp{
     public static POStore topStoreOp() {
         POStore ret = new POStore(new OperatorKey("", r.nextLong()));
         ret.setPc(pc);
+        ret.setSFile(new FileSpec("DummyFil", "DummyLdr"));
         return ret;
     }
 

@@ -180,6 +180,7 @@ public class MRCompiler extends PhyPlanVisitor {
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
         POStore store = (POStore)leaves.get(0);
+System.out.println("store file is " + store.getSFile());
         FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
         compile(store);
         
@@ -729,20 +730,27 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
-    private int[] getSortCols(POSort sort){
+    private int[] getSortCols(POSort sort) throws PlanException {
         List<PhysicalPlan> plans = sort.getSortPlans();
         if(plans!=null){
             int[] ret = new int[plans.size()]; 
             int i=-1;
             for (PhysicalPlan plan : plans) {
+                if (((POProject)plan.getLeaves().get(0)).isStar()) return null;
                 ret[++i] = ((POProject)plan.getLeaves().get(0)).getColumn();
             }
             return ret;
         }
-        return null;
+        log.error("No expression plan found in POSort");
+        throw new PlanException("No Expression Plan found in POSort");
     }
     
-    public MapReduceOper getSortJob(MapReduceOper quantJob, FileSpec lFile, FileSpec quantFile, int rp, int[] fields) throws PlanException{
+    public MapReduceOper getSortJob(
+            MapReduceOper quantJob,
+            FileSpec lFile,
+            FileSpec quantFile,
+            int rp,
+            int[] fields) throws PlanException{
         MapReduceOper mro = startNew(lFile, quantJob);
         mro.setQuantFile(quantFile.getFileName());
         mro.setGlobalSort(true);
@@ -750,23 +758,31 @@ public class MRCompiler extends PhyPlanVisitor {
         
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         
-        if(fields==null) {
-            log.error("No Expression Plan found in POSort");
-            throw new PlanException("No Expression Plan found in POSort");
-        }
-        for (int i : fields) {
+        if (fields == null) {
+            // This is project *
             PhysicalPlan ep = new PhysicalPlan();
             POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            prj.setColumn(i);
+            prj.setStar(true);
             prj.setOverloaded(false);
-            prj.setResultType(DataType.BYTEARRAY);
+            prj.setResultType(DataType.TUPLE);
             ep.add(prj);
             eps1.add(ep);
+        } else {
+            for (int i : fields) {
+                PhysicalPlan ep = new PhysicalPlan();
+                POProject prj = new POProject(new OperatorKey(scope,
+                    nig.getNextNodeId(scope)));
+                prj.setColumn(i);
+                prj.setOverloaded(false);
+                prj.setResultType(DataType.BYTEARRAY);
+                ep.add(prj);
+                eps1.add(ep);
+            }
         }
         
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
         lr.setIndex(0);
-        lr.setKeyType((fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
+        lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
         lr.setPlans(eps1);
         lr.setResultType(DataType.TUPLE);
         mro.mapPlan.addAsLeaf(lr);
@@ -774,7 +790,7 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.setMapDone(true);
         
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        pkg.setKeyType((fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
+        pkg.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
         pkg.setNumInps(1);
         boolean[] inner = {false}; 
         pkg.setInner(inner);
@@ -810,19 +826,27 @@ public class MRCompiler extends PhyPlanVisitor {
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();
         
-        if(fields==null) {
-            log.error("No Expression Plan found in POSort");
-            throw new PlanException("No Expression Plan found in POSort");
-        }
-        for (int i : fields) {
+        if (fields == null) {
             PhysicalPlan ep = new PhysicalPlan();
-            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            prj.setColumn(i);
+            POProject prj = new POProject(new OperatorKey(scope,
+                nig.getNextNodeId(scope)));
+            prj.setStar(true);
             prj.setOverloaded(false);
-            prj.setResultType(DataType.BYTEARRAY);
+            prj.setResultType(DataType.TUPLE);
             ep.add(prj);
             eps1.add(ep);
             flat1.add(true);
+        } else {
+            for (int i : fields) {
+                PhysicalPlan ep = new PhysicalPlan();
+                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                prj.setColumn(i);
+                prj.setOverloaded(false);
+                prj.setResultType(DataType.BYTEARRAY);
+                ep.add(prj);
+                eps1.add(ep);
+                flat1.add(true);
+            }
         }
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps1,flat1);
         mro.mapPlan.addAsLeaf(nfe1);

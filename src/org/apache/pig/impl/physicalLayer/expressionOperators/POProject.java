@@ -135,7 +135,9 @@ public class POProject extends ExpressionOperator {
         if(res.returnStatus != POStatus.STATUS_OK){
             return res;
         }
-        if(columns.size() == 1) {
+        if (star) {
+            return res;
+        } else if(columns.size() == 1) {
             ret = inpValue.get(columns.get(0));
         } else {
 	        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
