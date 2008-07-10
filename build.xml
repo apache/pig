@@ -25,7 +25,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="0.1.0-dev" />
+    <property name="version" value="0.2.0-dev" />
     <property name="final.name" value="${name}-${version}" />
 
     <!-- source properties -->
