@@ -466,7 +466,11 @@ public class PigServer {
 //        typeCheckedLp.explain(System.out, System.err);
         PhysicalPlan pp = compilePp(typeCheckedLp);
         // execute using appropriate engine
-        return pigContext.getExecutionEngine().execute(pp, "execute");
+        FileLocalizer.clearDeleteOnFail();
+        ExecJob execJob = pigContext.getExecutionEngine().execute(pp, "execute");
+        if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED)
+            FileLocalizer.triggerDeleteOnFail();
+        return execJob;
     }
 
     private LogicalPlan compileLp(

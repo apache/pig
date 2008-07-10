@@ -180,6 +180,7 @@ public class MRCompiler extends PhyPlanVisitor {
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
         POStore store = (POStore)leaves.get(0);
+        FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
         compile(store);
         
         return MRPlan;

@@ -303,6 +303,8 @@ public class FileLocalizer {
 
     static Stack<ElementDescriptor> toDelete    = 
         new Stack<ElementDescriptor>();
+    static Stack<ElementDescriptor> deleteOnFail    = 
+        new Stack<ElementDescriptor>();
     static Random      r           = new Random();
     static ContainerDescriptor relativeRoot;
     static boolean     initialized = false;
@@ -439,5 +441,34 @@ public class FileLocalizer {
     public static void setR(Random r) {
         FileLocalizer.r = r;
     }
-
+    
+    public static void clearDeleteOnFail()
+    {
+    	deleteOnFail.clear();
+    }
+    public static void registerDeleteOnFail(String filename, PigContext pigContext) throws IOException
+    {
+    	try {
+    		ElementDescriptor elem = pigContext.getDfs().asElement(filename);
+    		if (!toDelete.contains(elem))
+    		    deleteOnFail.push(elem);
+    	}
+        catch (DataStorageException e) {
+            log.warn("Unable to register output file to delete on failure: " + filename);
+        }
+    }
+    public static void triggerDeleteOnFail()
+    {
+    	ElementDescriptor elem = null;
+    	while (!deleteOnFail.empty()) {
+            try {
+                elem = deleteOnFail.pop();
+                if (elem.exists())
+                	elem.delete();
+            } 
+            catch (IOException e) {
+                log.warn("Unable to delete output file on failure: " + elem.toString());
+            }
+    	}
+    }
 }
