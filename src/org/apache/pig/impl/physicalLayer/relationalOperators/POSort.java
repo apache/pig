@@ -137,16 +137,27 @@ public class POSort extends PhysicalOperator {
 					if(res1.returnStatus != POStatus.STATUS_OK || res2.returnStatus != POStatus.STATUS_OK) {
 						log.error("Error processing the input in the expression plan : " + plan.toString());
 					} else {
-						if(mAscCols.get(count ++))
+						if(mAscCols.get(count++)) {
 							ret = DataType.compare(res1.result, res2.result);
-						else
-							ret = DataType.compare(res2.result, res1.result);
+                            // If they are not equal, return
+                            // Otherwise, keep comparing the next one
+                            if (ret != 0) {
+                                return ret ;
+                            }
+                        }
+                        else {
+                            ret = DataType.compare(res2.result, res1.result);
+                            if (ret != 0) {
+                                return ret ;
+                            }
+
+                        }
+
 					}
 						
 				} catch (ExecException e) {
 					log.error("Invalid result while executing the expression plan : " + plan.toString() + "\n" + e.getMessage());
 				}
-				
 			}
 			return ret;
 		} 

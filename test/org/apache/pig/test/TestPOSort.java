@@ -22,12 +22,11 @@ import java.util.List;
 import java.util.Random;
 
 import junit.framework.TestCase;
+import junit.framework.Assert;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.*;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.POStatus;
@@ -173,7 +172,164 @@ public class TestPOSort extends TestCase {
 		}
 	}
 
-	@Test
+    /***
+     * Sorting
+     *  (1, 10)
+     *  (3, 8)
+     *  (2, 8)
+     *
+     *  BY $1 DESC, $0 ASC 
+     *
+     *  should return
+     *  (1, 10)
+     *  (2 ,8)
+     *  (3, 8)
+     *
+     * @throws ExecException
+     */
+    @Test
+    public void testPOSortMixAscDesc1() throws ExecException {
+        DataBag input = DefaultBagFactory.getInstance().newDefaultBag() ;
+
+        Tuple t1 = DefaultTupleFactory.getInstance().newTuple() ;
+        t1.append(1);
+        t1.append(10);
+        input.add(t1);
+
+        Tuple t2 = DefaultTupleFactory.getInstance().newTuple() ;
+        t2.append(3);
+        t2.append(8);
+        input.add(t2);
+
+
+        Tuple t3 = DefaultTupleFactory.getInstance().newTuple() ;
+        t3.append(2);
+        t3.append(8);
+        input.add(t3);
+
+        List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
+
+        POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
+        pr1.setResultType(DataType.INTEGER);
+        PhysicalPlan expPlan1 = new PhysicalPlan();
+        expPlan1.add(pr1);
+        sortPlans.add(expPlan1);
+
+        POProject pr2 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        pr2.setResultType(DataType.INTEGER);
+        PhysicalPlan expPlan2 = new PhysicalPlan();
+        expPlan2.add(pr2);
+        sortPlans.add(expPlan2);
+
+        List<Boolean> mAscCols = new LinkedList<Boolean>();
+        mAscCols.add(false);
+        mAscCols.add(true);
+
+        PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
+        List<PhysicalOperator> inputs = new LinkedList<PhysicalOperator>();
+        inputs.add(read);
+
+        POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
+                                 sortPlans, mAscCols, null);
+
+        Tuple t = null;
+        Result res ;
+        // output line 1
+        res = sort.getNext(t);
+        Assert.assertEquals(((Tuple) res.result).get(0), 1) ;
+        Assert.assertEquals(((Tuple) res.result).get(1), 10) ;
+        // output line 2
+        res = sort.getNext(t);
+        Assert.assertEquals(((Tuple) res.result).get(0), 2) ;
+        Assert.assertEquals(((Tuple) res.result).get(1), 8) ;
+        // output line 3
+        res = sort.getNext(t);
+        Assert.assertEquals(((Tuple) res.result).get(0), 3) ;
+        Assert.assertEquals(((Tuple) res.result).get(1), 8) ;
+        
+    }
+
+
+    /***
+     * Sorting
+     *  (1, 2)
+     *  (3, 5)
+     *  (3, 8)
+     *
+     *  BY $0 DESC, $1 ASC
+     *
+     *  should return
+     *  (3, 5)
+     *  (3 ,8)
+     *  (1, 2)
+     *
+     * @throws ExecException
+     */
+    
+    @Test
+    public void testPOSortMixAscDesc2() throws ExecException {
+        DataBag input = DefaultBagFactory.getInstance().newDefaultBag() ;
+
+        Tuple t1 = DefaultTupleFactory.getInstance().newTuple() ;
+        t1.append(1);
+        t1.append(2);
+        input.add(t1);
+
+        Tuple t2 = DefaultTupleFactory.getInstance().newTuple() ;
+        t2.append(3);
+        t2.append(5);
+        input.add(t2);
+
+
+        Tuple t3 = DefaultTupleFactory.getInstance().newTuple() ;
+        t3.append(3);
+        t3.append(8);
+        input.add(t3);
+
+        List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
+
+        POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        pr1.setResultType(DataType.INTEGER);
+        PhysicalPlan expPlan1 = new PhysicalPlan();
+        expPlan1.add(pr1);
+        sortPlans.add(expPlan1);
+
+        POProject pr2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
+        pr2.setResultType(DataType.INTEGER);
+        PhysicalPlan expPlan2 = new PhysicalPlan();
+        expPlan2.add(pr2);
+        sortPlans.add(expPlan2);
+
+        List<Boolean> mAscCols = new LinkedList<Boolean>();
+        mAscCols.add(false);
+        mAscCols.add(true);
+
+        PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
+        List<PhysicalOperator> inputs = new LinkedList<PhysicalOperator>();
+        inputs.add(read);
+
+        POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
+                                 sortPlans, mAscCols, null);
+
+        Tuple t = null;
+        Result res ;
+        // output line 1
+        res = sort.getNext(t);
+        Assert.assertEquals(((Tuple) res.result).get(0), 3) ;
+        Assert.assertEquals(((Tuple) res.result).get(1), 5) ;
+        // output line 2
+        res = sort.getNext(t);
+        Assert.assertEquals(((Tuple) res.result).get(0), 3) ;
+        Assert.assertEquals(((Tuple) res.result).get(1), 8) ;
+        // output line 3
+        res = sort.getNext(t);
+        Assert.assertEquals(((Tuple) res.result).get(0), 1) ;
+        Assert.assertEquals(((Tuple) res.result).get(1), 2) ;
+
+    }
+
+
+    @Test
 	public void testPOSortUDF() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
