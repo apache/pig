@@ -6,6 +6,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS 
 
+  OPTIMIZATIONS
+
   BUG FIXES
 
 Release 0.1.0 - Unreleased
