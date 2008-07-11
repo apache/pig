@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -323,14 +324,20 @@ public class TestEvalPipeline extends TestCase {
         
         pig.registerQuery("A = load '" + tmpOutputFile + "';");
         Iterator<Tuple> iter = pig.openIterator("A");
-        int last = -1;
+        String last = "";
+        HashSet<Integer> seen = new HashSet<Integer>();
+        if(!iter.hasNext()) fail("No Results obtained");
         while (iter.hasNext()){
             Tuple t = iter.next();
+            System.out.println(t.get(0).toString());
             if (eliminateDuplicates){
-                assertTrue(last < Integer.valueOf(t.get(0).toString()));
+                Integer act = Integer.parseInt(t.get(0).toString());
+                assertFalse(seen.contains(act));
+                seen.add(act);
             }else{
-                assertTrue(last <= DataType.toDouble(t.get(0)));
+                assertTrue(last.compareTo(t.get(0).toString())<=0);
                 assertEquals(t.size(), 2);
+                last = t.get(0).toString();
             }
         }
         
