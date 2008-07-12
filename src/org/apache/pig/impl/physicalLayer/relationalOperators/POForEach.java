@@ -231,9 +231,9 @@ public class POForEach extends PhysicalOperator {
                     its[i] = null;
             }
         }
+
         
-        Boolean done = false;
-        while(!done) {
+        while(true) {
             if(data == null) {
                 //getNext being called for the first time or starting on new input data
                 //we instantiate the template array and start populating it with data
@@ -243,7 +243,11 @@ public class POForEach extends PhysicalOperator {
                         if(its[i].hasNext()) {
                             data[i] = its[i].next();
                         } else {
-                            //the input set is null, so we return
+                            //the input set is null, so we return.  This is
+                            // caught above and this function recalled with
+                            // new inputs.
+                            its = null;
+                            data = null;
                             res.returnStatus = POStatus.STATUS_NULL;
                             return res;
                         }
@@ -277,7 +281,7 @@ public class POForEach extends PhysicalOperator {
             }
         }
         
-        return null;
+        //return null;
     }
     
     /**
