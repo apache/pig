@@ -18,14 +18,18 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.executionengine.ExecException;
 
@@ -41,14 +45,19 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
     @Override
     public Double exec(Tuple input) throws IOException {
         try {
-            double sum = sum(input);
+            Double sum = sum(input);
+            if(sum == null) {
+                // either we were handed an empty bag or a bag
+                // filled with nulls - return null in this case
+                return null;
+            }
             double count = count(input);
 
-            double avg = 0;
+            Double avg = null;
             if (count > 0)
-                avg = sum / count;
+                avg = new Double(sum / count);
     
-            return new Double(avg);
+            return avg;
         } catch (ExecException ee) {
             IOException oughtToBeEE = new IOException();
             oughtToBeEE.initCause(ee);
@@ -73,7 +82,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         public Tuple exec(Tuple input) throws IOException {
             try {
                 Tuple t = mTupleFactory.newTuple(2);
-                t.set(0, new Double(sum(input)));
+                t.set(0, sum(input));
                 t.set(1, new Long(count(input)));
                 return t;
             } catch(RuntimeException t) {
@@ -108,14 +117,17 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
                 DataBag b = (DataBag)input.get(0);
                 Tuple combined = combine(b);
 
-                double sum = (Double)combined.get(0);
+                Double sum = (Double)combined.get(0);
+                if(sum == null) {
+                    return null;
+                }
                 double count = (Long)combined.get(1);
 
-                double avg = 0;
+                Double avg = null;
                 if (count > 0) {
-                    avg = sum / count;
+                    avg = new Double(sum / count);
                 }
-                return new Double(avg);
+                return avg;
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
                 oughtToBeEE.initCause(ee);
@@ -128,15 +140,27 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         double sum = 0;
         long count = 0;
 
-        Tuple output = mTupleFactory.newTuple(2);
+        // combine is called from Intermediate and Final
+        // In either case, Initial would have been called
+        // before and would have sent in valid tuples
+        // Hence we don't need to check if incoming bag
+        // is empty
 
+        Tuple output = mTupleFactory.newTuple(2);
+        boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
-            sum += (Double)t.get(0);
+            Double d = (Double)t.get(0);
+            if(d == null) continue;
+            sawNonNull = true;
+            sum += d;
             count += (Long)t.get(1);
         }
-
-        output.set(0, new Double(sum));
+        if(sawNonNull) {
+            output.set(0, new Double(sum));
+        } else {
+            output.set(0, null);
+        }
         output.set(1, new Long(count));
         return output;
     }
@@ -146,18 +170,38 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         return values.size();
     }
 
-    static protected double sum(Tuple input) throws ExecException, IOException {
+    static protected Double sum(Tuple input) throws ExecException, IOException {
         DataBag values = (DataBag)input.get(0);
-
-        double sum = 0;
-        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = it.next();
-            Double d = DataType.toDouble(t.get(0));
-            if (d == null) continue;
-            sum += d;
+        
+        // if we were handed an empty bag, return NULL
+        if(values.size() == 0) {
+            return null;
         }
 
-        return sum;
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try{
+                Double d = DataType.toDouble(t.get(0));
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            }catch(NumberFormatException nfe){
+                // do nothing - essentially treat this
+                // particular input as null
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage(), exp);
+                throw newE;
+            }
+        }
+
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
     }
     
     @Override
@@ -165,4 +209,17 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
+        funcList.add(new FuncSpec(DoubleAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+        funcList.add(new FuncSpec(FloatAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+        funcList.add(new FuncSpec(IntAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+        funcList.add(new FuncSpec(LongAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        return funcList;
+    }    
 }

@@ -61,17 +61,17 @@ public class UDFFinder extends PhyPlanVisitor {
     @Override
     public void visitSort(POSort op) throws VisitorException {
         if(op.getMSortFunc()!=null)
-            UDFs.add(op.getMSortFunc().getFuncSpec());
+            UDFs.add(op.getMSortFunc().getFuncSpec().toString());
     }
     
     @Override
     public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
-        UDFs.add(userFunc.getFuncSpec());
+        UDFs.add(userFunc.getFuncSpec().toString());
     }
 
     @Override
     public void visitComparisonFunc(POUserComparisonFunc compFunc) throws VisitorException {
-        UDFs.add(compFunc.getFuncSpec());
+        UDFs.add(compFunc.getFuncSpec().toString());
     }
     
     

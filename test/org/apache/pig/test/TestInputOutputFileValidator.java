@@ -3,6 +3,7 @@ package org.apache.pig.test;
 import java.io.* ;
 
 import org.apache.pig.ExecType; 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -188,9 +189,9 @@ public class TestInputOutputFileValidator extends TestCase {
                                         throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         FileSpec filespec1 =
-            new FileSpec(inputFile, "org.apache.pig.builtin.PigStorage") ;
+            new FileSpec(inputFile, new FuncSpec("org.apache.pig.builtin.PigStorage")) ;
         FileSpec filespec2 =
-            new FileSpec(outputFile, "org.apache.pig.builtin.PigStorage");
+            new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
         LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null) ;       
         LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2) ;
         

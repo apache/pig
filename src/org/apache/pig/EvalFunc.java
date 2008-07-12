@@ -21,9 +21,11 @@ package org.apache.pig;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.List;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.physicalLayer.PigProgressable;
 
@@ -80,20 +82,20 @@ public abstract class EvalFunc<T>  {
             Algebraic a = (Algebraic)this;
             
             errMsg = "function of " + getClass().getName() + " is not of the expected type.";
-            if (getReturnTypeFromSpec(a.getInitial()) != Tuple.class)
+            if (getReturnTypeFromSpec(new FuncSpec(a.getInitial())) != Tuple.class)
                 throw new RuntimeException("Initial " + errMsg);
-            if (getReturnTypeFromSpec(a.getIntermed()) != Tuple.class)
+            if (getReturnTypeFromSpec(new FuncSpec(a.getIntermed())) != Tuple.class)
                     throw new RuntimeException("Intermediate " + errMsg);
-            if (getReturnTypeFromSpec(a.getFinal()) != returnType)
+            if (getReturnTypeFromSpec(new FuncSpec(a.getFinal())) != returnType)
                     throw new RuntimeException("Final " + errMsg);
         }
         
     }
     
 
-    private Type getReturnTypeFromSpec(String funcSpec){
+    private Type getReturnTypeFromSpec(FuncSpec funcSpec){
         try{
-            return ((EvalFunc)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
+            return ((EvalFunc<?>)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
         }catch (ClassCastException e){
             throw new RuntimeException(funcSpec + " does not specify an eval func", e);
         }
@@ -155,5 +157,13 @@ public abstract class EvalFunc<T>  {
 
     public void setReporter(PigProgressable reporter) {
         this.reporter = reporter;
+    }
+    
+    /**
+     * @return A List containing FuncSpec objects representing the Function class
+     * which can handle the inputs corresponding to the schema in the objects
+     */
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException{
+        return null;
     }
 }

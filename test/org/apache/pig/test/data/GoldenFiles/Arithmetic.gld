@@ -22,4 +22,4 @@ New For Each(false,false,false)[bag] - Test-Plan-Builder-86
 |   |
 |   Constant(hello) - Test-Plan-Builder-85
 |
-|---Load(A:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-74
+|---Load(A:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-74

@@ -33,6 +33,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ExecType;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.*;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.builtin.ShellBagEvalFunc;
@@ -44,58 +45,275 @@ public class TestBuiltin extends TestCase {
     
     private String initString = "local";
     
+    // some inputs
+    private static Integer[] IntInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
+    private static Long[] LongInput = { 145769183483345L, null, 4345639849L, 3435543121L, 2L, 5L, 9L, 7L, 8L, 6L, 10L };
+    private static Float[] FloatInput = { 10.4f, 2.35f, 3.099f, null, 4.08495f, 5.350f, 6.78f, 7.0f, 8.0f, 9.0f, 0.09f };
+    private static Double[] DoubleInput = { 5.5673910, 121.0, 3.0, 0.000000834593, 1.0, 6.0, 7.0, 8.0, 9.0, 10.0, null };
+    private static String[] ba = { "7", "2", "3", null, "4", "5", "6", "1", "8", "9", "10"};
+    private static String[] StringInput = {"unit", "test", null, "input", "string"};
+    private static DataByteArray[] ByteArrayInput = Util.toDataByteArrays(ba);
+
+    // The HashMaps below are used to set up the appropriate EvalFunc,
+    // the allowed input and expected output for the different aggregate functions
+    // which have different implementations for different input types
+    // This way rather than quickly exploding the test cases (one per input type
+    // per aggregate), all cases for a given aggregate stage are handled
+    // in one test case in a loop 
+    
+    private static HashMap<String, EvalFunc<?>> evalFuncMap = new HashMap<String, EvalFunc<?>>();
+    private static HashMap<String, Tuple> inputMap = new HashMap<String, Tuple>();
+    private static HashMap<String, String> allowedInput = new HashMap<String, String>();
+    private static HashMap<String, Object> expectedMap = new HashMap<String, Object>();
+    
+    @Override
+    public void setUp() {
+       
+        // First set up data structs for "base" SUM, MIN and MAX
+        // The allowed input and expected output data structs for 
+        // the "Initial" and "Final" stages can be based on the 
+        // "base" case
+        evalFuncMap.put("SUM", new SUM());
+        allowedInput.put("SUM", "ByteArray");
+        expectedMap.put("SUM", new Double(55));
+        evalFuncMap.put("DoubleSum", new DoubleSum());
+        allowedInput.put("DoubleSum", "Double");
+        expectedMap.put("DoubleSum", new Double(170.567391834593));
+        evalFuncMap.put("IntSum", new IntSum());
+        allowedInput.put("IntSum", "Integer");
+        expectedMap.put("IntSum", new Long(55));
+        evalFuncMap.put("LongSum", new LongSum());
+        allowedInput.put("LongSum", "Long");
+        expectedMap.put("LongSum", new Long(145776964666362L));
+        evalFuncMap.put("FloatSum", new FloatSum());        
+        allowedInput.put("FloatSum", "Float");
+        expectedMap.put("FloatSum", new Double(56.15395));
+
+
+        evalFuncMap.put("MIN", new MIN());
+        allowedInput.put("MIN", "ByteArray");
+        expectedMap.put("MIN", new Double(1));
+        evalFuncMap.put("IntMin", new IntMin());
+        allowedInput.put("IntMin", "Integer");
+        expectedMap.put("IntMin", new Integer(1));
+        evalFuncMap.put("LongMin", new LongMin());
+        allowedInput.put("LongMin", "Long");
+        expectedMap.put("LongMin", new Long(2));
+        evalFuncMap.put("FloatMin", new FloatMin());
+        allowedInput.put("FloatMin", "Float");
+        expectedMap.put("FloatMin", new Float(0.09f));
+        evalFuncMap.put("DoubleMin", new DoubleMin());
+        allowedInput.put("DoubleMin", "Double");
+        expectedMap.put("DoubleMin", new Double(0.000000834593));
+        evalFuncMap.put("StringMin", new StringMin());
+        allowedInput.put("StringMin", "String");
+        expectedMap.put("StringMin", "input");
+        
+        evalFuncMap.put("MAX", new MAX());
+        allowedInput.put("MAX", "ByteArray");
+        expectedMap.put("MAX", new Double(10));
+        evalFuncMap.put("IntMax", new IntMax());
+        allowedInput.put("IntMax", "Integer");
+        expectedMap.put("IntMax", new Integer(10));
+        evalFuncMap.put("LongMax", new LongMax());
+        allowedInput.put("LongMax", "Long");
+        expectedMap.put("LongMax", new Long(145769183483345L));
+        evalFuncMap.put("FloatMax", new FloatMax());
+        allowedInput.put("FloatMax", "Float");
+        expectedMap.put("FloatMax", new Float(10.4f));
+        evalFuncMap.put("DoubleMax", new DoubleMax());
+        allowedInput.put("DoubleMax", "Double");
+        expectedMap.put("DoubleMax", new Double(121.0));
+        evalFuncMap.put("StringMax", new StringMax());
+        allowedInput.put("StringMax", "String");
+        expectedMap.put("String", "unit");
+
+        
+        String[] stages = {"Initial", "Final"};
+        String[] aggs = {"SUM", "DoubleSum", "IntSum", "LongSum", "FloatSum",
+                        "MIN", "IntMin", "LongMin", "FloatMin", "StringMin",
+                        "MAX", "IntMax", "LongMax", "FloatMax", "StringMax",};
+        for (String agg : aggs) {
+            for (String stage : stages) {
+                allowedInput.put(agg + stage, allowedInput.get(agg));
+                expectedMap.put(agg + stage, expectedMap.get(agg));
+            }
+            
+        }
+        // Set up the EvalFunc data structure for "Initial" and
+        // "Final" stages of SUM, MIN and MAX
+        evalFuncMap.put("SUMInitial", new SUM.Initial());
+        evalFuncMap.put("DoubleSumInitial", new DoubleSum.Initial());
+        evalFuncMap.put("IntSumInitial", new IntSum.Initial());
+        evalFuncMap.put("LongSumInitial", new LongSum.Initial());
+        evalFuncMap.put("FloatSumInitial", new FloatSum.Initial());
+        
+        evalFuncMap.put("SUMFinal", new SUM.Final());
+        evalFuncMap.put("DoubleSumFinal", new DoubleSum.Final());
+        evalFuncMap.put("IntSumFinal", new IntSum.Final());
+        evalFuncMap.put("LongSumFinal", new LongSum.Final());
+        evalFuncMap.put("FloatSumFinal", new FloatSum.Final());
+
+        evalFuncMap.put("MINInitial", new MIN.Initial());
+        evalFuncMap.put("IntMinInitial", new IntMin.Initial());
+        evalFuncMap.put("LongMinInitial", new LongMin.Initial());
+        evalFuncMap.put("FloatMinInitial", new FloatMin.Initial());
+        evalFuncMap.put("DoubleMinInitial", new DoubleMin.Initial());
+        evalFuncMap.put("StringMinInitial", new StringMin.Initial());
+        
+        evalFuncMap.put("MINFinal", new MIN.Final());
+        evalFuncMap.put("IntMinFinal", new IntMin.Final());
+        evalFuncMap.put("LongMinFinal", new LongMin.Final());
+        evalFuncMap.put("FloatMinFinal", new FloatMin.Final());
+        evalFuncMap.put("DoubleMinFinal", new DoubleMin.Final());
+        evalFuncMap.put("StringMinFinal", new StringMin.Final());
+
+
+        evalFuncMap.put("MAXInitial", new MAX.Initial());
+        evalFuncMap.put("IntMaxInitial", new IntMax.Initial());
+        evalFuncMap.put("LongMaxInitial", new LongMax.Initial());
+        evalFuncMap.put("FloatMaxInitial", new FloatMax.Initial());
+        evalFuncMap.put("DoubleMaxInitial", new DoubleMax.Initial());
+        evalFuncMap.put("StringMaxInitial", new StringMax.Initial());
+        
+        evalFuncMap.put("MAXFinal", new MAX.Final());
+        evalFuncMap.put("IntMaxFinal", new IntMax.Final());
+        evalFuncMap.put("LongMaxFinal", new LongMax.Final());
+        evalFuncMap.put("FloatMaxFinal", new FloatMax.Final());
+        evalFuncMap.put("DoubleMaxFinal", new DoubleMax.Final());
+        evalFuncMap.put("StringMaxFinal", new StringMax.Final());
+
+        // For Avg, the expected output (for the sum part) for Initial are the 
+        // same as SUM - so handled a little differently accordingly
+        evalFuncMap.put("AVG", new AVG());
+        allowedInput.put("AVG", "ByteArray");
+        expectedMap.put("AVG", new Double(5.0));
+        evalFuncMap.put("DoubleAvg", new DoubleAvg());
+        allowedInput.put("DoubleAvg", "Double");
+        expectedMap.put("DoubleAvg", new Double(15.506126530417545));
+        evalFuncMap.put("LongAvg", new LongAvg());
+        allowedInput.put("LongAvg", "Long");
+        expectedMap.put("LongAvg", new Double(1.3252451333305637E13));
+        evalFuncMap.put("IntAvg", new IntAvg());
+        allowedInput.put("IntAvg", "Integer");
+        expectedMap.put("IntAvg", new Double(5.0));
+        evalFuncMap.put("FloatAvg", new FloatAvg());
+        allowedInput.put("FloatAvg", "Float");
+        expectedMap.put("FloatAvg", new Double(5.104904507723722));
+
+        String[] avgs = {"AVG", "LongAvg", "DoubleAvg", "IntAvg", "FloatAvg"};
+        for (String avg : avgs) {
+            for (String stage : stages) {
+                allowedInput.put(avg + stage, allowedInput.get(avg));
+                if(stage.equals("Final"))
+                    expectedMap.put(avg + stage, expectedMap.get(avg));
+            }
+            
+        }
+
+        
+        evalFuncMap.put("AVGInitial", new AVG.Initial());
+        expectedMap.put("AVGInitial", expectedMap.get("SUM"));
+        evalFuncMap.put("DoubleAvgInitial", new DoubleAvg.Initial());
+        expectedMap.put("DoubleAvgInitial", expectedMap.get("DoubleSum"));
+        evalFuncMap.put("LongAvgInitial", new LongAvg.Initial());
+        expectedMap.put("LongAvgInitial", expectedMap.get("LongSum"));
+        evalFuncMap.put("IntAvgInitial", new IntAvg.Initial());
+        expectedMap.put("IntAvgInitial", expectedMap.get("IntSum"));
+        evalFuncMap.put("FloatAvgInitial", new FloatAvg.Initial());
+        expectedMap.put("FloatAvgInitial", expectedMap.get("FloatSum"));
+        
+        evalFuncMap.put("AVGFinal", new AVG.Final());
+        evalFuncMap.put("DoubleAvgFinal", new DoubleAvg.Final());
+        evalFuncMap.put("LongAvgFinal", new LongAvg.Final());
+        evalFuncMap.put("IntAvgFinal", new IntAvg.Final());
+        evalFuncMap.put("FloatAvgFinal", new FloatAvg.Final());
+
+        
+        // set up input hash
+        try{
+            inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), IntInput));
+            inputMap.put("Long", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), LongInput));
+            inputMap.put("Float", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), FloatInput));
+            inputMap.put("Double", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), DoubleInput));
+            inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
+            inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), StringInput));
+            
+        }catch(ExecException e) {
+            e.printStackTrace();
+        }
+    }
+      
     // Builtin MATH Functions
     // =======================
     @Test
     public void testAVG() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        double expected = 5.5;
-
-        EvalFunc<Double> avg = new AVG();
-        Tuple tup =
-            Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Double output = avg.exec(tup);
-        
-        assertTrue(output == expected);
+        String[] avgTypes = {"AVG", "DoubleAvg", "LongAvg", "IntAvg", "FloatAvg"};
+        for(int k = 0; k < avgTypes.length; k++) {
+            EvalFunc<?> avg = evalFuncMap.get(avgTypes[k]);
+            Tuple tup = inputMap.get(getInputType(avgTypes[k]));
+            Object output = avg.exec(tup);
+            String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
+                         output + " == " + getExpected(avgTypes[k]) + " (expected) )]";
+            assertEquals(msg, (Double)output, (Double)getExpected(avgTypes[k]), 0.00001);
+            
+        }
     }
 
     @Test
     public void testAVGInitial() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-
-        EvalFunc<Tuple> avg = new AVG.Initial();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Tuple output = avg.exec(tup);
-
-        Double f1 = DataType.toDouble(output.get(0));
-        assertEquals("Expected sum to be 55.0", 55.0, f1);
-        Long f2 = DataType.toLong(output.get(1));
-        assertEquals("Expected count to be 10", 10, f2.longValue());
+        String[] avgTypes = {"AVGInitial", "DoubleAvgInitial", "LongAvgInitial", "IntAvgInitial", "FloatAvgInitial"};
+        for(int k = 0; k < avgTypes.length; k++) {
+            EvalFunc<?> avg = evalFuncMap.get(avgTypes[k]);
+            String inputType = getInputType(avgTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = avg.exec(tup);
+            
+            if(inputType == "Long" || inputType == "Integer") {
+                Long l = (Long)((Tuple)output).get(0);
+                String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
+                              l + " == " + getExpected(avgTypes[k]) + " (expected) )]";
+                assertEquals(msg, l, (Long)getExpected(avgTypes[k]));
+            } else {
+                Double f1 = (Double)((Tuple)output).get(0);
+                String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
+                               f1 + " == " + getExpected(avgTypes[k]) + " (expected) )]";
+                assertEquals(msg, f1, (Double)getExpected(avgTypes[k]), 0.00001);
+            }
+            Long f2 = (Long)((Tuple)output).get(1);
+            assertEquals("[Testing " + avgTypes[k] + " on input type: "+ 
+                inputType+"]Expected count to be 11", 11, f2.longValue());
+        }
     }
 
     @Test
     public void testAVGFinal() throws Exception {
-        Tuple t1 = TupleFactory.getInstance().newTuple(2);
-        t1.set(0, 55.0);
-        t1.set(1, 10L);
-        Tuple t2 = TupleFactory.getInstance().newTuple(2);
-        t2.set(0, 28.0);
-        t2.set(1, 7L);
-        Tuple t3 = TupleFactory.getInstance().newTuple(2);
-        t3.set(0, 82.0);
-        t3.set(1, 17L);
-        DataBag bag = BagFactory.getInstance().newDefaultBag();
-        bag.add(t1);
-        bag.add(t2);
-        bag.add(t3);
-        
-        Tuple tup = TupleFactory.getInstance().newTuple(bag);
-
-        EvalFunc<Double> avg = new AVG.Final();
-        Double output = avg.exec(tup);
-
-        assertEquals("Expected average to be 4.852941176470588",
-            4.852941176470588, output);
+        String[] avgTypes = {"AVGFinal", "DoubleAvgFinal", "LongAvgFinal", "IntAvgFinal", "FloatAvgFinal"};
+        String[] avgInitialTypes = {"AVGInitial", "DoubleAvgInitial", "LongAvgInitial", "IntAvgInitial", "FloatAvgInitial"};
+        for(int k = 0; k < avgTypes.length; k++) {
+            EvalFunc<?> avg = evalFuncMap.get(avgTypes[k]);
+            Tuple tup = inputMap.get(getInputType(avgTypes[k]));
+            
+            // To test AVGFinal, AVGInitial should first be called and
+            // the output of AVGInitial should be supplied as input to
+            // AVGFinal. To simulate this, we will call Initial twice
+            // on the above tuple and collect the outputs and pass it to
+            // Final.
+            
+            // get the right "Initial" EvalFunc
+            EvalFunc<?> avgInitial = evalFuncMap.get(avgInitialTypes[k]);
+            Object output1 = avgInitial.exec(tup);
+            Object output2 = avgInitial.exec(tup);
+            
+            DataBag bag = Util.createBag(new Tuple[]{(Tuple)output1, (Tuple)output2});
+            
+            Tuple finalTuple = TupleFactory.getInstance().newTuple(1);
+            finalTuple.set(0, bag);
+            Object output = avg.exec(finalTuple);
+            String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
+            output + " == " + getExpected(avgTypes[k]) + " (expected) )]";
+            assertEquals(msg, (Double)output, (Double)getExpected(avgTypes[k]), 0.00001);
+        }    
     }
 
 
@@ -165,106 +383,324 @@ public class TestBuiltin extends TestCase {
 
     @Test
     public void testSUM() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        double expected = 55;
+        String[] sumTypes = {"SUM", "DoubleSum", "LongSum", "IntSum", "FloatSum"};
+        for(int k = 0; k < sumTypes.length; k++) {
+            EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
+            String inputType = getInputType(sumTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = sum.exec(tup);
 
-        EvalFunc<Double> sum = new SUM();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Double output = sum.exec(tup);
-
-        assertTrue(output == expected);
+            String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
+                          output + " == " + getExpected(sumTypes[k]) + " (expected) )]";
+            
+            if(inputType == "Integer" || inputType == "Long") {
+                assertEquals(msg, (Long)output, (Long)getExpected(sumTypes[k]), 0.00001);
+            } else {
+                assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
+            }
+        }
     }
 
     @Test
     public void testSUMInitial() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        String[] sumTypes = {"SUMInitial", "DoubleSumInitial", "LongSumInitial", "IntSumInitial", "FloatSumInitial"};
+        for(int k = 0; k < sumTypes.length; k++) {
+            EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
+            String inputType = getInputType(sumTypes[k]);
+            
+            Tuple tup = inputMap.get(inputType);
+            Object output = sum.exec(tup);
+            
+            String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
+                            ((Tuple)output).get(0) + " == " + getExpected(sumTypes[k]) + " (expected) )]";
 
-        EvalFunc<Tuple> sum = new SUM.Initial();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Tuple output = sum.exec(tup);
-
-        assertEquals("Expected sum to be 55.0", 55.0, DataType.toDouble(output.get(0)));
+            if(inputType == "Integer" || inputType == "Long") {
+              assertEquals(msg, (Long) ((Tuple)output).get(0), (Long)getExpected(sumTypes[k]), 0.00001);
+            } else {
+              assertEquals(msg, (Double) ((Tuple)output).get(0), (Double)getExpected(sumTypes[k]), 0.00001);
+            }
+        }
     }
 
     @Test
     public void testSUMFinal() throws Exception {
-        int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        String[] sumTypes = {"SUMFinal", "DoubleSumFinal", "LongSumFinal", "IntSumFinal", "FloatSumFinal"};
+        for(int k = 0; k < sumTypes.length; k++) {
+            EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
+            String inputType = getInputType(sumTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = sum.exec(tup);
+            
+            String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
+            output + " == " + getExpected(sumTypes[k]) + " (expected) )]";
 
-        EvalFunc<Double> sum = new SUM.Final();
-        Double output = sum.exec(tup);
-
-        assertEquals("Expected sum to be 100.0", 100.0, output);
+            if(inputType == "Integer" || inputType == "Long") {
+              assertEquals(msg, (Long)output, (Long)getExpected(sumTypes[k]), 0.00001);
+            } else {
+              assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
+            }
+        }
     }
 
     @Test
     public void testMIN() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        String[] minTypes = {"MIN", "LongMin", "IntMin", "FloatMin"};
+        for(int k = 0; k < minTypes.length; k++) {
+            EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
+            String inputType = getInputType(minTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = min.exec(tup);
 
-        EvalFunc<Double> min = new MIN();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Double output = min.exec(tup);
+            String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
+                           output + " == " + getExpected(minTypes[k]) + " (expected) )]";
 
-        assertEquals("Expected min to be 1.0", 1.0, output);
+            if(inputType == "ByteArray") {
+              assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+            } else if(inputType == "Long") {
+                assertEquals(msg, (Long)output, (Long)getExpected(minTypes[k]));
+            } else if(inputType == "Integer") {
+                assertEquals(msg, (Integer)output, (Integer)getExpected(minTypes[k]));
+            } else if (inputType == "Double") {
+                assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+            } else if (inputType == "Float") {
+                assertEquals(msg, (Float)output, (Float)getExpected(minTypes[k]));
+            } else if (inputType == "String") {
+                assertEquals(msg, (String)output, (String)getExpected(minTypes[k]));
+            }
+        }
     }
 
 
     @Test
     public void testMINInitial() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        
+        String[] minTypes = {"MINInitial", "LongMinInitial", "IntMinInitial", "FloatMinInitial"};
+        for(int k = 0; k < minTypes.length; k++) {
+            EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
+            String inputType = getInputType(minTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = min.exec(tup);
 
-        EvalFunc<Tuple> min = new MIN.Initial();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Tuple output = min.exec(tup);
+            String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
+                           ((Tuple)output).get(0) + " == " + getExpected(minTypes[k]) + " (expected) )]";
 
-        assertEquals("Expected min to be 1.0", 1.0, DataType.toDouble(output.get(0)));
+            if(inputType == "ByteArray") {
+              assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(minTypes[k]));
+            } else if(inputType == "Long") {
+                assertEquals(msg, (Long)((Tuple)output).get(0), (Long)getExpected(minTypes[k]));
+            } else if(inputType == "Integer") {
+                assertEquals(msg, (Integer)((Tuple)output).get(0), (Integer)getExpected(minTypes[k]));
+            } else if (inputType == "Double") {
+                assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(minTypes[k]));
+            } else if (inputType == "Float") {
+                assertEquals(msg, (Float)((Tuple)output).get(0), (Float)getExpected(minTypes[k]));
+            } else if (inputType == "String") {
+                assertEquals(msg, (String)((Tuple)output).get(0), (String)getExpected(minTypes[k]));
+            }
+        }
     }
 
     @Test
     public void testMINFinal() throws Exception {
-        int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        String[] minTypes = {"MINFinal", "LongMinFinal", "IntMinFinal", "FloatMinFinal"};
+        for(int k = 0; k < minTypes.length; k++) {
+            EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
+            String inputType = getInputType(minTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = min.exec(tup);
 
-        EvalFunc<Double> min = new MIN.Final();
-        Double output = min.exec(tup);
+            String msg = "[Testing " + minTypes[k] + " on input type: " + getInputType(minTypes[k]) + " ( (output) " +
+                           output + " == " + getExpected(minTypes[k]) + " (expected) )]";
 
-        assertEquals("Expected sum to be 23.0", 23.0, output);
+            if(inputType == "ByteArray") {
+              assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+            } else if(inputType == "Long") {
+                assertEquals(msg, (Long)output, (Long)getExpected(minTypes[k]));
+            } else if(inputType == "Integer") {
+                assertEquals(msg, (Integer)output, (Integer)getExpected(minTypes[k]));
+            } else if (inputType == "Double") {
+                assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+            } else if (inputType == "Float") {
+                assertEquals(msg, (Float)output, (Float)getExpected(minTypes[k]));
+            } else if (inputType == "String") {
+                assertEquals(msg, (String)output, (String)getExpected(minTypes[k]));
+            }
+        }
     }
 
     @Test
     public void testMAX() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        
+        String[] maxTypes = {"MAX", "LongMax", "IntMax", "FloatMax"};
+        for(int k = 0; k < maxTypes.length; k++) {
+            EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
+            String inputType = getInputType(maxTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = max.exec(tup);
 
-        EvalFunc<Double> max = new MAX();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Double output = max.exec(tup);
+            String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
+                           output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
 
-        assertEquals("Expected max to be 10.0", 10.0, output);
+            if(inputType == "ByteArray") {
+              assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+            } else if(inputType == "Long") {
+                assertEquals(msg, (Long)output, (Long)getExpected(maxTypes[k]));
+            } else if(inputType == "Integer") {
+                assertEquals(msg, (Integer)output, (Integer)getExpected(maxTypes[k]));
+            } else if (inputType == "Double") {
+                assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+            } else if (inputType == "Float") {
+                assertEquals(msg, (Float)output, (Float)getExpected(maxTypes[k]));
+            } else if (inputType == "String") {
+                assertEquals(msg, (String)output, (String)getExpected(maxTypes[k]));
+            }
+        }
     }
 
 
     @Test
     public void testMAXInitial() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        
+        String[] maxTypes = {"MAXInitial", "LongMaxInitial", "IntMaxInitial", "FloatMaxInitial"};
+        for(int k = 0; k < maxTypes.length; k++) {
+            EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
+            String inputType = getInputType(maxTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = max.exec(tup);
 
-        EvalFunc<Tuple> max = new MAX.Initial();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Tuple output = max.exec(tup);
+            String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
+                           ((Tuple)output).get(0) + " == " + getExpected(maxTypes[k]) + " (expected) )]";
 
-        assertEquals("Expected max to be 10.0", 10.0, DataType.toDouble(output.get(0)));
+            if(inputType == "ByteArray") {
+              assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(maxTypes[k]));
+            } else if(inputType == "Long") {
+                assertEquals(msg, (Long)((Tuple)output).get(0), (Long)getExpected(maxTypes[k]));
+            } else if(inputType == "Integer") {
+                assertEquals(msg, (Integer)((Tuple)output).get(0), (Integer)getExpected(maxTypes[k]));
+            } else if (inputType == "Double") {
+                assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(maxTypes[k]));
+            } else if (inputType == "Float") {
+                assertEquals(msg, (Float)((Tuple)output).get(0), (Float)getExpected(maxTypes[k]));
+            } else if (inputType == "String") {
+                assertEquals(msg, (String)((Tuple)output).get(0), (String)getExpected(maxTypes[k]));
+            }
+        }
     }
 
     @Test
     public void testMAXFinal() throws Exception {
-        int input[] = { 23, 38, 39 };
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        
+        String[] maxTypes = {"MAXFinal", "LongMaxFinal", "IntMaxFinal", "FloatMaxFinal"};
+        for(int k = 0; k < maxTypes.length; k++) {
+            EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
+            String inputType = getInputType(maxTypes[k]);
+            Tuple tup = inputMap.get(inputType);
+            Object output = max.exec(tup);
 
-        EvalFunc<Double> max = new MAX.Final();
-        Double output = max.exec(tup);
+            String msg = "[Testing " + maxTypes[k] + " on input type: " + getInputType(maxTypes[k]) + " ( (output) " +
+                           output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
 
-        assertEquals("Expected sum to be 39.0", 39.0, output);
+            if(inputType == "ByteArray") {
+              assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+            } else if(inputType == "Long") {
+                assertEquals(msg, (Long)output, (Long)getExpected(maxTypes[k]));
+            } else if(inputType == "Integer") {
+                assertEquals(msg, (Integer)output, (Integer)getExpected(maxTypes[k]));
+            } else if (inputType == "Double") {
+                assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+            } else if (inputType == "Float") {
+                assertEquals(msg, (Float)output, (Float)getExpected(maxTypes[k]));
+            } else if (inputType == "String") {
+                assertEquals(msg, (String)output, (String)getExpected(maxTypes[k]));
+            }
+        }
+
+    }
+    
+    @Test
+    public void testCONCAT() throws Exception {
+        
+        // DataByteArray concat
+        byte[] a = {1,2,3};
+        byte[] b = {4,5,6};
+        byte[] expected = {1,2,3,4,5,6};
+        DataByteArray dbaExpected = new DataByteArray(expected);
+        
+        DataByteArray dbaA = new DataByteArray(a);
+        DataByteArray dbaB = new DataByteArray(b);
+        EvalFunc<DataByteArray> concat = new CONCAT();
+        
+        Tuple t = TupleFactory.getInstance().newTuple(2);
+        t.set(0, dbaA);
+        t.set(1, dbaB);
+        DataByteArray result = concat.exec(t);
+        String msg = "[Testing CONCAT on input type: bytearray]";
+        assertTrue(msg, result.equals(dbaExpected));
+        
+        // String concat
+        String s1 = "unit ";
+        String s2 = "test";
+        String exp = "unit test";
+        EvalFunc<String> sConcat = new StringConcat();
+        Tuple ts = TupleFactory.getInstance().newTuple(2);
+        ts.set(0, s1);
+        ts.set(1, s2);
+        String res = sConcat.exec(ts);
+        msg = "[Testing StringConcat on input type: String]";
+        assertTrue(msg, res.equals(exp));
+        
     }
 
+    @Test
+    public void testSIZE() throws Exception {
+        
+        // DataByteArray size
+        byte[] a = {1,2,3};
+        DataByteArray dba = new DataByteArray(a);
+        Long expected = new Long(3);
+        Tuple t = TupleFactory.getInstance().newTuple(1);
+        t.set(0, dba);
+        EvalFunc<Long> size = new SIZE();        
+        String msg = "[Testing SIZE on input type: bytearray]";
+        assertTrue(msg, expected.equals(size.exec(t)));
+        
+        // String size
+        String s = "Unit test case";
+        expected = new Long(14);
+        t.set(0, s);
+        size = new StringSize();
+        msg = "[Testing StringSize on input type: String]";
+        assertTrue(msg, expected.equals(size.exec(t)));
+        
+        // Map size
+        String[] mapContents = new String[]{"key1", "value1", "key2", "value2"};
+        Map<Object, Object> map = Util.createMap(mapContents);
+        expected = new Long(2);
+        t.set(0, map);
+        size = new MapSize();
+        msg = "[Testing MapSize on input type: Map]";
+        assertTrue(msg, expected.equals(size.exec(t)));
+        
+        // Bag size
+        Tuple t1 = Util.createTuple(new String[]{"a", "b", "c"});
+        Tuple t2 = Util.createTuple(new String[]{"d", "e", "f"});
+        Tuple t3 = Util.createTuple(new String[]{"g", "h", "i"});
+        Tuple t4 = Util.createTuple(new String[]{"j", "k", "l"});
+        DataBag b = Util.createBag(new Tuple[]{t1, t2, t3, t4});
+        expected = new Long(4);
+        t.set(0, b);
+        size = new BagSize();
+        msg = "[Testing BagSize on input type: Bag]";
+        assertTrue(msg, expected.equals(size.exec(t)));
+        
+        
+        // Tuple size
+        expected = new Long(3);
+        size = new TupleSize();
+        msg = "[Testing TupleSize on input type: Tuple]";
+        assertTrue(msg, expected.equals(size.exec(t1)));
+        
+    }
 
     // Builtin APPLY Functions
     // ========================
@@ -500,8 +936,19 @@ public class TestBuiltin extends TestCase {
         tempFile.delete();
     }
     */
- 
-    
-    
+           
+    private static String getInputType(String typeFor) {
+        return allowedInput.get(typeFor);
+    }
+
+    /**
+     * @param expectedFor functionName for which expected result is sought
+     * @return Object appropriate expected result
+     */
+    private Object getExpected(String expectedFor) {
+        return expectedMap.get(expectedFor);
+    }
+
+
 
 }

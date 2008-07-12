@@ -8,7 +8,7 @@ Filter[tuple] - Test-Plan-Builder-196
 |
 |---Split - Test-Plan-Builder-195
     |
-    |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-194
+    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-194
 
 Filter[tuple] - Test-Plan-Builder-200
 |   |
@@ -20,4 +20,4 @@ Filter[tuple] - Test-Plan-Builder-200
 |
 |---Split - Test-Plan-Builder-195
     |
-    |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-194
+    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-194

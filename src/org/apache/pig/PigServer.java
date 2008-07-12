@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -144,8 +145,22 @@ public class PigServer {
      * @param functionSpec - the name of the function and any arguments.
      * It should have the form: classname('arg1', 'arg2', ...)
      */
+    @Deprecated
     public void registerFunction(String function, String functionSpec) {
-        pigContext.registerFunction(function, functionSpec);
+        registerFunction(function, new FuncSpec(functionSpec));
+    }
+    
+    /**
+     * Defines an alias for the given function spec. This
+     * is useful for functions that require arguments to the 
+     * constructor.
+     * 
+     * @param function - the new function alias to define.
+     * @param funcSpec - the FuncSpec object representing the name of 
+     * the function class and any arguments to constructor.
+     */
+    public void registerFunction(String function, FuncSpec funcSpec) {
+        pigContext.registerFunction(function, funcSpec);
     }
     
     private URL locateJarFromResources(String jarName) throws IOException {

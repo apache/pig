@@ -28,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -52,8 +53,8 @@ public class POUserFunc extends ExpressionOperator {
     transient EvalFunc func;
 	
 	private final Log log = LogFactory.getLog(getClass());
-	String funcSpec;
-    String origFSpec;
+	FuncSpec funcSpec;
+    FuncSpec origFSpec;
 	public static final byte INITIAL = 0;
 	public static final byte INTERMEDIATE = 1;
 	public static final byte FINAL = 2;
@@ -64,11 +65,11 @@ public class POUserFunc extends ExpressionOperator {
 
 	}
 
-	public POUserFunc(OperatorKey k, int rp, List inp, String funcSpec) {
+	public POUserFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec) {
 		this(k, rp, inp, funcSpec, null);
 	}
 	
-	public POUserFunc(OperatorKey k, int rp, List inp, String funcSpec, EvalFunc func) {
+	public POUserFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec, EvalFunc func) {
 //		super(k, rp, inp);
         super(k, rp);
         super.setInputs(inp);
@@ -78,7 +79,7 @@ public class POUserFunc extends ExpressionOperator {
         instantiateFunc(funcSpec);
 	}
 
-	private void instantiateFunc(String fSpec) {
+	private void instantiateFunc(FuncSpec fSpec) {
 		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
         this.func.setReporter(reporter);
 	}
@@ -240,18 +241,18 @@ public class POUserFunc extends ExpressionOperator {
 		// func is being changed.
 		switch (Function) {
 		case INITIAL:
-            funcSpec = getInitial();
+            funcSpec = new FuncSpec(getInitial());
 			break;
 		case INTERMEDIATE:
-            funcSpec = getIntermed();
+            funcSpec = new FuncSpec(getIntermed());
 			break;
 		case FINAL:
-            funcSpec = getFinal();
+            funcSpec = new FuncSpec(getFinal());
 			break;
 
 		}
         instantiateFunc(funcSpec);
-        setResultType(DataType.findType(((EvalFunc) func).getReturnType()));
+        setResultType(DataType.findType(((EvalFunc<?>) func).getReturnType()));
 	}
 
 	public String getInitial() {
@@ -326,7 +327,7 @@ public class POUserFunc extends ExpressionOperator {
 		v.visitUserFunc(this);
 	}
 
-    public String getFuncSpec() {
+    public FuncSpec getFuncSpec() {
         return funcSpec;
     }
     

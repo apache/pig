@@ -28,6 +28,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.Main;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -95,7 +97,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     /**
      * a table mapping function names to function specs.
      */
-    private Map<String, String> definedFunctions = new HashMap<String, String>();
+    private Map<String, FuncSpec> definedFunctions = new HashMap<String, FuncSpec>();
     
     private static ArrayList<String> packageImportList = new ArrayList<String>();
 
@@ -301,10 +303,11 @@ public class PigContext implements Serializable, FunctionInstantiator {
      * constructor.
      * 
      * @param function - the new function alias to define.
-     * @param functionSpec - the name of the function and any arguments.
-     * It should have the form: classname('arg1', 'arg2', ...)
+     * @param functionSpec - the FuncSpec object representing the name of 
+     * the function class and any arguments to constructor.
+     * 
      */
-    public void registerFunction(String function, String functionSpec) {
+    public void registerFunction(String function, FuncSpec functionSpec) {
         if (functionSpec == null) {
             definedFunctions.remove(function);
         } else {
@@ -348,21 +351,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
     
-    public static String getClassNameFromSpec(String funcSpec){
-        int paren = funcSpec.indexOf('(');
-        if (paren!=-1)
-            return funcSpec.substring(0, paren);
-        else
-            return funcSpec;
-    }
-
-    private static String getArgStringFromSpec(String funcSpec){
-        int paren = funcSpec.indexOf('(');
-        if (paren!=-1)
-            return funcSpec.substring(paren+1);
-        else
-            return "";
-    }
     
 
     public static Class resolveClassName(String name) throws IOException{
@@ -381,32 +369,12 @@ public class PigContext implements Serializable, FunctionInstantiator {
         throw WrappedIOException.wrap(e.getMessage(), e);
     }
     
-    private static List<String> parseArguments(String argString){
-        List<String> args = new ArrayList<String>();
-        
-        int startIndex = 0;
-        int endIndex;
-        while (startIndex < argString.length()) {
-            while (startIndex < argString.length() && argString.charAt(startIndex++) != '\'')
-                ;
-            endIndex = startIndex;
-            while (endIndex < argString.length() && argString.charAt(endIndex) != '\'') {
-                if (argString.charAt(endIndex) == '\\')
-                    endIndex++;
-                endIndex++;
-            }
-               if (endIndex < argString.length()) {
-                   args.add(argString.substring(startIndex, endIndex));
-            }
-            startIndex = endIndex + 1;
-        }
-        return args;
-    }
     
     @SuppressWarnings("unchecked")
-    private static Object instantiateFunc(String className, String argString)  {
+    public static Object instantiateFuncFromSpec(FuncSpec funcSpec)  {
         Object ret;
-        List<String> args = parseArguments(argString);
+        String className =funcSpec.getClassName(); 
+        String[] args = funcSpec.getCtorArgs();
         Class objClass = null ;
 
         try {
@@ -418,13 +386,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
         try {
             // Do normal instantiation
-            if (args != null && args.size() > 0) {
-                Class paramTypes[] = new Class[args.size()];
+            if (args != null && args.length > 0) {
+                Class paramTypes[] = new Class[args.length];
                 for (int i = 0; i < paramTypes.length; i++) {
                     paramTypes[i] = String.class;
                 }
                 Constructor c = objClass.getConstructor(paramTypes);
-                ret =  c.newInstance(args.toArray());
+                ret =  c.newInstance((Object[])args);
             } else {
                 ret = objClass.newInstance();
             }
@@ -433,9 +401,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
             // Second channce. Try with var arg constructor
             try {
                 Constructor c = objClass.getConstructor(String[].class);
-                String[] argArr = args.toArray(new String[0]) ;
                 Object[] wrappedArgs = new Object[1] ;
-                wrappedArgs[0] = argArr ;
+                wrappedArgs[0] = args ;
                 ret =  c.newInstance(wrappedArgs);
             }
             catch(Throwable e){
@@ -462,26 +429,27 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return ret;
     }
     
-    public static Object instantiateFuncFromSpec(String funcSpec) {
-        return instantiateFunc(getClassNameFromSpec(funcSpec), getArgStringFromSpec(funcSpec));
+    public static Object instantiateFuncFromSpec(String funcSpec)  {
+        return instantiateFuncFromSpec(new FuncSpec(funcSpec));
     }
     
     
     public Class getClassForAlias(String alias) throws IOException{
-        String className, funcSpec = null;
+        String className = null;
+        FuncSpec funcSpec = null;
         if (definedFunctions != null) {
             funcSpec = definedFunctions.get(alias);
         }
         if (funcSpec != null) {
-            className = getClassNameFromSpec(funcSpec);
+            className = funcSpec.getClassName();
         }else{
-            className = getClassNameFromSpec(alias);
+            className = FuncSpec.getClassNameFromSpec(alias);
         }
         return resolveClassName(className);
     }
   
     public Object instantiateFuncFromAlias(String alias) throws IOException {
-        String funcSpec;
+        FuncSpec funcSpec;
         if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
             return instantiateFuncFromSpec(funcSpec);
         else
@@ -492,8 +460,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
         this.execType = execType;
     }
 
-    public String getFuncSpecFromAlias(String alias) {
-        String funcSpec;
+    public FuncSpec getFuncSpecFromAlias(String alias) {
+        FuncSpec funcSpec;
         if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
             return funcSpec;
         else

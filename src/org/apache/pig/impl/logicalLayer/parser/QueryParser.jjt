@@ -52,6 +52,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 
 
 public class QueryParser {
@@ -121,7 +122,7 @@ public class QueryParser {
         try {
 		store = new LOStore(storePlan,
 							   new OperatorKey(scope, storeNodeId),
-                               new FileSpec(fileName, func));
+                               new FileSpec(fileName, new FuncSpec(func)));
         } catch (IOException ioe) {
             throw new FrontendException(ioe.getMessage());
         }
@@ -676,7 +677,9 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 {
 	Token t1, t2; 
 	String filename; 
-	String funcName,funcArgs, funcSpec=null; 
+	String funcName,funcArgs =null;
+	FuncSpec funcSpec = null;
+	String funcSpecAsString = null; 
 	LOLoad lo=null; 
 	log.trace("Entering LoadClause");
 }
@@ -685,14 +688,15 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 		(
 		<USING>  funcName = QualifiedFunction() "(" funcArgs = StringList() ")"
 		{
-			funcSpec = funcName + "(" + funcArgs + ")";
+			funcSpecAsString = funcName + "(" + funcArgs + ")";
+			funcSpec = new FuncSpec(funcSpecAsString);
 			log.debug("LoadClause: funcSpec = " + funcSpec);
 		}
 		)?
 	)
 	{
 		if (funcSpec == null){
-			funcSpec = PigStorage.class.getName() + "()";
+			funcSpec = new FuncSpec(PigStorage.class.getName());
 		}
 		 
 		lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext), funcSpec), null);
@@ -937,7 +941,7 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 |	LOOKAHEAD(EvalFunction() "(") 
 		(evalFunc=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
 			{
-                String funcSpec = evalFunc.getClass().getName();
+                FuncSpec funcSpec = new FuncSpec(evalFunc.getClass().getName());
                 Type javaType = evalFunc.getReturnType();
                 byte type = DataType.findType(javaType);
 
@@ -1063,7 +1067,7 @@ CogroupInput GroupItem(LogicalPlan lp) :
 					listPlans.add(groupByPlan);
 			}
 		|	<ANY> {
-					es = new LOUserFunc(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), GFAny.class.getName(), null, DataType.INTEGER); 
+					es = new LOUserFunc(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), new FuncSpec(GFAny.class.getName()), null, DataType.INTEGER); 
 					groupByPlan.add(es);
 					log.debug("GroupItem: Added operator " + es.getClass().getName() + " " + es + " to logical plan " + groupByPlan);
 					listPlans.add(groupByPlan);
@@ -1126,7 +1130,8 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 
 	)
 	{
-		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, funcName);
+		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
+		                          (funcName != null ? new FuncSpec(funcName) : null));
 		sort.setStar(star);
 		lp.add(sort);
 		log.debug("Added operator " + sort.getClass().getName() + " to the logical plan");
@@ -1480,7 +1485,8 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 	)
 	{	
 		log.debug("Before creating LOSort");
-		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, funcName);
+		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
+		                          (funcName != null ? new FuncSpec(funcName) : null));
 		sort.setStar(star);
 		log.debug("After creating LOSort");
 		try {
@@ -1869,7 +1875,7 @@ ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, Logi
 ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
 {
 	String funcName = null; 
-	String funcSpec = null; 
+	FuncSpec funcSpec = null; 
 	String funcNameAlias = null; 
     boolean registeredFunction = false;
 	List<ExpressionOperator> args;
@@ -1910,7 +1916,7 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
             if(null != funcNameAlias) {
                 funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
             } else {
-                funcSpec = funcName;
+                funcSpec = new FuncSpec(funcName);
             }
             Type javaType = evalFunc.getReturnType();
             byte type = DataType.findType(javaType);
@@ -1990,7 +1996,7 @@ ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs,
 
 ExpressionOperator FuncDeclareSpec(LogicalPlan lp) : 
 {
-	String funcSpec; 
+	FuncSpec funcSpec; 
 	List<ExpressionOperator> args;
 	byte userSpecifiedType = DataType.BYTEARRAY;
     boolean userSpecified = false;
@@ -2000,7 +2006,7 @@ ExpressionOperator FuncDeclareSpec(LogicalPlan lp) :
 {
 	[userSpecifiedType = Type() {userSpecified = true;}] evalFunc=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
 	{
-        funcSpec = evalFunc.getClass().getName();
+        funcSpec = new FuncSpec(evalFunc.getClass().getName());
         Type javaType = evalFunc.getReturnType();
         byte type = DataType.findType(javaType);
         log.debug("Return type of UDF: " + DataType.findTypeName(type));

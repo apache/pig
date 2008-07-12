@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -135,7 +136,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         POStore str = new POStore(new OperatorKey("", r.nextLong()));
         str.setInputs(inps);
         
-        FileSpec fSpec = new FileSpec(ldFile,PigStorage.class.getName());
+        FileSpec fSpec = new FileSpec(ldFile, new FuncSpec(PigStorage.class.getName()));
         
         str.setSFile(fSpec);
         str.setPc(pc);
@@ -351,8 +352,8 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName()+"(',')");
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
+        FileSpec fSpecAct = new FileSpec(stFile, new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
         
@@ -369,8 +370,8 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
             return;
         }
         
-        FileSpec LFSpec = new FileSpec(ldFile,PigStorage.class.getName()+"(',')");
-        FileSpec SFSpec = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec LFSpec = new FileSpec(ldFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
+        FileSpec SFSpec = new FileSpec(stFile, new FuncSpec(PigStorage.class.getName()));
 
         POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
@@ -424,8 +425,11 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName()+"(',')");
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile,
+                        new FuncSpec(PigStorage.class.getName()+"(',')"));
+
+        FileSpec fSpecAct = new FileSpec(stFile,
+                                new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
         

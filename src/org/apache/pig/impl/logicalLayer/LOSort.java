@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -35,7 +36,7 @@ public class LOSort extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
     private List<Boolean> mAscCols;
-    private String mSortFunc;
+    private FuncSpec mSortFunc;
     private boolean mIsStar = false;
     private List<LogicalPlan> mSortColPlans;
     private static Log log = LogFactory.getLog(LOSort.class);
@@ -45,8 +46,6 @@ public class LOSort extends LogicalOperator {
      *            LogicalPlan this operator is a part of.
      * @param key
      *            OperatorKey for this operator
-     * @param input
-     *            Input to sort
      * @param sortColPlans
      *            Array of column numbers that will be used for sorting data.
      * @param ascCols
@@ -61,7 +60,7 @@ public class LOSort extends LogicalOperator {
             OperatorKey key,
             List<LogicalPlan> sortColPlans,
             List<Boolean> ascCols,
-            String sortFunc) {
+            FuncSpec sortFunc) {
         super(plan, key);
         mSortColPlans = sortColPlans;
         mAscCols = ascCols;
@@ -80,11 +79,11 @@ public class LOSort extends LogicalOperator {
         return mAscCols;
     }
 
-    public String getUserFunc() {
+    public FuncSpec getUserFunc() {
         return mSortFunc;
     }
 
-    public void setUserFunc(String func) {
+    public void setUserFunc(FuncSpec func) {
         mSortFunc = func;
     }
 

@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -440,7 +441,7 @@ System.out.println("store file is " + store.getSFile());
      */
     private FileSpec getTempFileSpec() throws IOException {
         return new FileSpec(FileLocalizer.getTemporaryPath(null, pigContext).toString(),
-                BinStorage.class.getName());
+                new FuncSpec(BinStorage.class.getName()));
     }
     
     /**
@@ -721,7 +722,7 @@ System.out.println("store file is " + store.getSFile());
             MapReduceOper quant = getQuantileJob(op, mro, fSpec, quantFile, rp, fields);
             curMROp = getSortJob(quant, fSpec, quantFile, rp, fields);
             if(op.isUDFComparatorUsed){
-                curMROp.UDFs.add(op.getMSortFunc().getFuncSpec());
+                curMROp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
             }
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
@@ -814,14 +815,14 @@ System.out.println("store file is " + store.getSFile());
     }
 
     public MapReduceOper getQuantileJob(POSort inpSort, MapReduceOper prevJob, FileSpec lFile, FileSpec quantFile, int rp, int[] fields) throws PlanException, VisitorException {
-        FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),RandomSampleLoader.class.getName());
+        FileSpec quantLdFilName = new FileSpec(lFile.getFileName(), new FuncSpec(RandomSampleLoader.class.getName()));
         MapReduceOper mro = startNew(quantLdFilName, prevJob);
         mro.UDFs.add(FindQuantiles.class.getName());
         POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
                 .getRequestedParallelism(), null, inpSort.getSortPlans(),
                 inpSort.getMAscCols(), inpSort.getMSortFunc());
         if(sort.isUDFComparatorUsed)
-            mro.UDFs.add(sort.getMSortFunc().getFuncSpec());
+            mro.UDFs.add(sort.getMSortFunc().getFuncSpec().toString());
         
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();
@@ -933,7 +934,8 @@ System.out.println("store file is " + store.getSFile());
         
         List ufInps = new ArrayList();
         ufInps.add(prjStar4);
-        POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, FindQuantiles.class.getName());
+        POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, 
+                                 new FuncSpec(FindQuantiles.class.getName()));
         ep4.add(uf);
         ep4.connect(prjStar4, uf);
         

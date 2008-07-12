@@ -18,15 +18,19 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
@@ -59,7 +63,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
-        TupleFactory tfact = TupleFactory.getInstance();
+        private static TupleFactory tfact = TupleFactory.getInstance();
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
@@ -85,29 +89,39 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         }
     }
 
-    static protected double sum(Tuple input) throws ExecException {
+    static protected Double sum(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-
-        double sum = 0;
-        int i = 0;
-        Tuple t = null;
-        for (Iterator it = values.iterator(); it.hasNext();) {
-            try {
-                t = (Tuple) it.next();
-                i++;
-                Double d = DataType.toDouble(t.get(0));
-                if (d == null) continue;
-                sum += d;
-            }catch(RuntimeException exp) {
-                String msg = "iteration = " + i + "bag size = " +
-                    values.size() + " partial sum = " + sum + "\n";
-                if (t != null)
-                        msg += "previous tupple = " + t.toString();
-                throw new RuntimeException(exp.getMessage() + " additional info: " + msg);
-            }
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
         }
 
-        return sum;
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                Double d = DataType.toDouble(t.get(0));
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            }catch(NumberFormatException nfe){
+                // do nothing - essentially treat this
+                // particular input as null
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage(), exp);
+                throw newE;
+            }
+        }
+        
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -115,5 +129,18 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
     }
 
-    private static int count = 1;
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
+        funcList.add(new FuncSpec(DoubleSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+        funcList.add(new FuncSpec(FloatSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+        funcList.add(new FuncSpec(IntSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+        funcList.add(new FuncSpec(LongSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        return funcList;
+    }    
+    
 }

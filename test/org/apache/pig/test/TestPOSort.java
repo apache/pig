@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 import junit.framework.Assert;
 
 import org.apache.pig.ComparisonFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -340,7 +341,7 @@ public class TestPOSort extends TestCase {
 		/*POUserFunc comparator = new POUserFunc(
 				new OperatorKey("", r.nextLong()), -1, inputs, funcName);*/
 		POUserComparisonFunc comparator = new POUserComparisonFunc(
-				new OperatorKey("", r.nextLong()), -1, null, funcName);
+				new OperatorKey("", r.nextLong()), -1, null, new FuncSpec(funcName));
 		POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
 				null, null, comparator);
 		Tuple t = null;

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -83,7 +84,7 @@ public class TestUnion extends junit.framework.TestCase {
         POLoad ld1 = GenPhyOp.topLoadOp();
         String curDir = System.getProperty("user.dir");
         String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
-        FileSpec fSpec = new FileSpec("file:"+ inpDir +"passwd",PigStorage.class.getName() + "(':')");
+        FileSpec fSpec = new FileSpec("file:"+ inpDir +"passwd", new FuncSpec(PigStorage.class.getName() , new String[]{":"}));
         ld1.setLFile(fSpec);
         
         POLoad ld2 = GenPhyOp.topLoadOp();

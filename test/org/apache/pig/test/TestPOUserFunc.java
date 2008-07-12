@@ -29,6 +29,7 @@ import junit.framework.TestCase;
 import org.apache.pig.Algebraic;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -231,7 +232,7 @@ public class TestPOUserFunc extends TestCase {
 		List<PhysicalOperator> inputs = new LinkedList<PhysicalOperator>();
 		inputs.add(read);
 		POUserFunc userFunc = new POUserFunc(new OperatorKey("", r.nextLong()),
-				-1, inputs, funcSpec);
+				-1, inputs, new FuncSpec(funcSpec));
 		Result res = new Result();
 		Integer i = null;
 		res = userFunc.getNext(i);
@@ -249,7 +250,7 @@ public class TestPOUserFunc extends TestCase {
 				100);
 		String funcSpec = WeirdComparator.class.getName() + "()";
 		POUserComparisonFunc userFunc = new POUserComparisonFunc(new OperatorKey("", r.nextLong()),
-				-1, null, funcSpec);
+				-1, null, new FuncSpec(funcSpec));
 		Iterator<Tuple> it = input.iterator();
 		Tuple t1 = it.next();
 		Tuple t2 = it.next();
@@ -276,7 +277,7 @@ public class TestPOUserFunc extends TestCase {
 		String funcSpec = AVG.class.getName() + "()";
 
 		POUserFunc po = new POUserFunc(new OperatorKey("", r.nextLong()), -1,
-				null, funcSpec);
+				null, new FuncSpec(funcSpec));
 
 		TupleFactory tf = TupleFactory.getInstance();
 
@@ -301,7 +302,7 @@ public class TestPOUserFunc extends TestCase {
 		outputInitial.append(bag);
 		// Tuple outputIntermed = intermed.exec(outputInitial);
 		po = new POUserFunc(new OperatorKey("", r.nextLong()), -1, null,
-				funcSpec);
+				new FuncSpec(funcSpec));
 		po.setAlgebraicFunction(INTERMED);
 		po.attachInput(outputInitial);
 		res = po.getNext(t);
@@ -314,7 +315,7 @@ public class TestPOUserFunc extends TestCase {
 		assertEquals(20, count);
 		System.out.println(outputIntermed);
 		po = new POUserFunc(new OperatorKey("", r.nextLong()), -1, null,
-				funcSpec);
+				new FuncSpec(funcSpec));
 		po.setAlgebraicFunction(FINAL);
 		po.attachInput(outputInitial);
 		res = po.getNext(t);

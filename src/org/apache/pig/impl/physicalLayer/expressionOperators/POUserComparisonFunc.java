@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ComparisonFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -26,12 +27,12 @@ public class POUserComparisonFunc extends ExpressionOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
-    String funcSpec;
+    FuncSpec funcSpec;
     Tuple t1, t2;
     transient ComparisonFunc func;
 	private Log log = LogFactory.getLog(getClass());
 	
-	public POUserComparisonFunc(OperatorKey k, int rp, List inp, String funcSpec, ComparisonFunc func) {
+	public POUserComparisonFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec, ComparisonFunc func) {
         super(k, rp);
         super.setInputs(inp);
         this.funcSpec = funcSpec;
@@ -40,7 +41,7 @@ public class POUserComparisonFunc extends ExpressionOperator {
             instantiateFunc();
 	}
 	
-	public POUserComparisonFunc(OperatorKey k, int rp, List inp, String funcSpec) {
+	public POUserComparisonFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec) {
 		this(k, rp, inp, funcSpec, null);
 	}
 	
@@ -145,7 +146,7 @@ public class POUserComparisonFunc extends ExpressionOperator {
         return false;
     }
     
-    public String getFuncSpec() {
+    public FuncSpec getFuncSpec() {
         return funcSpec;
     }
 

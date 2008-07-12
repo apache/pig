@@ -35,6 +35,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * implemenation, so if possible the execution will be split into a local and global functions
  */
 public class COUNT extends EvalFunc<Long> implements Algebraic{
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
     public Long exec(Tuple input) throws IOException {
@@ -60,12 +61,11 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
     }
 
     static public class Initial extends EvalFunc<Tuple> {
-        TupleFactory tfact = TupleFactory.getInstance();
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
             try {
-                return tfact.newTuple(count(input));
+                return mTupleFactory.newTuple(count(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
                 oughtToBeEE.initCause(ee);
@@ -75,12 +75,11 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
     }
 
     static public class Intermed extends EvalFunc<Tuple> {
-        TupleFactory tfact = TupleFactory.getInstance();
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
             try {
-                return tfact.newTuple(count(input));
+                return mTupleFactory.newTuple(count(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
                 oughtToBeEE.initCause(ee);
@@ -129,7 +128,5 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
     }
-
-    private static int count = 1;
 
 }

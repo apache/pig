@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.pig.ComparisonFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.AVG;
 import org.apache.pig.builtin.SUM;
@@ -719,7 +720,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         
         String funcName = WeirdComparator.class.getName();
         POUserComparisonFunc comparator = new POUserComparisonFunc(
-                new OperatorKey("", r.nextLong()), -1, null, funcName);
+                new OperatorKey("", r.nextLong()), -1, null, new FuncSpec(funcName));
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, ldFil1.getLeaves(),
                 null, null, comparator);
         sort.setRequestedParallelism(20);

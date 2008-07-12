@@ -16,7 +16,7 @@ Package[tuple]{tuple} - Test-Plan-Builder-45
     |   |   |
     |   |   |---Project[bytearray][1] - Test-Plan-Builder-51
     |   |
-    |   |---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-42
+    |   |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-42
     |
     |---Local Rearrange[tuple]{tuple} - Test-Plan-Builder-53
         |   |
@@ -32,4 +32,4 @@ Package[tuple]{tuple} - Test-Plan-Builder-45
         |   |
         |   |---Project[bytearray][1] - Test-Plan-Builder-58
         |
-        |---Load(b:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-43
+        |---Load(b:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-43

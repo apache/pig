@@ -19,6 +19,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -27,7 +28,7 @@ import org.apache.pig.impl.plan.PlanVisitor;
 public class LOUserFunc extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
-    private String mFuncSpec;
+    private FuncSpec mFuncSpec;
     private List<ExpressionOperator> mArgs;
 
     /**
@@ -42,7 +43,7 @@ public class LOUserFunc extends ExpressionOperator {
      * @param returnType
      *            return type of this function.
      */
-    public LOUserFunc(LogicalPlan plan, OperatorKey k, String funcSpec,
+    public LOUserFunc(LogicalPlan plan, OperatorKey k, FuncSpec funcSpec,
             List<ExpressionOperator> args, byte returnType) {
         super(plan, k, -1);
         mFuncSpec = funcSpec;
@@ -50,7 +51,7 @@ public class LOUserFunc extends ExpressionOperator {
         mType = returnType;
     }
 
-    public String getFuncSpec() {
+    public FuncSpec getFuncSpec() {
         return mFuncSpec;
     }
 
@@ -85,5 +86,12 @@ public class LOUserFunc extends ExpressionOperator {
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
+    }
+
+    /**
+     * @param funcSpec the FuncSpec to set
+     */
+    public void setFuncSpec(FuncSpec funcSpec) {
+        mFuncSpec = funcSpec;
     }
 }

@@ -19,6 +19,7 @@ package org.apache.pig.impl.io;
 
 import java.io.Serializable;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.PigContext;
 
 
@@ -29,12 +30,12 @@ import org.apache.pig.impl.PigContext;
  */
 public class FileSpec implements Serializable {
     
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
     String fileName;
 
-    String funcSpec;
+    FuncSpec funcSpec;
     
-    public FileSpec(String fileName, String funcSpec){
+    public FileSpec(String fileName, FuncSpec funcSpec){
         this.fileName = fileName;
         this.funcSpec = funcSpec;
     }
@@ -43,7 +44,7 @@ public class FileSpec implements Serializable {
         return fileName;
     }
     
-    public String getFuncSpec(){
+    public FuncSpec getFuncSpec(){
         return funcSpec;
     }
     
@@ -53,7 +54,7 @@ public class FileSpec implements Serializable {
     }
 
     public String getFuncName(){
-            return PigContext.getClassNameFromSpec(funcSpec);
+            return funcSpec.getClassName();
     }
 
     public int getSize() {

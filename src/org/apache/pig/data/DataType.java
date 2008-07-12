@@ -599,10 +599,10 @@ public class DataType {
             return new Integer(((Double)o).intValue());
 
         case BYTEARRAY:
-            return new Integer(Integer.valueOf(((DataByteArray)o).toString()));
+            return Integer.valueOf(((DataByteArray)o).toString());
 
         case CHARARRAY:
-            return new Integer(Integer.valueOf((String)o));
+            return Integer.valueOf((String)o);
 
         case NULL:
             return null;
@@ -646,10 +646,10 @@ public class DataType {
             return new Long(((Double)o).longValue());
 
         case BYTEARRAY:
-            return new Long(Long.valueOf(((DataByteArray)o).toString()));
+            return Long.valueOf(((DataByteArray)o).toString());
 
         case CHARARRAY:
-            return new Long(Long.valueOf((String)o));
+            return Long.valueOf((String)o);
 
         case NULL:
             return null;
@@ -689,10 +689,10 @@ public class DataType {
             return new Float(((Double)o).floatValue());
 
         case BYTEARRAY:
-            return new Float(Float.valueOf(((DataByteArray)o).toString()));
+            return Float.valueOf(((DataByteArray)o).toString());
 
         case CHARARRAY:
-            return new Float(Float.valueOf((String)o));
+            return Float.valueOf((String)o);
 
         case NULL:
             return null;
@@ -733,10 +733,10 @@ public class DataType {
             return (Double)o;
 
         case BYTEARRAY:
-            return new Double(Double.valueOf(((DataByteArray)o).toString()));
+            return Double.valueOf(((DataByteArray)o).toString());
 
         case CHARARRAY:
-            return new Double(Double.valueOf((String)o));
+            return Double.valueOf((String)o);
 
         case NULL:
             return null;

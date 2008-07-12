@@ -17,10 +17,16 @@
  */
 package org.apache.pig.test;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
 
 public class Util {
+    private static BagFactory mBagFactory = BagFactory.getInstance();
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+
     // Helper Functions
     // =================
     static public Tuple loadFlatTuple(Tuple t, int[] input) throws ExecException {
@@ -66,7 +72,58 @@ public class Util {
         return t;
     }
 
+    // this one should handle String, DataByteArray, Long, Integer etc..
+    static public <T> Tuple loadNestTuple(Tuple t, T[] input) throws ExecException {
+        DataBag bag = BagFactory.getInstance().newDefaultBag();
+        for(int i = 0; i < input.length; i++) {
+            Tuple f = TupleFactory.getInstance().newTuple(1);
+            f.set(0, input[i]);
+            bag.add(f);
+        }
+        t.set(0, bag);
+        return t;
+    }
 
+    static public <T>void addToTuple(Tuple t, T[] b)
+    {
+        for(int i = 0; i < b.length; i++)
+            t.append(b[i]);
+    }
+    
+    
+    
+    static public <T>Tuple createTuple(T[] s)
+    {
+        Tuple t = mTupleFactory.newTuple();
+        addToTuple(t, s);
+        return t;
+    }
+    
+    static public DataBag createBag(Tuple[] t)
+    {
+        DataBag b = mBagFactory.newDefaultBag();
+        for(int i = 0; i < t.length; i++)b.add(t[i]);
+        return b;
+    }
+    
+    static public Map<Object, Object> createMap(String[] contents)
+    {
+        Map<Object, Object> m = new HashMap<Object, Object>();
+        for(int i = 0; i < contents.length; ) {
+            m.put(contents[i], contents[i+1]);
+            i += 2;
+        }
+        return m;
+    }
+
+    static public DataByteArray[] toDataByteArrays(String[] input) {
+        DataByteArray[] dbas = new DataByteArray[input.length];
+        for (int i = 0; i < input.length; i++) {
+            dbas[i] = (input[i] == null)?null:new DataByteArray(input[i].getBytes());
+        }        
+        return dbas;
+    }
+    
     static public Tuple loadNestTuple(Tuple t, int[][] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             DataBag bag = BagFactory.getInstance().newDefaultBag();

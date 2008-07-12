@@ -39,6 +39,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobSubmissionProtocol;
 import org.apache.hadoop.mapred.JobTracker;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -246,7 +247,7 @@ public class HExecutionEngine implements ExecutionEngine {
                 str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                     pigContext).toString(),
-                    BinStorage.class.getName());
+                    new FuncSpec(BinStorage.class.getName()));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
             }
@@ -479,7 +480,7 @@ public class HExecutionEngine implements ExecutionEngine {
                 str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                     pigContext).toString(),
-                    BinStorage.class.getName());
+                    new FuncSpec(BinStorage.class.getName()));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
             } else{

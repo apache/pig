@@ -408,11 +408,19 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println("-------------");
         boolean flag = false;
         //System.out.println("GoldenPlan1\n" + goldenPlan1 + "\nGoldenPlan2\n" + goldenPlan2);
-        if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0)
-        	flag = true;
-        
-        //assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
-        assertEquals(true, flag);
+        if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0) {
+            // good
+        }
+        else {
+            System.out.println("Expected plan1=") ;
+            System.out.println(goldenPlan1) ;
+            System.out.println("Expected plan2=") ;
+            System.out.println(goldenPlan1) ;
+            System.out.println("Actual plan=") ;
+            System.out.println(compiledPlan) ;
+            System.out.println("**END**") ;
+            fail("Plan not match") ;
+        }
     	
     }
     
@@ -454,11 +462,19 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println("-------------");
         boolean flag = false;
         //System.out.println("GoldenPlan1\n" + goldenPlan1 + "\nGoldenPlan2\n" + goldenPlan2);
-        if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0)
-        	flag = true;
-        
-        //assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
-        assertEquals(true, flag);
+        if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0)  {
+            // good
+        }
+        else {
+            System.out.println("Expected plan1=") ;
+            System.out.println(goldenPlan1) ;
+            System.out.println("Expected plan2=") ;
+            System.out.println(goldenPlan1) ;
+            System.out.println("Actual plan=") ;
+            System.out.println(compiledPlan) ;
+            System.out.println("**END**") ;
+            fail("Plan not match") ;
+        }
     	
     }
 

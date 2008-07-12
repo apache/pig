@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -57,7 +58,8 @@ public class TestStore extends junit.framework.TestCase {
     @Before
     public void setUp() throws Exception {
         st = GenPhyOp.topStoreOp();
-        fSpec = new FileSpec("file:////tmp/storeTest.txt",PigStorage.class.getName()+"(':')");
+        fSpec = new FileSpec("file:////tmp/storeTest.txt",
+                      new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
         st.setSFile(fSpec);
         pc = new PigContext();
         pc.connect();

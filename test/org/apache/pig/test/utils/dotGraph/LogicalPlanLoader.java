@@ -18,6 +18,7 @@
 
 package org.apache.pig.test.utils.dotGraph;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
@@ -91,7 +92,7 @@ public class LogicalPlanLoader
     private LOLoad createLOLoad(DotNode node, LogicalPlan plan) {
         LOLoad load = null ;
         FileSpec fileSpec = new FileSpec("pi",
-                                         PigStorage.class.getName()) ;
+                                         new FuncSpec(PigStorage.class.getName())) ;
         try {
             load = new LOLoad(plan, getKey(node.attributes), fileSpec, null) ;
             fillSchema(load, node.attributes) ;
@@ -116,7 +117,7 @@ public class LogicalPlanLoader
 
     private LOSort createLOSort(DotNode node, LogicalPlan plan) {
         LOSort sort = new LOSort(plan, getKey(node.attributes),
-                                 null, null, "") ;
+                                 null, null, null) ;
         fillSchema(sort, node.attributes) ;
         return sort ;
     }

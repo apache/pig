@@ -55,13 +55,14 @@ public class TestPigSplit extends TestCase {
         File f = File.createTempFile("tmp", "");
         
         PrintWriter pw = new PrintWriter(f);
-        pw.println("0\ta");
+        for (int i=0; i< 500; i++) {
+            pw.println("0\ta");
+        }
         pw.close();
         
         pig.registerQuery("a = load 'file:" + f + "';");
-        for (int i=0; i< 500; i++){
-            pig.registerQuery("a = filter a by $0 == '1';");
-        }
+        pig.registerQuery("a = filter a by $0 == '1';");
+
         Iterator<Tuple> iter = pig.openIterator("a");
         while (iter.hasNext()){
             throw new Exception();

@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.logicalLayer.schema;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,9 +35,16 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 
-public class Schema {
+public class Schema implements Serializable {
 
-    public static class FieldSchema {
+    private static final long serialVersionUID = 2L;
+
+    public static class FieldSchema implements Serializable{
+        /**
+         * 
+         */
+        private static final long serialVersionUID = 2L;
+
         /**
          * Alias for this field.
          */
@@ -1002,6 +1010,24 @@ public class Schema {
         else {
             return alias ;
         }
+    }
+    
+    /**
+     * 
+     * @param topLevelType DataType type of the top level element
+     * @param innerTypes DataType types of the inner level element
+     * @return nested schema representing type of top level element at first level and inner schema
+	 * representing types of inner element(s)
+     */
+    public static Schema generateNestedSchema(byte topLevelType, byte... innerTypes) throws FrontendException{
+        
+        Schema innerSchema = new Schema();
+        for (int i = 0; i < innerTypes.length; i++) {
+            innerSchema.add(new Schema.FieldSchema(null, innerTypes[i]));
+        }
+        
+        Schema.FieldSchema outerSchema = new Schema.FieldSchema(null, innerSchema, topLevelType);
+        return new Schema(outerSchema);
     }
 
 

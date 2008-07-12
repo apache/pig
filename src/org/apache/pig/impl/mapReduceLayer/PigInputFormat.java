@@ -39,6 +39,7 @@ import org.apache.hadoop.mapred.JobConfigurable;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
@@ -179,7 +180,7 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
             Path path = new Path(inputs.get(i).getFileName());
-            String parser = inputs.get(i).getFuncSpec();
+            FuncSpec parser = inputs.get(i).getFuncSpec();
             FileSystem fs = path.getFileSystem(job);
 
             fs.setWorkingDirectory(new Path("/user", job.getUser()));
@@ -206,14 +207,14 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
                 if (name.endsWith(".gz")) {
                     // Anything that ends with a ".gz" we must process as a
                     // complete file
-                    splits.add(new PigSplit(pigContext, fs, fullPath, parser,
+                    splits.add(new PigSplit(pigContext, fs, fullPath, parser.toString(),
                             inpTargets.get(i), 0, size));
                 } else {
                     while (pos < size) {
                         if (pos + bs > size)
                             bs = size - pos;
                         splits.add(new PigSplit(pigContext, fs, fullPath,
-                                parser, inpTargets.get(i), pos, bs));
+                                parser.toString(), inpTargets.get(i), pos, bs));
                         pos += bs;
                     }
                 }

@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -50,7 +51,7 @@ public class TestLoad extends junit.framework.TestCase {
     public void setUp() throws Exception {
         String curDir = System.getProperty("user.dir");
         String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
-        inpFSpec = new FileSpec("file:" + inpDir + "passwd",PigStorage.class.getName()+"(':')");
+        inpFSpec = new FileSpec("file:" + inpDir + "passwd", new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
         pc = new PigContext();
         pc.connect();
         

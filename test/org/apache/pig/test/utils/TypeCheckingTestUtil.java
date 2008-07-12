@@ -18,6 +18,7 @@
 
 package org.apache.pig.test.utils;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -40,7 +41,7 @@ public class TypeCheckingTestUtil {
         try {
             LOLoad load = new LOLoad(plan,
                                       genNewOperatorKey(),
-                                      new FileSpec("pi", pigStorage),
+                                      new FileSpec("pi", new FuncSpec(pigStorage)),
                                       null) ;
             return load ;
         } catch (IOException e) {

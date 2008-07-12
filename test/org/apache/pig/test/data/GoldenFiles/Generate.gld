@@ -34,4 +34,4 @@ New For Each(false,false,false,false,false,false)[bag] - Test-Plan-Builder-176
 |   |
 |   |---Project[bytearray][1] - Test-Plan-Builder-174
 |
-|---Load(a:org.apache.pig.builtin.PigStorage()) - Test-Plan-Builder-158
+|---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-158

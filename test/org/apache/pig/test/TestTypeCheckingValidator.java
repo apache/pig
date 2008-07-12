@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import junit.framework.TestCase;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.validators.*;
 import org.apache.pig.impl.logicalLayer.* ;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -805,11 +806,11 @@ public class TestTypeCheckingValidator extends TestCase {
         
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
         LOLoad load2 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -929,11 +930,11 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
         LOLoad load2 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1033,11 +1034,11 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
         LOLoad load2 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1101,7 +1102,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1169,7 +1170,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1239,7 +1240,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1309,7 +1310,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1389,7 +1390,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1487,7 +1488,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1582,7 +1583,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1710,7 +1711,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1814,11 +1815,11 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
         LOLoad load2 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -1985,11 +1986,11 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
         LOLoad load2 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1
@@ -2124,11 +2125,11 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
         LOLoad load2 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // schema for input#1

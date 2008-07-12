@@ -34,6 +34,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
@@ -128,7 +129,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
         POStore str = new POStore(new OperatorKey("", r.nextLong()));
         str.setInputs(inps);
         
-        FileSpec fSpec = new FileSpec(ldFile,PigStorage.class.getName());
+        FileSpec fSpec = new FileSpec(ldFile, new FuncSpec(PigStorage.class.getName()));
         
         str.setSFile(fSpec);
         str.setPc(pc);
@@ -148,8 +149,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         hadoopLdFile = FileLocalizer.hadoopify(ldFile, pc);
 
-        FileSpec LFSpec = new FileSpec(hadoopLdFile,PigStorage.class.getName());
-        FileSpec SFSpec = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec LFSpec = new FileSpec(hadoopLdFile,new FuncSpec(PigStorage.class.getName()));
+        FileSpec SFSpec = new FileSpec(stFile, new FuncSpec(PigStorage.class.getName()));
 
         POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
@@ -176,8 +177,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName());
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile, new FuncSpec(PigStorage.class.getName()));
+        FileSpec fSpecAct = new FileSpec(stFile, new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
     }
@@ -195,8 +196,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         hadoopLdFile = FileLocalizer.hadoopify(ldFile, pc);
 
-        FileSpec LFSpec = new FileSpec(hadoopLdFile,PigStorage.class.getName());
-        FileSpec SFSpec = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec LFSpec = new FileSpec(hadoopLdFile, new FuncSpec(PigStorage.class.getName()));
+        FileSpec SFSpec = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
 
         POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
@@ -223,8 +224,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName());
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile,new FuncSpec(PigStorage.class.getName()));
+        FileSpec fSpecAct = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
     }
@@ -242,8 +243,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         hadoopLdFile = FileLocalizer.hadoopify(ldFile, pc);
 
-        FileSpec LFSpec = new FileSpec(hadoopLdFile,PigStorage.class.getName());
-        FileSpec SFSpec = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec LFSpec = new FileSpec(hadoopLdFile, new FuncSpec(PigStorage.class.getName()));
+        FileSpec SFSpec = new FileSpec(stFile, new FuncSpec(PigStorage.class.getName()));
 
         POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
@@ -285,8 +286,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName()+"(',')");
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
+        FileSpec fSpecAct = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
     }
@@ -304,8 +305,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         hadoopLdFile = FileLocalizer.hadoopify(ldFile, pc);
 
-        FileSpec LFSpec = new FileSpec(hadoopLdFile,PigStorage.class.getName());
-        FileSpec SFSpec = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec LFSpec = new FileSpec(hadoopLdFile,new FuncSpec(PigStorage.class.getName()));
+        FileSpec SFSpec = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
 
         POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
@@ -351,8 +352,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName()+"(',')");
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
+        FileSpec fSpecAct = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
         
@@ -371,8 +372,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         hadoopLdFile = FileLocalizer.hadoopify(ldFile, pc);
 
-        FileSpec LFSpec = new FileSpec(hadoopLdFile,PigStorage.class.getName()+"(',')");
-        FileSpec SFSpec = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec LFSpec = new FileSpec(hadoopLdFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
+        FileSpec SFSpec = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
 
         POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
@@ -426,8 +427,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, FileLocalizer.fileExists(stFile, pc));
         
-        FileSpec fSpecExp = new FileSpec(expFile,PigStorage.class.getName()+"(',')");
-        FileSpec fSpecAct = new FileSpec(stFile,PigStorage.class.getName());
+        FileSpec fSpecExp = new FileSpec(expFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
+        FileSpec fSpecAct = new FileSpec(stFile,new FuncSpec(PigStorage.class.getName()));
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
         

@@ -18,15 +18,19 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -60,7 +64,7 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
-        TupleFactory tfact = TupleFactory.getInstance();
+        private static TupleFactory tfact = TupleFactory.getInstance();
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
@@ -88,13 +92,21 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
 
     static protected Double min(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
 
         double curMin = Double.POSITIVE_INFINITY;
-        for (Iterator it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
             try {
                 Double d = DataType.toDouble(t.get(0));
                 if (d == null) continue;
+                sawNonNull = true;
                 curMin = java.lang.Math.min(curMin, d);
             } catch (RuntimeException exp) {
                 ExecException newE =  new ExecException("Error processing: " +
@@ -104,13 +116,30 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
             }
         }
     
-        return new Double(curMin);
+        if(sawNonNull) {
+            return new Double(curMin);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
     }
-
-    private static int count = 1;
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
+        funcList.add(new FuncSpec(DoubleMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+        funcList.add(new FuncSpec(FloatMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+        funcList.add(new FuncSpec(IntMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+        funcList.add(new FuncSpec(LongMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        funcList.add(new FuncSpec(StringMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
+        return funcList;
+    }    
 }

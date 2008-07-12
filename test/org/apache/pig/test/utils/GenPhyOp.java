@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
@@ -355,8 +356,8 @@ public class GenPhyOp{
     /**
      * creates the PlansAndFlattens struct for 
      * 'generate field[0] field[1] ...'.
-     * 
-     * @param field - The columns to be generated
+     *
+     * @param fields - The columns to be generated
      * @param sample - The sample tuple that is used to infer
      *                  result type
      * @return - The PlansAndFlattens struct which has the exprplan
@@ -403,7 +404,7 @@ public class GenPhyOp{
      * creates the PlansAndFlattens struct for 
      * 'generate field[0] field[1] ...'.
      * with the flatten list as specified
-     * @param field - The columns to be generated
+     * @param fields - The columns to be generated
      * @param toBeFlattened - The columns to be flattened
      * @param sample - The sample tuple that is used to infer
      *                  result type
@@ -744,7 +745,7 @@ public class GenPhyOp{
     public static POStore topStoreOp() {
         POStore ret = new POStore(new OperatorKey("", r.nextLong()));
         ret.setPc(pc);
-        ret.setSFile(new FileSpec("DummyFil", "DummyLdr"));
+        ret.setSFile(new FileSpec("DummyFil", new FuncSpec("DummyLdr")));
         return ret;
     }
 
@@ -758,7 +759,7 @@ public class GenPhyOp{
     }
     
     private static FileSpec getTempFileSpec() throws IOException {
-        return new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),BinStorage.class.getName());
+        return new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),new FuncSpec(BinStorage.class.getName()));
     }
     
     public static POSplit topSplitOp() throws IOException{
@@ -825,7 +826,7 @@ public class GenPhyOp{
             
             List ufInps = new ArrayList();
             ufInps.add(prjStar4);
-            POUserFunc uf = new POUserFunc(new OperatorKey("", r.nextLong()), -1, ufInps, string);
+            POUserFunc uf = new POUserFunc(new OperatorKey("", r.nextLong()), -1, ufInps, new FuncSpec(string));
             ep4.add(uf);
             ep4.connect(prjStar4, uf);
             ep4s.add(ep4);

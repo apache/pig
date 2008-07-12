@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -1296,15 +1300,53 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         // If the dependency graph is right, all the inputs
         // must already know the types
-
+        Schema s = new Schema();
         for(ExpressionOperator op: list) {
             if (!DataType.isUsableType(op.getType())) {
                 String msg = "Problem with input of User-defined function" ;
                 msgCollector.collect(msg, MessageType.Error);
                 throw new VisitorException(msg) ;
             }
+            try {
+                s.add(op.getFieldSchema());    
+            } catch (FrontendException e) {
+                throw new VisitorException(e);
+            }
+            
         }
-
+        
+        // ask the EvalFunc what types of inputs it can handle
+        EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(func.getFuncSpec());
+        List<FuncSpec> funcSpecs = null;
+        try {
+            funcSpecs = ef.getArgToFuncMapping();    
+        } catch (Exception e) {
+            throw new VisitorException(e);
+        }
+        
+        if(funcSpecs != null) {
+            // check the if a FuncSpec matching our schema exists
+            FuncSpec matchingSpec = null;
+            for (Iterator<FuncSpec> iterator = funcSpecs.iterator(); iterator.hasNext();) {
+                FuncSpec fs = iterator.next();
+                if(Schema.equals(s, fs.getInputArgsSchema(), false, true)) {
+                    matchingSpec = fs;
+                }
+                
+            }
+            if(matchingSpec == null) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(func.getFuncSpec());
+                sb.append("does not work with inputs of type ");
+                sb.append(s);
+                throw new VisitorException(sb.toString());
+            } else {
+                func.setFuncSpec(matchingSpec);
+                ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(matchingSpec);
+                func.setType(DataType.findType(ef.getReturnType()));
+            }
+            
+        }
         /*
         while (iterator.hasNext()) {
             iterator.next().visit(this);          

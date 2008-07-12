@@ -47,6 +47,35 @@ public class DataByteArray implements Comparable {
     }
 
     /**
+     * Construct a byte array concatenating the two provided 
+     * byte arrays as the content.
+     * @param b the first byte array to use as content.
+     * @param c the other byte array to use as content.
+     * 
+     */
+    public DataByteArray(DataByteArray b, DataByteArray c) {
+        byte[] ba = (b == null) ?  null : b.get();
+        byte[] ca = (c == null) ?  null : c.get();
+        int baLength = (ba == null) ? 0 : ba.length;
+        int caLength = (ca == null) ? 0 : ca.length;
+        
+        int totalSize = baLength + caLength;
+        if(totalSize == 0) {
+            return;
+        }
+        mData = new byte[totalSize];
+        int i = 0;
+        for ( ;i < baLength; i++) {
+            mData[i] = ba[i];
+        }
+        
+        for (int j = 0; j < caLength; j++, i++) {
+            mData[i] = ca[j];
+        }
+        
+    }
+    
+    /**
      * Construct a byte array using a portion of the provided bytes as content.
      * @param b byte array to read from.  A copy of the underlying bytes will be
      * made.

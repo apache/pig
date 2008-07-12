@@ -31,6 +31,7 @@ import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.InputSplit;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
@@ -109,7 +110,7 @@ public class PigSplit implements InputSplit {
         } else {
             try {
                 loader = (LoadFunc) PigContext
-                        .instantiateFuncFromSpec(this.parser);
+                        .instantiateFuncFromSpec(new FuncSpec(this.parser));
             } catch (Exception exp) {
                 throw new RuntimeException("can't instantiate " + parser);
             }

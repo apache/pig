@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.pig.FuncSpec;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -240,9 +241,9 @@ public class JobControlCompiler{
             }
             //set out filespecs
             String outputPath = st.getSFile().getFileName();
-            String outputFuncSpec = st.getSFile().getFuncSpec();
+            FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
             jobConf.setOutputPath(new Path(outputPath));
-            jobConf.set("pig.storeFunc", outputFuncSpec);
+            jobConf.set("pig.storeFunc", outputFuncSpec.toString());
             
             if(mro.reducePlan.isEmpty()){
                 //MapOnly Job

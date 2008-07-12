@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.BagFactory;
@@ -136,7 +137,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
                 str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                     pigContext).toString(),
-                    BinStorage.class.getName());
+                    new FuncSpec(BinStorage.class.getName()));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
             }

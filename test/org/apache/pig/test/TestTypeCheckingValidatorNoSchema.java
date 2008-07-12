@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import junit.framework.TestCase;
 import org.junit.Test;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -443,7 +444,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // set schemas
@@ -509,7 +510,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
-                                  new FileSpec("pi", pigStorage),
+                                  new FileSpec("pi", new FuncSpec(pigStorage)),
                                   null) ;
 
         // set schemas
