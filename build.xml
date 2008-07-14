@@ -381,13 +381,13 @@
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Create release tarball">
-        <tar compression="gzip" longfile="gnu" basedir="${staging.dir}" destfile="${build.dir}/${final.name}.tar.gz">
+        <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
             <tarfileset dir="${staging.dir}" mode="664">
-                <exclude name="bin/*" />
-                <include name="**" />
+                <exclude name="${final.name}/bin/*" />
+                <include name="${final.name}/**" />
             </tarfileset>
             <tarfileset dir="${staging.dir}" mode="755">
-                <include name="bin/*" />
+                <include name="${final.name}/bin/*" />
             </tarfileset>
         </tar>
     </target>
