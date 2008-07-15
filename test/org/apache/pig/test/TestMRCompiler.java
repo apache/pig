@@ -57,13 +57,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestMRCompiler extends junit.framework.TestCase {
-    static PhysicalPlan php = new PhysicalPlan();
-
 //    MiniCluster cluster = MiniCluster.buildCluster();
     
     static PigContext pc;
-
-    static String[] tests;
 
     static final int MAX_SIZE = 100000;
 
@@ -86,19 +82,6 @@ public class TestMRCompiler extends junit.framework.TestCase {
         GenPhyOp.setR(r);
         
         GenPhyOp.setPc(pc);
-        int numTests = 16;
-//        int numTests = 9;
-        tests = new String[numTests];
-        int cnt = -1;
-
-        for (int i = 1; i <= 9; i++)
-            tests[++cnt] = "intTestSim" + i;
-        tests[++cnt] = "intTestRun1";
-        tests[++cnt] = "intTestRun2";
-        for (int i = 1; i <= 3; i++)
-            tests[++cnt] = "intTestSpl" + i;
-        tests[++cnt] = "intTestSortUDF1";
-        tests[++cnt] = "intTestDistinct1";
     }
 
     @After
@@ -106,18 +89,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
     
     @Test
-    public void testCompile() throws ExecException, VisitorException,
-            ExecException, PlanException, SecurityException,
-            IllegalArgumentException, NoSuchMethodException,
-            IllegalAccessException, InvocationTargetException, IOException {
-        setUp();
-//        generate();
-        intTest();
-    }
-
-    public static void intTestRun1() throws ExecException, PlanException, VisitorException,
-            ExecException {
-        php = new PhysicalPlan();
+    public void testRun1() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan part1 = new PhysicalPlan();
         POLoad lC = GenPhyOp.topLoadOp();
@@ -221,12 +194,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         php.add(st);
         php.connect(unABC, st);
-
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC10.gld");
     }
 
-    public static void intTestRun2() throws ExecException, PlanException, VisitorException,
-            ExecException {
-        php = new PhysicalPlan();
+    public void testRun2() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan part1 = new PhysicalPlan();
         POLoad lC = GenPhyOp.topLoadOp();
@@ -313,11 +285,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         php.add(st);
         php.connect(unABC, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC11.gld");
     }
 
-    public static void intTestSpl1() throws ExecException, VisitorException, PlanException,
-            ExecException, IOException {
-        php = new PhysicalPlan();
+    public void testSpl1() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         POLoad lA = GenPhyOp.topLoadOp();
         POSplit spl = GenPhyOp.topSplitOp();
@@ -351,12 +323,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POStore st = GenPhyOp.topStoreOp();
         php.add(st);
         php.connect(pk, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC12.gld");
 
     }
 
-    public static void intTestSpl2() throws ExecException, VisitorException, PlanException,
-            ExecException, IOException {
-        php = new PhysicalPlan();
+    public void testSpl2() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         POLoad lA = GenPhyOp.topLoadOp();
         POSplit spl = GenPhyOp.topSplitOp();
@@ -399,12 +371,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC13.gld");
 
     }
 
-    public static void intTestSpl3() throws ExecException, VisitorException, PlanException,
-            ExecException, IOException {
-        php = new PhysicalPlan();
+    public void testSpl3() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         POLoad lA = GenPhyOp.topLoadOp();
         POSplit spl = GenPhyOp.topSplitOp();
@@ -478,17 +450,14 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC14.gld");
 
     }
 
-    /**
-     * Tests Single input case for both blocking and non-blocking
-     * with both map and reduce phases
-     * @throws PlanException
-     * @throws ExecException
-     */
-    public static void intTestSim1() throws PlanException, ExecException {
-        php = new PhysicalPlan();
+     // Tests Single input case for both blocking and non-blocking
+     // with both map and reduce phases
+    public void testSim1() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
         POLoad ld = GenPhyOp.topLoadOp();
         php.add(ld);
         PhysicalPlan grpChain1 = GenPhyOp.grpChain();
@@ -513,11 +482,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.add(st);
 
         php.connect(fl, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC1.gld");
 
     }
 
-    public static void intTestSim2() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void testSim2() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
         PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
@@ -532,11 +502,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.add(st);
 
         php.connect(un, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC2.gld");
 
     }
 
-    public static void intTestSim3() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void testSim3() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
         PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
@@ -556,10 +527,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.add(st);
 
         php.connect(un, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC3.gld");
     }
 
-    public static void intTestSim4() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void intTestSim4() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
         PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
@@ -583,10 +555,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.add(st);
 
         php.connect(un, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC4.gld");
     }
 
-    public static void intTestSim5() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void testSim5() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
         PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
         php.merge(ldFil1);
@@ -599,10 +572,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.add(st);
 
         php.connect(un, st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC5.gld");
     }
 
-    public static void intTestSim6() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void testSim6() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
         PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
@@ -624,11 +598,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC6.gld");
 
     }
 
-    public static void intTestSim7() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void testSim7() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
         PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
@@ -655,10 +630,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC7.gld");
     }
 
-    public static void intTestSim8() throws ExecException, PlanException {
-        php = new PhysicalPlan();
+    public void testSim8() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();
         PhysicalPlan ldGrpChain2 = GenPhyOp.loadedGrpChain();
@@ -671,28 +647,6 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         php.merge(ldGrpChain1);
         php.merge(ldGrpChain2);
-
-        POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
-        php.addAsLeaf(gr);
-
-        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
-        PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
-
-        php.merge(ldFil1);
-        php.connect(ldFil1.getLeaves().get(0), gr);
-
-        php.merge(ldFil2);
-        php.connect(ldFil2.getLeaves().get(0), gr);
-
-        POPackage pk = GenPhyOp.topPackageOp();
-        php.addAsLeaf(pk);
-
-        POStore st = GenPhyOp.topStoreOp();
-        php.addAsLeaf(st);
-    }
-
-    public static void intTestSim9() throws ExecException, PlanException {
-        php = new PhysicalPlan();
 
         POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
         php.addAsLeaf(gr);
@@ -711,10 +665,34 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC8.gld");
+    }
+
+    public void testSim9() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
+
+        POGlobalRearrange gr = GenPhyOp.topGlobalRearrangeOp();
+        php.addAsLeaf(gr);
+
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
+        PhysicalPlan ldFil2 = GenPhyOp.loadedFilter();
+
+        php.merge(ldFil1);
+        php.connect(ldFil1.getLeaves().get(0), gr);
+
+        php.merge(ldFil2);
+        php.connect(ldFil2.getLeaves().get(0), gr);
+
+        POPackage pk = GenPhyOp.topPackageOp();
+        php.addAsLeaf(pk);
+
+        POStore st = GenPhyOp.topStoreOp();
+        php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC9.gld");
     }
     
-    public static void intTestSortUDF1() throws PlanException, ExecException{
-        php = new PhysicalPlan();
+    public void testSortUDF1() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
         php.merge(ldFil1);
         
@@ -772,10 +750,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
         
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC15.gld");
     }
     
-    public static void intTestDistinct1() throws PlanException, ExecException{
-        php = new PhysicalPlan();
+    public void testDistinct1() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
         php.merge(ldFil1);
         
@@ -794,6 +773,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         php.addAsLeaf(op1);
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC16.gld");
     }
     
     public static class WeirdComparator extends ComparisonFunc {
@@ -815,76 +795,33 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     }
 
-    public static void generate() throws SecurityException, NoSuchMethodException,
-            IllegalArgumentException, IllegalAccessException,
-            InvocationTargetException, VisitorException, ExecException,
-            PlanException, IOException {
-        for (int i = 0; i < tests.length; i++) {
-            Method m = TestMRCompiler.class.getMethod(tests[i], null);
-            m.invoke(null, null);
-
-            System.out.println("The plan being compiled under " + tests[i]
-                    + ":");
-            PlanPrinter phpp = new PlanPrinter(php);
-            phpp.visit();
-
-            System.out.println();
-            System.out.println("The compiled plan:");
-
-            MRCompiler comp = new MRCompiler(php, pc);
-            comp.compile();
-
-            MROperPlan mrp = comp.getMRPlan();
-            PlanPrinter ppp = new PlanPrinter(mrp);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-            ppp.print(baos);
-
-            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/MRC"
-                    + (i + 1) + ".gld");
-            fos.write(baos.toByteArray());
-
-            System.out.println(baos.toString());
-            System.out.println("--------------------------------------");
-        }
-    }
-
-    public static void intTest() throws SecurityException, NoSuchMethodException,
-            IllegalArgumentException, IllegalAccessException,
-            InvocationTargetException, ExecException, PlanException,
-            VisitorException, IOException {
+    private void run(PhysicalPlan pp, String expectedFile) throws Exception {
         String compiledPlan, goldenPlan = null;
         int MAX_SIZE = 100000;
-        for (int i = 0; i < tests.length; i++) {
-            Method m = TestMRCompiler.class.getMethod(tests[i], null);
-            m.invoke(null, null);
-            MRCompiler comp = new MRCompiler(php, pc);
-            comp.compile();
+        MRCompiler comp = new MRCompiler(pp, pc);
+        comp.compile();
 
-            MROperPlan mrp = comp.getMRPlan();
-            PlanPrinter ppp = new PlanPrinter(mrp);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ppp.print(baos);
-            compiledPlan = baos.toString();
+        MROperPlan mrp = comp.getMRPlan();
+        PlanPrinter ppp = new PlanPrinter(mrp);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ppp.print(baos);
+        compiledPlan = baos.toString();
 
-            FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/MRC"
-                    + (i + 1) + ".gld");
-            byte[] b = new byte[MAX_SIZE];
-            int len = fis.read(b);
-            goldenPlan = new String(b, 0, len);
+        FileInputStream fis = new FileInputStream(expectedFile);
+        byte[] b = new byte[MAX_SIZE];
+        int len = fis.read(b);
+        goldenPlan = new String(b, 0, len);
 
-            php.explain(System.out);
-            System.out.println();
-            System.out.println("<<<" + compiledPlan + ">>>");
-            System.out.println("-------------");
-            System.out.println("Golden");
-            System.out.println("<<<" + goldenPlan + ">>>");
-            System.out.println("-------------");
-            //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-            //assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
-            assertEquals(goldenPlan, compiledPlan);
-        }
+        pp.explain(System.out);
+        System.out.println();
+        System.out.println("<<<" + compiledPlan + ">>>");
+        System.out.println("-------------");
+        System.out.println("Golden");
+        System.out.println("<<<" + goldenPlan + ">>>");
+        System.out.println("-------------");
+        assertEquals(goldenPlan, compiledPlan);
     }
+
 
     
 

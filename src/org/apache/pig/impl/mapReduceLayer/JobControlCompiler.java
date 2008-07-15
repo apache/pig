@@ -162,8 +162,8 @@ public class JobControlCompiler{
     }
     
     /**
-     * The method that creates the JobConf corresponding to a MapReduceOper
-     * Doesn't support Sort or Distinct jobs yet. The assumption is that
+     * The method that creates the JobConf corresponding to a MapReduceOper.
+     * The assumption is that
      * every MapReduceOper will have a load and a store. The JobConf removes
      * the load operator and serializes the input filespec so that PigInputFormat can
      * take over the creation of splits. It also removes the store operator
@@ -171,7 +171,7 @@ public class JobControlCompiler{
      * record writing. The remaining portion of the map plan and reduce plans are
      * serialized and stored for the PigMapReduce or PigMapOnly objects to take over
      * the actual running of the plans.
-     * The Mapper & Reducer classes and the required key value formats are set.
+     * The Mapper &amp; Reducer classes and the required key value formats are set.
      * Checks if this is a map only job and uses PigMapOnly class as the mapper
      * and uses PigMapReduce otherwise.
      * If it is a Map Reduce job, it is bound to have a package operator. Remove it from

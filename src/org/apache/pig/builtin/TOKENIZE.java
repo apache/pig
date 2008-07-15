@@ -38,8 +38,12 @@ public class TOKENIZE extends EvalFunc<DataBag> {
     public DataBag exec(Tuple input) throws IOException {
         try {
             DataBag output = mBagFactory.newDefaultBag();
-            String str = (String)input.get(0);
-            StringTokenizer tok = new StringTokenizer(str, " \",()*", false);
+            Object o = input.get(0);
+            if (!(o instanceof String)) {
+                throw new IOException("Expected input to be chararray, but" +
+                    " got " + o.getClass().getName());
+            }
+            StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
             while (tok.hasMoreTokens()) {
                 output.add(mTupleFactory.newTuple(tok.nextToken()));
             }

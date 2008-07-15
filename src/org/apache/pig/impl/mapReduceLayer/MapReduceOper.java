@@ -186,38 +186,6 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return new POUnion(new OperatorKey(scope,nig.getNextNodeId(scope)));
     }
     
-    /**
-     * Utility method for the MRCompiler that
-     * creates a union operator and adds it as
-     * a leaf to the map plan. Used when there
-     * is more than one input in order to process
-     * them in a single map job  
-     * @param mapDone
-     * @throws IOException
-     *//*
-    public void setMapDoneAndMerge(boolean mapDone) throws IOException{
-        this.mapDone = mapDone;
-        if(mapDone){
-            mapPlan.addAsLeaf(GenPhyOp.topUnionOp());
-        }
-    }
-    
-    *//**
-     * Same as the above method but checks to see
-     * there is more than one input. It is for 
-     * optimization purposes as a single input
-     * pipeline really doesn't need the union operator
-     * to execute in a single job.
-     * @param mapDone
-     * @throws IOException
-     *//*
-    public void setMapDoneAndChkdMerge(boolean mapDone) throws IOException {
-        this.mapDone = mapDone;
-        if (mapDone && mapPlan.getLeaves().size()!=1) {
-            mapPlan.addAsLeaf(GenPhyOp.topUnionOp());
-        }
-    }*/
-
     public boolean isReduceDone() {
         return reduceDone;
     }

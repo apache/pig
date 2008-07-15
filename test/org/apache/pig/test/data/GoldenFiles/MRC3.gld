@@ -1,29 +1,29 @@
-MapReduce(-1) - -14:
+MapReduce(-1) - -89:
 Reduce Plan Empty
-|   Store(DummyFil:DummyLdr) - -5879589559059467399
+|   Store(DummyFil:DummyLdr) - --5190071275724378681
 |   |
-|   |---Union[tuple] - -6108697957385222190
+|   |---Union[tuple] - --3396897091865664764
 |       |
-|       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -15
+|       |---Filter[tuple] - --6957591191795645940
+|       |   |
+|       |   |---Load(DummyFil:DummyLdr) - -5515425171581967372
 |       |
-|       |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -17
+|       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -90
 |       |
-|       |---Filter[tuple] - -689137294940608050
-|           |
-|           |---Load(DummyFil:DummyLdr) - --8723304958939002625
+|       |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -92
 |
-|---MapReduce(-1) - -11:
-|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -16
+|---MapReduce(-1) - -87:
+|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -91
 |   |   |
-|   |   |---Package[tuple]{Unknown} - --2449990780759860228
-|   |   Local Rearrange[tuple]{Unknown} - --171729478481529687
+|   |   |---Package[tuple]{Unknown} - --6061281703859425960
+|   |   Local Rearrange[tuple]{Unknown} - --1158897849427419546
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - -3527883492192621891
+|   |   |---Load(DummyFil:DummyLdr) - -3709512757404691843
 |
-|---MapReduce(-1) - -12:
-    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -18
+|---MapReduce(-1) - -88:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -93
     |   |
-    |   |---Package[tuple]{Unknown} - --961974426096759446
-    |   Local Rearrange[tuple]{Unknown} - -3720949273928245639
+    |   |---Package[tuple]{Unknown} - --2057425961601007773
+    |   Local Rearrange[tuple]{Unknown} - --8361563503038121624
     |   |
-    |   |---Load(DummyFil:DummyLdr) - --8248982303554009
+    |   |---Load(DummyFil:DummyLdr) - -7506868571066332964

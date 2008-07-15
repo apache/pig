@@ -39,6 +39,7 @@ import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.impl.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.impl.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.impl.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
@@ -181,9 +182,30 @@ public class MRCompiler extends PhyPlanVisitor {
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
         POStore store = (POStore)leaves.get(0);
-System.out.println("store file is " + store.getSFile());
         FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
         compile(store);
+
+        // I'm quite certain this is not the best way to do this.  The issue
+        // is that for jobs that take multiple map reduce passes, for
+        // non-sort jobs, the POLocalRearrange is being put into the reduce
+        // of MR job n, with the map for MR job n+1 empty and the POPackage
+        // in reduce of MR job n+1.  This causes problems in the collect of
+        // the map MR job n+1.  To resolve this, the following visitor
+        // walks the resulting compiled jobs, looks for the pattern described
+        // above, and then moves the POLocalRearrange to the map of MR job
+        // n+1.  It seems to me there are two possible better solutions:
+        // 1) Change the logic in this compiler to put POLocalRearrange in
+        // the correct place to begin with instead of patching it up later.
+        // I'd do this but I don't fully understand the logic here and it's
+        // complex.
+        // 2) Change our map reduce execution to have a reduce only mode.  In
+        // this case the map would not even try to parse the input, it would
+        // just be 100% pass through.  I suspect this might be better though
+        // I don't fully understand the consequences of this.
+        // Given these issues, the following works for now, and we can fine
+        // tune it when Shravan returns.
+        RearrangeAdjuster ra = new RearrangeAdjuster(MRPlan);
+        ra.visit();
         
         return MRPlan;
     }
@@ -282,7 +304,8 @@ System.out.println("store file is " + store.getSFile());
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
                 mro.reducePlan.addAsLeaf(op);
             } else {
-                log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");
+                log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
+                throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
             }
             curMROp = mro;
         } else {
@@ -409,7 +432,8 @@ System.out.println("store file is " + store.getSFile());
             mro.reducePlan.addAsLeaf(str);
             mro.setReduceDone(true);
         } else {
-            log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");
+            log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
+            throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
         }
         return mro;
     }
@@ -485,7 +509,7 @@ System.out.println("store file is " + store.getSFile());
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
                 ret.add(mro);
             } else {
-                log.warn(
+                log.error(
                         "Both map and reduce phases have been done. This is unexpected for a merge!");
                 throw new PlanException(
                         "Both map and reduce phases have been done. This is unexpected for a merge!");
@@ -957,39 +981,77 @@ System.out.println("store file is " + store.getSFile());
 //        mro.requestedParallelism = rp;
         return mro;
     }
-    
-    /*
-    public static void main(String[] args) throws PlanException, IOException, ExecException, VisitorException {
-        PigContext pc = new PigContext();
-        pc.connect();
-        MRCompiler comp = new MRCompiler(null, pc);
-        Random r = new Random();
-        List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
-        POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
-        pr1.setResultType(DataType.INTEGER);
-        PhysicalPlan expPlan = new PhysicalPlan();
-        expPlan.add(pr1);
-        sortPlans.add(expPlan);
-        List<Boolean> mAscCols = new LinkedList<Boolean>();
-        mAscCols.add(false);
-        MapReduceOper pj = comp.getMROp();
-        POLoad ld = comp.getLoad();
-        pj.mapPlan.add(ld);
 
-        //POSort op = new POSort(new OperatorKey("", r.nextLong()), -1, null,
-        //      sortPlans, mAscCols, null);
-        PODistinct op = new PODistinct(new OperatorKey("", r.nextLong()),
-                -1, null);
-        pj.mapPlan.addAsLeaf(op);
-        
-        POStore st = comp.getStore();
-        pj.mapPlan.addAsLeaf(st);
-        
-        MRCompiler c1 = new MRCompiler(pj.mapPlan,pc);
-        c1.compile();
-        MROperPlan plan = c1.getMRPlan();
-        PlanPrinter<MapReduceOper, MROperPlan> pp = new PlanPrinter<MapReduceOper, MROperPlan>(plan);
-        pp.print(System.out);
+    private class RearrangeAdjuster extends MROpPlanVisitor {
+
+        RearrangeAdjuster(MROperPlan plan) {
+            super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+        }
+
+        @Override
+        public void visitMROp(MapReduceOper mr) throws VisitorException {
+            // Look for map reduce operators whose reduce starts in a local
+            // rearrange.  If it has a successor and that predecessor's map
+            // plan is just a load, push the porearrange to the successor.
+            // Else, throw an error.
+            if (mr.reducePlan.isEmpty()) return;
+            List<PhysicalOperator> mpLeaves = mr.reducePlan.getLeaves();
+            if (mpLeaves.size() != 1) {
+                String msg = new String("Expected reduce to have single leaf");
+                log.error(msg);
+                throw new VisitorException(msg);
+            }
+            PhysicalOperator mpLeaf = mpLeaves.get(0);
+            if (!(mpLeaf instanceof POStore)) {
+                String msg = new String("Expected leaf of reduce plan to " +
+                    "always be POStore!");
+                log.error(msg);
+                throw new VisitorException(msg);
+            }
+            List<PhysicalOperator> preds =
+                mr.reducePlan.getPredecessors(mpLeaf);
+            if (preds == null) return;
+            if (preds.size() > 1) {
+                String msg = new String("Expected mr to have single predecessor");
+                log.error(msg);
+                throw new VisitorException(msg);
+            }
+            PhysicalOperator pred = preds.get(0);
+            if (!(pred instanceof POLocalRearrange)) return;
+
+            // Next question, does the next MROper have an empty map?
+            List<MapReduceOper> succs = mPlan.getSuccessors(mr);
+            if (succs == null) {
+                String msg = new String("Found mro with POLocalRearrange as"
+                    + " last oper but with no succesor!");
+                log.error(msg);
+                throw new VisitorException(msg);
+            }
+            if (succs.size() > 1) {
+                String msg = new String("Expected mr to have single successor");
+                log.error(msg);
+                throw new VisitorException(msg);
+            }
+            MapReduceOper succ = succs.get(0);
+            List<PhysicalOperator> succMpLeaves = succ.mapPlan.getLeaves();
+            List<PhysicalOperator> succMpRoots = succ.mapPlan.getRoots();
+            if (succMpLeaves == null || succMpLeaves.size() > 1 ||
+                    succMpRoots == null || succMpRoots.size() > 1 ||
+                    succMpLeaves.get(0) != succMpRoots.get(0)) {
+                log.warn("Expected to find subsequent map " +
+                    "with just a load, but didn't");
+                return;
+            }
+            PhysicalOperator load = succMpRoots.get(0);
+
+            try {
+                mr.reducePlan.removeAndReconnect(pred);
+                succ.mapPlan.add(pred);
+                succ.mapPlan.connect(load, pred);
+            } catch (PlanException pe) {
+                throw new VisitorException(pe);
+            }
+        }
     }
-    */
+    
 }

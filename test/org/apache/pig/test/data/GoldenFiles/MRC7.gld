@@ -1,33 +1,33 @@
-MapReduce(-1) - -41:
-|   Store(DummyFil:DummyLdr) - -8205341881606740757
+MapReduce(-1) - -107:
+|   Store(DummyFil:DummyLdr) - --506205335735031954
 |   |
-|   |---Package[tuple]{Unknown} - -8067897495211048679
-|   Union[tuple] - -42
+|   |---Package[tuple]{Unknown} - --2216790928607759809
+|   Union[tuple] - -108
 |   |
-|   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -43
-|   |
-|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -45
-|   |
-|   |---Filter[tuple] - -8816201798088731301
-|       |
-|       |---Load(DummyFil:DummyLdr) - -6411189422016119355
-|
-|---MapReduce(-1) - -38:
-|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -44
+|   |---Filter[tuple] - --90170124379688035
 |   |   |
-|   |   |---Local Rearrange[tuple]{Unknown} - --8754957318949788629
+|   |   |---Load(DummyFil:DummyLdr) - -7219092146411102494
+|   |
+|   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -109
+|   |
+|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -111
+|
+|---MapReduce(-1) - -104:
+|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -110
+|   |   |
+|   |   |---Local Rearrange[tuple]{Unknown} - --1036765666284482668
 |   |       |
-|   |       |---Package[tuple]{Unknown} - --7987250529196129674
-|   |   Local Rearrange[tuple]{Unknown} - --7150209077138491584
+|   |       |---Package[tuple]{Unknown} - --5111685507913827932
+|   |   Local Rearrange[tuple]{Unknown} - -3719468117239527682
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - --1607475648664293401
+|   |   |---Load(DummyFil:DummyLdr) - -1761200043915140459
 |
-|---MapReduce(-1) - -39:
-    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -46
+|---MapReduce(-1) - -106:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -112
     |   |
-    |   |---Local Rearrange[tuple]{Unknown} - -2056844330428347996
+    |   |---Local Rearrange[tuple]{Unknown} - -7127277012934370361
     |       |
-    |       |---Package[tuple]{Unknown} - --1369132270304461038
-    |   Local Rearrange[tuple]{Unknown} - --3476413267732334825
+    |       |---Package[tuple]{Unknown} - --8622295867288126988
+    |   Local Rearrange[tuple]{Unknown} - -810744320494301308
     |   |
-    |   |---Load(DummyFil:DummyLdr) - -728209667098611077
+    |   |---Load(DummyFil:DummyLdr) - -7860460526876129822

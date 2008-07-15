@@ -378,6 +378,45 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         connect(newNode, before);
     }
 
+    /**
+     * Remove a node in a way that connects the node's predecessor (if any)
+     * with the node's successor (if any).  This function does not handle the
+     * case where the node has multiple predecessors or successors.
+     * @param node Node to be removed
+     * @throws PlanException if the node has more than one predecessor or
+     * successor.
+     */
+    public void removeAndReconnect(E node) throws PlanException {
+        List<E> preds = getPredecessors(node);
+        E pred = null;
+        if (preds != null) {
+            if (preds.size() > 1) {
+                PlanException pe = new PlanException("Attempt to remove " +
+                    " and reconnect for node with multiple predecessors.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
+            pred = preds.get(0);
+            disconnect(pred, node);
+        }
+
+        List<E> succs = getSuccessors(node);
+        E succ = null;
+        if (succs != null) {
+            if (succs.size() > 1) {
+                PlanException pe = new PlanException("Attempt to remove " +
+                    " and reconnect for node with multiple successors.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
+            succ = succs.get(0);
+            disconnect(node, succ);
+        }
+
+        remove(node);
+        if (pred != null && succ != null) connect(pred, succ);
+    }
+
     public void dump(PrintStream ps) {
         ps.println("Ops");
         for (E op : mOps.keySet()) {

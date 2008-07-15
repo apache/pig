@@ -321,6 +321,7 @@ public static void main(String args[])
         usage();
         rc = 1;
     } catch (Throwable e) {
+        e.printStackTrace();
         log.error(e);
     } finally {
         PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();

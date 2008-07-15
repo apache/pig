@@ -1,37 +1,37 @@
-MapReduce(-1) - -51:
-|   Store(DummyFil:DummyLdr) - -370083002387034672
+MapReduce(-1) - -117:
+|   Store(DummyFil:DummyLdr) - --4160312061837144266
 |   |
-|   |---Package[tuple]{Unknown} - --7096529877081178520
-|   Union[tuple] - -52
+|   |---Package[tuple]{Unknown} - -2997708366016271267
+|   Union[tuple] - -118
 |   |
-|   |---Filter[tuple] - --7868505214447593853
+|   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -119
+|   |
+|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -121
+|   |
+|   |---Filter[tuple] - -3615014757987062850
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - --5177745552827005198
+|   |   |---Load(DummyFil:DummyLdr) - --8706893458091286727
 |   |
-|   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -53
-|   |
-|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -55
-|   |
-|   |---Filter[tuple] - -6305091296204163466
+|   |---Filter[tuple] - -9019572209815819418
 |       |
-|       |---Load(DummyFil:DummyLdr) - -1236980712440527800
+|       |---Load(DummyFil:DummyLdr) - --1195368474144577564
 |
-|---MapReduce(-1) - -49:
-|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -54
+|---MapReduce(-1) - -113:
+|   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -120
 |   |   |
-|   |   |---Local Rearrange[tuple]{Unknown} - -6790164331631653200
+|   |   |---Local Rearrange[tuple]{Unknown} - --3347320220748403847
 |   |       |
-|   |       |---Package[tuple]{Unknown} - -4721502244557927278
-|   |   Local Rearrange[tuple]{Unknown} - --7681398237172009051
+|   |       |---Package[tuple]{Unknown} - --203604194309414000
+|   |   Local Rearrange[tuple]{Unknown} - --7092666336106039025
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - -6620645493024302760
+|   |   |---Load(DummyFil:DummyLdr) - --2465563180022385815
 |
-|---MapReduce(-1) - -50:
-    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -56
+|---MapReduce(-1) - -115:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -122
     |   |
-    |   |---Local Rearrange[tuple]{Unknown} - -8729990799028586395
+    |   |---Local Rearrange[tuple]{Unknown} - -6693653468874366867
     |       |
-    |       |---Package[tuple]{Unknown} - -4747874603499386537
-    |   Local Rearrange[tuple]{Unknown} - -5984722006991913573
+    |       |---Package[tuple]{Unknown} - -8554221887998033529
+    |   Local Rearrange[tuple]{Unknown} - -913122466036599874
     |   |
-    |   |---Load(DummyFil:DummyLdr) - --7091196022628815072
+    |   |---Load(DummyFil:DummyLdr) - -8515950928528386562
