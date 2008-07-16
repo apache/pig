@@ -923,7 +923,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             + "generate group, flatten(co);"
             //+ "generate group, flatten(cd);"
             + "};";
-        printPlan(buildPlan(query));
+        buildPlan(query);
     }
 
     @Test
@@ -942,6 +942,63 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         }
     }
     
+    @Test
+    public void testQuery82() {
+        buildPlan("a = load 'myfile';");
+        buildPlan("b = group a by $0;"); 
+        String query = "c = foreach b {"
+            + "c1 = order $1 by *;" 
+            + "c2 = $1.$0;" 
+            + "generate flatten(c1), c2;"
+            + "};";
+        buildPlan(query);
+    }
+
+    @Test
+    public void testQueryFail82() {
+        buildPlan("a = load 'myfile';");
+        buildPlan("b = group a by $0;"); 
+        String query = "c = foreach b {"
+            + "c1 = order $1 by *;" 
+            + "c2 = $1;" 
+            + "generate flatten(c1), c2;"
+            + "};";
+        try {
+        buildPlan(query);
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Exception"));
+        }
+    }
+
+    @Test
+    public void testQuery83() {
+        buildPlan("a = load 'input1' as (name, age, gpa);");
+        buildPlan("b = filter a by age < '20';");
+        buildPlan("c = group b by (name,age);");
+        String query = "d = foreach c {" 
+            + "cf = filter b by gpa < '3.0';"
+            + "cp = cf.gpa;"
+            + "cd = distinct cp;"
+            + "co = order cd by gpa;"
+            + "generate group, flatten(co);"
+            + "};";
+        buildPlan(query);
+    }
+
+    @Test
+    public void testQuery84() {
+        buildPlan("a = load 'input1' as (name, age, gpa);");
+        buildPlan("b = filter a by age < '20';");
+        buildPlan("c = group b by (name,age);");
+        String query = "d = foreach c {"
+            + "cf = filter b by gpa < '3.0';"
+            + "cp = cf.$2;"
+            + "cd = distinct cp;"
+            + "co = order cd by gpa;"
+            + "generate group, flatten(co);"
+            + "};";
+        buildPlan(query);
+    }
     
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);

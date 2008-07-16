@@ -1374,14 +1374,14 @@ void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<Logical
 {
 	Token t; 
 	LogicalOperator item; 
-	ExpressionOperator eOp = null; 
+	LogicalOperator eOp = null; 
 	log.trace("Entering NestedCommand");
 }
 {
 	(
 	t = <IDENTIFIER> "="
 	(
-	eOp = InfixExpr(over,specs,lp,input) 
+	eOp = NestedProject(over,specs,lp,input) 
 	{
 		item = eOp;
 		lp.add(eOp);
@@ -1403,6 +1403,75 @@ void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<Logical
 		log.trace("Exiting NestedCommand");
 	}
 }		
+
+LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+    Token t;
+	ArrayList<Integer> colList = new ArrayList<Integer>();
+    int i = -1;
+    LogicalOperator foreachInput = null;
+    Schema subSchema = null;
+	log.trace("Entering NestedFilter");
+}
+{
+    (
+	t = <IDENTIFIER> 
+    {
+        if(null != specs) {
+            foreachInput = specs.get(t.image);
+        }
+        if(null == foreachInput) {
+			if ((null == over) ||  (i = over.getPosition(t.image)) == -1) {
+				throw new ParseException("Invalid alias: " + t.image + " in " + over);
+			}
+            foreachInput = new LOProject(lp, new OperatorKey(scope, getNextId()), input, i);
+        }
+
+        try {
+            lp.add(foreachInput);
+            if(input instanceof ExpressionOperator) {
+                lp.add(input);
+                lp.connect(input, foreachInput);
+            }
+        } catch (Exception planException) {
+            ParseException parseException = new ParseException(planException.getMessage());
+            throw parseException;
+        }
+    }
+|   t = <DOLLARVAR>
+    {
+        foreachInput = new LOProject(lp, new OperatorKey(scope, getNextId()), input, undollar(t.image));
+    }
+    )
+    {
+        if(foreachInput instanceof ExpressionOperator) {
+            subSchema = ((ExpressionOperator)foreachInput).getFieldSchema().schema;
+        } else {
+            subSchema = foreachInput.getSchema();
+        }
+    }
+    "." 
+    (
+    i = ColName(subSchema) {colList.add(i);}
+|   "(" i = ColName(subSchema) {colList.add(i);} ("," i = ColName(over) {colList.add(i);})* ")"
+    )
+    {
+        ArrayList<LogicalPlan> foreachPlans = new ArrayList<LogicalPlan>();
+        ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+        for(int j: colList) {
+            LogicalPlan plan = new LogicalPlan();
+            LOProject project = new LOProject(plan, new OperatorKey(scope, getNextId()), foreachInput, j);
+            plan.add(project);
+            foreachPlans.add(plan);
+            flattenList.add(false);
+        }
+		LogicalOperator foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), foreachPlans, flattenList);
+        lp.add(foreach);
+        lp.add(foreachInput);
+        lp.connect(foreachInput, foreach);
+        return foreach;
+    }
+}
 
 LogicalOperator NestedFilter(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
 {
