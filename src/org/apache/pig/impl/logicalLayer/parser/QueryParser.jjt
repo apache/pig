@@ -1216,7 +1216,7 @@ LogicalOperator CrossClause(LogicalPlan lp) :
 {
 	(
 	op = NestedExpr(lp) { inputs.add(op); }
-	("," op = NestedExpr(lp) { inputs.add(op); })*
+	("," op = NestedExpr(lp) { inputs.add(op); })+
 	)
 	{
 		LogicalOperator cross = new LOCross(lp, new OperatorKey(scope, getNextId()));
@@ -1243,7 +1243,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 }
 {
 	(gi = GroupItem(lp) { gis.add(gi); }
-	("," gi = GroupItem(lp) { gis.add(gi); })*)
+	("," gi = GroupItem(lp) { gis.add(gi); })+)
 	{log.trace("Exiting JoinClause"); return rewriteJoin(gis, lp);}
 	
 }
@@ -1256,7 +1256,7 @@ LogicalOperator UnionClause(LogicalPlan lp) :
 }
 {
 	(op = NestedExpr(lp){inputs.add(op);} 
-	("," op = NestedExpr(lp) {inputs.add(op);})*)
+	("," op = NestedExpr(lp) {inputs.add(op);})+)
 	{
 		LogicalOperator union = new LOUnion(lp, new OperatorKey(scope, getNextId()));
 		lp.add(union);

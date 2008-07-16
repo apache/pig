@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -34,14 +35,13 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-
 /**
  * A load function that parses a line of input into fields using a delimiter to set the fields. The
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
 public class PigStorage extends Utf8StorageConverter
-        implements LoadFunc, StoreFunc {
+        implements ReversibleLoadStoreFunc {
     protected BufferedPositionedInputStream in = null;
         
     long                end            = Long.MAX_VALUE;

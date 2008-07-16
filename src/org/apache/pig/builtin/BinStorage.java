@@ -27,8 +27,7 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.pig.LoadFunc;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
@@ -37,7 +36,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
-public class BinStorage implements LoadFunc, StoreFunc {
+public class BinStorage implements ReversibleLoadStoreFunc {
     public static final byte RECORD_1 = 0x21;
     public static final byte RECORD_2 = 0x31;
     public static final byte RECORD_3 = 0x41;
