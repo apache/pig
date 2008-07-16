@@ -265,8 +265,12 @@ public class POSort extends PhysicalOperator {
         if (it.hasNext()) {
             res.result = it.next();
             res.returnStatus = POStatus.STATUS_OK;
-        } else
+        } else {
             res.returnStatus = POStatus.STATUS_EOP;
+            inputsAccumulated = false;
+            sortedBag = null;
+            it = null;
+        }
 		return res;
 	}
 

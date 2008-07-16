@@ -51,8 +51,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * possible. The default is assumed to return an erroneus Result corresponding
  * to an unsupported operation on that type. So the operators need to implement
  * only those types that are supported.
- * 
- * @param <V>
+ *
  */
 public abstract class PhysicalOperator extends
         Operator<PhyPlanVisitor> {
@@ -211,9 +210,9 @@ public abstract class PhysicalOperator extends
         //Should be removed once the model is clear
         if(reporter!=null) reporter.progress();
             
-        if (!isInputAttached())
+        if (!isInputAttached()) {
             return inputs.get(0).getNext(inpValue);
-        else {
+        } else {
             res.result = input;
             res.returnStatus = POStatus.STATUS_OK;
             detachInput();

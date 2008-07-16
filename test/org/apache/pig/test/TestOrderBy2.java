@@ -32,6 +32,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -144,36 +145,6 @@ public class TestOrderBy2 extends TestCase {
 
     //////////////////////// HELPERS ///////////////////////////////
 
-    /**
-     * Create temp file from a given dataset
-     * This assumes
-     *  1) The dataset has at least 1 record
-     *  2) All records are of the same size
-     */
-    private File createTempFile(String[][] data) throws IOException {
-
-        File fp1 = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
-
-        for(int i = 0; i < data.length ; i++) {
-
-            // Building up string for each line
-            StringBuilder sb = new StringBuilder() ;
-            for(int j = 0 ; j < data[0].length ; j++) {
-                if (j != 0) {
-                    sb.append("\t") ;
-                }
-                sb.append(data[i][j]) ;
-            }
-
-            // Write the line to file
-            ps.println(sb.toString());
-        }
-
-        ps.close();
-        return fp1 ;
-    }
-
     /***
      * Check if the given dataset is properly sorted
      * @param dataIter the dataset to be checked
@@ -265,7 +236,7 @@ public class TestOrderBy2 extends TestCase {
             data[i][1] = formatter.format(dataLength - i - 1);
         }
 
-        return createTempFile(data) ;
+        return TestHelper.createTempFile(data) ;
     }
 
 
@@ -285,7 +256,7 @@ public class TestOrderBy2 extends TestCase {
             data[i][1] = formatter.format(dataLength - i - 1);
         }
 
-        return createTempFile(data) ;
+        return TestHelper.createTempFile(data) ;
     }
 
     /***
@@ -304,6 +275,6 @@ public class TestOrderBy2 extends TestCase {
             data[i][1] = formatter.format(i % 20);
         }
 
-        return createTempFile(data) ;
+        return TestHelper.createTempFile(data) ;
     }
 }

@@ -168,8 +168,9 @@ public class PigMapReduce {
                             continue;
                         }
                         
-                        if(redRes.returnStatus==POStatus.STATUS_EOP)
+                        if(redRes.returnStatus==POStatus.STATUS_EOP) {
                             return;
+                        }
                         
                         if(redRes.returnStatus==POStatus.STATUS_NULL)
                             continue;
@@ -182,8 +183,9 @@ public class PigMapReduce {
                     }
                 }
                 
-                if(res.returnStatus==POStatus.STATUS_NULL)
+                if(res.returnStatus==POStatus.STATUS_NULL) {
                     return;
+                }
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
                     IOException ioe = new IOException("Packaging error while processing group");

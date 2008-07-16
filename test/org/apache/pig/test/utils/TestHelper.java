@@ -17,8 +17,7 @@
  */
 package org.apache.pig.test.utils;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -210,5 +209,35 @@ public class TestHelper {
             ret.append(nDba);
         }
         return ret;
+    }
+
+       /**
+     * Create temp file from a given dataset
+     * This assumes
+     *  1) The dataset has at least 1 record
+     *  2) All records are of the same size
+     */
+    public static File createTempFile(String[][] data) throws IOException {
+
+        File fp1 = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+
+        for(int i = 0; i < data.length ; i++) {
+
+            // Building up string for each line
+            StringBuilder sb = new StringBuilder() ;
+            for(int j = 0 ; j < data[0].length ; j++) {
+                if (j != 0) {
+                    sb.append("\t") ;
+                }
+                sb.append(data[i][j]) ;
+            }
+
+            // Write the line to file
+            ps.println(sb.toString());
+        }
+
+        ps.close();
+        return fp1 ;
     }
 }

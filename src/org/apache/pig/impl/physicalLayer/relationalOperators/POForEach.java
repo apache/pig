@@ -126,10 +126,12 @@ public class POForEach extends PhysicalOperator {
                     processingPlan = false;
                     break;
                 }
-                if(res.returnStatus==POStatus.STATUS_ERR)
+                if(res.returnStatus==POStatus.STATUS_ERR) {
                     return res;
-                if(res.returnStatus==POStatus.STATUS_NULL)
+                }
+                if(res.returnStatus==POStatus.STATUS_NULL) {
                     continue;
+                }
             }
         }
         //The nested plan processing is done or is
@@ -138,10 +140,13 @@ public class POForEach extends PhysicalOperator {
         //read
         while (true) {
             inp = processInput();
-            if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
+            if (inp.returnStatus == POStatus.STATUS_EOP ||
+                    inp.returnStatus == POStatus.STATUS_ERR) {
                 return inp;
-            if (inp.returnStatus == POStatus.STATUS_NULL)
+            }
+            if (inp.returnStatus == POStatus.STATUS_NULL) {
                 continue;
+            }
             
             attachInputToPlans((Tuple) inp.result);
             
@@ -180,11 +185,13 @@ public class POForEach extends PhysicalOperator {
                 //Getting the iterators
                 //populate the input data
                 Result inputData = null;
-                Byte resultType = ((PhysicalOperator)planLeaves.get(i)).getResultType();
+                byte resultType = ((PhysicalOperator)planLeaves.get(i)).getResultType();
                 switch(resultType) {
-                case DataType.BAG : DataBag b = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(b);
-                break;
+                case DataType.BAG:
+                    DataBag b = null;
+                    inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(b);
+                    break;
+
                 case DataType.TUPLE : Tuple t = null;
                 inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(t);
                 break;
@@ -212,6 +219,12 @@ public class POForEach extends PhysicalOperator {
                 case DataType.CHARARRAY : String str = null;
                 inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(str);
                 break;
+
+                default:
+                    String msg = new String("Unknown type " +
+                        DataType.findTypeName(resultType));
+                    log.error(msg);
+                    throw new ExecException(msg);
                 }
                 
                 if(inputData.returnStatus == POStatus.STATUS_EOP) {
