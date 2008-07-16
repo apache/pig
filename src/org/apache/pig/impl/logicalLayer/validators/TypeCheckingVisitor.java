@@ -27,6 +27,7 @@ import java.util.Stack;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.Algebraic;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
@@ -1314,9 +1315,34 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
             
         }
+
+        EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(func.getFuncSpec());
+
+        // If the function is algebraic and the project is just sentinel
+        // (special case when we apply aggregate on flattened members)
+        // then it will never match algebraic functions' schemas
+        // without this
+
+        // Assuming all aggregates has only one argument at this stage
+        ExpressionOperator tmpExp = func.getArguments().get(0) ;
+        if ( (ef instanceof Algebraic)
+             && (tmpExp instanceof LOProject)
+             && (((LOProject)tmpExp).getSentinel())) {
+
+            FieldSchema tmpField ;
+
+            try {
+                // embed the schema above inside a bag
+                tmpField = new FieldSchema(null, s, DataType.BAG) ;
+            }
+            catch (FrontendException e) {
+                throw new VisitorException(e) ;
+            }
+
+            s = new Schema(tmpField) ;
+        }
         
         // ask the EvalFunc what types of inputs it can handle
-        EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(func.getFuncSpec());
         List<FuncSpec> funcSpecs = null;
         try {
             funcSpecs = ef.getArgToFuncMapping();    
@@ -1337,7 +1363,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             if(matchingSpec == null) {
                 StringBuilder sb = new StringBuilder();
                 sb.append(func.getFuncSpec());
-                sb.append("does not work with inputs of type ");
+                sb.append(" does not work with inputs of type ");
                 sb.append(s);
                 throw new VisitorException(sb.toString());
             } else {
@@ -2171,8 +2197,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         }
         catch (FrontendException pe) {
-            String msg = "Problem resolving LOForEach schema" ;
+            String msg = "Problem resolving LOForEach schema " 
+                         + pe.getMessage() ;
             msgCollector.collect(msg, MessageType.Error) ;
+            log.debug(pe);
             VisitorException vse = new VisitorException(msg) ;
             throw vse ;
         }

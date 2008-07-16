@@ -48,8 +48,6 @@ public class TestAlgebraicEval extends TestCase {
             }
         }
         ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate group, COUNT($1) ;";
-        System.out.println(query);
         pig.registerQuery(" a = group (load 'file:" + tmpFile + "') by ($0,$1);");
         pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
         Iterator<Tuple> it = pig.openIterator("b");

@@ -242,6 +242,21 @@ public class TestTypeChecking extends TestCase {
 
     */
 
+    public void testSUM1() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.buildPlan("a = load ':INPATH:/singlefile/studenttab10k' as (name:chararray, age:int, gpa:double);") ;
+        LogicalPlan plan1 = planTester.buildPlan("b = foreach a generate (long)age as age, (int)gpa as gpa;") ;
+        LogicalPlan plan2 = planTester.buildPlan("c = foreach b generate SUM(age), SUM(gpa);") ;
+        planTester.typeCheckPlan(plan2);
+    }
+
+    public void testSUM2() throws Throwable {
+        TypeCheckingTestUtil.printCurrentMethodName() ;
+        planTester.buildPlan("a = group (load 'file:\" + tmpFile + \"') by ($0,$1);") ;
+        LogicalPlan plan1 = planTester.buildPlan("b = foreach a generate flatten(group), SUM($1.$2);") ;
+        planTester.typeCheckPlan(plan1);
+    }
+
 
 
 }

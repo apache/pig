@@ -1570,10 +1570,17 @@ LogicalOperator FlattenedGenerateItemList(Schema over, Map<String, LogicalOperat
 }
 {
 	(
-	item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList) {generatePlans.add(generatePlan);}
-	("," item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList) {generatePlans.add(generatePlan);})*
-	
-	)
+        item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList)
+            {
+                generatePlans.add(generatePlan);
+            }
+        ("," item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList)
+            {
+                generatePlans.add(generatePlan);
+            }
+        )*
+
+    )
 	{
 		LogicalOperator generate = new LOGenerate(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
 		lp.add(generate);
@@ -1617,13 +1624,32 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 		}
 	)
 	)
-	[ <AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {if(schema.size() > 1) {throw new ParseException("Schema mismatch");} fs = schema.getFields().get(0);} | fs = AtomSchema() )]
+        [ <AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")"
+
+          { if (schema.size() > 1) {
+                throw new ParseException("Schema mismatch");
+            }
+
+            fs = schema.getFields().get(0);
+          }
+          | fs = AtomSchema() )
+        ]
 	)
 	{
 		log.debug("item: " + item.getClass().getName());
-		if(null != fs) {
-			item.setFieldSchema(fs); 
-		}
+        if(null != fs) {
+            // We're only interested in alias here
+            // target type should be preserved
+            Schema.FieldSchema tmpFs = item.getFieldSchema() ;
+            if (tmpFs != null) {
+                tmpFs.alias = fs.alias ;
+                item.setFieldSchema(tmpFs);    
+            }
+            else {
+                tmpFs = new Schema.FieldSchema(fs.alias, DataType.BYTEARRAY) ;
+                item.setFieldSchema(tmpFs);
+            }
+        }
 		flattenList.add(flatten);
 		log.trace("Exiting FlattenedGenerateItem");
 		return item;
