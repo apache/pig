@@ -56,10 +56,12 @@ public class Grunt
         try {
             parser.setInteractive(false);
             parser.parseStopOnError();
-        } catch (Throwable e) {
-            log.error(e);
-            throw e;
-        }
+        } catch (Exception e) {
+            Exception pe = Utils.getPermissionException(e);
+            if (pe != null)
+                log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
     
+            throw (e);
+        } 
     }
 }

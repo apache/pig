@@ -23,6 +23,8 @@ import java.io.Reader;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -88,7 +90,17 @@ public class GruntParser extends PigScriptParser {
             }
             catch(Exception e)
             {
-                log.error(e.getMessage());
+                Exception pe = Utils.getPermissionException(e);
+                if (pe != null)
+                    log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
+                else {
+                    ByteArrayOutputStream bs = new ByteArrayOutputStream();
+                    e.printStackTrace(new PrintStream(bs));
+                    log.error(bs.toString());
+                    log.error(e.getMessage());
+                    log.error(e);
+               }
+
             }
     }
 
