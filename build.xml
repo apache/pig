@@ -360,7 +360,18 @@
 
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
-            <fileset dir="${src.gen.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/lib-src" includeEmptyDirs="true">
+            <fileset dir="${src.lib.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/tutotial" includeEmptyDirs="true">
+            <fileset dir="tutorial" />
+        </copy>
+
+        <copy todir="${dist.dir}/contrib" includeEmptyDirs="true">
+            <fileset dir="contrib" />
         </copy>
 
         <copy todir="${dist.dir}/" file="build.xml" />

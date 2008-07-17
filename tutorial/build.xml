@@ -15,7 +15,6 @@
    limitations under the License.
 -->
 
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project basedir="." default="tar" name="pigudf">
     <!-- javac properties -->
     <property name="javac.version" value="1.5" />
