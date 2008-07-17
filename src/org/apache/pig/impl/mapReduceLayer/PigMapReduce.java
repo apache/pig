@@ -46,7 +46,7 @@ import org.apache.pig.impl.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
- * This class is the static Mapper & Reducer classes that
+ * This class is the static Mapper &amp; Reducer classes that
  * are used by Pig to execute Pig Map Reduce jobs. Since
  * there is a reduce phase, the leaf is bound to be a 
  * POLocalRearrange. So the map phase has to separate the
@@ -54,10 +54,10 @@ import org.apache.pig.impl.util.ObjectSerializer;
  * collector.
  * 
  * The shuffle and sort phase sorts these key &amp; indexed tuples
- * and creates key, List<IndexedTuple> and passes the key and
+ * and creates key, List&lt;IndexedTuple&gt; and passes the key and
  * iterator to the list. The deserialized POPackage operator
- * is used to package the key, List<IndexedTuple> into pigKey, 
- * Bag<Tuple> where pigKey is of the appropriate pig type and
+ * is used to package the key, List&lt;IndexedTuple&gt; into pigKey, 
+ * Bag&lt;Tuple&gt; where pigKey is of the appropriate pig type and
  * then the result of the package is attached to the reduce
  * plan which is executed if its not empty. Either the result 
  * of the reduce plan or the package res is collected into

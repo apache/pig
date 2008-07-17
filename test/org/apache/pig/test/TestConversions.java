@@ -38,8 +38,8 @@ public class TestConversions extends TestCase {
     public  void testBytesToInteger() throws IOException
     {
         // valid ints
-        String[] a = {"1", "-2345",  "1234567"};
-        Integer[] ia = {1, -2345, 1234567};
+        String[] a = {"1", "-2345",  "1234567", "1.1", "-23.45"};
+        Integer[] ia = {1, -2345, 1234567, 1, -23};
         
         for (int i = 0; i < ia.length; i++) {
             byte[] b = a[i].getBytes();
@@ -47,7 +47,7 @@ public class TestConversions extends TestCase {
         }
         
         // invalid ints
-        a = new String[]{"1.1", "-23.45",  "1234567890123456", "This is an int"};
+        a = new String[]{"1234567890123456", "This is an int"};
         for (String s : a) {
             byte[] b = s.getBytes();
             Integer i = ps.bytesToInteger(b);
@@ -101,8 +101,8 @@ public class TestConversions extends TestCase {
     public  void testBytesToLong() throws IOException
     {
         // valid Longs
-        String[] a = {"1", "-2345",  "123456789012345678"};
-        Long[] la = {1L, -2345L, 123456789012345678L};
+        String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45"};
+        Long[] la = {1L, -2345L, 123456789012345678L, 1L, -23L};
         
         for (int i = 0; i < la.length; i++) {
             byte[] b = a[i].getBytes();
@@ -110,7 +110,7 @@ public class TestConversions extends TestCase {
         }
         
         // invalid longs
-        a = new String[]{"1.1", "-23.45",  "This is a long"};
+        a = new String[]{"This is a long", "1.0e1000"};
         for (String s : a) {
             byte[] b = s.getBytes();
             Long l = ps.bytesToLong(b);
