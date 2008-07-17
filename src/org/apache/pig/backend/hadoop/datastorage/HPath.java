@@ -110,7 +110,7 @@ public abstract class HPath implements ElementDescriptor {
 
     public void delete() throws IOException {
         // the file is removed and not placed in the trash bin
-        fs.getHFS().delete(path);
+        fs.getHFS().delete(path, true);
     }
 
     public Properties getConfiguration() throws IOException {
@@ -168,7 +168,13 @@ public abstract class HPath implements ElementDescriptor {
     public FileSystem getHFS() {
         return fs.getHFS();
     }
-    
+
+    public boolean systemElement() {
+        return (path != null && 
+                (path.getName().startsWith("_") ||
+                 path.getName().startsWith(".")));
+    }
+   
     @Override
     public String toString() {
         return path.toString();

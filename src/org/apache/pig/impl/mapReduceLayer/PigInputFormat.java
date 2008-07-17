@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -92,17 +93,17 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
      *             if zero items.
      */
     protected Path[] listPaths(JobConf job) throws IOException {
-        Path[] dirs = job.getInputPaths();
+        Path[] dirs = FileInputFormat.getInputPaths(job);
         if (dirs.length == 0) {
             throw new IOException("No input paths specified in job");
         }
+        
         List<Path> result = new ArrayList<Path>();
         for (Path p : dirs) {
             FileSystem fs = p.getFileSystem(job);
-            Path[] matches = fs.listPaths(fs.globPaths(p, hiddenFileFilter),
-                    hiddenFileFilter);
-            for (Path match : matches) {
-                result.add(fs.makeQualified(match));
+            FileStatus[] matches = fs.globStatus(p, hiddenFileFilter);
+            for (FileStatus match : matches) {
+                result.add(fs.makeQualified(match.getPath()));
             }
         }
 
@@ -187,14 +188,20 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
             ArrayList<Path> paths = new ArrayList<Path>();
             // If you give a non-glob name, globPaths returns a single
             // element with just that name.
-            Path[] globPaths = fs.globPaths(path);
+            
+            FileStatus[] matches = fs.globStatus(path, hiddenFileFilter);
+            List<Path> matchList = new ArrayList<Path>();
+            for (FileStatus match : matches) {
+                matchList.add(match.getPath());
+            }
+            Path[] globPaths = matchList.toArray(new Path[matchList.size()]);
             for (int m = 0; m < globPaths.length; m++)
                 paths.add(globPaths[m]);
             // paths.add(path);
             for (int j = 0; j < paths.size(); j++) {
                 Path fullPath = new Path(fs.getWorkingDirectory(), paths.get(j));
                 if (fs.getFileStatus(fullPath).isDir()) {
-                    FileStatus children[] = fs.listStatus(fullPath);
+                    FileStatus children[] = fs.listStatus(fullPath, hiddenFileFilter);
                     for (int k = 0; k < children.length; k++) {
                         paths.add(children[k].getPath());
                     }

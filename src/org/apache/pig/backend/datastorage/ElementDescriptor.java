@@ -140,6 +140,13 @@ public interface ElementDescriptor extends
          */
         public void updateConfiguration(Properties newConfig) 
              throws IOException;
+
+        /**
+         * Defines whether the element is visible to users or 
+         * contains system's metadata
+         * @return true if this is system file; false otherwise
+         */
+        public boolean systemElement(); 
         
         /**
          * List entity statistics

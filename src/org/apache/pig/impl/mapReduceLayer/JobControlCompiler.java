@@ -39,6 +39,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -136,7 +137,7 @@ public class JobControlCompiler{
             }
             
             //Has dependencies. So compile all the inputs
-            List compiledInputs = new ArrayList(pred.size());
+            List<Job> compiledInputs = new ArrayList<Job>(pred.size());
             
             for (MapReduceOper oper : pred) {
                 Job ret = null;
@@ -154,7 +155,7 @@ public class JobControlCompiler{
             
             //Create a new Job with the obtained JobConf
             //and the compiled inputs as dependent jobs
-            return new Job(currJC,(ArrayList)compiledInputs);
+            return new Job(currJC,(ArrayList<Job>)compiledInputs);
         }catch(Exception e){
             JobCreationException jce = new JobCreationException(e);
             throw jce;
@@ -242,7 +243,7 @@ public class JobControlCompiler{
             //set out filespecs
             String outputPath = st.getSFile().getFileName();
             FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
-            jobConf.setOutputPath(new Path(outputPath));
+            FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
             jobConf.set("pig.storeFunc", outputFuncSpec.toString());
             
             if(mro.reducePlan.isEmpty()){

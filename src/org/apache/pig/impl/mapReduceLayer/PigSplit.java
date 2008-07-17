@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.InputSplit;
@@ -119,16 +120,17 @@ public class PigSplit implements InputSplit {
     }
 
     public String[] getLocations() throws IOException {
-        String hints[][] = fs.getFileCacheHints(file, start, length);
+        BlockLocation[] b = fs.getFileBlockLocations(file, start, length);
         int total = 0;
-        for (int i = 0; i < hints.length; i++) {
-            total += hints[i].length;
+        for (int i = 0; i < b.length; i++) {
+            total += b[i].getHosts().length;
         }
         String locations[] = new String[total];
         int count = 0;
-        for (int i = 0; i < hints.length; i++) {
-            for (int j = 0; j < hints[i].length; j++) {
-                locations[count++] = hints[i][j];
+        for (int i = 0; i < b.length; i++) {
+            String hosts[] = b[i].getHosts();
+            for (int j = 0; j < hosts.length; j++) {
+                locations[count++] = hosts[j];
             }
         }
         return locations;

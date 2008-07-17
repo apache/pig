@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -34,10 +34,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 
-
-public class SortPartitioner implements Partitioner {
+public class SortPartitioner implements Partitioner<WritableComparable, Writable> {
     Tuple[] quantiles;
-    WritableComparator comparator;
+    RawComparator<WritableComparable> comparator;
     
     public int getPartition(WritableComparable key, Writable value,
             int numPartitions){

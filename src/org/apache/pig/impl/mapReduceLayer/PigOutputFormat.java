@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.RecordWriter;
@@ -41,12 +42,12 @@ import org.apache.tools.bzip2r.CBZip2OutputStream;
  * image of PigInputFormat having RecordWriter instead
  * of a RecordReader.
  */
-public class PigOutputFormat implements OutputFormat {
+public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> {
     public static final String PIG_OUTPUT_FUNC = "pig.output.func";
 
-    public RecordWriter getRecordWriter(FileSystem fs, JobConf job,
+    public RecordWriter<WritableComparable, Tuple> getRecordWriter(FileSystem fs, JobConf job,
             String name, Progressable progress) throws IOException {
-        Path outputDir = job.getOutputPath();
+        Path outputDir = FileOutputFormat.getWorkOutputPath(job);
         return getRecordWriter(fs, job, outputDir, name, progress);
     }
 
@@ -69,7 +70,8 @@ public class PigOutputFormat implements OutputFormat {
                 throw re;
             }
         }
-        String parentName = outputDir.getParent().getName();
+
+        String parentName = FileOutputFormat.getOutputPath(job).getName();
         int suffixStart = parentName.lastIndexOf('.');
         if (suffixStart != -1) {
             String suffix = parentName.substring(suffixStart);
@@ -85,7 +87,8 @@ public class PigOutputFormat implements OutputFormat {
         return;
     }
 
-    static public class PigRecordWriter implements RecordWriter {
+    static public class PigRecordWriter implements
+            RecordWriter<WritableComparable, Tuple> {
         private OutputStream os = null;
 
         private StoreFunc sfunc = null;
@@ -93,7 +96,7 @@ public class PigOutputFormat implements OutputFormat {
         public PigRecordWriter(FileSystem fs, Path file, StoreFunc sfunc)
                 throws IOException {
             this.sfunc = sfunc;
-            fs.delete(file);
+            fs.delete(file, true);
             this.os = fs.create(file);
             String name = file.getName();
             if (name.endsWith(".bz") || name.endsWith(".bz2")) {
@@ -109,9 +112,9 @@ public class PigOutputFormat implements OutputFormat {
          * @see org.apache.hadoop.mapred.RecordWriter#write(org.apache.hadoop.io.WritableComparable,
          *      org.apache.hadoop.io.Writable)
          */
-        public void write(WritableComparable key, Writable value)
+        public void write(WritableComparable key, Tuple value)
                 throws IOException {
-            this.sfunc.putNext((Tuple) value);
+            this.sfunc.putNext(value);
         }
 
         public void close(Reporter reporter) throws IOException {

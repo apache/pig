@@ -54,7 +54,7 @@ public class MiniCluster {
             // Builds and starts the mini dfs and mapreduce clusters
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
-            m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getName(), 1);
+            m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getUri().toString(), 1);
             
             // Create the configuration hadoop-site.xml file
             File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");

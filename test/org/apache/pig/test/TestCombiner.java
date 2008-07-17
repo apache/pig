@@ -34,20 +34,24 @@ import org.apache.pig.data.Tuple;
 
 public class TestCombiner extends TestCase {
 
+    
+
+    MiniCluster cluster = MiniCluster.buildCluster();
+    
+    @Test
+    public void testOnCluster() throws Exception {
+        // run the test on cluster        
+        runTest(new PigServer("mapreduce"));
+
+    }
+
     @Test
     public void testLocal() throws Exception {
         // run the test locally
         runTest(new PigServer("local"));
     }
 
-    @Test
-    public void testOnCluster() throws Exception {
-        // run the test on cluster
-        MiniCluster.buildCluster();
-        runTest(new PigServer("mapreduce"));
-
-    }
-
+    
     private void runTest(PigServer pig) throws IOException {
         List<String> inputLines = new ArrayList<String>();
         inputLines.add("a,b,1");
