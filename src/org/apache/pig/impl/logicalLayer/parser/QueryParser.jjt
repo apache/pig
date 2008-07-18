@@ -63,7 +63,6 @@ public class QueryParser {
 	private NodeIdGenerator nodeIdGen;
 	//a map of alias to logical operator for a quick lookup
 	private Map<String, LogicalOperator> mapAliasOp;
-	private Map<String, ExpressionOperator> defineAliases;
 	private static Log log = LogFactory.getLog(QueryParser.class);
 	
 	private long getNextId() {
@@ -75,8 +74,7 @@ public class QueryParser {
 					   String scope, 
 					   Map<LogicalOperator, LogicalPlan> aliases,
 					   Map<OperatorKey, LogicalOperator> opTable,
-					   Map<String, LogicalOperator> aliasOp,
-					   Map<String, ExpressionOperator> defineAliases) {
+					   Map<String, LogicalOperator> aliasOp) {
 		this(in);
 		this.pigContext = pigContext;
 		this.aliases = aliases;
@@ -84,7 +82,6 @@ public class QueryParser {
 		this.scope = scope;
 		this.nodeIdGen = NodeIdGenerator.getGenerator();
 		this.mapAliasOp = aliasOp;
-		this.defineAliases = defineAliases;
 	}
 
 	public class CogroupInput {
@@ -306,9 +303,6 @@ public class QueryParser {
 	 	return mapAliasOp.get(alias);
 	 }
 
-	 ExpressionOperator getDefineOp(String alias) {
-	 	return defineAliases.get(alias);
-	 }
 	 
 	 //BEGIN
 	 //I am maintaining state about the operators that should
@@ -529,7 +523,6 @@ TOKEN : { <BYTEARRAY : "bytearray"> }
 TOKEN : { <BAG : "bag"> }
 TOKEN : { <TUPLE : "tuple"> }
 TOKEN : { <MAP : "map"> }
-TOKEN : { <DEFINE : "define"> }
 TOKEN : { <IS : "is"> }
 TOKEN : { <NULL : "null"> }
 
@@ -583,7 +576,6 @@ LogicalPlan Parse() :
 	(t1 = <IDENTIFIER> "=" root = Expr(lp) ";" {root.setAlias(t1.image); addAlias(t1.image, root);})
 |	(root = Expr(lp) ";")
 |	(<SPLIT> root = SplitClause(lp) ";")
-|	(<DEFINE> DefineClause(lp) ";")
 	)
 	{ 
 		if(null != root) {
@@ -653,20 +645,6 @@ LogicalOperator SplitClause(LogicalPlan lp):
 	)
 	{log.trace("Exiting SplitClause"); return splitOp;}
 } 
-
-void DefineClause(LogicalPlan lp) :
-{
-	Token t;
-	ExpressionOperator exOp;
-	log.trace("Entering DefineClause");
-}
-{
-	(t = <IDENTIFIER> "=" exOp = FuncDeclareSpec(lp))
-	{
-		defineAliases.put(t.image, exOp);
-		log.trace("Exiting DefineClause");
-	}
-}
 
 
 LogicalOperator Expr(LogicalPlan lp) : 
@@ -2068,8 +2046,7 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 }
 {
 	(
-    LOOKAHEAD({ null != getDefineOp(getToken(1).image) }) funcName=QualifiedFunction()
-|   (
+    (
     LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
     {
         
@@ -2087,12 +2064,6 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
     )
     "(" args=EvalArgs(over,specs,lp,input) ")" 
 	{
-		//check if the function name is an alias
-		//if the user has defined an alias then 
-		//verify if the number of of arguments match
-		//and create a new LOUserFunc with the information
-		//from the lookup table
-
 		if(null != evalFunc) {
             funcName = evalFunc.getClass().getName();
             if(null != funcNameAlias) {
@@ -2105,23 +2076,9 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
             log.debug("Return type of UDF: " + DataType.findTypeName(type));
             log.debug("FuncEvalSpec: funcSpec: " + funcSpec);
 			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
-		} else {
-			//we have an alias
-		    userAliasFunc = (LOUserFunc)getDefineOp(funcName);
-            if(null != userAliasFunc) {
-                int expectedNumArgs = userAliasFunc.getArguments().size();
-                int numArgs = args.size();
-                if(expectedNumArgs != numArgs) {
-                    throw new ParseException("Expected " + expectedNumArgs + " argument(s) found " + numArgs + " argument(s)");
-                }
-                funcSpec = userAliasFunc.getFuncSpec();
-                log.debug("FuncEvalSpec: funcSpec: " + funcSpec);
-                userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, userAliasFunc.getType());
-            } else {
-                throw new ParseException("Could not locate function declaration for " + funcName);
-            }
-
-		}
+        } else {
+            throw new ParseException("Could not instantiate function: " + funcNameAlias);
+        }
 		lp.add(userFunc);
 		log.debug("FuncEvalSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
 		for(ExpressionOperator exprOp: args) {
@@ -2174,72 +2131,6 @@ ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs,
 	}
 	)
 	{log.trace("Exiting EvalArgsItem");return item;}
-}
-
-ExpressionOperator FuncDeclareSpec(LogicalPlan lp) : 
-{
-	FuncSpec funcSpec; 
-	List<ExpressionOperator> args;
-	byte userSpecifiedType = DataType.BYTEARRAY;
-    boolean userSpecified = false;
-    EvalFunc evalFunc = null;
-	log.trace("Entering FuncDeclareSpec");
-}
-{
-	[userSpecifiedType = Type() {userSpecified = true;}] evalFunc=EvalFunction() "(" args=FuncDeclareArgs(lp) ")" 
-	{
-        funcSpec = new FuncSpec(evalFunc.getClass().getName());
-        Type javaType = evalFunc.getReturnType();
-        byte type = DataType.findType(javaType);
-        log.debug("Return type of UDF: " + DataType.findTypeName(type));
-        if(userSpecified && (userSpecifiedType != type)) {
-            throw new ParseException("User specified return type " + DataType.findTypeName(userSpecifiedType) + " and deduced return type " + DataType.findTypeName(type) + " are not the same");
-        }
-		ExpressionOperator userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
-		log.trace("Exiting FuncDeclareSpec");
-		return userFunc;
-	}
-}
-
-List<ExpressionOperator> FuncDeclareArgs(LogicalPlan lp) : 
-{
-	ArrayList<ExpressionOperator> specList = new ArrayList<ExpressionOperator>(); 
-	ExpressionOperator item;
-	log.trace("Entering FuncDeclareEvalArgs");
-}
-{
-	(
-	(item=FuncDeclareArgsItem(lp)	{specList.add(item);}
-	("," item=FuncDeclareArgsItem(lp) {specList.add(item);})*)
-	
-	| {}
-	)
-	{
-		log.trace("Exiting EvalArgs");
-		return specList;
-	}
-}
-
-ExpressionOperator FuncDeclareArgsItem(LogicalPlan lp):
-{
-	ExpressionOperator item;
-	byte type = DataType.BYTEARRAY;
-	Token t = null;
-	log.trace("Entering FuncDeclareArgsItem");
-}
-{
-	(
-	type = Type() [t = <IDENTIFIER>]
-	{
-		LOProject project = new LOProject(lp, new OperatorKey(scope, getNextId()), null, -1); 
-		project.setType(type);
-		if(null != t) {
-			project.setAlias(t.image); 
-		}
-		item = project;
-	}
-	)
-	{log.trace("Exiting FuncDeclareArgsItem");return item;}
 }
 
 byte Type() : 

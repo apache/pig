@@ -28,7 +28,6 @@ public class TestPigScriptParser extends TestCase {
         Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
         Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>() ;
         Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>() ;
-        Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
         PigContext pigContext = new PigContext(ExecType.LOCAL) ;
         
         String tempFile = this.prepareTempFile() ;
@@ -38,35 +37,35 @@ public class TestPigScriptParser extends TestCase {
         	// Initial statement
         	String query = String.format("A = LOAD '%s' ;", tempFile) ;
         	ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes()); 
-        	QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp, defineAliases) ;
+        	QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp) ;
         	LogicalPlan lp = parser.Parse() ; 
         }
         
         {
         	// Normal condition
         	String query = "B1 = filter A by $0 eq 'This is a test string' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, defineAliases,
+        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, 
         	                        query, "This is a test string") ;	
         }
         
         {
         	// single-quote condition
         	String query = "B2 = filter A by $0 eq 'This is a test \\'string' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, defineAliases,
+        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, 
         	                        query, "This is a test 'string") ;	
         }
         
         {
         	// newline condition
         	String query = "B3 = filter A by $0 eq 'This is a test \\nstring' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, defineAliases,
+        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, 
         	                        query, "This is a test \nstring") ;	
         }
         
         {
         	// Unicode
         	String query = "B4 = filter A by $0 eq 'This is a test \\uD30C\\uC774string' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, defineAliases,
+        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, 
         	                        query, "This is a test \uD30C\uC774string") ;	
         }
     }
@@ -75,13 +74,12 @@ public class TestPigScriptParser extends TestCase {
                                          Map<OperatorKey, LogicalOperator> opTable,
                                          PigContext pigContext,
                                          Map<String, LogicalOperator> aliasOp,
-                                         Map<String, ExpressionOperator> defineAliases,
                                          String query,
                                          String expectedContent)
                                         throws Exception {
         // Run the parser
         ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes()); 
-        QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp, defineAliases) ;
+        QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp) ;
         LogicalPlan lp = parser.Parse() ; 
         
         // Digging down the tree

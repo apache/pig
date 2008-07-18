@@ -112,6 +112,7 @@ TOKEN: {<CD: "cd">}
 TOKEN: {<COPY: "cp">}
 TOKEN: {<COPYFROMLOCAL: "copyFromLocal">}
 TOKEN: {<COPYTOLOCAL: "copyToLocal">}
+TOKEN: {<DEFINE: "define">}
 TOKEN: {<DUMP: "dump">}
 TOKEN: {<DESCRIBE: "describe">}
 TOKEN: {<EXPLAIN: "explain">}
@@ -301,6 +302,13 @@ void parse() throws IOException:
 	t2 = GetPath()
 	{processCopyToLocal(t1.image, t2.image);}	
 	|
+	<DEFINE>
+	t1 = <IDENTIFIER>
+	(
+	val = QualifiedFunction()
+	)
+	{processRegisterFunc(t1.image, val);}
+	|
 	<DUMP>
 	t1 = <IDENTIFIER>
 	{processDump(t1.image);}
@@ -452,6 +460,8 @@ Token GetReserved () :
 	t = <COPYFROMLOCAL>
 	|
 	t = <COPYTOLOCAL>
+	|
+	t = <DEFINE>
 	|
 	t = <DUMP>
 	|

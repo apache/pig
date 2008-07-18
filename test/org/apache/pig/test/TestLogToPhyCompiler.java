@@ -524,8 +524,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
                                            query,
                                            aliases,
                                            logicalOpTable,
-                                           aliasOp,
-                                           defineAliases);
+                                           aliasOp);
             List<LogicalOperator> roots = lp.getRoots();
             
             
@@ -575,5 +574,4 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-    Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
 }

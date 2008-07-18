@@ -33,8 +33,7 @@ import org.junit.Test;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
-//TODO
-//Not able to include PigServer.java
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -552,7 +551,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         } catch (IOException e) {
             assertTrue(false);  // pig server failed for some reason
         }
-        pig.registerFunction("myTr",GFAny.class.getName() + "('tr o 0')");
+        pig.registerFunction("myTr",
+            new FuncSpec(GFAny.class.getName() + "('tr o 0')"));
         try{
             pig.registerQuery("b = foreach (load 'a') generate myTr(myTr(*));");
         }catch(Exception e){
@@ -772,24 +772,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 		buildPlan("c = cogroup a by (name, age), b by (name, height);");
         try {
 			buildPlan("d = foreach c generate group.name, a.name, b.height as age, a.age;");
-        } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Exception"));
-        }
-	}
-
-    @Test
-    public void testQuery66() {
-        buildPlan("define myFunc = " + TestApplyFunc.class.getName() + "(int i, chararray c);");
-        buildPlan("a = load 'input1' as (name, age, gpa);");
-        buildPlan("b = foreach a generate myFunc($0, $1);");
-	}
-
-    @Test
-    public void testQueryFail66() {
-        buildPlan("define myFunc = " + TestApplyFunc.class.getName() + "(int i, chararray c);");
-        buildPlan("a = load 'input1' as (name, age, gpa);");
-        try {
-        	buildPlan("b = foreach a generate myFunc($0, $1, $2);");
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Exception"));
         }
@@ -1029,8 +1011,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
                                            query,
                                            aliases,
                                            logicalOpTable,
-                                           aliasOp,
-                                           defineAliases);
+                                           aliasOp);
             List<LogicalOperator> roots = lp.getRoots();
             
             if(roots.size() > 0) {
@@ -1080,5 +1061,4 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-    Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
 }

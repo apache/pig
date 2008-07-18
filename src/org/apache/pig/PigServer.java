@@ -91,7 +91,6 @@ public class PigServer {
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-    Map<String, ExpressionOperator> defineAliases = new HashMap<String, ExpressionOperator>();
     PigContext pigContext;
     
     private String scope = constructScope();
@@ -239,7 +238,7 @@ public class PigServer {
         LogicalPlan lp = null;
         try {
             lp = (new LogicalPlanBuilder(pigContext).parse(scope, query,
-                    aliases, opTable, aliasOp, defineAliases));
+                    aliases, opTable, aliasOp));
         } catch (ParseException e) {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
         }

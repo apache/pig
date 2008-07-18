@@ -52,11 +52,11 @@ public class TestGrunt extends TestCase {
     }
 
     @Test 
-    public void testDefineFail() throws Throwable {
+    public void testDefine() throws Throwable {
         PigServer server = new PigServer("MAPREDUCE");
         PigContext context = server.getPigContext();
         
-        String strCmd = "define myudf org.apache.pig.myudf();";
+        String strCmd = "define myudf org.apache.pig.builtin.AVG();";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -68,5 +68,6 @@ public class TestGrunt extends TestCase {
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Encountered \"define\""));
         }
+        assertTrue(null != context.getFuncSpecFromAlias("myudf"));
     }
 }

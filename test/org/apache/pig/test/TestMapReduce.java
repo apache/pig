@@ -35,6 +35,7 @@ import junit.framework.TestCase;
 import org.junit.Test;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.StoreFunc;
@@ -251,7 +252,8 @@ public class TestMapReduce extends TestCase {
             ps.println(i);
         }
         ps.close();
-        pig.registerFunction("foo", MyApply.class.getName()+"('foo')");
+        pig.registerFunction("foo",
+            new FuncSpec(MyApply.class.getName()+"('foo')"));
         String query = "foreach (group (load 'file:"+tmpFile+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);

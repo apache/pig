@@ -28,6 +28,7 @@ import junit.framework.TestCase;
 import org.junit.Test;
 
 import org.apache.pig.FilterFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.ExecType;
@@ -884,7 +885,7 @@ public class TestBuiltin extends TestCase {
         writer.println("boo");
         writer.close();
         
-        pig.registerFunction("myTr",ShellBagEvalFunc.class.getName() + "('tr o 0')");
+        pig.registerFunction("myTr", new FuncSpec(ShellBagEvalFunc.class.getName() + "('tr o 0')"));
         pig.registerQuery("a = load 'file:" + tempFile + "';");
         pig.registerQuery("b = foreach a generate myTr(*);");
         Iterator<Tuple> iter = pig.openIterator("b");
@@ -914,8 +915,10 @@ public class TestBuiltin extends TestCase {
         }
         writer.close();
         
-        pig.registerFunction("tr1",ShellBagEvalFunc.class.getName() + "('tr o A')");
-        pig.registerFunction("tr2",ShellBagEvalFunc.class.getName() + "('tr o B')");
+        pig.registerFunction("tr1",
+            new FuncSpec(ShellBagEvalFunc.class.getName() + "('tr o A')"));
+        pig.registerFunction("tr2",
+            new FuncSpec(ShellBagEvalFunc.class.getName() + "('tr o B')"));
         pig.registerQuery("a = load 'file:" + tempFile + "';");
         pig.registerQuery("b = foreach a generate tr1(*),tr2(*);");
         Iterator<Tuple> iter = pig.openIterator("b");
