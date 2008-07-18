@@ -227,12 +227,16 @@ public class QueryParser {
 		 */
 
 
-		LogicalPlan foreachPlan = new LogicalPlan();
+	
+		//Construct the cogroup operator and add it to the logical plan
+		LogicalOperator cogroup = parseCogroup(gis, lp);
+		lp.add(cogroup);
+		log.debug("Added operator " + cogroup.getClass().getName() + " to the logical plan");
+		
 		for (int i = 0; i < n; i++) {
 			LogicalPlan projectPlan = new LogicalPlan(); 
-			LogicalOperator projectInput = gis.get(i).op;
+			LogicalOperator projectInput = cogroup;
 			ExpressionOperator column = new LOProject(projectPlan, new OperatorKey(scope, getNextId()), projectInput, i+1);
-			((LOProject)column).setStar(true);
 			flattenList.add(true);
 			flattenedColumns.add(column);
 			(gis.get(i)).isInner = true;
@@ -246,26 +250,11 @@ public class QueryParser {
 		}
 
 		
-		//Construct the cogroup operator and add it to the logical plan
-		
-		LogicalOperator cogroup = parseCogroup(gis, lp);
-		lp.add(cogroup);
-		log.debug("Added operator " + cogroup.getClass().getName() + " to the logical plan");
-		
-		
-		//Construct the generate operator from the list of projection plans
-		//Add the generate operator to the foreach logical plan
-        /*
-		LogicalOperator generate = new LOGenerate(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
-		foreachPlan.add(generate);
-		log.debug("Added operator " + generate.getClass().getName() + " to the logical plan " + lp);
-        */
 		
 		/*
 		 * Construct the foreach operator from the foreach logical plan
 		 * Add the foreach operator to the top level logical plan
 		 */
-		 
 		LogicalOperator foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
 		lp.add(foreach);
 		log.debug("Added operator " + foreach.getClass().getName() + " to the logical plan");
