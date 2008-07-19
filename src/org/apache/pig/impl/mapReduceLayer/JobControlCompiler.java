@@ -97,10 +97,10 @@ public class JobControlCompiler{
         this.pigContext = pigContext;
         JobControl jobCtrl = new JobControl(grpName);
         
-        List<MapReduceOper> leaevs = new ArrayList<MapReduceOper>();
-        leaevs = plan.getLeaves();
+        List<MapReduceOper> leaves ;
+        leaves = plan.getLeaves();
         
-        for (MapReduceOper mro : leaevs) {
+        for (MapReduceOper mro : leaves) {
             jobCtrl.addJob(compile(mro,jobCtrl));
         }
         return jobCtrl;
@@ -116,8 +116,7 @@ public class JobControlCompiler{
      * @throws JobCreationException
      */
     private Job compile(MapReduceOper mro, JobControl jobCtrl) throws JobCreationException {
-        List<MapReduceOper> pred = new ArrayList<MapReduceOper>();
-        pred = plan.getPredecessors(mro);
+        List<MapReduceOper> pred = plan.getPredecessors(mro);
         
         JobConf currJC = null;
         
