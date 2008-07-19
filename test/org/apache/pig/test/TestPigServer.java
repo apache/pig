@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.lang.reflect.Method;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 
 import org.junit.Test;
@@ -40,7 +41,7 @@ public class TestPigServer extends TestCase {
     
     private void initPigServer() throws Throwable {
         if (pig == null) {
-            pig = new PigServer();
+            pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         }
     }
     

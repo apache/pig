@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
@@ -48,14 +49,16 @@ import junit.framework.TestCase;
 
 public class TestEvalPipeline extends TestCase {
     
-    String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
+    private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     
     @Before
-    public void setUp(){
+    @Override
+    public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
     
     static public class MyBagFunction extends EvalFunc<DataBag>{
@@ -84,7 +87,6 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testFunctionInsideFunction() throws Exception{
-        PigServer pigServer = new PigServer(initString);
         
         File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 
@@ -100,8 +102,7 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testJoin() throws Exception{
-        PigServer pigServer = new PigServer(initString);
-        
+                
         File f1 = createFile(new String[]{"a:1","b:1","a:1"});
         File f2 = createFile(new String[]{"b","b","a"});
         
@@ -122,7 +123,6 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testDriverMethod() throws Exception{
-        PigServer pigServer = new PigServer(initString);
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
         pw.println("a");
@@ -145,7 +145,6 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testMapLookup() throws Exception {
-        PigServer pigServer = new PigServer(initString);
         DataBag b = BagFactory.getInstance().newDefaultBag();
         Map<Object, Object> colors = new HashMap<Object, Object>();
         colors.put("apple","red");
@@ -246,7 +245,6 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testBagFunctionWithFlattening() throws Exception{
-        PigServer pigServer = new PigServer(initString);
         File queryLogFile = createFile(
                     new String[]{ 
                         "stanford\tdeer\tsighting",
@@ -312,18 +310,17 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close(); 
         
-        PigServer pig = new PigServer(initString);
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString();
-        pig.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
         if (eliminateDuplicates){
-            pig.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
+            pigServer.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
         }else{
-            pig.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
+            pigServer.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
         }
-        pig.store("B", tmpOutputFile);
+        pigServer.store("B", tmpOutputFile);
         
-        pig.registerQuery("A = load '" + tmpOutputFile + "';");
-        Iterator<Tuple> iter = pig.openIterator("A");
+        pigServer.registerQuery("A = load '" + tmpOutputFile + "';");
+        Iterator<Tuple> iter = pigServer.openIterator("A");
         String last = "";
         HashSet<Integer> seen = new HashSet<Integer>();
         if(!iter.hasNext()) fail("No Results obtained");
@@ -356,11 +353,10 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        PigServer pig = new PigServer(initString);
         String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pig.getPigContext()).toString();
-        pig.registerQuery("A = LOAD 'file:" + tmpFile + "';");
-        pig.registerQuery("B = group A by $0;");
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
         + "C1 = filter A by $0 > -1;"
         + "C2 = distinct C1;"
@@ -368,8 +364,8 @@ public class TestEvalPipeline extends TestCase {
         + "generate (int)group," + Identity.class.getName() +"(*), COUNT(C2), SUM(C2.$1)," +  TitleNGrams.class.getName() + "(C3), MAX(C3.$1);"
         + "};";
 
-        pig.registerQuery(query);
-        Iterator<Tuple> iter = pig.openIterator("C");
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("C");
         if(!iter.hasNext()) fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){

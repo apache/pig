@@ -62,6 +62,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.impl.util.PropertiesUtil;
 
 
 /**
@@ -105,16 +106,23 @@ public class PigServer {
         return user + "-" + date;
     }
     
-    public PigServer(String execType) throws ExecException, IOException {
-        this(parseExecType(execType));
+    public PigServer(String execTypeString) throws ExecException, IOException {
+        this(parseExecType(execTypeString));
     }
     
+    public PigServer(ExecType execType) throws ExecException {
+        this(execType, PropertiesUtil.loadPropertiesFromFile());
+    }
+
     public PigServer() throws ExecException {
         this(ExecType.MAPREDUCE);
     }
     
-    public PigServer(ExecType execType) throws ExecException {
-        this.pigContext = new PigContext(execType);
+    public PigServer(ExecType execType, Properties properties) throws ExecException {
+        this.pigContext = new PigContext(execType, properties);
+        if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
+            setJobName("DefaultJobName") ;
+        }
         pigContext.connect();
     }
     
@@ -256,7 +264,7 @@ public class PigServer {
     }
 
     public void setJobName(String name){
-        pigContext.setJobName(name);
+        pigContext.getProperties().setProperty(PigContext.JOB_NAME, PigContext.JOB_NAME_PREFIX + ":" + name);
     }
     
     /**

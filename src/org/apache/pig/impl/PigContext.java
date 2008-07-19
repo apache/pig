@@ -63,7 +63,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     
     private transient final Log log = LogFactory.getLog(getClass());
     
-    private static final String JOB_NAME_PREFIX= "PigLatin";
+    public static final String JOB_NAME = "jobName";
+    public static final String JOB_NAME_PREFIX= "PigLatin";
     
     /* NOTE: we only serialize some of the stuff 
      * 
@@ -75,7 +76,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     private ExecType execType;;    
 
     //  configuration for connecting to hadoop
-    transient private Properties conf = new Properties();
+    private Properties conf = new Properties();
     
     //  extra jar files that are needed to run a job
     transient public List<URL> extraJars = new LinkedList<URL>();              
@@ -94,6 +95,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
    
     private String jobName = JOB_NAME_PREFIX;    // can be overwritten by users
   
+    private Properties properties;
+    
     /**
      * a table mapping function names to function specs.
      */
@@ -101,16 +104,16 @@ public class PigContext implements Serializable, FunctionInstantiator {
     
     private static ArrayList<String> packageImportList = new ArrayList<String>();
 
-    public boolean                       debug       = true;
+    public boolean debug = true;
     
     public PigContext() {
-        this(ExecType.MAPREDUCE);
+        this(ExecType.MAPREDUCE, new Properties());
     }
         
-    public PigContext(ExecType execType){
+    public PigContext(ExecType execType, Properties properties){
         this.execType = execType;
+        this.properties = properties;   
 
-        initProperties();
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {
@@ -128,48 +131,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         packageImportList.add("com.yahoo.pig.yst.sds.ULT.");
         packageImportList.add("org.apache.pig.impl.builtin.");        
     }
-
-    private void initProperties() {
-        Properties fileProperties = new Properties();
-            
-        try{        
-            // first read the properties in the jar file
-            InputStream pis = MapReduceLauncher.class.getClassLoader().getResourceAsStream("properties");
-            if (pis != null) {
-                fileProperties.load(pis);
-            }
-            
-            //then read the properties in the home directory
-            try{
-                pis = new FileInputStream(System.getProperty("user.home") + "/.pigrc");
-            }catch(IOException e){}
-            if (pis != null) {
-                fileProperties.load(pis);
-            }
-        }catch (IOException e){
-            log.error(e);
-            throw new RuntimeException(e);
-        }
-        
-        //Now set these as system properties only if they are not already defined.
-        for (Object o: fileProperties.keySet()){
-            String propertyName = (String)o;
-            log.debug("Found system property " + propertyName + " in .pigrc"); 
-            if (System.getProperty(propertyName) == null){
-                System.setProperty(propertyName, fileProperties.getProperty(propertyName));
-                log.debug("Setting system property " + propertyName);
-            }
-        }
-    }    
     
     public void connect() throws ExecException {
-        try {
-            switch (execType) {
 
+        switch (execType) {
             case LOCAL:
             {
                 lfs = new HDataStorage(URI.create("file:///"),
-                                       new Configuration());
+                                       new Properties());
                 
                 dfs = lfs;
                 executionEngine = new LocalExecutionEngine(this);
@@ -185,7 +154,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 dfs = executionEngine.getDataStorage();
                 
                 lfs = new HDataStorage(URI.create("file:///"),
-                        new Configuration());                
+                                        new Properties());                
             }
             break;
             
@@ -193,19 +162,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
             {
                 throw new ExecException("Unkown execType: " + execType);
             }
-            }
         }
-        catch (IOException e) {
-            ;
-        }
-    }
 
-    public void setJobName(String name){
-    jobName = JOB_NAME_PREFIX + ":" + name;
-    }
-
-    public String getJobName(){
-    return jobName;
     }
 
     public void setJobtrackerLocation(String newLocation) {
@@ -278,7 +236,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             throw WrappedIOException.wrap("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""), e);
         }
         
-        srcElement.copy(dstElement, conf,false);
+        srcElement.copy(dstElement, this.properties, false);
     }
     
     public ExecutionEngine getExecutionEngine() {
@@ -293,8 +251,21 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return lfs;
     }
 
+    /**
+     * Provides configuration information.
+     * 
+     * @return - information about the configuration used to connect to
+     *         execution engine
+     */
+    public Properties getProperties() {
+        return this.properties;
+    }
+    
+    /**
+     * @deprecated use {@link #getProperties()} instead
+     */
     public Properties getConf() {
-        return conf;
+        return getProperties();
     }
 
     /**

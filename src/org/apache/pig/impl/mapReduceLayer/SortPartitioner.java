@@ -27,6 +27,7 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
@@ -52,7 +53,7 @@ public class SortPartitioner implements Partitioner<WritableComparable, Writable
             throw new RuntimeException("Sort paritioner used but no quantiles found");
         
         try{
-            InputStream is = FileLocalizer.openDFSFile(quantilesFile,job);
+            InputStream is = FileLocalizer.openDFSFile(quantilesFile,ConfigurationUtil.toProperties(job));
             BinStorage loader = new BinStorage();
             loader.bindTo(quantilesFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
             

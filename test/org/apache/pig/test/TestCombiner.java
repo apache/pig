@@ -24,10 +24,12 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.junit.Test;
 import junit.framework.TestCase;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
@@ -41,14 +43,14 @@ public class TestCombiner extends TestCase {
     @Test
     public void testOnCluster() throws Exception {
         // run the test on cluster        
-        runTest(new PigServer("mapreduce"));
+        runTest(new PigServer(ExecType.MAPREDUCE, cluster.getProperties()));
 
     }
 
     @Test
     public void testLocal() throws Exception {
         // run the test locally
-        runTest(new PigServer("local"));
+        runTest(new PigServer(ExecType.LOCAL, new Properties()));
     }
 
     

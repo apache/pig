@@ -18,6 +18,7 @@
 
 package org.apache.pig.test;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 
 import org.apache.pig.data.DataType;
@@ -51,7 +52,6 @@ public class TestLargeFile extends TestCase {
         
     private long total = defaultBlockSize >> 1;
     private int max_rand = 500;
-    private String initString = "mapreduce";
 //    private double sum = 0.0, sumIn = 0.0;
     MiniCluster cluster = MiniCluster.buildCluster();
     
@@ -90,7 +90,7 @@ public class TestLargeFile extends TestCase {
         dat.close();
     
         try {
-            pig = new PigServer(initString);
+            pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         }
         catch (ExecException e) {
             IOException ioe = new IOException("Failed to create Pig server");

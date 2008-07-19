@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 import java.net.URL;
 import java.util.List;
 import java.util.Set;
@@ -1003,7 +1004,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     public LogicalPlan buildPlan(String query, ClassLoader cldr) {
         LogicalPlanBuilder.classloader = cldr;
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
 
         try {

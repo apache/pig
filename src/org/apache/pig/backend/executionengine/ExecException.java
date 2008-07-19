@@ -26,14 +26,14 @@ public class ExecException extends Exception {
     }
 
     public ExecException() {
-        this(null, null);
+        super();
     }
     
     public ExecException(String message) {
-        this(message, null);
+        super(message);
     }
     
     public ExecException(Throwable cause) {
-        this(null, cause);
+        super(cause);
     }
 }

@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.DIFF;
 import junit.framework.TestCase;
@@ -72,7 +73,7 @@ public class TestCompressedFiles extends TestCase {
     
     @Test
     public void testCompressed1() throws Throwable {
-        PigServer pig = new PigServer("mapreduce");
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pig.registerQuery("A = foreach (cogroup (load 'file:"+gzFile+"') by $1, (load 'file:"+datFile + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
         Iterator it = pig.openIterator("A");
         boolean success = true;

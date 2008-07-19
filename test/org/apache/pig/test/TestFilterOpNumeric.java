@@ -22,10 +22,12 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
@@ -39,10 +41,17 @@ public class TestFilterOpNumeric extends TestCase {
     private static int LOOP_COUNT = 1024;
     private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
+    private PigServer pig;
     
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+
+
     @Test
     public void testNumericEq() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -73,7 +82,6 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testNumericNeq() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -100,7 +108,6 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testNumericGt() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -130,7 +137,6 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testBinCond() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -159,7 +165,6 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test
     public void testNestedBinCond() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -185,7 +190,6 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test 
     public void testNumericLt() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -215,7 +219,6 @@ public class TestFilterOpNumeric extends TestCase {
     
     @Test
     public void testNumericGte() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -245,7 +248,6 @@ public class TestFilterOpNumeric extends TestCase {
 
     @Test
     public void testNumericLte() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {

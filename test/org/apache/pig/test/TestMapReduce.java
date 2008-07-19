@@ -29,11 +29,14 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.TestCase;
 
 import org.junit.Test;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -52,16 +55,25 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.junit.Before;
 
 public class TestMapReduce extends TestCase {
 
-    private String initString = "mapreduce";
+    private Log log = LogFactory.getLog(getClass());
+    
     MiniCluster cluster = MiniCluster.buildCluster();
+
+    private PigServer pig;
+    
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
 
     @Test
     public void testBigGroupAll() throws Throwable {
         int LOOP_COUNT = 4*1024;
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -193,7 +205,6 @@ public class TestMapReduce extends TestCase {
     }
     @Test
     public void testStoreFunction() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 10; i++) {
@@ -220,7 +231,6 @@ public class TestMapReduce extends TestCase {
     }
     @Test
     public void testQualifiedFuncions() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
@@ -245,7 +255,6 @@ public class TestMapReduce extends TestCase {
     
     @Test
     public void testDefinedFunctions() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
@@ -272,8 +281,8 @@ public class TestMapReduce extends TestCase {
 
     @Test
     public void testPigServer() throws Throwable {
-        System.out.println("creating pig server");
-        PigContext pigContext = new PigContext(ExecType.MAPREDUCE);
+        log.debug("creating pig server");
+        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         PigServer pig = new PigServer(pigContext);
         System.out.println("testing capacity");
         long capacity = pig.capacity();

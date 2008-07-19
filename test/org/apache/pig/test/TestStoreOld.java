@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -30,7 +31,6 @@ import junit.framework.TestCase;
 
 public class TestStoreOld extends TestCase {
 
-    private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
     private int LOOP_COUNT = 1024;
     
@@ -106,7 +106,7 @@ public class TestStoreOld extends TestCase {
             pw.println(i + "\t" + i);
         }
         pw.close();
-        pig = new PigServer(initString);
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         fileName = "'" + FileLocalizer.hadoopify(f.toString(), pig.getPigContext()) + "'";
         tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
         tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";

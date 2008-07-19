@@ -94,13 +94,12 @@ public class LocalExecutionEngine implements ExecutionEngine {
     }
         
     public Properties getConfiguration() throws ExecException {
-        Properties conf = new Properties();
-        return conf;
+        return this.pigContext.getProperties();
     }
         
     public void updateConfiguration(Properties newConfiguration) 
         throws ExecException {
-        ;
+        // there is nothing to do here.
     }
         
     public Map<String, Object> getStatistics() throws ExecException {

@@ -34,6 +34,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
@@ -90,7 +91,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
     
     static {
         MiniCluster cluster = MiniCluster.buildCluster();
-        pc = new PigContext();
+        pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         try {
             pc.connect();
         } catch (ExecException e) {

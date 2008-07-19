@@ -1,6 +1,7 @@
 package org.apache.pig.test;
 
 import java.io.* ;
+import java.util.Properties;
 
 import org.apache.pig.ExecType; 
 import org.apache.pig.FuncSpec;
@@ -27,7 +28,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testLocalModeInputPositive() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.LOCAL) ;
+        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
         
         String inputfile = generateTempFile().getAbsolutePath() ;
@@ -46,7 +47,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testLocalModeNegative1() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.LOCAL) ;
+        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
         
         String inputfile = generateNonExistenceTempFile().getAbsolutePath() ;
@@ -66,7 +67,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testLocalModeNegative2() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.LOCAL) ;
+        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
         
         String inputfile = generateTempFile().getAbsolutePath() ;
@@ -86,7 +87,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testLocalModeNegative3() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.LOCAL) ;
+        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
         
         String inputfile = generateNonExistenceTempFile().getAbsolutePath() ;
@@ -107,7 +108,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testMapReduceModeInputPositive() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE) ;       
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
         String inputfile = createHadoopTempFile(ctx) ;
@@ -126,7 +127,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testMapReduceModeInputNegative1() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE) ;       
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
         String inputfile = createHadoopNonExistenceTempFile(ctx) ;
@@ -146,7 +147,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testMapReduceModeInputNegative2() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE) ;       
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
         String inputfile = createHadoopTempFile(ctx) ;
@@ -166,7 +167,7 @@ public class TestInputOutputFileValidator extends TestCase {
     @Test
     public void testMapReduceModeInputNegative3() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE) ;       
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
         String inputfile = createHadoopNonExistenceTempFile(ctx) ;

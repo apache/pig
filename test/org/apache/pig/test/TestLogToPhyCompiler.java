@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
@@ -65,7 +66,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     final int MAX_RANGE = 10;
     
     Random r = new Random();
-    PigContext pc = new PigContext(ExecType.LOCAL);
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
 
     private boolean generate = false;
     
@@ -516,7 +517,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
     public LogicalPlan buildPlan(String query, ClassLoader cldr) {
         LogicalPlanBuilder.classloader = cldr;
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
 
         try {

@@ -37,6 +37,7 @@ import org.apache.pig.test.utils.dotGraph.DotGraph;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.io.IOException;
 
 import static junit.framework.Assert.assertTrue;
@@ -181,7 +182,7 @@ public class LogicalPlanTester {
     private LogicalPlan buildPlan(String query, ClassLoader cldr) {
 
         LogicalPlanBuilder.classloader = LogicalPlanTester.class.getClassLoader() ;
-        PigContext pigContext = new PigContext(ExecType.LOCAL);
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
 
         try {

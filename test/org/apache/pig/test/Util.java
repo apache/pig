@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -144,4 +145,19 @@ public class Util {
         return t;
     }
 
+	static public void printQueryOutput(Iterator<Tuple> actualResults, 
+               Tuple[] expectedResults) {
+
+	    System.out.println("Expected :") ;
+        for (Tuple expected : expectedResults) {
+            System.out.println(expected.toString()) ;
+        }
+	    System.out.println("---End----") ;
+	    
+        System.out.println("Actual :") ;
+        while (actualResults.hasNext()) {
+            System.out.println(actualResults.next().toString()) ;
+        }
+        System.out.println("---End----") ;
+    }
 }

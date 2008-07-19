@@ -32,49 +32,65 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.dfs.DistributedFileSystem;
 import org.apache.hadoop.conf.Configuration;
-
-import org.apache.pig.backend.datastorage.*;
-
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class HDataStorage implements DataStorage {
 
-    
+    private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
+
     private FileSystem fs;
-    
-    public HDataStorage(URI uri, Configuration conf) throws IOException {
-        this(uri, new HConfiguration(conf));
-    }
-    
-    public HDataStorage(URI uri, HConfiguration conf) throws IOException {
-        fs = FileSystem.get(uri, conf.getConfiguration());
+    private Configuration configuration;
+    private Properties properties;
+    private URI uri;
+
+    public HDataStorage(URI uri, Properties properties) {
+        this.properties = properties;
+        this.uri = uri;
+        init();
     }
 
-    public HDataStorage(Configuration conf) throws IOException {
-        this(new HConfiguration(conf));
-    }
-    
-    public HDataStorage(HConfiguration conf) throws IOException {
-        fs = FileSystem.get(conf.getConfiguration());
+    public HDataStorage(Properties properties) {
+        this.properties = properties;
+        init();
     }
 
-    public void init() { }
-    
+    public void init() {
+        // check if name node is set, if not we set local as fail back
+        String nameNode = this.properties.getProperty(FILE_SYSTEM_LOCATION);
+        if (nameNode == null || nameNode.length() == 0) {
+            nameNode = "local";
+        }
+        this.configuration = ConfigurationUtil.toConfiguration(this.properties);
+        try {
+            if (this.uri != null) {
+                this.fs = FileSystem.get(this.uri, this.configuration);
+            } else {
+                this.fs = FileSystem.get(this.configuration);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create DataStorage", e);
+        }
+        short defaultReplication = fs.getDefaultReplication();
+        properties.setProperty(DEFAULT_REPLICATION_FACTOR_KEY, (new Short(
+                defaultReplication)).toString());
+    }
+
     public void close() throws IOException {
         fs.close();
     }
     
     public Properties getConfiguration() {
-        Properties props = new HConfiguration(fs.getConf());
-                
-        short defaultReplication = fs.getDefaultReplication();
-        props.setProperty(DEFAULT_REPLICATION_FACTOR_KEY,
-                          (new Short(defaultReplication)).toString());
-        
-        return props;
+        return this.properties;
     }
-    
-    public void updateConfiguration(Properties newConfiguration) 
-            throws DataStorageException {        
+
+    public void updateConfiguration(Properties newConfiguration)
+            throws DataStorageException {
+        // TODO sgroschupf 25Feb2008 this method is never called and
+        // I'm even not sure if hadoop would support that, I doubt it.
+
         if (newConfiguration == null) {
             return;
         }
@@ -110,8 +126,7 @@ public class HDataStorage implements DataStorage {
         return stats;
     }
     
-    public ElementDescriptor asElement(String name) 
-            throws DataStorageException {
+    public ElementDescriptor asElement(String name) throws DataStorageException {
         if (this.isContainer(name)) {
             return new HDirectory(this, name);
         }

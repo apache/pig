@@ -8,6 +8,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Properties;
 
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -28,7 +29,7 @@ public class TestPigScriptParser extends TestCase {
         Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
         Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>() ;
         Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>() ;
-        PigContext pigContext = new PigContext(ExecType.LOCAL) ;
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties()) ;
         
         String tempFile = this.prepareTempFile() ;
         

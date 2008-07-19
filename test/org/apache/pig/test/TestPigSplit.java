@@ -25,8 +25,10 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -38,17 +40,11 @@ public class TestPigSplit extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
     
     @Override
+    @Before
     protected void setUp() throws Exception {
         super.setUp();
 
-        try {
-            pig = new PigServer();
-        }
-        catch (ExecException e) {
-            IOException ioe = new IOException("Failed to create Pig Server");
-            ioe.initCause(e);
-            throw ioe;
-        }
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
     @Test
     public void testLongEvalSpec() throws Exception{

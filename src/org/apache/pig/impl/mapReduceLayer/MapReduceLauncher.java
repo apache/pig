@@ -12,6 +12,7 @@ import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
@@ -41,7 +42,7 @@ public class MapReduceLauncher extends Launcher{
         comp.compile();
         
         ExecutionEngine exe = pc.getExecutionEngine();
-        Configuration conf = ((HConfiguration)exe.getConfiguration()).getConfiguration();
+        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
         JobClient jobClient = ((HExecutionEngine)exe).getJobClient();
 
         MROperPlan mrp = comp.getMRPlan();

@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -40,7 +41,7 @@ public class StandAloneParser {
     public static void main(String args[]) throws IOException, ExecException {
         
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        pig = new PigServer(ExecType.LOCAL);
+        pig = new PigServer(ExecType.LOCAL, new Properties());
         
         while (true) {
             System.out.print("> ");

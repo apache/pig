@@ -30,6 +30,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.net.SocketOptions;
 import java.net.SocketImplFactory;
 import java.net.UnknownHostException;
 import java.net.Proxy.Type;
@@ -436,7 +437,10 @@ class SSHSocketImpl extends SocketImpl {
     }
 
     public Object getOption(int optID) throws SocketException {
-        throw new SocketException("SSHSocketImpl does not implement getOption");
+        if (optID == SocketOptions.SO_SNDBUF)
+            return new Integer(1024);
+        else
+		    throw new SocketException("SSHSocketImpl does not implement getOption for " + optID);
     }
 
     /**
