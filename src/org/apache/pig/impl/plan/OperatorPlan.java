@@ -249,8 +249,6 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
 
     private void checkInPlan(E op) throws PlanException {
         if (mOps.get(op) == null) {
-            log.debug("Attempt to connect operator " +
-                op.name() + " which is not in the plan.");
             PlanException pe = new PlanException("Attempt to connect operator " +
                 op.name() + " which is not in the plan.");
             log.error(pe.getMessage());
@@ -368,14 +366,32 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
             E after,
             E newNode,
             E before) throws PlanException {
-        if (!disconnect(after, before)) {
+        checkInPlan(newNode);
+        if (!replaceNode(after, newNode, before, mFromEdges) || !replaceNode(before, newNode, after, mToEdges)) {
             PlanException pe = new PlanException("Attempt to insert between two nodes " +
                 "that were not connected.");
             log.error(pe.getMessage());
             throw pe;
         }
-        connect(after, newNode);
-        connect(newNode, before);
+        mFromEdges.put(newNode, before);
+        mToEdges.put(newNode, after);
+    }
+
+    private boolean replaceNode(E src, E replacement, E dst, MultiMap<E, E> multiMap) {
+        Collection c = multiMap.get(src);
+        if (c == null) return false;
+
+        ArrayList al = new ArrayList(c);
+        for(int i = 0; i < al.size(); ++i) {
+            E to = (E)al.get(i);
+            if(to.equals(dst)) {
+                al.set(i, replacement);
+                multiMap.removeKey(src);
+                multiMap.put(src, al);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -93,7 +93,7 @@ public class LOForEach extends LogicalOperator {
 
     @Override
     public Schema getSchema() throws FrontendException {
-        log.trace("Entering getSchema");
+        log.debug("Entering getSchema");
         if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
                     mForEachPlans.size());
@@ -228,7 +228,7 @@ public class LOForEach extends LogicalOperator {
 					}
 				}
 				errMessage += ". Please alias the columns with unique names.";
-				log.info(errMessage);
+				log.debug(errMessage);
 				throw new FrontendException(errMessage);
 			}
             mSchema = new Schema(fss);
@@ -244,7 +244,7 @@ public class LOForEach extends LogicalOperator {
 			}
             mIsSchemaComputed = true;
         }
-        log.trace("Exiting getSchema");
+        log.debug("Exiting getSchema");
         return mSchema;
     }
 }
