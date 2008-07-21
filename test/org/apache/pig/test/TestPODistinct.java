@@ -32,11 +32,11 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.POStatus;
-import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.relationalOperators.PODistinct;
-import org.apache.pig.impl.physicalLayer.relationalOperators.PORead;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORead;
 import org.junit.Before;
 import org.junit.Test;
 

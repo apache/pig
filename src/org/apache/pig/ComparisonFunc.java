@@ -23,7 +23,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.physicalLayer.PigProgressable;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 
 
 public abstract class ComparisonFunc extends WritableComparator {

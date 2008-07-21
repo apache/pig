@@ -43,7 +43,7 @@ import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;

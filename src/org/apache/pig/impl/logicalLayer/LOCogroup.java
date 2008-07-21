@@ -32,7 +32,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.util.MultiMap;
 
 public class LOCogroup extends LogicalOperator {
     private static final long serialVersionUID = 2L;

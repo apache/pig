@@ -32,7 +32,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**

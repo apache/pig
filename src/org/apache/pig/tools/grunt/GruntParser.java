@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -142,7 +143,7 @@ public class GruntParser extends PigScriptParser {
     }
     
     protected void processRegisterFunc(String name, String expr) {
-        mPigServer.registerFunction(name, expr);
+        mPigServer.registerFunction(name, new FuncSpec(expr));
     }
     
     protected void processDescribe(String alias) throws IOException {

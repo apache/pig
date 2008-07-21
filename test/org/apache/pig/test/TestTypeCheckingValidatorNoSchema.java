@@ -27,7 +27,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.PlanValidationException;
-import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema ;

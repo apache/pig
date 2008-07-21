@@ -26,10 +26,10 @@ import junit.framework.TestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.physicalLayer.POStatus;
-import org.apache.pig.impl.physicalLayer.Result;
-import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.impl.physicalLayer.expressionOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.junit.Before;
 import org.junit.Test;
 

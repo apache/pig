@@ -21,7 +21,7 @@ package org.apache.pig.test.utils.dotGraph;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 
 import java.util.Iterator;

@@ -42,6 +42,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType ;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.*;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.data.DataType ;
 
 import org.apache.commons.logging.Log;

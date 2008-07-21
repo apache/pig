@@ -34,14 +34,14 @@ import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.mapReduceLayer.MapReduceOper;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.physicalLayer.relationalOperators.*;
-import org.apache.pig.impl.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.impl.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.impl.physicalLayer.expressionOperators.POUserFunc;
-import org.apache.pig.impl.physicalLayer.expressionOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.impl.plan.PlanException;
 
 public class GenPhyOp{

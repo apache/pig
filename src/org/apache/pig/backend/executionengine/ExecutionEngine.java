@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 
 /**
  * This is the main interface that various execution engines

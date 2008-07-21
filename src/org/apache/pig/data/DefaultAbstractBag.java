@@ -29,7 +29,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.util.Spillable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

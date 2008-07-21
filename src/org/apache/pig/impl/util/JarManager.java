@@ -40,7 +40,7 @@ import java.util.zip.ZipEntry;
 
 //import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
 public class JarManager {

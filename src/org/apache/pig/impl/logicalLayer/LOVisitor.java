@@ -28,7 +28,7 @@ import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.MultiMap;
+import org.apache.pig.impl.util.MultiMap;
 
 /**
  * A visitor mechanism for navigating and operating on a tree of Logical
