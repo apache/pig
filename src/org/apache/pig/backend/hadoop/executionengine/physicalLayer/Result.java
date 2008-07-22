@@ -33,6 +33,11 @@ public class Result implements Serializable {
         returnStatus = POStatus.STATUS_ERR;
         result = null;
     }
+    
+    public Result(byte returnStatus, Object result) {
+        this.returnStatus = returnStatus ;
+        this.result = result;
+    }
 
     @Override
     public String toString() {

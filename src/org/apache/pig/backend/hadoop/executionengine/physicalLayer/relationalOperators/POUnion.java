@@ -50,6 +50,9 @@ public class POUnion extends PhysicalOperator {
     //Used for efficiently shifting between non-drained
     //inputs
     BitSet done;
+
+    boolean nextReturnEOP = false ;
+    private static Result eopResult = new Result(POStatus.STATUS_EOP, null) ;
     
     //The index of the last input that was read
     int lastInd = 0;
@@ -73,7 +76,12 @@ public class POUnion extends PhysicalOperator {
     @Override
     public void setInputs(List<PhysicalOperator> inputs) {
         super.setInputs(inputs);
-        done = new BitSet(inputs.size());
+        if (inputs != null) {
+            done = new BitSet(inputs.size());
+        }
+        else {
+            done = new BitSet(0) ;
+        }
     }
 
     @Override
@@ -107,37 +115,55 @@ public class POUnion extends PhysicalOperator {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        while(true){
-            if (done.nextClearBit(0) >= inputs.size()) {
-                res = new Result();
-                res.returnStatus = POStatus.STATUS_EOP;
-                clearDone();
-                return res;
-            }
-            if(lastInd >= inputs.size() || done.nextClearBit(lastInd) >= inputs.size())
-                lastInd = 0;
-            int ind = done.nextClearBit(lastInd);
-            Result res;
-            
+
+        if (nextReturnEOP) {
+            nextReturnEOP = false ;
+            return eopResult ;
+        }
+
+        // Case 1 : Normal connected plan
+        if (!isInputAttached()) {
+
             while(true){
-                if(reporter!=null) reporter.progress();
-                res = inputs.get(ind).getNext(t);
-                if(res.returnStatus == POStatus.STATUS_NULL)
-                    continue;
-                
-                lastInd = ind + 1;
-                
-                if(res.returnStatus == POStatus.STATUS_ERR)
-                    return new Result();
-                
-                if (res.returnStatus == POStatus.STATUS_OK)
-                    return res;
-                
-                if (res.returnStatus == POStatus.STATUS_EOP) {
-                    done.set(ind);
-                    break;
+                if (done.nextClearBit(0) >= inputs.size()) {
+                    clearDone();
+                    return eopResult ;
+                }
+                if(lastInd >= inputs.size() || done.nextClearBit(lastInd) >= inputs.size())
+                    lastInd = 0;
+                int ind = done.nextClearBit(lastInd);
+                Result res;
+
+                while(true){
+                    if(reporter!=null) reporter.progress();
+                    res = inputs.get(ind).getNext(t);
+                    if(res.returnStatus == POStatus.STATUS_NULL)
+                        continue;
+
+                    lastInd = ind + 1;
+
+                    if(res.returnStatus == POStatus.STATUS_ERR)
+                        return new Result();
+
+                    if (res.returnStatus == POStatus.STATUS_OK)
+                        return res;
+                    
+                    if (res.returnStatus == POStatus.STATUS_EOP) {
+                        done.set(ind);
+                        break;
+                    }
                 }
             }
         }
+        // Case 2 : Input directly injected
+        else {
+            res.result = input;
+            res.returnStatus = POStatus.STATUS_OK;
+            detachInput();
+            nextReturnEOP = true ;
+            return res;
+        }
+
+
     }
 }
