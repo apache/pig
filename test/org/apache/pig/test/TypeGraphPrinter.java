@@ -62,6 +62,76 @@ public class TypeGraphPrinter extends LOVisitor {
     protected void visit(UnaryExpressionOperator op) {               
         appendOp(op) ;
     }
+
+
+    public void visit(LOGreaterThan op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOLesserThan op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOGreaterThanEqual op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOLesserThanEqual op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOEqual op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LONotEqual op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOAdd op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOSubtract op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOMultiply op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LODivide op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOMod op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+
+	public void visit(LONegative op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOMapLookup op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOAnd op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOOr op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LONot op) throws VisitorException {
+		appendOp(op) ;
+	}
+
+	public void visit(LOIsNull op) throws VisitorException {
+		appendOp(op) ;
+	}
     
     protected void visit(LOCogroup op) throws VisitorException {
         appendOp(op) ;

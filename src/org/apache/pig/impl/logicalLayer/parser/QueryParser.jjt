@@ -2598,7 +2598,7 @@ Object AtomDatum():
 	t = <INTEGER> {obj = new Integer(Integer.parseInt(t.image));}
 |	t = <LONGINTEGER> 
     {
-        String num = t.image.substring(0, t.image.length() - 2);
+        String num = t.image.substring(0, t.image.length() - 1);
         obj = new Long(Long.parseLong(num));
     }
 |	t = <FLOATNUMBER> {obj = new Float(Float.parseFloat(t.image));}
