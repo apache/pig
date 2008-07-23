@@ -227,9 +227,11 @@ public class PigServer {
      * 
      * @param query
      *            a Pig Latin expression to be evaluated.
+     * @param startLine
+     *            line number of the query within the whold script
      * @throws IOException
-     */
-    public void registerQuery(String query) throws IOException {
+     */    
+    public void registerQuery(String query, int startLine) throws IOException {
         // Bugzilla Bug 1006706 -- ignore empty queries
         //=============================================
         if(query != null) {
@@ -242,12 +244,16 @@ public class PigServer {
         LogicalPlan lp = null;
         try {
             lp = (new LogicalPlanBuilder(pigContext).parse(scope, query,
-                    aliases, opTable, aliasOp));
+                    aliases, opTable, aliasOp, startLine));
         } catch (ParseException e) {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
         }
     }
-      
+
+    public void registerQuery(String query) throws IOException {
+        registerQuery(query, 1);
+    }
+
     public void dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");

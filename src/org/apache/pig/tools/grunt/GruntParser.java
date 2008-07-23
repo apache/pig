@@ -424,10 +424,13 @@ public class GruntParser extends PigScriptParser {
     
     protected void processPig(String cmd) throws IOException
     {
-        if (cmd.charAt(cmd.length() - 1) != ';') 
-            mPigServer.registerQuery(cmd + ";"); 
+        int start = 1;
+        if (!mInteractive)
+            start = getLineNumber();
+        if (cmd.charAt(cmd.length() - 1) != ';')
+            mPigServer.registerQuery(cmd + ";", start); 
         else 
-            mPigServer.registerQuery(cmd);
+            mPigServer.registerQuery(cmd, start);
     }
 
     protected void processRemove(String path) throws IOException

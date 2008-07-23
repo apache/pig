@@ -141,3 +141,5 @@ Trunk (unreleased changes)
     PIG-258: cleaning up directories on failure (daijy via olgan)
 
     PIG-139: command line editing
+
+    PIG-270: proper line number for parse errors

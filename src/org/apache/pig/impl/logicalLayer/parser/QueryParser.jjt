@@ -83,6 +83,17 @@ public class QueryParser {
 		this.nodeIdGen = NodeIdGenerator.getGenerator();
 		this.mapAliasOp = aliasOp;
 	}
+	
+    public QueryParser(InputStream in,
+            PigContext pigContext, 
+            String scope, 
+            Map<LogicalOperator, LogicalPlan> aliases,
+            Map<OperatorKey, LogicalOperator> opTable,
+            Map<String, LogicalOperator> aliasOp,
+            int start) {
+        this(in, pigContext, scope, aliases, opTable, aliasOp);
+        token_source.input_stream.line = start;
+    }
 
 	public class CogroupInput {
 		public LogicalOperator op;

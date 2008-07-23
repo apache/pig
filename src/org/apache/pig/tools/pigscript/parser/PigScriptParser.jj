@@ -44,6 +44,11 @@ public abstract class PigScriptParser
 		token_source.interactive = interactive;
 	}
 	
+    public int getLineNumber()
+    {
+        return jj_input_stream.getBeginLine();
+    }
+
 	public void setConsoleReader(ConsoleReader c)
     {
         mConsoleReader = c;
