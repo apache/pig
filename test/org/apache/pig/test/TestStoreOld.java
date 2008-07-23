@@ -60,7 +60,7 @@ public class TestStoreOld extends TestCase {
         
         pig.store("A", tmpFile1);
         
-        pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
+        pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1.$0);");
         pig.store("B", tmpFile2);
         pig.registerQuery("C = load " + tmpFile2 + ";");
         Iterator<Tuple> iter  = pig.openIterator("C");
@@ -78,9 +78,9 @@ public class TestStoreOld extends TestCase {
     
     public void testStoreWithMultipleMRJobs() throws Exception{
         pig.registerQuery("A = load " + fileName + ";");        
-        pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1);");
-        pig.registerQuery("C = foreach (group B by $0) generate $0, SUM($1);");
-        pig.registerQuery("D = foreach (group C by $0) generate $0, SUM($1);");
+        pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1.$0);");
+        pig.registerQuery("C = foreach (group B by $0) generate $0, SUM($1.$0);");
+        pig.registerQuery("D = foreach (group C by $0) generate $0, SUM($1.$0);");
 
         pig.store("D", tmpFile2);
         pig.registerQuery("E = load " + tmpFile2 + ";");
