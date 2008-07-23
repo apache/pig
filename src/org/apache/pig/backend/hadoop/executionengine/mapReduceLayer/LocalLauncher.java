@@ -3,6 +3,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,12 +13,15 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.ConfigurationValidator;
 
 
 public class LocalLauncher extends Launcher{
@@ -35,7 +39,9 @@ public class LocalLauncher extends Launcher{
         MRCompiler comp = new MRCompiler(php, pc);
         comp.compile();
         
-        Configuration conf = new Configuration();
+        ExecutionEngine exe = pc.getExecutionEngine();
+        Properties validatedProperties = ConfigurationValidator.getValidatedProperties(exe.getConfiguration());
+        Configuration conf = ConfigurationUtil.toConfiguration(validatedProperties);
         conf.set("mapred.job.tracker", "local");
         JobClient jobClient = new JobClient(new JobConf(conf));
 

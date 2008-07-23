@@ -303,7 +303,7 @@ public class DefaultTuple implements Tuple {
         // pointer in the tuple.
         switch (DataType.findType(o)) {
             case DataType.BYTEARRAY: {
-                byte[] bytes = (byte[])o;
+                byte[] bytes = ((DataByteArray)o).get();
                 return bytes.length + 12;
             }
 

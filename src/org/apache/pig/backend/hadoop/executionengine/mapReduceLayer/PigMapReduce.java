@@ -38,12 +38,14 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.SpillableMemoryManager;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -104,6 +106,7 @@ public class PigMapReduce {
         @Override
         public void configure(JobConf jConf) {
             super.configure(jConf);
+            SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
             sJobConf = jConf;
             try {
                 rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf

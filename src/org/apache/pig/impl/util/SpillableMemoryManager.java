@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -51,6 +52,26 @@ public class SpillableMemoryManager implements NotificationListener {
     
     LinkedList<WeakReference<Spillable>> spillables = new LinkedList<WeakReference<Spillable>>();
     
+    // if we freed at least this much, invoke GC 
+    // (default 40 MB - this can be overridden by user supplied property)
+    private static long gcActivationSize = 40000000L ;
+    
+    // spill file size should be at least this much
+    // (default 5MB - this can be overridden by user supplied property)
+    private static long spillFileSizeThreshold = 5000000L ;
+    
+    // this will keep track of memory freed across spills
+    // and between GC invocations
+    private static long accumulatedFreeSize = 0L;
+    
+    // fraction of biggest heap for which we want to get
+    // "memory usage threshold exceeded" notifications
+    private static double memoryThresholdFraction = 0.7;
+    
+    // fraction of biggest heap for which we want to get
+    // "collection threshold exceeded" notifications
+    private static double collectionMemoryThresholdFraction = 0.5;
+        
     public SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
         List<MemoryPoolMXBean> mpbeans = ManagementFactory.getMemoryPoolMXBeans();
@@ -75,16 +96,57 @@ public class SpillableMemoryManager implements NotificationListener {
         }
         log.debug("Selected heap to monitor (" +
             biggestHeap.getName() + ")");
+        
+        // we want to set both collection and usage threshold alerts to be 
+        // safe. In some local tests after a point only collection threshold
+        // notifications were being sent though usage threshold notifications
+        // were sent early on. So using both would ensure that
+        // 1) we get notified early (though usage threshold exceeded notifications)
+        // 2) we get notified always when threshold is exceeded (either usage or
+        //    collection)
+        
         /* We set the threshold to be 50% of tenured since that is where
          * the GC starts to dominate CPU time according to Sun doc */
-        biggestHeap.setCollectionUsageThreshold((long)(biggestSize*.5));    
+        biggestHeap.setCollectionUsageThreshold((long)(biggestSize * collectionMemoryThresholdFraction));
+        // we set a higher threshold for usage threshold exceeded notification
+        // since this is more likely to be effective sooner and we do not
+        // want to be spilling too soon
+        biggestHeap.setUsageThreshold((long)(biggestSize * memoryThresholdFraction));
+    }
+    
+    public static void configure(Properties properties) {
+        
+        try {
+            
+            spillFileSizeThreshold = Long.parseLong(
+                        (String) properties.getProperty("pig.spill.size.threshold") ) ;
+            
+            gcActivationSize = Long.parseLong(
+                    (String) properties.getProperty("pig.spill.gc.activation.size") ) ;
+        } 
+        catch (NumberFormatException  nfe) {
+            throw new RuntimeException("Error while converting system configurations" +
+            		"spill.size.threshold, spill.gc.activation.size", nfe) ;
+        }
     }
     
     public void handleNotification(Notification n, Object o) {
         CompositeData cd = (CompositeData) n.getUserData();
         MemoryNotificationInfo info = MemoryNotificationInfo.from(cd);
-        log.info("low memory handler called " + info.getUsage());
-        long toFree = info.getUsage().getUsed() - (long)(info.getUsage().getMax()*.5);
+        // free the amount exceeded over the threshold and then a further half
+        // so if threshold = heapmax/2, we will be trying to free
+        // used - heapmax/2 + heapmax/4
+        long toFree = 0L;
+        if(n.getType().equals(MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
+            long threshold = (long)(info.getUsage().getMax() * memoryThresholdFraction);
+            toFree = info.getUsage().getUsed() - threshold + (long)(threshold * 0.5);
+            log.info("low memory handler called (Usage threshold exceeded) " + info.getUsage());
+        } else { // MEMORY_COLLECTION_THRESHOLD_EXCEEDED CASE
+            long threshold = (long)(info.getUsage().getMax() * collectionMemoryThresholdFraction);
+            toFree = info.getUsage().getUsed() - threshold + (long)(threshold * 0.5);
+            log.info("low memory handler called (Collection threshold exceeded) " + info.getUsage());
+        }
+         
         if (toFree < 0) {
             log.debug("low memory handler returning " + 
                 "because there is nothing to free");
@@ -105,6 +167,8 @@ public class SpillableMemoryManager implements NotificationListener {
                 /**
                  * We don't lock anything, so this sort may not be stable if a WeakReference suddenly
                  * becomes null, but it will be close enough.
+                 * Also between the time we sort and we use these spillables, they
+                 * may actually change in size - so this is just best effort
                  */    
                 public int compare(WeakReference<Spillable> o1Ref, WeakReference<Spillable> o2Ref) {
                     Spillable o1 = o1Ref.get();
@@ -113,10 +177,10 @@ public class SpillableMemoryManager implements NotificationListener {
                         return 0;
                     }
                     if (o1 == null) {
-                        return -1;
+                        return 1;
                     }
                     if (o2 == null) {
-                        return 1;
+                        return -1;
                     }
                     long o1Size = o1.getMemorySize();
                     long o2Size = o2.getMemorySize();
@@ -125,12 +189,13 @@ public class SpillableMemoryManager implements NotificationListener {
                         return 0;
                     }
                     if (o1Size < o2Size) {
-                        return -1;
+                        return 1;
                     }
-                    return 1;
+                    return -1;
                 }
             });
             long estimatedFreed = 0;
+            boolean invokeGC = false;
             for (i = spillables.iterator(); i.hasNext();) {
                 Spillable s = i.next().get();
                 // Still need to check for null here, even after we removed
@@ -141,14 +206,34 @@ public class SpillableMemoryManager implements NotificationListener {
                     continue;
                 }
                 long toBeFreed = s.getMemorySize();
-                s.spill();
+                log.debug("Memorysize = "+toBeFreed+", spillFilesizethreshold = "+spillFileSizeThreshold+", gcactivationsize = "+gcActivationSize);
+                // Don't keep trying if the rest of files are too small
+                if (toBeFreed < spillFileSizeThreshold) {
+                    log.debug("spilling small files - getting out of memory handler");
+                    break ;
+                }
+                s.spill();               
                 estimatedFreed += toBeFreed;
+                accumulatedFreeSize += toBeFreed;
+                // This should significantly reduce the number of small files
+                // in case that we have a lot of nested bags
+                if (accumulatedFreeSize > gcActivationSize) {
+                    invokeGC = true;
+                }
+                
                 if (estimatedFreed > toFree) {
+                    log.debug("Freed enough space - getting out of memory handler");
+                    invokeGC = true;
                     break;
                 }
             }
+
             /* Poke the GC again to see if we successfully freed enough memory */
-            System.gc();
+            if(invokeGC) {
+                System.gc();
+                // now that we have invoked the GC, reset accumulatedFreeSize
+                accumulatedFreeSize = 0;
+            }
         }
     }
     
