@@ -49,12 +49,13 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 //import org.apache.pig.impl.logicalLayer.LOEval;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -983,6 +984,70 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
     
+    @Test
+    public void testQuery85() throws FrontendException {
+        LogicalPlan lp;
+        buildPlan("a = load 'myfile' as (name, age, gpa);");
+        lp = buildPlan("b = group a by (name, age);");
+        LOCogroup cogroup = (LOCogroup) lp.getLeaves().get(0);
+
+        Schema.FieldSchema nameFs = new Schema.FieldSchema("name", DataType.BYTEARRAY);
+        Schema.FieldSchema ageFs = new Schema.FieldSchema("age", DataType.BYTEARRAY);
+        Schema.FieldSchema gpaFs = new Schema.FieldSchema("gpa", DataType.BYTEARRAY);
+        
+        Schema groupSchema = new Schema(nameFs);
+        groupSchema.add(ageFs);
+        Schema.FieldSchema groupFs = new Schema.FieldSchema("group", groupSchema, DataType.TUPLE);
+        
+        Schema loadSchema = new Schema(nameFs);
+        loadSchema.add(ageFs);
+        loadSchema.add(gpaFs);
+
+        Schema.FieldSchema bagFs = new Schema.FieldSchema("a", loadSchema, DataType.BAG);
+        
+        Schema cogroupExpectedSchema = new Schema(groupFs);
+        cogroupExpectedSchema.add(bagFs);
+
+        assertTrue(cogroup.getSchema().equals(cogroupExpectedSchema));
+
+        lp = buildPlan("c = foreach b generate group.name, group.age, COUNT(a.gpa);");
+        LOForEach foreach  = (LOForEach) lp.getLeaves().get(0);
+
+        Schema foreachExpectedSchema = new Schema(nameFs);
+        foreachExpectedSchema.add(ageFs);
+        foreachExpectedSchema.add(new Schema.FieldSchema(null, DataType.LONG));
+
+        assertTrue(foreach.getSchema().equals(foreachExpectedSchema));
+    }
+
+    @Test
+    public void testQuery86() throws FrontendException {
+        LogicalPlan lp;
+        buildPlan("a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);");
+        lp = buildPlan("b = group a by (name, age);");
+        LOCogroup cogroup = (LOCogroup) lp.getLeaves().get(0);
+
+        Schema.FieldSchema nameFs = new Schema.FieldSchema("name", DataType.CHARARRAY);
+        Schema.FieldSchema ageFs = new Schema.FieldSchema("age", DataType.INTEGER);
+        Schema.FieldSchema gpaFs = new Schema.FieldSchema("gpa", DataType.FLOAT);
+
+        Schema groupSchema = new Schema(nameFs);
+        groupSchema.add(ageFs);
+        Schema.FieldSchema groupFs = new Schema.FieldSchema("group", groupSchema, DataType.TUPLE);
+
+        Schema loadSchema = new Schema(nameFs);
+        loadSchema.add(ageFs);
+        loadSchema.add(gpaFs);
+
+        Schema.FieldSchema bagFs = new Schema.FieldSchema("a", loadSchema, DataType.BAG);
+
+        Schema cogroupExpectedSchema = new Schema(groupFs);
+        cogroupExpectedSchema.add(bagFs);
+
+        assertTrue(cogroup.getSchema().equals(cogroupExpectedSchema));
+
+    }
+
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

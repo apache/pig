@@ -70,6 +70,7 @@ public class LOMapLookup extends ExpressionOperator {
         mMapKey = mapKey;
         mValueType = valueType;
         mValueSchema = valueSchema;
+        mType = mValueType;
     }
 
     public ExpressionOperator getMap() {
@@ -100,14 +101,12 @@ public class LOMapLookup extends ExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if (!mIsFieldSchemaComputed) {
-            Schema.FieldSchema fss;
             if (DataType.isSchemaType(mValueType)) {
-                fss = new Schema.FieldSchema(null, mValueSchema);
+                mFieldSchema = new Schema.FieldSchema(null, mValueSchema, mValueType);
             } else {
-                fss = new Schema.FieldSchema(null, DataType
-                        .findType(mValueType));
+                mFieldSchema = new Schema.FieldSchema(null, mValueType);
             }
 
             mIsFieldSchemaComputed = true;
