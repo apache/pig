@@ -358,6 +358,10 @@
             <fileset dir="${build.docs}" />
         </copy>
 
+        <copy todir="${dist.dir}/test" includeEmptyDirs="true">
+            <fileset dir="${test.src.dir}" />
+        </copy>
+
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
         </copy>
@@ -366,7 +370,7 @@
             <fileset dir="${src.lib.dir}" />
         </copy>
 
-        <copy todir="${dist.dir}/tutotial" includeEmptyDirs="true">
+        <copy todir="${dist.dir}/tutorial" includeEmptyDirs="true">
             <fileset dir="tutorial" />
         </copy>
 
