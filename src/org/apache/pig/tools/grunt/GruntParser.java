@@ -26,6 +26,8 @@ import java.util.Properties;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
+import jline.ConsoleReader;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
@@ -132,8 +134,9 @@ public class GruntParser extends PigScriptParser {
     {
         if (mInteractive)
         {
-            System.err.print("grunt> ");
-            System.err.flush();
+            /*System.err.print("grunt> ");
+            System.err.flush();*/
+            mConsoleReader.setDefaultPrompt("grunt> ");
         }
     }
     

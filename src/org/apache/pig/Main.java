@@ -23,6 +23,9 @@ import java.util.*;
 import java.util.jar.*;
 import java.text.ParseException;
 
+import jline.ConsoleReader;
+import jline.ConsoleReaderInputStream;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -41,6 +44,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.grunt.PigCompletor;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
@@ -265,8 +269,12 @@ public static void main(String args[])
         if (remainders == null) {
             // Interactive
             mode = ExecMode.SHELL;
-            in = new BufferedReader(new InputStreamReader(System.in));
-            grunt = new Grunt(in, pigContext);
+            ConsoleReader reader = new ConsoleReader(System.in, new OutputStreamWriter(System.out));
+            reader.addCompletor(new PigCompletor());
+            reader.setDefaultPrompt("grunt> ");
+            ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
+            grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
+            grunt.setConsoleReader(reader);
             grunt.run();
             rc = 0;
             return;

@@ -139,3 +139,5 @@ Trunk (unreleased changes)
     PIG-294: string comparator unit tests (sms via pi_song)
 
     PIG-258: cleaning up directories on failure (daijy via olgan)
+
+    PIG-139: command line editing

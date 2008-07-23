@@ -19,6 +19,8 @@ package org.apache.pig.tools.grunt;
 
 import java.io.BufferedReader;
 
+import jline.ConsoleReader;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
@@ -47,6 +49,10 @@ public class Grunt
         }
     }
 
+    public void setConsoleReader(ConsoleReader c)
+    {
+        parser.setConsoleReader(c);
+    }
     public void run() {
         parser.setInteractive(true);
         parser.parseContOnError();

@@ -29,17 +29,27 @@ PARSER_BEGIN(PigScriptParser)
 package org.apache.pig.tools.pigscript.parser;
 
 import java.io.IOException;
+import java.io.InputStream;
+
+import jline.ConsoleReader;
 
 public abstract class PigScriptParser
 {
 	protected boolean mInteractive;
-
+	protected ConsoleReader mConsoleReader;
+	
 	public void setInteractive(boolean interactive)
 	{
 		mInteractive = interactive;
 		token_source.interactive = interactive;
 	}
 	
+	public void setConsoleReader(ConsoleReader c)
+    {
+        mConsoleReader = c;
+        token_source.consoleReader = c;
+    }
+    
 	abstract public void prompt();
 	
 	abstract protected void quit();
@@ -143,12 +153,14 @@ TOKEN_MGR_DECLS : {
         int funcBlockLevel = 0;
 	int prevState = DEFAULT;
 	boolean interactive = false;
+	ConsoleReader consoleReader = null;
 	public void secondary_prompt()
 	{
 		if (interactive)
 		{
-			System.err.print(">> ");
-			System.err.flush();
+			/*System.err.print(">> ");
+			System.err.flush();*/
+		    consoleReader.setDefaultPrompt(">> ");
 		}
 	}
 

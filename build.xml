@@ -82,6 +82,7 @@
         <fileset file="${lib.dir}/javacc.jar" />
         <fileset file="${lib.dir}/jsch-0.1.33.jar" />
         <fileset file="${lib.dir}/junit-4.1.jar" />
+        <fileset file="${lib.dir}/jline-0.9.94.jar" />
         <fileset file="${lib.dir}/commons-collections-3.2.jar" />
     </path>
 
@@ -200,6 +201,7 @@
             <compilerarg line="${javac.args} ${javac.args.warnings}"/>
     		<classpath refid="${cp}" />
         </javac>
+        <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete" todir="${build.classes}/org/apache/pig/tools/grunt"/>
     </target>
         
     <!-- this target is for compilation with all warnings enabled -->
@@ -302,6 +304,7 @@
             <zipfileset src="${lib.dir}/junit-4.1.jar" />
             <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
             <zipfileset src="${lib.dir}/jsch-0.1.33.jar" />
+            <zipfileset src="${lib.dir}/jline-0.9.94.jar" />
         </jar>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
