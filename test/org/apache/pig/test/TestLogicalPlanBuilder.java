@@ -1048,6 +1048,30 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     }
 
+    @Test
+    public void testQuery87() {
+        buildPlan("a = load 'myfile';");
+        buildPlan("b = group a by $0;");
+        LogicalPlan lp = buildPlan("c = foreach b {c1 = order $1 by $1; generate flatten(c1); };");
+        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
+        LogicalPlan nestedPlan = foreach.getForEachPlans().get(0);
+        LOProject sortInput = (LOProject)nestedPlan.getRoots().get(0);
+        LOSort nestedSort = (LOSort)nestedPlan.getSuccessors(sortInput).get(0);
+        LogicalPlan sortPlan = nestedSort.getSortColPlans().get(0);
+        assertTrue(sortPlan.getLeaves().size() == 1);
+    }
+
+    @Test
+    public void testQuery88() {
+        buildPlan("a = load 'myfile';");
+        buildPlan("b = group a by $0;");
+        LogicalPlan lp = buildPlan("c = order b by $1 ;");
+        LOSort sort = (LOSort)lp.getLeaves().get(0);
+        LOProject project1 = (LOProject) sort.getSortColPlans().get(0).getLeaves().get(0) ;
+        LOCogroup cogroup = (LOCogroup) lp.getPredecessors(sort).get(0) ;
+        assertEquals(project1.getExpression(), cogroup) ;
+    }
+
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

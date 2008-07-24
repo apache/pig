@@ -1224,12 +1224,14 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 ExpressionOperator SortCol(Schema over, LogicalPlan lp, LogicalOperator op, ArrayList<Boolean> ascOrder, ArrayList<LogicalPlan> sortColPlans) : 
 {
 	ExpressionOperator col; 
+    int colNum;
 	boolean asc = true; 
 	LogicalPlan sortColPlan = new LogicalPlan(); 
 	log.trace("Entering SortCol");}
 {
 	(
-		col = ColOrSpec(op.getSchema(), null, sortColPlan, op) [<ASC> | <DESC> {asc = false;}]
+		//col = ColOrSpec(op.getSchema(), null, sortColPlan, op) [<ASC> | <DESC> {asc = false;}]
+		colNum = ColNameOrNum(op.getSchema()) [<ASC> | <DESC> {asc = false;}]
 		{
 			if(asc) {
 				log.debug("Ascending");
@@ -1238,11 +1240,14 @@ ExpressionOperator SortCol(Schema over, LogicalPlan lp, LogicalOperator op, Arra
 				log.debug("Descending");	
 				ascOrder.add(false);
 			}
+            col = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), op, colNum);
+            sortColPlan.add(col);
 			sortColPlans.add(sortColPlan);
 		}
 		|
 		( 
-			"(" col = ColOrSpec(op.getSchema(), null, sortColPlan, op) ")" [<ASC> | <DESC> {asc = false;}]
+			//"(" col = ColOrSpec(op.getSchema(), null, sortColPlan, op) ")" [<ASC> | <DESC> {asc = false;}]
+			"(" colNum = ColNameOrNum(op.getSchema()) ")" [<ASC> | <DESC> {asc = false;}]
 			{
 				if(asc) {
 					log.debug("Ascending");
@@ -1251,6 +1256,8 @@ ExpressionOperator SortCol(Schema over, LogicalPlan lp, LogicalOperator op, Arra
 					log.debug("Descending");	
 					ascOrder.add(false);
 				}
+                col = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), op, colNum);
+                sortColPlan.add(col);
 				sortColPlans.add(sortColPlan);
 			}
 		)
@@ -1261,10 +1268,10 @@ ExpressionOperator SortCol(Schema over, LogicalPlan lp, LogicalOperator op, Arra
 	}	
 }
 
-int ColName(Schema over) : 
+int ColNameOrNum(Schema over) : 
 {
 	Token t; 
-	log.trace("Entering ColName");
+	log.trace("Entering ColNameOrNum");
 }
 {
 	(
@@ -1277,7 +1284,7 @@ int ColName(Schema over) :
 			throw new ParseException("Invalid alias: " + t.image + " in " + over);
 		} 
 		
-		log.trace("Exiting ColName");
+		log.trace("Exiting ColNameOrNum");
 		return i;
 	}
 	)
@@ -1528,8 +1535,8 @@ LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, L
     }
     "." 
     (
-    i = ColName(subSchema) {colList.add(i);}
-|   "(" i = ColName(subSchema) {colList.add(i);} ("," i = ColName(over) {colList.add(i);})* ")"
+    i = ColNameOrNum(subSchema) {colList.add(i);}
+|   "(" i = ColNameOrNum(subSchema) {colList.add(i);} ("," i = ColNameOrNum(over) {colList.add(i);})* ")"
     )
     {
         ArrayList<LogicalPlan> foreachPlans = new ArrayList<LogicalPlan>();
@@ -2513,8 +2520,8 @@ ExpressionOperator SimpleProj(Schema over, LogicalPlan lp, LogicalOperator eOp):
 	log.trace("Entering SimpleProj");
 }
 {
-	i = ColName(over) {colList.add(i);}	
-		("," i = ColName(over) {colList.add(i);})*
+	i = ColNameOrNum(over) {colList.add(i);}	
+		("," i = ColNameOrNum(over) {colList.add(i);})*
 	{
 		ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, colList);
 		lp.add(project);
