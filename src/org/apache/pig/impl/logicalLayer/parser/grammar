@@ -2,7 +2,7 @@
 
 <expr> := [<alias> "="] <baseexpr> ["PARALLEL" <integer>]
 
-<baseexpr> := <alias> | "LOAD" <loadclause> | "EVAL" <evalclause> | "FILTER" <filterclause> | ["CO"]"GROUP" <cogroupclause> | "CROSS" <nestedexprs> | "UNION" <nestedexprs> | "(" <baseexpr> ")"
+<baseexpr> := <alias> | "LOAD" <loadclause> | "EVAL" <evalclause> | "FILTER" <filterclause> | ["CO"]"GROUP" <cogroupclause> | "CROSS" <nestedexprs> | "UNION" <nestedexprs> | "LIMIT" <limitclause> |"(" <baseexpr> ")"
 
 <nestedexpr> := <alias> | "("<expr>")"
 
@@ -29,6 +29,8 @@
 <quotedstring> := "'"<string>"'"
 
 <filterclause> := "FILTER" <filter> "OVER" <nestedexpr>
+
+<limitclause> := "LIMIT" <nestedexpr> <integer>
 
 <filter> := <cond> "?" [<simpleproj> ":" <simpleproj>]
 

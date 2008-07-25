@@ -714,6 +714,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                     .getNextNodeId(scope)), s.getRequestedParallelism(), null,
                     sortPlans, s.getAscendingCols(), comparator);
         }
+        sort.setLimit(s.getLimit());
         // sort.setRequestedParallelism(s.getType());
         LogToPhyMap.put(s, sort);
         currentPlan.add(sort);
@@ -992,6 +993,24 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             throw new VisitorException(e);
         }
 
+    }
+    @Override
+    public void visit(LOLimit limit) throws VisitorException {
+            String scope = limit.getOperatorKey().scope;
+            POLimit poLimit = new POLimit(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), limit.getRequestedParallelism());
+            poLimit.setResultType(limit.getType());
+            poLimit.setLimit(limit.getLimit());
+            currentPlan.add(poLimit);
+            LogToPhyMap.put(limit, poLimit);
+
+            List<LogicalOperator> op = limit.getPlan().getPredecessors(limit);
+
+            PhysicalOperator from = LogToPhyMap.get(op.get(0));
+            try {
+                    currentPlan.connect(from, poLimit);
+            } catch (PlanException e) {
+                    log.error("Invalid physical operators in the physical plan" + e.getMessage());
+            }
     }
 
     @Override

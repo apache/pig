@@ -51,6 +51,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -617,6 +618,80 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
+    public void visitLimit(POLimit op) throws VisitorException{
+        try{
+        	
+            MapReduceOper mro = compiledInputs[0];
+            if (!mro.isMapDone()) {
+            	// if map plan is open, add a limit for optimization, eventually we
+            	// will add another limit to reduce plan
+                mro.mapPlan.addAsLeaf(op);
+                mro.setMapDone(true);
+                
+                if (mro.reducePlan.isEmpty())
+                {
+                	PhysicalPlan ep = new PhysicalPlan();
+                    POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    prjStar.setResultType(DataType.TUPLE);
+                    prjStar.setStar(true);
+                    ep.add(prjStar);
+                    
+                    List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
+                    eps.add(ep);
+                    
+                    POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    lr.setIndex(0);
+                    lr.setKeyType(DataType.TUPLE);
+                    lr.setPlans(eps);
+                    lr.setResultType(DataType.TUPLE);
+                    mro.mapPlan.addAsLeaf(lr);
+                    
+                	POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    pkg.setKeyType(DataType.TUPLE);
+                    pkg.setNumInps(1);
+                    boolean[] inner = {false};
+                    pkg.setInner(inner);
+                    mro.reducePlan.add(pkg);
+                    
+                    POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        	    	pLimit2.setLimit(op.getLimit());
+                    mro.reducePlan.addAsLeaf(pLimit2);
+                    
+                    List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
+                    List<Boolean> flat1 = new ArrayList<Boolean>();
+                    PhysicalPlan ep1 = new PhysicalPlan();
+                    POProject prj1 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    prj1.setResultType(DataType.TUPLE);
+                    prj1.setStar(false);
+                    prj1.setColumn(0);
+                    prj1.setOverloaded(false);
+                    ep1.add(prj1);
+                    eps1.add(ep1);
+                    flat1.add(false);
+                    POForEach nfe1 = new POForEach(new OperatorKey(scope, nig
+                            .getNextNodeId(scope)), op.getRequestedParallelism(), eps1,
+                            flat1);
+                    nfe1.setResultType(DataType.BAG);
+                    curMROp.reducePlan.addAsLeaf(nfe1);
+                }
+                else
+                {
+                	log.warn("Something in the reduce plan while map plan is not done. Something wrong!");
+                }
+            } else if (mro.isMapDone() && !mro.isReduceDone()) {
+            	// limit should add into reduce reduce function
+                mro.reducePlan.addAsLeaf(op);
+            } else {
+                log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");
+            }
+            curMROp = mro;
+        }catch(Exception e){
+            VisitorException pe = new VisitorException(e.getMessage());
+            pe.initCause(e);
+            throw pe;
+        }
+    }
+
     public void visitLocalRearrange(POLocalRearrange op) throws VisitorException {
         try{
             nonBlocking(op);
@@ -744,7 +819,7 @@ public class MRCompiler extends PhyPlanVisitor {
             int rp = op.getRequestedParallelism();
             int[] fields = getSortCols(op);
             MapReduceOper quant = getQuantileJob(op, mro, fSpec, quantFile, rp, fields);
-            curMROp = getSortJob(quant, fSpec, quantFile, rp, fields);
+            curMROp = getSortJob(quant, fSpec, quantFile, rp, fields, op.getLimit());
             if(op.isUDFComparatorUsed){
                 curMROp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
             }
@@ -775,7 +850,8 @@ public class MRCompiler extends PhyPlanVisitor {
             FileSpec lFile,
             FileSpec quantFile,
             int rp,
-            int[] fields) throws PlanException{
+            int[] fields,
+            long limit) throws PlanException{
         MapReduceOper mro = startNew(lFile, quantJob);
         mro.setQuantFile(quantFile.getFileName());
         mro.setGlobalSort(true);
@@ -814,6 +890,55 @@ public class MRCompiler extends PhyPlanVisitor {
         
         mro.setMapDone(true);
         
+        if (limit!=-1)
+        {
+        	POPackage pkg_c = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        	pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
+            pkg_c.setNumInps(1);
+            //pkg.setResultType(DataType.TUPLE);
+            boolean[] inner = {false};
+            pkg_c.setInner(inner);
+            mro.combinePlan.add(pkg_c);
+        	
+            List<PhysicalPlan> eps_c1 = new ArrayList<PhysicalPlan>();
+            List<Boolean> flat_c1 = new ArrayList<Boolean>();
+            PhysicalPlan ep_c1 = new PhysicalPlan();
+            POProject prj_c1 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prj_c1.setColumn(1);
+            prj_c1.setOverloaded(false);
+            prj_c1.setResultType(DataType.BAG);
+            ep_c1.add(prj_c1);
+            eps_c1.add(ep_c1);
+            flat_c1.add(true);
+            POForEach fe_c1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), 
+            		-1, eps_c1, flat_c1);
+            fe_c1.setResultType(DataType.TUPLE);
+            mro.combinePlan.addAsLeaf(fe_c1);
+            
+            
+            POLimit pLimit = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        	pLimit.setLimit(limit);
+        	mro.combinePlan.addAsLeaf(pLimit);
+            
+            List<PhysicalPlan> eps_c2 = new ArrayList<PhysicalPlan>();
+            for (int i : fields) {
+	            PhysicalPlan ep_c2 = new PhysicalPlan();
+	            POProject prj_c2 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+	            prj_c2.setColumn(i);
+	            prj_c2.setOverloaded(false);
+	            prj_c2.setResultType(DataType.BYTEARRAY);
+	            ep_c2.add(prj_c2);
+	            eps_c2.add(ep_c2);
+	        }
+        
+	        POLocalRearrange lr_c2 = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+	        lr_c2.setIndex(0);
+	        lr_c2.setKeyType((fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
+	        lr_c2.setPlans(eps_c2);
+	        lr_c2.setResultType(DataType.TUPLE);
+	        mro.combinePlan.addAsLeaf(lr_c2);
+        }
+        
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
         pkg.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : DataType.BYTEARRAY);
         pkg.setNumInps(1);
@@ -834,6 +959,14 @@ public class MRCompiler extends PhyPlanVisitor {
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps2,flattened);
         mro.reducePlan.add(nfe1);
         mro.reducePlan.connect(pkg, nfe1);
+        
+        if (limit!=-1)
+        {
+	        POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
+	    	pLimit2.setLimit(limit);
+	    	mro.reducePlan.addAsLeaf(pLimit2);
+        }
+
 //        ep1.add(innGen);
         return mro;
     }

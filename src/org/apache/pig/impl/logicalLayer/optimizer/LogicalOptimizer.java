@@ -45,7 +45,14 @@ public class LogicalOptimizer extends PlanOptimizer<LogicalOperator, LogicalPlan
         required.add(true);
         mRules.add(new Rule(nodes, edges, required,
             new TypeCastInserter(plan)));
-
+        
+        nodes = new ArrayList<String>(1);
+        edges = new HashMap<Integer, Integer>();
+        required = new ArrayList<Boolean>(1);
+        nodes.add("org.apache.pig.impl.logicalLayer.LOLimit");
+        required.add(true);
+        mRules.add(new Rule(nodes, edges, required,
+                new OpLimitOptimizer(plan)));
     }
 
 }

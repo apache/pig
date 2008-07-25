@@ -170,6 +170,10 @@ abstract public class LOVisitor extends
         }
     }
 
+    protected void visit(LOLimit limOp) throws VisitorException {
+        return;
+    }
+
     /**
      * 
      * @param filter

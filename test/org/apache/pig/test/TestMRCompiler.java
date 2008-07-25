@@ -776,6 +776,23 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC16.gld");
     }
     
+    public void testLimit() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
+
+        POLoad lC = GenPhyOp.topLoadOp();
+        php.add(lC);
+
+        POLimit op = new POLimit(new OperatorKey("", r.nextLong()),
+                -1, null);
+
+        php.add(op);
+        php.connect(lC, op);
+
+        POStore st = GenPhyOp.topStoreOp();
+        php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC17.gld");
+    }
+    
     public static class WeirdComparator extends ComparisonFunc {
 
         @Override

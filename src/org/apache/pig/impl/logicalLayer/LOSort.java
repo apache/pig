@@ -38,6 +38,7 @@ public class LOSort extends LogicalOperator {
     private List<Boolean> mAscCols;
     private FuncSpec mSortFunc;
     private boolean mIsStar = false;
+    private long limit;
     private List<LogicalPlan> mSortColPlans;
     private static Log log = LogFactory.getLog(LOSort.class);
 
@@ -65,6 +66,7 @@ public class LOSort extends LogicalOperator {
         mSortColPlans = sortColPlans;
         mAscCols = ascCols;
         mSortFunc = sortFunc;
+        limit = -1;
     }
 
     public LogicalOperator getInput() {
@@ -93,6 +95,21 @@ public class LOSort extends LogicalOperator {
 
     public void setStar(boolean b) {
         mIsStar = b;
+    }
+
+    public void setLimit(long l)
+    {
+    	limit = l;
+    }
+    
+    public long getLimit()
+    {
+    	return limit;
+    }
+    
+    public boolean isLimited()
+    {
+    	return (limit!=-1);
     }
 
     @Override

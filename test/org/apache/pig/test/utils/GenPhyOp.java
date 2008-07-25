@@ -584,6 +584,11 @@ public class GenPhyOp{
         POFilter ret = new POFilter(new OperatorKey("", r.nextLong()), ops);
         return ret;
     }
+    
+    public static POLimit topLimitOp() {
+        POLimit ret = new POLimit(new OperatorKey("", r.nextLong()));
+        return ret;
+    }
 
     public static POFilter topFilterOpWithExPlan(int lhsVal, int rhsVal)
             throws ExecException, PlanException {

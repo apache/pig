@@ -380,4 +380,29 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(LOOP_COUNT, numIdentity);
     }
 
+    public void testLimit() throws Exception{
+        int LOOP_COUNT = 20;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            ps.println(i);
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        pigServer.registerQuery("B = limit A 5;");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            ++numIdentity;
+        }
+        assertEquals(5, numIdentity);
+    }
+
+
 }

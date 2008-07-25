@@ -536,6 +536,7 @@ TOKEN : { <TUPLE : "tuple"> }
 TOKEN : { <MAP : "map"> }
 TOKEN : { <IS : "is"> }
 TOKEN : { <NULL : "null"> }
+TOKEN : { <LIMIT : "limit"> }
 
 TOKEN:
 {
@@ -729,6 +730,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema); op.setCanonicalNames(); log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
+|   (<LIMIT> op = LimitClause(lp))
 |   (<ORDER> op = OrderClause(lp))
 |	(<DISTINCT> op = NestedExpr(lp) 
 	{
@@ -835,6 +837,31 @@ LogicalOperator FilterClause(LogicalPlan lp):
 	}
 }
 
+LogicalOperator LimitClause(LogicalPlan lp):
+{
+        LogicalOperator input;
+        Token t;
+        log.trace("Entering LimitClause");
+}
+{
+        (
+        input = NestedExpr(lp) {log.debug("Filter input: " + input);}
+         t = <INTEGER>
+         )
+        {
+                long l = Integer.parseInt(t.image);
+                LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l, input);
+                addAlias(input.getAlias(), input);
+                lp.add(limit);
+                log.debug("Added operator " + limit.getClass().getName() + " to the logical plan");
+
+                lp.connect(input, limit);
+                log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + limit.getClass().getName() +" in the logical plan");
+
+                log.trace("Exiting LimitClause");
+                return limit;
+        }
+}
 
 ExpressionOperator PCond(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
 {
@@ -1173,6 +1200,8 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 	ArrayList<Boolean> ascOrder = new ArrayList<Boolean>(); 
 	boolean asc = true; 
 	String funcName = null; 
+	long limit=-1;
+	Token t1;
 	log.trace("Entering OrderClause");
 }
 {
@@ -1200,7 +1229,8 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 			}
 		}	
 	)
-    (
+	(<LIMIT> t1 = <INTEGER> { limit = Integer.parseInt(t1.image);})?
+	(
         <USING>  funcName = QualifiedFunction()
     )?
 
@@ -1209,6 +1239,7 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
 		                          (funcName != null ? new FuncSpec(funcName) : null));
 		sort.setStar(star);
+		sort.setLimit(limit);
 		lp.add(sort);
 		log.debug("Added operator " + sort.getClass().getName() + " to the logical plan");
 		

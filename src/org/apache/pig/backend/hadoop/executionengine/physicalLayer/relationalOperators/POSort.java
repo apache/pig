@@ -69,6 +69,7 @@ public class POSort extends PhysicalOperator {
 	private Comparator<Tuple> mComparator;
 
 	private boolean inputsAccumulated = false;
+	private long limit;
 	public boolean isUDFComparatorUsed = false;
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
@@ -79,6 +80,7 @@ public class POSort extends PhysicalOperator {
 		//this.mSortCols = mSortCols;
 		this.sortPlans = sortPlans;
 		this.mAscCols = mAscCols;
+        this.limit = -1;
 		this.mSortFunc = mSortFunc;
 		if (mSortFunc == null) {
             mComparator = new SortComparator();
@@ -310,6 +312,21 @@ public class POSort extends PhysicalOperator {
 
     public List<Boolean> getMAscCols() {
         return mAscCols;
+    }
+    
+    public void setLimit(long l)
+    {
+    	limit = l;
+    }
+    
+    public long getLimit()
+    {
+    	return limit;
+    }
+    
+    public boolean isLimited()
+    {
+    	return (limit!=-1);
     }
 
 }

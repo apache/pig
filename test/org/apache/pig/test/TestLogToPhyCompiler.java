@@ -479,6 +479,55 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	
     }
 
+    @Test
+    public void testLimit() throws VisitorException, IOException {
+        String query = "limit (load 'a') 5;";
+        LogicalPlan plan = buildPlan(query);
+        PhysicalPlan pp = buildPhysicalPlan(plan);
+
+        int MAX_SIZE = 100000;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        pp.explain(baos);
+        String compiledPlan = baos.toString();
+        FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Limit.gld");
+        byte[] b = new byte[MAX_SIZE];
+        int len = fis.read(b);
+        String goldenPlan = new String(b, 0, len);
+
+
+        System.out.println();
+        System.out.println(compiledPlan);
+        System.out.println("-------------");
+
+        //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
+        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+    }
+
+    @Test
+    public void testLimitedSort() throws VisitorException, IOException {
+        String query = "Order (load 'a') by $0 limit 5;";
+        LogicalPlan plan = buildPlan(query);
+        PhysicalPlan pp = buildPhysicalPlan(plan);
+
+        int MAX_SIZE = 100000;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        pp.explain(baos);
+        String compiledPlan = baos.toString();
+        FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/LimitedSort.gld");
+        byte[] b = new byte[MAX_SIZE];
+        int len = fis.read(b);
+        String goldenPlan = new String(b, 0, len);
+
+
+        System.out.println();
+        System.out.println(compiledPlan);
+        System.out.println("-------------");
+
+        //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
+        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+    }
+
+    
     /*@Test
     public void testUserFunc() throws VisitorException {
     	String query = "foreach (group (load 'file:ABCD') all) generate " + COUNT.class.getName() + "($1) ;";

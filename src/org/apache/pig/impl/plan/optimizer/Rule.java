@@ -36,10 +36,12 @@ import org.apache.pig.impl.plan.OperatorPlan;
  */
 public class Rule<O extends Operator, P extends OperatorPlan<O>> {
 
+	public enum WalkerAlgo {DepthFirstWalker, DependencyOrderWalker};
     public List<String> nodes;
     public Map<Integer, Integer> edges;
     public List<Boolean> required;
     public Transformer<O, P> transformer;
+    public WalkerAlgo algo;
 
     /**
      * @param n List of node types to look for.
@@ -48,14 +50,23 @@ public class Rule<O extends Operator, P extends OperatorPlan<O>> {
      * @param r List of boolean indicating whether given nodes are
      * required for the pattern to match.
      * @param t Transformer to apply if the rule matches.
+     * @param al Walker algorithm to find rule match within the plan.
      */
     public Rule(List<String> n,
                 Map<Integer, Integer> e, 
                 List<Boolean> r,
-                Transformer<O, P> t) {
+                Transformer<O, P> t, WalkerAlgo al) {
         nodes = n;
         edges = e;
         required = r;
         transformer = t;
+        algo = al;
+    }
+    
+    public Rule(List<String> n,
+                Map<Integer, Integer> e, 
+                List<Boolean> r,
+                Transformer<O, P> t) {
+    	this(n, e, r, t, WalkerAlgo.DependencyOrderWalker);
     }
 }

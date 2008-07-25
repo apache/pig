@@ -207,5 +207,71 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         insertBetween(after, newNode, successors.get(0), projectionMapping);
     }
 
+    /**
+     * Remove a node in the middle of a linear chain. This includes removing the node 
+     * from the plan and reconnect the nodes before and after the node as well as rebuilding
+     * all of the schemas. This node should have one and only one predecessor and zero or one 
+     * successor
+     * @param nodeToRemove Node to remove
+     * @param projectionMapping A map that defines how projections in after
+     * relate to projections in nodeToRemove.  Keys are the projection offsets in
+     * after, values are the new offsets in nodeToRemove.  If this field is null,
+     * then it will be assumed that the mapping is 1-1.
+     * @throws VisitorException, FrontendException
+     */
+    protected void removeFromChain(
+            LogicalOperator nodeToRemove,
+            Map<Integer, Integer> projectionMapping)
+            throws VisitorException, FrontendException {
+    	
+    	List<LogicalOperator> afterNodes = mPlan.getPredecessors(nodeToRemove);
+    	if (afterNodes.size()!=1)
+    		throw new RuntimeException("removeFromChain only valid to remove " + 
+            	"node has one predecessor.");
+    	List<LogicalOperator> beforeNodes = mPlan.getSuccessors(nodeToRemove);
+    	if (beforeNodes!=null && beforeNodes.size()!=1)
+    		throw new RuntimeException("removeFromChain only valid to remove " + 
+        		"node has one successor.");
+    	
+    	// Get after and before node
+    	LogicalOperator after = mPlan.getPredecessors(nodeToRemove).get(0);
+    	LogicalOperator before = null;
+    	if (beforeNodes!=null)
+    		before = mPlan.getSuccessors(nodeToRemove).get(0);
+    	
+        // Remove nodeToRemove from plan
+    	mPlan.remove(nodeToRemove);
+    	if (before!=null)
+    	{
+	    	// Shortcut nodeToRemove.
+	        mPlan.connect(after, before);
+	
+	        // Visit all the inner plans of before and change their projects to
+	        // connect to after instead of nodeToRemove.
+	        // Find right inner plan(s) to visit
+	        List<LogicalPlan> plans = new ArrayList<LogicalPlan>();
+	        if (before instanceof LOCogroup) {
+	            plans.addAll((((LOCogroup)before).getGroupByPlans()).values());
+	        } else if (before instanceof LOSort) {
+	            plans.addAll(((LOSort)before).getSortColPlans());
+	        } else if (before instanceof LOFilter) {
+	            plans.add(((LOFilter)before).getComparisonPlan());
+	        } else if (before instanceof LOSplitOutput) {
+	            plans.add(((LOSplitOutput)before).getConditionPlan());
+	        } else if (before instanceof LOForEach) {
+	            plans.addAll(((LOForEach)before).getForEachPlans());
+	        }
+	        
+	        for (LogicalPlan lp : plans) {
+	            ProjectFixerUpper pfu =
+	                new ProjectFixerUpper(lp, after, projectionMapping);
+	            pfu.visit();
+	        }
+	
+    	}
 
+    	// Now rebuild the schemas
+        // rebuildSchemas();
+    }
+    
 }

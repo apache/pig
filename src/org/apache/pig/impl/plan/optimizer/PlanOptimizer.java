@@ -57,10 +57,13 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
             if (matcher.match(rule)) {
                 // It matches the pattern.  Now check if the transformer
                 // approves as well.
-                List<O> matches = matcher.getMatches();
-                if (rule.transformer.check(matches)) {
-                    // The transformer approves.
-                    rule.transformer.transform(matches);
+                List<List<O>> matches = matcher.getAllMatches();
+                for (List<O> match:matches)
+                {
+	                if (rule.transformer.check(match)) {
+	                    // The transformer approves.
+	                    rule.transformer.transform(match);
+	                }
                 }
             }
         }
