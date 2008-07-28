@@ -1370,15 +1370,36 @@ public class TypeCheckingVisitor extends LOVisitor {
             } else {
                 func.setFuncSpec(matchingSpec);
                 ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(matchingSpec);
-                func.setType(DataType.findType(ef.getReturnType()));
+                setUdfSchema(func, ef, s);
             }
-            
+        } else {
+            setUdfSchema(func, ef, s);
         }
         /*
         while (iterator.hasNext()) {
             iterator.next().visit(this);          
         }
         */
+    }
+
+    private void setUdfSchema(LOUserFunc func, EvalFunc ef, Schema inputSchema) throws VisitorException {
+        Schema udfSchema = ef.outputSchema(inputSchema);
+        if (null != udfSchema) {
+            Schema.FieldSchema fs;
+            try {
+                fs = udfSchema.getField(0);
+            } catch (ParseException pe) {
+                throw new VisitorException(pe.getMessage());
+            }
+            func.setType(fs.type);
+            try {
+                func.setFieldSchema(fs);
+            } catch (FrontendException fe) {
+                throw new VisitorException(fe.getMessage());
+            }
+        } else {
+            func.setType(DataType.findType(ef.getReturnType()));
+        }
     }
 
     /**
@@ -1570,6 +1591,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     @Override
     protected void visit(LOUnion u) throws VisitorException {
+        u.unsetSchema();
         // Have to make a copy, because as we insert operators, this list will
         // change under us.
         List<LogicalOperator> inputs = 
@@ -1690,6 +1712,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     
     @Override
     protected void visit(LODistinct op) throws VisitorException {
+        op.unsetSchema();
         LogicalPlan currentPlan = mCurrentWalker.getPlan() ;
         List<LogicalOperator> list = currentPlan.getPredecessors(op) ;
 
@@ -1716,6 +1739,7 @@ public class TypeCheckingVisitor extends LOVisitor {
      * @throws VisitorException
      */
     protected void visit(LOCross cs) throws VisitorException {
+        cs.unsetSchema();
         List<LogicalOperator> inputs = cs.getInputs() ;
         List<FieldSchema> fsList = new ArrayList<FieldSchema>() ;
 
@@ -1753,6 +1777,7 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
 
     protected void visit(LOSort s) throws VisitorException {
+        s.unsetSchema();
         LogicalOperator input = s.getInput() ;
         
         // Type checking internal plans.
@@ -1794,6 +1819,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     @Override
     protected void visit(LOFilter filter) throws VisitorException {
+        filter.unsetSchema();
         LogicalOperator input = filter.getInput() ;
         LogicalPlan comparisonPlan = filter.getComparisonPlan() ;
         
@@ -1860,6 +1886,16 @@ public class TypeCheckingVisitor extends LOVisitor {
      * same type
      */
     protected void visit(LOCogroup cg) throws VisitorException {
+        cg.resetSchema();
+        try {
+            cg.getSchema();
+        } catch (FrontendException fe) {
+            String msg = "Cannot resolve COGroup output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw vse ;
+        }
         MultiMap<LogicalOperator, LogicalPlan> groupByPlans
                                                     = cg.getGroupByPlans() ;
         List<LogicalOperator> inputs = cg.getInputs() ;
@@ -2156,6 +2192,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         List<LogicalPlan> plans = f.getForEachPlans() ;
         List<Boolean> flattens = f.getFlatten() ;
 
+        f.resetSchema();
         try {
 
             // Have to resolve all inner plans before calling getSchema
@@ -2193,7 +2230,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
             }
 
-            f.setSchemaComputed(false);
             f.getSchema();
 
         }

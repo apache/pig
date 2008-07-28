@@ -44,6 +44,8 @@ import org.apache.pig.builtin.TextLoader;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import junit.framework.TestCase;
 
@@ -173,7 +175,6 @@ public class TestEvalPipeline extends TestCase {
         assertFalse(iter.hasNext());
     }
     
-    
     static public class TitleNGrams extends EvalFunc<DataBag> {
         
         @Override
@@ -232,6 +233,16 @@ public class TestEvalPipeline extends TestCase {
             }
             return sb.toString();
         }
+
+        public Schema outputSchema(Schema input) {
+            try {
+            Schema stringSchema = new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
+            Schema.FieldSchema fs = new Schema.FieldSchema(null, stringSchema, DataType.BAG);
+            return new Schema(fs);
+            } catch (Exception e) {
+                return null;
+            }
+        }
     }
 
     
@@ -239,6 +250,10 @@ public class TestEvalPipeline extends TestCase {
         @Override
         public Tuple exec(Tuple input) throws IOException {
            return input; 
+        }
+
+        public Schema outputSchema(Schema input) {
+            return input;
         }
     }
     

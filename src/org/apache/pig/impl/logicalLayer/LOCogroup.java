@@ -30,6 +30,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -278,6 +279,16 @@ public class LOCogroup extends LogicalOperator {
                                     LogicalOperator newOp) {
         Collection<LogicalPlan> innerPlans = mGroupByPlans.removeKey(oldOp) ;
         mGroupByPlans.put(newOp, innerPlans);
+    }
+
+    public void resetSchema() throws VisitorException{
+        for(LogicalOperator input: getInputs()) {
+            for(LogicalPlan plan: mGroupByPlans.get(input)) {
+                SchemaRemover sr = new SchemaRemover(plan);
+                sr.visit();
+            }
+        }
+        unsetSchema();
     }
 
 }

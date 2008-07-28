@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.Iterator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -247,4 +248,13 @@ public class LOForEach extends LogicalOperator {
         log.debug("Exiting getSchema");
         return mSchema;
     }
+
+    public void resetSchema() throws VisitorException{
+        for(LogicalPlan plan: mForEachPlans) {
+            SchemaRemover sr = new SchemaRemover(plan);
+            sr.visit();
+        }
+        unsetSchema();
+    }
+
 }
