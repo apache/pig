@@ -33,16 +33,18 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
-import org.apache.pig.data.TargetedTuple;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.IndexedTuple;
+import org.apache.pig.data.TargetedTuple;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -129,7 +131,7 @@ public class PigCombiner {
             
             pigReporter.setRep(reporter);
             
-            Object k = DataType.convertToPigType(key);
+            Object k = HDataType.convertToPigType(key);
             pack.attachInput(k, indInp);
             
             try {
@@ -156,7 +158,7 @@ public class PigCombiner {
                             Tuple tuple = (Tuple)redRes.result;
                             Object combKey = tuple.get(0);
                             IndexedTuple it = (IndexedTuple)tuple.get(1);
-                            WritableComparable wcKey = DataType.getWritableComparableTypes(combKey);
+                            WritableComparable wcKey = HDataType.getWritableComparableTypes(combKey);
                             oc.collect(wcKey, it);
                             continue;
                         }

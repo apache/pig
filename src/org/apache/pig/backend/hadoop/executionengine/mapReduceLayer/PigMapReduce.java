@@ -33,17 +33,19 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
-import org.apache.pig.data.TargetedTuple;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.IndexedTuple;
+import org.apache.pig.data.TargetedTuple;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
@@ -77,7 +79,7 @@ public class PigMapReduce {
         public void collect(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException {
             Object key = tuple.get(0);
             IndexedTuple it = (IndexedTuple)tuple.get(1);
-            WritableComparable wcKey = DataType.getWritableComparableTypes(key);
+            WritableComparable wcKey = HDataType.getWritableComparableTypes(key);
             oc.collect(wcKey, it);
         }
     }
@@ -144,7 +146,7 @@ public class PigMapReduce {
             
             pigReporter.setRep(reporter);
             
-            Object k = DataType.convertToPigType(key);
+            Object k = HDataType.convertToPigType(key);
             pack.attachInput(k, indInp);
             
             try {

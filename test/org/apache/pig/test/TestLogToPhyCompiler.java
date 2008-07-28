@@ -501,7 +501,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println("-------------");
 
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
 
     @Test
@@ -525,7 +525,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println("-------------");
 
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
 
     
