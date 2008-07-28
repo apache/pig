@@ -40,6 +40,7 @@ import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -580,8 +581,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
             
             if(roots.size() > 0) {
                 for(LogicalOperator op: roots) {
-                    if (!(op instanceof LOLoad)){
-                        throw new Exception("Cannot have a root that is not the load operator LOLoad. Found " + op.getClass().getName());
+                    if (!(op instanceof LOLoad) && !(op instanceof LODefine)){
+                        throw new Exception("Cannot have a root that is not the load or define operator. Found " + op.getClass().getName());
                     }
                 }
             }

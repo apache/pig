@@ -48,7 +48,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOLoad;
-//import org.apache.pig.impl.logicalLayer.LOEval;
+import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -145,6 +145,37 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
     
+    @Test
+    public void testQuery100() {
+        // test define syntax
+        String query = "define FUNC ARITY();";
+        LogicalOperator lo = buildPlan(query).getRoots().get(0);
+        assertTrue(lo instanceof LODefine);
+    }
+
+    @Test
+    public void testQuery101() {
+        // test usage of an alias from define
+        String query = "define FUNC ARITY();";
+        buildPlan(query);
+
+        query = "foreach (load 'data') generate FUNC($0);";
+        buildPlan(query);
+    }
+
+    @Test
+    public void testQuery102() {
+        // test basic store
+        buildPlan("a = load 'a';");
+        printPlan(buildPlan("store a into 'out';"));
+    }
+
+    @Test
+    public void testQuery103() {
+        // test store with store function
+        buildPlan("a = load 'a';");
+        buildPlan("store a into 'out' using PigStorage();");
+    }
 
     @Test
     public void testQueryFail1() {
@@ -1104,7 +1135,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     public LogicalPlan buildPlan(String query, ClassLoader cldr) {
         LogicalPlanBuilder.classloader = cldr;
-        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
 
         try {
@@ -1117,8 +1147,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             
             if(roots.size() > 0) {
                 for(LogicalOperator op: roots) {
-                    if (!(op instanceof LOLoad)){
-                        throw new Exception("Cannot have a root that is not the load operator LOLoad. Found " + op.getClass().getName());
+                    if (!(op instanceof LOLoad) && !(op instanceof LODefine)){
+                        throw new Exception("Cannot have a root that is not the load or define operator. Found " + op.getClass().getName());
                     }
                 }
             }
@@ -1162,4 +1192,5 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+    PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
 }

@@ -145,6 +145,8 @@ public class QueryParser {
         }
 	    
         aliases.put(store, storePlan);
+
+        if (storePlan.getRoots().size() == 0) throw new RuntimeException("Store plan has no roots!");
         return storePlan;
     }
 
@@ -493,6 +495,7 @@ TOKEN : { <#NUMFILTEROP : "==" | "<" | "<=" | ">" | ">=" | "!=" > }
 TOKEN : { <FILTEROP : <STRFILTEROP> | <NUMFILTEROP>  > }
 
 // List all the keywords in the language
+TOKEN : { <DEFINE : "define"> }
 TOKEN : { <LOAD : "load"> }
 TOKEN : { <FILTER : "filter"> }
 TOKEN : { <FOREACH : "foreach"> }
@@ -536,6 +539,7 @@ TOKEN : { <TUPLE : "tuple"> }
 TOKEN : { <MAP : "map"> }
 TOKEN : { <IS : "is"> }
 TOKEN : { <NULL : "null"> }
+TOKEN : { <STORE : "store"> }
 TOKEN : { <LIMIT : "limit"> }
 
 TOKEN:
@@ -727,7 +731,8 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 {
 	(
 	(
-	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema); op.setCanonicalNames(); log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
+    (<DEFINE> op = DefineClause(lp))
+|	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema); op.setCanonicalNames(); log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
 |   (<LIMIT> op = LimitClause(lp))
@@ -745,6 +750,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |   (<JOIN> op = JoinClause(lp))
 |	(<UNION> op = UnionClause(lp))
 |	(<FOREACH> op = ForEachClause(lp))
+|   (<STORE> op = StoreClause(lp))
 	)
     [<PARALLEL> t2=<INTEGER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
 	)	
@@ -1467,6 +1473,52 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
 		log.trace("Exiting ForEachClause");
 		return foreach;
 	}
+}
+
+LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token t1; String functionName, functionArgs;}
+{
+    t = <IDENTIFIER>
+    (
+        functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+        {
+            pigContext.registerFunction(t.image, new FuncSpec(functionName + "(" + functionArgs + ")"));
+        }
+    )
+    {
+        // Return the dummy LODefine
+        LogicalOperator lo = new LODefine(lp, new OperatorKey(scope, getNextId()));
+        lp.add(lo);
+        return lo;
+    }
+}
+
+LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; String fileName; String functionSpec = null; 
+                                                String functionName, functionArgs;}
+{
+    t = <IDENTIFIER> <INTO> fileName = FileName()
+    (
+        <USING> functionName = QualifiedFunction() {functionSpec = functionName;}
+        (
+            "(" functionArgs = StringList() ")" {functionSpec = functionSpec + "(" + functionArgs + ")";}
+        )?
+    )?
+    {
+
+        if (functionSpec == null)
+            functionSpec = PigStorage.class.getName() + "()";
+
+        LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
+                                            new FileSpec(fileName, new FuncSpec(functionSpec)));
+
+        LogicalOperator input = mapAliasOp.get(t.image);
+        if (input == null)
+            throw new ParseException("Unable to find alias " + t.image);
+
+        lp.add(store);
+        lp.add(input);
+        lp.connect(input, store);
+        return store;
+    }
 }
 
 ArrayList<LogicalOperator> NestedBlock(Schema over, ArrayList<LogicalOperator> specList, LogicalPlan lp, LogicalOperator input):

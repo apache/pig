@@ -59,8 +59,6 @@ public abstract class PigScriptParser
 	
 	abstract protected void quit();
 	
-	abstract protected void processRegisterFunc(String name, String expr);
-	
 	abstract protected void processDescribe(String alias) throws IOException;
 
     abstract protected void processExplain(String alias) throws IOException;
@@ -68,8 +66,6 @@ public abstract class PigScriptParser
 	abstract protected void processRegister(String jar) throws IOException;
 
 	abstract protected void processSet(String key, String value) throws IOException, ParseException;
-	
-	abstract protected void processStore(String alias, String file, String func) throws IOException;
 		
 	abstract protected void processCat(String path) throws IOException;
 
@@ -127,7 +123,6 @@ TOKEN: {<CD: "cd">}
 TOKEN: {<COPY: "cp">}
 TOKEN: {<COPYFROMLOCAL: "copyFromLocal">}
 TOKEN: {<COPYTOLOCAL: "copyToLocal">}
-TOKEN: {<DEFINE: "define">}
 TOKEN: {<DUMP: "dump">}
 TOKEN: {<DESCRIBE: "describe">}
 TOKEN: {<EXPLAIN: "explain">}
@@ -141,15 +136,12 @@ TOKEN: {<QUIT: "quit">}
 TOKEN: {<REGISTER: "register">}
 TOKEN: {<REMOVE: "rm">}
 TOKEN: {<SET: "set">}
-TOKEN: {<STORE: "store">}
-TOKEN: {<INTO: "into">}
-TOKEN: {<USING: "using">}
 
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
 
 // Define pig command as 
-// (1) Starting with "split" or assignment (A=) followed by
+// (1) Starting with "split"/"define"/"store" or assignment (A=) followed by
 // (2) Single statement followed by ; and newline or
 // (3) Block of statements enclosed in
 
@@ -173,8 +165,9 @@ TOKEN_MGR_DECLS : {
 
 <DEFAULT> MORE :
 {
-	<"split"> : PIG_START
-| 	<"("> : FUNC_ARGS_START
+    <"split"> : PIG_START
+|   <"define"> : PIG_START
+|	<"store"> : PIG_START
 | 	<(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START
 }
 
@@ -228,25 +221,6 @@ TOKEN_MGR_DECLS : {
         <PIG: ""> { 	matchedToken.image = image.toString();
 			//System.out.println("image = " +  matchedToken.image);
 		}: DEFAULT
-}
-
-<FUNC_ARGS_START> MORE :
-{
-	<"("> {funcBlockLevel = 1;} : IN_ARG_BLOCK
-|	<")"> : FUNC_ARGS_END
-|	<(~[])>
-}
-
-<IN_ARG_BLOCK> MORE:
-{
-        <"("> {funcBlockLevel++;}
-|       <")"> {funcBlockLevel--; if (funcBlockLevel == 0) SwitchTo(FUNC_ARGS_END);}
-|       <(~[])>
-}
-
-<FUNC_ARGS_END> TOKEN :
-{
-        <FUNC_ARGS: ""> {matchedToken.image = image.toString();}: DEFAULT
 }
 
 // other
@@ -319,13 +293,6 @@ void parse() throws IOException:
 	t2 = GetPath()
 	{processCopyToLocal(t1.image, t2.image);}	
 	|
-	<DEFINE>
-	t1 = <IDENTIFIER>
-	(
-	val = QualifiedFunction()
-	)
-	{processRegisterFunc(t1.image, val);}
-	|
 	<DUMP>
 	t1 = <IDENTIFIER>
 	{processDump(t1.image);}
@@ -391,16 +358,6 @@ void parse() throws IOException:
 		{processSet(t1.image, t2.image);}
 	)
 	|
-	<STORE>
-	t1 = <IDENTIFIER>
-	<INTO>
-	t2 = GetPath()
-	(
-		<USING>
-		val = QualifiedFunction()
-	)?
-	{processStore(t1.image, unquote(t2.image), val);}
-	|
 	<EOF>
 	{quit();}
 	|
@@ -411,17 +368,6 @@ void parse() throws IOException:
 	handle_invalid_command(EOL)
 	{prompt();}
 	)
-}
-
-String QualifiedFunction()       : {Token t1;StringBuffer s=new StringBuffer();}
-{
-	t1 = GetPath()
-	{s.append(t1.image);}
-	(
-		t1 = <FUNC_ARGS>
-		{s.append(t1.image);}
-	)*
-        {return s.toString();}
 }
 
 Token GetPath() :
@@ -478,8 +424,6 @@ Token GetReserved () :
 	|
 	t = <COPYTOLOCAL>
 	|
-	t = <DEFINE>
-	|
 	t = <DUMP>
 	|
 	t = <DESCRIBE>
@@ -505,12 +449,6 @@ Token GetReserved () :
 	t = <REMOVE>
 	|
 	t = <SET>
-	|
-	t = <STORE>
-	|
-	t = <INTO>
-	|
-	t = <USING>
 	|
 	t = <SCRIPT_DONE>
 	)

@@ -63,7 +63,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.util.PropertiesUtil;
-
+import org.apache.pig.impl.logicalLayer.LODefine;
+import org.apache.pig.impl.logicalLayer.LOStore;
 
 /**
  * 
@@ -242,11 +243,30 @@ public class PigServer {
         }
             
         LogicalPlan lp = null;
+        LogicalOperator op = null;
         try {
             lp = (new LogicalPlanBuilder(pigContext).parse(scope, query,
                     aliases, opTable, aliasOp, startLine));
         } catch (ParseException e) {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
+        }
+        
+        if (lp.getLeaves().size() == 1)
+        {
+            op = lp.getSingleLeafPlanOutputOp();
+            // No need to do anything about DEFINE 
+            if (op instanceof LODefine) {
+                return;
+            }
+        
+            // Check if we just processed a LOStore i.e. STORE
+            if (op instanceof LOStore) {
+                try{
+                    execute(lp);
+                } catch (Exception e) {
+                    throw WrappedIOException.wrap("Unable to store for alias: " + op.getOperatorKey().getId(), e);
+                }
+            }
         }
     }
 

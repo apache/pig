@@ -82,9 +82,10 @@ public class LOStore extends LogicalOperator {
     }
 
     @Override
-    public Schema getSchema() throws RuntimeException {
-        throw new RuntimeException("Internal error: Requested schema of a "
-                + "store operator.");
+    public Schema getSchema() throws FrontendException {
+        //throw new RuntimeException("Internal error: Requested schema of a "
+         //       + "store operator.");
+        return mPlan.getPredecessors(this).get(0).getSchema();
     }
 
     @Override
