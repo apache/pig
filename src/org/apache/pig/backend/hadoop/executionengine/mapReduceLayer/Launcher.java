@@ -106,12 +106,10 @@ public abstract class Launcher {
     {
         for (int i = 0; i < reports.length; i++) {
             String msgs[] = reports[i].getDiagnostics();
-            StringBuilder sb = new StringBuilder("Error message from task (" + type + ") " +
-                reports[i].getTaskId());
             for (int j = 0; j < msgs.length; j++) {
-                sb.append(" " + msgs[j]);
+                log.error("Error message from task (" + type + ") " +
+                    reports[i].getTaskId() + msgs[j]);
             }
-            log.error(sb.toString());
         }
     }
     
