@@ -29,7 +29,7 @@ import org.apache.pig.impl.util.ConfigurationValidator;
  *
  */
 public class MapReduceLauncher extends Launcher{
-    private static final Log log = LogFactory.getLog(Launcher.class);
+    private static final Log log = LogFactory.getLog(MapReduceLauncher.class);
     @Override
     public boolean launchPig(PhysicalPlan php,
                              String grpName,
@@ -63,7 +63,7 @@ public class MapReduceLauncher extends Launcher{
             } catch (InterruptedException e) {}
             double prog = calculateProgress(jc, jobClient)/numMRJobs;
             if(prog>lastProg)
-                log.info(prog * 100 + "% complete");
+                log.info((int)(prog * 100) + "% complete");
             lastProg = prog;
         }
         lastProg = calculateProgress(jc, jobClient)/numMRJobs;

@@ -25,7 +25,7 @@ import org.apache.pig.impl.util.ConfigurationValidator;
 
 
 public class LocalLauncher extends Launcher{
-    private static final Log log = LogFactory.getLog(Launcher.class);
+    private static final Log log = LogFactory.getLog(LocalLauncher.class);
     
     @Override
     public boolean launchPig(PhysicalPlan php,
@@ -62,7 +62,7 @@ public class LocalLauncher extends Launcher{
             } catch (InterruptedException e) {}
             double prog = calculateProgress(jc, jobClient)/numMRJobs;
             if(prog>lastProg)
-                log.info(prog * 100 + "% complete");
+                log.info((int)(prog * 100) + "% complete");
             lastProg = prog;
         }
         lastProg = calculateProgress(jc, jobClient)/numMRJobs;
@@ -137,7 +137,7 @@ public class LocalLauncher extends Launcher{
             }
             double prog = calculateProgress(jc, jobClient) / numMRJobs;
             if (prog > lastProg)
-                log.info(prog * 100 + "% complete");
+                log.info((int)(prog * 100) + "% complete");
             lastProg = prog;
         }
         lastProg = calculateProgress(jc, jobClient) / numMRJobs;
