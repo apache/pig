@@ -24,6 +24,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Map;
 
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.logging.Log;
+
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.ReversibleLoadStoreFunc;
@@ -43,6 +46,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class PigStorage extends Utf8StorageConverter
         implements ReversibleLoadStoreFunc {
     protected BufferedPositionedInputStream in = null;
+    protected final Log mLog = LogFactory.getLog(getClass());
         
     long                end            = Long.MAX_VALUE;
     private byte recordDel = '\n';
@@ -61,9 +65,28 @@ public class PigStorage extends Utf8StorageConverter
      *            ("\t" is the default.)
      */
     public PigStorage(String delimiter) {
-        this.fieldDel = (byte)delimiter.charAt(0);
-        //mBuf = new ByteArrayOutputStream(4096);
-        //mProtoTuple = new ArrayList<Object>();
+        if (delimiter.length() == 1) {
+            this.fieldDel = (byte)delimiter.charAt(0);
+        } else if (delimiter.length() > 1 && delimiter.charAt(0) == '\\') {
+            switch (delimiter.charAt(1)) {
+            case 't':
+                this.fieldDel = (byte)'\t';
+                break;
+
+            case 'x':
+            case 'u':
+                this.fieldDel =
+                    Integer.valueOf(delimiter.substring(2)).byteValue();
+                break;
+
+            default:
+                mLog.error("Unknown delimiter " + delimiter);
+                throw new RuntimeException("Unknown delimiter " + delimiter);
+            }
+        } else {
+            mLog.error("PigStorage delimeter must be single character");
+            throw new RuntimeException("PigStorage delimeter must be single character");
+        }
     }
 
     public Tuple getNext() throws IOException {

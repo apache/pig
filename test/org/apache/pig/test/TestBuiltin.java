@@ -44,7 +44,10 @@ import org.apache.pig.impl.PigContext;
 
 public class TestBuiltin extends TestCase {
     
-    private String initString = "local";
+    private String initString = "mapreduce";
+    //private String initString = "local";
+    MiniCluster cluster = MiniCluster.buildCluster();
+
     
     // some inputs
     private static Integer[] IntInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
