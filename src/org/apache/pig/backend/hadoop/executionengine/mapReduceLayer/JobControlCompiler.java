@@ -282,7 +282,7 @@ public class JobControlCompiler{
                 jobConf.setPartitionerClass(SortPartitioner.class);
                 if(mro.UDFs.size()==1){
                     String compFuncSpec = mro.UDFs.get(0);
-                    Class comparator = Class.forName(compFuncSpec);
+                    Class comparator = PigContext.resolveClassName(compFuncSpec);
                     if(ComparisonFunc.class.isAssignableFrom(comparator))
                         jobConf.setOutputKeyComparatorClass(comparator);
                 }
