@@ -352,3 +352,5 @@ Release 0.1.0 - Unreleased
 
     PIG-34: updated CHANGES.txt
 
+    PIG-342: Fix DistinctDataBag to recalculate size after it has spilled. (bdimcheff via gates)
+
