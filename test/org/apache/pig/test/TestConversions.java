@@ -17,13 +17,22 @@
  */
 package org.apache.pig.test;
 
+import java.util.Random;
+import java.util.Map;
 import java.io.IOException;
 
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 
 import org.junit.Test;
 
 import junit.framework.TestCase;
+import junit.framework.AssertionFailedError;
 
 /**
  * Test class to test conversions from bytes to types
@@ -33,6 +42,8 @@ import junit.framework.TestCase;
 public class TestConversions extends TestCase {
 
     PigStorage ps = new PigStorage();
+	Random r = new Random();
+	final int MAX = 10;
     
     @Test
     public  void testBytesToInteger() throws IOException
@@ -130,6 +141,87 @@ public class TestConversions extends TestCase {
         }                        
     }
     
+    @Test
+    public  void testBytesToTuple() throws IOException
+    {
+        for (int i = 0; i < MAX; i++) {
+            Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
+            Tuple convertedTuple = ps.bytesToTuple(t.toString().getBytes());
+            assertTrue(t.equals(convertedTuple));
+        }
         
+    }
+    
+    @Test
+    public  void testBytesToBag() throws IOException
+    {
+        for (int i = 0; i < MAX; i++) {
+            DataBag b = GenRandomData.genRandFullTupTextDataBag(r,5,100);
+            DataBag convertedBag = ps.bytesToBag(b.toString().getBytes());
+            assertTrue(b.equals(convertedBag));
+        }
         
+    }
+        
+    @Test
+    public  void testBytesToMap() throws IOException
+    {
+        
+        for (int i = 0; i < MAX; i++) {
+            Map<Object, Object>  m = GenRandomData.genRandObjectMap(r,5);
+            String expectedMapString = DataType.mapToString(m);
+            Map<Object, Object> convertedMap = ps.bytesToMap(expectedMapString.getBytes());
+            assertTrue(m.equals(convertedMap));
+        }
+        
+    }
+
+    @Test
+    public void testIntegerToBytes() throws IOException {
+        Integer i = r.nextInt();
+        assertTrue(DataType.equalByteArrays(i.toString().getBytes(), ps.toBytes(i)));
+    }
+        
+    @Test
+    public void testLongToBytes() throws IOException {
+        Long l = r.nextLong();
+        assertTrue(DataType.equalByteArrays(l.toString().getBytes(), ps.toBytes(l)));
+    }
+        
+    @Test
+    public void testFloatToBytes() throws IOException {
+        Float f = r.nextFloat();
+        assertTrue(DataType.equalByteArrays(f.toString().getBytes(), ps.toBytes(f)));
+    }
+        
+    @Test
+    public void testDoubleToBytes() throws IOException {
+        Double d = r.nextDouble();
+        assertTrue(DataType.equalByteArrays(d.toString().getBytes(), ps.toBytes(d)));
+    }
+        
+    @Test
+    public void testCharArrayToBytes() throws IOException {
+        String s = GenRandomData.genRandString(r);
+        assertTrue(s.equals(new String(ps.toBytes(s))));
+    }
+        
+    @Test
+    public void testTupleToBytes() throws IOException {
+        Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
+        //Tuple t = GenRandomData.genRandSmallTuple(r, 100);
+        assertTrue(DataType.equalByteArrays(t.toString().getBytes(), ps.toBytes(t)));
+    }
+        
+    @Test
+    public void testBagToBytes() throws IOException {
+        DataBag b = GenRandomData.genRandFullTupTextDataBag(r,5,100);
+        assertTrue(DataType.equalByteArrays(b.toString().getBytes(), ps.toBytes(b)));
+    }
+        
+    @Test
+    public void testMapToBytes() throws IOException {
+        Map<Object, Object>  m = GenRandomData.genRandObjectMap(r,5);
+        assertTrue(DataType.equalByteArrays(DataType.mapToString(m).getBytes(), ps.toBytes(m)));
+    }
 }

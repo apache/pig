@@ -577,16 +577,6 @@ public class POCast extends ExpressionOperator {
     }
     
     @Override
-    public Result getNext(DataByteArray dba) throws ExecException {
-    	String str = null;
-    	Result res = getNext(str);
-    	if(res.returnStatus == POStatus.STATUS_OK) {
-    		res.result = new DataByteArray(((String)res.result).getBytes());
-    	}
-    	return res;
-    }
-    
-    @Override
     public Result getNext(Tuple t) throws ExecException {
     	PhysicalOperator in = inputs.get(0);
     	Byte resultType = in.getResultType();

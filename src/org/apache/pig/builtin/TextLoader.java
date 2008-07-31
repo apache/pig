@@ -147,4 +147,35 @@ public class TextLoader implements LoadFunc{
         return null;
     }
 
+    public byte[] toBytes(DataBag bag) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Bag");
+    }
+
+    public byte[] toBytes(String s) throws IOException {
+        return s.getBytes();
+    }
+
+    public byte[] toBytes(Double d) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Double");
+    }
+
+    public byte[] toBytes(Float f) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Float");
+    }
+
+    public byte[] toBytes(Integer i) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Integer");
+    }
+
+    public byte[] toBytes(Long l) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Long");
+    }
+
+    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Map");
+    }
+
+    public byte[] toBytes(Tuple t) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Tuple");
+    }
 }

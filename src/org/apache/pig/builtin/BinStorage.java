@@ -19,6 +19,7 @@ package org.apache.pig.builtin;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -206,5 +207,109 @@ public class BinStorage implements ReversibleLoadStoreFunc {
     public void fieldsToRead(Schema schema) {
         // TODO Auto-generated method stub
         
+    }
+
+    public byte[] toBytes(DataBag bag) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, bag);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(String s) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, s);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(Double d) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, d);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(Float f) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, f);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(Integer i) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, i);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(Long l) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, l);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, m);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(Tuple t) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, t);
+        } catch (Exception ee) {
+            IOException oughtToBeEE = new IOException();
+            ee.initCause(ee);
+            throw oughtToBeEE;
+        }
+        return baos.toByteArray();
     }
 }

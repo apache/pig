@@ -143,10 +143,11 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
             sb.append(planString(((POForEach)node).getInputPlans()));
         }
         
-        List<O> predecessors = mPlan.getPredecessors(node);
-        
-        if (predecessors == null)
+        List<O> originalPredecessors = mPlan.getPredecessors(node);
+        if (originalPredecessors == null)
             return sb.toString();
+        
+        List<O> predecessors =  new ArrayList<O>(originalPredecessors);
         
         Collections.sort(predecessors);
         int i = 0;

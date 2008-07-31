@@ -1543,6 +1543,14 @@ public class TypeCheckingVisitor extends LOVisitor {
         
         byte inputType = cast.getExpression().getType(); 
         byte expectedType = cast.getType();
+
+
+        if(expectedType == DataType.BYTEARRAY) {
+            String msg = "Cannot cast to bytearray";
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new VisitorException(msg) ; 
+        }
+        
         Schema.FieldSchema castFs;
         Schema.FieldSchema inputFs;
         try {

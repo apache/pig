@@ -42,6 +42,18 @@ public class GenRandomData {
         return ret;
     }
     
+    public static Map<Object,Object> genRandObjectMap(Random r, int numEnt) {
+        Map<Object,Object> ret = new HashMap<Object, Object>();
+        if(r==null){
+            ret.put(1, "RANDOM");
+            return ret;
+        }
+        for(int i=0;i<numEnt;i++){
+            ret.put(r.nextInt(), genRandString(r));
+        }
+        return ret;
+    }
+    
     public static String genRandString(Random r){
         if(r==null) return "RANDOM";
         char[] chars = new char[10];
@@ -56,6 +68,11 @@ public class GenRandomData {
         byte[] bytes = new byte[10];
         r.nextBytes(bytes);
         return new DataByteArray(bytes);
+    }
+    
+    public static DataByteArray genRandTextDBA(Random r){
+        if(r==null) return new DataByteArray("RANDOM".getBytes());
+        return new DataByteArray(genRandString(r).getBytes());
     }
     
     public static Tuple genRandSmallTuple(Random r, int limit){
@@ -112,6 +129,30 @@ public class GenRandomData {
         return t;
     }
     
+    public static Tuple genRandSmallBagTextTuple(Random r, int num, int limit){
+        if(r==null){
+            Tuple t = new DefaultTuple();
+            t.append("RANDOM");
+            return t;
+        }
+        Tuple t = new DefaultTuple();
+        t.append(genRandSmallTupDataBag(r, num, limit));
+        t.append(new Boolean(r.nextBoolean()).toString());
+        //TODO Fix
+        //The text representation of byte array and char array
+        //cannot be disambiguated without annotation. For now,
+        //the tuples will not contain byte array
+        //t.append(genRandTextDBA(r));
+        t.append(genRandString(r));
+        t.append(r.nextDouble());
+        t.append(r.nextFloat());
+        t.append(r.nextInt());
+        t.append(r.nextLong());
+        t.append(genRandMap(r, num));
+        t.append(genRandSmallTuple(r, 100));
+        return t;
+    }
+    
     public static DataBag genRandFullTupDataBag(Random r, int num, int limit){
         if(r==null) {
             DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
@@ -123,6 +164,21 @@ public class GenRandomData {
         DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
         for(int i=0;i<num;i++){
             db.add(genRandSmallBagTuple(r, num, limit));
+        }
+        return db;
+    }
+
+    public static DataBag genRandFullTupTextDataBag(Random r, int num, int limit){
+        if(r==null) {
+            DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+            Tuple t = new DefaultTuple();
+            t.append("RANDOM");
+            db.add(t);
+            return db;
+        }
+        DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+        for(int i=0;i<num;i++){
+            db.add(genRandSmallBagTextTuple(r, num, limit));
         }
         return db;
     }

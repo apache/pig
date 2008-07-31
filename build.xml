@@ -68,6 +68,7 @@
     <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
     <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
+    <property name="src.gen.textdata.parser.dir" value="${src.gen.dir}/org/apache/pig/data/parser" />
     <property name="javacc.home" value="${basedir}/lib" />
 
 	<!-- javadoc properties  -->
@@ -101,6 +102,7 @@
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
         <mkdir dir="${src.gen.dot.parser.dir}" />
+        <mkdir dir="${src.gen.textdata.parser.dir}" />
         <tstamp>
             <format property="timestamp" pattern="MMM dd yyyy, HH:mm:ss" />
         </tstamp>
@@ -147,6 +149,8 @@
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/ParamLoader.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
         <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/Dot.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.dot.parser.dir}/Dot.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <jjtree target="${src.dir}/org/apache/pig/data/parser/TextDataParser.jjt" outputdirectory="${src.gen.textdata.parser.dir}/" javacchome="${javacc.home}" />
+        <javacc target="${src.gen.textdata.parser.dir}/TextDataParser.jj" outputdirectory="${src.gen.textdata.parser.dir}" javacchome="${javacc.home}" />
     </target>
 
     <!-- ================================================================== -->

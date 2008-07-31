@@ -202,6 +202,38 @@ public class TestMapReduce extends TestCase {
             return null;
         }
 
+	    public byte[] toBytes(DataBag bag) throws IOException {
+	        return null;
+	    }
+	
+	    public byte[] toBytes(String s) throws IOException {
+	        return s.getBytes();
+	    }
+	
+	    public byte[] toBytes(Double d) throws IOException {
+	        return d.toString().getBytes();
+	    }
+	
+	    public byte[] toBytes(Float f) throws IOException {
+	        return f.toString().getBytes();
+	    }
+	
+	    public byte[] toBytes(Integer i) throws IOException {
+	        return i.toString().getBytes();
+	    }
+	
+	    public byte[] toBytes(Long l) throws IOException {
+	        return l.toString().getBytes();
+	    }
+	
+	    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+	        return m.toString().getBytes();
+	    }
+	
+	    public byte[] toBytes(Tuple t) throws IOException {
+	        return null;
+	    }
+
     }
     @Test
     public void testStoreFunction() throws Throwable {

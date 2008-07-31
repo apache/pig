@@ -435,6 +435,38 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         public Tuple bytesToTuple(byte[] b) throws IOException {
             return null;
         }        
+
+	    public byte[] toBytes(DataBag bag) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(String s) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(Double d) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(Float f) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(Integer i) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(Long l) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+            return null;
+	    }
+	
+	    public byte[] toBytes(Tuple t) throws IOException {
+            return null;
+	    }
     }
     
     
@@ -872,7 +904,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("f = foreach x generate (tuple(int, float))($1/2);");
         buildPlan("g = foreach x generate (tuple())($1/2);");
         buildPlan("h = foreach x generate (chararray)($1/2);");
-        buildPlan("i = foreach x generate (bytearray)($1/2);");
     }
 
     @Test

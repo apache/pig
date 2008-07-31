@@ -157,10 +157,11 @@ public class LOPrinter extends LOVisitor {
             sb.append(((LOProject)node).getExpression().name());
         }
         
-        List<LogicalOperator> predecessors = mPlan.getPredecessors(node);
-        
-        if (predecessors == null)
+        List<LogicalOperator> originalPredecessors =  mPlan.getPredecessors(node);
+        if (originalPredecessors == null)
             return sb.toString();
+        
+        List<LogicalOperator> predecessors =  new ArrayList<LogicalOperator>(originalPredecessors);
         
         Collections.sort(predecessors);
         int i = 0;

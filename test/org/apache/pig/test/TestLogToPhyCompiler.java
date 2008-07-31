@@ -490,6 +490,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Limit.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
         FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/Limit.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
@@ -514,11 +521,17 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
         String compiledPlan = baos.toString();
+
+        if(generate){
+            FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/LimitedSort.gld");
+            fos.write(baos.toByteArray());
+            return;
+        }
+        
         FileInputStream fis = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/LimitedSort.gld");
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
 
         System.out.println();
         System.out.println(compiledPlan);

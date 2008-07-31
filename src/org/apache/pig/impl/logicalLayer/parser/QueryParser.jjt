@@ -2422,29 +2422,24 @@ Schema.FieldSchema TypeFieldSchema() :
 |	LOOKAHEAD(TypeSchemaMap()) fs = TypeSchemaMap()
 |	LOOKAHEAD(TypeAtomSchema()) fs = TypeAtomSchema()
 	)
-	//{log.debug("Printing Aliases"); item.printAliases();log.trace("Exiting Schema");return item;}
 	{log.trace("Exiting TypeFieldSchema");return fs;}
 }
 
 Schema.FieldSchema TypeAtomSchema() : 
 {
-	Token t1 = null;
 	byte type = DataType.BYTEARRAY;
 	Schema.FieldSchema fs;
-	log.trace("Entering TypeAtomSchema");
+	log.info("Entering TypeAtomSchema");
 }
 {
-	//(  ( [t1 = <IDENTIFIER> ":"] type = BasicType() )
 	(  ( type = BasicType() )
 		{ 
-			if(null != t1) {
-				log.debug("AtomSchema: " + t1.image);
-				fs = new Schema.FieldSchema(t1.image, type); 
-			} else {
-				fs = new Schema.FieldSchema(null, type); 
-			}
+            if(type == DataType.BYTEARRAY) {
+                throw new ParseException("Cannot cast to bytearray");
+            }
+			fs = new Schema.FieldSchema(null, type); 
 			
-			log.trace("Exiting TypeAtomSchema");
+			log.info("Exiting TypeAtomSchema");
 			return fs;
 		} 
 	)
@@ -2720,9 +2715,9 @@ Object Datum():
 }
 {
 	(
-	obj = "[" Map() "]"
-|	obj = "{" Bag() "}"
-|	obj = "(" Tuple() ")"
+	"[" obj = Map() "]"
+|	"{" obj = Bag() "}"
+|	"(" obj = Tuple() ")"
 |	obj = AtomDatum()
 	)
 	{

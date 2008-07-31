@@ -227,7 +227,7 @@ public class TestDataModel extends junit.framework.TestCase {
     public void testTupleToString() throws Exception {
         Tuple t = giveMeOneOfEach();
 
-        assertEquals("toString", "((3, 3.0), {(4), (mary had a little lamb)}, {hello=world, goodbye=all}, 42, 5000000000, 3.1415927, 2.99792458E8, true, hello, goodbye, NULL)", t.toString());
+        assertEquals("toString", "((3,3.0F),{(4),(mary had a little lamb)},[hello#world,goodbye#all],42,5000000000L,3.1415927F,2.99792458E8,true,hello,goodbye,NULL)", t.toString());
     }
 
     @Test

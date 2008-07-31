@@ -661,4 +661,33 @@ public class DataType {
         // else return just ERROR
         return DataType.ERROR ;
     }
+    
+    public static String mapToString(Map<Object, Object> m) {
+        boolean hasNext = false;
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for(Object o: m.keySet()) {
+            if(hasNext) {
+                sb.append(",");
+            } else {
+                hasNext = true;
+            }
+            sb.append(o.toString());
+            sb.append("#");
+            sb.append(m.get(o).toString());
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    public static boolean equalByteArrays(byte[] lhs, byte[] rhs) {
+        if(lhs == null && rhs == null) return true;
+        if(lhs == null || rhs == null) return false;
+        if(lhs.length != rhs.length) return false;
+        for(int i = 0; i < lhs.length; ++i) {
+            if(lhs[i] != rhs[i]) return false;
+        }
+        return true;
+    }
+        
 }

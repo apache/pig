@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.io.ByteArrayInputStream;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
@@ -38,7 +39,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.BagFactory;
-
+import org.apache.pig.data.parser.ParseException;
+import org.apache.pig.data.parser.TextDataParser;
 
 /**
  * This abstract class provides standard conversions between utf8 encoded data
@@ -53,13 +55,29 @@ abstract public class Utf8StorageConverter {
 
     private Integer mMaxInt = new Integer(Integer.MAX_VALUE);
     private Long mMaxLong = new Long(Long.MAX_VALUE);
+    private TextDataParser dataParser = null;
         
     public Utf8StorageConverter() {
     }
 
+    private Object parseFromBytes(byte[] b) throws ParseException {
+        ByteArrayInputStream in = new ByteArrayInputStream(b);
+        if(dataParser == null) {
+            dataParser = new TextDataParser(in);
+        } else {
+            dataParser.ReInit(in);
+        }
+        return dataParser.Parse();
+    }
+
     public DataBag bytesToBag(byte[] b) throws IOException {
-        //TODO:FIXME
-        return null;       
+        Object o;
+        try {
+            o = parseFromBytes(b);
+        } catch (ParseException pe) {
+            throw new IOException(pe.getMessage());
+        }
+        return (DataBag)o;
     }
 
     public String bytesToCharArray(byte[] b) throws IOException {
@@ -141,23 +159,28 @@ abstract public class Utf8StorageConverter {
     }
 
     public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
-        //TODO:FIXME
-        return null;
+        Object o;
+        try {
+            o = parseFromBytes(b);
+        } catch (ParseException pe) {
+            throw new IOException(pe.getMessage());
+        }
+        return (Map<Object, Object>)o;
     }
 
     public Tuple bytesToTuple(byte[] b) throws IOException {
-        return bytesToTuple(b, 0, b.length - 1);
+        Object o;
+        try {
+            o = parseFromBytes(b);
+        } catch (ParseException pe) {
+            throw new IOException(pe.getMessage());
+        }
+        return (Tuple)o;
     }
 
-    private Tuple bytesToTuple(byte[] b, int start, int end) throws IOException {
-        //TODO:FIXME
-        return null;
-    }
-      
 
     public byte[] toBytes(DataBag bag) throws IOException {
-        //TODO:FIXME
-        throw new IOException("Conversion from Bag to bytes not supported");
+        return bag.toString().getBytes();
     }
 
     public byte[] toBytes(String s) throws IOException {
@@ -181,13 +204,11 @@ abstract public class Utf8StorageConverter {
     }
 
     public byte[] toBytes(Map<Object, Object> m) throws IOException {
-        //TODO:FIXME
-        throw new IOException("Conversion from Map to bytes not supported");
+        return DataType.mapToString(m).getBytes();
     }
 
     public byte[] toBytes(Tuple t) throws IOException {
-        //TODO:FIXME
-        throw new IOException("Conversion from Tuple to bytes not supported");  
+        return t.toString().getBytes();
     }
     
 

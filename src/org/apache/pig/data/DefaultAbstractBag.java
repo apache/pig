@@ -267,7 +267,7 @@ public abstract class DefaultAbstractBag implements DataBag {
             Tuple t = it.next();
             String s = t.toString();
             sb.append(s);
-            if (it.hasNext()) sb.append(", ");
+            if (it.hasNext()) sb.append(",");
         }
         sb.append('}');
         return sb.toString();

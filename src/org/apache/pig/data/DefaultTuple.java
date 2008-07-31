@@ -207,12 +207,21 @@ public class DefaultTuple implements Tuple {
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object d = it.next();
             if(d != null) {
-                sb.append(d.toString());
+                if(d instanceof Map) {
+                    sb.append(DataType.mapToString((Map<Object, Object>)d));
+                } else {
+                    sb.append(d.toString());
+                    if(d instanceof Long) {
+                        sb.append("L");
+                    } else if(d instanceof Float) {
+                        sb.append("F");
+                    }
+                }
             } else {
                 sb.append("NULL");
             }
             if (it.hasNext())
-                sb.append(", ");
+                sb.append(",");
         }
         sb.append(')');
         return sb.toString();

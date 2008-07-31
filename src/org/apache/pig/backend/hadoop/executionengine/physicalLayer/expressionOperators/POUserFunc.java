@@ -160,6 +160,11 @@ public class POUserFunc extends ExpressionOperator {
 		try {
 			if(result.returnStatus == POStatus.STATUS_OK) {
 				result.result = func.exec((Tuple) result.result);
+                if(resultType == DataType.BYTEARRAY) {
+                    if(DataType.findType(result.result) != DataType.BYTEARRAY) {
+                        result.result = new DataByteArray(result.result.toString().getBytes());
+                    }
+                }
 				return result;
 			}
 			return result;

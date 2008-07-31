@@ -47,11 +47,11 @@ public class TestTypeCheckingValidator extends TestCase {
         constant1.setType(DataType.INTEGER) ;
         LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
         constant2.setType(DataType.DOUBLE) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), "123") ;
-        constant3.setType(DataType.CHARARRAY) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), 123f) ;
+        constant3.setType(DataType.FLOAT) ;
         
         LOAdd add1 = new LOAdd(plan, genNewOperatorKey(), constant1, constant2) ;
-        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant3, DataType.BYTEARRAY) ;
+        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant3, DataType.DOUBLE) ;
         LOMultiply mul1 = new LOMultiply(plan, genNewOperatorKey(), add1, cast1) ;
         
         plan.add(constant1) ;
@@ -87,6 +87,50 @@ public class TestTypeCheckingValidator extends TestCase {
         
     }
     
+    @Test
+    public void testExpressionTypeCheckingFail1() throws Throwable {
+        LogicalPlan plan = new LogicalPlan() ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
+        constant1.setType(DataType.INTEGER) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
+        constant2.setType(DataType.DOUBLE) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), "123") ;
+        constant3.setType(DataType.CHARARRAY) ;
+        
+        LOAdd add1 = new LOAdd(plan, genNewOperatorKey(), constant1, constant2) ;
+        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant3, DataType.BYTEARRAY) ;
+        LOMultiply mul1 = new LOMultiply(plan, genNewOperatorKey(), add1, cast1) ;
+        
+        plan.add(constant1) ;
+        plan.add(constant2) ;
+        plan.add(constant3) ;
+        plan.add(cast1) ;
+        plan.add(add1) ;
+        plan.add(mul1) ;
+        
+        plan.connect(constant1, add1) ;
+        plan.connect(constant2, add1) ;
+        plan.connect(add1, mul1) ;
+        plan.connect(constant3, cast1) ;
+        plan.connect(cast1, mul1) ;
+                          
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;        
+            fail("Exception expected") ;
+        }
+        catch (PlanValidationException pve) {
+            // good
+        }
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        
+        if (!collector.hasError()) {
+            throw new Exception("Error during type checking") ;
+        }       
+    }
+
     @Test
     public void testExpressionTypeChecking2() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
@@ -196,11 +240,11 @@ public class TestTypeCheckingValidator extends TestCase {
         constant1.setType(DataType.INTEGER) ;
         LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
         constant2.setType(DataType.DOUBLE) ;
-        LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), "123") ;
-        constant3.setType(DataType.CHARARRAY) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), 123f) ;
+        constant3.setType(DataType.FLOAT) ;
         
         LODivide div1 = new LODivide(plan, genNewOperatorKey(), constant1, constant2) ;
-        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant3, DataType.BYTEARRAY) ;
+        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant3, DataType.DOUBLE) ;
         LONotEqual notequal1 = new LONotEqual(plan, genNewOperatorKey(), div1, cast1) ;
         
         plan.add(constant1) ;
@@ -237,6 +281,51 @@ public class TestTypeCheckingValidator extends TestCase {
         
     }
     
+    @Test
+    public void testExpressionTypeCheckingFail4() throws Throwable {
+        LogicalPlan plan = new LogicalPlan() ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
+        constant1.setType(DataType.INTEGER) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
+        constant2.setType(DataType.DOUBLE) ;
+        LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), "123") ;
+        constant3.setType(DataType.CHARARRAY) ;
+        
+        LODivide div1 = new LODivide(plan, genNewOperatorKey(), constant1, constant2) ;
+        LOCast cast1 = new LOCast(plan, genNewOperatorKey(), constant3, DataType.BYTEARRAY) ;
+        LONotEqual notequal1 = new LONotEqual(plan, genNewOperatorKey(), div1, cast1) ;
+        
+        plan.add(constant1) ;
+        plan.add(constant2) ;
+        plan.add(constant3) ;
+        plan.add(div1) ;
+        plan.add(cast1) ;
+        plan.add(notequal1) ;
+        
+        plan.connect(constant1, div1) ;
+        plan.connect(constant2, div1) ;
+        plan.connect(constant3, cast1) ;
+        plan.connect(div1, notequal1) ;
+        plan.connect(cast1, notequal1) ;
+        
+                          
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try{
+            typeValidator.validate(plan, collector) ;
+            fail("Exception expected") ;
+        }
+        catch (PlanValidationException pve) {
+            // good
+        }
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        
+        if (!collector.hasError()) {
+            throw new Exception("Error during type checking") ;
+        }  
+    }
+
     @Test
     public void testExpressionTypeChecking5() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;

@@ -65,9 +65,9 @@ public class TestCombiner extends TestCase {
         pig.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
         Iterator<Tuple> resultIterator = pig.openIterator("C");
         Tuple tuple = resultIterator.next();
-        assertEquals("(a, b, 2)", tuple.toString());
+        assertEquals("(a,b,2L)", tuple.toString());
         tuple = resultIterator.next();
-        assertEquals("(a, c, 1)", tuple.toString());
+        assertEquals("(a,c,1L)", tuple.toString());
     }
 
     private void loadWithTestLoadFunc(String loadAlias, PigServer pig,
