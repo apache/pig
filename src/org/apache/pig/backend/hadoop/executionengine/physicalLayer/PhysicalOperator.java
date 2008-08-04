@@ -20,6 +20,9 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -53,10 +56,9 @@ import org.apache.pig.impl.plan.VisitorException;
  * only those types that are supported.
  *
  */
-public abstract class PhysicalOperator extends
-        Operator<PhyPlanVisitor> {
+public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implements Cloneable {
 
-//    private Log log = LogFactory.getLog(getClass());
+    private Log log = LogFactory.getLog(getClass());
 
     protected static final long serialVersionUID = 1L;
 
@@ -274,4 +276,22 @@ public abstract class PhysicalOperator extends
         PhysicalOperator.reporter = reporter;
     }
 
+    /**
+     * Make a deep copy of this operator.  This is declared here to make it
+     * public for all physical operators.  However, the default
+     * implementation is to throw an exception.  Operators we expect to clone
+     * need to implement this method.
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public PhysicalOperator clone() throws CloneNotSupportedException {
+        String s = new String("This physical operator does not " +
+            "implement clone.");
+        log.error(s);
+        throw new CloneNotSupportedException(s);
+    }
+
+    protected void cloneHelper(PhysicalOperator op) {
+        resultType = op.resultType;
+    }
 }

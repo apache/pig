@@ -8,7 +8,7 @@ MapReduce(1,GFCross) - -156:
 |       |   |---Project[tuple][*] - -7128285064986147947
 |       |
 |       |---Package[tuple]{Unknown} - --885269774183211482
-|   Local Rearrange[tuple]{Unknown} - --776319888013965510
+|   Local Rearrange[tuple]{Unknown}(false) - --776319888013965510
 |   |
 |   |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -155
 |
@@ -22,7 +22,7 @@ MapReduce(1,GFCross) - -156:
     |       |   |---Project[tuple][*] - -31712229583931650
     |       |
     |       |---Package[tuple]{Unknown} - --7335024873119453444
-    |   Local Rearrange[tuple]{Unknown} - -4589138876054328603
+    |   Local Rearrange[tuple]{Unknown}(false) - -4589138876054328603
     |   |
     |   |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -152
     |
@@ -44,7 +44,7 @@ MapReduce(1,GFCross) - -156:
         |           |   Project[bag][1] - -149
         |           |
         |           |---Package[tuple]{tuple} - -148
-        |   Local Rearrange[tuple]{tuple} - -147
+        |   Local Rearrange[tuple]{tuple}(false) - -147
         |   |   |
         |   |   Project[tuple][*] - -146
         |   |
@@ -70,7 +70,7 @@ MapReduce(1,GFCross) - -156:
             |           |   |---Project[tuple][1] - -136
             |           |
             |           |---Package[tuple]{chararray} - -135
-            |   Local Rearrange[tuple]{chararray} - -134
+            |   Local Rearrange[tuple]{chararray}(false) - -134
             |   |   |
             |   |   Constant(all) - -133
             |   |

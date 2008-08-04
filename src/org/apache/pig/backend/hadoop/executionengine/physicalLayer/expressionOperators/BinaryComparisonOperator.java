@@ -31,11 +31,6 @@ import org.apache.pig.impl.plan.OperatorKey;
  */
 public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
         implements ComparisonOperator {
-    //The result type for comparison operators is always
-    //Boolean. So the plans evaluating these should consider
-    //the type of the operands instead of the result.
-    //The result will be comunicated using the Status object.
-    //This is a slight abuse of the status object.
     protected byte operandType;
 
     // Default instances of true and false, used so that all the equality
@@ -65,5 +60,10 @@ public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
     protected void initializeRefs() {
         trueRef = new Boolean(true);
         falseRef = new Boolean(false);
+    }
+
+    protected void cloneHelper(BinaryComparisonOperator op) {
+        operandType = op.operandType;
+        super.cloneHelper(op);
     }
 }

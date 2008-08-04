@@ -18,11 +18,12 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class Mod extends BinaryExpressionOperator {
@@ -94,6 +95,14 @@ public class Mod extends BinaryExpressionOperator {
         
         res.result = new Long(left % right);
         return res;
+    }
+
+    @Override
+    public Mod clone() throws CloneNotSupportedException {
+        Mod clone = new Mod(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.cloneHelper(this);
+        return clone;
     }
 
 }

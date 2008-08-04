@@ -20,7 +20,11 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -34,7 +38,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * This extends the Operator Plan.
  *
  */
-public class PhysicalPlan extends OperatorPlan<PhysicalOperator> {
+public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Cloneable {
 
     /**
      * 
@@ -116,6 +120,77 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> {
     public boolean equals(Object obj) {
         // TODO Auto-generated method stub
         return super.equals(obj);
+    }
+
+    @Override
+    public PhysicalPlan clone() throws CloneNotSupportedException {
+        PhysicalPlan clone = new PhysicalPlan();
+
+        // Get all the nodes in this plan, and clone them.  As we make
+        // clones, create a map between clone and original.  Then walk the
+        // connections in this plan and create equivalent connections in the
+        // clone.
+        Map<PhysicalOperator, PhysicalOperator> matches = 
+            new HashMap<PhysicalOperator, PhysicalOperator>(mOps.size());
+        for (PhysicalOperator op : mOps.keySet()) {
+            PhysicalOperator c = op.clone();
+            clone.add(c);
+            matches.put(op, c);
+        }
+
+        // Build the edges
+        for (PhysicalOperator op : mFromEdges.keySet()) {
+            PhysicalOperator cloneFrom = matches.get(op);
+            if (cloneFrom == null) {
+                String msg = new String("Unable to find clone for op "
+                    + op.name());
+                log.error(msg);
+                throw new RuntimeException(msg);
+            }
+            Collection<PhysicalOperator> toOps = mFromEdges.get(op);
+            for (PhysicalOperator toOp : toOps) {
+                PhysicalOperator cloneTo = matches.get(toOp);
+                if (cloneTo == null) {
+                    String msg = new String("Unable to find clone for op "
+                        + toOp.name());
+                    log.error(msg);
+                    throw new RuntimeException(msg);
+                }
+                try {
+                    clone.connect(cloneFrom, cloneTo);
+                } catch (PlanException pe) {
+                    throw new RuntimeException(pe);
+                }
+            }
+        }
+
+        // Fix up all the inputs in the operators themselves.
+        for (PhysicalOperator op : mOps.keySet()) {
+            List<PhysicalOperator> inputs = op.getInputs();
+            if (inputs == null || inputs.size() == 0) continue;
+            List<PhysicalOperator> newInputs = 
+                new ArrayList<PhysicalOperator>(inputs.size());
+            PhysicalOperator cloneOp = matches.get(op);
+            if (cloneOp == null) {
+                String msg = new String("Unable to find clone for op "
+                    + cloneOp.name());
+                log.error(msg);
+                throw new RuntimeException(msg);
+            }
+            for (PhysicalOperator iOp : inputs) {
+                PhysicalOperator cloneIOp = matches.get(iOp);
+                if (cloneIOp == null) {
+                    String msg = new String("Unable to find clone for op "
+                        + cloneIOp.name());
+                    log.error(msg);
+                    throw new RuntimeException(msg);
+                }
+                newInputs.add(cloneIOp);
+            }
+            cloneOp.setInputs(newInputs);
+        }
+
+        return clone;
     }
     
     

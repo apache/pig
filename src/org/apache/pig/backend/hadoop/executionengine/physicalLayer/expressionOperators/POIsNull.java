@@ -20,15 +20,16 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class POIsNull extends UnaryComparisonOperator {
 
@@ -49,7 +50,7 @@ public class POIsNull extends UnaryComparisonOperator {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
-        //v.visitIsNull(this);
+        v.visitIsNull(this);
     }
 
     @Override
@@ -186,5 +187,13 @@ public class POIsNull extends UnaryComparisonOperator {
             }
         }
         return res;
+    }
+
+    @Override
+    public POIsNull clone() throws CloneNotSupportedException {
+        POIsNull clone = new POIsNull(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.cloneHelper(this);
+        return clone;
     }
 }

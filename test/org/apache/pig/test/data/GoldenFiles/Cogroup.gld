@@ -2,7 +2,7 @@ Package[tuple]{tuple} - Test-Plan-Builder-45
 |
 |---Global Rearrange[tuple] - Test-Plan-Builder-44
     |
-    |---Local Rearrange[tuple]{tuple} - Test-Plan-Builder-46
+    |---Local Rearrange[tuple]{tuple}(false) - Test-Plan-Builder-46
     |   |   |
     |   |   Add[Unknown] - Test-Plan-Builder-49
     |   |   |
@@ -18,7 +18,7 @@ Package[tuple]{tuple} - Test-Plan-Builder-45
     |   |
     |   |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-42
     |
-    |---Local Rearrange[tuple]{tuple} - Test-Plan-Builder-53
+    |---Local Rearrange[tuple]{tuple}(false) - Test-Plan-Builder-53
         |   |
         |   Add[Unknown] - Test-Plan-Builder-56
         |   |

@@ -19,19 +19,19 @@ MapReduce(-1) - -117:
 |---MapReduce(-1) - -113:
 |   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -120
 |   |   |
-|   |   |---Local Rearrange[tuple]{Unknown} - --3347320220748403847
+|   |   |---Local Rearrange[tuple]{Unknown}(false) - --3347320220748403847
 |   |       |
 |   |       |---Package[tuple]{Unknown} - --203604194309414000
-|   |   Local Rearrange[tuple]{Unknown} - --7092666336106039025
+|   |   Local Rearrange[tuple]{Unknown}(false) - --7092666336106039025
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - --2465563180022385815
 |
 |---MapReduce(-1) - -115:
     |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -122
     |   |
-    |   |---Local Rearrange[tuple]{Unknown} - -6693653468874366867
+    |   |---Local Rearrange[tuple]{Unknown}(false) - -6693653468874366867
     |       |
     |       |---Package[tuple]{Unknown} - -8554221887998033529
-    |   Local Rearrange[tuple]{Unknown} - -913122466036599874
+    |   Local Rearrange[tuple]{Unknown}(false) - -913122466036599874
     |   |
     |   |---Load(DummyFil:DummyLdr) - -8515950928528386562

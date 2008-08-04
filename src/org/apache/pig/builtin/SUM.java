@@ -32,6 +32,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -44,9 +45,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         try {
             return sum(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw WrappedIOException.wrap("Caught exception in SUM", ee);
         }
     }
 
@@ -70,9 +69,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
             try {
                 return tfact.newTuple(sum(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap("Caught exception in SUM.Initial", ee);
             }
         }
     }
@@ -82,9 +79,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
             try {
                 return sum(input);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap("Caught exception in SUM.Final", ee);
             }
         }
     }

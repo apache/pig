@@ -834,6 +834,50 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertFalse(transformer.mTransformed);
     }
 
+    @Test
+    public void testReplace() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        ops[3] = new MultiOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new MultiOperator("5");
+        plan.add(ops[4]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        plan.connect(ops[2], ops[3]);
+        plan.connect(ops[2], ops[4]);
+        ops[5] = new MultiOperator("6");
+        plan.replace(ops[2], ops[5]);
+
+        assertEquals("Nodes: 1 2 4 5 6 FromEdges: 1->6 2->6 6->4 6->5 ToEdges: 4->6 5->6 6->1 6->2 ", plan.display());
+    }
+
+    @Test
+    public void testReplaceNoConnections() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[4];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        ops[3] = new MultiOperator("4");
+        plan.replace(ops[1], ops[3]);
+
+        assertEquals("Nodes: 1 3 4 FromEdges: 1->3 ToEdges: 3->1 ", plan.display());
+    }
+
+
 
 
 }

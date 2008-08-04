@@ -18,6 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -36,6 +39,7 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public abstract class ExpressionOperator extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
+    private Log log = LogFactory.getLog(getClass());
     
     public ExpressionOperator(OperatorKey k) {
         this(k,-1);
@@ -56,4 +60,19 @@ public abstract class ExpressionOperator extends PhysicalOperator {
     }
     
     public abstract void visit(PhyPlanVisitor v) throws VisitorException;
+
+    /**
+     * Make a deep copy of this operator.  This is declared here to make it
+     * possible to call clone on ExpressionOperators.
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public ExpressionOperator clone() throws CloneNotSupportedException {
+        String s = new String("This expression operator does not " +
+            "implement clone.");
+        log.error(s);
+        throw new CloneNotSupportedException(s);
+    }
+
+
 }

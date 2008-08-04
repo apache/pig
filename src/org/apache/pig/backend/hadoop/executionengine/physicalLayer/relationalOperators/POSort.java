@@ -26,12 +26,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -40,6 +34,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -74,8 +75,13 @@ public class POSort extends PhysicalOperator {
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
 
-	public POSort(OperatorKey k, int rp, List inp, List<PhysicalPlan> sortPlans,
-			List<Boolean> mAscCols, POUserComparisonFunc mSortFunc) {
+	public POSort(
+            OperatorKey k,
+            int rp,
+            List inp,
+            List<PhysicalPlan> sortPlans,
+			List<Boolean> mAscCols,
+            POUserComparisonFunc mSortFunc) {
 		super(k, rp, inp);
 		//this.mSortCols = mSortCols;
 		this.sortPlans = sortPlans;
@@ -328,5 +334,28 @@ public class POSort extends PhysicalOperator {
     {
     	return (limit!=-1);
     }
+
+    @Override
+    public POSort clone() throws CloneNotSupportedException {
+        List<PhysicalPlan> clonePlans = new
+            ArrayList<PhysicalPlan>(sortPlans.size());
+        for (PhysicalPlan plan : sortPlans) {
+            clonePlans.add(plan.clone());
+        }
+        List<Boolean> cloneAsc = new ArrayList<Boolean>(mAscCols.size());
+        for (Boolean b : mAscCols) {
+            cloneAsc.add(b);
+        }
+        POUserComparisonFunc cloneFunc = null;
+        if (mSortFunc != null) {
+            cloneFunc = mSortFunc.clone();
+        }
+        // Don't set inputs as PhysicalPlan.clone will take care of that
+        return new POSort(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
+    }
+
+
 
 }

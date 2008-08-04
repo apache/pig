@@ -28,7 +28,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Generates the sum of the Integer in the first field of a tuple.
@@ -40,9 +40,7 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         try {
             return sum(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw WrappedIOException.wrap("Caught exception in IntSum", ee);
         }
     }
 
@@ -66,9 +64,7 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
             try {
                 return tfact.newTuple(sum(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap("Caught exception in IntSum.Initial", ee);
             }
         }
     }
@@ -76,11 +72,39 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         @Override
         public Long exec(Tuple input) throws IOException {
             try {
-                return sum(input);
+                // Can't just call sum, because the intermediate results are
+                // now Longs insteads of Integers.
+                DataBag values = (DataBag)input.get(0);
+        
+                // if we were handed an empty bag, return NULL
+                // this is in compliance with SQL standard
+                if(values.size() == 0) {
+                    return null;
+                }
+
+                long sum = 0;
+                boolean sawNonNull = false;
+                for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+                    Tuple t = (Tuple) it.next();
+                    try {
+                        Long l = (Long)(t.get(0));
+                        if (l == null) continue;
+                        sawNonNull = true;
+                        sum += l;
+                    }catch(RuntimeException exp) {
+                        throw WrappedIOException.wrap(
+                            "Caught exception in IntSum.Final", exp);
+                    }
+                }
+        
+                
+                if(sawNonNull) {
+                    return new Long(sum);
+                } else {
+                    return null;
+                }
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap("Caught exception in IntSum.Final", ee);
             }
         }
     }

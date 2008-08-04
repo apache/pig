@@ -20,14 +20,15 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 
@@ -183,5 +184,15 @@ public class ConstantExpression extends ExpressionOperator {
             return res;
         res.result = (Map)value;
         return res;
+    }
+
+    @Override
+    public ConstantExpression clone() throws CloneNotSupportedException {
+        ConstantExpression clone =
+            new ConstantExpression(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.value = value;
+        clone.cloneHelper(this);
+        return clone;
     }
 }

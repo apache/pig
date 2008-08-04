@@ -60,4 +60,12 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
     public void setRhs(ExpressionOperator rhs) {
         this.rhs = rhs;
     }
+
+    protected void cloneHelper(BinaryExpressionOperator op) {
+        // Don't clone these, as they are just references to things already in
+        // the plan.
+        lhs = op.lhs;
+        rhs = op.rhs;
+        super.cloneHelper(op);
+    }
 }

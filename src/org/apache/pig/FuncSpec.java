@@ -32,7 +32,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  *
  */
-public class FuncSpec implements Serializable{
+public class FuncSpec implements Serializable, Cloneable {
 
     private static final long serialVersionUID = 2L;
     String className = null;
@@ -194,6 +194,21 @@ public class FuncSpec implements Serializable{
      */
     public void setInputArgsSchema(Schema inputArgsSchema) {
         this.inputArgsSchema = inputArgsSchema;
+    }
+
+    @Override
+    public FuncSpec clone() throws CloneNotSupportedException {
+        String[] args = null;
+        if (ctorArgs != null) {
+            args = new String[ctorArgs.length];
+            for (int i = 0; i < ctorArgs.length; i++) {
+                // Can use the same strings, they're immutable
+                args[i] = ctorArgs[i];
+            }
+        }
+        Schema s = null;
+        if (inputArgsSchema != null) s = inputArgsSchema.clone();
+        return new FuncSpec(className, args, s);
     }
     
 }

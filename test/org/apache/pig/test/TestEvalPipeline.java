@@ -386,10 +386,10 @@ public class TestEvalPipeline extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertEquals((Integer)numIdentity, (Integer)t.get(0));
-            assertEquals((Long)5L, (Long)t.get(3));
-            assertEquals(LOOP_COUNT*2.0, (Double)t.get(4), 0.01);
-            assertEquals(8.0, (Double)t.get(6), 0.01);
-            assertEquals(7, t.size());
+            assertEquals((Long)5L, (Long)t.get(2));
+            assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
+            assertEquals(8.0, (Double)t.get(5), 0.01);
+            assertEquals(6, t.size());
             ++numIdentity;
         }
         assertEquals(LOOP_COUNT, numIdentity);

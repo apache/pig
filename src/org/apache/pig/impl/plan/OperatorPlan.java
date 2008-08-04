@@ -35,7 +35,18 @@ import org.apache.commons.logging.LogFactory;
 //import org.apache.commons.collections.map.MultiValueMap;
 
 /**
- * A generic graphing class for use by LogicalPlan, PhysicalPlan, etc.
+ * A generic graphing class for use by LogicalPlan, PhysicalPlan, etc.  One
+ * important aspect of this package is that it guarantees that once a graph is
+ * constructed, manipulations on that graph will maintain the ordering of
+ * inputs and outputs for a given node.  That is, if a node has two inputs, 0
+ * and 1, it is guaranteed that everytime it asks for its inputs, it will
+ * receive them in the same order.  This allows operators that need to
+ * distinguish their inputs (such as binary operators that need to know left
+ * from right) to work without needing to store their inputs themselves.  This
+ * is an extra burden on the graph package and not in line with the way graphs
+ * are generally understood mathematically.  But it greatly reducing the need
+ * for graph manipulators (such as the validators and optimizers) to
+ * understand the internals of various nodes.
  */
 public abstract class OperatorPlan<E extends Operator> implements Iterable, Serializable {
     protected Map<E, OperatorKey> mOps;
@@ -156,7 +167,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         if (mToEdges.get(to) != null &&
                 !to.supportsMultipleInputs()) {
             PlanException pe =  new PlanException("Attempt to give operator of type " +
-                from.getClass().getName() + " multiple inputs.  This operator does "
+                to.getClass().getName() + " multiple inputs.  This operator does "
                 + "not support multiple inputs.");
             log.error(pe.getMessage());
             throw pe;
@@ -198,6 +209,47 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         mOps.remove(op);
         mKeys.remove(op.getOperatorKey());
     }
+
+    /**
+     * Trim everything below a given operator.  The specified operator will
+     * NOT be removed.
+     * @param op Operator to trim everything after.
+     */
+    public void trimBelow(E op) {
+        trimBelow(getSuccessors(op));
+    }
+
+    private void trimBelow(List<E> ops) {
+        if (ops != null) {
+            // Make a copy because we'll be messing with the underlying list.
+            List<E> copy = new ArrayList<E>(ops);
+            for (E op : copy) {
+                trimBelow(getSuccessors(op));
+                remove(op);
+            }
+        }
+    }
+
+    /**
+     * Trim everything above a given operator.  The specified operator will
+     * NOT be removed.
+     * @param op Operator to trim everything before.
+     */
+    public void trimAbove(E op) {
+        trimAbove(getPredecessors(op));
+    }
+
+    private void trimAbove(List<E> ops) {
+        if (ops != null) {
+            // Make a copy because we'll be messing with the underlying list.
+            List<E> copy = new ArrayList<E>(ops);
+            for (E op : copy) {
+                trimAbove(getPredecessors(op));
+                remove(op);
+            }
+        }
+    }
+
 
     /**
      * Find all of the nodes that have edges to the indicated node from
@@ -392,6 +444,51 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
             }
         }
         return false;
+    }
+
+    /**
+     * Replace an existing node in the graph with a new node.  The new node
+     * will be connected to all the nodes the old node was.  The old node will
+     * be removed.
+     * @param oldNode Node to be replaced
+     * @param newNode Node to add in place of oldNode
+     * @throws PlanException
+     */
+    public void replace(E oldNode, E newNode) throws PlanException {
+        checkInPlan(oldNode);
+        add(newNode);
+        mToEdges = generateNewMap(oldNode, newNode, mToEdges);
+        mFromEdges = generateNewMap(oldNode, newNode, mFromEdges);
+        remove(oldNode);
+    }
+
+    private MultiMap<E, E> generateNewMap(
+            E oldNode,
+            E newNode,
+            MultiMap<E, E> mm) {
+        // First, replace the key
+        Collection<E> targets = mm.get(oldNode);
+        if (targets != null) {
+            mm.removeKey(oldNode);
+            mm.put(newNode, targets);
+        }
+
+        // We can't just do a remove and add in the map because of our
+        // guarantee of not changing orders.  So we need to walk the lists and
+        // put the new node in the same slot as the old.
+
+        // Walk all the other keys and replace any references to the oldNode
+        // in their targets.
+        MultiMap<E, E> newMap = new MultiMap<E, E>(mm.size());
+        for (E key : mm.keySet()) {
+            Collection<E> c = mm.get(key);
+            ArrayList<E> al = new ArrayList<E>(c);
+            for (int i = 0; i < al.size(); i++) {
+                if (al.get(i) == oldNode) al.set(i, newNode);
+            }
+            newMap.put(key, al);
+        }
+        return newMap;
     }
 
     /**

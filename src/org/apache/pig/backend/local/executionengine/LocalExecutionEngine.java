@@ -39,6 +39,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
+import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.executionengine.HJob;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -147,9 +148,9 @@ public class LocalExecutionEngine implements ExecutionEngine {
             LocalLauncher launcher = new LocalLauncher();
             boolean success = launcher.launchPig(plan, jobName, pigContext);
             if(success)
-                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+                return new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
             else
-                return new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
+                return new LocalJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
@@ -168,6 +169,8 @@ public class LocalExecutionEngine implements ExecutionEngine {
             PlanPrinter printer = new PlanPrinter(plan);
             printer.visit();
             stream.println();
+
+            ExecTools.checkLeafIsStore(plan, pigContext);
 
             LocalLauncher launcher = new LocalLauncher();
             launcher.explain(plan, pigContext, stream);

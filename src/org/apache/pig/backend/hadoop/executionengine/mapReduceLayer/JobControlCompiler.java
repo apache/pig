@@ -32,7 +32,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.pig.FuncSpec;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -44,7 +43,9 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.DoubleWritable;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -331,13 +332,11 @@ public class JobControlCompiler{
         }
     }
 
-    /*
     public static class PigDoubleWritableComparator extends PigWritableComparator {
         public PigDoubleWritableComparator() {
-            super(Double.class);
+            super(DoubleWritable.class);
         }
     }
-    */
 
     public static class PigCharArrayWritableComparator extends PigWritableComparator {
         public PigCharArrayWritableComparator() {
@@ -396,9 +395,8 @@ public class JobControlCompiler{
                 break;
 
             case DataType.DOUBLE:
-                //jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
-                log.error("Waiting for Hadoop to support DoubleWritable");
-                throw new JobCreationException("Waiting for Hadoop to support DoubleWritable");
+                jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
+                break;
 
             case DataType.CHARARRAY:
                 jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);

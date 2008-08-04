@@ -42,6 +42,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POUserFunc extends ExpressionOperator {
@@ -59,18 +61,26 @@ public class POUserFunc extends ExpressionOperator {
 	public static final byte INTERMEDIATE = 1;
 	public static final byte FINAL = 2;
 
-	public POUserFunc(OperatorKey k, int rp, List inp) {
+	public POUserFunc(OperatorKey k, int rp, List<PhysicalOperator> inp) {
 		super(k, rp);
 		inputs = inp;
 
 	}
 
-	public POUserFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec) {
+	public POUserFunc(
+            OperatorKey k,
+            int rp,
+            List<PhysicalOperator> inp,
+            FuncSpec funcSpec) {
 		this(k, rp, inp, funcSpec, null);
 	}
 	
-	public POUserFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec, EvalFunc func) {
-//		super(k, rp, inp);
+	public POUserFunc(
+            OperatorKey k,
+            int rp,
+            List<PhysicalOperator> inp,
+            FuncSpec funcSpec,
+            EvalFunc func) {
         super(k, rp);
         super.setInputs(inp);
 		this.funcSpec = funcSpec;
@@ -170,7 +180,8 @@ public class POUserFunc extends ExpressionOperator {
 			return result;
 			
 		} catch (IOException e1) {
-			log.error(e1);
+			log.error("Caught error from UDF " + funcSpec.getClassName() + 
+                "[" + e1.getMessage() + "]");
 		}
 		
 		
@@ -235,7 +246,7 @@ public class POUserFunc extends ExpressionOperator {
 		return getNext();
 	}
 
-	public void setAlgebraicFunction(Byte Function) {
+	public void setAlgebraicFunction(byte Function) {
 		// This will only be used by the optimizer for putting correct functions
 		// in the mapper,
 		// combiner and reduce. This helps in maintaining the physical plan as
@@ -265,10 +276,11 @@ public class POUserFunc extends ExpressionOperator {
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getInitial();
 		} else {
-			log
-					.error("Attempt to run a non-algebraic function as an algebraic function");
+			String msg = new String("Attempt to run a non-algebraic function"
+                + " as an algebraic function");
+            log.error(msg);
+            throw new RuntimeException(msg);
 		}
-		return null;
 	}
 
 	public String getIntermed() {
@@ -276,10 +288,11 @@ public class POUserFunc extends ExpressionOperator {
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getIntermed();
 		} else {
-			log
-					.error("Attempt to run a non-algebraic function as an algebraic function");
+			String msg = new String("Attempt to run a non-algebraic function"
+                + " as an algebraic function");
+            log.error(msg);
+            throw new RuntimeException(msg);
 		}
-		return null;
 	}
 
 	public String getFinal() {
@@ -287,10 +300,11 @@ public class POUserFunc extends ExpressionOperator {
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getFinal();
 		} else {
-			log
-					.error("Attempt to run a non-algebraic function as an algebraic function");
+			String msg = new String("Attempt to run a non-algebraic function"
+                + " as an algebraic function");
+            log.error(msg);
+            throw new RuntimeException(msg);
 		}
-		return null;
 	}
 
 	public Type getReturnType() {
@@ -334,6 +348,20 @@ public class POUserFunc extends ExpressionOperator {
 
     public FuncSpec getFuncSpec() {
         return funcSpec;
+    }
+
+    public boolean combinable() {
+        return (func instanceof Algebraic);
+    }
+
+    @Override
+    public POUserFunc clone() throws CloneNotSupportedException {
+        // Inputs will be patched up later by PhysicalPlan.clone()
+        POUserFunc clone = new POUserFunc(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, null, funcSpec.clone());
+        clone.setResultType(resultType);
+        return clone;
     }
     
     private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{

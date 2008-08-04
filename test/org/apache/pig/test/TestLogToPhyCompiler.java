@@ -185,6 +185,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     }
     
     public void testCogroup() throws VisitorException, IOException {
+        System.out.println("testCogroup");
     	String query = "cogroup (load 'a') by ($0 + $1, $0 - $1), (load 'b') by ($0 + $1, $0 - $1);";
     	LogicalPlan plan = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(plan);
@@ -211,7 +212,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
     
     public void testArithmetic() throws VisitorException, IOException, ExecException {

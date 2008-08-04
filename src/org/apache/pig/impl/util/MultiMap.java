@@ -38,7 +38,18 @@ import java.util.Set;
  */
 public class MultiMap<K, V> implements Serializable {
 
-    private HashMap<K, ArrayList<V>> mMap = new HashMap<K, ArrayList<V>>();
+    private HashMap<K, ArrayList<V>> mMap = null;
+
+    public MultiMap() {
+        mMap = new HashMap<K, ArrayList<V>>();
+    }
+
+    /**
+     * @param size Initial size of the map
+     */
+    public MultiMap(int size) {
+        mMap = new HashMap<K, ArrayList<V>>(size);
+    }
 
     /**
      * Add an element to the map.
@@ -149,7 +160,27 @@ public class MultiMap<K, V> implements Serializable {
         return values;
     }
 
+    /**
+     * Get the number of entries in the map.
+     * @return number of entries.
+     */
+    public int size() {
+        return mMap.size();
+    }
 
+    public boolean isEmpty() {
+        return mMap.isEmpty();
+    }
 
+    public void clear() {
+        mMap.clear();
+    }
 
+    public boolean containsKey(K key) {
+        return mMap.containsKey(key);
+    }
+
+    public boolean containsValue(V val) {
+        return mMap.containsValue(val);
+    }
 }

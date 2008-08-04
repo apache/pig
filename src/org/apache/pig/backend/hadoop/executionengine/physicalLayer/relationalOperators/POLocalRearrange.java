@@ -34,6 +34,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -49,6 +50,8 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
 
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+
     private Log log = LogFactory.getLog(getClass());
 
     List<PhysicalPlan> plans;
@@ -59,6 +62,15 @@ public class POLocalRearrange extends PhysicalOperator {
     int index;
     
     byte keyType;
+
+    private boolean mIsDistinct = false;
+
+    // A place holder IndexedTuple used in distinct case where we really don't
+    // have any value to pass through.  But hadoop gets cranky if we pass a
+    // null, so we'll just create one instance of this empty indexed tuple and
+    // pass it for every row.  We only get around to actually creating it if
+    // mIsDistinct is set to true.
+    private IndexedTuple mFakeIndexedTuple = null;
 
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -85,7 +97,9 @@ public class POLocalRearrange extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Local Rearrange" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
+        return "Local Rearrange" + "[" + DataType.findTypeName(resultType) +
+            "]" + "{" + DataType.findTypeName(keyType) + "}" + "(" +
+            mIsDistinct + ") - " + mKey.toString();
     }
 
     @Override
@@ -104,6 +118,17 @@ public class POLocalRearrange extends PhysicalOperator {
 
     public void setIndex(int index) {
         this.index = index;
+    }
+
+    public boolean isDistinct() { 
+        return mIsDistinct;
+    }
+
+    public void setDistinct(boolean isDistinct) {
+        mIsDistinct = isDistinct;
+        if (mIsDistinct) {
+            mFakeIndexedTuple = new IndexedTuple(mTupleFactory.newTuple(), 0);
+        }
     }
     
     /**
@@ -184,7 +209,7 @@ public class POLocalRearrange extends PhysicalOperator {
         //Construct key
         Object key;
         if(resLst.size()>1){
-            Tuple t = TupleFactory.getInstance().newTuple(resLst.size());
+            Tuple t = mTupleFactory.newTuple(resLst.size());
             int i=-1;
             for(Result res : resLst)
                 t.set(++i, res.result);
@@ -194,16 +219,25 @@ public class POLocalRearrange extends PhysicalOperator {
             key = resLst.get(0).result;
         }
         
-        //Create the indexed tuple out of the value
-        //that is remaining in the input tuple
-        IndexedTuple it = new IndexedTuple(value, index);
-        
-        //Put the key and the indexed tuple
-        //in a tuple and return
-        Tuple outPut = TupleFactory.getInstance().newTuple(2);
-        outPut.set(0,key);
-        outPut.set(1,it);
-        return outPut;
+        Tuple outPut = mTupleFactory.newTuple(2);
+        if (mIsDistinct) {
+
+            //Put the key and the indexed tuple
+            //in a tuple and return
+            outPut.set(0,key);
+            outPut.set(1, mFakeIndexedTuple);
+            return outPut;
+        } else {
+            //Create the indexed tuple out of the value
+            //that is remaining in the input tuple
+            IndexedTuple it = new IndexedTuple(value, index);
+
+            //Put the key and the indexed tuple
+            //in a tuple and return
+            outPut.set(0,key);
+            outPut.set(1,it);
+            return outPut;
+        }
     }
 
     public byte getKeyType() {
@@ -225,4 +259,30 @@ public class POLocalRearrange extends PhysicalOperator {
             leafOps.add((ExpressionOperator)plan.getLeaves().get(0));
         }
     }
+
+    /**
+     * Make a deep copy of this operator.  
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public POLocalRearrange clone() throws CloneNotSupportedException {
+        List<PhysicalPlan> clonePlans = new
+            ArrayList<PhysicalPlan>(plans.size());
+        for (PhysicalPlan plan : plans) {
+            clonePlans.add(plan.clone());
+        }
+        POLocalRearrange clone = new POLocalRearrange(new OperatorKey(
+            mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism);
+        clone.setPlans(clonePlans);
+        clone.keyType = keyType;
+        clone.index = index;
+        // Needs to be called as setDistinct so that the fake index tuple gets
+        // created.
+        clone.setDistinct(mIsDistinct);
+        return clone;
+    }
+
+
 }

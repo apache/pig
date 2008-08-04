@@ -20,11 +20,12 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class PORegexp extends BinaryComparisonOperator {
@@ -70,5 +71,13 @@ public class PORegexp extends BinaryComparisonOperator {
             left.result = falseRef;
         }
         return left;
+    }
+
+    @Override
+    public PORegexp clone() throws CloneNotSupportedException {
+        PORegexp clone = new PORegexp(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.cloneHelper(this);
+        return clone;
     }
 }

@@ -12,8 +12,10 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -28,16 +30,14 @@ public class LocalLauncher extends Launcher{
     private static final Log log = LogFactory.getLog(LocalLauncher.class);
     
     @Override
-    public boolean launchPig(PhysicalPlan php,
-                             String grpName,
-                             PigContext pc) throws PlanException,
-                                                   VisitorException,
-                                                   IOException,
-                                                   ExecException,
-                                                   JobCreationException {
+    public boolean launchPig(
+            PhysicalPlan php,
+            String grpName,
+            PigContext pc) throws PlanException, VisitorException,
+                                  IOException, ExecException,
+                                  JobCreationException {
         long sleepTime = 500;
-        MRCompiler comp = new MRCompiler(php, pc);
-        comp.compile();
+        MROperPlan mrp = compile(php, pc);
         
         ExecutionEngine exe = pc.getExecutionEngine();
         Properties validatedProperties = ConfigurationValidator.getValidatedProperties(exe.getConfiguration());
@@ -45,7 +45,6 @@ public class LocalLauncher extends Launcher{
         conf.set("mapred.job.tracker", "local");
         JobClient jobClient = new JobClient(new JobConf(conf));
 
-        MROperPlan mrp = comp.getMRPlan();
         JobControlCompiler jcc = new JobControlCompiler();
         
         JobControl jc = jcc.compile(mrp, grpName, conf, pc);
@@ -89,19 +88,32 @@ public class LocalLauncher extends Launcher{
     }
 
     @Override
-    public void explain(PhysicalPlan php,
-                        PigContext pc,
-                        PrintStream ps) throws PlanException,
-                                               VisitorException,
-                                               IOException {
-        MRCompiler comp = new MRCompiler(php, pc);
-        comp.compile();
-        MROperPlan mrp = comp.getMRPlan();
+    public void explain(
+            PhysicalPlan php,
+            PigContext pc,
+            PrintStream ps) throws PlanException, VisitorException,
+                                   IOException {
+        log.trace("Entering LocalLauncher.explain");
+        MROperPlan mrp = compile(php, pc);
 
         MRPrinter printer = new MRPrinter(ps, mrp);
         printer.visit();
     }
  
+    private MROperPlan compile(
+            PhysicalPlan php,
+            PigContext pc) throws PlanException, IOException, VisitorException {
+        MRCompiler comp = new MRCompiler(php, pc);
+        comp.compile();
+        MROperPlan plan = comp.getMRPlan();
+        String prop = System.getProperty("pig.exec.nocombiner");
+        if (!("true".equals(prop)))  {
+            CombinerOptimizer co = new CombinerOptimizer(plan);
+            co.visit();
+        }
+        return plan;
+    }
+
     //A purely testing method. Not to be used elsewhere
     public boolean launchPigWithCombinePlan(PhysicalPlan php,
             String grpName, PigContext pc, PhysicalPlan combinePlan) throws PlanException,

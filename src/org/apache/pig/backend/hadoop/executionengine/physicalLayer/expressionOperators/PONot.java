@@ -18,11 +18,12 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -73,5 +74,13 @@ public class PONot extends UnaryComparisonOperator {
         }
         if (((Boolean)res.result).booleanValue()) return falseRes;
         else return trueRes;
+    }
+
+    @Override
+    public PONot clone() throws CloneNotSupportedException {
+        PONot clone = new PONot(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.cloneHelper(this);
+        return clone;
     }
 }

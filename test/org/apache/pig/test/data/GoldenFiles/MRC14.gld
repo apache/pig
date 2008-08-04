@@ -18,19 +18,19 @@ Reduce Plan Empty
     |   |---Package[tuple]{Unknown} - -8067897495211048679
     |   Union[tuple] - -68
     |   |
-    |   |---Local Rearrange[tuple]{Unknown} - --8754957318949788629
+    |   |---Local Rearrange[tuple]{Unknown}(false) - --8754957318949788629
     |   |   |
     |   |   |---Filter[tuple] - -551977918718096509
     |   |       |
     |   |       |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -58
     |   |
-    |   |---Local Rearrange[tuple]{Unknown} - -6411189422016119355
+    |   |---Local Rearrange[tuple]{Unknown}(false) - -6411189422016119355
     |   |   |
     |   |   |---Filter[tuple] - -2056844330428347996
     |   |       |
     |   |       |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -63
     |   |
-    |   |---Local Rearrange[tuple]{Unknown} - -7225341208466719305
+    |   |---Local Rearrange[tuple]{Unknown}(false) - -7225341208466719305
     |       |
     |       |---Filter[tuple] - --7987250529196129674
     |           |

@@ -18,11 +18,12 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -68,5 +69,13 @@ public class POOr extends BinaryComparisonOperator {
         // No matter what, what we get from the right side is what we'll
         // return, error, null, true, or false.
         return rhs.getNext(dummyBool);
+    }
+
+    @Override
+    public POOr clone() throws CloneNotSupportedException {
+        POOr clone = new POOr(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.cloneHelper(this);
+        return clone;
     }
 }

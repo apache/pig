@@ -53,45 +53,35 @@ public class HDataType {
     static Map<Byte, String> typeToName = null;
 
     public static WritableComparable getWritableComparableTypes(Object o) throws ExecException{
-        WritableComparable wcKey = null;
-        if (typeToName == null) typeToName = DataType.genTypeToNameMap();
         byte type = DataType.findType(o);
         switch (type) {
         case DataType.BAG:
-            wcKey = (DataBag) o;
-            break;
+            return (DataBag)o;
+
         case DataType.BOOLEAN:
-            boolWrit.set((Boolean)o);
-            wcKey = boolWrit;
-            break;
+            return new BooleanWritable((Boolean)o);
+
         case DataType.BYTEARRAY:
-            byte[] dbaBytes = ((DataByteArray) o).get();
-            bytesWrit.set(dbaBytes,0,dbaBytes.length);
-            wcKey = bytesWrit;
-            break;
+            return new BytesWritable(((DataByteArray)o).get());
+            
         case DataType.CHARARRAY:
-            stringWrit.set((String) o);
-            wcKey = stringWrit;
-            break;
+            return new Text((String)o);
+            
         case DataType.DOUBLE:
-            doubleWrit.set((Double) o);
-            wcKey = doubleWrit;
-            break;
+            return new DoubleWritable((Double)o);
+           
         case DataType.FLOAT:
-            floatWrit.set((Float) o);
-            wcKey = floatWrit;
-            break;
+            return new FloatWritable((Float)o);
+            
         case DataType.INTEGER:
-            intWrit.set((Integer) o);
-            wcKey = intWrit;
-            break;
+            return new IntWritable((Integer)o);
+           
         case DataType.LONG:
-            longWrit.set((Long) o);
-            wcKey = longWrit;
-            break;
+            return new LongWritable((Long)o);
+          
         case DataType.TUPLE:
-            wcKey = (Tuple) o;
-            break;
+            return (Tuple) o;
+         
 //        case DataType.MAP:
             // Hmm, This is problematic
             // Need a deep clone to convert a Map into
@@ -99,16 +89,15 @@ public class HDataType {
             // wcKey = new MapWritable();
 //            break;
         default:
+            if (typeToName == null) typeToName = DataType.genTypeToNameMap();
             throw new ExecException("The type "
                     + typeToName.get(type)
                     + " cannot be collected as a Key type");
         }
-        return wcKey;
     }
     
     public static WritableComparable getWritableComparableTypes(byte type) throws ExecException{
         WritableComparable wcKey = null;
-        if (typeToName == null) typeToName = DataType.genTypeToNameMap();
          switch (type) {
         case DataType.BAG:
             wcKey = defDB;
@@ -144,6 +133,7 @@ public class HDataType {
             // wcKey = new MapWritable();
 //            break;
         default:
+            if (typeToName == null) typeToName = DataType.genTypeToNameMap();
             throw new ExecException("The type "
                     + typeToName.get(type)
                     + " cannot be collected as a Key type");

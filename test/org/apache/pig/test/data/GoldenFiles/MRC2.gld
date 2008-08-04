@@ -12,7 +12,7 @@ Reduce Plan Empty
 |   |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -83
 |   |   |
 |   |   |---Package[tuple]{Unknown} - -370083002387034672
-|   |   Local Rearrange[tuple]{Unknown} - -6305091296204163466
+|   |   Local Rearrange[tuple]{Unknown}(false) - -6305091296204163466
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - -1236980712440527800
 |
@@ -20,6 +20,6 @@ Reduce Plan Empty
     |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -85
     |   |
     |   |---Package[tuple]{Unknown} - -7123718043666602037
-    |   Local Rearrange[tuple]{Unknown} - --6380139708906526553
+    |   Local Rearrange[tuple]{Unknown}(false) - --6380139708906526553
     |   |
     |   |---Load(DummyFil:DummyLdr) - --2136667002319908593

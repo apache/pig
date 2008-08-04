@@ -1,5 +1,6 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POForEach extends PhysicalOperator {
@@ -308,7 +310,7 @@ public class POForEach extends PhysicalOperator {
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
             
-            if(in instanceof Tuple) {
+            if(isToBeFlattened.get(i) && in instanceof Tuple) {
                 Tuple t = (Tuple)in;
                 for(int j = 0; j < t.size(); ++j) {
                     out.append(t.get(j));
@@ -345,9 +347,42 @@ public class POForEach extends PhysicalOperator {
         getLeaves();
     }
 
+    public void addInputPlan(PhysicalPlan plan, boolean flatten) {
+        inputPlans.add(plan);
+        planLeaves.add(plan.getLeaves().get(0));
+        isToBeFlattened.add(flatten);
+    }
+
     public void setToBeFlattened(List<Boolean> flattens) {
         isToBeFlattened = flattens;
     }
+
+    public List<Boolean> getToBeFlattened() {
+        return isToBeFlattened;
+    }
+
+    /**
+     * Make a deep copy of this operator.  
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public POForEach clone() throws CloneNotSupportedException {
+        List<PhysicalPlan> plans = new
+            ArrayList<PhysicalPlan>(inputPlans.size());
+        for (PhysicalPlan plan : inputPlans) {
+            plans.add(plan.clone());
+        }
+        List<Boolean> flattens = new
+            ArrayList<Boolean>(isToBeFlattened.size());
+        for (Boolean b : isToBeFlattened) {
+            // Boolean is immutable, so using same reference is ok
+            flattens.add(b);
+        }
+        return new POForEach(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, plans, flattens);
+    }
+
 
 
 }

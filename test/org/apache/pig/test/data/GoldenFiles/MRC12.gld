@@ -4,13 +4,13 @@ MapReduce(-1) - -37:
 |   |---Package[tuple]{Unknown} - --1008013035164995818
 |   Union[tuple] - -38
 |   |
-|   |---Local Rearrange[tuple]{Unknown} - -3900012572437255236
+|   |---Local Rearrange[tuple]{Unknown}(false) - -3900012572437255236
 |   |   |
 |   |   |---Filter[tuple] - -7391599663069134339
 |   |       |
 |   |       |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -33
 |   |
-|   |---Local Rearrange[tuple]{Unknown} - -8760996681222683693
+|   |---Local Rearrange[tuple]{Unknown}(false) - -8760996681222683693
 |       |
 |       |---Filter[tuple] - -956528893337238225
 |           |

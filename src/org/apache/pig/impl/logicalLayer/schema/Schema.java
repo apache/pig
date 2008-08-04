@@ -35,11 +35,11 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 
-public class Schema implements Serializable {
+public class Schema implements Serializable, Cloneable {
 
     private static final long serialVersionUID = 2L;
 
-    public static class FieldSchema implements Serializable{
+    public static class FieldSchema implements Serializable, Cloneable {
         /**
          * 
          */

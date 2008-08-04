@@ -54,6 +54,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.builtin.BinStorage;
@@ -251,25 +252,7 @@ public class HExecutionEngine implements ExecutionEngine {
     public ExecJob execute(PhysicalPlan plan,
                            String jobName) throws ExecException {
         try {
-            FileSpec spec = checkLeafIsStore(plan);
-            /*
-            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
-            FileSpec spec = null;
-            if(!(leaf instanceof POStore)){
-                String scope = leaf.getOperatorKey().getScope();
-                POStore str = new POStore(new OperatorKey(scope,
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                str.setPc(pigContext);
-                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
-                    pigContext).toString(),
-                    new FuncSpec(BinStorage.class.getName()));
-                str.setSFile(spec);
-                plan.addAsLeaf(str);
-            }
-            else{
-                spec = ((POStore)leaf).getSFile();
-            }
-            */
+            FileSpec spec = ExecTools.checkLeafIsStore(plan, pigContext);
 
             MapReduceLauncher launcher = new MapReduceLauncher();
             boolean success = launcher.launchPig(plan, jobName, pigContext);
@@ -298,7 +281,7 @@ public class HExecutionEngine implements ExecutionEngine {
             printer.visit();
             stream.println();
 
-            checkLeafIsStore(plan);
+            ExecTools.checkLeafIsStore(plan, pigContext);
 
             MapReduceLauncher launcher = new MapReduceLauncher();
             launcher.explain(plan, pigContext, stream);
@@ -551,6 +534,7 @@ public class HExecutionEngine implements ExecutionEngine {
         return p;
     }
 
+    /*
     private FileSpec checkLeafIsStore(PhysicalPlan plan) throws ExecException {
         try {
             PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
@@ -573,6 +557,8 @@ public class HExecutionEngine implements ExecutionEngine {
             throw new ExecException(e);
         }
     }
+    */
+
     private void deleteDir(String server, String dir) {
         if (server.equals(LOCAL)){
             File path = new File(dir);

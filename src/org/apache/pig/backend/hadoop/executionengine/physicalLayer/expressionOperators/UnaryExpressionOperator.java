@@ -65,4 +65,12 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
     public ExpressionOperator getExpr() { 
         return expr;
     }
+
+    protected void cloneHelper(UnaryExpressionOperator op) {
+        // Don't clone this, as it is just a reference to something already in
+        // the plan.
+        expr = op.expr;
+        resultType = op.getResultType();
+    }
+
 }

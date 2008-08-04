@@ -28,6 +28,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -40,9 +41,7 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
         try {
             return sum(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw WrappedIOException.wrap("Caught exception in FloatSum", ee);
         }
     }
 
@@ -66,9 +65,7 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
             try {
                 return tfact.newTuple(sum(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap("Caught exception in FloatSum.Initial", ee);
             }
         }
     }
@@ -76,11 +73,39 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
         @Override
         public Double exec(Tuple input) throws IOException {
             try {
-                return sum(input);
+                // Can't just call sum, because the intermediate results are
+                // now Doubles insteads of Floats.
+                DataBag values = (DataBag)input.get(0);
+        
+                // if we were handed an empty bag, return NULL
+                // this is in compliance with SQL standard
+                if(values.size() == 0) {
+                    return null;
+                }
+
+                long sum = 0;
+                boolean sawNonNull = false;
+                for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+                    Tuple t = (Tuple) it.next();
+                    try {
+                        Double d = (Double)(t.get(0));
+                        if (d == null) continue;
+                        sawNonNull = true;
+                        sum += d;
+                    }catch(RuntimeException exp) {
+                        throw WrappedIOException.wrap(
+                            "Caught exception in FloatSum.Final", exp);
+                    }
+                }
+        
+                
+                if(sawNonNull) {
+                    return new Double(sum);
+                } else {
+                    return null;
+                }
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap("Caught exception in FloatSum.Final", ee);
             }
         }
     }

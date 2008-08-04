@@ -32,6 +32,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
@@ -315,6 +317,22 @@ public class POProject extends ExpressionOperator {
 
     public void setStar(boolean star) {
         this.star = star;
+    }
+
+    @Override
+    public POProject clone() throws CloneNotSupportedException {
+        ArrayList<Integer> cols = new ArrayList<Integer>(columns.size());
+        // Can resuse the same Integer objects, as they are immutable
+        for (Integer i : columns) {
+            cols.add(i);
+        }
+        POProject clone = new POProject(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, cols);
+        clone.cloneHelper(this);
+        clone.star = star;
+        clone.overloaded = overloaded;
+        return clone;
     }
     
     private Result processInputBag() throws ExecException {

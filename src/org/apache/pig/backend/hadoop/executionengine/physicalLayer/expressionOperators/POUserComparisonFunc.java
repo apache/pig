@@ -10,16 +10,17 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 
 public class POUserComparisonFunc extends ExpressionOperator {
 
@@ -148,6 +149,20 @@ public class POUserComparisonFunc extends ExpressionOperator {
     
     public FuncSpec getFuncSpec() {
         return funcSpec;
+    }
+
+    @Override
+    public POUserComparisonFunc clone() throws CloneNotSupportedException {
+        FuncSpec cloneFs = null;
+        if (funcSpec != null) {
+            cloneFs = funcSpec.clone();
+        }
+        POUserComparisonFunc clone =
+            new POUserComparisonFunc(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+            requestedParallelism, null, cloneFs);
+        clone.cloneHelper(this);
+        return clone;
     }
 
 }

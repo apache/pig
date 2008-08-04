@@ -771,6 +771,7 @@ public class MRCompiler extends PhyPlanVisitor {
             lr.setKeyType(DataType.TUPLE);
             lr.setPlans(eps);
             lr.setResultType(DataType.TUPLE);
+            lr.setDistinct(true);
             if(!mro.isMapDone()){
                 mro.mapPlan.addAsLeaf(lr);
             }
@@ -782,7 +783,7 @@ public class MRCompiler extends PhyPlanVisitor {
             
             POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
             pkg.setKeyType(DataType.TUPLE);
-            pkg.setNumInps(1);
+            pkg.setNumInps(0);
             boolean[] inner = {false}; 
             pkg.setInner(inner);
             curMROp.reducePlan.add(pkg);
@@ -797,7 +798,7 @@ public class MRCompiler extends PhyPlanVisitor {
             prj1.setOverloaded(false);
             ep1.add(prj1);
             eps1.add(ep1);
-            flat1.add(false);
+            flat1.add(true);
             POForEach nfe1 = new POForEach(new OperatorKey(scope, nig
                     .getNextNodeId(scope)), op.getRequestedParallelism(), eps1,
                     flat1);

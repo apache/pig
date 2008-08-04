@@ -29,6 +29,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Generates the count of the values of the first field of a tuple. This class is Algebraic in
@@ -42,9 +43,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
         try {
             return count(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw WrappedIOException.wrap("Caught exception in COUNT", ee);
         }
     }
 
@@ -67,9 +66,8 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             try {
                 return mTupleFactory.newTuple(count(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap(
+                    "Caught exception in COUNT.Initial", ee);
             }
         }
     }
@@ -81,9 +79,8 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             try {
                 return mTupleFactory.newTuple(count(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap(
+                    "Caught exception in COUNT.Intermed", ee);
             }
         }
     }
@@ -94,9 +91,8 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             try {
                 return sum(input);
             } catch (Exception ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw WrappedIOException.wrap(
+                    "Caught exception in COUNT.Final", ee);
             }
         }
     }

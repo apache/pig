@@ -20,14 +20,15 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POBinCond extends ExpressionOperator {
@@ -37,7 +38,6 @@ public class POBinCond extends ExpressionOperator {
     
     public POBinCond(OperatorKey k) {
         super(k);
-        // TODO Auto-generated constructor stub
     }
     
     public POBinCond(OperatorKey k, int rp) {
@@ -51,12 +51,6 @@ public class POBinCond extends ExpressionOperator {
         this.rhs = rhs;
     }
     
-    /*private Result getNext() throws ExecException {
-        
-        Result res = cond.processInput();
-        return ((Boolean)res.result) == true ? lhs.processInput() : rhs.processInput();
-    }*/
-
     @Override
     public Result getNext(Boolean b) throws ExecException {
         Result res = cond.getNext(b);
@@ -160,6 +154,17 @@ public class POBinCond extends ExpressionOperator {
     @Override
     public boolean supportsMultipleInputs() {
         return true;
+    }
+
+    @Override
+    public POBinCond clone() throws CloneNotSupportedException {
+        POBinCond clone = new POBinCond(new OperatorKey(mKey.scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.cloneHelper(this);
+        clone.cond = cond.clone();
+        clone.lhs = lhs.clone();
+        clone.rhs = rhs.clone();
+        return clone;
     }
 
 }

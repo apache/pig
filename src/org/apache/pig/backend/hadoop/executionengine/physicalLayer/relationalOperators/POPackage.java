@@ -30,6 +30,7 @@ import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -66,7 +67,8 @@ public class POPackage extends PhysicalOperator {
     byte keyType;
 
     //The number of inputs to this
-    //co-group
+    //co-group.  0 indicates a distinct, which means there will only be a
+    //key, no value.
     int numInputs;
     
     //Denotes if inner is specified
@@ -74,6 +76,9 @@ public class POPackage extends PhysicalOperator {
     boolean[] inner;
     
     private final Log log = LogFactory.getLog(getClass());
+
+    protected static BagFactory mBagFactory = BagFactory.getInstance();
+    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -154,16 +159,13 @@ public class POPackage extends PhysicalOperator {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        //Should be removed once we start integration/perf testing
-        if(indTupIter==null){
-            throw new ExecException("Incorrect usage of the Package operator. " +
-                    "No input has been attached.");
-        }
-        
         //Create numInputs bags
-        DataBag[] dbs = new DataBag[numInputs];
-        for (int i = 0; i < numInputs; i++) {
-            dbs[i] = BagFactory.getInstance().newDefaultBag();
+        DataBag[] dbs = null;
+        if (numInputs > 0) {
+            dbs = new DataBag[numInputs];
+            for (int i = 0; i < numInputs; i++) {
+                dbs[i] = mBagFactory.newDefaultBag();
+            }
         }
         
         //For each indexed tup in the inp, sort them
@@ -171,7 +173,7 @@ public class POPackage extends PhysicalOperator {
         //on the index
         while (indTupIter.hasNext()) {
             IndexedTuple it = indTupIter.next();
-            dbs[it.index].add(it.toTuple());
+            if (numInputs > 0) dbs[it.index].add(it.toTuple());
             if(reporter!=null) reporter.progress();
         }
         
@@ -179,19 +181,21 @@ public class POPackage extends PhysicalOperator {
         //the key and all the above constructed bags
         //and return it.
         Tuple res;
-        res = TupleFactory.getInstance().newTuple(numInputs+1);
+        res = mTupleFactory.newTuple(numInputs+1);
         res.set(0,key);
-        int i=-1;
-        for (DataBag bag : dbs) {
-            if(inner[++i]){
-                if(bag.size()==0){
-                    detachInput();
-                    Result r = new Result();
-                    r.returnStatus = POStatus.STATUS_NULL;
-                    return r;
+        if (numInputs > 0) {
+            int i=-1;
+            for (DataBag bag : dbs) {
+                if(inner[++i]){
+                    if(bag.size()==0){
+                        detachInput();
+                        Result r = new Result();
+                        r.returnStatus = POStatus.STATUS_NULL;
+                        return r;
+                    }
                 }
+                res.set(i+1,bag);
             }
-            res.set(i+1,bag);
         }
         detachInput();
         Result r = new Result();
@@ -207,4 +211,24 @@ public class POPackage extends PhysicalOperator {
     public void setKeyType(byte keyType) {
         this.keyType = keyType;
     }
+
+    /**
+     * Make a deep copy of this operator.  
+     * @throws CloneNotSupportedException
+     */
+    @Override
+    public POPackage clone() throws CloneNotSupportedException {
+        POPackage clone = new POPackage(new OperatorKey(mKey.scope,
+            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        clone.resultType = resultType;
+        clone.keyType = keyType;
+        clone.numInputs = numInputs;
+        clone.inner = new boolean[inner.length];
+        for (int i = 0; i < inner.length; i++) {
+            clone.inner[i] = inner[i];
+        }
+        return clone;
+    }
+
+
 }
