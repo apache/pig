@@ -49,7 +49,7 @@ public class TestConversions extends TestCase {
     public  void testBytesToInteger() throws IOException
     {
         // valid ints
-        String[] a = {"1", "-2345",  "1234567", "1.1", "-23.45"};
+        String[] a = {"1", "-2345",  "1234567", "1.1", "-23.45", ""};
         Integer[] ia = {1, -2345, 1234567, 1, -23};
         
         for (int i = 0; i < ia.length; i++) {
@@ -58,7 +58,7 @@ public class TestConversions extends TestCase {
         }
         
         // invalid ints
-        a = new String[]{"1234567890123456", "This is an int"};
+        a = new String[]{"1234567890123456", "This is an int", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
             Integer i = ps.bytesToInteger(b);
@@ -70,7 +70,7 @@ public class TestConversions extends TestCase {
     public  void testBytesToFloat() throws IOException
     {
         // valid floats
-        String[] a = {"1", "-2.345",  "12.12334567", "1.02e-2",".23344", "23.1234567897"};
+        String[] a = {"1", "-2.345",  "12.12334567", "1.02e-2",".23344", "23.1234567897", ""};
         Float[] f = {1f, -2.345f,  12.12334567f, 1.02e-2f,.23344f, 23.1234567f}; // last case is a truncation case
         for (int j = 0; j < f.length; j++) {
             byte[] b = a[j].getBytes();            
@@ -78,7 +78,7 @@ public class TestConversions extends TestCase {
         }
         
         // invalid floats
-        a = new String[]{"1a.1", "23.1234567a890123456",  "This is a float"};
+        a = new String[]{"1a.1", "23.1234567a890123456",  "This is a float", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
             Float fl = ps.bytesToFloat(b);
@@ -91,7 +91,7 @@ public class TestConversions extends TestCase {
     public  void testBytesToDouble() throws IOException
     {
         // valid doubles
-        String[] a = {"1", "-2.345",  "12.12334567890123456", "1.02e12","-.23344"};
+        String[] a = {"1", "-2.345",  "12.12334567890123456", "1.02e12","-.23344", ""};
         Double[] d = {(double)1, -2.345,  12.12334567890123456, 1.02e12, -.23344};
         for (int j = 0; j < d.length; j++) {
             byte[] b = a[j].getBytes();            
@@ -99,7 +99,7 @@ public class TestConversions extends TestCase {
         }
         
         // invalid doubles
-        a = new String[]{"-0x1.1", "-23a.45",  "This is a double"};
+        a = new String[]{"-0x1.1", "-23a.45",  "This is a double", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
             Double dl = ps.bytesToDouble(b);
@@ -112,7 +112,7 @@ public class TestConversions extends TestCase {
     public  void testBytesToLong() throws IOException
     {
         // valid Longs
-        String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45"};
+        String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45", ""};
         Long[] la = {1L, -2345L, 123456789012345678L, 1L, -23L};
         
         for (int i = 0; i < la.length; i++) {
@@ -121,7 +121,7 @@ public class TestConversions extends TestCase {
         }
         
         // invalid longs
-        a = new String[]{"This is a long", "1.0e1000"};
+        a = new String[]{"This is a long", "1.0e1000", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
             Long l = ps.bytesToLong(b);
@@ -133,7 +133,7 @@ public class TestConversions extends TestCase {
     public  void testBytesToChar() throws IOException
     {
         // valid Strings
-        String[] a = {"1", "-2345",  "text", "hello\nworld"};
+        String[] a = {"1", "-2345",  "text", "hello\nworld", ""};
         
         for (String s : a) {
             byte[] b = s.getBytes();

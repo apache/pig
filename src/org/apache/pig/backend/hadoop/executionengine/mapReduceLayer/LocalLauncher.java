@@ -111,6 +111,11 @@ public class LocalLauncher extends Launcher{
             CombinerOptimizer co = new CombinerOptimizer(plan);
             co.visit();
         }
+        // figure out the type of the key for the map plan
+        // this is needed when the key is null to create
+        // an appropriate NullableXXXWritable object
+        KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
+        kdv.visit();
         return plan;
     }
 

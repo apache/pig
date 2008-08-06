@@ -71,6 +71,8 @@ abstract public class Utf8StorageConverter {
     }
 
     public DataBag bytesToBag(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         Object o;
         try {
             o = parseFromBytes(b);
@@ -81,10 +83,14 @@ abstract public class Utf8StorageConverter {
     }
 
     public String bytesToCharArray(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         return new String(b);
     }
 
     public Double bytesToDouble(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         try {
             return Double.valueOf(new String(b));
         } catch (NumberFormatException nfe) {
@@ -96,6 +102,8 @@ abstract public class Utf8StorageConverter {
     }
 
     public Float bytesToFloat(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         try {
             return Float.valueOf(new String(b));
         } catch (NumberFormatException nfe) {
@@ -107,6 +115,8 @@ abstract public class Utf8StorageConverter {
     }
 
     public Integer bytesToInteger(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         String s = new String(b);
         try {
             return Integer.valueOf(s);
@@ -133,6 +143,8 @@ abstract public class Utf8StorageConverter {
     }
 
     public Long bytesToLong(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         String s = new String(b);
         try {
             return Long.valueOf(s);
@@ -159,6 +171,8 @@ abstract public class Utf8StorageConverter {
     }
 
     public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         Object o;
         try {
             o = parseFromBytes(b);
@@ -169,6 +183,8 @@ abstract public class Utf8StorageConverter {
     }
 
     public Tuple bytesToTuple(byte[] b) throws IOException {
+        if(b == null)
+            return null;
         Object o;
         try {
             o = parseFromBytes(b);

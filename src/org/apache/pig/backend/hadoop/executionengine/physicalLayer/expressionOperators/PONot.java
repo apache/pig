@@ -69,7 +69,7 @@ public class PONot extends UnaryComparisonOperator {
             falseRes.result = new Boolean(false);
         }
         res = expr.getNext(dummyBool);
-        if(res.returnStatus != POStatus.STATUS_OK) {
+        if(res.returnStatus != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         if (((Boolean)res.result).booleanValue()) return falseRes;

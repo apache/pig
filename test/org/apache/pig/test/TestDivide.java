@@ -56,7 +56,7 @@ public class TestDivide extends TestCase{
         byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
                 DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.MAP, DataType.TUPLE};
         //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
-        System.out.println("Testing ADD operator");
+        System.out.println("Testing DIVIDE operator");
         for(byte type : types) {
             lt.setResultType(type);
             rt.setResultType(type);
@@ -71,6 +71,17 @@ public class TestDivide extends TestCase{
                 rt.setValue(inpdb2);
                 Result resdb = op.getNext(inpdb1);
                 assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
+                
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpdb2);
+                resdb = op.getNext(inpdb1);
+                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
+                // test with null in rhs
+                lt.setValue(inpdb1);
+                rt.setValue(null);
+                resdb = op.getNext(inpdb1);
+                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
                 break;
             case DataType.BOOLEAN:
                 Boolean inpb1 = r.nextBoolean();
@@ -78,6 +89,17 @@ public class TestDivide extends TestCase{
                 lt.setValue(inpb1);
                 rt.setValue(inpb2);
                 Result resb = op.getNext(inpb1);
+                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpb2);
+                resb = op.getNext(inpb1);
+                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                // test with null in rhs
+                lt.setValue(inpb1);
+                rt.setValue(null);
+                resb = op.getNext(inpb1);
                 assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
                 break;
             case DataType.BYTEARRAY: {
@@ -89,6 +111,17 @@ public class TestDivide extends TestCase{
                 //DataByteArray expected = new DataByteArray(inpba1.toString() + inpba2.toString());
                 //assertEquals(expected, (DataByteArray)resba.result);
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
+                
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpba2);
+                resba = op.getNext(inpba1);
+                assertEquals(resba.returnStatus, POStatus.STATUS_ERR);
+                // test with null in rhs
+                lt.setValue(inpba1);
+                rt.setValue(null);
+                resba = op.getNext(inpba1);
+                assertEquals(resba.returnStatus, POStatus.STATUS_ERR);
                 break;
             }
             case DataType.CHARARRAY: {
@@ -100,6 +133,17 @@ public class TestDivide extends TestCase{
                 /*String expected = new String(inps1 + inps2);
                 assertEquals(expected, (String)ress.result);*/
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
+                
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inps2);
+                ress = op.getNext(inps1);
+                assertEquals(ress.returnStatus, POStatus.STATUS_ERR);
+                // test with null in rhs
+                lt.setValue(inps1);
+                rt.setValue(null);
+                ress = op.getNext(inps1);
+                assertEquals(ress.returnStatus, POStatus.STATUS_ERR);
                 break;
             }
             case DataType.DOUBLE: {
@@ -110,6 +154,17 @@ public class TestDivide extends TestCase{
                 Result resd = op.getNext(inpd1);
                 Double expected = new Double(inpd1 / inpd2);
                 assertEquals(expected, (Double)resd.result);
+                
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpd2);
+                resd = op.getNext(inpd1);
+                assertEquals(null, (Double)resd.result);
+                // test with null in rhs
+                lt.setValue(inpd1);
+                rt.setValue(null);
+                resd = op.getNext(inpd1);
+                assertEquals(null, (Double)resd.result);
                 break;
             }
             case DataType.FLOAT: {
@@ -120,6 +175,17 @@ public class TestDivide extends TestCase{
                 Result resf = op.getNext(inpf1);
                 Float expected = new Float(inpf1 / inpf2);
                 assertEquals(expected, (Float)resf.result);
+
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpf2);
+                resf = op.getNext(inpf1);
+                assertEquals(null, (Float)resf.result);
+                // test with null in rhs
+                lt.setValue(inpf1);
+                rt.setValue(null);
+                resf = op.getNext(inpf1);
+                assertEquals(null, (Float)resf.result);
                 break;
             }
             case DataType.INTEGER: {
@@ -130,6 +196,17 @@ public class TestDivide extends TestCase{
                 Result resi = op.getNext(inpi1);
                 Integer expected = new Integer(inpi1 / inpi2);
                 assertEquals(expected, (Integer) resi.result);
+
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpi2);
+                resi = op.getNext(inpi1);
+                assertEquals(null, (Integer)resi.result);
+                // test with null in rhs
+                lt.setValue(inpi1);
+                rt.setValue(null);
+                resi = op.getNext(inpi1);
+                assertEquals(null, (Integer)resi.result);
                 break;
             }
             case DataType.LONG: {
@@ -140,6 +217,17 @@ public class TestDivide extends TestCase{
                 Result resl = op.getNext(inpl1);
                 Long expected = new Long(inpl1 / inpl2);
                 assertEquals(expected, (Long)resl.result);
+
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpl2);
+                resl = op.getNext(inpl1);
+                assertEquals(null, (Long)resl.result);
+                // test with null in rhs
+                lt.setValue(inpl1);
+                rt.setValue(null);
+                resl = op.getNext(inpl1);
+                assertEquals(null, (Long)resl.result);
                 break;
             }
             case DataType.MAP: {
@@ -149,6 +237,17 @@ public class TestDivide extends TestCase{
                 rt.setValue(inpm2);
                 Result resm = op.getNext(inpm1);
                 assertEquals(POStatus.STATUS_ERR, resm.returnStatus);
+
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpm2);
+                resm = op.getNext(inpm1);
+                assertEquals(POStatus.STATUS_ERR, resm.returnStatus);
+                // test with null in rhs
+                lt.setValue(inpm1);
+                rt.setValue(null);
+                resm = op.getNext(inpm1);
+                assertEquals(POStatus.STATUS_ERR, resm.returnStatus);
                 break;
             }
             case DataType.TUPLE: {
@@ -157,6 +256,17 @@ public class TestDivide extends TestCase{
                 lt.setValue(inpt1);
                 rt.setValue(inpt2);
                 Result rest = op.getNext(inpt1);
+                assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
+
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpt2);
+                rest = op.getNext(inpt1);
+                assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
+                // test with null in rhs
+                lt.setValue(inpt1);
+                rt.setValue(null);
+                rest = op.getNext(inpt1);
                 assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
                 break;
             }

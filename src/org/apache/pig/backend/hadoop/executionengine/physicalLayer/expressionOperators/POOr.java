@@ -60,15 +60,22 @@ public class POOr extends BinaryComparisonOperator {
     public Result getNext(Boolean b) throws ExecException {
         Result left;
         left = lhs.getNext(dummyBool);
-        if(left.returnStatus != POStatus.STATUS_OK) {
+        if(left.returnStatus != POStatus.STATUS_OK || left.result == null) {
             return left;
         }
-        // Short circuit.
+        
+        // Cannot short circuit since rhs could be null and then we should
+        // be returning null.
+        Result right = rhs.getNext(dummyBool);
+        if(right.returnStatus != POStatus.STATUS_OK || right.result == null) {
+        	return right;
+        }
+        
         if (((Boolean)left.result).booleanValue()) return left;
         
         // No matter what, what we get from the right side is what we'll
         // return, error, null, true, or false.
-        return rhs.getNext(dummyBool);
+        return right;
     }
 
     @Override

@@ -358,6 +358,17 @@ public class TestPOCast extends TestCase {
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
+            if(t.get(0) == null) {
+            	
+               	Float result  = (Float)op.getNext((Float)null).result;
+				assertEquals( null, result);
+
+            } 
+		}
+
+		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+			Tuple t = it.next();
+			plan.attachInput(t);
 			Map map = null;
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
@@ -1128,5 +1139,102 @@ public class TestPOCast extends TestCase {
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
+	}
+	
+	@Test
+	public void testNullToOther() throws PlanException, ExecException {
+		//Create data
+		DataBag bag = BagFactory.getInstance().newDefaultBag();
+		for(int i = 0; i < MAX; i++) {
+			Tuple t = TupleFactory.getInstance().newTuple();
+			t.append(r.nextInt());
+			bag.add(t);
+            if( r.nextInt(3) % 3 == 0 ){
+            	t = TupleFactory.getInstance().newTuple();
+            	t.append(null);
+	            bag.add(t);
+            }
+
+		}
+		
+		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
+		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+		PhysicalPlan plan = new PhysicalPlan();
+		plan.add(prj);
+		plan.add(op);
+		plan.connect(prj, op);
+		
+		prj.setResultType(DataType.INTEGER);
+		
+		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+			Tuple t = it.next();
+			plan.attachInput(t);
+            if(t.get(0) == null) {
+            	
+               	Integer result  = (Integer)op.getNext((Integer)null).result;
+				assertEquals( null, result);
+
+            } 
+            
+		}
+		
+		prj.setResultType(DataType.FLOAT);
+		
+		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+			Tuple t = it.next();
+			plan.attachInput(t);
+            if(t.get(0) == null) {
+            	
+               	Float result  = (Float)op.getNext((Float)null).result;
+				assertEquals( null, result);
+
+            } 
+		}
+
+		prj.setResultType(DataType.DOUBLE);
+		
+		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+			Tuple t = it.next();
+			plan.attachInput(t);
+            if(t.get(0) == null) {
+            	
+               	Double result  = (Double)op.getNext((Double)null).result;
+				assertEquals( null, result);
+
+            } 
+		}
+		
+		prj.setResultType(DataType.CHARARRAY);
+		
+		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+			Tuple t = it.next();
+			plan.attachInput(t);
+            if(t.get(0) == null) {
+            	
+               	String result  = (String)op.getNext((String)null).result;
+				assertEquals( null, result);
+
+            } 
+		}
+		
+		prj.setResultType(DataType.BYTEARRAY);
+		
+		TupleFactory tf = TupleFactory.getInstance();
+		
+		{
+			Tuple t = tf.newTuple();
+			t.append(new DataByteArray((new Integer(r.nextInt())).toString().getBytes()));
+			plan.attachInput(t);
+            if(t.get(0) == null) {
+            	
+            	DataByteArray result  = (DataByteArray)op.getNext((String)null).result;
+				assertEquals( null, result);
+
+            } 
+
+		}
+
+
+	
 	}
 }

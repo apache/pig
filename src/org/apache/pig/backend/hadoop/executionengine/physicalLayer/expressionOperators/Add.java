@@ -58,14 +58,14 @@ public class Add extends BinaryExpressionOperator {
         Double left = null, right = null;
         res = lhs.getNext(left);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         left = (Double) res.result;
         
         res = rhs.getNext(right);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         right = (Double) res.result;
@@ -81,14 +81,14 @@ public class Add extends BinaryExpressionOperator {
         Float left = null, right = null;
         res = lhs.getNext(left);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         left = (Float) res.result;
         
         res = rhs.getNext(right);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         right = (Float) res.result;
@@ -104,14 +104,14 @@ public class Add extends BinaryExpressionOperator {
         Integer left = null, right = null;
         res = lhs.getNext(left);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         left = (Integer) res.result;
         
         res = rhs.getNext(right);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         right = (Integer) res.result;
@@ -127,14 +127,14 @@ public class Add extends BinaryExpressionOperator {
         Long left = null, right = null;
         res = lhs.getNext(left);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         left = (Long) res.result;
         
         res = rhs.getNext(right);
         status = res.returnStatus;
-        if(status != POStatus.STATUS_OK) {
+        if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
         right = (Long) res.result;

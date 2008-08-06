@@ -53,6 +53,11 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //by the optimizer.
     public PhysicalPlan combinePlan;
     
+    // key for the map plan
+    // this is needed when the key is null to create
+    // an appropriate NullableXXXWritable object
+    public byte mapKeyType;
+    
     //Indicates that the map plan creation
     //is complete
     boolean mapDone = false;

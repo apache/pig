@@ -63,8 +63,8 @@ public class PORegexp extends BinaryComparisonOperator {
         right = rhs.getNext(dummyString);
 
         if (trueRef == null) initializeRefs();
-        if (left.returnStatus != POStatus.STATUS_OK) return left;
-        if (right.returnStatus != POStatus.STATUS_OK) return right;
+        if (left.returnStatus != POStatus.STATUS_OK || left.result == null) return left;
+        if (right.returnStatus != POStatus.STATUS_OK || right.result == null) return right;
         if (((String)left.result).matches((String)right.result)) {
             left.result = trueRef;
         } else {

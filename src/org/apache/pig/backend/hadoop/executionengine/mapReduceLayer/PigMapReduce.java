@@ -79,7 +79,7 @@ public class PigMapReduce {
         public void collect(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException {
             Object key = tuple.get(0);
             IndexedTuple it = (IndexedTuple)tuple.get(1);
-            WritableComparable wcKey = HDataType.getWritableComparableTypes(key);
+            WritableComparable wcKey = HDataType.getWritableComparableTypes(key, keyType);
             oc.collect(wcKey, it);
         }
     }
@@ -167,7 +167,6 @@ public class PigMapReduce {
                     PhysicalOperator leaf = leaves.get(0);
                     while(true){
                         Result redRes = leaf.getNext(t);
-                        
                         if(redRes.returnStatus==POStatus.STATUS_OK){
                             oc.collect(null, (Tuple)redRes.result);
                             continue;

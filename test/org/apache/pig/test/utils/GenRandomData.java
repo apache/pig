@@ -87,11 +87,44 @@ public class GenRandomData {
         return t;
     }
     
-    public static Tuple genRandSmallTuple(String s, int value){
+    public static Tuple genRandSmallTuple(String s, Integer value){
         Tuple t = new DefaultTuple();
         t.append(s);
         t.append(value);
         return t;
+    }
+    
+    public static DataBag genRandSmallTupDataBagWithNulls(Random r, int num, int limit){
+        if(r==null) {
+            DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+            Tuple t = new DefaultTuple();
+            t.append("RANDOM");
+            db.add(t);
+            return db;
+        }
+        DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+        for(int i=0;i<num;i++){
+            // the first tuple is used as a sample tuple 
+            // in some tests to deduce return type - so
+            // don't introduce nulls into first tuple
+            if(i == 0) {
+                db.add(genRandSmallTuple(r, limit));
+                continue;
+            } else {
+                int rand = r.nextInt(num);
+                if(rand <= (0.2 * num) ) {
+                    db.add(genRandSmallTuple((String)null, rand));
+                } else if (rand > (0.2 * num) && rand <= (0.4 * num)) {
+                    db.add(genRandSmallTuple(genRandString(r), null));
+                } else if (rand > (0.4 * num) && rand <= (0.6 * num)) {
+                    db.add(genRandSmallTuple(null, null));
+                } else {
+                    db.add(genRandSmallTuple(r, limit));
+                }
+            }
+        }
+        
+        return db;
     }
     
     public static DataBag genRandSmallTupDataBag(Random r, int num, int limit){

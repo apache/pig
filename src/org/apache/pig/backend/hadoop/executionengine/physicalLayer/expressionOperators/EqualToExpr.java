@@ -110,6 +110,13 @@ public class EqualToExpr extends BinaryComparisonOperator {
         if (trueRef == null) initializeRefs();
         if (left.returnStatus != POStatus.STATUS_OK) return left;
         if (right.returnStatus != POStatus.STATUS_OK) return right;
+        // if either operand is null, the result should be
+        // null
+        if(left.result == null || right.result == null) {
+            left.result = null;
+            left.returnStatus = POStatus.STATUS_NULL;
+            return left;
+        }
         assert(left instanceof Comparable);
         assert(right instanceof Comparable);
         if (((Comparable)left.result).compareTo((Comparable)right.result) == 0) {

@@ -216,7 +216,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return inputs.get(0).getNext(inpValue);
         } else {
             res.result = input;
-            res.returnStatus = POStatus.STATUS_OK;
+            res.returnStatus = (res.result == null ? POStatus.STATUS_NULL: POStatus.STATUS_OK);
             detachInput();
             return res;
         }

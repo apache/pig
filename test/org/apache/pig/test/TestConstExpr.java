@@ -53,6 +53,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result resi = ce.getNext(inp);
         Integer ret = (Integer)resi.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        resi = ce.getNext(inp);
+        ret  = (Integer)resi.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -62,6 +68,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result resl = ce.getNext(inp);
         Long ret = (Long)resl.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        resl = ce.getNext(inp);
+        ret  = (Long)resl.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -71,6 +83,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result resd = ce.getNext(inp);
         Double ret = (Double)resd.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        resd = ce.getNext(inp);
+        ret  = (Double)resd.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -80,6 +98,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result resf = ce.getNext(inp);
         Float ret = (Float)resf.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        resf = ce.getNext(inp);
+        ret  = (Float)resf.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -89,6 +113,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result ress = ce.getNext(inp);
         String ret = (String)ress.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        ress = ce.getNext(inp);
+        ret  = (String)ress.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -98,6 +128,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result resba = ce.getNext(inp);
         DataByteArray ret = (DataByteArray)resba.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        resba = ce.getNext(inp);
+        ret  = (DataByteArray)resba.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -107,6 +143,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result resm = ce.getNext(inp);
         Map<Integer,String> ret = (Map)resm.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        resm = ce.getNext(inp);
+        ret  = (Map)resm.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -116,6 +158,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result res = ce.getNext(inp);
         Boolean ret = (Boolean)res.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        res = ce.getNext(inp);
+        ret  = (Boolean)res.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -125,6 +173,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result rest = ce.getNext(inp);
         Tuple ret = (Tuple)rest.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        rest = ce.getNext(inp);
+        ret  = (Tuple)rest.result;
+        assertEquals(null, ret);
     }
 
     @Test
@@ -134,6 +188,12 @@ public class TestConstExpr extends junit.framework.TestCase {
         Result res = ce.getNext(inp);
         DataBag ret = (DataBag)res.result;
         assertEquals(inp, ret);
+
+        // test with null input
+        ce.setValue(null);
+        res = ce.getNext(inp);
+        ret  = (DataBag)res.result;
+        assertEquals(null, ret);
     }
 
 }

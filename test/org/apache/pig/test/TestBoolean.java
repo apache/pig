@@ -69,13 +69,61 @@ public class TestBoolean extends TestCase{
 
 
     @Test
+    public void testAndNull() throws ExecException {
+    	setupAnd();
+    	Boolean[] testWith = new Boolean[] { false, true, null};
+    	
+    	// test with first operand set to null
+    	for (int i = 0; i < testWith.length; i++) {
+    		lt.setValue(null);
+    		rt.setValue(testWith[i]);
+			Result res = bop.getNext(dummy);
+			assertEquals(POStatus.STATUS_OK, res.returnStatus);
+	        assertEquals(null, (Boolean)res.result);
+		}
+    	
+    	// test with second operand set to null
+    	for (int i = 0; i < testWith.length; i++) {
+			lt.setValue(testWith[i]);
+			rt.setValue(null);
+			Result res = bop.getNext(dummy);
+			assertEquals(POStatus.STATUS_OK, res.returnStatus);
+	        assertEquals(null, (Boolean)res.result);
+		}
+    }
+    
+    @Test
+    public void testOrNull() throws ExecException {
+    	setupOr();
+    	Boolean[] testWith = new Boolean[] { false, true, null};
+    	
+    	// test with first operand set to null
+    	for (int i = 0; i < testWith.length; i++) {
+    		lt.setValue(null);
+    		rt.setValue(testWith[i]);
+			Result res = bop.getNext(dummy);
+			assertEquals(POStatus.STATUS_OK, res.returnStatus);
+	        assertEquals(null, (Boolean)res.result);
+		}
+    	
+    	// test with second operand set to null
+    	for (int i = 0; i < testWith.length; i++) {
+			lt.setValue(testWith[i]);
+			rt.setValue(null);
+			Result res = bop.getNext(dummy);
+			assertEquals(POStatus.STATUS_OK, res.returnStatus);
+	        assertEquals(null, (Boolean)res.result);
+		}
+    }
+    
+    @Test
     public void testAndFirstFalse() throws ExecException{
         setupAnd();
         lt.setValue(new Boolean(false));
         rt.setValue(new Boolean(true));
         Result res = bop.getNext(dummy);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
-        assertFalse((Boolean)res.result);
+        assertFalse((Boolean)res.result);        
     }
 
     @Test
@@ -165,10 +213,14 @@ public class TestBoolean extends TestCase{
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean)res.result);
     }
-
-
-
-
-
+    
+    @Test
+    public void testNotNull() throws ExecException{
+        setupNot();
+        lt.setValue(null);
+        Result res = uop.getNext(dummy);
+        assertEquals(POStatus.STATUS_OK, res.returnStatus);
+        assertEquals(null, (Boolean)res.result);
+    }
 }
 

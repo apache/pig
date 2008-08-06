@@ -63,7 +63,7 @@ public class TestForEach extends junit.framework.TestCase {
     @Before
     public void setUp() throws Exception {
         Random r = new Random();
-        db = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
+        db = GenRandomData.genRandSmallTupDataBagWithNulls(r, 10, 100);
         projDB = TestHelper.projectBag(db,0);
         fe = GenPhyOp.topForEachOPWithPlan(0,db.iterator().next());
         POProject proj = GenPhyOp.exprProject();

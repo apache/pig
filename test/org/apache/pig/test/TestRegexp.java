@@ -60,6 +60,19 @@ public class TestRegexp extends TestCase{
         Result res = op.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean)res.result);
+        
+        // test with null in lhs
+        lt.setValue(null);
+        rt.setValue(".*s.y.*");
+        res = op.getNext(new Boolean(true));
+        assertEquals(null, (Boolean)res.result);
+        
+        // test with null in rhs
+        lt.setValue(new String(
+        "The quick sly fox jumped over the lazy brown dog"));
+        rt.setValue(null);
+        res = op.getNext(new Boolean(true));
+        assertEquals(null, (Boolean)res.result);
     }
 
     @Test

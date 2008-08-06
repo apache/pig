@@ -143,9 +143,11 @@ public class POFilter extends PhysicalOperator {
             }
             */
             res = comOp.getNext(dummyBool);
-            if (res.returnStatus != POStatus.STATUS_OK) return res;
+            if (res.returnStatus != POStatus.STATUS_OK 
+                    && res.returnStatus != POStatus.STATUS_NULL) 
+                return res;
 
-            if ((Boolean) res.result == true) {
+            if (res.result != null && (Boolean) res.result == true) {
                 return inp;
             }
         }

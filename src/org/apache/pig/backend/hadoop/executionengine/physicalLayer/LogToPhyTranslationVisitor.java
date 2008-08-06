@@ -37,6 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalkerWOSeenChk;
@@ -935,8 +936,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     @Override
     public void visit(LOIsNull op) throws VisitorException {
         String scope = op.getOperatorKey().scope;
-        ExpressionOperator physOp = new POIsNull(new OperatorKey(scope, nodeGen
+        UnaryComparisonOperator physOp = new POIsNull(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), op.getRequestedParallelism(), null);
+        physOp.setOperandType(op.getOperand().getType());
         currentPlan.add(physOp);
 
         LogToPhyMap.put(op, physOp);

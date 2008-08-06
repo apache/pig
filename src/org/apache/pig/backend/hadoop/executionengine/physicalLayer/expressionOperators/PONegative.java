@@ -57,16 +57,18 @@ public class PONegative extends UnaryExpressionOperator {
     @Override
     public Result getNext(Double d) throws ExecException {
         Result res = expr.getNext(d);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            res.result = -1*((Double)res.result);
-        }
+        if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
+         		res.result = -1*((Double)res.result);
+
+       }
+       
         return res;
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
         Result res = expr.getNext(f);
-        if(res.returnStatus == POStatus.STATUS_OK) {
+        if(res.returnStatus == POStatus.STATUS_OK && res.result!=null ) {
             res.result = -1*((Float)res.result);
         }
         return res;
@@ -75,7 +77,7 @@ public class PONegative extends UnaryExpressionOperator {
     @Override
     public Result getNext(Integer i) throws ExecException {
         Result res = expr.getNext(i);
-        if(res.returnStatus == POStatus.STATUS_OK) {
+        if(res.returnStatus == POStatus.STATUS_OK && res.result!=null ) {
             res.result = -1*((Integer)res.result);
         }
         return res;
@@ -84,7 +86,7 @@ public class PONegative extends UnaryExpressionOperator {
     @Override
     public Result getNext(Long l) throws ExecException {
         Result res = expr.getNext(l);
-        if(res.returnStatus == POStatus.STATUS_OK) {
+        if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
             res.result = -1*((Long)res.result);
         }
         return res;

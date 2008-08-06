@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -47,89 +48,140 @@ public class TestAlgebraicEval extends TestCase {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
     
+    Boolean[] nullFlags = new Boolean[]{ false, true};
 
     MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testGroupCountWithMultipleFields() throws Throwable {
-        File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            for(int j=0; j< LOOP_COUNT; j++) {
-                ps.println(i + "\t" + i + "\t" + j%2);
+        for (int k = 0; k < nullFlags.length; k++) {
+            System.err.println("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k]);
+            File tmpFile = File.createTempFile("test", "txt");
+            // flag to indicate if both the keys forming
+            // the group key are null
+            int groupKeyWithNulls = 0;
+            if(nullFlags[k] == false) {
+                // generate data with no nulls
+                PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+                for(int i = 0; i < LOOP_COUNT; i++) {
+                    for(int j=0; j< LOOP_COUNT; j++) {
+                            ps.println(i + "\t" + i + "\t" + j%2);
+                    }
+                }
+                ps.close();
+            } else {
+                // generate data with nulls                
+                PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+                Random r = new Random();
+                for(int i = 0; i < LOOP_COUNT; i++) {
+                    int rand = r.nextInt(LOOP_COUNT);
+                    if(rand <= (0.2 * LOOP_COUNT) ) {
+                        for(int j=0; j< LOOP_COUNT; j++) {
+                            ps.println("\t" + i + "\t" + j%2);
+                        }
+                    } else if (rand > (0.2 * LOOP_COUNT) && rand <= (0.4 * LOOP_COUNT)) {
+                        for(int j=0; j< LOOP_COUNT; j++) {
+                            ps.println(i + "\t" + "\t" + j%2);
+                        }
+                    } else if (rand > (0.4 * LOOP_COUNT) && rand <= (0.6 * LOOP_COUNT)) {
+                        for(int j=0; j< LOOP_COUNT; j++) {
+                            ps.println("\t" + "\t" + j%2);                            
+                        }
+                        groupKeyWithNulls++;
+                    } else {
+                        for(int j=0; j< LOOP_COUNT; j++) {
+                            ps.println(i + "\t" + i + "\t" + j%2);
+                        }
+                    }                    
+                }
+                ps.close();                
             }
+            pig.registerQuery(" a = group (load 'file:" + tmpFile + "') by ($0,$1);");
+            pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
+            Iterator<Tuple> it = pig.openIterator("b");
+            tmpFile.delete();
+            int count = 0;
+            System.err.println("XX Starting");
+            while(it.hasNext()){
+                Tuple t = it.next();
+            System.err.println("XX "+ t);
+                int sum = ((Double)t.get(2)).intValue();
+                // if the first two fields (output of flatten(group))
+                // are both nulls then we should change the sum accordingly
+                if(t.get(0) == null && t.get(1) == null)                
+                    assertEquals( "Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k],
+                    		 (LOOP_COUNT/2)*groupKeyWithNulls, sum);
+                else
+                    assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k],
+                            LOOP_COUNT/2, sum);
+                    
+                count++;
+            }
+            System.err.println("XX done");
+            if(groupKeyWithNulls == 0)
+                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k], LOOP_COUNT, count);
+            else
+                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k], LOOP_COUNT - groupKeyWithNulls + 1, count);
+            
         }
-        ps.close();
-        pig.registerQuery(" a = group (load 'file:" + tmpFile + "') by ($0,$1);");
-        pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
-        Iterator<Tuple> it = pig.openIterator("b");
-        tmpFile.delete();
-        int count = 0;
-        while(it.hasNext()){
-            /*
-            DataByteArray a = (DataByteArray)it.next().get(2);
-            int sum = Double.valueOf(a.toString()).intValue();
-            */
-            int sum = ((Double)it.next().get(2)).intValue();
-            assertEquals(LOOP_COUNT/2, sum);
-            count++;
-        }
-        assertEquals(count, LOOP_COUNT);
+        
     }
     
-    
+   /* 
     
     @Test
     public void testSimpleCount() throws Exception {
         File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            ps.println(i);
+        for (int i = 0; i < nullFlags.length; i++) {
+            System.err.println("Testing testSimpleCount with null flag:" + nullFlags[i]);
+        
+            PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+            int numNulls = generateInput(ps, nullFlags[i]);
+            String query = "myid =  foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1);";
+            System.out.println(query);
+            pig.registerQuery(query);
+            Iterator it = pig.openIterator("myid");
+            tmpFile.delete();
+            Tuple t = (Tuple)it.next();
+            Long count = DataType.toLong(t.get(0));
+            assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
-        ps.close();
-        String query = "myid =  foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1);";
-        System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
-        tmpFile.delete();
-        Tuple t = (Tuple)it.next();
-        Long count = DataType.toLong(t.get(0));
-        assertEquals(count.longValue(), LOOP_COUNT);
     }
 
     @Test
     public void testGroupCount() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            ps.println(i);
+        for (int i = 0; i < nullFlags.length; i++) {
+            System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
+        
+            PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+            int numNulls = generateInput(ps, nullFlags[i]);
+            String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate group, COUNT($1) ;";
+            System.out.println(query);
+            pig.registerQuery(query);
+            Iterator it = pig.openIterator("myid");
+            tmpFile.delete();
+            Tuple t = (Tuple)it.next();
+            Long count = DataType.toLong(t.get(1));
+            assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
-        ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate group, COUNT($1) ;";
-        System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
-        tmpFile.delete();
-        Tuple t = (Tuple)it.next();
-        Long count = DataType.toLong(t.get(1));
-        assertEquals(count.longValue(), LOOP_COUNT);
     }
     
     @Test
     public void testGroupReorderCount() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            ps.println(i);
+        for (int i = 0; i < nullFlags.length; i++) {
+            System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
+            PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+            int numNulls = generateInput(ps, nullFlags[i]);
+            String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1), group ;";
+            System.out.println(query);
+            pig.registerQuery(query);
+            Iterator it = pig.openIterator("myid");
+            tmpFile.delete();
+            Tuple t = (Tuple)it.next();
+            Long count = DataType.toLong(t.get(0));
+            assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
-        ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1), group ;";
-        System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
-        tmpFile.delete();
-        Tuple t = (Tuple)it.next();
-        Long count = DataType.toLong(t.get(0));
-        assertEquals(count.longValue(), LOOP_COUNT);
     }
 
 
@@ -137,55 +189,120 @@ public class TestAlgebraicEval extends TestCase {
     @Test
     public void testGroupUniqueColumnCount() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        long groupsize = 0;
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            if(i%10 == 0) groupsize++;
-            ps.println(i%10 + ":" + i);
-        }
-        ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
-        System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
-        tmpFile.delete();
-        while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
-            String a = t.get(0).toString();
-            Double group = Double.valueOf(a.toString());
-            if(group == 0.0) {
-                Long count = DataType.toLong(t.get(1));
-                assertEquals(count.longValue(), groupsize);
-                break;
+        for (int i = 0; i < nullFlags.length; i++) {
+            PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+            long groupsize = 0;
+            if(nullFlags[i] == false) {
+                // generate data without nulls
+                for(int j = 0; j < LOOP_COUNT; j++) {
+                    if(j%10 == 0) groupsize++;
+                    ps.println(j%10 + ":" + j);
+                }
+            } else {
+                // generate data with nulls
+                for(int j = 0; j < LOOP_COUNT; j++) {
+                    if(j%10 == 0) groupsize++;
+                    if(j % 20 == 0) {
+                        // for half the groups
+                        // emit nulls
+                        ps.println(j%10 + ":");
+                    } else {
+                        ps.println(j%10 + ":" + j);
+                    }
+                }
+            }         
+            ps.close();
+            String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
+            System.out.println(query);
+            pig.registerQuery(query);
+            Iterator it = pig.openIterator("myid");
+            tmpFile.delete();
+            System.err.println("Output from testGroupUniqueColumnCount");
+            while(it.hasNext()) {
+                Tuple t = (Tuple)it.next();
+                System.err.println(t);
+                String a = t.get(0).toString();
+                Double group = Double.valueOf(a.toString());
+                if(group == 0.0) {
+                    Long count = DataType.toLong(t.get(1));
+                    // right now count with nulls is same as
+                    // count without nulls
+                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], groupsize, count.longValue());                    
+                }
             }
-        }   
+        }
     }
 
     @Test
     public void testGroupDuplicateColumnCount() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        long groupsize = 0;
-        for(int i = 0; i < LOOP_COUNT; i++) {
-            if(i%10 == 0) groupsize++;
-            ps.println(i%10 + ":" + i);
-        }
-        ps.close();
-        String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
-        System.out.println(query);
-        pig.registerQuery(query);
-        Iterator it = pig.openIterator("myid");
-        tmpFile.delete();
-        while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
-            String a = t.get(0).toString();
-            Double group = Double.valueOf(a.toString());
-            if(group == 0.0) {
-                Long count = DataType.toLong(t.get(1));
-                assertEquals(count.longValue(), groupsize);
-                break;
+        for (int i = 0; i < nullFlags.length; i++) {
+            PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+            long groupsize = 0;
+            if(nullFlags[i] == false) {
+                // generate data without nulls
+                for(int j = 0; j < LOOP_COUNT; j++) {
+                    if(j%10 == 0) groupsize++;
+                    ps.println(j%10 + ":" + j);
+                }
+            } else {
+                // generate data with nulls
+                for(int j = 0; j < LOOP_COUNT; j++) {
+                    if(j%10 == 0) groupsize++;
+                    if(j % 20 == 0) {
+                        // for half the groups
+                        // emit nulls
+                        ps.println(j%10 + ":");
+                    } else {
+                        ps.println(j%10 + ":" + j);
+                    }
+                }
+            }
+            ps.close();
+            String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
+            System.out.println(query);
+            pig.registerQuery(query);
+            Iterator it = pig.openIterator("myid");
+            tmpFile.delete();
+            System.err.println("Output from testGroupDuplicateColumnCount");
+            while(it.hasNext()) {
+                Tuple t = (Tuple)it.next();
+                System.err.println(t);
+                String a = t.get(0).toString();
+                Double group = Double.valueOf(a.toString());
+                if(group == 0.0) {
+                    // right now count with nulls is same
+                    // as count without nulls
+                    Long count = DataType.toLong(t.get(2));
+                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],groupsize, count.longValue());
+                    count = DataType.toLong(t.get(1));
+                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],groupsize, count.longValue());
+                }
             }
         }
+    }
+*/    
+    
+    private int generateInput(PrintStream ps, boolean withNulls ) {
+        int numNulls = 0;
+        if(withNulls) {
+            // inject nulls randomly
+            for(int i = 0; i < LOOP_COUNT; i++) {
+                int rand = new Random().nextInt(LOOP_COUNT);
+                if(rand <= (0.3 * LOOP_COUNT) ) {
+                    ps.println(":");
+                    numNulls++;
+                } else {
+                    ps.println(i + ":" + i);
+                }
+            }
+        } else {
+            for(int i = 0; i < LOOP_COUNT; i++) {
+                ps.println(i + ":" + i);
+            }
+        }
+        ps.close();
+        return numNulls;
     }
 
 }

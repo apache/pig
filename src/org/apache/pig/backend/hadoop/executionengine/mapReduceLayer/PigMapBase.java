@@ -17,17 +17,22 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public abstract class PigMapBase extends MapReduceBase{
     private final Log log = LogFactory.getLog(getClass());
+
+    protected byte keyType;
     
     //Map Plan
     protected PhysicalPlan mp;
@@ -68,6 +73,7 @@ public abstract class PigMapBase extends MapReduceBase{
                 mp.explain(baos);
                 log.debug(baos.toString());
             }
+            keyType = ((byte[])ObjectSerializer.deserialize(job.get("pig.map.keytype")))[0];
             // till here
             
             long sleepTime = job.getLong("pig.reporter.sleep.time", 10000);
@@ -115,8 +121,9 @@ public abstract class PigMapBase extends MapReduceBase{
         List<PhysicalOperator> leaves = mp.getLeaves();
         
         PhysicalOperator leaf = leaves.get(0);
+        
         try {
-            while(true){
+            while(true){                
                 Result res = leaf.getNext(inpTuple);
                 if(res.returnStatus==POStatus.STATUS_OK){
                     collect(oc,(Tuple)res.result);
@@ -143,5 +150,19 @@ public abstract class PigMapBase extends MapReduceBase{
     }
 
     abstract public void collect(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException;
+
+    /**
+     * @return the keyType
+     */
+    public byte getKeyType() {
+        return keyType;
+    }
+
+    /**
+     * @param keyType the keyType to set
+     */
+    public void setKeyType(byte keyType) {
+        this.keyType = keyType;
+    }
     
 }

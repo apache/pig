@@ -27,6 +27,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparable;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -36,12 +38,11 @@ import org.apache.pig.backend.executionengine.ExecException;
  * DefaultTupleFactory.
  */
 public class DefaultTuple implements Tuple {
-    /**
-     * 
-     */
+    
+    protected boolean isNull = false;
     private static final long serialVersionUID = 2L;
     protected List<Object> mFields;
-
+    
     /**
      * Default constructor.  This constructor is public so that hadoop can call
      * it directly.  However, inside pig you should never be calling this
@@ -192,7 +193,7 @@ public class DefaultTuple implements Tuple {
             if (DataType.isComplex(field)) {
                 throw new ExecException("Unable to convert non-flat tuple to string.");
             }
-            buf.append(field.toString());
+            buf.append(field == null ? "" : field.toString());
             if (it.hasNext())
                 buf.append(delim);
         }
@@ -273,36 +274,47 @@ public class DefaultTuple implements Tuple {
 
     public void write(DataOutput out) throws IOException {
         out.writeByte(DataType.TUPLE);
-        int sz = size();
-        out.writeInt(sz);
-        for (int i = 0; i < sz; i++) {
-            try {
-                Object d = get(i);
-            } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+        if(isNull == true) {
+            out.writeByte(NULL);            
+        } else {
+            out.writeByte(NOTNULL);
+            int sz = size();
+            out.writeInt(sz);
+            for (int i = 0; i < sz; i++) {
+                try {
+                    Object d = get(i);
+                } catch (ExecException ee) {
+                    throw new RuntimeException(ee);
+                }
+                DataReaderWriter.writeDatum(out, mFields.get(i));
             }
-            DataReaderWriter.writeDatum(out, mFields.get(i));
         }
     }
 
     public void readFields(DataInput in) throws IOException {
         // Clear our fields, in case we're being reused.
         mFields.clear();
-
+    
         // Make sure it's a tuple.
         byte b = in.readByte();
         if (b != DataType.TUPLE) {
             throw new IOException("Unexpected data while reading tuple " +
                 "from binary file");
         }
-
-        // Read the number of fields
-        int sz = in.readInt();
-        for (int i = 0; i < sz; i++) {
-            try {
-                append(DataReaderWriter.readDatum(in));
-            } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+        byte nullMarker = in.readByte();
+        if(nullMarker == NULL) {
+            isNull = true;
+            return;
+        } else {
+            isNull = false;
+            // Read the number of fields
+            int sz = in.readInt();
+            for (int i = 0; i < sz; i++) {
+                try {
+                    append(DataReaderWriter.readDatum(in));
+                } catch (ExecException ee) {
+                    throw new RuntimeException(ee);
+                }
             }
         }
     }
@@ -371,4 +383,19 @@ public class DefaultTuple implements Tuple {
                 " exceeds tuple size of " + mFields.size());
         }
     }
+    
+    /**
+     * @return true if this Tuple is null
+     */
+    public boolean isNull() {
+        return isNull;
+    }
+
+    /**
+     * @param isNull boolean indicating whether this tuple is null
+     */
+    public void setNull(boolean isNull) {
+        this.isNull = isNull;
+    }
+
 }

@@ -248,6 +248,11 @@ public class JobControlCompiler{
             FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
             jobConf.set("pig.storeFunc", outputFuncSpec.toString());
             
+            // store map key type
+            // this is needed when the key is null to create
+            // an appropriate NullableXXXWritable object
+            jobConf.set("pig.map.keytype", ObjectSerializer.serialize(new byte[] { mro.mapKeyType }));
+            
             if(mro.reducePlan.isEmpty()){
                 //MapOnly Job
                 jobConf.setMapperClass(PigMapOnly.Map.class);

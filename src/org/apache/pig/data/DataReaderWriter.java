@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
@@ -39,6 +41,12 @@ public class DataReaderWriter {
         byte b = in.readByte();
         switch (b) {
             case DataType.TUPLE: {
+                
+                // check if it is a null tuple
+                byte nullMarker = in.readByte();
+                if(nullMarker == Tuple.NULL) {
+                    return null;
+                }
                 // Don't use Tuple.readFields, because it requires you to
                 // create a tuple with no size and then append fields.
                 // That's less efficient than allocating the tuple size up

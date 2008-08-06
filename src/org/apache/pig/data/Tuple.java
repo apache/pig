@@ -37,6 +37,19 @@ import org.apache.pig.backend.executionengine.ExecException;
  * Fields are numbered from 0.
  */
 public interface Tuple extends WritableComparable, Serializable {
+       
+    /**
+     * Marker for indicating whether the value this object holds
+     * is a null
+     */
+    public static byte NULL = 0x00;
+    
+    /**
+     * Marker for indicating whether the value this object holds
+     * is not a null
+     */
+    public static byte NOTNULL = 0x01;
+    
     /**
      * Make this tuple reference the contents of another.  This method does not copy
      * the underlying data.   It maintains references to the data from the original
@@ -122,4 +135,14 @@ public interface Tuple extends WritableComparable, Serializable {
      * @throws ExecException if a non-atomic value is found.
      */
     String toDelimitedString(String delim) throws ExecException;
+    
+    /**
+     * @return true if this Tuple is null
+     */
+    public boolean isNull();
+    
+    /**
+     * @param isNull boolean indicating whether this tuple is null
+     */
+    public void setNull(boolean isNull);
 }

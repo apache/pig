@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
@@ -60,133 +61,114 @@ public class POIsNull extends UnaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Double d) throws ExecException {
-        Result res = expr.getNext(d);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Double)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
-            }
-        }
-        return res;
-    }
-
-    @Override
-    public Result getNext(Float f) throws ExecException {
-        Result res = expr.getNext(f);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Float)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
-            }
-        }
-        return res;
-    }
-
-    @Override
-    public Result getNext(Integer i) throws ExecException {
-        Result res = expr.getNext(i);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Integer)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
-            }
-        }
-        return res;
-    }
-
-    @Override
-    public Result getNext(Long l) throws ExecException {
-        Result res = expr.getNext(l);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Long)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
-            }
-        }
-        return res;
-    }
-    
-    @Override
-    public Result getNext(DataByteArray dba) throws ExecException {
-        Result res = expr.getNext(dba);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((DataByteArray)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
-            }
-        }
-        return res;
-    }
-    
-    @Override
-    public Result getNext(String s) throws ExecException {
-        Result res = expr.getNext(s);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((String)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
-            }
-        }
-        return res;
-    }
-    
-    @Override
     public Result getNext(Boolean b) throws ExecException {
-        Result res = expr.getNext(b);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Boolean)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
+        
+        Result res = null;
+        switch(operandType) {
+        case DataType.BYTEARRAY:
+            res = expr.getNext(dummyDBA);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
             }
-        }
-        return res;
-    }
-    
-    @Override
-    public Result getNext(Tuple t) throws ExecException {
-        Result res = expr.getNext(t);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Tuple)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
+            return res;
+        case DataType.DOUBLE:
+            res = expr.getNext(dummyDouble);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
             }
-        }
-        return res;
-    }
-    
-    @Override
-    public Result getNext(DataBag b) throws ExecException {
-        Result res = expr.getNext(b);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((DataBag)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
+            return res;
+        case DataType.INTEGER:
+            res = expr.getNext(dummyInt);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
             }
-        }
-        return res;
-    }
-    
-    @Override
-    public Result getNext(Map m) throws ExecException {
-        Result res = expr.getNext(m);
-        if(res.returnStatus == POStatus.STATUS_OK) {
-            if ((Map)res.result == null) {
-                res.result = true;
-            } else {
-                res.result = false;
+            return res;
+        case DataType.CHARARRAY:
+            res = expr.getNext(dummyString);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
             }
+            return res;
+        case DataType.BOOLEAN:
+            res = expr.getNext(dummyBool);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
+            }
+            return res;
+        case DataType.LONG:
+            res = expr.getNext(dummyLong);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
+            }
+            return res;
+        case DataType.FLOAT:
+            res = expr.getNext(dummyFloat);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
+            }
+            return res;
+        case DataType.MAP:
+            res = expr.getNext(dummyMap);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
+            }
+            return res;
+        case DataType.TUPLE:
+            res = expr.getNext(dummyTuple);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
+            }
+            return res;
+        case DataType.BAG:
+            res = expr.getNext(dummyBag);
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                if (res.result == null) {
+                    res.result = true;
+                } else {
+                    res.result = false;
+                }
+            }
+            return res;        
+        default:
+            throw new RuntimeException("'is null' to doesn't know how to " +
+                "handle type " + DataType.findTypeName(operandType));
         }
-        return res;
     }
 
     @Override

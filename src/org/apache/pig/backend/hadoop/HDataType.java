@@ -33,51 +33,59 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.NullableBooleanWritable;
+import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.NullableDoubleWritable;
+import org.apache.pig.impl.io.NullableFloatWritable;
+import org.apache.pig.impl.io.NullableIntWritable;
+import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableText;
 
 /**
  * A class of helper methods for converting from pig data types to hadoop
  * data types, and vice versa.
  */
 public class HDataType {
-    static BooleanWritable boolWrit = new BooleanWritable();
-    static BytesWritable bytesWrit = new BytesWritable();
-    static Text stringWrit = new Text();
-    static FloatWritable floatWrit = new FloatWritable();
-    static DoubleWritable doubleWrit = new DoubleWritable();
-    static IntWritable intWrit = new IntWritable();
-    static LongWritable longWrit = new LongWritable();
+    static NullableBooleanWritable boolWrit = new NullableBooleanWritable();
+    static NullableBytesWritable bytesWrit = new NullableBytesWritable();
+    static NullableText stringWrit = new NullableText();
+    static NullableFloatWritable floatWrit = new NullableFloatWritable();
+    static NullableDoubleWritable doubleWrit = new NullableDoubleWritable();
+    static NullableIntWritable intWrit = new NullableIntWritable();
+    static NullableLongWritable longWrit = new NullableLongWritable();
     static DataBag defDB = BagFactory.getInstance().newDefaultBag();
     static Tuple defTup = TupleFactory.getInstance().newTuple();
     static Map<Byte, String> typeToName = null;
 
-    public static WritableComparable getWritableComparableTypes(Object o) throws ExecException{
+    public static WritableComparable getWritableComparableTypes(Object o, byte keyType) throws ExecException{
         byte type = DataType.findType(o);
         switch (type) {
         case DataType.BAG:
             return (DataBag)o;
 
         case DataType.BOOLEAN:
-            return new BooleanWritable((Boolean)o);
+            return new NullableBooleanWritable((Boolean)o);
 
         case DataType.BYTEARRAY:
-            return new BytesWritable(((DataByteArray)o).get());
+            return new NullableBytesWritable(((DataByteArray)o).get());
             
         case DataType.CHARARRAY:
-            return new Text((String)o);
+            return new NullableText((String)o);
             
         case DataType.DOUBLE:
-            return new DoubleWritable((Double)o);
+            return new NullableDoubleWritable((Double)o);
            
         case DataType.FLOAT:
-            return new FloatWritable((Float)o);
+            return new NullableFloatWritable((Float)o);
             
         case DataType.INTEGER:
-            return new IntWritable((Integer)o);
+            return new NullableIntWritable((Integer)o);
            
         case DataType.LONG:
-            return new LongWritable((Long)o);
+            return new NullableLongWritable((Long)o);
           
         case DataType.TUPLE:
             return (Tuple) o;
@@ -88,12 +96,59 @@ public class HDataType {
             // MapWritable
             // wcKey = new MapWritable();
 //            break;
+        case DataType.NULL:
+            switch (keyType) {
+            case DataType.BAG:
+                //TODO: create a null data bag
+                break;
+            case DataType.BOOLEAN:
+                NullableBooleanWritable nboolWrit = new NullableBooleanWritable();
+                nboolWrit.setNull(true);
+                return nboolWrit;
+            case DataType.BYTEARRAY:
+                NullableBytesWritable nBytesWrit = new NullableBytesWritable(); 
+                nBytesWrit.setNull(true);
+                return nBytesWrit;
+            case DataType.CHARARRAY:
+                NullableText nStringWrit = new NullableText();
+                nStringWrit.setNull(true);
+                return nStringWrit;
+            case DataType.DOUBLE:
+                NullableDoubleWritable nDoubleWrit = new NullableDoubleWritable();
+                nDoubleWrit.setNull(true);
+                return nDoubleWrit;
+            case DataType.FLOAT:
+                NullableFloatWritable nFloatWrit = new NullableFloatWritable();
+                nFloatWrit.setNull(true);
+                return nFloatWrit;
+            case DataType.INTEGER:
+                NullableIntWritable nIntWrit = new NullableIntWritable();
+                nIntWrit.setNull(true);
+                return nIntWrit;
+            case DataType.LONG:
+                NullableLongWritable nLongWrit = new NullableLongWritable();
+                nLongWrit.setNull(true);
+                return nLongWrit;
+            case DataType.TUPLE:
+                Tuple t = DefaultTupleFactory.getInstance().newTuple();
+                t.setNull(true);
+                return t;
+//            case DataType.MAP:
+                // Hmm, This is problematic
+                // Need a deep clone to convert a Map into
+                // MapWritable
+                // wcKey = new MapWritable();
+//                break;
+            }
+            break;
         default:
             if (typeToName == null) typeToName = DataType.genTypeToNameMap();
             throw new ExecException("The type "
                     + typeToName.get(type)
                     + " cannot be collected as a Key type");
         }
+        // should never come here
+        return null;
     }
     
     public static WritableComparable getWritableComparableTypes(byte type) throws ExecException{
@@ -142,24 +197,38 @@ public class HDataType {
     }
     
     public static Object convertToPigType(WritableComparable key) {
-        if ((key instanceof DataBag) || (key instanceof Tuple))
+        if ((key instanceof DataBag) )
             return key;
-        if (key instanceof BooleanWritable)
-            return ((BooleanWritable) key).get();
-        if (key instanceof BytesWritable) {
-            return new DataByteArray(((BytesWritable) key).get(), 0,
-                ((BytesWritable)key).getSize());
+        if(key instanceof Tuple)
+           return ((Tuple)key).isNull() ? null : key;     
+        if (key instanceof NullableBooleanWritable) {
+            NullableBooleanWritable bWrit = (NullableBooleanWritable)key;   
+            return bWrit.isNull() ? null :bWrit.get();
         }
-        if (key instanceof Text)
-            return ((Text) key).toString();
-        if (key instanceof FloatWritable)
-            return ((FloatWritable) key).get();
-        if (key instanceof DoubleWritable)
-            return ((DoubleWritable) key).get();
-        if (key instanceof IntWritable)
-            return ((IntWritable) key).get();
-        if (key instanceof LongWritable)
-            return ((LongWritable) key).get();
+        if (key instanceof NullableBytesWritable) {
+            NullableBytesWritable byWrit = (NullableBytesWritable) key; 
+            return byWrit.isNull() ? null : new DataByteArray(byWrit.get(), 0, byWrit.getSize());
+        }
+        if (key instanceof NullableText) {
+            NullableText tWrit =  (NullableText) key;
+            return tWrit.isNull() ? null :tWrit.toString();
+        }
+        if (key instanceof NullableFloatWritable) {
+            NullableFloatWritable fWrit = (NullableFloatWritable) key;
+            return fWrit == null ? null : fWrit.get();
+        }
+        if (key instanceof NullableDoubleWritable) {
+            NullableDoubleWritable dWrit = (NullableDoubleWritable) key;
+            return dWrit.isNull() ? null : dWrit.get();
+        }
+        if (key instanceof NullableIntWritable) {
+            NullableIntWritable iWrit = (NullableIntWritable) key;
+            return iWrit.isNull() ? null : iWrit.get();
+        }
+        if (key instanceof NullableLongWritable) {
+            NullableLongWritable lWrit = (NullableLongWritable) key;
+            return lWrit.isNull() ? null : lWrit.get();
+        }
         return null;
     }
 }

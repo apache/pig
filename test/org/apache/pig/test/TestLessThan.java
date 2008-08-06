@@ -93,6 +93,12 @@ public class TestLessThan extends junit.framework.TestCase {
     }
 
     @Test
+    public void testIntegerAndNullValues() throws Exception {
+    	
+    	checkNullValues( DataType.INTEGER,  new Integer(1) );
+    }  
+    
+   	@Test
     public void testLongGt() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(new Long(1L));
@@ -137,6 +143,14 @@ public class TestLessThan extends junit.framework.TestCase {
         assertFalse((Boolean)r.result);
     }
 
+    
+    @Test
+    public void testLongAndNullValues() throws Exception {
+    	
+    	checkNullValues( DataType.LONG,  new Long(1L) );
+    }  
+    
+    
     @Test
     public void testFloatGt() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -181,6 +195,13 @@ public class TestLessThan extends junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
+
+    
+    @Test
+    public void testFloatAndNullValues() throws Exception {
+    	
+    	checkNullValues( DataType.FLOAT,  new Float(1.0f) );
+    }  
 
     @Test
     public void testDoubleGt() throws Exception {
@@ -228,6 +249,12 @@ public class TestLessThan extends junit.framework.TestCase {
     }
 
     @Test
+    public void testDoubleAndNullValues() throws Exception {
+    	
+    	checkNullValues( DataType.DOUBLE, new Double(1.0) );
+    }  
+
+    @Test
     public void testStringGt() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(new String("b"));
@@ -273,6 +300,12 @@ public class TestLessThan extends junit.framework.TestCase {
     }
 
     @Test
+    public void testStringAndNullValues() throws Exception {
+    	
+    	checkNullValues( DataType.CHARARRAY, new String("b") );
+    }  
+
+    @Test
     public void testDataByteArrayGt() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(new DataByteArray("b"));
@@ -315,6 +348,56 @@ public class TestLessThan extends junit.framework.TestCase {
         Result r = g.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
+    }
+ 
+    
+    @Test
+    public void testDataByteArrayAndNullValues() throws Exception {
+    	
+    	checkNullValues( DataType.BYTEARRAY, new DataByteArray("b") );
+    }  
+
+	public <U> void checkNullValues( byte operandType, U value ) throws Exception {
+		
+        ConstantExpression lt = GenPhyOp.exprConst();
+        ConstantExpression rt = GenPhyOp.exprConst();
+        LessThanExpr g = GenPhyOp.compLessThanExpr();
+
+        // test with null in lhs
+        g.setOperandType(operandType);
+        lt.setValue(null);
+        rt.setValue( value );
+        g.setLhs(lt);
+        g.setRhs(rt);
+       
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(null, (Boolean)r.result);
+        
+        // test with null in rhs
+        g.setOperandType(operandType);
+        lt.setValue( value );
+        rt.setValue(null);
+        g.setLhs(lt);
+        g.setRhs(rt);
+       
+        r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(null, (Boolean)r.result);
+   
+        
+        // test with null in lhs and rhs
+        g.setOperandType(operandType);
+        lt.setValue(null);
+        rt.setValue(null);
+        g.setLhs(lt);
+        g.setRhs(rt);
+       
+        r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(null, (Boolean)r.result);
+ 
+
     }
 
 }

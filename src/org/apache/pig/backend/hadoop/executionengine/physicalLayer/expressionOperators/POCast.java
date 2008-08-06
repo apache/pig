@@ -107,7 +107,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new Integer(Integer.valueOf((((DataByteArray)res.result).toString())));
         		dba = (DataByteArray) res.result;
         		try {
@@ -128,7 +128,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BOOLEAN : {
         	Boolean b = null;
         	Result res = in.getNext(b);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		if (((Boolean)res.result) == true) res.result = new Integer(1);
                 else res.result = new Integer(0);
         	}
@@ -143,7 +143,7 @@ public class POCast extends ExpressionOperator {
         case DataType.DOUBLE : {
         	Double d = null;
         	Result res = in.getNext(d);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = DataType.toInteger(res.result);
         		res.result = new Integer(((Double)res.result).intValue());
         	}
@@ -153,7 +153,7 @@ public class POCast extends ExpressionOperator {
         case DataType.LONG : {
         	Long l = null;
         	Result res = in.getNext(l);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Integer(((Long)res.result).intValue());
         	}
         	return res;
@@ -162,7 +162,7 @@ public class POCast extends ExpressionOperator {
         case DataType.FLOAT : {
         	Float f = null;
         	Result res = in.getNext(f);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Integer(((Float)res.result).intValue());
         	}
         	return res;
@@ -171,7 +171,7 @@ public class POCast extends ExpressionOperator {
         case DataType.CHARARRAY : {
         	String str = null;
         	Result res = in.getNext(str);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Integer(Integer.valueOf((String)res.result));
         	}
         	return res;
@@ -210,7 +210,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new Long(Long.valueOf((((DataByteArray)res.result).toString())));
         		dba = (DataByteArray) res.result;
         		try {
@@ -225,7 +225,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BOOLEAN : {
         	Boolean b = null;
         	Result res = in.getNext(b);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		if (((Boolean)res.result) == true) res.result = new Long(1);
                 else res.result = new Long(0);
         	}
@@ -234,7 +234,7 @@ public class POCast extends ExpressionOperator {
         case DataType.INTEGER : {
         	Integer dummyI = null;
         	Result res = in.getNext(dummyI);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Long(((Integer)res.result).longValue());
         	}
         	return res;
@@ -243,7 +243,7 @@ public class POCast extends ExpressionOperator {
         case DataType.DOUBLE : {
         	Double d = null;
         	Result res = in.getNext(d);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = DataType.toInteger(res.result);
         		res.result = new Long(((Double)res.result).longValue());
         	}
@@ -260,7 +260,7 @@ public class POCast extends ExpressionOperator {
         case DataType.FLOAT : {
         	Float f = null;
         	Result res = in.getNext(f);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Long(((Float)res.result).longValue());
         	}
         	return res;
@@ -269,7 +269,7 @@ public class POCast extends ExpressionOperator {
         case DataType.CHARARRAY : {
         	String str = null;
         	Result res = in.getNext(str);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Long(Long.valueOf((String)res.result));
         	}
         	return res;
@@ -308,7 +308,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new Double(Double.valueOf((((DataByteArray)res.result).toString())));
         		dba = (DataByteArray) res.result;
         		try {
@@ -323,7 +323,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BOOLEAN : {
         	Boolean b = null;
         	Result res = in.getNext(b);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		if (((Boolean)res.result) == true) res.result = new Double(1);
                 else res.result = new Double(0);
         	}
@@ -332,7 +332,7 @@ public class POCast extends ExpressionOperator {
         case DataType.INTEGER : {
         	Integer dummyI = null;
         	Result res = in.getNext(dummyI);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Double(((Integer)res.result).doubleValue());
         	}
         	return res;
@@ -348,7 +348,7 @@ public class POCast extends ExpressionOperator {
         case DataType.LONG : {
         	Long l = null;
         	Result res = in.getNext(l);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Double(((Long)res.result).doubleValue());
         	}
         	return res;
@@ -357,7 +357,7 @@ public class POCast extends ExpressionOperator {
         case DataType.FLOAT : {
         	Float f = null;
         	Result res = in.getNext(f);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Double(((Float)res.result).doubleValue());
         	}
         	return res;
@@ -366,7 +366,7 @@ public class POCast extends ExpressionOperator {
         case DataType.CHARARRAY : {
         	String str = null;
         	Result res = in.getNext(str);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Double(Double.valueOf((String)res.result));
         	}
         	return res;
@@ -405,7 +405,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new Float(Float.valueOf((((DataByteArray)res.result).toString())));
         		dba = (DataByteArray) res.result;
         		try {
@@ -420,7 +420,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BOOLEAN : {
         	Boolean b = null;
         	Result res = in.getNext(b);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		if (((Boolean)res.result) == true) res.result = new Float(1);
                 else res.result = new Float(0);
         	}
@@ -429,7 +429,7 @@ public class POCast extends ExpressionOperator {
         case DataType.INTEGER : {
         	Integer dummyI = null;
         	Result res = in.getNext(dummyI);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Float(((Integer)res.result).floatValue());
         	}
         	return res;
@@ -438,7 +438,7 @@ public class POCast extends ExpressionOperator {
         case DataType.DOUBLE : {
         	Double d = null;
         	Result res = in.getNext(d);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = DataType.toInteger(res.result);
         		res.result = new Float(((Double)res.result).floatValue());
         	}
@@ -449,7 +449,7 @@ public class POCast extends ExpressionOperator {
         	
         	Long l = null;
         	Result res = in.getNext(l);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Float(((Long)res.result).floatValue());
         	}
         	return res;
@@ -465,7 +465,7 @@ public class POCast extends ExpressionOperator {
         case DataType.CHARARRAY : {
         	String str = null;
         	Result res = in.getNext(str);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new Float(Float.valueOf((String)res.result));
         	}
         	return res;
@@ -504,7 +504,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new String(((DataByteArray)res.result).toString());
         		dba = (DataByteArray) res.result;
         		try {
@@ -519,7 +519,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BOOLEAN : {
         	Boolean b = null;
         	Result res = in.getNext(b);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		if (((Boolean)res.result) == true) res.result = new String("1");
                 else res.result = new String("1");
         	}
@@ -528,7 +528,7 @@ public class POCast extends ExpressionOperator {
         case DataType.INTEGER : {
         	Integer dummyI = null;
         	Result res = in.getNext(dummyI);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new String(((Integer)res.result).toString());
         	}
         	return res;
@@ -537,7 +537,7 @@ public class POCast extends ExpressionOperator {
         case DataType.DOUBLE : {
         	Double d = null;
         	Result res = in.getNext(d);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = DataType.toInteger(res.result);
         		res.result = new String(((Double)res.result).toString());
         	}
@@ -548,7 +548,7 @@ public class POCast extends ExpressionOperator {
         	
         	Long l = null;
         	Result res = in.getNext(l);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new String(((Long)res.result).toString());
         	}
         	return res;
@@ -557,7 +557,7 @@ public class POCast extends ExpressionOperator {
         case DataType.FLOAT : {
         	Float f = null;
         	Result res = in.getNext(f);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		res.result = new String(((Float)res.result).toString());
         	}
         	return res;
@@ -591,7 +591,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new String(((DataByteArray)res.result).toString());
         		dba = (DataByteArray) res.result;
         		try {
@@ -645,7 +645,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new String(((DataByteArray)res.result).toString());
         		dba = (DataByteArray) res.result;
         		try {
@@ -699,7 +699,7 @@ public class POCast extends ExpressionOperator {
         case DataType.BYTEARRAY : {
         	DataByteArray dba = null;
         	Result res = in.getNext(dba);
-        	if(res.returnStatus == POStatus.STATUS_OK) {
+        	if(res.returnStatus == POStatus.STATUS_OK && res.result != null) {
         		//res.result = new String(((DataByteArray)res.result).toString());
         		dba = (DataByteArray) res.result;
         		try {

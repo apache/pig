@@ -45,7 +45,9 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -74,6 +76,8 @@ public class PigCombiner {
             implements
             Reducer<WritableComparable, IndexedTuple, WritableComparable, Writable> {
         private final Log log = LogFactory.getLog(getClass());
+
+        private byte keyType;
         
         //The reduce plan
         private PhysicalPlan cp;
@@ -107,6 +111,8 @@ public class PigCombiner {
                     cp.explain(baos);
                     log.debug(baos.toString());
                 }
+                
+                keyType = ((byte[])ObjectSerializer.deserialize(jConf.get("pig.map.keytype")))[0];
                 // till here
                 
                 long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
@@ -148,7 +154,7 @@ public class PigCombiner {
                     cp.attachInput(packRes);
 
                     List<PhysicalOperator> leaves = cp.getLeaves();
-                    
+
                     PhysicalOperator leaf = leaves.get(0);
                     while(true){
                         Result redRes = leaf.getNext(t);
@@ -157,7 +163,7 @@ public class PigCombiner {
                             Tuple tuple = (Tuple)redRes.result;
                             Object combKey = tuple.get(0);
                             IndexedTuple it = (IndexedTuple)tuple.get(1);
-                            WritableComparable wcKey = HDataType.getWritableComparableTypes(combKey);
+                            WritableComparable wcKey = HDataType.getWritableComparableTypes(combKey, this.keyType);
                             oc.collect(wcKey, it);
                             continue;
                         }
@@ -203,6 +209,20 @@ public class PigCombiner {
             /*if(runnableReporter!=null)
                 runnableReporter.setDone(true);*/
             PhysicalOperator.setReporter(null);
+        }
+
+        /**
+         * @return the keyType
+         */
+        public byte getKeyType() {
+            return keyType;
+        }
+
+        /**
+         * @param keyType the keyType to set
+         */
+        public void setKeyType(byte keyType) {
+            this.keyType = keyType;
         }
     }
     

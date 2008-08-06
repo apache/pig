@@ -54,11 +54,17 @@ public class TestFilterOpString extends TestCase {
     public void testStringEq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("a:" + i);
+                // test with nulls
+                ps.println("a:");
+                ps.println(":a");
+                ps.println(":");
             } else {
                 ps.println("ab:ab");
+                expectedCount++;
             }
         }
         ps.close();
@@ -69,23 +75,33 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
+            count++;
             assertTrue(first.equals(second));
         }
+        assertEquals(expectedCount, count);
     }
     
     @Test
     public void testStringNeq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("ab:ab");
-            } else {
+            } else if (i % 3 == 0) {
                 ps.println("ab:abc");
+                expectedCount++;
+            } else {
+                // test with nulls
+                ps.println(":");
+                ps.println("ab:");
+                ps.println(":ab");                
             }
         }
         ps.close();
@@ -96,23 +112,33 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertFalse(first.equals(second));
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     @Test
     public void testStringGt() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                expectedCount++;
             } else {
                 ps.println("a:b");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
+                
             }
         }
         ps.close();
@@ -123,12 +149,15 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) > 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     
@@ -137,13 +166,20 @@ public class TestFilterOpString extends TestCase {
     public void testStringGte() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                expectedCount++;
             }else if(i % 3 == 0) {
                 ps.println("b:b");
+                expectedCount++;
             } else {
                 ps.println("a:b");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
             }
         }
         ps.close();
@@ -155,23 +191,32 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) >= 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     @Test
     public void testStringLt() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
             } else {
                 ps.println("a:b");
+                expectedCount++;
             }
         }
         ps.close();
@@ -183,12 +228,15 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) < 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     @Test
@@ -196,13 +244,20 @@ public class TestFilterOpString extends TestCase {
         PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
             }else if(i % 3 == 0) {
                 ps.println("b:b");
+                expectedCount++;
             } else {
                 ps.println("a:b");
+                expectedCount++;
             }
         }
         ps.close();
@@ -214,12 +269,15 @@ public class TestFilterOpString extends TestCase {
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) <= 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
 }

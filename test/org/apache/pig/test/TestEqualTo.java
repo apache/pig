@@ -62,6 +62,7 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertFalse((Boolean)r.result);
     }
 
+
     @Test
     public void testIntegerEq() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -76,6 +77,14 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
+
+	@Test
+	public void testIntegerAndNullValues() throws Exception {
+	    	
+	    checkNullValues(  DataType.INTEGER,  new Integer(1) );
+	        
+	}
+    
 
     @Test
     public void testLongNe() throws Exception {
@@ -107,6 +116,15 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertTrue((Boolean)r.result);
     }
 
+    
+	@Test
+    public void testLongAndNullValues() throws Exception {
+		
+	    checkNullValues(  DataType.LONG,  new Long(1) );
+
+    }
+    
+
     @Test
     public void testFloatNe() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -121,7 +139,7 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
-
+    
     @Test
     public void testFloatEq() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -138,6 +156,13 @@ public class TestEqualTo extends junit.framework.TestCase {
     }
 
     @Test
+	public void testFloatAndNullValues() throws Exception {
+	    checkNullValues(   DataType.FLOAT,  new Float(1.0f) );
+	    
+	}
+
+
+    @Test
     public void testDoubleNe() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(new Double(0.0));
@@ -151,6 +176,8 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
+    
+ 
 
     @Test
     public void testDoubleEq() throws Exception {
@@ -166,6 +193,12 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
+    
+    @Test
+	public void testDoubleAndNullValues() throws Exception {
+	    checkNullValues(   DataType.DOUBLE,  new Double(1.0) );
+	    
+	}
 
     @Test
     public void testStringNe() throws Exception {
@@ -182,6 +215,7 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertFalse((Boolean)r.result);
     }
 
+    
     @Test
     public void testStringEq() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -197,7 +231,15 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertTrue((Boolean)r.result);
     }
 
-    @Test
+    
+	@Test
+	public void testStringAndNullValues() throws Exception {
+	    checkNullValues(   DataType.CHARARRAY,  new String("b") );
+		    
+	}
+
+
+	@Test
     public void testDataByteArrayNe() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(new DataByteArray("a"));
@@ -212,6 +254,7 @@ public class TestEqualTo extends junit.framework.TestCase {
         assertFalse((Boolean)r.result);
     }
 
+    
     @Test
     public void testDataByteArrayEq() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -225,5 +268,54 @@ public class TestEqualTo extends junit.framework.TestCase {
         Result r = g.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
+    }
+    
+	@Test
+	public void testDataByteArrayAndNullValues() throws Exception {
+	    checkNullValues(   DataType.BYTEARRAY,  new DataByteArray("b") );
+		    
+	}
+    
+	public <U> void checkNullValues( byte operandType, U value ) throws Exception {
+		
+        ConstantExpression lt = GenPhyOp.exprConst();
+        ConstantExpression rt = GenPhyOp.exprConst();
+        EqualToExpr g = GenPhyOp.compEqualToExpr();
+
+        // test with null in lhs
+        g.setOperandType(operandType);
+        lt.setValue(null);
+        rt.setValue( value );
+        g.setLhs(lt);
+        g.setRhs(rt);
+       
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(null, (Boolean)r.result);
+        
+        // test with null in rhs
+        g.setOperandType(operandType);
+        lt.setValue( value );
+        rt.setValue(null);
+        g.setLhs(lt);
+        g.setRhs(rt);
+       
+        r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(null, (Boolean)r.result);
+   
+        
+        // test with null in lhs and rhs
+        g.setOperandType(operandType);
+        lt.setValue(null);
+        rt.setValue(null);
+        g.setLhs(lt);
+        g.setRhs(rt);
+       
+        r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(null, (Boolean)r.result);
+ 
+
     }
 }

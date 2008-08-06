@@ -42,6 +42,8 @@ public class TargetedTuple implements Tuple {
     // has to be attached as input.
     public List<OperatorKey> targetOps = null;
 
+    protected boolean isNull = false;
+
     public TargetedTuple() {
     }
 
@@ -147,4 +149,19 @@ public class TargetedTuple implements Tuple {
     public int compareTo(Object o) {
         return t.compareTo(o);
     }
+    
+    /**
+     * @return true if this Tuple is null
+     */
+    public boolean isNull() {
+        return isNull;
+    }
+
+    /**
+     * @param isNull boolean indicating whether this tuple is null
+     */
+    public void setNull(boolean isNull) {
+        this.isNull = isNull;
+    }
+
 }
