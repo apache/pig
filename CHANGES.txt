@@ -145,3 +145,5 @@ Trunk (unreleased changes)
     PIG-270: proper line number for parse errors
 
     PIG-363: fix for describe to produce schema name
+
+    PIG-367: convinience function for UDFs to name schema

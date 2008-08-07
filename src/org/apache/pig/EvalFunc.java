@@ -49,6 +49,17 @@ public abstract class EvalFunc<T>  {
     // UDFs must use this to report progress
     // if the exec is taking more that 300 ms
     protected PigProgressable reporter;
+
+    private static int nextSchemaId; // for assigning unique ids to UDF columns
+    protected String getSchemaName(String name, Schema input) {
+        String alias = name + "_";
+        if (input.getAliases().size() > 0){
+            alias += input.getAliases().iterator().next() + "_";
+        }
+
+        alias += ++nextSchemaId;
+        return alias;
+    }
     
     protected Type returnType;
     
