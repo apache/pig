@@ -268,7 +268,7 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
 
         CompressionCodecFactory compressionFactory;
 
-        JobConf job;
+        public static JobConf job;
         
         /**
          * Uses the split to get information about the input
@@ -282,7 +282,7 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         PigRecordReader(JobConf job, PigSplit split,
                 CompressionCodecFactory compressionFactory) throws IOException {
             this.split = split;
-            this.job = job;
+            PigRecordReader.job = job;
             this.compressionFactory = compressionFactory;
             loader = split.getLoadFunction();
             Path path = split.getPath();
