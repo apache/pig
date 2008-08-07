@@ -277,6 +277,11 @@ public class PigServer {
     public void dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
+            try {
+                lp = compileLp(lp, "describe");
+            } catch (ExecException e) {
+                throw new FrontendException(e.getMessage());
+            }
             Schema schema = lp.getLeaves().get(0).getSchema();
             System.out.println(schema.toString());    
         } catch (FrontendException fe) {

@@ -143,3 +143,5 @@ Trunk (unreleased changes)
     PIG-139: command line editing
 
     PIG-270: proper line number for parse errors
+
+    PIG-363: fix for describe to produce schema name
