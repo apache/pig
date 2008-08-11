@@ -679,7 +679,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 	log.warn("Something in the reduce plan while map plan is not done. Something wrong!");
                 }
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
-            	// limit should add into reduce reduce function
+            	// limit should add into reduce plan
                 mro.reducePlan.addAsLeaf(op);
             } else {
                 log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");

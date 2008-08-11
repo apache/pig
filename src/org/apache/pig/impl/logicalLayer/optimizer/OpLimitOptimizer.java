@@ -97,7 +97,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
         // Limit cannot be pushed up
         if (predecessor instanceof LOCogroup || predecessor instanceof LOFilter ||
         		predecessor instanceof LOLoad || predecessor instanceof LOSplit ||
-        		predecessor instanceof LOSplitOutput)
+        		predecessor instanceof LOSplitOutput || predecessor instanceof LODistinct)
         {
         	return;
         }
@@ -129,19 +129,19 @@ public class OpLimitOptimizer extends LogicalTransformer {
 				{
 					throw new OptimizerException("LOFilter should have one input");
 				}
+	            // we can move LOLimit even further, recursively optimize LOLimit
+	            processNode(limit);
         	}
-        	// we can move LOLimit even further, recursively optimize LOLimit
-        	processNode(limit);
         }
         // Limit can be duplicated, and the new instance pushed in front of an operator for the following operators 
         // (that is, if you have X->limit, you can transform that to limit->X->limit):
-        else if (predecessor instanceof LOCross || predecessor instanceof LODistinct ||
+        else if (predecessor instanceof LOCross || 
         		predecessor instanceof LOForEach || predecessor instanceof LOUnion)
         {
         	LOLimit newLimit = null;
 			// Process the predecessors with only one input. LOForEach should now have at least
 			// one flaten
-			if (predecessor instanceof LODistinct || predecessor instanceof LOForEach)
+			if (predecessor instanceof LOForEach)
 			{
 				LogicalOperator prepredecessor = mPlan.getPredecessors(predecessor).get(0);
 				try {

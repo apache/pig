@@ -69,7 +69,9 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
         
-		String actualPlan = printLimitGraph(plan);		
+        String actualPlan = printLimitGraph(plan);
+        System.out.println("We get:");
+        System.out.println(actualPlan);
 		assertEquals(goldenPlan, actualPlan);
     }
     
@@ -118,8 +120,9 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
 	// Duplicte limit with one input
 	public void testOPLimit4Optimizer() throws Exception {
 	    planTester.buildPlan("A = load 'myfile1';");
-	    planTester.buildPlan("B = distinct A;");
-	    LogicalPlan plan = planTester.buildPlan("C = limit B 100;");
+	    planTester.buildPlan("B = group A by $0;");
+	    planTester.buildPlan("C = foreach B generate flatten(A);");
+	    LogicalPlan plan = planTester.buildPlan("D = limit C 100;");
 	    optimizePlan(plan);
 	    compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan4.dot");
 	}
