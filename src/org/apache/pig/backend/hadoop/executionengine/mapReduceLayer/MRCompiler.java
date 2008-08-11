@@ -663,8 +663,8 @@ public class MRCompiler extends PhyPlanVisitor {
                     POProject prj1 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
                     prj1.setResultType(DataType.TUPLE);
                     prj1.setStar(false);
-                    prj1.setColumn(0);
-                    prj1.setOverloaded(false);
+                    prj1.setColumn(1);
+                    prj1.setOverloaded(true);
                     ep1.add(prj1);
                     eps1.add(ep1);
                     flat1.add(false);
