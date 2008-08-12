@@ -1206,7 +1206,6 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 	ArrayList<Boolean> ascOrder = new ArrayList<Boolean>(); 
 	boolean asc = true; 
 	String funcName = null; 
-	long limit=-1;
 	Token t1;
 	log.trace("Entering OrderClause");
 }
@@ -1235,7 +1234,6 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 			}
 		}	
 	)
-	(<LIMIT> t1 = <INTEGER> { limit = Integer.parseInt(t1.image);})?
 	(
         <USING>  funcName = QualifiedFunction()
     )?
@@ -1245,7 +1243,7 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
 		                          (funcName != null ? new FuncSpec(funcName) : null));
 		sort.setStar(star);
-		sort.setLimit(limit);
+		sort.setLimit(-1);
 		lp.add(sort);
 		log.debug("Added operator " + sort.getClass().getName() + " to the logical plan");
 		

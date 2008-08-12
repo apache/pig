@@ -1,5 +1,0 @@
-POSort[bag]() - Test-Plan-Builder-230
-|   |
-|   Project[bytearray][0] - Test-Plan-Builder-229
-|
-|---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-228
