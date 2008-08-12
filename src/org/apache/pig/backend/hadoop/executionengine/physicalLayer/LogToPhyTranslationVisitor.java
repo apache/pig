@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -38,6 +40,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
+import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalkerWOSeenChk;
@@ -759,6 +764,14 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         String scope = split.getOperatorKey().scope;
         PhysicalOperator physOp = new POSplit(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), split.getRequestedParallelism());
+        FileSpec splStrFile;
+        try {
+            splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),new FuncSpec(BinStorage.class.getName()));
+        } catch (IOException e1) {
+            log.error("Unable to obtain a temporary path because " + e1.getMessage());
+            throw new VisitorException(e1);
+        }
+        ((POSplit)physOp).setSplitStore(splStrFile);
         LogToPhyMap.put(split, physOp);
 
         currentPlan.add(physOp);

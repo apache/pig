@@ -68,10 +68,16 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     
     Random r = new Random();
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-
+    
     private boolean generate = false;
     
     
+    
+    @Override
+    protected void setUp() throws Exception {
+        pc.connect();
+    }
+
     private void writeData(File input, int noTuples, int arityOfTuples, char separator) throws IOException {
     	FileOutputStream dat = new FileOutputStream(input);
         
