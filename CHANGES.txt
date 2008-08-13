@@ -149,3 +149,5 @@ Trunk (unreleased changes)
     PIG-367: convinience function for UDFs to name schema
 
     PIG-368: making JobConf available to Load/Store UDFs
+
+    PIG-311: cross is broken

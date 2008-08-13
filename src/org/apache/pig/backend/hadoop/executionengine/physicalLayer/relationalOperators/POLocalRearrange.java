@@ -64,6 +64,8 @@ public class POLocalRearrange extends PhysicalOperator {
     byte keyType;
 
     private boolean mIsDistinct = false;
+    
+    private boolean isCross = false;
 
     // A place holder IndexedTuple used in distinct case where we really don't
     // have any value to pass through.  But hadoop gets cranky if we pass a
@@ -228,6 +230,10 @@ public class POLocalRearrange extends PhysicalOperator {
             outPut.set(1, mFakeIndexedTuple);
             return outPut;
         } else {
+            if(isCross){
+                for(int i=0;i<plans.size();i++)
+                    value.getAll().remove(0);
+            }
             //Create the indexed tuple out of the value
             //that is remaining in the input tuple
             IndexedTuple it = new IndexedTuple(value, index);
@@ -282,6 +288,14 @@ public class POLocalRearrange extends PhysicalOperator {
         // created.
         clone.setDistinct(mIsDistinct);
         return clone;
+    }
+
+    public boolean isCross() {
+        return isCross;
+    }
+
+    public void setCross(boolean isCross) {
+        this.isCross = isCross;
     }
 
 

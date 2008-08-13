@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,10 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
@@ -41,6 +45,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.*;
@@ -502,6 +507,119 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
     }
 
+    @Override
+    protected void visit(LOCross cs) throws VisitorException {
+        String scope = cs.getOperatorKey().scope;
+        List<LogicalOperator> inputs = cs.getInputs();
+        
+        POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
+                scope, nodeGen.getNextNodeId(scope)), cs
+                .getRequestedParallelism());
+        POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), cs.getRequestedParallelism());
+
+        currentPlan.add(poGlobal);
+        currentPlan.add(poPackage);
+        
+        int count = 0;
+        
+        try {
+            currentPlan.connect(poGlobal, poPackage);
+            List<Boolean> flattenLst = Arrays.asList(true, true);
+            
+            for (LogicalOperator op : inputs) {
+                List<PhysicalOperator> pop = Arrays.asList(LogToPhyMap.get(op));
+                PhysicalPlan fep1 = new PhysicalPlan();
+                ConstantExpression ce1 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cs.getRequestedParallelism());
+                Tuple ce1val = TupleFactory.getInstance().newTuple(2);
+                ce1val.set(0,inputs.size());
+                ce1val.set(1,count);
+                ce1.setValue(ce1val);
+                ce1.setResultType(DataType.TUPLE);
+                
+                fep1.add(ce1);
+
+                POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cs.getRequestedParallelism(), Arrays.asList((PhysicalOperator)ce1), new FuncSpec(GFCross.class.getName()));
+                gfc.setResultType(DataType.BAG);
+                fep1.addAsLeaf(gfc);
+                
+                PhysicalPlan fep2 = new PhysicalPlan();
+                POProject feproj = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cs.getRequestedParallelism());
+                feproj.setResultType(DataType.TUPLE);
+                feproj.setStar(true);
+                feproj.setOverloaded(false);
+                fep2.add(feproj);
+                List<PhysicalPlan> fePlans = Arrays.asList(fep1, fep2);
+                
+                POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cs.getRequestedParallelism(), fePlans, flattenLst );
+                currentPlan.add(fe);
+                currentPlan.connect(LogToPhyMap.get(op), fe);
+                
+                POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
+                        scope, nodeGen.getNextNodeId(scope)), cs
+                        .getRequestedParallelism());
+                List<PhysicalPlan> lrPlans = new ArrayList<PhysicalPlan>();
+                for(int i=0;i<inputs.size();i++){
+                    PhysicalPlan lrp1 = new PhysicalPlan();
+                    POProject lrproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cs.getRequestedParallelism(), i);
+                    lrproj1.setOverloaded(false);
+                    lrproj1.setResultType(DataType.INTEGER);
+                    lrp1.add(lrproj1);
+                    lrPlans.add(lrp1);
+                }
+                
+                physOp.setCross(true);
+                physOp.setIndex(count++);
+                physOp.setKeyType(DataType.TUPLE);
+                physOp.setPlans(lrPlans);
+                physOp.setResultType(DataType.TUPLE);
+                
+                currentPlan.add(physOp);
+                currentPlan.connect(fe, physOp);
+                currentPlan.connect(physOp, poGlobal);
+            }
+        } catch (PlanException e1) {
+            log.error("Invalid physical operators in the physical plan"
+                    + e1.getMessage());
+            throw new VisitorException(e1);
+        } catch (ExecException e) {
+            log.error("Unable to create the constant tuple because " + e.getMessage());
+            throw new VisitorException(e);
+        }
+        
+        poPackage.setKeyType(DataType.TUPLE);
+        poPackage.setResultType(DataType.TUPLE);
+        poPackage.setNumInps(count);
+        boolean inner[] = new boolean[count];
+        for (int i=0;i<count;i++) {
+            inner[i] = true;
+        }
+        poPackage.setInner(inner);
+        
+        List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
+        List<Boolean> flattenLst = new ArrayList<Boolean>();
+        for(int i=1;i<=count;i++){
+            PhysicalPlan fep1 = new PhysicalPlan();
+            POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cs.getRequestedParallelism(), i);
+            feproj1.setResultType(DataType.BAG);
+            feproj1.setOverloaded(false);
+            fep1.add(feproj1);
+            fePlans.add(fep1);
+            flattenLst.add(true);
+        }
+        
+        POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cs.getRequestedParallelism(), fePlans, flattenLst );
+        currentPlan.add(fe);
+        try{
+            currentPlan.connect(poPackage, fe);
+        }catch (PlanException e1) {
+            log.error("Invalid physical operators in the physical plan"
+                    + e1.getMessage());
+            throw new VisitorException(e1);
+        }
+        LogToPhyMap.put(cs, fe);
+    }
+    
     @Override
     public void visit(LOCogroup cg) throws VisitorException {
         boolean currentPhysicalPlan = false;
