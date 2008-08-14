@@ -1325,22 +1325,24 @@ public class TypeCheckingVisitor extends LOVisitor {
         // without this
 
         // Assuming all aggregates has only one argument at this stage
-        ExpressionOperator tmpExp = func.getArguments().get(0) ;
-        if ( (ef instanceof Algebraic)
-             && (tmpExp instanceof LOProject)
-             && (((LOProject)tmpExp).getSentinel())) {
-
-            FieldSchema tmpField ;
-
-            try {
-                // embed the schema above inside a bag
-                tmpField = new FieldSchema(null, s, DataType.BAG) ;
+        if(func.getArguments()!=null && func.getArguments().size()>0){
+            ExpressionOperator tmpExp = func.getArguments().get(0) ;
+            if ( (ef instanceof Algebraic)
+                 && (tmpExp instanceof LOProject)
+                 && (((LOProject)tmpExp).getSentinel())) {
+    
+                FieldSchema tmpField ;
+    
+                try {
+                    // embed the schema above inside a bag
+                    tmpField = new FieldSchema(null, s, DataType.BAG) ;
+                }
+                catch (FrontendException e) {
+                    throw new VisitorException(e) ;
+                }
+    
+                s = new Schema(tmpField) ;
             }
-            catch (FrontendException e) {
-                throw new VisitorException(e) ;
-            }
-
-            s = new Schema(tmpField) ;
         }
         
         // ask the EvalFunc what types of inputs it can handle
@@ -2301,6 +2303,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
             else if (op instanceof LOConst) {
                 // don't have to do anything
+            }
+            else if (op instanceof LOUserFunc){
+                visit((LOUserFunc)op);
             }
             else {
                 String msg = "Unsupported root operator in inner plan:"

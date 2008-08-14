@@ -55,7 +55,9 @@ public class POFilter extends PhysicalOperator {
     PhysicalPlan plan;
 
     // The root comparison operator of the expression plan
-    ComparisonOperator comOp;
+//    ComparisonOperator comOp;
+    PhysicalOperator comOp;
+    
 
     // The operand type for the comparison operator needed
     // to call the comparison operators getNext with the
@@ -176,8 +178,8 @@ public class POFilter extends PhysicalOperator {
 
     public void setPlan(PhysicalPlan plan) {
         this.plan = plan;
-        comOp = (ComparisonOperator) (plan.getLeaves()).get(0);
-        compOperandType = comOp.getOperandType();
+        comOp = plan.getLeaves().get(0);
+//        compOperandType = comOp.getOperandType();
     }
 
     public PhysicalPlan getPlan() {

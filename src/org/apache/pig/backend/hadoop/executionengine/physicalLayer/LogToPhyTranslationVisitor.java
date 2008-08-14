@@ -949,14 +949,16 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         p.setResultType(func.getType());
         currentPlan.add(p);
         List<LogicalOperator> fromList = func.getPlan().getPredecessors(func);
-        for (LogicalOperator op : fromList) {
-            PhysicalOperator from = LogToPhyMap.get(op);
-            try {
-                currentPlan.connect(from, p);
-            } catch (PlanException e) {
-                log.error("Invalid physical operator in the plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+        if(fromList!=null){
+            for (LogicalOperator op : fromList) {
+                PhysicalOperator from = LogToPhyMap.get(op);
+                try {
+                    currentPlan.connect(from, p);
+                } catch (PlanException e) {
+                    log.error("Invalid physical operator in the plan"
+                            + e.getMessage());
+                    throw new VisitorException(e);
+                }
             }
         }
         LogToPhyMap.put(func, p);
