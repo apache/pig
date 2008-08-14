@@ -72,6 +72,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //The quantiles file name if globalSort is true
     String quantFile;
     
+    //The sort order of the columns;
+    //asc is true and desc is false
+    boolean[] sortOrder;
+
     public List<String> UDFs;
     
     NodeIdGenerator nig;
@@ -213,5 +217,17 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public void setQuantFile(String quantFile) {
         this.quantFile = quantFile;
+    }
+
+    public void setSortOrder(boolean[] sortOrder) {
+        if(null == sortOrder) return;
+        this.sortOrder = new boolean[sortOrder.length];
+        for(int i = 0; i < sortOrder.length; ++i) {
+            this.sortOrder[i] = sortOrder[i];
+        }
+    }
+             
+    public boolean[] getSortOrder() {
+        return sortOrder;
     }
 }

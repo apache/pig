@@ -825,8 +825,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 curMROp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
             }
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
+            VisitorException pe = new VisitorException(e.getMessage(), e);
             throw pe;
         }
     }
@@ -864,6 +863,17 @@ public class MRCompiler extends PhyPlanVisitor {
 
         byte keyType = DataType.UNKNOWN;
         
+        boolean[] sortOrder;
+
+        List<Boolean> sortOrderList = sort.getMAscCols();
+        if(sortOrderList != null) {
+            sortOrder = new boolean[sortOrderList.size()];
+            for(int i = 0; i < sortOrderList.size(); ++i) {
+                sortOrder[i] = sortOrderList.get(i);
+            }
+            mro.setSortOrder(sortOrder);
+        }
+
         if (fields == null) {
             // This is project *
             PhysicalPlan ep = new PhysicalPlan();
@@ -1004,8 +1014,9 @@ public class MRCompiler extends PhyPlanVisitor {
         POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
                 .getRequestedParallelism(), null, inpSort.getSortPlans(),
                 inpSort.getMAscCols(), inpSort.getMSortFunc());
-        if(sort.isUDFComparatorUsed)
+        if(sort.isUDFComparatorUsed) {
             mro.UDFs.add(sort.getMSortFunc().getFuncSpec().toString());
+        }
         
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();

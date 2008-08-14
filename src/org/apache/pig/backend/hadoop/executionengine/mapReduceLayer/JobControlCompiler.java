@@ -289,8 +289,12 @@ public class JobControlCompiler{
                 if(mro.UDFs.size()==1){
                     String compFuncSpec = mro.UDFs.get(0);
                     Class comparator = PigContext.resolveClassName(compFuncSpec);
-                    if(ComparisonFunc.class.isAssignableFrom(comparator))
+                    if(ComparisonFunc.class.isAssignableFrom(comparator)) {
                         jobConf.setOutputKeyComparatorClass(comparator);
+                    }
+                } else {
+                    jobConf.set("pig.sortOrder",
+                        ObjectSerializer.serialize(mro.getSortOrder()));
                 }
             }
     
@@ -385,7 +389,44 @@ public class JobControlCompiler{
                 if (succ.isGlobalSort()) involved = true;
             }
         }
-        if (!involved) {
+        if (involved) {
+            switch (keyType) {
+            case DataType.INTEGER:
+                jobConf.setOutputKeyComparatorClass(PigIntRawComparator.class);
+                break;
+
+            case DataType.LONG:
+                jobConf.setOutputKeyComparatorClass(PigLongRawComparator.class);
+                break;
+
+            case DataType.FLOAT:
+                jobConf.setOutputKeyComparatorClass(PigFloatRawComparator.class);
+                break;
+
+            case DataType.DOUBLE:
+                jobConf.setOutputKeyComparatorClass(PigDoubleRawComparator.class);
+                break;
+
+            case DataType.CHARARRAY:
+                jobConf.setOutputKeyComparatorClass(PigTextRawComparator.class);
+                break;
+
+            case DataType.BYTEARRAY:
+                jobConf.setOutputKeyComparatorClass(PigBytesRawComparator.class);
+                break;
+
+            case DataType.MAP:
+                log.error("Using Map as key not supported.");
+                throw new JobCreationException("Using Map as key not supported");
+
+            case DataType.TUPLE:
+                jobConf.setOutputKeyComparatorClass(PigTupleRawComparator.class);
+                break;
+
+            default:
+                break;
+            }
+        } else {
             switch (keyType) {
             case DataType.INTEGER:
                 jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
