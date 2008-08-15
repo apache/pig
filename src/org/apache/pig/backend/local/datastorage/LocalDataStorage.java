@@ -44,7 +44,7 @@ public class LocalDataStorage implements DataStorage {
     public Properties getConfiguration() {
         Properties config = new Properties();
         
-        config.put(DEFAULT_REPLICATION_FACTOR_KEY, (new Integer(1)).toString());
+        config.put(DEFAULT_REPLICATION_FACTOR_KEY, "" + 1);
         
         return config;
     }

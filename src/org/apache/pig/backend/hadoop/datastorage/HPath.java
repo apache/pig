@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.Map;
 import java.util.HashMap;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -140,13 +141,12 @@ public abstract class HPath implements ElementDescriptor {
     public Map<String, Object> getStatistics() throws IOException {
         HashMap<String, Object> props = new HashMap<String, Object>();
         
-        Long length = new Long(fs.getHFS().getFileStatus(path).getLen());
+        FileStatus fileStatus = fs.getHFS().getFileStatus(path);
 
-        Long modificationTime = new Long(fs.getHFS().getFileStatus(path).
-                                         getModificationTime());
-
-        props.put(LENGTH_KEY, length.toString());
-        props.put(MODIFICATION_TIME_KEY, modificationTime.toString());
+        props.put(BLOCK_SIZE_KEY, fileStatus.getBlockSize());
+        props.put(BLOCK_REPLICATION_KEY, fileStatus.getReplication());
+        props.put(LENGTH_KEY, fileStatus.getLen());
+        props.put(MODIFICATION_TIME_KEY, fileStatus.getModificationTime());
         
         return props;
     }

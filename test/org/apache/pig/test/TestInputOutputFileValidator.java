@@ -44,26 +44,7 @@ public class TestInputOutputFileValidator extends TestCase {
 
     }
     
-    @Test
-    public void testLocalModeNegative1() throws Throwable {
-        
-        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
-        ctx.connect() ;
-        
-        String inputfile = generateNonExistenceTempFile().getAbsolutePath() ;
-        String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
-
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;         
-        
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
-        executor.validate(plan, collector) ;
-        
-        assertEquals(collector.size(), 1) ;
-        assertEquals(collector.get(0).getMessageType(), MessageType.Error) ;
-
-    }
-    
+       
     @Test
     public void testLocalModeNegative2() throws Throwable {
         
@@ -84,27 +65,7 @@ public class TestInputOutputFileValidator extends TestCase {
 
     }
     
-    @Test
-    public void testLocalModeNegative3() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
-        ctx.connect() ;
-        
-        String inputfile = generateNonExistenceTempFile().getAbsolutePath() ;
-        String outputfile = generateTempFile().getAbsolutePath() ;
-
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;         
-        
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
-        executor.validate(plan, collector) ;
-        
-        assertEquals(collector.size(), 2) ;
-        assertEquals(collector.get(0).getMessageType(), MessageType.Error) ;
-        assertEquals(collector.get(1).getMessageType(), MessageType.Error) ;
-
-    }
-    
     @Test
     public void testMapReduceModeInputPositive() throws Throwable {
         
@@ -124,26 +85,7 @@ public class TestInputOutputFileValidator extends TestCase {
 
     }
     
-    @Test
-    public void testMapReduceModeInputNegative1() throws Throwable {
-        
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
-        ctx.connect() ;
-        
-        String inputfile = createHadoopNonExistenceTempFile(ctx) ;
-        String outputfile = createHadoopNonExistenceTempFile(ctx) ;
-
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;                     
-        
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
-        executor.validate(plan, collector) ;
-            
-        assertEquals(collector.size(), 1) ;
-        assertEquals(collector.get(0).getMessageType(), MessageType.Error) ;
-
-    }
-    
+       
     @Test
     public void testMapReduceModeInputNegative2() throws Throwable {
         
@@ -164,27 +106,7 @@ public class TestInputOutputFileValidator extends TestCase {
 
     }
     
-    @Test
-    public void testMapReduceModeInputNegative3() throws Throwable {
         
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
-        ctx.connect() ;
-        
-        String inputfile = createHadoopNonExistenceTempFile(ctx) ;
-        String outputfile = createHadoopTempFile(ctx) ;
-
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;                     
-        
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
-        executor.validate(plan, collector) ;;
-            
-        assertEquals(collector.size(), 2) ;
-        assertEquals(collector.get(0).getMessageType(), MessageType.Error) ;
-        assertEquals(collector.get(1).getMessageType(), MessageType.Error) ;
-
-    }
-    
     private LogicalPlan genNewLoadStorePlan(String inputFile,
                                             String outputFile) 
                                         throws Throwable {

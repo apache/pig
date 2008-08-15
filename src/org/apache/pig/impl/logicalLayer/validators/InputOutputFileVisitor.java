@@ -40,28 +40,6 @@ public class InputOutputFileVisitor extends LOVisitor {
     }
    
     /***
-     * The logic here is just to check that the file(s) exist
-     */
-    @Override
-    protected void visit(LOLoad load) {
-        // make sure that the file exists
-        String filename = load.getInputFile().getFileName() ;
-        
-        try {
-            if (!checkFileExists(filename)) {
-                msgCollector.collect("The input file(s): " + filename 
-                                     + " doesn't exist",
-                                     MessageType.Error) ;
-            }
-        } 
-        catch (IOException ioe) {
-            msgCollector.collect("Cannot read from the storage where the input " 
-                                 + filename + " stay ",
-                                 MessageType.Error) ;
-        }
-    }
-    
-    /***
      * The logic here is just to check that the file(s) do not exist
      */
     @Override

@@ -40,6 +40,8 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SliceWrapper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -143,20 +145,16 @@ public class FileLocalizer {
      * @return InputStream of the open file.
      * @throws IOException
      */
-    
-    /*
-    public static InputStream openDFSFile(String fileName) throws IOException{
-//      TODO FIX Need to uncomment this with the right logic
-        /*PigRecordReader prr = PigInputFormat.PigRecordReader.getPigRecordReader();
+    public static InputStream openDFSFile(String fileName) throws IOException {
+        SliceWrapper wrapper = PigInputFormat.getActiveSplit();
+
+        if (wrapper == null)
+            throw new RuntimeException(
+                    "can't open DFS file while executing locally");
         
-        if (prr == null)
-            throw new RuntimeException("can't open DFS file while executing locally");
-    
-        return openDFSFile(fileName, prr.getJobConf());*/
-    /*
-        throw new IOException("Unsupported Operation");
+        return openDFSFile(fileName, ConfigurationUtil.toProperties(wrapper.getJobConf()));
+
     }
-    */
 
     public static InputStream openDFSFile(String fileName, Properties properties) throws IOException{
         DataStorage dds = new HDataStorage(properties);
@@ -404,22 +402,18 @@ public class FileLocalizer {
         }
     }
 
-    public static boolean fileExists(String filename, PigContext pigContext) throws IOException {
-        try
-        {
-            ElementDescriptor elem = pigContext.getDfs().asElement(filename);
-
-            if (elem.exists()) {
-                return true;
-            }
-            else {
-                return globMatchesFiles(elem, pigContext.getDfs());
-            }
-        }
-        catch (DataStorageException e) {
-            return false;
-        }
+    public static boolean fileExists(String filename, PigContext context)
+            throws IOException {
+        return fileExists(filename, context.getFs());
     }
+
+    public static boolean fileExists(String filename, DataStorage store)
+            throws IOException {
+        ElementDescriptor elem = store.asElement(filename);
+
+        return elem.exists() || globMatchesFiles(elem, store);
+    }
+
 
     private static boolean globMatchesFiles(ElementDescriptor elem,
                                             DataStorage fs)

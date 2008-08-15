@@ -251,6 +251,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return lfs;
     }
 
+    public DataStorage getFs() {
+        if(execType == ExecType.LOCAL) {
+            return lfs;
+        } else {
+            return dfs;
+        }
+    }
+    
     /**
      * Provides configuration information.
      * 

@@ -440,13 +440,12 @@ public class PigServer {
     public long fileSize(String filename) throws IOException {
         DataStorage dfs = pigContext.getDfs();
         ElementDescriptor elem = dfs.asElement(filename);
-        Map<String, Object> elemProps = elem.getStatistics();
-        String length = (String) elemProps.get(ElementDescriptor.LENGTH_KEY);
-        
-        Properties dfsProps = dfs.getConfiguration();
-        String replication = dfsProps.getProperty(DataStorage.DEFAULT_REPLICATION_FACTOR_KEY);
-            
-        return (new Long(length)).longValue() * (new Integer(replication)).intValue();
+        Map<String, Object> stats = elem.getStatistics();
+        long length = (Long) stats.get(ElementDescriptor.LENGTH_KEY);
+        int replication = (Short) stats
+                .get(ElementDescriptor.BLOCK_REPLICATION_KEY);
+
+        return length * replication;
     }
     
     public boolean existsFile(String filename) throws IOException {
@@ -611,7 +610,7 @@ public class PigServer {
         if (lp == null) {
             throw new FrontendException("No plan for " + alias + " to " +
                 operation);
-        }
+        }        
         return lp;
     }
 

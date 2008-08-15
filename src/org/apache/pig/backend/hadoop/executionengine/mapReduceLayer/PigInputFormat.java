@@ -18,19 +18,16 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputFormat;
@@ -40,16 +37,21 @@ import org.apache.hadoop.mapred.JobConfigurable;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.data.TargetedTuple;
+import org.apache.pig.Slice;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.executionengine.PigSlicer;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SliceWrapper;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.ValidatingInputFileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.tools.bzip2r.CBZip2InputStream;
 
 public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         JobConfigurable {
@@ -63,6 +65,8 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
             return !name.startsWith("_") && !name.startsWith(".");
         }
     };
+
+    public static JobConf sJob;
 
     /**
      * Is the given filename splitable? Usually, true, but if the file is stream
@@ -166,14 +170,14 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
     
     /**
      * Creates input splits one per input and slices of it
-     * per DFS block of the input file. Configures the PigSplit
-     * and returns the list of PigSplits as an array
+     * per DFS block of the input file. Configures the PigSlice
+     * and returns the list of PigSlices as an array
      */
     public InputSplit[] getSplits(JobConf job, int numSplits)
             throws IOException {
         ArrayList<FileSpec> inputs = (ArrayList<FileSpec>) ObjectSerializer
                 .deserialize(job.get("pig.inputs"));
-        ArrayList<List<OperatorKey>> inpTargets = (ArrayList<List<OperatorKey>>) ObjectSerializer
+        ArrayList<ArrayList<OperatorKey>> inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
                 .deserialize(job.get("pig.inpTargets"));
         PigContext pigContext = (PigContext) ObjectSerializer.deserialize(job
                 .get("pig.pigContext"));
@@ -181,186 +185,41 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
             Path path = new Path(inputs.get(i).getFileName());
-            FuncSpec parser = inputs.get(i).getFuncSpec();
             FileSystem fs = path.getFileSystem(job);
-
-            fs.setWorkingDirectory(new Path("/user", job.getUser()));
-            ArrayList<Path> paths = new ArrayList<Path>();
-            // If you give a non-glob name, globPaths returns a single
-            // element with just that name.
+            // if the execution is against Mapred DFS, set
+            // working dir to /user/<userid>
+            if(pigContext.getExecType() == ExecType.MAPREDUCE)
+                fs.setWorkingDirectory(new Path("/user", job.getUser()));
             
-            FileStatus[] matches = fs.globStatus(path, hiddenFileFilter);
-            List<Path> matchList = new ArrayList<Path>();
-            for (FileStatus match : matches) {
-                matchList.add(match.getPath());
+            DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
+            ValidatingInputFileSpec spec;
+            if (inputs.get(i) instanceof ValidatingInputFileSpec) {
+                spec = (ValidatingInputFileSpec) inputs.get(i);
+            } else {
+                spec = new ValidatingInputFileSpec(inputs.get(i), store);
             }
-            Path[] globPaths = matchList.toArray(new Path[matchList.size()]);
-            for (int m = 0; m < globPaths.length; m++)
-                paths.add(globPaths[m]);
-            // paths.add(path);
-            for (int j = 0; j < paths.size(); j++) {
-                Path fullPath = new Path(fs.getWorkingDirectory(), paths.get(j));
-                if (fs.getFileStatus(fullPath).isDir()) {
-                    FileStatus children[] = fs.listStatus(fullPath, hiddenFileFilter);
-                    for (int k = 0; k < children.length; k++) {
-                        paths.add(children[k].getPath());
-                    }
-                    continue;
-                }
-                long bs = fs.getFileStatus(fullPath).getBlockSize();
-                long size = fs.getFileStatus(fullPath).getLen();
-                long pos = 0;
-                String name = paths.get(j).getName();
-                if (name.endsWith(".gz")) {
-                    // Anything that ends with a ".gz" we must process as a
-                    // complete file
-                    splits.add(new PigSplit(pigContext, fs, fullPath, parser.toString(),
-                            inpTargets.get(i), 0, size));
-                } else {
-                    while (pos < size) {
-                        if (pos + bs > size)
-                            bs = size - pos;
-                        splits.add(new PigSplit(pigContext, fs, fullPath,
-                                parser.toString(), inpTargets.get(i), pos, bs));
-                        pos += bs;
-                    }
-                }
+            Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
+            for (Slice split : pigs) {
+                splits.add(new SliceWrapper(split, pigContext, i, fs, inpTargets.get(i)));
             }
         }
-        return splits.toArray(new PigSplit[splits.size()]);
+        return splits.toArray(new SliceWrapper[splits.size()]);
     }
 
     public RecordReader<Text, TargetedTuple> getRecordReader(InputSplit split,
             JobConf job, Reporter reporter) throws IOException {
-        PigRecordReader r = new PigRecordReader(job, (PigSplit) split,
-                compressionCodecs);
-        return r;
+        PigInputFormat.sJob = job;
+        activeSplit = (SliceWrapper) split;
+        return ((SliceWrapper) split).makeReader(job);
     }
-
-    private CompressionCodecFactory compressionCodecs = null;
-
-    static public String codecList;
 
     public void configure(JobConf conf) {
-        compressionCodecs = new CompressionCodecFactory(conf);
-        codecList = conf.get("io.compression.codecs", "none");
     }
 
-    /**
-     * The class that actually reads the data off
-     * the filesystem configured in the split and
-     * parses tuples out of it
-     */
-    public static class PigRecordReader implements
-            RecordReader<Text, TargetedTuple> {
-
-        private InputStream is;
-
-        private FSDataInputStream fsis;
-        
-        private BufferedPositionedInputStream bis;
-
-        private long end;
-
-        private PigSplit split;
-
-        LoadFunc loader;
-
-        CompressionCodecFactory compressionFactory;
-
-        public static JobConf job;
-        
-        /**
-         * Uses the split to get information about the input
-         * and creates the inputstream to which the load func
-         * can bind to
-         * @param job
-         * @param split
-         * @param compressionFactory
-         * @throws IOException
-         */
-        PigRecordReader(JobConf job, PigSplit split,
-                CompressionCodecFactory compressionFactory) throws IOException {
-            this.split = split;
-            PigRecordReader.job = job;
-            this.compressionFactory = compressionFactory;
-            loader = split.getLoadFunction();
-            Path path = split.getPath();
-            FileSystem fs = path.getFileSystem(job);
-            fs.setWorkingDirectory(new Path("/user/" + job.getUser()));
-            CompressionCodec codec = compressionFactory.getCodec(split
-                    .getPath());
-            long start = split.getStart();
-            fsis = fs.open(split.getPath());
-            fsis.seek(start);
-
-            if (codec != null) {
-                is = codec.createInputStream(fsis);
-                end = Long.MAX_VALUE;
-
-            } else {
-                end = start + split.getLength();
-
-                if (split.file.getName().endsWith(".bz")
-                        || split.file.getName().endsWith(".bz2")) {
-                    is = new CBZip2InputStream(fsis, 9);
-                } else {
-                    is = fsis;
-                }
-            }
-            bis = new BufferedPositionedInputStream(is, start);
-            loader.bindTo(split.getPath().toString(), bis, start, end);
-
-        }
-
-        public JobConf getJobConf() {
-            return job;
-        }
-        
-        /**
-         * Reads the next tuple using the load func and
-         * sets its target operators. The targeted tuple
-         * will then attached to those operators when the
-         * plan is executed
-         */
-        public boolean next(Text key, TargetedTuple value) throws IOException {
-            Tuple t = loader.getNext();
-            if (t == null) {
-                return false;
-            }
-
-            key.set(split.getPath().getName());
-
-            value.reference(t);
-            value.setTargetOps(split.getTargetOps());
-            return true;
-        }
-
-        public long getPos() throws IOException {
-            return fsis.getPos();
-        }
-
-        public void close() throws IOException {
-            is.close();
-        }
-
-        public PigSplit getPigFileSplit() {
-            return split;
-        }
-
-        public Text createKey() {
-            return new Text();
-        }
-
-        public TargetedTuple createValue() {
-            return new TargetedTuple();
-        }
-
-        public float getProgress() throws IOException {
-            float progress = getPos() - split.getStart();
-            float finish = split.getLength();
-            return progress / finish;
-        }
+    public static SliceWrapper getActiveSplit() {
+        return activeSplit;
     }
 
+    private static SliceWrapper activeSplit;
+    
 }

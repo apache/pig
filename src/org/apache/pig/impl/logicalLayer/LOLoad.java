@@ -60,7 +60,13 @@ public class LOLoad extends LogicalOperator {
          try { 
              mLoadFunc = (LoadFunc)
                   PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
-        } catch (Exception e){ 
+        }catch (ClassCastException cce) {
+            log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
+            IOException ioe = new IOException(cce.getMessage()); 
+            ioe.setStackTrace(cce.getStackTrace());
+            throw ioe;
+        }
+         catch (Exception e){ 
             IOException ioe = new IOException(e.getMessage()); 
             ioe.setStackTrace(e.getStackTrace());
             throw ioe; 

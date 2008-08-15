@@ -141,10 +141,12 @@ public abstract class LocalPath implements ElementDescriptor {
         Map<String, Object> stats = new HashMap<String, Object>();
 
         long size = this.path.length();
-        stats.put(LENGTH_KEY , (new Long(size)).toString());
+        stats.put(LENGTH_KEY, size);
+
+        stats.put(BLOCK_REPLICATION_KEY, (short) 1);
 
         long lastModified = this.path.lastModified();
-        stats.put(MODIFICATION_TIME_KEY, (new Long(lastModified)).toString());
+        stats.put(MODIFICATION_TIME_KEY, lastModified);
         
         return stats;
     }
