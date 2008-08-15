@@ -667,7 +667,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     prj1.setOverloaded(true);
                     ep1.add(prj1);
                     eps1.add(ep1);
-                    flat1.add(false);
+                    flat1.add(true);
                     POForEach nfe1 = new POForEach(new OperatorKey(scope, nig
                             .getNextNodeId(scope)), op.getRequestedParallelism(), eps1,
                             flat1);

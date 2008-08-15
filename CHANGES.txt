@@ -151,3 +151,11 @@ Trunk (unreleased changes)
     PIG-368: making JobConf available to Load/Store UDFs
 
     PIG-311: cross is broken
+
+    PIG-369: support for filter UDFs
+
+    PIG-375: support for implicit split
+
+    PIG-301: fix for order by descending
+
+    PIG-378: fix for GENERATE + LIMIT
