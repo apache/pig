@@ -147,5 +147,15 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
 	    optimizePlan(plan);
 	    compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan6.dot");
 	}
+    
+    @Test
+    // Limit stay the same for ForEach with a flatten
+    public void testOPLimit7Optimizer() throws Exception {
+        planTester.buildPlan("A = load 'myfile1';");
+        planTester.buildPlan("B = foreach A generate flatten($0);");
+        LogicalPlan plan = planTester.buildPlan("C = limit B 100;");
+        optimizePlan(plan);
+        compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan7.dot");
+    }
 }
 

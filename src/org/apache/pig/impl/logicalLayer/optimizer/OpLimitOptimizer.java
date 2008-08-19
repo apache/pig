@@ -135,41 +135,22 @@ public class OpLimitOptimizer extends LogicalTransformer {
         }
         // Limit can be duplicated, and the new instance pushed in front of an operator for the following operators 
         // (that is, if you have X->limit, you can transform that to limit->X->limit):
-        else if (predecessor instanceof LOCross || 
-        		predecessor instanceof LOForEach || predecessor instanceof LOUnion)
+        else if (predecessor instanceof LOCross || predecessor instanceof LOUnion)
         {
         	LOLimit newLimit = null;
-			// Process the predecessors with only one input. LOForEach should now have at least
-			// one flaten
-			if (predecessor instanceof LOForEach)
+			List<LogicalOperator> nodesToProcess = new ArrayList<LogicalOperator>();
+			for (LogicalOperator prepredecessor:mPlan.getPredecessors(predecessor))
+				nodesToProcess.add(prepredecessor);
+			for (LogicalOperator prepredecessor:nodesToProcess)
 			{
-				LogicalOperator prepredecessor = mPlan.getPredecessors(predecessor).get(0);
 				try {
-					newLimit = limit.duplicate();
+					newLimit = (LOLimit)limit.duplicate();
 					insertBetween(prepredecessor, newLimit, predecessor, null);
 				} catch (Exception e) {
 					throw new OptimizerException("Can not insert LOLimit clone", e);
 				}
 				// we can move the new LOLimit even further, recursively optimize LOLimit
 				processNode(newLimit);
-			}
-			// Now comes predecessors with multiple inputs
-			else if (predecessor instanceof LOCross || predecessor instanceof LOUnion)
-			{
-				List<LogicalOperator> nodesToProcess = new ArrayList<LogicalOperator>();
-				for (LogicalOperator prepredecessor:mPlan.getPredecessors(predecessor))
-					nodesToProcess.add(prepredecessor);
-				for (LogicalOperator prepredecessor:nodesToProcess)
-				{
-					try {
-						newLimit = (LOLimit)limit.duplicate();
-						insertBetween(prepredecessor, newLimit, predecessor, null);
-					} catch (Exception e) {
-						throw new OptimizerException("Can not insert LOLimit clone", e);
-					}
-					// we can move the new LOLimit even further, recursively optimize LOLimit
-					processNode(newLimit);
-				}
 			}
         }
         // Limit can be merged into LOSort, result a "limited sort"

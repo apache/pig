@@ -159,3 +159,5 @@ Trunk (unreleased changes)
     PIG-301: fix for order by descending
 
     PIG-378: fix for GENERATE + LIMIT
+
+    PIG-362: don't push limit above generate with flatten
