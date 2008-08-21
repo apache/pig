@@ -161,3 +161,7 @@ Trunk (unreleased changes)
     PIG-378: fix for GENERATE + LIMIT
 
     PIG-362: don't push limit above generate with flatten
+
+    PIG-381: bincond does not handle null data
+
+    PIG-382: bincond throws typecast exception

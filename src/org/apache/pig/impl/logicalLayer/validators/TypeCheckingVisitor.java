@@ -1431,13 +1431,20 @@ public class TypeCheckingVisitor extends LOVisitor {
                 insertRightCastForBinCond(binCond, biggerType) ;
             }
             binCond.setType(biggerType) ;
-        }        
-        else if (lhsType != rhsType) {
-            String msg = "Two inputs of BinCond do not have compatible types" ;
-            msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+        } 
+        else if ((lhsType == DataType.BYTEARRAY)
+                && ((rhsType == DataType.CHARARRAY) || (DataType
+                        .isNumberType(rhsType)))) {
+            // Cast byte array to the type on rhs
+            insertLeftCastForBinCond(binCond, rhsType);
+            binCond.setType(DataType.mergeType(lhsType, rhsType));
+        } else if ((rhsType == DataType.BYTEARRAY)
+                && ((lhsType == DataType.CHARARRAY) || (DataType
+                        .isNumberType(lhsType)))) {
+            // Cast byte array to the type on lhs
+            insertRightCastForBinCond(binCond, lhsType);
+            binCond.setType(DataType.mergeType(lhsType, rhsType));
         }
-        
         // Matching schemas if we're working with tuples
         else if (lhsType == DataType.TUPLE) {            
             try {
@@ -1469,11 +1476,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
             binCond.setType(DataType.TUPLE) ;
         }
-        else if (lhsType == DataType.BYTEARRAY) {   
-            binCond.setType(DataType.BYTEARRAY) ;
-        }
-        else if (lhsType == DataType.CHARARRAY) {   
-            binCond.setType(DataType.CHARARRAY) ;
+        
+        else if (lhsType == rhsType) {
+            binCond.setType(lhsType);
         }
         else {
             String msg = "Unsupported input type for BinCond" ;

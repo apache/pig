@@ -54,7 +54,7 @@ public class POBinCond extends ExpressionOperator {
     @Override
     public Result getNext(Boolean b) throws ExecException {
         Result res = cond.getNext(b);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(b) : rhs.getNext(b);
         
     }
@@ -62,63 +62,63 @@ public class POBinCond extends ExpressionOperator {
     @Override
     public Result getNext(DataBag db) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(db) : rhs.getNext(db);
     }
 
     @Override
     public Result getNext(DataByteArray ba) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(ba) : rhs.getNext(ba);
     }
 
     @Override
     public Result getNext(Double d) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(d) : rhs.getNext(d);
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(f) : rhs.getNext(f);
     }
 
     @Override
     public Result getNext(Integer i) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(i) : rhs.getNext(i);
     }
 
     @Override
     public Result getNext(Long l) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(l) : rhs.getNext(l);
     }
 
     @Override
     public Result getNext(Map m) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(m) : rhs.getNext(m);
     }
 
     @Override
     public Result getNext(String s) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(s) : rhs.getNext(s);
     }
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
         Result res = cond.getNext(dummyBool);
-        if (res.returnStatus != POStatus.STATUS_OK) return res;
+        if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
         return ((Boolean)res.result) == true ? lhs.getNext(t) : rhs.getNext(t);
     }
 
