@@ -165,3 +165,5 @@ Trunk (unreleased changes)
     PIG-381: bincond does not handle null data
 
     PIG-382: bincond throws typecast exception
+
+    PIG-352: java.lang.ClassCastException when invalid field is accessed

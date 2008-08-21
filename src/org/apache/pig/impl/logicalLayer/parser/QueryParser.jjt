@@ -597,7 +597,11 @@ LogicalPlan Parse() :
 		if(null != root) {
             log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
             addLogicalPlan(root, lp);
-			log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
+            try {
+			    log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
+            } catch(FrontendException fee) {
+                throw new ParseException(fee.getMessage());
+            }
 		}
 
         ArrayList<LogicalOperator> roots = new ArrayList<LogicalOperator>(lp.getRoots().size());
@@ -2428,7 +2432,7 @@ Schema.FieldSchema TypeAtomSchema() :
 {
 	byte type = DataType.BYTEARRAY;
 	Schema.FieldSchema fs;
-	log.info("Entering TypeAtomSchema");
+	log.trace("Entering TypeAtomSchema");
 }
 {
 	(  ( type = BasicType() )
@@ -2438,7 +2442,7 @@ Schema.FieldSchema TypeAtomSchema() :
             }
 			fs = new Schema.FieldSchema(null, type); 
 			
-			log.info("Exiting TypeAtomSchema");
+			log.trace("Exiting TypeAtomSchema");
 			return fs;
 		} 
 	)
@@ -2757,8 +2761,8 @@ ExpressionOperator ColOrSpec(Schema over, Map<String, LogicalOperator> specs, Lo
 }
 {
 	(
-	spec = DollarVar(lp, eOp)
-|	spec = AliasFieldOrSpec(over,specs,lp,eOp)
+	spec = DollarVar(over, specs, lp, eOp)
+|	spec = AliasFieldOrSpec(over, specs, lp, eOp)
 
 	)
 	{
@@ -2767,7 +2771,7 @@ ExpressionOperator ColOrSpec(Schema over, Map<String, LogicalOperator> specs, Lo
 	}
 }
 
-ExpressionOperator DollarVar(LogicalPlan lp, LogicalOperator eOp) : 
+ExpressionOperator DollarVar(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator eOp) : 
 {
 	Token t1;
 	log.trace("Entering DollarVar");
@@ -2775,7 +2779,13 @@ ExpressionOperator DollarVar(LogicalPlan lp, LogicalOperator eOp) :
 {
 	t1=<DOLLARVAR>	
 	{
+        int colNum = undollar(t1.image);
 		log.debug("Token: " + t1.image);
+        if(null != over) {
+            if(colNum >= over.size()) {
+                throw new ParseException("Out of bound access. Trying to access non-existent column: " + colNum + ". Schema " + over + " has " + over.size() + " column(s).");
+            }
+        }
 		ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, undollar(t1.image));
 		try {
 			log.debug("eOp: " + eOp.getClass().getName() + " " + eOp);

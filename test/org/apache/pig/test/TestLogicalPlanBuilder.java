@@ -1139,6 +1139,24 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         assertEquals(project1.getExpression(), cogroup) ;
     }
 
+    @Test
+    public void testQuery89() {
+        buildPlan("a = load 'myfile';");
+        buildPlan("b = foreach a generate $0, $100;");
+        buildPlan("c = load 'myfile' as (i: int);");
+        buildPlan("d = foreach c generate $0 as zero, i;");
+    }
+
+    @Test
+    public void testQueryFail89() {
+        buildPlan("c = load 'myfile' as (i: int);");
+        try {
+            buildPlan("d = foreach c generate $0, $5;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Out of bound access"));
+        }
+    }
+
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");
