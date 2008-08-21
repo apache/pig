@@ -167,3 +167,5 @@ Trunk (unreleased changes)
     PIG-382: bincond throws typecast exception
 
     PIG-352: java.lang.ClassCastException when invalid field is accessed
+
+    PIG-329: TestStoreOld, 2 unit tests were broken

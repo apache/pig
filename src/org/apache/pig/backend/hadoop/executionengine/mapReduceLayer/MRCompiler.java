@@ -155,6 +155,10 @@ public class MRCompiler extends PhyPlanVisitor {
         udfFinder = new UDFFinder();
     }
     
+    public void randomizeFileLocalizer(){
+        FileLocalizer.setR(new Random());
+    }
+    
     /**
      * Used to get the compiled plan
      * @return map reduce plan built by the compiler

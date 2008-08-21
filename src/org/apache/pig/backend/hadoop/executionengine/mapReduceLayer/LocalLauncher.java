@@ -104,6 +104,7 @@ public class LocalLauncher extends Launcher{
             PhysicalPlan php,
             PigContext pc) throws PlanException, IOException, VisitorException {
         MRCompiler comp = new MRCompiler(php, pc);
+        comp.randomizeFileLocalizer();
         comp.compile();
         MROperPlan plan = comp.getMRPlan();
         String prop = System.getProperty("pig.exec.nocombiner");
