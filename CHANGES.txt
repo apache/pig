@@ -171,3 +171,5 @@ Trunk (unreleased changes)
     PIG-329: TestStoreOld, 2 unit tests were broken
 
     PIG-353: parsing of complex types
+
+    PIG-392: error handling with multiple MRjobs

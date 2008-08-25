@@ -81,18 +81,17 @@ public class MapReduceLauncher extends Launcher{
                 log.info((int)(prog * 100) + "% complete");
             lastProg = prog;
         }
-        lastProg = calculateProgress(jc, jobClient)/numMRJobs;
-        if(isComplete(lastProg))
-            log.info("Completed Successfully");
-        else{
-            log.info("Unsuccessful attempt. Completed " + lastProg * 100 + "% of the job");
-            List<Job> failedJobs = jc.getFailedJobs();
-            if(failedJobs==null)
-                throw new ExecException("Something terribly wrong with Job Control.");
-            for (Job job : failedJobs) {
-                getStats(job,jobClient);
+        // Look to see if any jobs failed.  If so, we need to report that.
+        List<Job> failedJobs = jc.getFailedJobs();
+        if (failedJobs != null && failedJobs.size() > 0) {
+            log.error("Map reduce job failed");
+            for (Job fj : failedJobs) {
+                log.error(fj.getMessage());
+                getStats(fj, jobClient);
             }
+            return false;
         }
+
         List<Job> succJobs = jc.getSuccessfulJobs();
         if(succJobs!=null)
             for(Job job : succJobs){
@@ -101,7 +100,7 @@ public class MapReduceLauncher extends Launcher{
 
         jc.stop(); 
         
-        return isComplete(lastProg);
+        return true;
     }
 
     @Override
