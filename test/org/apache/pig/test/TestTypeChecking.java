@@ -245,7 +245,7 @@ public class TestTypeChecking extends TestCase {
     public void testSUM1() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
         planTester.buildPlan("a = load ':INPATH:/singlefile/studenttab10k' as (name:chararray, age:int, gpa:double);") ;
-        LogicalPlan plan1 = planTester.buildPlan("b = foreach a generate (long)age as age, (int)gpa as gpa;") ;
+        LogicalPlan plan1 = planTester.buildPlan("b = foreach a generate (long)age as age:long, (int)gpa as gpa:int;") ;
         LogicalPlan plan2 = planTester.buildPlan("c = foreach b generate SUM(age), SUM(gpa);") ;
         planTester.typeCheckPlan(plan2);
     }

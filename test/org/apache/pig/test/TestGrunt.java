@@ -71,4 +71,79 @@ public class TestGrunt extends TestCase {
         }
         assertTrue(null != context.getFuncSpecFromAlias("myudf"));
     }
+
+    @Test 
+    public void testBagSchema() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'input1'as (b: bag{t(i: int, c:chararray, f: float)});\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testBagConstant() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'input1'; b = foreach a generate {(1, '1', 0.4f),(2, '2', 0.45)};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testBagConstantWithSchema() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'input1'; b = foreach a generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, f: float)};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testBagConstantInForeachBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'input1'; b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)};};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testBagConstantWithSchemaInForeachBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'input1'; b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, f: float)};};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
 }

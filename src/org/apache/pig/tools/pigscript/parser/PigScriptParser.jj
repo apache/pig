@@ -30,6 +30,7 @@ package org.apache.pig.tools.pigscript.parser;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Stack;
 
 import jline.ConsoleReader;
 
@@ -148,9 +149,13 @@ TOKEN: {<SCRIPT_DONE: "scriptDone">}
 TOKEN_MGR_DECLS : {
         int pigBlockLevel = 0;
         int funcBlockLevel = 0;
+        int tupleSchemaLevel = 0;
+        int bagSchemaLevel = 0;
+        int bagConstantLevel = 0;
 	int prevState = DEFAULT;
 	boolean interactive = false;
 	ConsoleReader consoleReader = null;
+    Stack<Integer> stack = new Stack<Integer>();
 	public void secondary_prompt()
 	{
 		if (interactive)
@@ -160,6 +165,15 @@ TOKEN_MGR_DECLS : {
 		    consoleReader.setDefaultPrompt(">> ");
 		}
 	}
+
+    public int getState(int state) {
+        if(!stack.empty()) return stack.pop();
+        return state;
+    }
+
+    public void saveState(int state) {
+        stack.push(state);
+    }
 
 }
 
@@ -174,13 +188,15 @@ TOKEN_MGR_DECLS : {
 <PIG_START> MORE :
 {
 	<"'"> {prevState = PIG_START;} : IN_STRING
+|	<["A","a"]["S","s"]> {prevState = PIG_START;} : SCHEMA_DEFINITION
+|   <["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"]> {prevState = PIG_START;} : GENERATE
 |       <"{"> {pigBlockLevel = 1;} : IN_BLOCK
 |       <"}"> {if (true) throw new TokenMgrError("Unmatched '}'", TokenMgrError.LEXICAL_ERROR);}
 |       <";"> : PIG_END
 |	<"--"> {prevState = PIG_START;} : SINGLE_LINE_COMMENT
 |	<"/*"> {prevState = PIG_START;} : MULTI_LINE_COMMENT
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
-|       <(~[])>
+|       <(~[])> 
 }
 
 <SINGLE_LINE_COMMENT> MORE :
@@ -204,9 +220,65 @@ TOKEN_MGR_DECLS : {
 |	<(~[])>
 }
 
+<GENERATE> MORE :
+{
+    <"{"> 
+    {
+        bagConstantLevel++; 
+        prevState = getState(prevState);
+        saveState(prevState);
+        prevState = GENERATE;
+    } : BAG_CONSTANT
+|	<["A","a"]["S","s"]> 
+    {
+        prevState = getState(prevState);
+        saveState(prevState);
+        prevState = GENERATE; 
+     } : SCHEMA_DEFINITION
+|	<";"> 
+    {
+        prevState = getState(prevState);
+        if(prevState == PIG_START) {
+            input_stream.backup(1);
+            image.deleteCharAt(image.length()-1);
+        }
+        SwitchTo(prevState);
+    }
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])> 
+}
+
+<SCHEMA_DEFINITION> MORE :
+{
+    <"("> {tupleSchemaLevel++;}
+|   <")"> {tupleSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
+|   <"{"> {bagSchemaLevel++;}
+|   <"}"> {bagSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
+|	<("," | ";" )> 
+    {
+        if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) {
+            input_stream.backup(1);
+            image.deleteCharAt(image.length()-1);
+            SwitchTo(prevState);
+        }
+    }
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])>
+}
+
+<BAG_CONSTANT> MORE :
+{
+    <"{"> {bagConstantLevel++;}
+|   <"}"> {bagConstantLevel--; if (bagConstantLevel == 0) SwitchTo(prevState);}
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])>
+}
+
 <IN_BLOCK> MORE :
 {
 	<"\""> {prevState = IN_BLOCK;} : IN_STRING
+|	<["A","a"]["S","s"]> {prevState = IN_BLOCK;} : SCHEMA_DEFINITION
+|   <["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"]> {prevState = IN_BLOCK;} : GENERATE
 |	<"{"> {pigBlockLevel++;}
 |       <"}"(";")?> {pigBlockLevel--; if (pigBlockLevel == 0) SwitchTo(PIG_END);}
 |	<"'"> {prevState = IN_BLOCK;} : IN_STRING

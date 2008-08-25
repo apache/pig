@@ -786,7 +786,7 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 		if (funcSpec == null){
 			funcSpec = new FuncSpec(PigStorage.class.getName());
 		}
-		 
+
 		lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext), funcSpec), null);
 		lp.add(lo);
 		log.debug("Added operator " + lo.getClass().getName() + " to the logical plan");	
@@ -1862,31 +1862,12 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 		}
 	)
 	)
-        [ <AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")"
-
-          { if (schema.size() > 1) {
-                throw new ParseException("Schema mismatch");
-            }
-
-            fs = schema.getFields().get(0);
-          }
-          | fs = AtomSchema() )
-        ]
+        [ <AS> (fs = FieldSchema()) ]
 	)
 	{
 		log.debug("item: " + item.getClass().getName());
         if(null != fs) {
-            // We're only interested in alias here
-            // target type should be preserved
-            Schema.FieldSchema tmpFs = item.getFieldSchema() ;
-            if (tmpFs != null) {
-                tmpFs.alias = fs.alias ;
-                item.setFieldSchema(tmpFs);    
-            }
-            else {
-                tmpFs = new Schema.FieldSchema(fs.alias, DataType.BYTEARRAY) ;
-                item.setFieldSchema(tmpFs);
-            }
+            item.setFieldSchema(fs);
         }
 		flattenList.add(flatten);
 		log.trace("Exiting FlattenedGenerateItem");
@@ -2356,7 +2337,7 @@ Schema.FieldSchema SchemaTuple() :
 	log.trace("Entering SchemaTuple");
 }
 { 
-	( t1 = <IDENTIFIER> )  [":" <TUPLE>] "(" s = TupleSchema() ")" 
+	( t1 = <IDENTIFIER> )  [LOOKAHEAD(2) ":" <TUPLE> | ":"] "(" s = TupleSchema() ")" 
 	{
 		if (null != t1) {
 			log.debug("TUPLE alias " + t1.image);
@@ -2377,7 +2358,7 @@ Schema.FieldSchema SchemaBag() :
 	log.trace("Entering SchemaBag");
 }
 { 
-	( t1 = <IDENTIFIER> ) [":" <BAG>] "{" (fs = SchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" 
+	( t1 = <IDENTIFIER> ) [LOOKAHEAD(2) ":" <BAG> | ":"] "{" (fs = SchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" 
 	{
         s = new Schema(fs);
 		if (null != t1) {
