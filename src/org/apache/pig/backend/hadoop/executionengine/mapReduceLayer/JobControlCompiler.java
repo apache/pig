@@ -273,7 +273,9 @@ public class JobControlCompiler{
                 mro.reducePlan.remove(pack);
                 jobConf.setMapperClass(PigMapReduce.Map.class);
                 jobConf.setReducerClass(PigMapReduce.Reduce.class);
-                jobConf.setNumReduceTasks((mro.requestedParallelism>0)?mro.requestedParallelism:1);
+                if (mro.requestedParallelism>0)
+                    jobConf.setNumReduceTasks(mro.requestedParallelism);
+
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 jobConf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
                 jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
