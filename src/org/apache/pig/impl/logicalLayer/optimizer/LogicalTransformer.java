@@ -200,6 +200,10 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
             Map<Integer, Integer> projectionMapping)
             throws VisitorException, FrontendException {
         List<LogicalOperator> successors = mPlan.getSuccessors(after);
+        if(successors==null) {
+            mPlan.addAsLeaf(newNode);
+            return;
+        }
         if (successors.size() != 1) {
             throw new RuntimeException("insertAfter only valid to insert " + 
                 "after a node with single output.");

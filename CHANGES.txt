@@ -175,3 +175,5 @@ Trunk (unreleased changes)
     PIG-392: error handling with multiple MRjobs
 
     PIG-397: code defaults to single reducer
+
+    PIG-373: unconnected load causes problem,
