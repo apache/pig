@@ -41,6 +41,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -307,7 +308,8 @@ public class PigServer {
             if(null == op) {
                 throw new IOException("Unable to find an operator for alias " + id);
             }
-            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
+//            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
+            ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
             // invocation of "execute" is synchronous!
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
                     return job.getResults();
@@ -328,14 +330,14 @@ public class PigServer {
      * @throws IOException
      */
 
-    public void store(String id, String filename) throws IOException {
-        store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
+    public ExecJob store(String id, String filename) throws IOException {
+        return store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
     }
         
     /**
      *  forces execution of query (and all queries from which it reads), in order to store result in file
      */
-    public void store(
+    public ExecJob store(
             String id,
             String filename,
             String func) throws IOException{
@@ -344,13 +346,13 @@ public class PigServer {
         
         try {
             LogicalPlan readFrom = getPlanFromAlias(id, "store");
-            store(id, readFrom, filename, func);
+            return store(id, readFrom, filename, func);
         } catch (FrontendException fe) {
             throw WrappedIOException.wrap("Unable to store alias " + id, fe);
         }
     }
         
-    public void store(
+    public ExecJob store(
             String id,
             LogicalPlan readFrom,
             String filename,
@@ -358,7 +360,7 @@ public class PigServer {
         try {
             LogicalPlan storePlan = QueryParser.generateStorePlan(opTable,
                 scope, readFrom, filename, func, aliasOp.get(id), aliases);
-            execute(storePlan);
+            return execute(storePlan);
         } catch (Exception e) {
             throw WrappedIOException.wrap("Unable to store for alias: " +
                 id, e);

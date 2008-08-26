@@ -70,6 +70,7 @@ public class LOSplitOutput extends LogicalOperator {
         if (!mIsSchemaComputed) {
             // get our parent's schema
             Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            if(s==null) return null;
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {

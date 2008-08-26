@@ -24,10 +24,23 @@ import org.junit.Test;
 
 public class TestFilterUDF extends TestCase {
     private PigServer pigServer;
+    private MiniCluster cluster = MiniCluster.buildCluster();
+    private File tmpFile;
+    
+    public TestFilterUDF() throws ExecException, IOException{
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        int LOOP_SIZE = 20;
+        tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        for(int i = 1; i <= LOOP_SIZE; i++) {
+            ps.println(i);
+        }
+        ps.close();
+    }
     
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL);
+        
     }
 
     @After
@@ -53,13 +66,7 @@ public class TestFilterUDF extends TestCase {
     
     @Test
     public void testFilterUDF() throws Exception{
-        int LOOP_SIZE = 20;
-        File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        for(int i = 1; i <= LOOP_SIZE; i++) {
-            ps.println(i);
-        }
-        ps.close();
+        
         pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "' as (x:int);");
         pigServer.registerQuery("B = filter A by " + MyFilterFunction.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("B");
