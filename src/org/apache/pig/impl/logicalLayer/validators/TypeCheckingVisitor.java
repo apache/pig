@@ -1481,7 +1481,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             binCond.setType(lhsType);
         }
         else {
-            String msg = "Unsupported input type for BinCond" ;
+            String msg = "Unsupported input type for BinCond: lhs = " + lhsType + "; rhs = " + rhsType;
             msgCollector.collect(msg, MessageType.Error) ;
             throw new VisitorException(msg) ;
         }
