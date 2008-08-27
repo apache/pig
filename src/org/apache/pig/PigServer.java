@@ -287,7 +287,7 @@ public class PigServer {
                 throw new FrontendException(e.getMessage());
             }
             Schema schema = lp.getLeaves().get(0).getSchema();
-            if (schema != null) System.out.println(schema.toString());    
+            if (schema != null) System.out.println(alias + ": " + schema.toString());    
             else System.out.println("Schema for " + alias + " unknown.");
         } catch (FrontendException fe) {
             throw WrappedIOException.wrap(
