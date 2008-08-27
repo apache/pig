@@ -55,7 +55,13 @@ public class TestPOUserFunc extends TestCase {
 
 		@Override
 		public Integer exec(Tuple input) throws IOException {
-			return new Integer(input.size());
+			try {
+                return new Integer(((Tuple)input.get(0)).size());
+            } catch (ExecException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            return 0;
 		}
 
 		@Override

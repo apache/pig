@@ -17,6 +17,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -331,8 +332,13 @@ public class POForEach extends PhysicalOperator {
     
     private void getLeaves() {
         if (inputPlans != null) {
+            int i=-1;
             for(PhysicalPlan p : inputPlans) {
-                planLeaves.add((PhysicalOperator)p.getLeaves().get(0));
+                ++i;
+                PhysicalOperator leaf = (PhysicalOperator)p.getLeaves().get(0); 
+                planLeaves.add(leaf);
+                if(leaf instanceof POProject && ((POProject)leaf).isStar())
+                    isToBeFlattened.set(i, true);
             }
         }
     }

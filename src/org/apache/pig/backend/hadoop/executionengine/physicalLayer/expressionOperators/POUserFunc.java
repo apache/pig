@@ -152,13 +152,19 @@ public class POUserFunc extends ExpressionOperator {
                 }
                 if(temp.returnStatus!=POStatus.STATUS_OK)
                     return temp;
-
+                
+                if(op instanceof POProject){
+                    POProject projOp = (POProject)op;
+                    if(projOp.isStar()){
+                        Tuple trslt = (Tuple) temp.result;
+                        Tuple rslt = (Tuple) res.result;
+                        for(int i=0;i<trslt.size();i++)
+                            rslt.append(trslt.get(i));
+                        continue;
+                    }
+                }
                 ((Tuple)res.result).append(temp.result);
 			}
-            Tuple rslt = ((Tuple)res.result);
-            if(rslt.size()==1 && rslt.get(0) instanceof Tuple){
-                res.result = rslt.get(0);
-            }
 			res.returnStatus = temp.returnStatus;
 			return res;
 		}
