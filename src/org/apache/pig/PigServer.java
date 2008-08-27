@@ -282,7 +282,7 @@ public class PigServer {
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
             try {
-                lp = compileLp(lp, "describe");
+                lp = compileLp(lp, "describe", false);
             } catch (ExecException e) {
                 throw new FrontendException(e.getMessage());
             }
@@ -529,6 +529,13 @@ public class PigServer {
     private LogicalPlan compileLp(
             LogicalPlan lp,
             String operation) throws ExecException, FrontendException {
+        return compileLp(lp, operation, true);
+    }
+
+    private LogicalPlan compileLp(
+            LogicalPlan lp,
+            String operation,
+            boolean optimize) throws ExecException, FrontendException {
         // Look up the logical plan in the aliases map.  That plan will be
         // properly connected to all the others.
 
@@ -585,8 +592,10 @@ public class PigServer {
         }
 
         // optimize
-        LogicalOptimizer optimizer = new LogicalOptimizer(lp);
-        optimizer.optimize();
+        if (optimize) {
+            LogicalOptimizer optimizer = new LogicalOptimizer(lp);
+            optimizer.optimize();
+        }
 
         return lp;
     }
