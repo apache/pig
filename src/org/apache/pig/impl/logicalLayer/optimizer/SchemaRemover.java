@@ -78,6 +78,18 @@ public class SchemaRemover extends LOVisitor {
 
     /**
      * 
+     * @param limit
+     *            the logical limit operator that has to be visited
+     * @throws VisitorException
+     */
+    protected void visit(LOLimit limit) throws VisitorException {
+        limit.unsetSchema();
+        super.visit(limit);
+    }
+
+
+    /**
+     * 
      * @param filter
      *            the logical filter operator that has to be visited
      * @throws VisitorException

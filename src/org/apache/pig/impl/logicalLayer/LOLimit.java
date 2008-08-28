@@ -9,7 +9,6 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class LOLimit extends LogicalOperator {
     private static final long serialVersionUID = 2L;
-    private LogicalOperator mInput;
     private long mLimit;
     /**
      * 
@@ -23,15 +22,13 @@ public class LOLimit extends LogicalOperator {
      *            the input that needs to limit
      */
 
-    public LOLimit(LogicalPlan plan, OperatorKey k,
-            long limit, LogicalOperator input) {
+    public LOLimit(LogicalPlan plan, OperatorKey k, long limit) {
         super(plan, k);
         mLimit = limit;
-        mInput = input;
     }
 
     public LogicalOperator getInput() {
-        return mInput;
+        return mPlan.getPredecessors(this).get(0);
     }
 
     public long getLimit() {
@@ -45,7 +42,7 @@ public class LOLimit extends LogicalOperator {
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed) {
             try {
-                mSchema = mInput.getSchema();
+                mSchema = getInput().getSchema();
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;
@@ -81,8 +78,9 @@ public class LOLimit extends LogicalOperator {
         return DataType.BAG ;
     }
     
+    // Shouldn't this be clone?
     public LOLimit duplicate()
     {
-    	return new LOLimit(mPlan, OperatorKey.genOpKey(mKey.scope), mLimit, mInput);
+    	return new LOLimit(mPlan, OperatorKey.genOpKey(mKey.scope), mLimit);
     }
 }

@@ -860,7 +860,7 @@ LogicalOperator LimitClause(LogicalPlan lp):
          )
         {
                 long l = Integer.parseInt(t.image);
-                LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l, input);
+                LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l);
                 addAlias(input.getAlias(), input);
                 lp.add(limit);
                 log.debug("Added operator " + limit.getClass().getName() + " to the logical plan");

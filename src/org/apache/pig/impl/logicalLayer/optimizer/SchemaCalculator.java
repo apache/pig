@@ -94,6 +94,21 @@ public class SchemaCalculator extends LOVisitor {
 
     /**
      * 
+     * @param limit
+     *            the logical limit operator that has to be visited
+     * @throws VisitorException
+     */
+    protected void visit(LOLimit limit) throws VisitorException {
+        try {
+            limit.getSchema();
+            super.visit(limit);
+        } catch (FrontendException fe) {
+            throw new VisitorException(fe);
+        }
+    }
+
+    /**
+     * 
      * @param filter
      *            the logical filter operator that has to be visited
      * @throws VisitorException
