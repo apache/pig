@@ -337,7 +337,9 @@ public class POForEach extends PhysicalOperator {
                 ++i;
                 PhysicalOperator leaf = (PhysicalOperator)p.getLeaves().get(0); 
                 planLeaves.add(leaf);
-                if(leaf instanceof POProject && ((POProject)leaf).isStar())
+                if(leaf instanceof POProject &&
+                        leaf.getResultType() == DataType.TUPLE &&
+                        ((POProject)leaf).isStar())
                     isToBeFlattened.set(i, true);
             }
         }

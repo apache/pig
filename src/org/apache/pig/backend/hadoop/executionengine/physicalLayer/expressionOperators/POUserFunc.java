@@ -153,7 +153,8 @@ public class POUserFunc extends ExpressionOperator {
                 if(temp.returnStatus!=POStatus.STATUS_OK)
                     return temp;
                 
-                if(op instanceof POProject){
+                if(op instanceof POProject &&
+                        op.getResultType() == DataType.TUPLE){
                     POProject projOp = (POProject)op;
                     if(projOp.isStar()){
                         Tuple trslt = (Tuple) temp.result;

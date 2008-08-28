@@ -376,7 +376,7 @@ public class TestEvalPipeline extends TestCase {
         + "C1 = filter A by $0 > -1;"
         + "C2 = distinct C1;"
         + "C3 = distinct A;"
-        + "generate (int)group," + Identity.class.getName() +"(*), COUNT(C2), SUM(C2.$1)," +  TitleNGrams.class.getName() + "(C3), MAX(C3.$1);"
+        + "generate (int)group," + Identity.class.getName() +"(*), COUNT(C2), SUM(C2.$1)," +  TitleNGrams.class.getName() + "(C3), MAX(C3.$1), C2;"
         + "};";
 
         pigServer.registerQuery(query);
@@ -389,7 +389,8 @@ public class TestEvalPipeline extends TestCase {
             assertEquals((Long)5L, (Long)t.get(2));
             assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
             assertEquals(8.0, (Double)t.get(5), 0.01);
-            assertEquals(6, t.size());
+            assertEquals(5L, ((DataBag)t.get(6)).size());
+            assertEquals(7, t.size());
             ++numIdentity;
         }
         assertEquals(LOOP_COUNT, numIdentity);
