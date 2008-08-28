@@ -108,5 +108,5 @@ public class PigSlicer implements Slicer {
 
     private FuncSpec funcSpec;
     
-    private boolean splittable;
+    private boolean splittable = true;
 }
