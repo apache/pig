@@ -180,6 +180,7 @@ public class LogicalPlanLoader
             Schema schema = null ;
             try {
                 schema = queryParser.TupleSchema() ;
+                QueryParser.SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY);
                 
                 // set all the [NoAlias] to null
                 for(int i=0; i < dummyAliasCounter; i++) {

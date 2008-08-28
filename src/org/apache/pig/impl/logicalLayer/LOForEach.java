@@ -25,10 +25,12 @@ import java.util.Set;
 import java.util.Iterator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,6 +48,7 @@ public class LOForEach extends LogicalOperator {
 
     private ArrayList<LogicalPlan> mForEachPlans;
     private ArrayList<Boolean> mFlatten;
+    private ArrayList<Schema> mUserDefinedSchema = null;
     private static Log log = LogFactory.getLog(LOForEach.class);
 
     /**
@@ -63,6 +66,16 @@ public class LOForEach extends LogicalOperator {
         super(plan, k);
         mForEachPlans = foreachPlans;
         mFlatten = flattenList;
+    }
+
+    public LOForEach(LogicalPlan plan, OperatorKey k,
+            ArrayList<LogicalPlan> foreachPlans, ArrayList<Boolean> flattenList,
+            ArrayList<Schema> userDefinedSchemaList) {
+
+        super(plan, k);
+        mForEachPlans = foreachPlans;
+        mFlatten = flattenList;
+        mUserDefinedSchema = userDefinedSchemaList;
     }
 
     public ArrayList<LogicalPlan> getForEachPlans() {
@@ -90,6 +103,16 @@ public class LOForEach extends LogicalOperator {
 
     public byte getType() {
         return DataType.BAG ;
+    }
+
+    private void updateAliasCount(Map<String, Integer> aliases, String alias) {
+        if((null == aliases) || (null == alias)) return;
+		Integer count = aliases.get(alias);
+		if(null == count) {
+			aliases.put(alias, 1);
+		} else {
+			aliases.put(alias, ++count);
+		}
     }
 
     @Override
@@ -124,6 +147,10 @@ public class LOForEach extends LogicalOperator {
                 try {
 	                planFs = ((ExpressionOperator)op).getFieldSchema();
                     log.debug("planFs: " + planFs);
+                    Schema userDefinedSchema = null;
+                    if(null != mUserDefinedSchema) {
+                        userDefinedSchema = mUserDefinedSchema.get(planCtr);
+                    }
 					if(null != planFs) {
 						String outerCanonicalAlias = op.getAlias();
 						if(null == outerCanonicalAlias) {
@@ -137,56 +164,108 @@ public class LOForEach extends LogicalOperator {
 							//flatten(B.(x,y,z))
 							Schema s = planFs.schema;
 							if(null != s) {
-								for(Schema.FieldSchema fs: s.getFields()) {
+								for(int i = 0; i < s.size(); ++i) {
+                                    Schema.FieldSchema fs;
+                                    try {
+                                        fs = s.getField(i);
+                                    } catch (ParseException pe) {
+                                        throw new FrontendException(pe.getMessage());
+                                    }
 									log.debug("fs: " + fs);
-									log.debug("fs.alias: " + fs.alias);
+                                    if(null != userDefinedSchema) {
+                                        Schema.FieldSchema userDefinedFieldSchema;
+                                        try {
+                                            if(i < userDefinedSchema.size()) {
+                                                userDefinedFieldSchema = userDefinedSchema.getField(i);
+                                                fs = fs.mergePrefixFieldSchema(userDefinedFieldSchema);
+                                            }
+                                        } catch (ParseException pe) {
+                                            throw new FrontendException(pe.getMessage());
+                                        } catch (SchemaMergeException sme) {
+                                            throw new FrontendException(sme.getMessage());
+                                        }
+                                        outerCanonicalAlias = null;
+                                    }
 									String innerCanonicalAlias = fs.alias;
+                                    Schema.FieldSchema newFs;
 									if((null != outerCanonicalAlias) && (null != innerCanonicalAlias)) {
 										String disambiguatorAlias = outerCanonicalAlias + "::" + innerCanonicalAlias;
-										Schema.FieldSchema newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
+										newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
 										fss.add(newFs);
-										Integer count;
-										count = aliases.get(innerCanonicalAlias);
-										if(null == count) {
-											aliases.put(innerCanonicalAlias, 1);
-										} else {
-											aliases.put(innerCanonicalAlias, ++count);
-										}
-										count = aliases.get(disambiguatorAlias);
-										if(null == count) {
-											aliases.put(disambiguatorAlias, 1);
-										} else {
-											aliases.put(disambiguatorAlias, ++count);
-										}
-										flattenAlias.put(newFs, innerCanonicalAlias);
-										inverseFlattenAlias.put(innerCanonicalAlias, true);
+                                        updateAliasCount(aliases, disambiguatorAlias);
 										//it's fine if there are duplicates
 										//we just need to record if its due to
 										//flattening
 									} else {
-										Schema.FieldSchema newFs = new Schema.FieldSchema(null, fs.schema, fs.type);
+										newFs = new Schema.FieldSchema(fs.alias, fs.schema, fs.type);
 										fss.add(newFs);
 									}
+                                    updateAliasCount(aliases, innerCanonicalAlias);
+									flattenAlias.put(newFs, innerCanonicalAlias);
+									inverseFlattenAlias.put(innerCanonicalAlias, true);
 								}
 							} else {
-								Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-								fss.add(newFs);
+                                Schema.FieldSchema newFs;
+                                if(null != userDefinedSchema) {
+                                    if(!DataType.isSchemaType(planFs.type)) {
+                                        if(userDefinedSchema.size() > 1) {
+                                            throw new FrontendException("Schema mismatch. A basic type on flattening cannot have more than one column. User defined schema: " + userDefinedSchema);
+                                        }
+								        newFs = new Schema.FieldSchema(null, planFs.type);
+                                        try {
+                                            newFs = newFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));
+                                        } catch (SchemaMergeException sme) {
+                                            throw new FrontendException(sme.getMessage());
+                                        } catch (ParseException pe) {
+                                            throw new FrontendException(pe.getMessage());
+                                        }
+                                        updateAliasCount(aliases, newFs.alias);
+                                        fss.add(newFs);
+                                    } else {
+                                        for(Schema.FieldSchema ufs: userDefinedSchema.getFields()) {
+                                            fss.add(new Schema.FieldSchema(ufs.alias, ufs.schema, ufs.type));
+                                            updateAliasCount(aliases, ufs.alias);
+                                        }
+                                    }
+								} else {
+                                    if(!DataType.isSchemaType(planFs.type)) {
+								        newFs = new Schema.FieldSchema(null, planFs.type);
+                                    } else {
+								        newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    }
+                                    fss.add(newFs);
+                                }
 							}
 						} else {
 							//just populate the schema with the field schema of the expression operator
+                            //check if the user has defined a schema for the operator; compare the schema
+                            //with that of the expression operator field schema and then add it to the list
+                            if(null != userDefinedSchema) {
+                                try {
+                                    planFs = planFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));
+                                    updateAliasCount(aliases, planFs.alias);
+                                } catch (SchemaMergeException sme) {
+                                    throw new FrontendException(sme.getMessage());
+                                } catch (ParseException pe) {
+                                    throw new FrontendException(pe.getMessage());
+                                }
+                            }
 	                   		fss.add(planFs);
-							if(null != outerCanonicalAlias) {
-								Integer count = aliases.get(outerCanonicalAlias);
-								if(null == count) {
-									aliases.put(outerCanonicalAlias, 1);
-								} else {
-									aliases.put(outerCanonicalAlias, ++count);
-								}
-							}
 						}
 					} else {
 						//did not get a valid list of field schemas
-						fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                        String outerCanonicalAlias = null;
+                        if(null != userDefinedSchema) {
+                            try {
+                                Schema.FieldSchema userDefinedFieldSchema = userDefinedSchema.getField(0);
+                                fss.add(userDefinedFieldSchema);
+                                updateAliasCount(aliases, userDefinedFieldSchema.alias);
+                            } catch (ParseException pe) {
+                                throw new FrontendException(pe.getMessage());
+                            }
+                        } else {
+						    fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                        }
 					}
                 } catch (FrontendException fee) {
                     mSchema = null;

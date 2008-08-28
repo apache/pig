@@ -335,6 +335,83 @@ public class Schema implements Serializable, Cloneable {
             }
         }
 
+        /***
+        * Recursively prefix merge two schemas
+        * @param other the other field schema to be merged with
+        * @return the prefix merged field schema this can be null if one schema is null and
+        *         allowIncompatibleTypes is true
+        *
+        * @throws SchemaMergeException if they cannot be merged
+        */
+
+        public Schema.FieldSchema mergePrefixFieldSchema(Schema.FieldSchema otherFs) throws SchemaMergeException {
+            return mergePrefixFieldSchema(otherFs, true);
+        }
+
+        /***
+        * Recursively prefix merge two schemas
+        * @param other the other field schema to be merged with
+        * @param otherTakesAliasPrecedence true if aliases from the other
+        *                                  field schema take precedence
+        * @return the prefix merged field schema this can be null if one schema is null and
+        *         allowIncompatibleTypes is true
+        *
+        * @throws SchemaMergeException if they cannot be merged
+        */
+
+        public Schema.FieldSchema mergePrefixFieldSchema(Schema.FieldSchema otherFs,
+                                            boolean otherTakesAliasPrecedence)
+                                                throws SchemaMergeException {
+            Schema.FieldSchema myFs = this;
+            Schema.FieldSchema mergedFs = null;
+            byte mergedType = DataType.NULL;
+    
+            if(null == otherFs) {
+                return myFs;
+            }
+
+            if((myFs.type == DataType.NULL || myFs.type == DataType.UNKNOWN)
+                && (otherFs.type == DataType.NULL || otherFs.type == DataType.UNKNOWN)) {
+                throw new SchemaMergeException("Type mismatch. No useful type for merging. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+            } else if(myFs.type == otherFs.type) {
+                mergedType = myFs.type;
+            } else if((myFs.type == DataType.NULL || myFs.type == DataType.UNKNOWN) 
+                && (otherFs.type == DataType.NULL)) {
+                mergedType = DataType.BYTEARRAY;
+            } else if ((myFs.type != DataType.NULL && myFs.type != DataType.UNKNOWN)
+                && (otherFs.type == DataType.NULL)) {
+                mergedType = myFs.type;
+            } else {
+                throw new SchemaMergeException("Type mismatch. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+            }
+    
+            String mergedAlias = mergeAlias(myFs.alias,
+                                            otherFs.alias,
+                                            otherTakesAliasPrecedence) ;
+    
+            if (!DataType.isSchemaType(mergedType)) {
+                // just normal merge
+                mergedFs = new FieldSchema(mergedAlias, mergedType) ;
+            }
+            else {
+                Schema mergedSubSchema = null;
+                // merge inner schemas because both sides have schemas
+                if(null != myFs.schema) {
+                    mergedSubSchema = myFs.schema.mergePrefixSchema(otherFs.schema,
+                                                     otherTakesAliasPrecedence);
+                } else {
+                    mergedSubSchema = otherFs.schema;
+                }
+                // create the merged field
+                try {
+                    mergedFs = new FieldSchema(mergedAlias, mergedSubSchema, mergedType) ;
+                } catch (FrontendException fee) {
+                    throw new SchemaMergeException(fee.getMessage());
+                }
+            }
+            return mergedFs;
+        }
+
     }
 
     private List<FieldSchema> mFields;
@@ -1030,6 +1107,70 @@ public class Schema implements Serializable, Cloneable {
         return new Schema(outerSchema);
     }
 
+    /***
+     * Recursively prefix merge two schemas
+     * @param other the other schema to be merged with
+     * @param otherTakesAliasPrecedence true if aliases from the other
+     *                                  schema take precedence
+     * @return the prefix merged schema this can be null if one schema is null and
+     *         allowIncompatibleTypes is true
+     *
+     * @throws SchemaMergeException if they cannot be merged
+     */
+
+    public Schema mergePrefixSchema(Schema other,
+                               boolean otherTakesAliasPrecedence)
+                                    throws SchemaMergeException {
+        Schema schema = this;
+
+        if (other == null) {
+                return this ;
+        }
+
+        if (schema.size() < other.size()) {
+            throw new SchemaMergeException("Schema size mismatch. Other schema size greater than schema size. Schema: " + this + ". Other schema: " + other);
+        }
+
+        List<FieldSchema> outputList = new ArrayList<FieldSchema>() ;
+
+        List<FieldSchema> mylist = schema.mFields ;
+        List<FieldSchema> otherlist = other.mFields ;
+
+        // We iterate up to the smaller one's size
+        int iterateLimit = other.mFields.size();
+
+        int idx = 0;
+        for (; idx< iterateLimit ; idx ++) {
+
+            // Just for readability
+            FieldSchema myFs = mylist.get(idx) ;
+            FieldSchema otherFs = otherlist.get(idx) ;
+
+            FieldSchema mergedFs = myFs.mergePrefixFieldSchema(otherFs, otherTakesAliasPrecedence);
+            outputList.add(mergedFs) ;
+        }
+        // if the first schema has leftover, then append the rest
+        for(int i=idx; i < mylist.size(); i++) {
+
+            FieldSchema fs = mylist.get(i) ;
+
+            // for non-schema types
+            if (!DataType.isSchemaType(fs.type)) {
+                outputList.add(new FieldSchema(fs.alias, fs.type)) ;
+            }
+            // for TUPLE & BAG
+            else {
+                try {
+                    FieldSchema tmp = new FieldSchema(fs.alias, fs.schema, fs.type) ;
+                    outputList.add(tmp) ;
+                } catch (FrontendException fee) {
+                    throw new SchemaMergeException(fee.getMessage());
+                }
+            }
+        }
+
+        return new Schema(outputList) ;
+    }
 
 }
 

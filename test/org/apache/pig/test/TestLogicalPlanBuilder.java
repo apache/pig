@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -56,6 +57,8 @@ import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
+import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -863,7 +866,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     public void testQuery70() {
         buildPlan(" a = load 'input1';");
-        buildPlan(" b = foreach a generate [10L#'hello', 4.0e-2#10L, 0.5f#(1), 'world'#42, 42#{('guide')}] as mymap;");
+        buildPlan(" b = foreach a generate [10L#'hello', 4.0e-2#10L, 0.5f#(1), 'world'#42, 42#{('guide')}] as mymap:map[];");
         buildPlan(" c = foreach b generate mymap#10L;");
     }
 
@@ -1155,6 +1158,112 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         } catch (AssertionFailedError e) {
             assertTrue(e.getMessage().contains("Out of bound access"));
         }
+    }
+
+    @Test
+    public void testQuery90() throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);");
+        buildPlan("b = group a by (name, age);");
+
+        //the first element in group, i.e., name is renamed as myname
+        lp = buildPlan("c = foreach b generate flatten(group) as (myname), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("myname: chararray, age: int, mycount: long")));
+
+        //the first and second elements in group, i.e., name and age are renamed as myname and myage
+        lp = buildPlan("c = foreach b generate flatten(group) as (myname, myage), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("myname: chararray, myage: int, mycount: long")));
+
+        //the schema of group is unchanged
+        lp = buildPlan("c = foreach b generate flatten(group) as (), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("name: chararray, age: int, mycount: long")));
+
+        //group is renamed as mygroup
+        lp = buildPlan("c = foreach b generate group as mygroup, COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
+
+        //group is renamed as mygroup and the first element is renamed as myname
+        lp = buildPlan("c = foreach b generate group as mygroup:(myname), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(myname: chararray, age: int), mycount: long")));
+
+        //group is renamed as mygroup and the elements are renamed as myname and myage
+        lp = buildPlan("c = foreach b generate group as mygroup:(myname, myage), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(myname: chararray, myage: int), mycount: long")));
+
+        //group is renamed to mygroup as the tuple schema is empty
+        lp = buildPlan("c = foreach b generate group as mygroup:(), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
+
+        /*
+        //forcing an wrror by having more elements in the fhe schema
+        lp = buildPlan("c = foreach B generate group as mygroup:(myname, myage, mygpa), COUNT(A) as mycount;");
+        lp = buildPlan("c = foreach B generate group as mygroup:(myname: int, myage), COUNT(A) as mycount;");
+        lp = buildPlan("c = foreach B generate group as mygroup:(myname, myage: chararray), COUNT(A) as mycount;");
+        lp = buildPlan("c = foreach B generate group as mygroup:{t: (myname, myage)}, COUNT(A) as mycount;");
+        lp = buildPlan("c = foreach B generate flatten(group) as (myname, myage, mygpa), COUNT(A) as mycount;");
+
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        assertTrue(foreach.getSchema().equals(getSchemaFromString()));
+        */
+
+    }
+
+    @Test
+    public void testQueryFail90() throws FrontendException, ParseException {
+        buildPlan("a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);");
+        buildPlan("b = group a by (name, age);");
+
+        try {
+            buildPlan("c = foreach b generate group as mygroup:(myname, myage, mygpa), COUNT(a) as mycount;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Schema size mismatch"));
+        }
+
+        try {
+            buildPlan("c = foreach b generate group as mygroup:(myname: int, myage), COUNT(a) as mycount;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Type mismatch"));
+        }
+
+        try {
+            buildPlan("c = foreach b generate group as mygroup:(myname, myage: chararray), COUNT(a) as mycount;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Type mismatch"));
+        }
+
+        try {
+            buildPlan("c = foreach b generate group as mygroup:{t: (myname, myage)}, COUNT(a) as mycount;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Type mismatch"));
+        }
+
+        try {
+            buildPlan("c = foreach b generate flatten(group) as (myname, myage, mygpa), COUNT(a) as mycount;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Schema size mismatch"));
+        }
+    }
+
+    private Schema getSchemaFromString(String schemaString) throws ParseException {
+        return getSchemaFromString(schemaString, DataType.BYTEARRAY);
+    }
+
+    private Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
+        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
+        QueryParser queryParser = new QueryParser(stream) ;
+        Schema schema = queryParser.TupleSchema() ;
+        QueryParser.SchemaUtils.setSchemaDefaultType(schema, defaultType);
+        return schema;
     }
 
     private void printPlan(LogicalPlan lp) {

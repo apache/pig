@@ -391,6 +391,26 @@ public class QueryParser {
         log.trace("Exiting attachPlan");
     }
 
+    public static class SchemaUtils {
+        public static void setSchemaDefaultType(Schema s, byte t) {
+            if(null == s) return;
+            for(Schema.FieldSchema fs: s.getFields()) {
+                setFieldSchemaDefaultType(fs, t);
+            }
+        }
+    
+        public static void setFieldSchemaDefaultType(Schema.FieldSchema fs, byte t) {
+            if(null == fs) return;
+            if(DataType.NULL == fs.type) {
+                fs.type = t;
+            }
+            if(DataType.isSchemaType(fs.type)) {
+                setSchemaDefaultType(fs.schema, t);
+            }
+        }
+    }
+	
+
 }
 
 
@@ -478,7 +498,6 @@ class StringUtils {
         }
 }
 
-	
 PARSER_END(QueryParser)
 
 // Skip all the new lines, tabs and spaces
@@ -670,12 +689,12 @@ LogicalOperator SplitClause(LogicalPlan lp):
 LogicalOperator Expr(LogicalPlan lp) : 
 {
 	LogicalOperator op; 
-	Schema schema; 
+	Schema schema = null; 
 	log.trace("Entering Expr");
 }
 {
 	(
-	( op = NestedExpr(lp) [ <AS> "(" schema = TupleSchema() ")" {op.setSchema(schema);} ] )
+	( op = NestedExpr(lp) [ <AS> "(" schema = TupleSchema() ")" {SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); op.setSchema(schema);} ] )
 |	op = BaseExpr(lp)
 	)
 	{log.trace("Exiting Expr"); return op;}
@@ -736,7 +755,25 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 	(
 	(
     (<DEFINE> op = DefineClause(lp))
-|	(<LOAD> op = LoadClause(lp) [<AS> (LOOKAHEAD(2) "(" schema = TupleSchema() ")" {op.setSchema(schema); op.setCanonicalNames(); log.debug("Load as schema()");schema.printAliases();} | fs = AtomSchema() {schema = new Schema(fs); op.setSchema(schema); log.debug("Load as atomschema()");schema.printAliases();}) ])
+|	(<LOAD> op = LoadClause(lp) 
+        [ <AS> 
+        (
+            LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
+            {
+                SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                op.setSchema(schema); 
+                op.setCanonicalNames(); 
+                log.debug("Load as schema" + schema);
+            } 
+        |   fs = AtomSchema() 
+            {
+                schema = new Schema(fs); 
+                op.setSchema(schema); 
+                log.debug("Load as atomschema" + schema);
+            }
+        ) 
+        ]
+    )
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
 |   (<LIMIT> op = LimitClause(lp))
@@ -1149,6 +1186,7 @@ CogroupInput GroupItem(LogicalPlan lp) :
 	ArrayList<LogicalPlan> listPlans = new ArrayList<LogicalPlan>(); 
 	LogicalPlan groupByPlan;
 	ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+	ArrayList<Schema> userDefinedSchemaList = new ArrayList<Schema>();
 	log.trace("Entering GroupItem");
 	log.debug("LogicalPlan: " + lp);
 }
@@ -1159,16 +1197,16 @@ CogroupInput GroupItem(LogicalPlan lp) :
 			( <BY> 
 				( 
 					LOOKAHEAD ( "(" FlattenedGenerateItemList(cgOp.getSchema(), null, groupByPlan, cgOp) ")" )
-					( "(" es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList) 
+					( "(" es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
 						{listPlans.add(groupByPlan);}
 						(
-							"," es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList) 
+							"," es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
 							{listPlans.add(groupByPlan);}
 						)*
 						")" 
 					)
 				|	(
-						es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList) 
+						es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
 						{listPlans.add(groupByPlan);}
 					)
 				)
@@ -1412,6 +1450,7 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
         LOGenerate generate = (LOGenerate)specList.get(specList.size() - 1);
         List<LogicalPlan> generatePlans = generate.getGeneratePlans();
         List<Boolean> flattenList = generate.getFlatten();
+        List<Schema> userDefinedSchemaList = generate.getUserDefinedSchema();
         /*
         Generate's nested plans will be translated to foreach's nested plan
         If generate contains an expression that does not require generate's
@@ -1461,7 +1500,7 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
         }
 
 		resetGenerateState();
-		foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), (ArrayList)foreachPlans, (ArrayList)flattenList);
+		foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), (ArrayList)foreachPlans, (ArrayList)flattenList, (ArrayList) userDefinedSchemaList);
 		try {
 			lp.add(foreach);
 			log.debug("Added operator " + foreach.getClass().getName() + " to the logical plan");
@@ -1802,17 +1841,18 @@ LogicalOperator FlattenedGenerateItemList(Schema over, Map<String, LogicalOperat
 {
 	ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>(); 
 	ArrayList<Boolean> flattenList = new ArrayList<Boolean>(); 
+	ArrayList<Schema> userDefinedSchemaList = new ArrayList<Schema>(); 
 	ExpressionOperator item;
 	LogicalPlan generatePlan;
 	log.trace("Entering FlattenedGenerateItemList");
 }
 {
 	(
-        item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList)
+        item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList, userDefinedSchemaList)
             {
                 generatePlans.add(generatePlan);
             }
-        ("," item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList)
+        ("," item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList, userDefinedSchemaList)
             {
                 generatePlans.add(generatePlan);
             }
@@ -1820,7 +1860,7 @@ LogicalOperator FlattenedGenerateItemList(Schema over, Map<String, LogicalOperat
 
     )
 	{
-		LogicalOperator generate = new LOGenerate(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
+		LogicalOperator generate = new LOGenerate(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList, userDefinedSchemaList);
 		lp.add(generate);
 		log.debug("Added operator " + generate.getClass().getName() + " to the logical plan");
 		log.trace("Exiting FlattenedGenerateItemList");
@@ -1829,7 +1869,7 @@ LogicalOperator FlattenedGenerateItemList(Schema over, Map<String, LogicalOperat
 }
 	
 
-ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input, ArrayList<Boolean> flattenList): 
+ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input, ArrayList<Boolean> flattenList, ArrayList<Schema> userDefinedSchemaList): 
 {
 	ExpressionOperator item; 
 	Schema schema = null; 
@@ -1841,13 +1881,16 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 {
 	(
 	(
-	(
 		<FLATTEN> "(" item = InfixExpr(over,specs,lp,input) ")" 
 		{
 			flatten = true;
 		}
+        [ <AS> "(" schema = TupleSchema() ")" ]
 	)
-|	(item = InfixExpr(over,specs,lp,input))
+|	
+    (
+    (
+    (item = InfixExpr(over,specs,lp,input))
 |	( <STAR> 
 		{
 			LOProject project = new LOProject(lp, new OperatorKey(scope, getNextId()), input, -1); 
@@ -1861,15 +1904,17 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 			log.debug("FGItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
 		}
 	)
+    )
+        [ <AS> fs = FieldSchema() ]
 	)
-        [ <AS> (fs = FieldSchema()) ]
 	)
 	{
 		log.debug("item: " + item.getClass().getName());
         if(null != fs) {
-            item.setFieldSchema(fs);
+            schema = new Schema(fs);
         }
-		flattenList.add(flatten);
+	    flattenList.add(flatten);
+        userDefinedSchemaList.add(schema);
 		log.trace("Exiting FlattenedGenerateItem");
 		return item;
 	}
@@ -2289,7 +2334,7 @@ Schema.FieldSchema FieldSchema() :
 Schema.FieldSchema AtomSchema() : 
 {
 	Token t1 = null;
-	byte type = DataType.BYTEARRAY;
+	byte type = DataType.NULL;
 	Schema.FieldSchema fs;
 	log.trace("Entering AtomSchema");
 }
@@ -2316,7 +2361,7 @@ Schema.FieldSchema SchemaMap() :
 	log.trace("Entering SchemaMap");
 }
 {
-	( t1 = <IDENTIFIER> )  [":" <MAP>] "[" "]"
+	( t1 = <IDENTIFIER> )  [LOOKAHEAD(2) ":" <MAP>| ":"] "[" "]"
 	{
 		if (null != t1) {
 			log.debug("MAP alias " + t1.image);

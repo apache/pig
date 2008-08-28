@@ -43,6 +43,7 @@ public class LOGenerate extends LogicalOperator {
     //private ArrayList<ExpressionOperator> mProjections;
     private ArrayList<LogicalPlan> mGeneratePlans;
     private ArrayList<Boolean> mFlatten;
+    private ArrayList<Schema> mUserDefinedSchema = null;
     private static Log log = LogFactory.getLog(LOGenerate.class);
 
     /**
@@ -63,6 +64,16 @@ public class LOGenerate extends LogicalOperator {
         mGeneratePlans = generatePlans;
         mFlatten = flatten;
     }
+
+    public LOGenerate(LogicalPlan plan, OperatorKey key,
+            ArrayList<LogicalPlan> generatePlans, ArrayList<Boolean> flatten,
+            ArrayList<Schema> userDefinedSchemaList) {
+        super(plan, key);
+        mGeneratePlans = generatePlans;
+        mFlatten = flatten;
+        mUserDefinedSchema = userDefinedSchemaList;
+    }
+
 
     /**
      * 
@@ -92,6 +103,10 @@ public class LOGenerate extends LogicalOperator {
 
     public List<Boolean> getFlatten() {
         return mFlatten;
+    }
+
+    public List<Schema> getUserDefinedSchema() {
+        return mUserDefinedSchema;
     }
 
     @Override

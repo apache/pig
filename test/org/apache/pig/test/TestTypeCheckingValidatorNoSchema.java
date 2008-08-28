@@ -989,7 +989,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         // check outer schema
         Schema endResultSchema = foreach1.getSchema() ;
 
-        assertEquals(endResultSchema.getField(0).type, DataType.BYTEARRAY) ;
+        assertEquals(endResultSchema.getField(0).type, DataType.FLOAT) ;
         assertEquals(endResultSchema.getField(1).type, DataType.DOUBLE) ;
     }
 }

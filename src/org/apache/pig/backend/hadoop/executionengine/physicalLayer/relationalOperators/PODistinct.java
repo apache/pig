@@ -72,7 +72,6 @@ public class PODistinct extends PhysicalOperator {
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        log.info("inputsAccumulated: " + inputsAccumulated);
         if (!inputsAccumulated) {
             Result in = processInput();
             distinctBag = BagFactory.getInstance().newDistinctBag();
@@ -84,11 +83,9 @@ public class PODistinct extends PhysicalOperator {
                     continue;
                 }
                 distinctBag.add((Tuple) in.result);
-                log.info("Added tuple" + in.result + " to the distinct bag");
                 in = processInput();
             }
             inputsAccumulated = true;
-            log.info("Distinct bag: " + distinctBag);
         }
         if (it == null) {
             it = distinctBag.iterator();
