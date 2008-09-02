@@ -172,7 +172,7 @@ public class TestFilterOpNumeric extends TestCase {
         }
         ps.close();
         pig.registerQuery("A=load 'file:" + tmpFile + "';");
-        String query = "A = foreach A generate ($0 < 10?($1 >= 5 ? '2': '1') : '0');";
+        String query = "A = foreach A generate ($0 < 10?($1 >= 5 ? 2: 1) : 0);";
         log.info(query);
         pig.registerQuery(query);
         Iterator it = pig.openIterator("A");
