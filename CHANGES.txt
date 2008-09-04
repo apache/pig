@@ -140,9 +140,9 @@ Trunk (unreleased changes)
 
     PIG-258: cleaning up directories on failure (daijy via olgan)
 
-    PIG-139: command line editing
+    PIG-139: command line editing (daijy via olgan)
 
-    PIG-270: proper line number for parse errors
+    PIG-270: proper line number for parse errors (daijy via olgan)
 
     PIG-363: fix for describe to produce schema name
 
@@ -179,3 +179,5 @@ Trunk (unreleased changes)
     PIG-373: unconnected load causes problem,
 
     PIG-413: problem with float sum
+
+    PIG-398: Expressions not allowed inside foreach (sms via olgan)

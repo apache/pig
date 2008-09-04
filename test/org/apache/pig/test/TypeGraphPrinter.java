@@ -261,7 +261,7 @@ public class TypeGraphPrinter extends LOVisitor {
         sb.append("=") ;
         Schema schema = null ;
 
-        if (!DataType.isComplex(op.getType())) {
+        if (!DataType.isSchemaType(op.getType())) {
             sb.append(DataType.findTypeName(op.getType())) ;
         }
         else {

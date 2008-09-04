@@ -692,6 +692,8 @@ public class Schema implements Serializable, Cloneable {
                         throw new AssertionError("Schema refers to itself "
                                                  + "as inner schema") ;
                     }
+                } else if (fs.type == DataType.MAP) {
+                    sb.append(DataType.findTypeName(fs.type) + "[ ]") ;
                 }
                 // TODO: Support Map
             }

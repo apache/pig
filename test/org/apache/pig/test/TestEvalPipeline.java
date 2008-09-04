@@ -396,6 +396,52 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(LOOP_COUNT, numIdentity);
     }
 
+    public void testNestedPlanWithExpressionAssignment() throws Exception{
+        int LOOP_COUNT = 10;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        pigServer.registerQuery("B = group A by $0;");
+        String query = "C = foreach B {"
+        + "C1 = filter A by $0 > -1;"
+        + "C2 = distinct C1;"
+        + "C3 = distinct A;"
+        + "C4 = " + Identity.class.getName() + "(*);"
+        + "C5 = COUNT(C2);"
+        + "C6 = SUM(C2.$1);"
+        + "C7 = " + TitleNGrams.class.getName() + "(C3);"
+        + "C8 = MAX(C3.$1);"
+        + "generate (int)group, C4, C5, C6, C7, C8, C2;"
+        + "};";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertEquals((Integer)numIdentity, (Integer)t.get(0));
+            assertEquals((Long)5L, (Long)t.get(2));
+            assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
+            assertEquals(8.0, (Double)t.get(5), 0.01);
+            assertEquals(5L, ((DataBag)t.get(6)).size());
+            assertEquals(7, t.size());
+            ++numIdentity;
+        }
+        assertEquals(LOOP_COUNT, numIdentity);
+    }
+
     public void testLimit() throws Exception{
         int LOOP_COUNT = 20;
         File tmpFile = File.createTempFile("test", "txt");
@@ -419,6 +465,6 @@ public class TestEvalPipeline extends TestCase {
         }
         assertEquals(5, numIdentity);
     }
-
+    
 
 }

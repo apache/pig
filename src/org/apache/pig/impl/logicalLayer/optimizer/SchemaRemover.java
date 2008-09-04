@@ -150,7 +150,6 @@ public class SchemaRemover extends LOVisitor {
      * @throws VisitorException
      */
     protected void visit(LOCast cast) throws VisitorException {
-        cast.unsetFieldSchema();
         super.visit(cast);
     }
     

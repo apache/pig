@@ -499,6 +499,9 @@ public class QueryParser {
 
     public static void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan, Map<LogicalOperator, Boolean> rootProcessed) throws ParseException {
         log.trace("Entering attachPlan");
+        if(null == rootProcessed) {
+            rootProcessed = new HashMap<LogicalOperator, Boolean>();
+        }
         if((rootProcessed.get(root) != null) && (rootProcessed.get(root))) {
             log.trace("Root has been processed");
             log.trace("Exiting attachPlan");
@@ -542,7 +545,6 @@ public class QueryParser {
         }
     }
 	
-
 }
 
 
@@ -1637,15 +1639,30 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
 
         for (int planCtr = 0; planCtr < generatePlans.size(); ++planCtr) {
             LogicalPlan generatePlan = generatePlans.get(planCtr);
-            List<LogicalOperator> planRoots = generatePlan.getRoots();
+            List<LogicalOperator> planRoots = new ArrayList<LogicalOperator>(generatePlan.getRoots());
             boolean needGenerateInput = false;
             boolean needForEachInput = false;
             MultiMap<LogicalOperator, LogicalOperator> mapProjectInputs = null;
+            Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
+            for(LogicalOperator root: planRoots) {
+                if(root instanceof ExpressionOperator && !(root instanceof LOProject)) {
+                    if(checkGenerateInput(root)) {
+                        needGenerateInput = true;
+                        attachPlan(generatePlan, root, foreachPlan, rootProcessed);
+                        rootProcessed.put(root, true);
+                    }
+                }
+            }
+            
+            planRoots = generatePlan.getRoots();
+            needGenerateInput = false;
+            needForEachInput = false;
+
             for(LogicalOperator root: planRoots) {
                 if(root instanceof LOProject) {
                     LOProject project = (LOProject)root;
                     LogicalOperator projectInput = project.getExpression();
-                    if(checkGenerateInput(projectInput)) {
+                    if(checkGenerateInput(projectInput) || !(projectInput.equals(input))) {
                         needGenerateInput = true;
                         if(null == mapProjectInputs) {
                             mapProjectInputs = new MultiMap<LogicalOperator, LogicalOperator>();
@@ -1654,7 +1671,7 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
                     } else {
                         needForEachInput = true;
                     }
-                }
+                } 
             }
             if(needGenerateInput) {
                 /*
@@ -1664,7 +1681,6 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
                 the list of foreach plans
                 */
 
-                Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
                 for(LogicalOperator project: mapProjectInputs.keySet()) {
                     for(LogicalOperator projectInput: mapProjectInputs.get(project)) {
                         generatePlan.add(projectInput);
@@ -1933,12 +1949,20 @@ void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<Logical
 	(
 	t = <IDENTIFIER> "="
 	(
-	eOp = NestedProject(over,specs,lp,input) 
+	LOOKAHEAD(FuncEvalSpec(over, specs, lp, input)) item = InfixExpr(over,specs,lp, input)
+    {
+        lp.add(item);
+    }
+|	LOOKAHEAD(NestedProject(over, specs, lp,input)) eOp = NestedProject(over,specs,lp,input) 
 	{
 		item = eOp;
 		lp.add(eOp);
 		log.debug("Added operator " + eOp.getClass().getName() + " " + eOp + " to the logical plan " + lp);
 	}
+|	item = InfixExpr(over,specs,lp, input)
+    {
+        lp.add(item);
+    }
 |	item = NestedFilter(over,specs,lp, input)	 
 | 	item = NestedSortOrArrange(over,specs,lp, input)
 |	item = NestedDistinct(over,specs,lp, input)	
@@ -2432,24 +2456,7 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 		{ 
 			Schema.FieldSchema fs = item.getFieldSchema(); 
 			subSchema = fs.schema; 
-			//TODO
-			//HACK for the schema problems with LOProject
-			//Check the schema to see if the constituent
-			//field is a bag or a tuple/ If so, then get
-			//that schema and send it out instead of the
-			//actual schema
 			log.debug("subSchema: " + subSchema);
-			if(null != subSchema) {
-				log.debug("Printing subSchema Aliases");
-				subSchema.printAliases();
-			}
-			/*	
-			log.debug("Printing the field schemas of subSchema");
-			for(Schema.FieldSchema fs: subSchema.getFields()) {
-				log.debug("fs: " + fs);
-				subSchema = fs.schema;
-			}
-			*/
 		}
 		( 
 			"." projection = BracketedSimpleProj(subSchema,lp,item) 
@@ -2494,7 +2501,6 @@ ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, Logi
 	{ 
 		//ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()), conditionPlan, truePlan, falsePlan);
 		ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()), cond, ifTrue, ifFalse);
-		//TODO - Need to connect expression operators with the new plan
 		lp.add(bincond);
 		log.debug("BinCond: Added operator " + bincond.getClass().getName() + " " + bincond + " to logical plan " + lp);
 		lp.connect(cond, bincond);
@@ -3192,11 +3198,15 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 			LogicalOperator op = specs.get(t1.image);
 			if(null != op) {
 				log.debug("Alias: " + op.getAlias());
-				
-				item = new LOProject(lp, new OperatorKey(scope, getNextId()), op, -1);
-				((LOProject)item).setStar(true);
-				log.debug("Set star to true");
-				item.setAlias(t1.image);
+
+                if((op instanceof ExpressionOperator) && insideGenerate()) {
+                    item = (ExpressionOperator)op;
+                } else {
+                    item = new LOProject(lp, new OperatorKey(scope, getNextId()), op, -1);
+                    ((LOProject)item).setStar(true);
+                    log.debug("Set star to true");
+                    item.setAlias(t1.image);
+                }
 				
 				if(insideGenerate()) {
 					log.debug("AliasFieldOrSpec: Inside generate");
@@ -3205,7 +3215,7 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 				try {
 					lp.add(item);
 					log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
-                    if(op instanceof ExpressionOperator) {
+                    if((op instanceof ExpressionOperator) && !insideGenerate()) {
 					    lp.add(op);
 					    lp.connect(op, item);
                     }

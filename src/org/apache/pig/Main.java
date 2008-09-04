@@ -25,6 +25,7 @@ import java.text.ParseException;
 
 import jline.ConsoleReader;
 import jline.ConsoleReaderInputStream;
+import jline.History;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -272,6 +273,9 @@ public static void main(String args[])
             ConsoleReader reader = new ConsoleReader(System.in, new OutputStreamWriter(System.out));
             reader.addCompletor(new PigCompletor());
             reader.setDefaultPrompt("grunt> ");
+            final String HISTORYFILE = ".pig_history";
+            String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
+            reader.setHistory(new History(new File(historyFile)));
             ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
             grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
             grunt.setConsoleReader(reader);

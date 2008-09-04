@@ -125,9 +125,7 @@ abstract public class LOVisitor extends
                     // walker the current visitor is using.
                     PlanWalker w = new DependencyOrderWalker(lp);
                     pushWalker(w);
-                    for(LogicalOperator logicalOp: lp.getRoots()) {
-                        logicalOp.visit(this);
-                    }
+                    w.walk(this);
                     popWalker();
                 }
             }
@@ -145,9 +143,7 @@ abstract public class LOVisitor extends
         for(LogicalPlan lp: forEach.getForEachPlans()) {
             PlanWalker w = new DependencyOrderWalker(lp);
             pushWalker(w);
-            for(LogicalOperator logicalOp: lp.getRoots()) {
-                logicalOp.visit(this);
-            }
+            w.walk(this);
             popWalker();
         }
     }
@@ -163,9 +159,7 @@ abstract public class LOVisitor extends
         for(LogicalPlan lp: s.getSortColPlans()) {
             PlanWalker w = new DependencyOrderWalker(lp);
             pushWalker(w);
-            for(LogicalOperator logicalOp: lp.getRoots()) {
-                logicalOp.visit(this);
-            }
+            w.walk(this);
             popWalker();
         }
     }
@@ -188,9 +182,7 @@ abstract public class LOVisitor extends
         // Visit the condition for the filter followed by the input
         PlanWalker w = new DependencyOrderWalker(filter.getComparisonPlan());
         pushWalker(w);
-        for(LogicalOperator logicalOp: filter.getComparisonPlan().getRoots()) {
-            logicalOp.visit(this);
-        }
+        w.walk(this);
         popWalker();
     }
 
@@ -218,9 +210,7 @@ abstract public class LOVisitor extends
         for(LogicalPlan lp: g.getGeneratePlans()) {
             PlanWalker w = new DependencyOrderWalker(lp);
             pushWalker(w);
-            for(LogicalOperator logicalOp: lp.getRoots()) {
-                logicalOp.visit(this);
-            }
+            w.walk(this);
             popWalker();
         }
     }
@@ -287,9 +277,7 @@ abstract public class LOVisitor extends
         if (null != lp) {
             PlanWalker w = new DependencyOrderWalker(lp);
             pushWalker(w);
-            for(LogicalOperator logicalOp: lp.getRoots()) {
-                logicalOp.visit(this);
-            }
+            w.walk(this);
             popWalker();
         }
     }
