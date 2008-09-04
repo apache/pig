@@ -83,7 +83,7 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
                     return null;
                 }
 
-                long sum = 0;
+                double sum = 0;
                 boolean sawNonNull = false;
                 for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
                     Tuple t = (Tuple) it.next();

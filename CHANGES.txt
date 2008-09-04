@@ -177,3 +177,5 @@ Trunk (unreleased changes)
     PIG-397: code defaults to single reducer
 
     PIG-373: unconnected load causes problem,
+
+    PIG-413: problem with float sum

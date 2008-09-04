@@ -132,15 +132,30 @@ public class TestBuiltin extends TestCase {
         allowedInput.put("StringMax", "String");
         expectedMap.put("String", "unit");
 
-        
+        // The idea here is that we can reuse the same input
+        // and expected output of the algebraic functions
+        // for their Initial and Final Stages 
         String[] stages = {"Initial", "Final"};
         String[] aggs = {"SUM", "DoubleSum", "IntSum", "LongSum", "FloatSum",
                         "MIN", "IntMin", "LongMin", "FloatMin", "StringMin",
                         "MAX", "IntMax", "LongMax", "FloatMax", "StringMax",};
         for (String agg : aggs) {
             for (String stage : stages) {
-                allowedInput.put(agg + stage, allowedInput.get(agg));
-                expectedMap.put(agg + stage, expectedMap.get(agg));
+                // For Int Sum Final and Float Sum Final, the input is expected
+                // be Long and Double respectively
+                if((agg + stage).equals("IntSumFinal")) {
+                    allowedInput.put(agg + stage, allowedInput.get("LongSum"));
+                    expectedMap.put(agg + stage, expectedMap.get("LongSum"));
+                } else if ((agg + stage).equals("FloatSumFinal")) {
+                    allowedInput.put(agg + stage, allowedInput.get("DoubleSum"));
+                    expectedMap.put(agg + stage, expectedMap.get("DoubleSum"));
+                } else {
+                    // In all other cases, the input and expected output
+                    // for "Initial" and "Final" stages should match the input
+                    // and expected output for the aggregate function itself
+                    allowedInput.put(agg + stage, allowedInput.get(agg));
+                    expectedMap.put(agg + stage, expectedMap.get(agg));
+                }
             }
             
         }
