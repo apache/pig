@@ -100,6 +100,10 @@ public class PigMapReduce {
         private POPackage pack;
         
         ProgressableReporter pigReporter;
+
+        private OutputCollector<WritableComparable, Writable> outputCollector;
+
+        private boolean errorInReduce = false;
         
         /**
          * Configures the Reduce plan, the POPackage operator
@@ -144,6 +148,9 @@ public class PigMapReduce {
                 OutputCollector<WritableComparable, Writable> oc,
                 Reporter reporter) throws IOException {
             
+            // cache the collector for use in runPipeline()
+            // which could additionally be called from close()
+            this.outputCollector = oc;
             pigReporter.setRep(reporter);
             
             Object k = HDataType.convertToPigType(key);
@@ -160,31 +167,14 @@ public class PigMapReduce {
                         return;
                     }
                     
+                    log.info("Attaching " + packRes + " to " + rp.getRoots());
                     rp.attachInput(packRes);
 
                     List<PhysicalOperator> leaves = rp.getLeaves();
                     
                     PhysicalOperator leaf = leaves.get(0);
-                    while(true){
-                        Result redRes = leaf.getNext(t);
-                        if(redRes.returnStatus==POStatus.STATUS_OK){
-                            oc.collect(null, (Tuple)redRes.result);
-                            continue;
-                        }
-                        
-                        if(redRes.returnStatus==POStatus.STATUS_EOP) {
-                            return;
-                        }
-                        
-                        if(redRes.returnStatus==POStatus.STATUS_NULL)
-                            continue;
-                        
-                        if(redRes.returnStatus==POStatus.STATUS_ERR){
-                            IOException ioe = new IOException("Received Error while " +
-                                    "processing the reduce plan.");
-                            throw ioe;
-                        }
-                    }
+                    runPipeline(leaf);
+                    
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_NULL) {
@@ -204,6 +194,49 @@ public class PigMapReduce {
             }
         }
         
+        /**
+         * @param leaf
+         * @throws ExecException 
+         * @throws IOException 
+         */
+        private void runPipeline(PhysicalOperator leaf) throws ExecException, IOException {
+            while(true)
+            {
+                Tuple dummyTuple = null;  
+                Result redRes = leaf.getNext(dummyTuple);
+                if(redRes.returnStatus==POStatus.STATUS_OK){
+                    outputCollector.collect(null, (Tuple)redRes.result);
+                    continue;
+                }
+                
+                if(redRes.returnStatus==POStatus.STATUS_EOP) {
+                    return;
+                }
+                
+                if(redRes.returnStatus==POStatus.STATUS_NULL)
+                    continue;
+                
+                if(redRes.returnStatus==POStatus.STATUS_ERR){
+                    // remember that we had an issue so that in 
+                    // close() we can do the right thing
+                    errorInReduce   = true;
+                    // if there is an errmessage use it
+                    String errMsg;
+                    if(redRes.result != null) {
+                        errMsg = "Received Error while " +
+                        "processing the reduce plan: " + redRes.result;
+                    } else {
+                        errMsg = "Received Error while " +
+                        "processing the reduce plan.";
+                    }
+                    
+                    IOException ioe = new IOException(errMsg);
+                    throw ioe;
+                }
+            }
+
+        
+        }
         
         /**
          * Will be called once all the intermediate keys and values are
@@ -215,6 +248,30 @@ public class PigMapReduce {
             /*if(runnableReporter!=null)
                 runnableReporter.setDone(true);*/
             PhysicalOperator.setReporter(null);
+            
+            if(errorInReduce) {
+                // there was an error in reduce - just return
+                return;
+            }
+            
+            if(PigMapReduce.sJobConf.get("pig.stream.in.reduce", "false").equals("true")) {
+                // If there is a stream in the pipeline we could 
+                // potentially have more to process - so lets
+                // set the flag stating that all map input has been sent
+                // already and then lets run the pipeline one more time
+                // This will result in nothing happening in the case
+                // where there is no stream in the pipeline
+                rp.endOfAllInput = true;
+                List<PhysicalOperator> leaves = rp.getLeaves();
+                PhysicalOperator leaf = leaves.get(0);
+                try {
+                    runPipeline(leaf);
+                } catch (ExecException e) {
+                     IOException ioe = new IOException("Error running pipeline in close() of reduce");
+                     ioe.initCause(e);
+                     throw ioe;
+                }
+            }
         }
     }
     

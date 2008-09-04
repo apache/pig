@@ -60,20 +60,23 @@ public class POLoad extends PhysicalOperator {
     PigContext pc;
     //Indicates whether the loader setup is done or not
     boolean setUpDone = false;
+    // Indicates whether the filespec is splittable
+    boolean splittable = true;
     
     private final Log log = LogFactory.getLog(getClass());
     
-    public POLoad(OperatorKey k) {
-        this(k,-1, null);
+    public POLoad(OperatorKey k, boolean splittable) {
+        this(k,-1, null, splittable);
     }
 
     
-    public POLoad(OperatorKey k, FileSpec lFile){
-        this(k,-1,lFile);
+    public POLoad(OperatorKey k, FileSpec lFile, boolean splittable){
+        this(k,-1,lFile, splittable);
     }
     
-    public POLoad(OperatorKey k, int rp, FileSpec lFile) {
+    public POLoad(OperatorKey k, int rp, FileSpec lFile,boolean splittable) {
         super(k, rp);
+        this.splittable = splittable;
     }
     
     /**
@@ -180,6 +183,14 @@ public class POLoad extends PhysicalOperator {
 
     public void setPc(PigContext pc) {
         this.pc = pc;
+    }
+
+
+    /**
+     * @return the splittable
+     */
+    public boolean isSplittable() {
+        return splittable;
     }
 
 }

@@ -373,7 +373,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         FileSpec LFSpec = new FileSpec(ldFile, new FuncSpec(PigStorage.class.getName(), new String[]{","}));
         FileSpec SFSpec = new FileSpec(stFile, new FuncSpec(PigStorage.class.getName()));
 
-        POLoad ld = new POLoad(new OperatorKey("", r.nextLong()));
+        POLoad ld = new POLoad(new OperatorKey("", r.nextLong()), true);
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
         ld.setPc(pc);
         ld.setLFile(LFSpec);

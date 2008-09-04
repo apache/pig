@@ -30,6 +30,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -75,6 +76,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // The data type for the results of this operator
     protected byte resultType = DataType.TUPLE;
 
+    // The physical plan this operator is part of
+    protected PhysicalPlan parentPlan;
+    
     // Specifies if the input has been directly attached
     protected boolean inputAttached = false;
 
@@ -294,4 +298,12 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     protected void cloneHelper(PhysicalOperator op) {
         resultType = op.resultType;
     }
+
+    /**
+     * @param physicalPlan
+     */
+    public void setParentPlan(PhysicalPlan physicalPlan) {
+       parentPlan = physicalPlan;
+    }
+
 }

@@ -65,6 +65,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.SplitIntroducer;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -145,6 +146,16 @@ public class PigServer {
     }
     
     /**
+     * Add a path to be skipped while automatically shipping binaries for 
+     * streaming.
+     *  
+     * @param path path to be skipped
+     */
+    public void addPathToSkip(String path) {
+        pigContext.addPathToSkip(path);
+    }
+    
+    /**
      * Defines an alias for the given function spec. This
      * is useful for functions that require arguments to the 
      * constructor.
@@ -171,6 +182,16 @@ public class PigServer {
         pigContext.registerFunction(function, funcSpec);
     }
     
+    /**
+     * Defines an alias for the given streaming command.
+     * 
+     * @param commandAlias - the new command alias to define
+     * @param command - streaming command to be executed
+     */
+    public void registerStreamingCommand(String commandAlias, StreamingCommand command) {
+        pigContext.registerStreamCmd(commandAlias, command);
+    }
+
     private URL locateJarFromResources(String jarName) throws IOException {
         Enumeration<URL> urls = ClassLoader.getSystemResources(jarName);
         URL resourceLocation = null;
@@ -395,7 +416,7 @@ public class PigServer {
 
             stream.println("-----------------------------------------------");
             pigContext.getExecutionEngine().explain(pp, stream);
-        
+      
         } catch (Exception e) {
             throw WrappedIOException.wrap("Unable to explain alias " +
                 alias, e);

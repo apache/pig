@@ -210,4 +210,13 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         //do nothing
     }
 
+    /**
+     * @param stream
+     * @throws VisitorException 
+     */
+    public void visitStream(POStream stream) throws VisitorException {
+        // TODO Auto-generated method stub
+        
+    }
+
 }

@@ -137,17 +137,13 @@ public class POUnion extends PhysicalOperator {
                 while(true){
                     if(reporter!=null) reporter.progress();
                     res = inputs.get(ind).getNext(t);
-                    if(res.returnStatus == POStatus.STATUS_NULL)
-                        continue;
-
                     lastInd = ind + 1;
 
-                    if(res.returnStatus == POStatus.STATUS_ERR)
-                        return new Result();
-
-                    if (res.returnStatus == POStatus.STATUS_OK)
+                    if(res.returnStatus == POStatus.STATUS_OK || 
+                            res.returnStatus == POStatus.STATUS_NULL || res.returnStatus == POStatus.STATUS_ERR) {
                         return res;
-                    
+                    }
+
                     if (res.returnStatus == POStatus.STATUS_EOP) {
                         done.set(ind);
                         break;

@@ -344,6 +344,7 @@
                     <exclude name="**/TestStoreOld.java" />
                     -->
                     <!-- Excluced because we don't want to run them -->
+                    <exclude name="**/PigExecTestCase.java" />
                     <exclude name="**/TypeCheckingTestUtil.java" />
                     <exclude name="**/TypeGraphPrinter.java" />
                     <exclude name="**/LogicalPlanTester.java" />

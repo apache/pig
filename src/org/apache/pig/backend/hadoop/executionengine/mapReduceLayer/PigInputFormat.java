@@ -52,6 +52,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.ValidatingInputFileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 
 public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         JobConfigurable {
@@ -175,7 +176,7 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
      */
     public InputSplit[] getSplits(JobConf job, int numSplits)
             throws IOException {
-        ArrayList<FileSpec> inputs = (ArrayList<FileSpec>) ObjectSerializer
+        ArrayList<Pair<FileSpec, Boolean>> inputs = (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer
                 .deserialize(job.get("pig.inputs"));
         ArrayList<ArrayList<OperatorKey>> inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
                 .deserialize(job.get("pig.inpTargets"));
@@ -184,7 +185,7 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
-            Path path = new Path(inputs.get(i).getFileName());
+            Path path = new Path(inputs.get(i).first.getFileName());
             FileSystem fs = path.getFileSystem(job);
             // if the execution is against Mapred DFS, set
             // working dir to /user/<userid>
@@ -193,10 +194,14 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
             
             DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
             ValidatingInputFileSpec spec;
-            if (inputs.get(i) instanceof ValidatingInputFileSpec) {
-                spec = (ValidatingInputFileSpec) inputs.get(i);
+            if (inputs.get(i).first instanceof ValidatingInputFileSpec) {
+                spec = (ValidatingInputFileSpec) inputs.get(i).first;
             } else {
-                spec = new ValidatingInputFileSpec(inputs.get(i), store);
+                spec = new ValidatingInputFileSpec(inputs.get(i).first, store);
+            }
+            boolean isSplittable = inputs.get(i).second;
+            if (isSplittable && (spec.getSlicer() instanceof PigSlicer)) {
+                ((PigSlicer)spec.getSlicer()).setSplittable(isSplittable);
             }
             Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
             for (Slice split : pigs) {

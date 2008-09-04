@@ -47,6 +47,8 @@ import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
@@ -139,7 +141,7 @@ public class QueryParser {
 	        storePlan.add(store);
 	        storePlan.add(input);
 	        storePlan.connect(input, store);
-	        attachPlan(storePlan, input, readFrom);
+	        attachPlan(storePlan, input, readFrom, new HashMap<LogicalOperator, Boolean>());
         } catch (ParseException pe) {
             throw new FrontendException(pe.getMessage());
         }
@@ -316,6 +318,130 @@ public class QueryParser {
 	 	return mapAliasOp.get(alias);
 	 }
 
+     // Check and set files to be automatically shipped for the given StreamingCommand
+     // Auto-shipping rules:
+     // 1. If the command begins with either perl or python assume that the 
+     //    binary is the first non-quoted string it encounters that does not 
+     //    start with dash - subject to restrictions in (2).
+     // 2. Otherwise, attempt to ship the first string from the command line as 
+     //    long as it does not come from /bin, /user/bin, /user/local/bin. 
+     //    It will determine that by scanning the path if an absolute path is 
+     //    provided or by executing "which". The paths can be made configurable 
+     //    via "set stream.skippath <paths>" option.
+     private static final String PERL = "perl";
+     private static final String PYTHON = "python";
+     private void checkAutoShipSpecs(StreamingCommand command, String[] argv) 
+     throws ParseException {
+     	// Candidate for auto-ship
+     	String arg0 = argv[0];
+     	
+     	// Check if command is perl or python ... if so use the first non-option
+     	// and non-quoted string as the candidate
+        if (arg0.equalsIgnoreCase(PERL) || arg0.equalsIgnoreCase(PYTHON)) {
+            for (int i=1; i < argv.length; ++i) {
+            	if (!argv[i].startsWith("-") && !isQuotedString(argv[i])) {
+            		checkAndShip(command, argv[i]);
+            		break;
+            	}
+            }
+        } else {
+        	// Ship the first argument if it can be ...
+        	checkAndShip(command, arg0);
+        }
+     }
+     
+     private void checkAndShip(StreamingCommand command, String arg) 
+     throws ParseException {
+     	// Don't auto-ship if it is an absolute path...
+     	if (arg.startsWith("/")) {
+     		return;
+     	}
+     	
+     	// $ which arg
+     	String argPath = which(arg);
+     	if (argPath != null && !inSkipPaths(argPath)) {
+     		try {
+     		    command.addPathToShip(argPath);
+     		} catch(IOException e) {
+                throw new ParseException(e.getMessage());
+            }
+     	}
+     	 
+     }
+
+     private boolean isQuotedString(String s) {
+     	return (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'');
+     }
+     
+     // Check if file is in the list paths to be skipped 
+     private boolean inSkipPaths(String file) {
+     	for (String skipPath : pigContext.getPathsToSkip()) {
+     		if (file.startsWith(skipPath)) {
+     			return true;
+     		}
+     	}
+        return false;
+     }
+
+
+     private static String which(String file) {
+        try {
+        	ProcessBuilder processBuilder = 
+        	    new ProcessBuilder(new String[] {"which", file});
+            Process process = processBuilder.start();
+    
+            BufferedReader stdout = 
+                new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String fullPath = stdout.readLine();
+
+            return (process.waitFor() == 0) ? fullPath : null;
+        } catch (Exception e) {}
+        return null;
+     }
+               
+     private static final char SINGLE_QUOTE = '\'';
+     private static final char DOUBLE_QUOTE = '"';
+     private static String[] splitArgs(String command) throws ParseException {
+        List<String> argv = new ArrayList<String>();
+
+        int beginIndex = 0;
+        
+        while (beginIndex < command.length()) {
+            // Skip spaces
+            while (Character.isWhitespace(command.charAt(beginIndex))) {
+                ++beginIndex;
+            }
+            
+            char delim = ' ';
+            char charAtIndex = command.charAt(beginIndex);
+            if (charAtIndex == SINGLE_QUOTE || charAtIndex == DOUBLE_QUOTE) {
+                delim = charAtIndex;
+            }
+            
+            int endIndex = command.indexOf(delim, beginIndex+1);
+            if (endIndex == -1) {
+                if (Character.isWhitespace(delim)) {
+                    // Reached end of command-line
+                    argv.add(command.substring(beginIndex));
+                    break;
+                } else {
+                    // Didn't find the ending quote/double-quote
+                    throw new ParseException("Illegal command: " + command);
+                }
+            }
+            
+            if (Character.isWhitespace(delim)) {
+                // Do not consume the space
+                argv.add(command.substring(beginIndex, endIndex));
+            } else {
+                argv.add(command.substring(beginIndex, endIndex+1));
+            }
+           
+            beginIndex = endIndex + 1;
+        }
+        
+        return argv.toArray(new String[argv.size()]);
+    }
 	 
 	 //BEGIN
 	 //I am maintaining state about the operators that should
@@ -371,8 +497,13 @@ public class QueryParser {
         return aliases.get(op);
     }
 
-    public static void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan) throws ParseException {
+    public static void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan, Map<LogicalOperator, Boolean> rootProcessed) throws ParseException {
         log.trace("Entering attachPlan");
+        if((rootProcessed.get(root) != null) && (rootProcessed.get(root))) {
+            log.trace("Root has been processed");
+            log.trace("Exiting attachPlan");
+            return;
+        }
         lp.add(root);
         log.debug("Added operator " + root + " to the logical plan " + lp);
         if(null == rootPlan.getPredecessors(root)) {
@@ -380,7 +511,8 @@ public class QueryParser {
             return;
         }
         for(LogicalOperator rootPred: rootPlan.getPredecessors(root)) {
-            attachPlan(lp, rootPred, rootPlan);
+            attachPlan(lp, rootPred, rootPlan, rootProcessed);
+            rootProcessed.put(rootPred, true);
             try {
                 lp.connect(rootPred, root);
                 log.debug("Connected operator " + rootPred + " to " + root + " in the logical plan " + lp);
@@ -558,8 +690,17 @@ TOKEN : { <TUPLE : "tuple"> }
 TOKEN : { <MAP : "map"> }
 TOKEN : { <IS : "is"> }
 TOKEN : { <NULL : "null"> }
+TOKEN : { <STREAM : "stream"> }
+TOKEN : { <THROUGH : "through"> }
 TOKEN : { <STORE : "store"> }
-TOKEN : { <LIMIT : "limit"> }
+TOKEN : { <SHIP: "ship"> }
+TOKEN : { <CACHE: "cache"> }
+TOKEN : { <INPUT: "input"> }
+TOKEN : { <OUTPUT: "output"> }
+TOKEN : { <ERROR: "stderr"> }
+TOKEN : { <STDIN: "stdin"> }
+TOKEN : { <STDOUT: "stdout"> }
+TOKEN : { <LIMIT: "limit"> }
 
 TOKEN:
 {
@@ -594,6 +735,7 @@ TOKEN : { <QUOTEDSTRING :  "'"
 )*
 "'"> }
 
+TOKEN : { <EXECCOMMAND : "`" (~["`"])* "`"> }
 // Pig has special variables starting with $
 TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
 
@@ -628,6 +770,7 @@ LogicalPlan Parse() :
             roots.add(op);
         }
         
+        Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
         for(LogicalOperator op: roots) {
             //At this point we have a logical plan for the pig statement
             //In order to construct the entire logical plan we need to traverse
@@ -638,7 +781,8 @@ LogicalPlan Parse() :
 
             LogicalPlan rootPlan = aliases.get(op);
             if(null != rootPlan) {
-                attachPlan(lp, op, rootPlan);
+                attachPlan(lp, op, rootPlan, rootProcessed);
+                rootProcessed.put(op, true);
             }
         }
 		
@@ -791,6 +935,25 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |   (<JOIN> op = JoinClause(lp))
 |	(<UNION> op = UnionClause(lp))
 |	(<FOREACH> op = ForEachClause(lp))
+|   (<STREAM> op = StreamClause(lp) 
+        [ <AS> 
+        (
+            LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
+            {
+                SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                op.setSchema(schema); 
+                op.setCanonicalNames(); 
+                log.info("Stream as schema()"+ schema);
+            } 
+        | fs = AtomSchema() 
+            {
+                schema = new Schema(fs);
+                op.setSchema(schema);
+                log.info("Stream as atomschema()" + schema);
+            }
+        ) 
+        ]
+    )
 |   (<STORE> op = StoreClause(lp))
 	)
     [<PARALLEL> t2=<INTEGER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
@@ -800,12 +963,14 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 
 LogicalOperator LoadClause(LogicalPlan lp) : 
 {
-	Token t1, t2; 
+	Token t1, t2, t3; 
 	String filename; 
 	String funcName,funcArgs =null;
 	FuncSpec funcSpec = null;
 	String funcSpecAsString = null; 
 	LOLoad lo=null; 
+    String splitBy;
+    boolean splittable = true;
 	log.trace("Entering LoadClause");
 }
 {
@@ -818,13 +983,24 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 			log.debug("LoadClause: funcSpec = " + funcSpec);
 		}
 		)?
+		(
+		<SPLIT> <BY> t3 = <QUOTEDSTRING>
+		{
+			splitBy = unquote(t3.image);
+			if (splitBy.equalsIgnoreCase("file")) {
+				splittable = false;
+			}
+		}
+		)?
 	)
 	{
-		if (funcSpec == null){
-			funcSpec = new FuncSpec(PigStorage.class.getName());
+		if (funcSpecAsString == null){
+			funcSpecAsString = PigStorage.class.getName();
+			funcSpec = new FuncSpec(funcSpecAsString);
+			log.debug("LoadClause: funcSpec = " + funcSpec);
 		}
 
-		lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext), funcSpec), null);
+		lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext), funcSpec), null, splittable);
 		lp.add(lo);
 		log.debug("Added operator " + lo.getClass().getName() + " to the logical plan");	
 		
@@ -1488,11 +1664,13 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
                 the list of foreach plans
                 */
 
+                Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
                 for(LogicalOperator project: mapProjectInputs.keySet()) {
                     for(LogicalOperator projectInput: mapProjectInputs.get(project)) {
                         generatePlan.add(projectInput);
                         generatePlan.connect(projectInput, project);
-                        attachPlan(generatePlan, projectInput, foreachPlan);
+                        attachPlan(generatePlan, projectInput, foreachPlan, rootProcessed);
+                        rootProcessed.put(projectInput, true);
                     }
                 }
             }
@@ -1517,14 +1695,103 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
 	}
 }
 
-LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token t1; String functionName, functionArgs;}
+LogicalOperator StreamClause(LogicalPlan lp): 
+{
+	LogicalOperator input; 
+	StreamingCommand command;
+}
+{
+	input = NestedExpr(lp)	
+	
+	<THROUGH> command = Command()
+	{
+		LOStream loStream = new LOStream(lp, new OperatorKey(scope, getNextId()), input, 
+                    pigContext.createExecutableManager(), command);
+        //addAlias(input.getAlias(), input);
+        lp.add(loStream);
+        lp.connect(input, loStream);
+        return loStream;
+	}
+}
+
+StreamingCommand Command(): {Token t; StreamingCommand command;}
+{
+	t = <EXECCOMMAND>
+	{
+		String[] argv = splitArgs(unquote(t.image));
+		command = new StreamingCommand(pigContext, argv);
+        checkAutoShipSpecs(command, argv);
+		return command;
+	}
+	|
+	t = <IDENTIFIER>
+	{
+		command = pigContext.getCommandForAlias(t.image);
+		if (command == null) {
+			throw new ParseException("Undefined command-alias: " + t.image + 
+			                         " used as stream operator");
+		}
+
+		return command;
+	}
+}
+
+LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token cmd; String functionName, functionArgs;}
 {
     t = <IDENTIFIER>
+    (
+    ( 
+        cmd = <EXECCOMMAND>
+        {
+            StreamingCommand command = 
+               new StreamingCommand(pigContext, splitArgs(unquote(cmd.image)));
+            String[] paths;
+            StreamingCommand.HandleSpec[] handleSpecs;
+        }
+        (
+            <SHIP> "(" paths = PathList() ")" 
+            {
+                if (paths.length == 0) {
+                	command.setShipFiles(false);
+                } else {
+                    for (String path : paths) {
+                    	try {
+                            command.addPathToShip(path);
+                        } catch(IOException e) {
+                            throw new ParseException(e.getMessage());
+                        }
+                    }
+                }
+            }
+            |
+            <CACHE> "(" paths = PathList() ")"
+            {
+                for (String path : paths) {
+                    try {
+                        command.addPathToCache(path);
+                    } catch(IOException e) {
+                        throw new ParseException(e.getMessage());
+                    }
+                }
+            }
+            |
+            <INPUT> "(" InputOutputSpec(command, StreamingCommand.Handle.INPUT) ")"
+            |
+            <OUTPUT> "(" InputOutputSpec(command, StreamingCommand.Handle.OUTPUT) ")"
+            |
+            <ERROR> "(" ErrorSpec(command, t.image) ")"
+        )*
+        {
+            pigContext.registerStreamCmd(t.image, command); 
+        }
+    )
+    |
     (
         functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
         {
             pigContext.registerFunction(t.image, new FuncSpec(functionName + "(" + functionArgs + ")"));
         }
+    )
     )
     {
         // Return the dummy LODefine
@@ -1534,6 +1801,83 @@ LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token t1; String functi
     }
 }
 
+String[] PathList() : {Token t; List<String> pathList = new ArrayList<String>();}
+{
+    (
+    (
+    t = <QUOTEDSTRING> {pathList.add(unquote(t.image));}
+    ( "," t = <QUOTEDSTRING> {pathList.add(unquote(t.image));} )*
+    )
+    | {}
+    )
+    {return pathList.toArray(new String[pathList.size()]);}
+}
+
+void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
+{
+    String stream, deserializer;
+    StreamingCommand.HandleSpec[] handleSpecs;
+    String functionName = "PigStorage", functionArgs="";
+} 
+{
+    stream = CommandStream() 
+    [
+        <USING> functionName = QualifiedFunction() 
+        [
+            "(" functionArgs = StringList() ")"
+        ]
+    ]
+    {
+        deserializer = functionName + "(" + functionArgs + ")";
+        command.addHandleSpec(handle, 
+                              new HandleSpec(stream, deserializer)
+                             );
+    }
+    (
+        "," 
+        stream = CommandStream() 
+        [
+            <USING> functionName = QualifiedFunction() 
+            [
+                "(" functionArgs = StringList() ")"
+            ]
+        ] 
+        {
+            deserializer = functionName + "(" + functionArgs + ")";
+            command.addHandleSpec(handle, 
+                                  new HandleSpec(stream, deserializer)
+                                 );
+        }
+    )* 
+}
+
+String CommandStream(): {Token t;}
+{
+    t = <STDIN>
+    {return "stdin";}
+    |
+    t = <STDOUT>
+    {return "stdout";}
+    |
+    t = <QUOTEDSTRING>
+    {return unquote(t.image);}
+}
+
+void ErrorSpec(StreamingCommand command, String alias): {Token t1, t2; int limit = StreamingCommand.MAX_TASKS;}
+{
+	(
+	t1 = <QUOTEDSTRING>
+	(<LIMIT> t2 = <INTEGER> {limit = Integer.parseInt(t2.image);})?
+	{
+		command.setLogDir(unquote(t1.image));
+		command.setLogFilesLimit(limit);
+	}
+	)
+	|
+	{
+        command.setLogDir(alias);
+	}
+}
 LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; String fileName; String functionSpec = null; 
                                                 String functionName, functionArgs;}
 {

@@ -58,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -268,7 +269,7 @@ public class MRCompiler extends PhyPlanVisitor {
     }
     
     private POLoad getLoad(){
-        POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)), true);
         ld.setPc(pigContext);
         return ld;
     }
@@ -301,6 +302,7 @@ public class MRCompiler extends PhyPlanVisitor {
      * @throws IOException
      */
     private void nonBlocking(PhysicalOperator op) throws PlanException, IOException{
+        
         if (compiledInputs.length == 1) {
             //For speed
             MapReduceOper mro = compiledInputs[0];
@@ -615,6 +617,16 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             addUDFs(op.getPlan());
+        }catch(Exception e){
+            VisitorException pe = new VisitorException(e.getMessage());
+            pe.initCause(e);
+            throw pe;
+        }
+    }
+    
+    public void visitStream(POStream op) throws VisitorException{
+        try{
+            nonBlocking(op);
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);

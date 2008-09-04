@@ -188,6 +188,7 @@ TOKEN_MGR_DECLS : {
 <PIG_START> MORE :
 {
 	<"'"> {prevState = PIG_START;} : IN_STRING
+|	<"`"> {prevState = PIG_START;} : IN_COMMAND
 |	<["A","a"]["S","s"]> {prevState = PIG_START;} : SCHEMA_DEFINITION
 |   <["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"]> {prevState = PIG_START;} : GENERATE
 |       <"{"> {pigBlockLevel = 1;} : IN_BLOCK
@@ -216,6 +217,14 @@ TOKEN_MGR_DECLS : {
 {
 	<"\\'">
 |	<"'"> { SwitchTo(prevState);}
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])>
+}
+
+<IN_COMMAND> MORE :
+{
+	<"\\`">
+|	<"`"> { SwitchTo(prevState);}
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
 |	<(~[])>
 }
@@ -282,6 +291,7 @@ TOKEN_MGR_DECLS : {
 |	<"{"> {pigBlockLevel++;}
 |       <"}"(";")?> {pigBlockLevel--; if (pigBlockLevel == 0) SwitchTo(PIG_END);}
 |	<"'"> {prevState = IN_BLOCK;} : IN_STRING
+|	<"`"> {prevState = IN_BLOCK;} : IN_COMMAND
 |	<"--"> {prevState = IN_BLOCK;} : SINGLE_LINE_COMMENT
 |	<"/*"> {prevState = IN_BLOCK;} : MULTI_LINE_COMMENT
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}

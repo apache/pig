@@ -728,6 +728,27 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     }
 
     @Override
+    public void visit(LOStream stream) throws VisitorException {
+        String scope = stream.getOperatorKey().scope;
+        POStream poStream = new POStream(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), stream.getExecutableManager(), 
+                stream.getStreamingCommand(), this.pc.getProperties());
+        currentPlan.add(poStream);
+        LogToPhyMap.put(stream, poStream);
+        
+        List<LogicalOperator> op = stream.getPlan().getPredecessors(stream);
+
+        PhysicalOperator from = LogToPhyMap.get(op.get(0));
+        try {
+            currentPlan.connect(from, poStream);
+        } catch (PlanException e) {
+            log.error("Invalid physical operators in the physical plan"
+                    + e.getMessage());
+            throw new VisitorException(e);
+        }
+    }
+
+    @Override
     public void visit(LOProject op) throws VisitorException {
         String scope = op.getOperatorKey().scope;
         POProject exprOp = new POProject(new OperatorKey(scope, nodeGen
@@ -971,7 +992,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         // This would be a root operator. We don't need to worry about finding
         // its predecessors
         POLoad load = new POLoad(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)));
+                .getNextNodeId(scope)), loLoad.isSplittable());
         load.setLFile(loLoad.getInputFile());
         load.setPc(pc);
         load.setResultType(loLoad.getType());

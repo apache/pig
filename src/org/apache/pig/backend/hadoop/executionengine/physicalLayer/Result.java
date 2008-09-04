@@ -25,6 +25,13 @@ public class Result implements Serializable {
      */
     private static final long serialVersionUID = 1L;
 
+    /*
+     * When returnStatus is set to POStatus.STATUS_ERR
+     * Operators can choose to use the result field
+     * to put a meaning error message which will be 
+     * printed out in the final message shown to the user
+     */
+    
     public byte returnStatus;
 
     public Object result;

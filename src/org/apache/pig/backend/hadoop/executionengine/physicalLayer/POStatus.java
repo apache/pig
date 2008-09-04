@@ -26,5 +26,9 @@ public class POStatus {
 
     public static final byte STATUS_EOP = 3; // end of processing
 
+    // This is currently only used in communications 
+    // between ExecutableManager and POStream
+    public static final byte STATUS_EOS = 4; // end of Streaming output (i.e. output from streaming binary)
+
     public static Object result;
 }

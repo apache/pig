@@ -20,15 +20,21 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
@@ -59,10 +65,12 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -78,6 +86,8 @@ public class JobControlCompiler{
     PigContext pigContext;
     
     private final Log log = LogFactory.getLog(getClass());
+
+    public static final String LOG_DIR = "_logs";
 
     /**
      * The map between MapReduceOpers and their corresponding Jobs
@@ -188,7 +198,7 @@ public class JobControlCompiler{
      */
     private JobConf getJobConf(MapReduceOper mro, Configuration conf, PigContext pigContext) throws JobCreationException{
         JobConf jobConf = new JobConf(conf);
-        ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
+        ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
         
         //Set the User Name for this job. This will be
@@ -201,8 +211,11 @@ public class JobControlCompiler{
         if(lds!=null && lds.size()>0){
             for (PhysicalOperator operator : lds) {
                 POLoad ld = (POLoad)operator;
+                
+                Pair<FileSpec, Boolean> p = new Pair<FileSpec, Boolean>(ld.getLFile(), ld.isSplittable());
                 //Store the inp filespecs
-                inp.add(ld.getLFile());
+                inp.add(p);
+                
                 //Store the target operators for tuples read
                 //from this input
                 List<PhysicalOperator> ldSucs = mro.mapPlan.getSuccessors(ld);
@@ -229,6 +242,12 @@ public class JobControlCompiler{
             jobConf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
     
+            // Setup the DistributedCache for this job
+            setupDistributedCache(pigContext, jobConf, pigContext.getProperties(), 
+                                  "pig.streaming.ship.files", true);
+            setupDistributedCache(pigContext, jobConf, pigContext.getProperties(), 
+                                  "pig.streaming.cache.files", false);
+
             jobConf.setInputFormat(PigInputFormat.class);
             jobConf.setOutputFormat(PigOutputFormat.class);
             
@@ -247,17 +266,39 @@ public class JobControlCompiler{
             FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
             FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
             jobConf.set("pig.storeFunc", outputFuncSpec.toString());
+
+            // Setup the logs directory for streaming jobs
+            jobConf.set("pig.streaming.log.dir", 
+                        new Path(new Path(outputPath), LOG_DIR).toString());
+            jobConf.set("pig.streaming.task.output.dir", outputPath);
+
             
             // store map key type
             // this is needed when the key is null to create
             // an appropriate NullableXXXWritable object
             jobConf.set("pig.map.keytype", ObjectSerializer.serialize(new byte[] { mro.mapKeyType }));
+
+            // set parent plan in all operators in map and reduce plans
+            // currently the parent plan is really used only when POStream is present in the plan
+            PhysicalPlan[] plans = new PhysicalPlan[] { mro.mapPlan, mro.reducePlan };
+            for (int i = 0; i < plans.length; i++) {
+                for (Iterator<PhysicalOperator> it = plans[i].iterator(); it.hasNext();) {
+                    PhysicalOperator op = it.next();
+                    op.setParentPlan(plans[i]);                
+                }    
+            }
             
             if(mro.reducePlan.isEmpty()){
                 //MapOnly Job
                 jobConf.setMapperClass(PigMapOnly.Map.class);
                 jobConf.setNumReduceTasks(0);
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
+                if(mro.isStreamInMap()) {
+                    // this is used in Map.close() to decide whether the
+                    // pipeline needs to be rerun one more time in the close()
+                    // The pipeline is rerun only if there was a stream
+                    jobConf.set("pig.stream.in.map", "true");
+                }
             }
             else{
                 //Map Reduce Job
@@ -277,14 +318,26 @@ public class JobControlCompiler{
                     jobConf.setNumReduceTasks(mro.requestedParallelism);
 
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
+                if(mro.isStreamInMap()) {
+                    // this is used in Map.close() to decide whether the
+                    // pipeline needs to be rerun one more time in the close()
+                    // The pipeline is rerun only if there was a stream
+                    jobConf.set("pig.stream.in.map", "true");
+                }
                 jobConf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
+                if(mro.isStreamInReduce()) {
+                    // this is used in Map.close() to decide whether the
+                    // pipeline needs to be rerun one more time in the close()
+                    // The pipeline is rerun only if there was a stream
+                    jobConf.set("pig.stream.in.reduce", "true");
+                }
                 jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
                 Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
                 jobConf.setOutputKeyClass(keyClass);
                 selectComparator(mro, pack.getKeyType(), jobConf);
                 jobConf.setOutputValueClass(IndexedTuple.class);
             }
-            
+        
             if(mro.isGlobalSort()){
                 jobConf.set("pig.quantilesFile", mro.getQuantFile());
                 jobConf.setPartitionerClass(SortPartitioner.class);
@@ -299,7 +352,6 @@ public class JobControlCompiler{
                         ObjectSerializer.serialize(mro.getSortOrder()));
                 }
             }
-    
             return jobConf;
         }catch(Exception e){
             JobCreationException jce = new JobCreationException(e);
@@ -471,6 +523,58 @@ public class JobControlCompiler{
                     DataType.findTypeName(keyType));
             }
 
+        }
+    }
+
+    private static void setupDistributedCache(PigContext pigContext,
+                                              Configuration conf, 
+                                              Properties properties, String key, 
+                                              boolean shipToCluster) 
+    throws IOException {
+        // Turn on the symlink feature
+        DistributedCache.createSymlink(conf);
+
+        // Set up the DistributedCache for this job        
+        String fileNames = properties.getProperty(key);
+        if (fileNames != null) {
+            String[] paths = fileNames.split(",");
+            
+            for (String path : paths) {
+                path = path.trim();
+                if (path.length() != 0) {
+                    Path src = new Path(path);
+                    
+                    // Ensure that 'src' is a valid URI
+                    URI srcURI = null;
+                    try {
+                        srcURI = new URI(src.toString());
+                    } catch (URISyntaxException ue) {
+                        throw new IOException("Invalid cache specification, " +
+                        		              "file doesn't exist: " + src);
+                    }
+                    
+                    // Ship it to the cluster if necessary and add to the
+                    // DistributedCache
+                    if (shipToCluster) {
+                        Path dst = 
+                            new Path(FileLocalizer.getTemporaryPath(null, pigContext).toString());
+                        FileSystem fs = dst.getFileSystem(conf);
+                        fs.copyFromLocalFile(src, dst);
+                        
+                        // Construct the dst#srcName uri for DistributedCache
+                        URI dstURI = null;
+                        try {
+                            dstURI = new URI(dst.toString() + "#" + src.getName());
+                        } catch (URISyntaxException ue) {
+                            throw new IOException("Invalid ship specification, " +
+                                                  "file doesn't exist: " + dst);
+                        }
+                        DistributedCache.addCacheFile(dstURI, conf);
+                    } else {
+                        DistributedCache.addCacheFile(srcURI, conf);
+                    }
+                }
+            }
         }
     }
 

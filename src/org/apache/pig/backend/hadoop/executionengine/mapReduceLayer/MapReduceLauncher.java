@@ -35,6 +35,7 @@ import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
@@ -128,11 +129,16 @@ public class MapReduceLauncher extends Launcher{
             CombinerOptimizer co = new CombinerOptimizer(plan);
             co.visit();
         }
+        
+        // check whether stream operator is present
+        MRStreamHandler checker = new MRStreamHandler(plan);
+        checker.visit();
+        
         // figure out the type of the key for the map plan
         // this is needed when the key is null to create
         // an appropriate NullableXXXWritable object
         KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
-        kdv.visit();     
+        kdv.visit();
         return plan;
     }
  

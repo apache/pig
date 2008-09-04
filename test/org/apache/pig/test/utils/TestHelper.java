@@ -170,11 +170,11 @@ public class TestHelper {
     public static boolean areFilesSame(FileSpec expLocal, FileSpec actHadoop, PigContext pc) throws ExecException, IOException{
         Random r = new Random();
         
-        POLoad ldExp = new POLoad(new OperatorKey("", r.nextLong()));
+        POLoad ldExp = new POLoad(new OperatorKey("", r.nextLong()), true);
         ldExp.setPc(pc);
         ldExp.setLFile(expLocal);
         
-        POLoad ldAct = new POLoad(new OperatorKey("", r.nextLong()));
+        POLoad ldAct = new POLoad(new OperatorKey("", r.nextLong()), true);
         ldAct.setPc(pc);
         ldAct.setLFile(actHadoop);
         

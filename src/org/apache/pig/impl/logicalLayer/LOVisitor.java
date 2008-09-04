@@ -173,6 +173,10 @@ abstract public class LOVisitor extends
     protected void visit(LOLimit limOp) throws VisitorException {
         return;
     }
+    
+    protected void visit(LOStream stream) throws VisitorException {
+        return;
+    }
 
     /**
      * 

@@ -66,6 +66,14 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //is complete
     boolean reduceDone = false;
     
+    // Indicates that there is POStream in the 
+    // map plan
+    boolean streamInMap = false;
+    
+    // Indicates that there is POStream in the 
+    // reduce plan
+    boolean streamInReduce = false;
+    
     //Indicates if this job is an order by job
     boolean globalSort = false;
     
@@ -229,5 +237,33 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
              
     public boolean[] getSortOrder() {
         return sortOrder;
+    }
+
+    /**
+     * @return whether there is a POStream in the map plan
+     */
+    public boolean isStreamInMap() {
+        return streamInMap;
+    }
+
+    /**
+     * @param streamInMap the streamInMap to set
+     */
+    public void setStreamInMap(boolean streamInMap) {
+        this.streamInMap = streamInMap;
+    }
+
+    /**
+     * @return whether there is a POStream in the reduce plan
+     */
+    public boolean isStreamInReduce() {
+        return streamInReduce;
+    }
+
+    /**
+     * @param streamInReduce the streamInReduce to set
+     */
+    public void setStreamInReduce(boolean streamInReduce) {
+        this.streamInReduce = streamInReduce;
     }
 }

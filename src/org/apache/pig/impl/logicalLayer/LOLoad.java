@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 
 public class LOLoad extends LogicalOperator {
     private static final long serialVersionUID = 2L;
+    protected boolean splittable = true;
 
     private FileSpec mInputFileSpec;
     private LoadFunc mLoadFunc;
@@ -51,11 +52,12 @@ public class LOLoad extends LogicalOperator {
      * 
      */
     public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
-            URL schemaFile) throws IOException {
+            URL schemaFile, boolean splittable) throws IOException {
         super(plan, key);
 
         mInputFileSpec = inputFileSpec;
         mSchemaFile = schemaFile;
+        this.splittable = splittable;
 
          try { 
              mLoadFunc = (LoadFunc)
@@ -137,6 +139,10 @@ public class LOLoad extends LogicalOperator {
      */
     public void setEnforcedSchema(Schema enforcedSchema) {
         this.mEnforcedSchema = enforcedSchema;
+    }
+
+    public boolean isSplittable() {
+        return splittable;
     }
 
     @Override

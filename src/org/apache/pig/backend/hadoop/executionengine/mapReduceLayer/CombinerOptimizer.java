@@ -210,6 +210,17 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     POPostCombinerPackage newPack =
                         new POPostCombinerPackage(pack, bags);
                     mr.reducePlan.replace(pack, newPack);
+                    
+                    // the replace() above only changes
+                    // the plan and does not change "inputs" to 
+                    // operators
+                    // set up "inputs" for the operator after
+                    // package correctly
+                    List<PhysicalOperator> packList = new ArrayList<PhysicalOperator>();
+                    packList.add(newPack);
+                    List<PhysicalOperator> sucs = mr.reducePlan.getSuccessors(newPack);
+                    // there should be only one successor to package
+                    sucs.get(0).setInputs(packList);
                 } catch (Exception e) {
                     throw new VisitorException(e);
                 }

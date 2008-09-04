@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -44,6 +45,12 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
      * 
      */
     private static final long serialVersionUID = 1L;
+    
+    // marker to indicate whether all input for this plan
+    // has been sent - this is currently only used in POStream
+    // to know if all map() calls and reduce() calls are finished
+    // and that there is no more input expected.
+    public boolean endOfAllInput = false;
 
     public PhysicalPlan() {
         super();
@@ -78,6 +85,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     @Override
     public void connect(PhysicalOperator from, PhysicalOperator to)
             throws PlanException {
+        
         super.connect(from, to);
         to.setInputs(getPredecessors(to));
     }
@@ -95,11 +103,31 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         List<PhysicalOperator> sucs = getSuccessors(op);
         if(sucs!=null && sucs.size()!=0){
             for (PhysicalOperator suc : sucs) {
-                suc.setInputs(null);
+                // successor could have multiple inputs
+                // for example = POUnion - remove op from
+                // its list of inputs - if after removal
+                // there are no other inputs, set successor's
+                // inputs to null
+                List<PhysicalOperator> succInputs = suc.getInputs();
+                succInputs.remove(op);
+                if(succInputs.size() == 0)
+                    suc.setInputs(null);
+                else
+                    suc.setInputs(succInputs);
             }
         }
         super.remove(op);
     }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.OperatorPlan#add(org.apache.pig.impl.plan.Operator)
+    @Override
+    public void add(PhysicalOperator op) {
+        // attach this plan as the plan the operator is part of
+        //op.setParentPlan(this);
+        super.add(op);
+    }
+*/
 
     public boolean isEmpty() {
         return (mOps.size() == 0);

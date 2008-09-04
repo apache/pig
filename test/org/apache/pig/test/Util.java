@@ -17,9 +17,14 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import static java.util.regex.Matcher.quoteReplacement;
+import junit.framework.Assert;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
@@ -145,6 +150,45 @@ public class Util {
         return t;
     }
 
+    /**
+     * Helper to create a temporary file with given input data for use in test cases.
+     *  
+     * @param tmpFilenamePrefix file-name prefix
+     * @param tmpFilenameSuffix file-name suffix
+     * @param inputData input for test cases, each string in inputData[] is written
+     *                  on one line
+     * @return {@link File} handle to the created temporary file
+     * @throws IOException
+     */
+	static public File createInputFile(String tmpFilenamePrefix, 
+			                           String tmpFilenameSuffix, 
+			                           String[] inputData) 
+	throws IOException {
+		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
+		PrintWriter pw = new PrintWriter(f);
+		for (int i=0; i<inputData.length; i++){
+			pw.println(inputData[i]);
+		}
+		pw.close();
+		return f;
+	}
+
+	/**
+	 * Helper function to check if the result of a Pig Query is in line with 
+	 * expected results.
+	 * 
+	 * @param actualResults Result of the executed Pig query
+	 * @param expectedResults Expected results to validate against
+	 */
+	static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
+			                        Tuple[] expectedResults) {
+	    
+		for (Tuple expected : expectedResults) {
+			Tuple actual = actualResults.next();
+			Assert.assertEquals(expected.toString(), actual.toString());
+		}
+	}
+	
 	static public void printQueryOutput(Iterator<Tuple> actualResults, 
                Tuple[] expectedResults) {
 
@@ -160,4 +204,18 @@ public class Util {
         }
         System.out.println("---End----") ;
     }
+
+	/**
+     * Helper method to replace all occurrences of "\" with "\\" in a 
+     * string. This is useful to fix the file path string on Windows
+     * where "\" is used as the path separator.
+     * 
+     * @param str Any string
+     * @return The resulting string
+     */
+	public static String encodeEscape(String str) {
+	    String regex = "\\\\";
+	    String replacement = quoteReplacement("\\\\");
+	    return str.replaceAll(regex, replacement);
+	}
 }
