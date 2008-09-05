@@ -70,7 +70,10 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Double) res.result;
         
-        res.result = new Double(left / right);
+        if (right == 0)
+            res.result = null;
+        else
+            res.result = new Double(left / right);
         return res;
     }
     
@@ -93,7 +96,10 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Float) res.result;
         
-        res.result = new Float(left / right);
+        if (right == 0)
+            res.result = null;
+        else
+            res.result = new Float(left / right);
         return res;
     }
     
@@ -116,7 +122,10 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Integer) res.result;
         
-        res.result = new Integer(left / right);
+        if (right == 0)
+            res.result = null;
+        else
+            res.result = new Integer(left / right);
         return res;
     }
     
@@ -139,7 +148,10 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Long) res.result;
         
-        res.result = new Long(left / right);
+        if (right == 0)
+            res.result = null;
+        else
+            res.result = new Long(left / right);
         return res;
     }
 

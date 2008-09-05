@@ -892,7 +892,7 @@ public class TestBuiltin extends TestCase {
         assertTrue(f1.equals(f2));        
     }
     
-    @Test
+    /*@Test
     public void testShellFuncSingle() throws Throwable {
         //ShellBagEvalFunc func = new ShellBagEvalFunc("tr o 0");
         PigServer pig = new PigServer(initString);
@@ -953,7 +953,7 @@ public class TestBuiltin extends TestCase {
         
         assertFalse(iter.hasNext());
         tempFile.delete();
-    }
+    }*/
            
     private static String getInputType(String typeFor) {
         return allowedInput.get(typeFor);

@@ -165,6 +165,11 @@ public class TestDivide extends TestCase{
                 rt.setValue(null);
                 resd = op.getNext(inpd1);
                 assertEquals(null, (Double)resd.result);
+                // test divide by 0
+                lt.setValue(inpd1);
+                rt.setValue(0.0);
+                resd = op.getNext(inpd1);
+                assertEquals(null, (Double)resd.result);
                 break;
             }
             case DataType.FLOAT: {
@@ -184,6 +189,11 @@ public class TestDivide extends TestCase{
                 // test with null in rhs
                 lt.setValue(inpf1);
                 rt.setValue(null);
+                resf = op.getNext(inpf1);
+                assertEquals(null, (Float)resf.result);
+                // test divide by 0
+                lt.setValue(inpf1);
+                rt.setValue(0.0f);
                 resf = op.getNext(inpf1);
                 assertEquals(null, (Float)resf.result);
                 break;
@@ -207,6 +217,11 @@ public class TestDivide extends TestCase{
                 rt.setValue(null);
                 resi = op.getNext(inpi1);
                 assertEquals(null, (Integer)resi.result);
+                // test divide by 0
+                lt.setValue(inpi1);
+                rt.setValue(0);
+                resi = op.getNext(inpi1);
+                assertEquals(null, (Integer)resi.result);
                 break;
             }
             case DataType.LONG: {
@@ -226,6 +241,11 @@ public class TestDivide extends TestCase{
                 // test with null in rhs
                 lt.setValue(inpl1);
                 rt.setValue(null);
+                resl = op.getNext(inpl1);
+                assertEquals(null, (Long)resl.result);
+                // test divide by 0
+                lt.setValue(inpl1);
+                rt.setValue(0l);
                 resl = op.getNext(inpl1);
                 assertEquals(null, (Long)resl.result);
                 break;

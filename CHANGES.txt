@@ -181,3 +181,5 @@ Trunk (unreleased changes)
     PIG-413: problem with float sum
 
     PIG-398: Expressions not allowed inside foreach (sms via olgan)
+
+    PIG-418: divide by 0 problem
