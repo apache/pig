@@ -36,23 +36,40 @@ public class LogicalOptimizer extends PlanOptimizer<LogicalOperator, LogicalPlan
 
         // List of rules for the logical optimizer
         
-        // Add type casting to plans where the schema has been declared (by
-        // user, data, or data catalog).
+        // This one has to be first, as the type cast inserter expects the
+        // load to only have one output.
+        // Find any places in the plan that have an implicit split and make
+        // it explicit.  Since the RuleMatcher doesn't handle trees properly,
+        // we cheat and say that we match any node.  Then we'll do the actual
+        // test in the transformers check method.
         List<String> nodes = new ArrayList<String>(1);
-        nodes.add("org.apache.pig.impl.logicalLayer.LOLoad");
         Map<Integer, Integer> edges = new HashMap<Integer, Integer>();
         List<Boolean> required = new ArrayList<Boolean>(1);
+        nodes.add("any");
         required.add(true);
-        mRules.add(new Rule(nodes, edges, required,
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(nodes, edges,
+            required, new ImplicitSplitInserter(plan)));
+        
+        // Add type casting to plans where the schema has been declared (by
+        // user, data, or data catalog).
+        nodes = new ArrayList<String>(1);
+        nodes.add("org.apache.pig.impl.logicalLayer.LOLoad");
+        edges = new HashMap<Integer, Integer>();
+        required = new ArrayList<Boolean>(1);
+        required.add(true);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(nodes, edges, required,
             new TypeCastInserter(plan)));
         
+        // Push up limit where ever possible.
         nodes = new ArrayList<String>(1);
         edges = new HashMap<Integer, Integer>();
         required = new ArrayList<Boolean>(1);
         nodes.add("org.apache.pig.impl.logicalLayer.LOLimit");
         required.add(true);
-        mRules.add(new Rule(nodes, edges, required,
-                new OpLimitOptimizer(plan)));
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(nodes, edges, required,
+            new OpLimitOptimizer(plan)));
+        
+        
     }
 
 }

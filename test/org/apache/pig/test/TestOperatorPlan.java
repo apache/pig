@@ -660,6 +660,39 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertTrue(transformer.mTransformed);
     }
 
+    // Test that we match when the pattern says any.  Will give
+    // a pattern of any and a plan of S->S->M.
+    @Test
+    public void testOptimizerMatchesAny() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        ArrayList<String> nodes = new ArrayList<String>(3);
+        nodes.add("any");
+        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
+        ArrayList<Boolean> required = new ArrayList<Boolean>(1);
+        required.add(true);
+        AlwaysTransform transformer = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r =
+            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r);
+
+        optimizer.optimize();
+        assertTrue(transformer.mTransformed);
+    }
+
     // Test that we match when the whole plan doesn't match.  Will give
     // a pattern of S->S->M and a plan of S->S->S->M.
     @Test

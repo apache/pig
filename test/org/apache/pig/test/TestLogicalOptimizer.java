@@ -17,16 +17,11 @@
  */
 package org.apache.pig.test;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.*;
 import org.apache.pig.test.utils.LogicalPlanTester;
-import org.apache.pig.test.utils.TypeCheckingTestUtil;
 
 import org.junit.Test;
 import org.junit.Before;

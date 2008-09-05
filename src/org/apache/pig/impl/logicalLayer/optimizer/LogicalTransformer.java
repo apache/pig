@@ -147,7 +147,28 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         // Insert it into the plan.
         mPlan.add(newNode);
         mPlan.insertBetween(after, newNode, before);
-
+        fixUpContainedPlans(after, newNode, before, projectionMapping);
+    }
+    
+    /**
+     * Once a node has been inserted, inner plans associated with other nodes
+     * may have references to the node that has been replaced or moved.  This
+     * function walks those inner plans and patches up references.
+     * @param after Node that has had a new node inserted after it.
+     * @param newNode node that has been inserted
+     * @param before Node that has had a new node inserted before it.
+     * @param projectionMapping A map that defines how projections in after
+     * relate to projections in newNode.  Keys are the projection offsets in
+     * after, values are the new offsets in newNode.  If this field is null,
+     * then it will be assumed that the mapping is 1-1.
+     * @throws VisitorException, FrontendException
+     */
+    protected void fixUpContainedPlans(
+            LogicalOperator after,
+            LogicalOperator newNode,
+            LogicalOperator before,
+            Map<Integer, Integer> projectionMapping) 
+    throws VisitorException, FrontendException {
         // Fix up COGroup internal wiring
         if (before instanceof LOCogroup) {
             LOCogroup cg = (LOCogroup) before ;
@@ -175,9 +196,6 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
                 new ProjectFixerUpper(lp, newNode, projectionMapping);
             pfu.visit();
         }
-
-        // Now rebuild the schemas
-        // rebuildSchemas();
     }
 
     /**

@@ -161,7 +161,8 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
         for (int i = 0; i < sz; i++) mMatch.add(null);
         
         List<O> successors = new ArrayList<O>();
-        if (node.getClass().getName().equals(mRule.nodes.get(0))) {
+        if (node.getClass().getName().equals(mRule.nodes.get(0)) || 
+                mRule.nodes.get(0).equals("any")) {
             mMatch.set(0, node);
             // Follow the edge to see the next node we should be looking for.
             Integer nextOpNum = mRule.edges.get(0);
@@ -180,7 +181,8 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
     }
 
     private boolean continueMatch(O current, Integer nodeNumber) {
-        if (current.getClass().getName() == mRule.nodes.get(nodeNumber)) {
+        if (current.getClass().getName().equals(mRule.nodes.get(nodeNumber)) || 
+                mRule.nodes.get(nodeNumber).equals("any")) {
             mMatch.set(nodeNumber, current);
 
             // Follow the edge to see the next node we should be looking for.
