@@ -37,7 +37,6 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.*;
 import org.apache.pig.data.*;
-import org.apache.pig.impl.builtin.ShellBagEvalFunc;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.PigContext;
@@ -892,69 +891,6 @@ public class TestBuiltin extends TestCase {
         assertTrue(f1.equals(f2));        
     }
     
-    /*@Test
-    public void testShellFuncSingle() throws Throwable {
-        //ShellBagEvalFunc func = new ShellBagEvalFunc("tr o 0");
-        PigServer pig = new PigServer(initString);
-        
-        File tempFile = File.createTempFile("tmp", ".dat");
-        PrintWriter writer = new PrintWriter(tempFile);
-        writer.println("foo");
-        writer.println("boo");
-        writer.close();
-        
-        pig.registerFunction("myTr", new FuncSpec(ShellBagEvalFunc.class.getName() + "('tr o 0')"));
-        pig.registerQuery("a = load 'file:" + tempFile + "';");
-        pig.registerQuery("b = foreach a generate myTr(*);");
-        Iterator<Tuple> iter = pig.openIterator("b");
-                
-        Tuple t;
-        
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertEquals("{(f00)}", t.get(0).toString());
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertEquals("{(b00)}", t.get(0).toString());
-        assertFalse(iter.hasNext());
-        tempFile.delete();
-    }
-    
-    @Test
-    public void testShellFuncMultiple() throws Throwable {
-
-        PigServer pig = new PigServer(initString);
-        final int numTimes = 100;
-        
-        File tempFile = File.createTempFile("tmp", ".dat");
-        PrintWriter writer = new PrintWriter(tempFile);
-        for (int i=0; i< numTimes; i++){
-            writer.println(i+"oo");
-        }
-        writer.close();
-        
-        pig.registerFunction("tr1",
-            new FuncSpec(ShellBagEvalFunc.class.getName() + "('tr o A')"));
-        pig.registerFunction("tr2",
-            new FuncSpec(ShellBagEvalFunc.class.getName() + "('tr o B')"));
-        pig.registerQuery("a = load 'file:" + tempFile + "';");
-        pig.registerQuery("b = foreach a generate tr1(*),tr2(*);");
-        Iterator<Tuple> iter = pig.openIterator("b");
-        
-        for (int i=0; i< numTimes; i++){
-            Tuple t = iter.next();
-            DataBag b = DataType.toBag(t.get(0));
-            Tuple t1 = b.iterator().next();
-            assertEquals(i+"AA", t1.get(0).toString());
-            b = DataType.toBag(t.get(1));
-            t1 = b.iterator().next();
-            assertEquals(i+"BB", t1.get(0).toString());
-        }
-        
-        assertFalse(iter.hasNext());
-        tempFile.delete();
-    }*/
-           
     private static String getInputType(String typeFor) {
         return allowedInput.get(typeFor);
     }
