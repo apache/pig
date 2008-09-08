@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -56,6 +57,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.junit.Before;
+import org.apache.pig.test.utils.TestHelper;
 
 public class TestMapReduce extends TestCase {
 
@@ -73,22 +75,52 @@ public class TestMapReduce extends TestCase {
 
     @Test
     public void testBigGroupAll() throws Throwable {
+
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = File.createTempFile( this.getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
         }
         ps.close();
+        assertEquals( new Double( LOOP_COUNT ), bigGroupAll( tmpFile) );
+        tmpFile.delete();
+
+    }
+
+    @Test
+    public void testBigGroupAllWithNull() throws Throwable {
+
+        int LOOP_COUNT = 4*1024;
+        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        for(int i = 0; i < LOOP_COUNT; i++) {
+	    if ( i % 10 == 0 ){
+               ps.println("");
+	    } else {
+               ps.println(i);
+	    }
+        }
+        ps.close();
+
+        assertEquals( new Double( LOOP_COUNT ), bigGroupAll( tmpFile) );
+
+        tmpFile.delete();
+
+    }
+
+    @Test
+    public Double bigGroupAll( File tmpFile ) throws Throwable {
+
         String query = "foreach (group (load 'file:" + tmpFile + "') all) generate " + COUNT.class.getName() + "($1) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         Iterator it = pig.openIterator("asdf_id");
-        tmpFile.delete();
         Tuple t = (Tuple)it.next();
-        Double count = DataType.toDouble(t.get(0));
-        assertEquals(count, (double)LOOP_COUNT);
+
+        return  DataType.toDouble(t.get(0));
     }
+
     
     static public class MyApply extends EvalFunc<DataBag> {
         String field0 = "Got";
@@ -131,25 +163,40 @@ public class TestMapReduce extends TestCase {
             }
         }
     }
+
     static public class MyStorage implements LoadFunc, StoreFunc {
+
         final static int COUNT = 10;
+
         int count = 0;
+        boolean hasNulls= false;
+
+        public void setNulls(boolean hasNulls ) { this.hasNulls=hasNulls; }
+
         public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
         }
+
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
-                Tuple t = TupleFactory.getInstance().newTuple(Integer.toString(count++));
-                return t;
+
+                   Tuple t = TupleFactory.getInstance().newTuple(Integer.toString(count++));
+                   return t;
+
             }
+
             return null;
         }
+
+
         OutputStream os;
         public void bindTo(OutputStream os) throws IOException {
             this.os = os;
         }
+
         public void finish() throws IOException {
             
         }
+
         public void putNext(Tuple f) throws IOException {
             try {
                 os.write((f.toDelimitedString("-")+"\n").getBytes());            
@@ -235,6 +282,9 @@ public class TestMapReduce extends TestCase {
 	    }
 
     }
+
+
+
     @Test
     public void testStoreFunction() throws Throwable {
         File tmpFile = File.createTempFile("test", ".txt");
@@ -243,6 +293,8 @@ public class TestMapReduce extends TestCase {
             ps.println(i+"\t"+i);
         }
         ps.close();
+
+	//Load, Execute and Store query
         String query = "foreach (load 'file:"+tmpFile+"') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
@@ -250,30 +302,97 @@ public class TestMapReduce extends TestCase {
             pig.deleteFile("frog");
         } catch(Exception e) {}
         pig.store("asdf_id", "frog", MyStorage.class.getName()+"()");
+
+
+	//verify query
+
         InputStream is = FileLocalizer.open("frog", pig.getPigContext());
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
         String line;
         int i = 0;
         while((line = br.readLine()) != null) {
+
             assertEquals(line, Integer.toString(i) + '-' + Integer.toString(i));
             i++;
         }
         br.close();
-        pig.deleteFile("frog");
+        try {
+            pig.deleteFile("frog");
+        } catch(Exception e) {}
+
+
     }
+
+    // This test: "testStoreFunction()" is equivalent to testStoreFunctionNoNulls()
+
     @Test
-    public void testQualifiedFuncions() throws Throwable {
+    public void testStoreFunctionNoNulls() throws Throwable {
+
+        String[][] data = genDataSetFile1( 10, false );
+        storeFunction( data);
+    }
+
+    @Test
+    public void testStoreFunctionWithNulls() throws Throwable {
+
+        String[][] data = genDataSetFile1( 10, true );
+        storeFunction( data);
+    }
+   
+    public void storeFunction(String[][] data) throws Throwable {
+
+        File tmpFile=TestHelper.createTempFile(data) ;
+
+	//Load, Execute and Store query
+        String query = "foreach (load 'file:"+tmpFile+"') generate $0,$1;";
+        System.out.println(query);
+        pig.registerQuery("asdf_id = " + query);
+        try {
+            pig.deleteFile("frog");
+        } catch(Exception e) {}
+        pig.store("asdf_id", "frog", MyStorage.class.getName()+"()");
+
+
+        InputStream is = FileLocalizer.open("frog", pig.getPigContext());
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String line;
+
+	//verify query
+        int i= 0;
+        while((line = br.readLine()) != null) {
+
+            assertEquals( data[i][0] + '-' + data[i][1], line );
+            i++;
+        }
+
+        br.close();
+
+        try {
+            pig.deleteFile("frog");
+        } catch(Exception e) {}
+
+
+    }
+
+
+    @Test
+    public void testQualifiedFunctions() throws Throwable {
+
+        //create file
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
             ps.println(i);
         }
         ps.close();
+
+        // execute query
         String query = "foreach (group (load 'file:"+tmpFile+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
+
+        //Verfiy query
         Iterator it = pig.openIterator("asdf_id");
-        tmpFile.delete();
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
@@ -282,11 +401,48 @@ public class TestMapReduce extends TestCase {
             Integer.parseInt(t.get(1).toString());
             count++;
         }
-        assertEquals(count, MyStorage.COUNT);
+
+        assertEquals( MyStorage.COUNT, count );
     }
     
     @Test
+    public void testQualifiedFunctionsWithNulls() throws Throwable {
+
+        //create file
+        File tmpFile = File.createTempFile("test", ".txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        for(int i = 0; i < 1; i++) {
+	    if ( i % 10 == 0 ){
+               ps.println("");
+	    } else {
+               ps.println(i);
+	    }
+        }
+        ps.close();
+
+        // execute query
+        String query = "foreach (group (load 'file:"+tmpFile+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
+        System.out.println(query);
+        pig.registerQuery("asdf_id = " + query);
+
+        //Verfiy query
+        Iterator it = pig.openIterator("asdf_id");
+        Tuple t;
+        int count = 0;
+        while(it.hasNext()) {
+            t = (Tuple) it.next();
+            assertEquals(t.get(0).toString(), "Got");
+            Integer.parseInt(t.get(1).toString());
+            count++;
+        }
+
+        assertEquals( MyStorage.COUNT, count );
+    }
+    
+
+    @Test
     public void testDefinedFunctions() throws Throwable {
+
         File tmpFile = File.createTempFile("test", ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < 1; i++) {
@@ -311,6 +467,55 @@ public class TestMapReduce extends TestCase {
         assertEquals(count, MyStorage.COUNT);
     }
 
+
+   // this test is equivalent to testDefinedFunctions()
+    @Test
+    public void testDefinedFunctionsNoNulls() throws Throwable {
+
+        String[][] data = genDataSetFile1( 10, false );
+        definedFunctions( data);
+    }
+
+
+    @Test
+    public void testDefinedFunctionsWithNulls() throws Throwable {
+
+        String[][] data = genDataSetFile1( 10, true );
+        definedFunctions( data);
+    }
+
+
+    @Test
+    public void definedFunctions(String[][] data) throws Throwable {
+
+        File tmpFile=TestHelper.createTempFile(data) ;
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        for(int i = 0; i < 1; i++) {
+            ps.println(i);
+        }
+        ps.close();
+        pig.registerFunction("foo",
+            new FuncSpec(MyApply.class.getName()+"('foo')"));
+        String query = "foreach (group (load 'file:"+tmpFile+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
+        System.out.println(query);
+        pig.registerQuery("asdf_id = " + query);
+        Iterator it = pig.openIterator("asdf_id");
+        tmpFile.delete();
+        Tuple t;
+        int count = 0;
+        while(it.hasNext()) {
+            t = (Tuple) it.next();
+            assertEquals("foo", t.get(0).toString());
+
+            if ( t.get(1).toString() != "" ) {
+               Integer.parseInt(t.get(1).toString());
+            }
+            count++;
+        }
+        assertEquals(count, MyStorage.COUNT);
+    }
+
+
     @Test
     public void testPigServer() throws Throwable {
         log.debug("creating pig server");
@@ -329,4 +534,74 @@ public class TestMapReduce extends TestCase {
         long length = pig.fileSize(sampleFileName);
         assertTrue(length > 0);
     }
+
+    /***
+     * For generating a sample dataset as
+     *
+     * no nulls:
+     *   	$0 $1
+     *           0  9
+     *           1  1
+     *           ....
+     *           9  9
+     *
+     * has nulls:
+     *   	$0 $1
+     *           0  9
+     *           1  1
+     *              2
+     *           3  3
+     *           4  4
+     *           5  5
+     *           6   
+     *           7  7
+     *               
+     *           9  9
+     *           
+     */
+    private String[][] genDataSetFile1( int dataLength, boolean hasNulls ) throws IOException {
+
+
+        String[][] data= new String[dataLength][];
+
+        if ( hasNulls == true ) {
+
+        	for (int i = 0; i < dataLength; i++) {
+
+            	     data[i] = new String[2] ;
+                     if ( i == 2 ) {
+            		data[i][0] = "";
+            		data[i][1] = new Integer(i).toString();
+
+		     } else if ( i == 6 ) {
+                   
+            		data[i][0] = new Integer(i).toString();
+            		data[i][1] = "";
+
+		     } else if ( i == 8 ) {
+
+            		data[i][0] = "";
+            		data[i][1] = "";
+
+		     } else {
+            		data[i][0] = new Integer(i).toString();
+            		data[i][1] = new Integer(i).toString();
+           	     }
+	     }
+
+	} else {
+
+        	for (int i = 0; i < dataLength; i++) {
+            		data[i] = new String[2] ;
+            		data[i][0] = new Integer(i).toString();
+            		data[i][1] = new Integer(i).toString();
+        	}
+
+	}
+
+         return  data;
+
+    }
+
+
 }

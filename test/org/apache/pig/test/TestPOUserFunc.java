@@ -84,6 +84,9 @@ public class TestPOUserFunc extends TestCase {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+                        if ( o1==null || o2==null ){
+                           return -1;
+                        }
 			int i1 = (Integer) o1 - 2;
 			int i2 = (Integer) o2 - 2;
 
@@ -233,6 +236,17 @@ public class TestPOUserFunc extends TestCase {
 	public void testUserFuncArity() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
+		userFuncArity( input );
+        }
+
+	@Test
+	public void testUserFuncArityWithNulls() throws ExecException {
+		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBagWithNulls(r,
+				MAX_TUPLES, 100);
+		userFuncArity( input );
+        }
+
+	public void userFuncArity(DataBag input ) throws ExecException {
 		String funcSpec = ARITY.class.getName() + "()";
 		PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
 		List<PhysicalOperator> inputs = new LinkedList<PhysicalOperator>();
@@ -250,10 +264,25 @@ public class TestPOUserFunc extends TestCase {
 		}
 	}
 
+
 	@Test
 	public void testUDFCompare() throws ExecException {
-		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r, 2,
-				100);
+
+		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r, 2, 100);
+	        udfCompare(input);
+
+        }
+
+	@Test
+	public void testUDFCompareWithNulls() throws ExecException {
+
+		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBagWithNulls(r, 2, 100);
+	        udfCompare(input);
+
+        }
+
+	public void udfCompare(DataBag input) throws ExecException {
+
 		String funcSpec = WeirdComparator.class.getName() + "()";
 		POUserComparisonFunc userFunc = new POUserComparisonFunc(new OperatorKey("", r.nextLong()),
 				-1, null, new FuncSpec(funcSpec));
@@ -271,7 +300,36 @@ public class TestPOUserFunc extends TestCase {
 
 	@Test
 	public void testAlgebraicAVG() throws IOException, ExecException {
-		int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+	     Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+             algebraicAVG( input, 55, 10, 110, 20, 5.5 );
+
+        }
+
+        /* NOTE: for calculating the average
+         *
+         * A pig "count" will include data that had "null",and the sum will
+         * A pig "count" will include data that had "null",and the sum will
+         * treat the null as a 0, impacting the average
+         * A SQL "count" will exclude data that had "null"
+         */
+	@Test
+	public void testAlgebraicAVGWithNulls() throws IOException, ExecException {
+
+	     Integer input[] = { 1, 2, 3, 4, null, 6, 7, 8, 9, 10 };
+             algebraicAVG( input, 50, 10, 100, 20, 5 );
+
+        }
+
+	@Test
+	public void algebraicAVG( 
+                 Integer[] input 
+               , double initialExpectedSum, long initialExpectedCount
+               , double intermedExpectedSum, long intermedExpectedCount
+               , double expectedAvg
+         ) throws IOException, ExecException {
+
+                // generate data
 		byte INIT = 0;
 		byte INTERMED = 1;
 		byte FINAL = 2;
@@ -285,8 +343,8 @@ public class TestPOUserFunc extends TestCase {
 		POUserFunc po = new POUserFunc(new OperatorKey("", r.nextLong()), -1,
 				null, new FuncSpec(funcSpec));
 
+                //************ Initial Calculations ******************
 		TupleFactory tf = TupleFactory.getInstance();
-
 		po.setAlgebraicFunction(INIT);
 		po.attachInput(tup1);
 		Tuple t = null;
@@ -299,8 +357,10 @@ public class TestPOUserFunc extends TestCase {
 		assertEquals(outputInitial1, outputInitial2);
 		double sum = (Double) outputInitial1.get(0);
 		long count = (Long) outputInitial1.get(1);
-		assertEquals(55.0, sum);
-		assertEquals(10, count);
+		assertEquals(initialExpectedSum, sum);
+		assertEquals(initialExpectedCount, count);
+
+                //************ Intermediate Data and Calculations ******************
 		DataBag bag = BagFactory.getInstance().newDefaultBag();
 		bag.add(outputInitial1);
 		bag.add(outputInitial2);
@@ -317,9 +377,11 @@ public class TestPOUserFunc extends TestCase {
 
 		sum = (Double) outputIntermed.get(0);
 		count = (Long) outputIntermed.get(1);
-		assertEquals(110.0, sum);
-		assertEquals(20, count);
+		assertEquals(intermedExpectedSum, sum);
+		assertEquals(intermedExpectedCount, count);
 		System.out.println(outputIntermed);
+
+                //************ Final Calculations ******************
 		po = new POUserFunc(new OperatorKey("", r.nextLong()), -1, null,
 				new FuncSpec(funcSpec));
 		po.setAlgebraicFunction(FINAL);
@@ -328,7 +390,7 @@ public class TestPOUserFunc extends TestCase {
 		Double output = (res.returnStatus == POStatus.STATUS_OK) ? (Double) res.result
 				: null;
 		// Double output = fin.exec(outputInitial);
-		assertEquals(5.5, output);
+		assertEquals( expectedAvg, output);
 		// System.out.println("output = " + output);
 
 	}

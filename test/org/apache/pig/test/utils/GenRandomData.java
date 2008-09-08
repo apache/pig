@@ -215,4 +215,25 @@ public class GenRandomData {
         }
         return db;
     }
+    
+    public static Tuple genRandSmallBagTupleWithNulls(Random r, int num, int limit){
+        if(r==null){
+            Tuple t = new DefaultTuple();
+            t.append("RANDOM");
+            return t;
+        }
+        Tuple t = new DefaultTuple();
+        t.append(genRandSmallTupDataBag(r, num, limit));
+        t.append(r.nextBoolean());
+        t.append(genRandDBA(r));
+        t.append(genRandString(r));
+        t.append(r.nextDouble());
+        t.append(r.nextFloat());
+        t.append(r.nextInt());
+        t.append(r.nextLong());
+        t.append(genRandMap(r, num));
+        t.append(genRandSmallTuple(r, 100));
+        t.append(null);
+        return t;
+    }
 }
