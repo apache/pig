@@ -167,7 +167,6 @@ public class PigMapReduce {
                         return;
                     }
                     
-                    log.info("Attaching " + packRes + " to " + rp.getRoots());
                     rp.attachInput(packRes);
 
                     List<PhysicalOperator> leaves = rp.getLeaves();

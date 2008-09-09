@@ -398,7 +398,11 @@ public class PigServer {
             if(null == op) {
                 throw new IOException("Unable to find an operator for alias " + alias);
             }
-            LogicalPlan lp = compileLp(getPlanFromAlias(alias, op.getClass().getName()), "explain");
+            LogicalPlan storePlan = QueryParser.generateStorePlan(opTable,
+                scope, getPlanFromAlias(alias, op.getClass().getName()),
+                "fakefile", PigStorage.class.getName(), aliasOp.get(alias),
+                aliases);
+            LogicalPlan lp = compileLp(storePlan, "explain");
             stream.println("Logical Plan:");
             LOPrinter lv = new LOPrinter(stream, lp);
             lv.visit();

@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -40,6 +43,8 @@ import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 
 public abstract class LogicalTransformer extends Transformer<LogicalOperator, LogicalPlan> {
+
+    private final Log log = LogFactory.getLog(getClass());
 
     protected LogicalTransformer(
             LogicalPlan plan,
@@ -185,8 +190,19 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
             plans.addAll(((LOSort)before).getSortColPlans());
         } else if (before instanceof LOFilter) {
             plans.add(((LOFilter)before).getComparisonPlan());
-        } else if (before instanceof LOSplitOutput) {
-            plans.add(((LOSplitOutput)before).getConditionPlan());
+        } else if (before instanceof LOSplit) {
+            // In this case we have to find each of the Split outputs, and
+            // add their plans.
+            List<LogicalOperator> splitOutputs = mPlan.getSuccessors(before);
+            for (LogicalOperator so : splitOutputs) {
+                if (!(so instanceof LOSplitOutput)) {
+                    String msg = "Found an LOSplit with an operator other " 
+                        + "than LOSplitOutput after it!";
+                    log.error(msg);
+                    throw new VisitorException(msg);
+                }
+                plans.add(((LOSplitOutput)so).getConditionPlan());
+            }
         } else if (before instanceof LOForEach) {
             plans.addAll(((LOForEach)before).getForEachPlans());
         }
