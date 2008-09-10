@@ -287,7 +287,7 @@ public class JobControlCompiler{
                     op.setParentPlan(plans[i]);                
                 }    
             }
-            
+            POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
                 //MapOnly Job
                 jobConf.setMapperClass(PigMapOnly.Map.class);
@@ -310,7 +310,7 @@ public class JobControlCompiler{
                     jobConf.set("pig.combinePlan", ObjectSerializer.serialize(mro.combinePlan));
                     jobConf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
                 }
-                POPackage pack = (POPackage)mro.reducePlan.getRoots().get(0);
+                pack = (POPackage)mro.reducePlan.getRoots().get(0);
                 mro.reducePlan.remove(pack);
                 jobConf.setMapperClass(PigMapReduce.Map.class);
                 jobConf.setReducerClass(PigMapReduce.Reduce.class);
@@ -345,6 +345,10 @@ public class JobControlCompiler{
                     String compFuncSpec = mro.UDFs.get(0);
                     Class comparator = PigContext.resolveClassName(compFuncSpec);
                     if(ComparisonFunc.class.isAssignableFrom(comparator)) {
+                        jobConf.setMapperClass(PigMapReduce.MapWithComparator.class);
+                        pack.setKeyType(DataType.TUPLE);
+                        jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
+                        jobConf.setOutputKeyClass(TupleFactory.getInstance().tupleClass());
                         jobConf.setOutputKeyComparatorClass(comparator);
                     }
                 } else {

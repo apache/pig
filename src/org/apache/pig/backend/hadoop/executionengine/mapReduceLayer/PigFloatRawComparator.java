@@ -66,7 +66,7 @@ public class PigFloatRawComparator extends FloatWritable.Comparator implements C
         // If either are null, handle differently.
         if (b1[s1] == NullableFloatWritable.NOTNULL &&
                 b2[s2] == NullableFloatWritable.NOTNULL) {
-            rc = super.compare(b1, s1 + 1, l1, b2, s2 + 1, l2);
+            rc = super.compare(b1, s1 + 1, l1-1, b2, s2 + 1, l2-1);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] == NullableFloatWritable.NULL &&

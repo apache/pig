@@ -183,3 +183,9 @@ Trunk (unreleased changes)
     PIG-398: Expressions not allowed inside foreach (sms via olgan)
 
     PIG-418: divide by 0 problem
+
+    PIG-402: order by with user comparator (shravanmn via olgan)
+
+    PIG-415: problem with comparators (shravanmn via olgan)
+
+

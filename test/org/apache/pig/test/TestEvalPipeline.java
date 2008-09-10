@@ -34,6 +34,7 @@ import java.util.StringTokenizer;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -61,6 +62,7 @@ public class TestEvalPipeline extends TestCase {
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+//        pigServer = new PigServer(ExecType.LOCAL);
     }
     
     static public class MyBagFunction extends EvalFunc<DataBag>{
@@ -306,16 +308,29 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testSort() throws Exception{
-        testSortDistinct(false);
+        testSortDistinct(false, false);
+    }
+    
+    @Test
+    public void testSortWithUDF() throws Exception{
+        testSortDistinct(false, true);
     }
     
 
     @Test
     public void testDistinct() throws Exception{
-        testSortDistinct(true);
+        testSortDistinct(true, false);
+    }
+    
+    public static class TupComp extends ComparisonFunc {
+
+        @Override
+        public int compare(Tuple t1, Tuple t2) {
+            return t1.compareTo(t2);
+        }
     }
 
-    private void testSortDistinct(boolean eliminateDuplicates) throws Exception{
+    private void testSortDistinct(boolean eliminateDuplicates, boolean useUDF) throws Exception{
         int LOOP_SIZE = 1024*16;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -330,7 +345,10 @@ public class TestEvalPipeline extends TestCase {
         if (eliminateDuplicates){
             pigServer.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
         }else{
-            pigServer.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
+            if(!useUDF)
+                pigServer.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
+            else
+                pigServer.registerQuery("B = ORDER A BY $0 using " + TupComp.class.getName() + ";");
         }
         pigServer.store("B", tmpOutputFile);
         
@@ -355,7 +373,7 @@ public class TestEvalPipeline extends TestCase {
         
     }
     
-    public void testNestedPlan() throws Exception{
+    /*public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -464,7 +482,7 @@ public class TestEvalPipeline extends TestCase {
             ++numIdentity;
         }
         assertEquals(5, numIdentity);
-    }
+    }*/
     
 
 }

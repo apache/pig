@@ -83,6 +83,20 @@ public class PigMapReduce {
             oc.collect(wcKey, it);
         }
     }
+    
+    public static class MapWithComparator extends PigMapBase implements
+            Mapper<Text, TargetedTuple, WritableComparable, Writable> {
+
+        @Override
+        public void collect(OutputCollector<WritableComparable, Writable> oc,
+                Tuple tuple) throws ExecException, IOException {
+            Object key = tuple.get(0);
+            Tuple keyTuple = tf.newTuple(1);
+            keyTuple.set(0, key);
+            IndexedTuple it = (IndexedTuple) tuple.get(1);
+            oc.collect(keyTuple, it);
+        }
+    }
 
     public static class Reduce extends MapReduceBase
             implements

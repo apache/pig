@@ -66,7 +66,7 @@ public class PigTextRawComparator extends Text.Comparator implements Configurabl
         // If either are null, handle differently.
         if (b1[s1] == NullableText.NOTNULL &&
                 b2[s2] == NullableText.NOTNULL) {
-            rc = super.compare(b1, s1 + 1, l1, b2, s2 + 1, l2);
+            rc = super.compare(b1, s1 + 1, l1-1, b2, s2 + 1, l2-1);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] == NullableText.NULL &&

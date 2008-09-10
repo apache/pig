@@ -66,7 +66,7 @@ public class PigLongRawComparator extends LongWritable.Comparator implements Con
         // If either are null, handle differently.
         if (b1[s1] == NullableLongWritable.NOTNULL &&
                 b2[s2] == NullableLongWritable.NOTNULL) {
-            rc = super.compare(b1, s1 + 1, l1, b2, s2 + 1, l2);
+            rc = super.compare(b1, s1 + 1, l1-1, b2, s2 + 1, l2-1);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] == NullableLongWritable.NULL &&

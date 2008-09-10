@@ -16,6 +16,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -27,12 +28,13 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
 
 public abstract class PigMapBase extends MapReduceBase{
     private final Log log = LogFactory.getLog(getClass());
-
+    
     protected byte keyType;
     
     
     //Map Plan
     protected PhysicalPlan mp;
+    protected TupleFactory tf = TupleFactory.getInstance();
     
     OutputCollector<WritableComparable, Writable> outputCollector;
     
