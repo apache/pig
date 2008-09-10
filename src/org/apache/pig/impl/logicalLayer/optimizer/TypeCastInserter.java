@@ -27,19 +27,15 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCast;
 import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOGenerate;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOProject;
-import org.apache.pig.impl.logicalLayer.LOVisitor;
+import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * A visitor to discover if any schema has been specified for a file being
@@ -52,23 +48,17 @@ import org.apache.commons.logging.LogFactory;
  */
 public class TypeCastInserter extends LogicalTransformer {
 
-    private static final Log log = LogFactory.getLog(TypeCastInserter.class);
+    private String operatorClassName;
 
-    public TypeCastInserter(LogicalPlan plan) {
+    public TypeCastInserter(LogicalPlan plan, String operatorClassName) {
         super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        this.operatorClassName = operatorClassName;
     }
 
     @Override
     public boolean check(List<LogicalOperator> nodes) throws OptimizerException {
         try {
-            LogicalOperator lo = nodes.get(0);
-            if (lo == null || !(lo instanceof LOLoad)) {
-                throw new RuntimeException("Expected load, got " +
-                    lo.getClass().getName());
-            }
-
-            LOLoad load = (LOLoad)lo;
-            Schema s = load.getSchema();
+            Schema s = getOperator(nodes).getSchema();
             if (s == null) return false;
     
             boolean sawOne = false;
@@ -86,20 +76,36 @@ public class TypeCastInserter extends LogicalTransformer {
                 " check if type casts are needed", fe);
         }
     }
-
-    @Override
-    public void transform(List<LogicalOperator> nodes) throws OptimizerException {
-        try {
-            LogicalOperator lo = nodes.get(0);
+    
+    private LogicalOperator getOperator(List<LogicalOperator> nodes) throws FrontendException {
+        LogicalOperator lo = nodes.get(0);
+        if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
             if (lo == null || !(lo instanceof LOLoad)) {
                 throw new RuntimeException("Expected load, got " +
                     lo.getClass().getName());
             }
-
-            LOLoad load = (LOLoad)lo;
     
-            Schema s = load.getSchema();
-            String scope = load.getOperatorKey().scope;
+            return lo;
+        } else if(operatorClassName == LogicalOptimizer.LOSTREAM_CLASSNAME){
+            if (lo == null || !(lo instanceof LOStream)) {
+                throw new RuntimeException("Expected stream, got " +
+                    lo.getClass().getName());
+            }
+    
+            return lo;
+        } else {
+            // we should never be called with any other operator class name
+            throw new FrontendException("TypeCastInserter invoked with an invalid operator class name:" + operatorClassName);
+        }
+   
+    }
+
+    @Override
+    public void transform(List<LogicalOperator> nodes) throws OptimizerException {
+        try {
+            LogicalOperator lo = getOperator(nodes);
+            Schema s = lo.getSchema();
+            String scope = lo.getOperatorKey().scope;
             // For every field, build a logical plan.  If the field has a type
             // other than byte array, then the plan will be cast(project).  Else
             // it will just be project.
@@ -113,7 +119,7 @@ public class TypeCastInserter extends LogicalTransformer {
                 List<Integer> toProject = new ArrayList<Integer>(1);
                 toProject.add(i);
                 LOProject proj = new LOProject(p, OperatorKey.genOpKey(scope),
-                    load, toProject);
+                    lo, toProject);
                 p.add(proj);
                 Schema.FieldSchema fs = s.getField(i);
                 if (fs.type != DataType.BYTEARRAY) {
@@ -136,7 +142,7 @@ public class TypeCastInserter extends LogicalTransformer {
                 OperatorKey.genOpKey(scope), genPlans, flattens);
 
             // Insert the foreach into the plan and patch up the plan.
-            insertAfter(load, foreach, null);
+            insertAfter(lo, foreach, null);
 
             rebuildSchemas();
 

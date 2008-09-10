@@ -122,10 +122,10 @@ public class Util {
         return m;
     }
 
-    static public DataByteArray[] toDataByteArrays(String[] input) {
+    static public<T> DataByteArray[] toDataByteArrays(T[] input) {
         DataByteArray[] dbas = new DataByteArray[input.length];
         for (int i = 0; i < input.length; i++) {
-            dbas[i] = (input[i] == null)?null:new DataByteArray(input[i].getBytes());
+            dbas[i] = (input[i] == null)?null:new DataByteArray(input[i].toString().getBytes());
         }        
         return dbas;
     }
@@ -185,7 +185,7 @@ public class Util {
 	    
 		for (Tuple expected : expectedResults) {
 			Tuple actual = actualResults.next();
-			Assert.assertEquals(expected.toString(), actual.toString());
+			Assert.assertEquals(expected, actual);
 		}
 	}
 	

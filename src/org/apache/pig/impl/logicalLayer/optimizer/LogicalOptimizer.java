@@ -30,6 +30,9 @@ import org.apache.pig.impl.plan.optimizer.*;
  * An optimizer for logical plans.
  */
 public class LogicalOptimizer extends PlanOptimizer<LogicalOperator, LogicalPlan> {
+    
+    public static final String LOLOAD_CLASSNAME = "org.apache.pig.impl.logicalLayer.LOLoad";
+    public static final String LOSTREAM_CLASSNAME = "org.apache.pig.impl.logicalLayer.LOStream";
 
     public LogicalOptimizer(LogicalPlan plan) {
         super(plan);
@@ -53,12 +56,22 @@ public class LogicalOptimizer extends PlanOptimizer<LogicalOperator, LogicalPlan
         // Add type casting to plans where the schema has been declared (by
         // user, data, or data catalog).
         nodes = new ArrayList<String>(1);
-        nodes.add("org.apache.pig.impl.logicalLayer.LOLoad");
+        nodes.add(LOLOAD_CLASSNAME);
         edges = new HashMap<Integer, Integer>();
         required = new ArrayList<Boolean>(1);
         required.add(true);
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(nodes, edges, required,
-            new TypeCastInserter(plan)));
+            new TypeCastInserter(plan, LOLOAD_CLASSNAME)));
+        
+        // Add type casting to plans where the schema has been declared by
+        // user in a statement with stream operator.
+        nodes = new ArrayList<String>(1);
+        nodes.add(LOSTREAM_CLASSNAME);
+        edges = new HashMap<Integer, Integer>();
+        required = new ArrayList<Boolean>(1);
+        required.add(true);
+        mRules.add(new Rule(nodes, edges, required,
+            new TypeCastInserter(plan, LOSTREAM_CLASSNAME)));
         
         // Push up limit where ever possible.
         nodes = new ArrayList<String>(1);

@@ -73,7 +73,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
     public void transform(List<LogicalOperator> nodes) throws OptimizerException {
         LogicalOperator lo = nodes.get(0);
         if (lo == null || !(lo instanceof LOLimit)) {
-            throw new RuntimeException("Expected load, got " +
+            throw new RuntimeException("Expected limit, got " +
                 lo.getClass().getName());
         }
 
