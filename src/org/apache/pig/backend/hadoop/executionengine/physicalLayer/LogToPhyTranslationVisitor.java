@@ -531,17 +531,29 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 List<PhysicalOperator> pop = Arrays.asList(LogToPhyMap.get(op));
                 PhysicalPlan fep1 = new PhysicalPlan();
                 ConstantExpression ce1 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cs.getRequestedParallelism());
-                Tuple ce1val = TupleFactory.getInstance().newTuple(2);
+                ce1.setValue(inputs.size());
+                ce1.setResultType(DataType.INTEGER);
+                fep1.add(ce1);
+                
+                ConstantExpression ce2 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cs.getRequestedParallelism());
+                ce2.setValue(count);
+                ce2.setResultType(DataType.INTEGER);
+                fep1.add(ce2);
+                /*Tuple ce1val = TupleFactory.getInstance().newTuple(2);
                 ce1val.set(0,inputs.size());
                 ce1val.set(1,count);
                 ce1.setValue(ce1val);
-                ce1.setResultType(DataType.TUPLE);
+                ce1.setResultType(DataType.TUPLE);*/
                 
-                fep1.add(ce1);
+                
 
-                POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cs.getRequestedParallelism(), Arrays.asList((PhysicalOperator)ce1), new FuncSpec(GFCross.class.getName()));
+                POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cs.getRequestedParallelism(), Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2), new FuncSpec(GFCross.class.getName()));
                 gfc.setResultType(DataType.BAG);
                 fep1.addAsLeaf(gfc);
+                gfc.setInputs(Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2));
+                /*fep1.add(gfc);
+                fep1.connect(ce1, gfc);
+                fep1.connect(ce2, gfc);*/
                 
                 PhysicalPlan fep2 = new PhysicalPlan();
                 POProject feproj = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cs.getRequestedParallelism());
@@ -582,9 +594,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             log.error("Invalid physical operators in the physical plan"
                     + e1.getMessage());
             throw new VisitorException(e1);
-        } catch (ExecException e) {
-            log.error("Unable to create the constant tuple because " + e.getMessage());
-            throw new VisitorException(e);
         }
         
         poPackage.setKeyType(DataType.TUPLE);

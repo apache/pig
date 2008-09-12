@@ -188,4 +188,5 @@ Trunk (unreleased changes)
 
     PIG-415: problem with comparators (shravanmn via olgan)
 
+    PIG-422: cross is broken (shravanmn via olgan)
 
