@@ -110,13 +110,11 @@ public class QueryParser {
             return str;
     }
 
-    public static LogicalPlan generateStorePlan(Map<OperatorKey, LogicalOperator> opTable,
-    										    String scope,
+    public static LogicalPlan generateStorePlan(String scope,
                                                 LogicalPlan readFrom,
                                                 String fileName,
                                                 String func,
-                                                LogicalOperator input,
-                                                Map<LogicalOperator, LogicalPlan> aliases) throws FrontendException {
+                                                LogicalOperator input) throws FrontendException {
 
         if (func == null) {
             func = PigStorage.class.getName();
@@ -146,8 +144,6 @@ public class QueryParser {
             throw new FrontendException(pe.getMessage());
         }
 	    
-        aliases.put(store, storePlan);
-
         if (storePlan.getRoots().size() == 0) throw new RuntimeException("Store plan has no roots!");
         return storePlan;
     }
@@ -298,6 +294,7 @@ public class QueryParser {
 		LogicalOperator splitOutput = new LOSplitOutput(lp, new OperatorKey(scope, getNextId()), index, condPlan);
 		splitOp.addOutput(splitOutput);
 		addAlias(alias, splitOutput);
+        splitOutput.setAlias(alias);
         addLogicalPlan(splitOutput, lp);
 		
 		lp.add(splitOutput);

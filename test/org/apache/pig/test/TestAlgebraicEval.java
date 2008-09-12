@@ -53,9 +53,9 @@ public class TestAlgebraicEval extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testGroupCountWithMultipleFields() throws Throwable {
+        File tmpFile = File.createTempFile("test", "txt");
         for (int k = 0; k < nullFlags.length; k++) {
             System.err.println("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k]);
-            File tmpFile = File.createTempFile("test", "txt");
             // flag to indicate if both the keys forming
             // the group key are null
             int groupKeyWithNulls = 0;
@@ -98,7 +98,6 @@ public class TestAlgebraicEval extends TestCase {
             pig.registerQuery(" a = group (load 'file:" + tmpFile + "') by ($0,$1);");
             pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
             Iterator<Tuple> it = pig.openIterator("b");
-            tmpFile.delete();
             int count = 0;
             System.err.println("XX Starting");
             while(it.hasNext()){
@@ -123,6 +122,7 @@ public class TestAlgebraicEval extends TestCase {
                 assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k], LOOP_COUNT - groupKeyWithNulls + 1, count);
             
         }
+        tmpFile.delete();
         
     }
     
