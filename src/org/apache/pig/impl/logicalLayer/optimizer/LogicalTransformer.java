@@ -73,15 +73,17 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
     private class ProjectFixerUpper extends LOVisitor {
 
         private LogicalOperator mNewNode;
+        private LogicalOperator mOldNode;
         private Map<Integer, Integer> mProjectionMapping;
 
         ProjectFixerUpper(
                 LogicalPlan plan,
-                LogicalOperator newNode,
-                Map<Integer, Integer> projectionMapping) {
+                LogicalOperator oldNode,
+                LogicalOperator newNode, Map<Integer, Integer> projectionMapping) {
             super(plan,
                 new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
             mNewNode = newNode;
+            mOldNode = oldNode;
             mProjectionMapping = projectionMapping;
         }
 
@@ -109,8 +111,9 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
             // outside the plan).
             List<LogicalOperator> preds = mPlan.getPredecessors(p);
             if (preds == null || preds.size() == 0) {
-                // Change the expression
-                p.setExpression(mNewNode);
+                if(p.getExpression().equals(mOldNode))
+                    // Change the expression
+                    p.setExpression(mNewNode);
 
                 // Remap the projection column if necessary
                 if (mProjectionMapping != null && !p.isStar()) {
@@ -209,7 +212,7 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         
         for (LogicalPlan lp : plans) {
             ProjectFixerUpper pfu =
-                new ProjectFixerUpper(lp, newNode, projectionMapping);
+                new ProjectFixerUpper(lp, after, newNode, projectionMapping);
             pfu.visit();
         }
     }
@@ -302,7 +305,7 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
 	        
 	        for (LogicalPlan lp : plans) {
 	            ProjectFixerUpper pfu =
-	                new ProjectFixerUpper(lp, after, projectionMapping);
+	                new ProjectFixerUpper(lp, nodeToRemove, after, projectionMapping);
 	            pfu.visit();
 	        }
 	
