@@ -1,8 +1,8 @@
 New For Each(false,false,false)[bag] - Test-Plan-Builder-86
 |   |
-|   Add[Unknown] - Test-Plan-Builder-79
+|   Add[chararray] - Test-Plan-Builder-79
 |   |
-|   |---Add[Unknown] - Test-Plan-Builder-77
+|   |---Add[bytearray] - Test-Plan-Builder-77
 |   |   |
 |   |   |---Project[bytearray][0] - Test-Plan-Builder-75
 |   |   |
@@ -10,9 +10,9 @@ New For Each(false,false,false)[bag] - Test-Plan-Builder-86
 |   |
 |   |---Constant(5) - Test-Plan-Builder-78
 |   |
-|   Subtract[Unknown] - Test-Plan-Builder-84
+|   Subtract[chararray] - Test-Plan-Builder-84
 |   |
-|   |---Subtract[Unknown] - Test-Plan-Builder-82
+|   |---Subtract[chararray] - Test-Plan-Builder-82
 |   |   |
 |   |   |---Project[bytearray][0] - Test-Plan-Builder-80
 |   |   |

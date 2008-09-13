@@ -29,6 +29,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
@@ -185,6 +186,7 @@ public class LOCogroup extends LogicalOperator {
                                         } else {
                                             groupByFss.add(new Schema.FieldSchema(alias, null, DataType.BYTEARRAY));
                                         }
+                                        break;
                                     } else {
                                         if(j < aliases.length) {
                                             continue;
@@ -225,11 +227,31 @@ public class LOCogroup extends LogicalOperator {
             groupBySchema = new Schema(groupByFss);
 
             if(1 == arity) {
-                byte groupByType = groupByFss.get(0).type;
+                byte groupByType = getAtomicGroupByType();
                 Schema groupSchema = groupByFss.get(0).schema;
                 fss.add(new Schema.FieldSchema("group", groupSchema, groupByType));
             } else {
-                fss.add(new Schema.FieldSchema("group", groupBySchema));
+                Schema mergedGroupSchema = getTupleGroupBySchema();
+                if(mergedGroupSchema.size() != groupBySchema.size()) {
+                    mSchema = null;
+                    mIsSchemaComputed = false;
+                    throw new FrontendException("Internal error. Mismatch in group by arities. Expected: " + mergedGroupSchema + ". Found: " + groupBySchema);
+                } else {
+                    for(int i = 0; i < mergedGroupSchema.size(); ++i) {
+                        try {
+                            Schema.FieldSchema mergedFs = mergedGroupSchema.getField(i);
+                            Schema.FieldSchema groupFs = groupBySchema.getField(i);
+                            mergedFs.alias = groupFs.alias;
+                            mergedGroupSchema.addAlias(mergedFs.alias, mergedFs);
+                        } catch (ParseException pe) {
+                            mSchema = null;
+                            mIsSchemaComputed = false;
+                            throw new FrontendException(pe.getMessage());
+                        }
+                    }
+                }
+                
+                fss.add(new Schema.FieldSchema("group", mergedGroupSchema));
             }
             for (LogicalOperator op : inputs) {
                 try {
@@ -244,6 +266,7 @@ public class LOCogroup extends LogicalOperator {
             }
             mIsSchemaComputed = true;
             mSchema = new Schema(fss);
+            mType = DataType.BAG;//mType is from the super class
         }
         return mSchema;
     }
@@ -281,14 +304,82 @@ public class LOCogroup extends LogicalOperator {
         mGroupByPlans.put(newOp, innerPlans);
     }
 
-    public void resetSchema() throws VisitorException{
+    public void unsetSchema() throws VisitorException{
         for(LogicalOperator input: getInputs()) {
             for(LogicalPlan plan: mGroupByPlans.get(input)) {
                 SchemaRemover sr = new SchemaRemover(plan);
                 sr.visit();
             }
         }
-        unsetSchema();
+        super.unsetSchema();
+    }
+
+    /**
+     * This can be used to get the merged type of output group col
+     * only when the group col is of atomic type
+     * TODO: This doesn't work with group by complex type
+     * @return The type of the group by
+     */
+    public byte getAtomicGroupByType() throws FrontendException {
+        if (isTupleGroupCol()) {
+            throw new FrontendException("getAtomicGroupByType is used only when"
+                                     + " dealing with atomic group col") ;
+        }
+        byte groupType = DataType.BYTEARRAY ;
+        // merge all the inner plan outputs so we know what type
+        // our group column should be
+        for(int i=0;i < getInputs().size(); i++) {
+            LogicalOperator input = getInputs().get(i) ;
+            List<LogicalPlan> innerPlans
+                        = new ArrayList<LogicalPlan>(getGroupByPlans().get(input)) ;
+            if (innerPlans.size() != 1) {
+                throw new FrontendException("Each COGroup input has to have "
+                                         + "the same number of inner plans") ;
+            }
+            byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
+            groupType = DataType.mergeType(groupType, innerType) ;
+        }
+
+        return groupType ;
+    }
+
+    /*
+        This implementation is based on the assumption that all the
+        inputs have the same group col tuple arity.
+        TODO: This doesn't work with group by complex type
+     */
+    public Schema getTupleGroupBySchema() throws FrontendException {
+        if (!isTupleGroupCol()) {
+            throw new FrontendException("getTupleGroupBySchema is used only when"
+                                     + " dealing with tuple group col") ;
+        }
+
+        // this fsList represents all the columns in group tuple
+        List<Schema.FieldSchema> fsList = new ArrayList<Schema.FieldSchema>() ;
+
+        int outputSchemaSize = getGroupByPlans().get(getInputs().get(0)).size() ;
+
+        // by default, they are all bytearray
+        // for type checking, we don't care about aliases
+        for(int i=0; i<outputSchemaSize; i++) {
+            fsList.add(new Schema.FieldSchema(null, DataType.BYTEARRAY)) ;
+        }
+
+        // merge all the inner plan outputs so we know what type
+        // our group column should be
+        for(int i=0;i < getInputs().size(); i++) {
+            LogicalOperator input = getInputs().get(i) ;
+            List<LogicalPlan> innerPlans
+                        = new ArrayList<LogicalPlan>(getGroupByPlans().get(input)) ;
+
+            for(int j=0;j < innerPlans.size(); j++) {
+                byte innerType = innerPlans.get(j).getSingleLeafPlanOutputType() ;
+                fsList.get(j).type = DataType.mergeType(fsList.get(j).type,
+                                                        innerType) ;
+            }
+        }
+
+        return new Schema(fsList) ;
     }
 
 }

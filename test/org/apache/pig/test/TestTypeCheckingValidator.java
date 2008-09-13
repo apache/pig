@@ -642,9 +642,9 @@ public class TestTypeCheckingValidator extends TestCase {
         plan.connect(constant1, mul1) ;
         plan.connect(constant2, mul1) ;       
         
-        // Before type checking
+        // Before type checking its set correctly - PIG-421
         System.out.println(DataType.findTypeName(mul1.getType())) ;
-        assertEquals(DataType.UNKNOWN, mul1.getType()) ;    
+        assertEquals(DataType.DOUBLE, mul1.getType()) ;    
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
@@ -663,7 +663,7 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20L) ;
         constant2.setType(DataType.LONG) ;
 
         LONegative neg1 = new LONegative(plan, genNewOperatorKey(), constant1) ;
@@ -681,8 +681,8 @@ public class TestTypeCheckingValidator extends TestCase {
         plan.connect(neg1, subtract1) ;
         plan.connect(constant2, subtract1) ;
 
-        // Before type checking
-        assertEquals(DataType.UNKNOWN, subtract1.getType()) ;
+        // Before type checking its set correctly = PIG-421
+        assertEquals(DataType.LONG, subtract1.getType()) ;
 
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
@@ -705,7 +705,7 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.BYTEARRAY) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20L) ;
         constant2.setType(DataType.LONG) ;
 
         LOMod mod1 = new LOMod(plan, genNewOperatorKey(), constant1, constant2) ;
@@ -717,8 +717,8 @@ public class TestTypeCheckingValidator extends TestCase {
         plan.connect(constant1, mod1) ;
         plan.connect(constant2, mod1) ;
 
-        // Before type checking
-        assertEquals(DataType.UNKNOWN, mod1.getType()) ;
+        // Before type checking its set correctly = PIG-421
+        assertEquals(DataType.LONG, mod1.getType()) ;
 
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
@@ -2264,7 +2264,7 @@ public class TestTypeCheckingValidator extends TestCase {
         // Create expression inner plan #2
         LogicalPlan innerPlan12 = new LogicalPlan() ;
         LOConst const121 = new LOConst(innerPlan12, genNewOperatorKey(), 26) ;
-        const121.setType(DataType.CHARARRAY);
+        const121.setType(DataType.INTEGER);
         innerPlan12.add(const121) ;
 
         // Create Cogroup
@@ -2309,7 +2309,7 @@ public class TestTypeCheckingValidator extends TestCase {
         Schema endResultSchema = cogroup1.getSchema() ;
 
         // Tuple group column
-        assertEquals(endResultSchema.getField(0).type, DataType.BYTEARRAY) ;
+        assertEquals(endResultSchema.getField(0).type, DataType.FLOAT) ;
 
         assertEquals(endResultSchema.getField(1).type, DataType.BAG) ;
         assertEquals(endResultSchema.getField(2).type, DataType.BAG) ;
@@ -2325,8 +2325,8 @@ public class TestTypeCheckingValidator extends TestCase {
         assertEquals(innerSchema2.getField(1).type, DataType.INTEGER);
 
         // check group by col end result
-        assertEquals(innerPlan11.getSingleLeafPlanOutputType(), DataType.BYTEARRAY) ;
-        assertEquals(innerPlan12.getSingleLeafPlanOutputType(), DataType.BYTEARRAY) ;
+        assertEquals(innerPlan11.getSingleLeafPlanOutputType(), DataType.FLOAT) ;
+        assertEquals(innerPlan12.getSingleLeafPlanOutputType(), DataType.FLOAT) ;
     }
 
     // Positive test

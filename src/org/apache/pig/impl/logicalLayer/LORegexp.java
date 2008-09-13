@@ -94,6 +94,10 @@ public class LORegexp extends BinaryExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
+        if(!mIsFieldSchemaComputed) {
+            Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
+            mFieldSchema = fs;
+        }
         return mFieldSchema;
     }
 
@@ -102,9 +106,5 @@ public class LORegexp extends BinaryExpressionOperator {
         v.visit(this);
     }
 
-    @Override
-    public byte getType() {
-        return DataType.BOOLEAN ;
-    }
 
 }

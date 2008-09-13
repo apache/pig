@@ -151,9 +151,14 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * Unset the schema as if it had not been calculated.  This is used by
      * anyone who reorganizes the tree and needs to have schemas recalculated.
      */
-    public void unsetSchema() {
+    public void unsetSchema() throws VisitorException {
         mIsSchemaComputed = false;
         mSchema = null;
+    }
+
+    public Schema regenerateSchema() throws FrontendException, VisitorException {
+        unsetSchema();
+        return getSchema();
     }
     
     /**

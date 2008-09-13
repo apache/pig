@@ -28,6 +28,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 
 
 public class LOSplitOutput extends LogicalOperator {
@@ -62,21 +63,19 @@ public class LOSplitOutput extends LogicalOperator {
     
     @Override
     public String name() {
-        return "SplitOutput " + mKey.scope + "-" + mKey.id;
+        return "SplitOutput[" + getAlias() + "] " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
     public Schema getSchema() throws FrontendException{
         if (!mIsSchemaComputed) {
             // get our parent's schema
-            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
-            if(s==null) return null;
             try {
-                LogicalOperator op = s.iterator().next();
-                if (null == op) {
+                LogicalOperator input = mPlan.getPredecessors(this).get(0);
+                if (null == input) {
                     throw new FrontendException("Could not find operator in plan");
                 }
-                mSchema = s.iterator().next().getSchema();
+                mSchema = input.getSchema();
                 mIsSchemaComputed = true;
             } catch (FrontendException fe) {
                 mSchema = null;
@@ -103,4 +102,11 @@ public class LOSplitOutput extends LogicalOperator {
     public byte getType() {
         return DataType.BAG ;
     }
+
+    public void unsetSchema() throws VisitorException{
+        SchemaRemover sr = new SchemaRemover(mCondPlan);
+        sr.visit();
+        super.unsetSchema();
+    }
+
 }

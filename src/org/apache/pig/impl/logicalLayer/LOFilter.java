@@ -25,6 +25,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -106,5 +107,12 @@ public class LOFilter extends LogicalOperator {
     public byte getType() {
         return DataType.BAG ;
     }
+
+    public void unsetSchema() throws VisitorException{
+        SchemaRemover sr = new SchemaRemover(mComparisonPlan);
+        sr.visit();
+        super.unsetSchema();
+    }
+
 
 }

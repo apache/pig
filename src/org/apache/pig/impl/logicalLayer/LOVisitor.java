@@ -92,8 +92,10 @@ abstract public class LOVisitor extends
         // operand
         //
 
+        /*
         binOp.getLhsOperand().visit(this);
         binOp.getRhsOperand().visit(this);
+        */
     }
 
     /**
@@ -105,7 +107,9 @@ abstract public class LOVisitor extends
     protected void visit(UnaryExpressionOperator uniOp) throws VisitorException {
         // Visit the operand
 
+        /*
         uniOp.getOperand().visit(this);
+        */
     }
 
     /**
@@ -194,9 +198,11 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOSplit split) throws VisitorException {
         // Visit each of split's conditions
+        /*
         for(LogicalOperator logicalOp: split.getOutputs()) {
             logicalOp.visit(this);
         }
+        */
     }
 
     /**

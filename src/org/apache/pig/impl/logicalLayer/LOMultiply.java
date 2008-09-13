@@ -22,6 +22,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -53,9 +54,10 @@ public class LOMultiply extends BinaryExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
-        // TODO When tuple multiplication is implemented, getFieldSchema should
-        // compute the schema, store and return the computed schema
-
+        if(!mIsFieldSchemaComputed) {
+            mFieldSchema = new Schema.FieldSchema(null, DataType.mergeType(getLhsOperand().getType(), getRhsOperand().getType()));
+            mIsFieldSchemaComputed = true;
+        }
         return mFieldSchema;
     }
 

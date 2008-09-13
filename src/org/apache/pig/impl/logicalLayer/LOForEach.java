@@ -328,12 +328,12 @@ public class LOForEach extends LogicalOperator {
         return mSchema;
     }
 
-    public void resetSchema() throws VisitorException{
+    public void unsetSchema() throws VisitorException{
         for(LogicalPlan plan: mForEachPlans) {
             SchemaRemover sr = new SchemaRemover(plan);
             sr.visit();
         }
-        unsetSchema();
+        super.unsetSchema();
     }
 
 }

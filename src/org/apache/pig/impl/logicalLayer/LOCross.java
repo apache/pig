@@ -104,8 +104,9 @@ public class LOCross extends LogicalOperator {
                         }
                     }
                 } else {
-                    Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-                    fss.add(newFs);
+                    mSchema = null;
+                    mIsSchemaComputed = true;
+                    return mSchema;
                 }
             }
 

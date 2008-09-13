@@ -1,6 +1,6 @@
 New For Each(false)[bag] - Test-Plan-Builder-137
 |   |
-|   POBinCond[Unknown] - Test-Plan-Builder-136
+|   POBinCond[bytearray] - Test-Plan-Builder-136
 |   |
 |   |---Equal To[boolean] - Test-Plan-Builder-129
 |   |   |
@@ -8,13 +8,13 @@ New For Each(false)[bag] - Test-Plan-Builder-137
 |   |   |
 |   |   |---Constant(3) - Test-Plan-Builder-128
 |   |
-|   |---Add[Unknown] - Test-Plan-Builder-132
+|   |---Add[bytearray] - Test-Plan-Builder-132
 |   |   |
 |   |   |---Project[bytearray][2] - Test-Plan-Builder-130
 |   |   |
 |   |   |---Project[bytearray][3] - Test-Plan-Builder-131
 |   |
-|   |---Subtract[Unknown] - Test-Plan-Builder-135
+|   |---Subtract[bytearray] - Test-Plan-Builder-135
 |       |
 |       |---Project[bytearray][2] - Test-Plan-Builder-133
 |       |

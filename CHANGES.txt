@@ -190,8 +190,9 @@ Trunk (unreleased changes)
 
     PIG-422: cross is broken (shravanmn via olgan)
 
-    PIG-407: need to clone operators (pradeepk vi olgan)
+    PIG-407: need to clone operators (pradeepk via olgan)
 
     PIG-428: TypeCastInserter does not replace projects in inner plans
     correctly (pradeepk vi olgan)
 
+    PIG-421: error with complex nested plan (sms via olgan)

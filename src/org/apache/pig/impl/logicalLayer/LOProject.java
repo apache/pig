@@ -301,6 +301,34 @@ public class LOProject extends ExpressionOperator {
             }
         }
 
+        if(null != mFieldSchema) {
+            mType = mFieldSchema.type;
+        }
+        
+        List<LogicalOperator> succList = mPlan.getSuccessors(this) ;
+        List<LogicalOperator> predList = mPlan.getPredecessors(this) ;
+        if((null != succList) && !(succList.get(0) instanceof ExpressionOperator)) {
+            if(!DataType.isSchemaType(mType)) {
+                Schema pjSchema = new Schema(mFieldSchema);
+                mFieldSchema = new Schema.FieldSchema(getAlias(), pjSchema, DataType.TUPLE);
+            } else {
+                mFieldSchema.type = DataType.TUPLE;
+            }
+            setOverloaded(true);
+            setType(DataType.TUPLE);
+        } else if(null != predList) {
+            LogicalOperator projectInput = getExpression();
+            if(((projectInput instanceof LOProject) || !(predList.get(0) instanceof ExpressionOperator)) && (projectInput.getType() == DataType.BAG)) {
+                if(!DataType.isSchemaType(mType)) {
+                    Schema pjSchema = new Schema(mFieldSchema);
+                    mFieldSchema = new Schema.FieldSchema(getAlias(), pjSchema, DataType.BAG);
+                } else {
+                    mFieldSchema.type = DataType.BAG;
+                }
+                setType(DataType.BAG);
+            }
+        }
+        
         log.debug("Exiting getFieldSchema");
         return mFieldSchema;
     }
@@ -312,24 +340,6 @@ public class LOProject extends ExpressionOperator {
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
-    }
-
-    @Override
-    public byte getType() {                         
-        // Called to make sure we've constructed the field schema before trying
-        // to read it.
-        try {
-            getFieldSchema();
-        } catch (FrontendException fe) {
-            return DataType.UNKNOWN;
-        }
-
-        if (mFieldSchema != null){
-            return mFieldSchema.type ;
-        }
-        else {
-            return DataType.UNKNOWN ;
-        }
     }
 
     @Override

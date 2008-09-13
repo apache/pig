@@ -19,9 +19,13 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 
@@ -75,13 +79,40 @@ public class LOUserFunc extends ExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
-        if (!mIsFieldSchemaComputed) {
-            mFieldSchema = new Schema.FieldSchema(null, mType);
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
+        Schema inputSchema = new Schema();
+        for(ExpressionOperator op: mArgs) {
+            if (!DataType.isUsableType(op.getType())) {
+                String msg = "Problem with input of User-defined function" ;
+                mFieldSchema = null;
+                mIsFieldSchemaComputed = false;
+                throw new FrontendException(msg) ;
+            }
+            inputSchema.add(op.getFieldSchema());    
+        }
+
+        EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
+        Schema udfSchema = ef.outputSchema(inputSchema);
+
+        if (null != udfSchema) {
+            Schema.FieldSchema fs;
+            try {
+                fs = udfSchema.getField(0);
+            } catch (ParseException pe) {
+                throw new FrontendException(pe.getMessage());
+            }
+            setType(fs.type);
+            mFieldSchema = fs;
+            mIsFieldSchemaComputed = true;
+        } else {
+            byte returnType = DataType.findType(ef.getReturnType());
+            setType(returnType);
+            mFieldSchema = new Schema.FieldSchema(null, null, returnType);
             mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;
     }
+
 
     @Override
     public void visit(LOVisitor v) throws VisitorException {
@@ -94,4 +125,5 @@ public class LOUserFunc extends ExpressionOperator {
     public void setFuncSpec(FuncSpec funcSpec) {
         mFuncSpec = funcSpec;
     }
+
 }

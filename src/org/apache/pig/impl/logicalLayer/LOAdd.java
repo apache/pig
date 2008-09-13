@@ -22,6 +22,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -53,12 +54,13 @@ public class LOAdd extends BinaryExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() {
-        // TODO When tuple addition is implemented, getSchema should
-        // compute the schema, store the computed schema and return
-        // the computed schema
-
+        if(!mIsFieldSchemaComputed) {
+            mFieldSchema = new Schema.FieldSchema(null, DataType.mergeType(getLhsOperand().getType(), getRhsOperand().getType()));
+            mIsFieldSchemaComputed = true;
+        }
         return mFieldSchema;
     }
+
 
     @Override
     public void visit(LOVisitor v) throws VisitorException {

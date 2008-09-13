@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer;
 import java.util.List;
 import java.util.ArrayList;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -100,6 +101,11 @@ public abstract class ExpressionOperator extends LogicalOperator {
         mIsFieldSchemaComputed = false;
         mFieldSchema = null;
     }
+    
+    public Schema.FieldSchema regenerateFieldSchema() throws FrontendException {
+        unsetFieldSchema();
+        return getFieldSchema();
+    }
 
     void setFieldSchemaComputed(boolean b) {
         mIsFieldSchemaComputed = b;
@@ -108,6 +114,25 @@ public abstract class ExpressionOperator extends LogicalOperator {
     boolean getFieldSchemaComputed() {
         return mIsFieldSchemaComputed;
     }
+
+    @Override
+    public byte getType() {                         
+        // Called to make sure we've constructed the field schema before trying
+        // to read it.
+        try {
+            getFieldSchema();
+        } catch (FrontendException fe) {
+            return DataType.UNKNOWN;
+        }
+
+        if (mFieldSchema != null){
+            return mFieldSchema.type ;
+        }
+        else {
+            return DataType.UNKNOWN ;
+        }
+    }
+
 
 }
 
