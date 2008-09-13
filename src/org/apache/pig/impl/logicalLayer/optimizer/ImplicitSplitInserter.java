@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.LOConst;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -61,15 +62,30 @@ public class ImplicitSplitInserter extends LogicalTransformer {
         try {
             mPlan.add(splitOp);
             
-            
-            // Find all the successors and disconnect them.  Keep our own copy
+            // Find all the successors and connect appropriately with split
+            // and splitoutput operators.  Keep our own copy
             // of the list, as we're changing the graph by doing these calls 
             // and that will change the list of predecessors.
             List<LogicalOperator> succs = 
                 new ArrayList<LogicalOperator>(mPlan.getSuccessors(nodes.get(0)));
             int index = -1;
+            boolean nodeConnectedToSplit = false;
             for (LogicalOperator succ : succs) {
-                mPlan.disconnect(nodes.get(0), succ);
+                if(!nodeConnectedToSplit) {
+                    mPlan.insertBetween(nodes.get(0), splitOp, succ);
+                    // nodes.get(0) should be connected to Split (only once) and
+                    // split -> splitoutput -> successor - this is for the first successor  
+                    // for the next successor we just want to connect in the order 
+                    // split -> splitoutput -> successor without involving nodes.get(0)
+                    // in the above call we have connected
+                    // nodes.get(0) to split (we will set the flag
+                    // to true later in this loop iteration). Hence in subsequent 
+                    // iterations we will only disconnect nodes.get(0) from its
+                    // successor and connect the split-splitoutput chain
+                    // to the successor
+                } else {
+                    mPlan.disconnect(nodes.get(0), succ);                    
+                }
                 LogicalPlan condPlan = new LogicalPlan();
                 LOConst cnst = new LOConst(mPlan, new OperatorKey(scope, 
                         idGen.getNextNodeId(scope)), new Boolean(true));
@@ -79,12 +95,22 @@ public class ImplicitSplitInserter extends LogicalTransformer {
                         new OperatorKey(scope, idGen.getNextNodeId(scope)), ++index, condPlan);
                 splitOp.addOutput(splitOutput);
                 mPlan.add(splitOutput);
-                mPlan.connect(splitOp, splitOutput);
-                mPlan.connect(splitOutput, succ);
+                
+                if(!nodeConnectedToSplit) {
+                    // node.get(0) should be connected to Split (only once) and
+                    // split to splitoutput to successor - this is for the first successor  
+                    // for the next successor we just want to connect in the order 
+                    // split - splitoutput - successor.
+                    // the call below is in the first successor case
+                    mPlan.insertBetween(splitOp, splitOutput, succ);    
+                    nodeConnectedToSplit = true;
+                } else {
+                    mPlan.connect(splitOp, splitOutput);
+                    mPlan.connect(splitOutput, succ);
+                }
                 // Patch up the contained plans of succ
                 fixUpContainedPlans(nodes.get(0), splitOutput, succ, null);
             }
-            mPlan.connect(nodes.get(0), splitOp);
         } catch (Exception e) {
             throw new OptimizerException(e);
         }

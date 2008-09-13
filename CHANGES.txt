@@ -196,3 +196,6 @@ Trunk (unreleased changes)
     correctly (pradeepk vi olgan)
 
     PIG-421: error with complex nested plan (sms via olgan)
+    
+    PIG-429: Self join wth implicit split has the join output in wrong order
+    (pradeepk via olgan)
