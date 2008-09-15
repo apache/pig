@@ -39,8 +39,6 @@ public class LOUnion extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param inputs
-     *            List of operators that are input to the union
      */
     public LOUnion(LogicalPlan plan, OperatorKey k) {
         super(plan, k);

@@ -56,8 +56,11 @@ public class LOForEach extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param foreachPlan
-     *            the list of operators that are applied for each input
+     * @param foreachPlans
+     *            the list of plans that are applied for each input
+     * @param flattenList
+     *            boolean list that tells which elements of the foreach
+     *            projection should be flattened.
      */
 
     public LOForEach(LogicalPlan plan, OperatorKey k,

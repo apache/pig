@@ -26,8 +26,8 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link FileOutputHandler} handles the output from the Pig-Streaming
- * executable in an {@link OutputType#SYNCHRONOUS} manner by reading its output
+ * FileOutputHandler handles the output from the Pig-Streaming
+ * executable in an synchronous manner by reading its output
  * via its <code>stdout</code>.
  */
 public class DefaultOutputHandler extends OutputHandler {

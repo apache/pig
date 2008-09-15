@@ -28,8 +28,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link FileInputHandler} handles the input for the Pig-Streaming
- * executable in an {@link InputType#ASYNCHRONOUS} manner by feeding it input
+ * FileInputHandler handles the input for the Pig-Streaming
+ * executable in an asynchronous manner by feeding it input
  * via an external file specified by the user.  
  */
 public class FileInputHandler extends InputHandler {

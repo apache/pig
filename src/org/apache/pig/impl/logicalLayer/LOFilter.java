@@ -43,8 +43,6 @@ public class LOFilter extends LogicalOperator {
      *            Operator key to assign to this node.
      * @param comparisonPlan
      *            the filter condition
-     * @param input
-     *            the input that needs filtering
      */
 
     public LOFilter(LogicalPlan plan, OperatorKey k,

@@ -36,8 +36,9 @@ public class LOStream extends LogicalOperator {
      * 
      * @param plan the logical plan this operator is a part of
      * @param k the operator key for this operator
-     * @param pigContext the pigContext object
-     * @param argv parsed arguments of the <code>command</code>
+     * @param input operator that is input to this command
+     * @param exeManager ExecutableManager used by this streaming command.
+     * @param cmd StreamingCommand for this stream to run.
      */
     public LOStream(LogicalPlan plan, OperatorKey k, LogicalOperator input, ExecutableManager exeManager, StreamingCommand cmd) {
         super(plan, k);

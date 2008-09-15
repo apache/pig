@@ -337,7 +337,7 @@ public class Schema implements Serializable, Cloneable {
 
         /***
         * Recursively prefix merge two schemas
-        * @param other the other field schema to be merged with
+        * @param otherFs the other field schema to be merged with
         * @return the prefix merged field schema this can be null if one schema is null and
         *         allowIncompatibleTypes is true
         *
@@ -350,7 +350,7 @@ public class Schema implements Serializable, Cloneable {
 
         /***
         * Recursively prefix merge two schemas
-        * @param other the other field schema to be merged with
+        * @param otherFs the other field schema to be merged with
         * @param otherTakesAliasPrecedence true if aliases from the other
         *                                  field schema take precedence
         * @return the prefix merged field schema this can be null if one schema is null and

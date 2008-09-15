@@ -61,7 +61,8 @@ public class POPostCombinerPackage extends POPackage {
      * A new POPostCombinePackage will be constructed as a near clone of the
      * provided POPackage.
      * @param pkg POPackage to clone.
-     * @param numFields Number of fields in each input tuple
+     * @param bags for each field, indicates whether it should be a bag (true)
+     * or a simple field (false).
      */
     public POPostCombinerPackage(POPackage pkg, boolean[] bags) {
         super(new OperatorKey(pkg.getOperatorKey().scope,

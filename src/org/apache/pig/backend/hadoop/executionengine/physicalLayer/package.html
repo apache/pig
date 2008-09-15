@@ -11,8 +11,8 @@ Physical operators use the operator, plan, visitor, and optimizer framework
 provided by the {@link org.apache.pig.impl.plan} package.
 <p>
 As with {@link org.apache.pig.impl.logicalLayer}, physical operators consist
-of {@link org.apache.pig.impl.physicalLayer.relationalOperators} and
-{@link org.apache.pig.impl.physicalLayer.expressionOperators}.  In many data
+of {@link org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators} and
+{@link org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators}.  In many data
 processing systems relational operators and expression operators are modeled
 as different entities because they behave differently.  Pig blurs, though does
 not entirely remove, this distinction because of its support for nested

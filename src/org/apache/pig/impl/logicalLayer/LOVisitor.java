@@ -138,8 +138,8 @@ abstract public class LOVisitor extends
 
     /**
      * 
-     * @param g
-     *            the logical generate operator that has to be visited
+     * @param forEach
+     *            the logical foreach operator that has to be visited
      * @throws VisitorException
      */
     protected void visit(LOForEach forEach) throws VisitorException {
@@ -207,8 +207,8 @@ abstract public class LOVisitor extends
 
     /**
      * 
-     * @param forEach
-     *            the logical foreach operator that has to be visited
+     * @param g
+     *            the logical generate operator that has to be visited
      * @throws VisitorException
      */
     protected void visit(LOGenerate g) throws VisitorException {

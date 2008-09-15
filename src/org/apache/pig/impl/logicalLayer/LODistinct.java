@@ -42,8 +42,6 @@ public class LODistinct extends LogicalOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param input
-     *            input over which distinct will be applied
      */
     public LODistinct(LogicalPlan plan, OperatorKey k) {
 

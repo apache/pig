@@ -86,7 +86,7 @@ public class StreamingCommand implements Serializable, Cloneable {
     /**
      * Create a new <code>StreamingCommand</code> with the given command.
      * 
-     * @param command streaming command to be executed
+     * @param pigContext PigContext structure
      * @param argv parsed arguments of the <code>command</code>
      */
     public StreamingCommand(PigContext pigContext, String[] argv) {

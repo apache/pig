@@ -26,8 +26,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link DefaultInputHandler} handles the input for the Pig-Streaming
- * executable in a {@link InputType#SYNCHRONOUS} manner by feeding it input
+ * DefaultInputHandler handles the input for the Pig-Streaming
+ * executable in a synchronous manner by feeding it input
  * via its <code>stdin</code>.  
  */
 public class DefaultInputHandler extends InputHandler {

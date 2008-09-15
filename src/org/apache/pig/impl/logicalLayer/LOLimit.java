@@ -18,8 +18,6 @@ public class LOLimit extends LogicalOperator {
      *            Operator key to assign to this node.
      * @param limit
      *            Number of limited outputs
-     * @param input
-     *            the input that needs to limit
      */
 
     public LOLimit(LogicalPlan plan, OperatorKey k, long limit) {

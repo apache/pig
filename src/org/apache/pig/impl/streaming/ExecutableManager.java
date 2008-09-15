@@ -99,14 +99,7 @@ public class ExecutableManager {
     /**
      * Configure and initialize the {@link ExecutableManager}.
      * 
-     * @param properties
-     *            {@link Properties} for the <code>ExecutableManager</code>
-     * @param command
-     *            {@link StreamingCommand} to be run by the
-     *            <code>ExecutableManager</code>
-     * @param endOfPipe
-     *            {@link DataCollector} to be used to push results of the
-     *            <code>StreamingCommand</code> down
+     * @param stream POStream operator
      * @throws IOException
      * @throws ExecException
      */
@@ -276,7 +269,7 @@ public class ExecutableManager {
      * Start execution of the external process.
      * 
      * This takes care of setting up the environment of the process and also
-     * starts {@link ProcessErrorThread} to process the <code>stderr</code> of
+     * starts ProcessErrorThread to process the <code>stderr</code> of
      * the managed process.
      * 
      * @throws IOException
