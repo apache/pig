@@ -81,8 +81,8 @@ public class LOPrinter extends LOVisitor {
             sb.append(depthFirst(leaf));
             sb.append("\n");
         }
-        sb.delete(sb.length() - "\n".length(), sb.length());
-        sb.delete(sb.length() - "\n".length(), sb.length());
+        //sb.delete(sb.length() - "\n".length(), sb.length());
+        //sb.delete(sb.length() - "\n".length(), sb.length());
         return sb.toString();
     }
     

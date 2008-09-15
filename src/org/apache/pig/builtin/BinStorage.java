@@ -312,4 +312,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         }
         return baos.toByteArray();
     }
+    public boolean equals(Object obj) {
+        return true;
+    }
 }

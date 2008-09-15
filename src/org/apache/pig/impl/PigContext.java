@@ -135,6 +135,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         }
         
         executionEngine = null;
+        
+        // Add the default paths to be skipped for auto-shipping of commands
+        skippedShipPaths.add("/bin");
+        skippedShipPaths.add("/usr/bin");
+        skippedShipPaths.add("/usr/local/bin");
+        skippedShipPaths.add("/sbin");
+        skippedShipPaths.add("/usr/sbin");
+        skippedShipPaths.add("/usr/local/sbin");
     }
 
     static{

@@ -71,6 +71,17 @@ public class LOStore extends LogicalOperator {
     public FileSpec getOutputFile() {
         return mOutputFile;
     }
+    
+    public void setOutputFile(FileSpec outputFileSpec) throws IOException {
+        try { 
+            mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+       } catch (Exception e) { 
+           IOException ioe = new IOException(e.getMessage()); 
+           ioe.setStackTrace(e.getStackTrace());
+           throw ioe; 
+       }
+       mOutputFile = outputFileSpec;
+    }
 
     public StoreFunc getStoreFunc() {
         return mStoreFunc;

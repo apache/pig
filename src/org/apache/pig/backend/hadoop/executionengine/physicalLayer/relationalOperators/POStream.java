@@ -30,8 +30,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
-import org.apache.pig.impl.streaming.StreamingCommand.Handle;
-import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -45,8 +43,6 @@ public class POStream extends PhysicalOperator {
     private String executableManagerStr;            // String representing ExecutableManager to use
     private ExecutableManager executableManager;    // ExecutableManager to use 
     private StreamingCommand command;               // Actual command to be run
-    private StreamingCommand originalCommand;       // Original command
-    private StreamingCommand optimizedCommand;      // Optimized command
     private Properties properties;
 
     private boolean initialized = false;
@@ -63,7 +59,6 @@ public class POStream extends PhysicalOperator {
                       StreamingCommand command, Properties properties) {
         super(k);
         this.executableManagerStr = executableManager.getClass().getName();
-        this.originalCommand = command;
         this.command = command;
         this.properties = properties;
 
@@ -115,47 +110,6 @@ public class POStream extends PhysicalOperator {
         return command;
     }
     
-    /**
-     * Set the optimized {@link HandleSpec} for the given {@link Handle} of the 
-     * <code>StreamSpec</code>.
-     * 
-     * @param handle <code>Handle</code> to optimize
-     * @param spec optimized specification for the handle
-     */ 
-    public void setOptimizedSpec(Handle handle, String spec) {
-        if (optimizedCommand == null) {
-            optimizedCommand = (StreamingCommand)command.clone();
-        }
-        
-        if (handle == Handle.INPUT) {
-            HandleSpec streamInputSpec = optimizedCommand.getInputSpec();
-            streamInputSpec.setSpec(spec);
-        } else if (handle == Handle.OUTPUT) {
-            HandleSpec streamOutputSpec = optimizedCommand.getOutputSpec();
-            streamOutputSpec.setSpec(spec);
-        }
-        
-        command = optimizedCommand;
-    }
-    
-    /**
-     * Revert the optimized {@link StreamingCommand} for this 
-     * <code>StreamSpec</code>.
-     */
-    public void revertOptimizedCommand(Handle handle) {
-        if (optimizedCommand == null) {
-            return;
-        }
-
-        if (handle == Handle.INPUT &&
-            !command.getInputSpec().equals(originalCommand.getInputSpec())) {
-            command.setInputSpec(originalCommand.getInputSpec());
-        } else if (handle == Handle.OUTPUT && 
-                   !command.getOutputSpec().equals(
-                           originalCommand.getOutputSpec())) {
-            command.setOutputSpec(originalCommand.getOutputSpec());
-        }
-    }
     
     /* (non-Javadoc)
      * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator#getNext(org.apache.pig.data.Tuple)

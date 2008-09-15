@@ -78,6 +78,25 @@ public class LOLoad extends LogicalOperator {
     public FileSpec getInputFile() {
         return mInputFileSpec;
     }
+    
+    
+    public void setInputFile(FileSpec inputFileSpec) throws IOException {
+       try { 
+            mLoadFunc = (LoadFunc)
+                 PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
+       }catch (ClassCastException cce) {
+           log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
+           IOException ioe = new IOException(cce.getMessage()); 
+           ioe.setStackTrace(cce.getStackTrace());
+           throw ioe;
+       }
+        catch (Exception e){ 
+           IOException ioe = new IOException(e.getMessage()); 
+           ioe.setStackTrace(e.getStackTrace());
+           throw ioe; 
+       }
+        mInputFileSpec = inputFileSpec;
+    }
 
     public URL getSchemaFile() {
         return mSchemaFile;

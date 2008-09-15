@@ -224,5 +224,14 @@ public class PigStorage extends Utf8StorageConverter
     public void fieldsToRead(Schema schema) {
         // do nothing
     }
+    
+    public boolean equals(Object obj) {
+        return equals((PigStorage)obj);
+    }
+
+    public boolean equals(PigStorage other) {
+        return this.fieldDel == other.fieldDel;
+    }
+
 
 }

@@ -73,6 +73,13 @@ public class LogicalOptimizer extends PlanOptimizer<LogicalOperator, LogicalPlan
         mRules.add(new Rule(nodes, edges, required,
             new TypeCastInserter(plan, LOSTREAM_CLASSNAME)));
         
+        // Optimize when LOAD precedes STREAM and the loader class
+        // is the same as the serializer for the STREAM.
+        // Similarly optimize when STREAM is followed by store and the
+        // deserializer class is same as the Storage class.
+        mRules.add(new Rule(nodes, edges, required,
+            new StreamOptimizer(plan, LOSTREAM_CLASSNAME)));
+        
         // Push up limit where ever possible.
         nodes = new ArrayList<String>(1);
         edges = new HashMap<Integer, Integer>();
