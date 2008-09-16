@@ -18,34 +18,68 @@
 
 package org.apache.pig.test;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.IOException;
-import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
-import org.junit.Before;
+import org.apache.pig.data.Tuple;
 import org.junit.Test;
 
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.executionengine.ExecException;
+public class TestPigSplit extends PigExecTestCase {
+		
+	@Test
+	public void notestLongEvalSpec() throws Exception{
+		File f = File.createTempFile("tmp", "");
+		
+		PrintWriter pw = new PrintWriter(f);
+		pw.println("0\ta");
+		pw.close();
+		
+		pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(f.toString()) + "';");
+		for (int i=0; i< 500; i++){
+			pigServer.registerQuery("a = filter a by $0 == '1';");
+		}
+		Iterator<Tuple> iter = pigServer.openIterator("a");
+		while (iter.hasNext()){
+			throw new Exception();
+		}
+		f.delete();
+	}
+	
+    @Test
+    public void testSchemaWithSplit() throws Exception {
+        File f = File.createTempFile("tmp", "");
 
-import junit.framework.TestCase;
+        PrintWriter pw = new PrintWriter(f);
+        pw.println("2");
+        pw.println("12");
+        pw.println("42");
+        pw.close();
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(f.toString()) + "' as (value:chararray);");
+        pigServer.registerQuery("split a into b if value < '20', c if value > '10';");
+        pigServer.registerQuery("b1 = order b by value;");
+        pigServer.registerQuery("c1 = order c by value;");
 
-public class TestPigSplit extends TestCase {
-    PigServer pig;
-    MiniCluster cluster = MiniCluster.buildCluster();
-    
-    @Override
-    @Before
-    protected void setUp() throws Exception {
-        super.setUp();
+        // order in lexicographic, so 12 comes before 2
+        Iterator<Tuple> iter = pigServer.openIterator("b1");
+        assertTrue("b1 has an element", iter.hasNext());
+        assertEquals("first item in b1", iter.next().get(0), "12");
+        assertTrue("b1 has an element", iter.hasNext());
+        assertEquals("second item in b1", iter.next().get(0), "2");
+        assertFalse("b1 is over", iter.hasNext());
 
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        iter = pigServer.openIterator("c1");
+        assertTrue("c1 has an element", iter.hasNext());
+        assertEquals("first item in c1", iter.next().get(0), "12");
+        assertTrue("c1 has an element", iter.hasNext());
+        assertEquals("second item in c1", iter.next().get(0), "2");
+        assertTrue("c1 has an element", iter.hasNext());
+        assertEquals("third item in c1", iter.next().get(0), "42");
+        assertFalse("c1 is over", iter.hasNext());
+
+        f.delete();
     }
+
     @Test
     public void testLongEvalSpec() throws Exception{
         File f = File.createTempFile("tmp", "");
@@ -56,14 +90,13 @@ public class TestPigSplit extends TestCase {
         }
         pw.close();
         
-        pig.registerQuery("a = load 'file:" + f + "';");
-        pig.registerQuery("a = filter a by $0 == '1';");
+        pigServer.registerQuery("a = load 'file:" + f + "';");
+        pigServer.registerQuery("a = filter a by $0 == '1';");
 
-        Iterator<Tuple> iter = pig.openIterator("a");
+        Iterator<Tuple> iter = pigServer.openIterator("a");
         while (iter.hasNext()){
             throw new Exception();
         }
         f.delete();
     }
-    
 }

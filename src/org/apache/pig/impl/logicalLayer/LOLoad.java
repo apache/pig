@@ -26,6 +26,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -64,14 +65,10 @@ public class LOLoad extends LogicalOperator {
                   PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
         }catch (ClassCastException cce) {
             log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
-            IOException ioe = new IOException(cce.getMessage()); 
-            ioe.setStackTrace(cce.getStackTrace());
-            throw ioe;
+            throw WrappedIOException.wrap(cce);
         }
          catch (Exception e){ 
-            IOException ioe = new IOException(e.getMessage()); 
-            ioe.setStackTrace(e.getStackTrace());
-            throw ioe; 
+             throw WrappedIOException.wrap(e);
         }
     }
 
