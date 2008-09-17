@@ -199,3 +199,5 @@ Trunk (unreleased changes)
     
     PIG-429: Self join wth implicit split has the join output in wrong order
     (pradeepk via olgan)
+
+    PIG-434: short-circuit AND and OR (pradeepk viia olgan)

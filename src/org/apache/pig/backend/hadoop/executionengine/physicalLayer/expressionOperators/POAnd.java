@@ -60,21 +60,35 @@ public class POAnd extends BinaryComparisonOperator {
     public Result getNext(Boolean b) throws ExecException {
         Result left;
         left = lhs.getNext(dummyBool);
-        if(left.returnStatus != POStatus.STATUS_OK || left.result == null) {
+        // pass on ERROR and EOP 
+        if(left.returnStatus != POStatus.STATUS_OK && left.returnStatus != POStatus.STATUS_NULL) {
             return left;
         }
         
-        // Cannot short circuit since rhs could be null and then we should
-        // be returning null.
+        // truth table for AND 
+        // t = true, n = null, f = false
+        //    AND  t n f
+        // 1) t    t n f
+        // 2) n    n n f
+        // 3) f    f f f
+        
+        // Short circuit - if lhs is false, return false; ROW 3 above is handled with this
+        if (left.result != null && !(((Boolean)left.result).booleanValue())) return left;
+        
         Result right = rhs.getNext(dummyBool);
-        if(right.returnStatus != POStatus.STATUS_OK || right.result == null) {
-        	return right;
+        // pass on ERROR and EOP 
+        if(right.returnStatus != POStatus.STATUS_OK && right.returnStatus != POStatus.STATUS_NULL) {
+            return right;
         }
         
-        if (!(((Boolean)left.result).booleanValue())) return left;
+        // if the lhs is null and rhs is true - return null, in all other cases
+        // we can just return the rhs - ROW 1 and ROW 2 of table above
+        if(left.result == null && right.result != null && ((Boolean)right.result).booleanValue()) {
+            return left;
+        }
         
         // No matter what, what we get from the right side is what we'll
-        // return, error, null, true, or false.
+        // return, null, true, or false.
         return right;
     }
 

@@ -73,13 +73,26 @@ public class TestBoolean extends TestCase{
     	setupAnd();
     	Boolean[] testWith = new Boolean[] { false, true, null};
     	
+    	// truth table for AND 
+        // t = true, n = null, f = false
+        // AND  t n f
+        // t    t n f
+        // n    n n f
+        // f    f f f
+    	
     	// test with first operand set to null
     	for (int i = 0; i < testWith.length; i++) {
     		lt.setValue(null);
     		rt.setValue(testWith[i]);
 			Result res = bop.getNext(dummy);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
-	        assertEquals(null, (Boolean)res.result);
+			if(testWith[i] != null && testWith[i] == false) {
+			    // if rhs is false, result is false
+			    assertEquals(new Boolean(false), (Boolean) res.result);
+			} else {
+			    // else result is null
+			    assertEquals(null, (Boolean)res.result);    
+			}
 		}
     	
     	// test with second operand set to null
@@ -88,7 +101,13 @@ public class TestBoolean extends TestCase{
 			rt.setValue(null);
 			Result res = bop.getNext(dummy);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
-	        assertEquals(null, (Boolean)res.result);
+			if(testWith[i] != null && testWith[i] == false) {
+                // if lhs is false, result is false
+                assertEquals(new Boolean(false), (Boolean) res.result);
+            } else {
+                // else result is null
+                assertEquals(null, (Boolean)res.result);    
+            }
 		}
     }
     
@@ -96,6 +115,12 @@ public class TestBoolean extends TestCase{
     public void testOrNull() throws ExecException {
     	setupOr();
     	Boolean[] testWith = new Boolean[] { false, true, null};
+    	// truth table for OR 
+        // t = true, n = null, f = false
+        // OR   t n f
+        // t    t t t
+        // n    t n n
+        // f    t n f
     	
     	// test with first operand set to null
     	for (int i = 0; i < testWith.length; i++) {
@@ -103,7 +128,13 @@ public class TestBoolean extends TestCase{
     		rt.setValue(testWith[i]);
 			Result res = bop.getNext(dummy);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
-	        assertEquals(null, (Boolean)res.result);
+			if(testWith[i] != null && testWith[i] == true) {
+                // if rhs is true, result is true
+                assertEquals(new Boolean(true), (Boolean) res.result);
+            } else {
+                // else result is null
+                assertEquals(null, (Boolean)res.result);    
+            }
 		}
     	
     	// test with second operand set to null
@@ -112,7 +143,13 @@ public class TestBoolean extends TestCase{
 			rt.setValue(null);
 			Result res = bop.getNext(dummy);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
-	        assertEquals(null, (Boolean)res.result);
+			if(testWith[i] != null && testWith[i] == true) {
+                // if lhs is true, result is true
+                assertEquals(new Boolean(true), (Boolean) res.result);
+            } else {
+                // else result is null
+                assertEquals(null, (Boolean)res.result);    
+            }
 		}
     }
     
