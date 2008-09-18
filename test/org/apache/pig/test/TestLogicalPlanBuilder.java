@@ -1274,6 +1274,25 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         }
     }
 
+    @Test
+    public void testQuery91() {
+        buildPlan("a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);");
+        buildPlan("b = group a by name;");
+        buildPlan("c = foreach b generate SUM(a.age) + SUM(a.gpa);");
+    }
+
+    @Test
+    public void testQuery92() {
+        buildPlan("a = load 'myfile' as (name, age, gpa);");
+        buildPlan("b = group a by name;");
+        String query = "c = foreach b { "
+        + " alias = name#'alias'; "
+        + " af = alias#'first'; "
+        + " al = alias#'last'; "
+        + " generate SUM(a.age) + SUM(a.gpa); "
+        + "};";
+    }
+
     private Schema getSchemaFromString(String schemaString) throws ParseException {
         return getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }

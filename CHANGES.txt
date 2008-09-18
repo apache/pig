@@ -203,3 +203,5 @@ Trunk (unreleased changes)
     PIG-434: short-circuit AND and OR (pradeepk viia olgan)
 
     PIG-333: allowing no parethesis with single column alias with flatten
+
+    PIG-426: Adding result of two UDFs gives a syntax error

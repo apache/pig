@@ -60,7 +60,7 @@ public abstract class ExpressionOperator extends LogicalOperator {
     
     @Override
     public boolean supportsMultipleOutputs() {
-        return false;
+        return true;
     }
 
     @Override

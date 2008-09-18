@@ -83,7 +83,7 @@ public class LOUserFunc extends ExpressionOperator {
         Schema inputSchema = new Schema();
         for(ExpressionOperator op: mArgs) {
             if (!DataType.isUsableType(op.getType())) {
-                String msg = "Problem with input of User-defined function" ;
+                String msg = "Problem with input: " + op + " of User-defined function: " + this ;
                 mFieldSchema = null;
                 mIsFieldSchemaComputed = false;
                 throw new FrontendException(msg) ;

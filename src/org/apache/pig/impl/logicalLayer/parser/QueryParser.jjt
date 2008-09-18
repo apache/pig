@@ -277,7 +277,7 @@ public class QueryParser {
 		Boolean isAtomic = null;
 		if ( spec instanceof LOConst || 
 			(spec instanceof LOUserFunc &&
-                DataType.isAtomic(DataType.findType(((LOUserFunc)spec).getType()))))
+                DataType.isAtomic(((LOUserFunc)spec).getType())))
 			isAtomic = true;
 		else if (spec instanceof LOUserFunc)
 			isAtomic = false;
@@ -942,13 +942,13 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
                 SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
                 op.setSchema(schema); 
                 op.setCanonicalNames(); 
-                log.info("Stream as schema()"+ schema);
+                log.debug("Stream as schema()"+ schema);
             } 
         | fs = AtomSchema() 
             {
                 schema = new Schema(fs);
                 op.setSchema(schema);
-                log.info("Stream as atomschema()" + schema);
+                log.debug("Stream as atomschema()" + schema);
             }
         ) 
         ]
@@ -2205,7 +2205,7 @@ LogicalOperator GenerateStatement(Schema over, Map<String, LogicalOperator> spec
 		log.debug("Connecting generate inputs");
 		for(LogicalOperator op: getGenerateInputs()) {
 			lp.connect(op, spec);
-			log.debug("Connected operator: " + op.getClass().getName() + " to " + op + " " + spec + " in logical plan " + lp);
+			log.debug("Connected operator: " + op + " to " + spec + " in logical plan " + lp);
 		}
 		log.trace("Exiting GenerateStatement");
 		return spec;
