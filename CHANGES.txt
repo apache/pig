@@ -202,6 +202,12 @@ Trunk (unreleased changes)
 
     PIG-434: short-circuit AND and OR (pradeepk viia olgan)
 
-    PIG-333: allowing no parethesis with single column alias with flatten
+    PIG-333: allowing no parethesis with single column alias with flatten (sms
+    via olgan)
 
-    PIG-426: Adding result of two UDFs gives a syntax error
+    PIG-426: Adding result of two UDFs gives a syntax error (sms via olgan)
+
+    PIG-436: alias is lost when single column is flattened (pradeepk via
+    olgan)
+
+

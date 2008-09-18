@@ -1273,7 +1273,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             assertTrue(e.getMessage().contains("Schema size mismatch"));
         }
     }
-
+        
     @Test
     public void testQuery91() {
         buildPlan("a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);");
@@ -1291,6 +1291,58 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         + " al = alias#'last'; "
         + " generate SUM(a.age) + SUM(a.gpa); "
         + "};";
+    }
+
+    @Test
+    public void testQuery93() throws FrontendException, ParseException {
+        buildPlan("a = load 'one' as (name, age, gpa);");
+        buildPlan("b = group a by name;");
+        buildPlan("c = foreach b generate flatten(a);");
+        buildPlan("d = foreach c generate name;");
+        // test that we can refer to "name" field and not a::name
+        buildPlan("e = foreach d generate name;");
+    }
+    
+    @Test
+    public void testQueryFail93() throws FrontendException, ParseException {
+        buildPlan("a = load 'one' as (name, age, gpa);");
+        buildPlan("b = group a by name;");
+        buildPlan("c = foreach b generate flatten(a);");
+        buildPlan("d = foreach c generate name;");
+        // test that we can refer to "name" field and not a::name
+        try {
+            buildPlan("e = foreach d generate a::name;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Invalid alias: a::name in {name: bytearray}"));
+        }
+    }
+    
+    @Test
+    public void testQuery94() throws FrontendException, ParseException {
+        buildPlan("a = load 'one' as (name, age, gpa);");
+        buildPlan("b = load 'two' as (name, age, somethingelse);");
+        buildPlan("c = cogroup a by name, b by name;");
+        buildPlan("d = foreach c generate flatten(a), flatten(b);");
+        // test that we can refer to "a::name" field and not name
+        // test that we can refer to "b::name" field and not name
+        buildPlan("e = foreach d generate a::name, b::name;");
+        // test that we can refer to gpa and somethingelse
+        buildPlan("f = foreach d generate gpa, somethingelse, a::gpa, b::somethingelse;");
+        
+    }
+    
+    @Test
+    public void testQueryFail94() throws FrontendException, ParseException {
+        buildPlan("a = load 'one' as (name, age, gpa);");
+        buildPlan("b = load 'two' as (name, age, somethingelse);");
+        buildPlan("c = cogroup a by name, b by name;");
+        buildPlan("d = foreach c generate flatten(a), flatten(b);");
+        // test that we can refer to "a::name" field and not name
+        try {
+            buildPlan("e = foreach d generate name;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Invalid alias: name in {a::name: bytearray"));
+        }
     }
 
     private Schema getSchemaFromString(String schemaString) throws ParseException {
