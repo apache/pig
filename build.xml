@@ -58,7 +58,7 @@
     <property name="build.javadoc" value="${build.docs}/api" />
     <property name="build.encoding" value="ISO-8859-1" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
-    <property name="hadoop.jarfile" value="hadoop17.jar" />
+    <property name="hadoop.jarfile" value="hadoop18.jar" />
 
     <!-- distribution properties -->
     <property name="staging.dir" value="${build.dir}/staging"/>
@@ -85,7 +85,7 @@
     <property name="junit.hadoop.conf" value="" />
     <property name="test.log.dir" value="${basedir}/test/logs"/>
     <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
-    <property name="test.output" value="no"/>
+    <property name="test.output" value="yes"/>
 	
 	<!-- javadoc properties  -->
 	<property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
