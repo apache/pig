@@ -72,6 +72,28 @@ public class DistinctDataBag extends DefaultAbstractBag {
         return true;
     }
     
+    
+    public long size() {
+        if (mSpillFiles != null && mSpillFiles.size() > 0){
+            //We need to racalculate size to guarantee a count of unique 
+            //entries including those on disk
+            Iterator<Tuple> iter = iterator();
+            int newSize = 0;
+            while (iter.hasNext()) {
+                newSize++;
+                iter.next();
+            }
+            
+            synchronized(mContents) {
+                //we don't want adds to change our numbers
+                //the lock may need to cover more of the method
+                mSize = newSize;
+            }
+        }
+        return mSize;
+    }
+    
+    
     public Iterator<Tuple> iterator() {
         return new DistinctDataBagIterator();
     }
@@ -88,7 +110,6 @@ public class DistinctDataBag extends DefaultAbstractBag {
     @Override
     public void addAll(DataBag b) {
         synchronized (mContents) {
-            mSize += b.size();
             Iterator<Tuple> i = b.iterator();
             while (i.hasNext()) {
                 if (mContents.add(i.next())) {

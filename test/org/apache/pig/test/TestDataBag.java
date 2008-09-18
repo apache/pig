@@ -544,6 +544,8 @@ public class TestDataBag extends junit.framework.TestCase {
             }
             mgr.forceSpill();
         }
+        
+        assertEquals("Size of distinct data bag is incorrect", b.size(), rightAnswer.size());
 
         // Read tuples back, hopefully they come out in the same order.
         Iterator<Tuple> bIter = b.iterator();
