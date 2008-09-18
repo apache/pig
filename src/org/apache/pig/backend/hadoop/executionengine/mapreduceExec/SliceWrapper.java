@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -90,11 +91,12 @@ public class SliceWrapper implements InputSplit {
         Set<String> locations = new HashSet<String>();
         for (String loc : wrapped.getLocations()) {
             Path path = new Path(loc);
-            String hints[][] = fs.getFileCacheHints(path, 0, fs.getFileStatus(
-                    path).getLen());
-            for (int i = 0; i < hints.length; i++) {
-                for (int j = 0; j < hints[i].length; j++) {
-                    locations.add(hints[i][j]);
+            BlockLocation[] blocks = fs.getFileBlockLocations(path, 0, fs.getFileStatus(
+                                            path).getLen());
+            for (int i = 0; i < blocks.length; i++) {
+                String[] hosts = blocks[i].getHosts();
+                for (int j = 0; j < hosts.length; j++){
+                    locations.add(hosts[j]);
                 }
             }
         }

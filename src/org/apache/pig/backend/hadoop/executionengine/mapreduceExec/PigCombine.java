@@ -70,7 +70,10 @@ public class PigCombine implements
                 }
             }
 
-            index = PigInputFormat.getActiveSplit().getIndex();
+            if (PigInputFormat.getActiveSplit() == null) {
+            } else {
+                index = PigInputFormat.getActiveSplit().getIndex();
+            }
 
             Datum groupName = key.getField(0);
             finalout.group = key;

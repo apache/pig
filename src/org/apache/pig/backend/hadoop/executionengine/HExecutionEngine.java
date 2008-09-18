@@ -45,7 +45,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.JobSubmissionProtocol;
 import org.apache.hadoop.mapred.JobTracker;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -80,7 +79,6 @@ public class HExecutionEngine implements ExecutionEngine {
     
     protected DataStorage ds;
     
-    protected JobSubmissionProtocol jobTracker;
     protected JobClient jobClient;
 
     // key: the operator key from the logical plan that originated the physical plan
@@ -101,7 +99,6 @@ public class HExecutionEngine implements ExecutionEngine {
         this.ds = null;
         
         // to be set in the init method
-        this.jobTracker = null;
         this.jobClient = null;
     }
     
@@ -185,16 +182,6 @@ public class HExecutionEngine implements ExecutionEngine {
             
         if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
                 log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
-                if (!LOCAL.equalsIgnoreCase(cluster)) {
-                try {
-                    jobTracker = (JobSubmissionProtocol) RPC.getProxy(
-                            JobSubmissionProtocol.class,
-                            JobSubmissionProtocol.versionID, JobTracker
-                                    .getAddress(configuration), configuration);
-                } catch (IOException e) {
-                    throw new ExecException("Failed to crate job tracker", e);
-                }
-            }
         }
 
         try {
