@@ -2260,7 +2260,7 @@ ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperato
 		{
 			flatten = true;
 		}
-        [ <AS> "(" schema = TupleSchema() ")" ]
+        [ <AS> ( "(" schema = TupleSchema() ")" | fs = FieldSchema() ) ]
 	)
 |	
     (

@@ -1183,6 +1183,11 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         foreach = (LOForEach) lp.getLeaves().get(0);
         assertTrue(foreach.getSchema().equals(getSchemaFromString("name: chararray, age: int, mycount: long")));
 
+        //the first element in group, i.e., name is renamed as myname 
+        lp = buildPlan("c = foreach b generate flatten(group) as myname, COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("myname: chararray, age: int, mycount: long")));
+
         //group is renamed as mygroup
         lp = buildPlan("c = foreach b generate group as mygroup, COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
@@ -1203,18 +1208,33 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         foreach = (LOForEach) lp.getLeaves().get(0);
         assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
 
-        /*
-        //forcing an wrror by having more elements in the fhe schema
-        lp = buildPlan("c = foreach B generate group as mygroup:(myname, myage, mygpa), COUNT(A) as mycount;");
-        lp = buildPlan("c = foreach B generate group as mygroup:(myname: int, myage), COUNT(A) as mycount;");
-        lp = buildPlan("c = foreach B generate group as mygroup:(myname, myage: chararray), COUNT(A) as mycount;");
-        lp = buildPlan("c = foreach B generate group as mygroup:{t: (myname, myage)}, COUNT(A) as mycount;");
-        lp = buildPlan("c = foreach B generate flatten(group) as (myname, myage, mygpa), COUNT(A) as mycount;");
-
+        //setting the schema of flattened bag that has no schema with the user defined schema
+        buildPlan("c = load 'another_file';");
+        buildPlan("d = cogroup a by $0, c by $0;");
+        lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as (x, y, z), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: bytearray, y: bytearray, z: bytearray, mycount: long")));
 
-        assertTrue(foreach.getSchema().equals(getSchemaFromString()));
-        */
+        //setting the schema of flattened bag that has no schema with the user defined schema
+        buildPlan("c = load 'another_file';");
+        buildPlan("d = cogroup a by $0, c by $0;");
+        lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as (x: int, y: float, z), COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: int, y: float, z: bytearray, mycount: long")));
+
+        //setting the schema of flattened bag that has no schema with the user defined schema
+        buildPlan("c = load 'another_file';");
+        buildPlan("d = cogroup a by $0, c by $0;");
+        lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as x, COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: bytearray, mycount: long")));
+
+        //setting the schema of flattened bag that has no schema with the user defined schema
+        buildPlan("c = load 'another_file';");
+        buildPlan("d = cogroup a by $0, c by $0;");
+        lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as x: int, COUNT(a) as mycount;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: int, mycount: long")));
 
     }
 

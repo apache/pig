@@ -201,3 +201,5 @@ Trunk (unreleased changes)
     (pradeepk via olgan)
 
     PIG-434: short-circuit AND and OR (pradeepk viia olgan)
+
+    PIG-333: allowing no parethesis with single column alias with flatten

@@ -30,6 +30,7 @@ import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
@@ -226,6 +227,7 @@ public class LOForEach extends LogicalOperator {
                                         fss.add(newFs);
                                     } else {
                                         for(Schema.FieldSchema ufs: userDefinedSchema.getFields()) {
+                                            QueryParser.SchemaUtils.setFieldSchemaDefaultType(ufs, DataType.BYTEARRAY);
                                             fss.add(new Schema.FieldSchema(ufs.alias, ufs.schema, ufs.type));
                                             updateAliasCount(aliases, ufs.alias);
                                         }
