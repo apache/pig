@@ -566,10 +566,19 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
     
     @Test
-    public void testQuery41() {
+    public void testQueryFail41() {
         buildPlan("a = load 'a';");
-        buildPlan("b = a as (host,url);");
-        buildPlan("foreach b generate host;");
+        try {
+            buildPlan("b = a as (host,url);");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Currently PIG does not support assigning an existing relation"));
+        }
+        // TODO
+        // the following statement was earlier present
+        // eventually when we do allow assignments of the form
+        // above, we should test with the line below
+        // uncommented
+        //buildPlan("foreach b generate host;");
     }
     
     @Test

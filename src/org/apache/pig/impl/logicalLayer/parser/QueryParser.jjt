@@ -742,13 +742,20 @@ TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
 LogicalPlan Parse() : 
 {
 	LogicalOperator root = null; 
-	Token t1; 
+	Token t1;
+	Token t2; 
 	LogicalPlan lp = new LogicalPlan();
 	log.trace("Entering Parse");
 }
 {
 	(
-	LOOKAHEAD(2)
+	LOOKAHEAD(3)
+	// For now don't allow A = B; kind of statements - this should
+	// be fixed and allowed in the future
+	(t1 = <IDENTIFIER> "=" t2 = <IDENTIFIER> [ <AS> "(" TupleSchema() ")" ] ";" { 
+			throw new ParseException(
+			"Currently PIG does not support assigning an existing relation (" + t1.image + ") to another alias (" + t2.image + ")");})
+|	LOOKAHEAD(2) 
 	(t1 = <IDENTIFIER> "=" root = Expr(lp) ";" {root.setAlias(t1.image); addAlias(t1.image, root);})
 |	(root = Expr(lp) ";")
 |	(<SPLIT> root = SplitClause(lp) ";")

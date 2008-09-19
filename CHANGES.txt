@@ -213,4 +213,4 @@ Trunk (unreleased changes)
     PIG-364: Limit return incorrect records when we use multiple reducer
     (daijy via olgan)
 
-
+    PIG-439: disallow alias renaming
