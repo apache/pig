@@ -91,6 +91,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     private String scope;
     
     int requestedParallelism = -1;
+    
+    // Last POLimit value in this map reduce operator, needed by LimitAdjuster
+    // to add additional map reduce operator with 1 reducer after this
+    long limit = -1;
 
     public MapReduceOper(OperatorKey k) {
         super(k);

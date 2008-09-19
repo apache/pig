@@ -210,4 +210,7 @@ Trunk (unreleased changes)
     PIG-436: alias is lost when single column is flattened (pradeepk via
     olgan)
 
+    PIG-364: Limit return incorrect records when we use multiple reducer
+    (daijy via olgan)
+
 
