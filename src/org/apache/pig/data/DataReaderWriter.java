@@ -95,6 +95,9 @@ public class DataReaderWriter {
             case DataType.BOOLEAN:
                 return new Boolean(in.readBoolean());
 
+            case DataType.BYTE:
+                return new Byte(in.readByte());
+
             case DataType.BYTEARRAY: {
                 int size = in.readInt();
                 byte[] ba = new byte[size];
@@ -174,6 +177,11 @@ public class DataReaderWriter {
             case DataType.BOOLEAN:
                 out.writeByte(DataType.BOOLEAN);
                 out.writeBoolean((Boolean)val);
+                break;
+
+            case DataType.BYTE:
+                out.writeByte(DataType.BYTE);
+                out.writeByte((Byte)val);
                 break;
 
             case DataType.BYTEARRAY: {

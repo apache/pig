@@ -35,6 +35,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -62,10 +63,10 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public class PigMapOnly {
 
     public static class Map extends PigMapBase implements
-            Mapper<Text, TargetedTuple, WritableComparable, Writable> {
+            Mapper<Text, TargetedTuple, PigNullableWritable, Writable> {
 
         @Override
-        public void collect(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException {
+        public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {
             oc.collect(null, tuple);
         }
     }

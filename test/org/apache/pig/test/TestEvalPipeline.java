@@ -345,10 +345,11 @@ public class TestEvalPipeline extends TestCase {
         if (eliminateDuplicates){
             pigServer.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
         }else{
-            if(!useUDF)
+            if(!useUDF) {
                 pigServer.registerQuery("B = ORDER A BY $0 PARALLEL 10;");
-            else
+            } else {
                 pigServer.registerQuery("B = ORDER A BY $0 using " + TupComp.class.getName() + ";");
+            }
         }
         pigServer.store("B", tmpOutputFile);
         
@@ -359,12 +360,13 @@ public class TestEvalPipeline extends TestCase {
         if(!iter.hasNext()) fail("No Results obtained");
         while (iter.hasNext()){
             Tuple t = iter.next();
-            System.out.println(t.get(0).toString());
+            //System.out.println(t.get(0).toString());
             if (eliminateDuplicates){
                 Integer act = Integer.parseInt(t.get(0).toString());
                 assertFalse(seen.contains(act));
                 seen.add(act);
             }else{
+System.out.println(last + " " + t.get(0));
                 assertTrue(last.compareTo(t.get(0).toString())<=0);
                 assertEquals(t.size(), 2);
                 last = t.get(0).toString();

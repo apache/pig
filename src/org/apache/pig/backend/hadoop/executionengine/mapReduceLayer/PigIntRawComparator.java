@@ -28,7 +28,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.JobConf;
 
-import org.apache.pig.impl.io.NullableIntWritable;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigIntRawComparator extends IntWritable.Comparator implements Configurable {
@@ -61,17 +61,21 @@ public class PigIntRawComparator extends IntWritable.Comparator implements Confi
         return null;
     }
 
+    /**
+     * Compare two NullableIntWritables as raw bytes.  If neither are null,
+     * then IntWritable.compare() is used.  If both are null then the indices
+     * are compared.  Otherwise the null one is defined to be less.
+     */
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
         int rc = 0;
+
         // If either are null, handle differently.
-        if (b1[s1] == NullableIntWritable.NOTNULL &&
-                b2[s2] == NullableIntWritable.NOTNULL) {
-            rc = super.compare(b1, s1 + 1, l1-1, b2, s2 + 1, l2-1);
+        if (b1[s1] == 0 && b2[s2] == 0) {
+            rc = super.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
         } else {
             // For sorting purposes two nulls are equal.
-            if (b1[s1] == NullableIntWritable.NULL &&
-                    b2[s2] == NullableIntWritable.NULL) rc = 0;
-            else if (b1[s1] == NullableIntWritable.NULL) rc = -1;
+            if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
+            else if (b1[s1] != 0) rc = -1;
             else rc = 1;
         }
         if (!mAsc[0]) rc *= -1;

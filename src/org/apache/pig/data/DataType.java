@@ -49,7 +49,8 @@ public class DataType {
     // values or creating order issues.  
     public static final byte UNKNOWN   =   0;
     public static final byte NULL      =   1;
-    public static final byte BOOLEAN   =   5;
+    public static final byte BOOLEAN   =   5; // internal use only
+    public static final byte BYTE      =   6; // internal use only
     public static final byte INTEGER   =  10;
     public static final byte LONG      =  15;
     public static final byte FLOAT     =  20;
@@ -80,6 +81,7 @@ public class DataType {
         else if (o instanceof Float) return FLOAT;
         else if (o instanceof Double) return DOUBLE;
         else if (o instanceof Boolean) return BOOLEAN;
+        else if (o instanceof Byte) return BYTE;
         else return ERROR;
     }
 
@@ -100,6 +102,7 @@ public class DataType {
         else if (t == Float.class) return FLOAT;
         else if (t == Double.class) return DOUBLE;
         else if (t == Boolean.class) return BOOLEAN;
+        else if (t == Byte.class) return BYTE;
         else {
             // Might be a tuple or a bag, need to check the interfaces it
             // implements
@@ -135,13 +138,13 @@ public class DataType {
         return types.length;
     }
     public static byte[] genAllTypes(){
-        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
+        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, DataType.CHARARRAY, 
                 DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.MAP, DataType.TUPLE};
         return types;
     }
     
     private static String[] genAllTypeNames(){
-        String[] names = { "BAG", "BOOLEAN", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER", "LONG", 
+        String[] names = { "BAG", "BOOLEAN", "BYTE", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER", "LONG", 
                 "MAP", "TUPLE" };
         return names;
     }
@@ -184,6 +187,7 @@ public class DataType {
         switch (dt) {
         case NULL:      return "NULL";
         case BOOLEAN:   return "boolean";
+        case BYTE:      return "byte";
         case INTEGER:   return "integer";
         case LONG:      return "long";
         case FLOAT:     return "float";
@@ -229,7 +233,8 @@ public class DataType {
                 (dataType == LONG) ||
                 (dataType == FLOAT) ||
                 (dataType == DOUBLE) ||
-                (dataType == BOOLEAN));
+                (dataType == BOOLEAN) ||
+                (dataType == BYTE));
     }
 
     /**
@@ -265,7 +270,7 @@ public class DataType {
      * Compare two objects to each other.  This function is necessary
      * because there's no super class that implements compareTo.  This
      * function provides an (arbitrary) ordering of objects of different
-     * types as follows:  NULL &lt; BOOLEAN &lt; INTEGER &lt; LONG &lt;
+     * types as follows:  NULL &lt; BOOLEAN &lt; BYTE &lt; INTEGER &lt; LONG &lt;
      * FLOAT &lt; DOUBLE * &lt; BYTEARRAY &lt; STRING &lt; MAP &lt;
      * TUPLE &lt; BAG.  No other functions should implement this cross
      * object logic.  They should call this function for it instead.
@@ -284,6 +289,9 @@ public class DataType {
 
             case BOOLEAN:
                 return ((Boolean)o1).compareTo((Boolean)o2);
+
+            case BYTE:
+                return ((Byte)o1).compareTo((Byte)o2);
 
             case INTEGER:
                 return ((Integer)o1).compareTo((Integer)o2);
@@ -371,6 +379,9 @@ public class DataType {
             if (((Boolean)o) == true) return new Integer(1);
             else return new Integer(0);
 
+        case BYTE:
+            return new Integer(((Byte)o).intValue());
+
         case INTEGER:
             return (Integer)o;
 
@@ -417,6 +428,9 @@ public class DataType {
         case BOOLEAN:
             if (((Boolean)o) == true) return new Long(1);
             else return new Long(0);
+
+        case BYTE:
+            return new Long(((Byte)o).longValue());
 
         case INTEGER:
             return new Long(((Integer)o).longValue());
@@ -483,6 +497,7 @@ public class DataType {
             return null;
 
         case BOOLEAN:
+        case BYTE:
         case MAP:
         case TUPLE:
         case BAG:
@@ -527,6 +542,7 @@ public class DataType {
             return null;
 
         case BOOLEAN:
+        case BYTE:
         case MAP:
         case TUPLE:
         case BAG:

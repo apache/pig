@@ -26,9 +26,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -58,8 +59,8 @@ public class POPackage extends PhysicalOperator {
     //The iterator of indexed Tuples
     //that is typically provided by
     //Hadoop
-    Iterator<IndexedTuple> indTupIter;
-    
+    Iterator<NullableTuple> tupIter;
+
     //The key being worked on
     Object key;
     
@@ -123,16 +124,16 @@ public class POPackage extends PhysicalOperator {
      * @param inp - iterator of indexed tuples typically
      *              obtained from Hadoop
      */
-    public void attachInput(Object k, Iterator<IndexedTuple> inp) {
-        indTupIter = inp;
-        key = k;
+    public void attachInput(PigNullableWritable k, Iterator<NullableTuple> inp) {
+        tupIter = inp;
+        key = k.getValueAsPigType();
     }
 
     /**
      * attachInput's better half!
      */
     public void detachInput() {
-        indTupIter = null;
+        tupIter = null;
         key = null;
     }
 
@@ -171,9 +172,19 @@ public class POPackage extends PhysicalOperator {
         //For each indexed tup in the inp, sort them
         //into their corresponding bags based
         //on the index
-        while (indTupIter.hasNext()) {
-            IndexedTuple it = indTupIter.next();
-            if (numInputs > 0) dbs[it.index].add(it.toTuple());
+        while (tupIter.hasNext()) {
+            NullableTuple ntup = tupIter.next();
+            // Need to make a copy of the value, as hadoop uses the same ntup
+            // to represent each value.
+            Tuple val = (Tuple)ntup.getValueAsPigType();
+            /*
+            Tuple copy = mTupleFactory.newTuple(val.size());
+            for (int i = 0; i < val.size(); i++) {
+                copy.set(i, val.get(i));
+            }
+            */
+            Tuple copy = mTupleFactory.newTuple(val.getAll());
+            if (numInputs > 0) dbs[ntup.getIndex()].add(copy);
             if(reporter!=null) reporter.progress();
         }
         

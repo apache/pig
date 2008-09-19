@@ -30,17 +30,17 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 /**
  * The package operator that packages the globally rearranged tuples into
  * output format after the combiner stage.  It differs from POPackage in that
- * instead of using the index in the IndexedTuple to find the bag to put a
- * tuple in, it instead uses the index to find the key.  All other inputs are
+ * instead it does not use the index in the NullableTuple to find the bag to put a
+ * tuple in.  Intead, the inputs are
  * put in a bag corresponding to their offset in the tuple.
  */
 public class POPostCombinerPackage extends POPackage {
@@ -83,11 +83,6 @@ public class POPostCombinerPackage extends POPackage {
         return "PostCombinerPackage" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
     }
 
-    /**
-     * From the inputs, constructs the output tuple
-     * for this co-group in the required format which
-     * is (key, {bag of tuples from input 1}, {bag of tuples from input 2}, ...)
-     */
     @Override
     public Result getNext(Tuple t) throws ExecException {
         int keyField = -1;
@@ -99,10 +94,10 @@ public class POPostCombinerPackage extends POPackage {
         
         // For each indexed tup in the inp, split them up and place their
         // fields into the proper bags.  If the given field isn't a bag, just
-        // return set the value as is.
-        while (indTupIter.hasNext()) {
-            IndexedTuple it = indTupIter.next();
-            Tuple tup = it.toTuple();
+        // set the value as is.
+        while (tupIter.hasNext()) {
+            NullableTuple ntup = tupIter.next();
+            Tuple tup = (Tuple)ntup.getValueAsPigType();
             for (int i = 0; i < tup.size(); i++) {
                 if (mBags[i]) ((DataBag)fields[i]).add((Tuple)tup.get(i));
                 else fields[i] = tup.get(i);

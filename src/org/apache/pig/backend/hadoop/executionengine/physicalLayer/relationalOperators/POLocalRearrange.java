@@ -24,7 +24,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -59,7 +58,7 @@ public class POLocalRearrange extends PhysicalOperator {
     List<ExpressionOperator> leafOps;
 
     // The position of this LR in the package operator
-    int index;
+    byte index;
     
     byte keyType;
 
@@ -67,12 +66,12 @@ public class POLocalRearrange extends PhysicalOperator {
     
     private boolean isCross = false;
 
-    // A place holder IndexedTuple used in distinct case where we really don't
+    // A place holder Tuple used in distinct case where we really don't
     // have any value to pass through.  But hadoop gets cranky if we pass a
-    // null, so we'll just create one instance of this empty indexed tuple and
+    // null, so we'll just create one instance of this empty tuple and
     // pass it for every row.  We only get around to actually creating it if
     // mIsDistinct is set to true.
-    private IndexedTuple mFakeIndexedTuple = null;
+    private Tuple mFakeTuple = null;
 
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -114,12 +113,17 @@ public class POLocalRearrange extends PhysicalOperator {
         return false;
     }
 
-    public int getIndex() {
+    public byte getIndex() {
         return index;
     }
 
     public void setIndex(int index) {
-        this.index = index;
+        if (index > 0x40) {
+            throw new RuntimeException("Cogroups with more than 127 inputs "
+                + " not supported.");
+        } else {
+            this.index = (byte)index;
+        }
     }
 
     public boolean isDistinct() { 
@@ -129,7 +133,7 @@ public class POLocalRearrange extends PhysicalOperator {
     public void setDistinct(boolean isDistinct) {
         mIsDistinct = isDistinct;
         if (mIsDistinct) {
-            mFakeIndexedTuple = new IndexedTuple(mTupleFactory.newTuple(), 0);
+            mFakeTuple = mTupleFactory.newTuple();
         }
     }
     
@@ -221,28 +225,27 @@ public class POLocalRearrange extends PhysicalOperator {
             key = resLst.get(0).result;
         }
         
-        Tuple outPut = mTupleFactory.newTuple(2);
+        Tuple output = mTupleFactory.newTuple(3);
         if (mIsDistinct) {
 
             //Put the key and the indexed tuple
             //in a tuple and return
-            outPut.set(0,key);
-            outPut.set(1, mFakeIndexedTuple);
-            return outPut;
+            output.set(0, new Byte((byte)0));
+            output.set(1, key);
+            output.set(2, mFakeTuple);
+            return output;
         } else {
             if(isCross){
                 for(int i=0;i<plans.size();i++)
                     value.getAll().remove(0);
             }
-            //Create the indexed tuple out of the value
-            //that is remaining in the input tuple
-            IndexedTuple it = new IndexedTuple(value, index);
 
-            //Put the key and the indexed tuple
+            //Put the index, key, and value
             //in a tuple and return
-            outPut.set(0,key);
-            outPut.set(1,it);
-            return outPut;
+            output.set(0, new Byte(index));
+            output.set(1, key);
+            output.set(2, value);
+            return output;
         }
     }
 

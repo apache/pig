@@ -20,19 +20,24 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.IndexedTuple;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
@@ -49,124 +54,104 @@ public class TestPackage extends junit.framework.TestCase {
     public void tearDown() throws Exception {
     }
     
-    static class ITIterator implements Iterator<IndexedTuple>,
-            Iterable<IndexedTuple> {
-        private Iterator<Tuple> it;
-
-        public ITIterator(Iterator<Tuple> it) {
-            this.it = it;
-        }
-
-        public boolean hasNext() {
-            return it.hasNext();
-        }
-
-        public IndexedTuple next() {
-            return (IndexedTuple) it.next();
-        }
-
-        public void remove() {
-            // TODO Auto-generated method stub
-
-        }
-
-        public Iterator<IndexedTuple> iterator() {
-            return this;
-        }
-
-    }
-    
-    public static boolean test(Object key, boolean inner[]) throws ExecException, IOException {
-        boolean ret = false;
+    private void runTest(Object key, boolean inner[]) throws ExecException, IOException {
         Random r = new Random();
         DataBag db1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
         DataBag db2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
-        DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+        List<NullableTuple> db = new ArrayList<NullableTuple>(200);
         Iterator db1Iter = db1.iterator();
         if(!inner[0]){
             while (db1Iter.hasNext()) {
-                IndexedTuple it = new IndexedTuple((Tuple) db1Iter.next(), 0);
+                NullableTuple it = new NullableTuple((Tuple)db1Iter.next());
+                it.setIndex((byte)0);
                 db.add(it);
             }
         }
         Iterator db2Iter = db2.iterator();
         while (db2Iter.hasNext()) {
-            IndexedTuple it = new IndexedTuple((Tuple) db2Iter.next(), 1);
+            NullableTuple it = new NullableTuple((Tuple) db2Iter.next());
+            it.setIndex((byte)1);
             db.add(it);
         }
-        ITIterator iti = new TestPackage.ITIterator(db.iterator());
+        //ITIterator iti = new TestPackage.ITIterator(db.iterator());
         POPackage pop = new POPackage(new OperatorKey("", r.nextLong()));
         pop.setNumInps(2);
         pop.setInner(inner);
-        pop.attachInput(key, iti);
+        PigNullableWritable k = HDataType.getWritableComparableTypes(key, (byte)0);
+        pop.attachInput(k, db.iterator());
         Tuple t = null;
         Result res = null;
         res = (Result) pop.getNext(t);
-        if(res.returnStatus==POStatus.STATUS_NULL && inner[0])
-            return true;
-        if (res.returnStatus != POStatus.STATUS_OK)
-            return false;
+        if(res.returnStatus==POStatus.STATUS_NULL && inner[0]) return;
+        assertEquals(POStatus.STATUS_OK, res.returnStatus);
 
         t = (Tuple) res.result;
         Object outKey = t.get(0);
         DataBag outDb1 = (DataBag) t.get(1);
         DataBag outDb2 = (DataBag) t.get(2);
 
-        if (outKey == key && TestHelper.compareBags(db1, outDb1)
-                && TestHelper.compareBags(db2, outDb2))
-            return true;
-        return ret;
+        assertEquals(key, outKey);
+        assertTrue(TestHelper.compareBags(db1, outDb1));
+        assertTrue(TestHelper.compareBags(db2, outDb2));
     }
 
     /**
      * To show that it does not have any type specific
      * code
      */
-    private static boolean test(byte t, boolean[] inner) throws ExecException, IOException {
+    private void pickTest(byte t, boolean[] inner) throws ExecException, IOException {
         Random r = new Random();
         switch (t) {
         case DataType.BAG:
-            return test(GenRandomData.genRandSmallTupDataBag(r, 10, 100),inner);
+            runTest(GenRandomData.genRandSmallTupDataBag(r, 10, 100),inner);
+            break;
         case DataType.BOOLEAN:
-            return test(r.nextBoolean(),inner);
+            runTest(r.nextBoolean(),inner);
+            break;
         case DataType.BYTEARRAY:
-            return test(GenRandomData.genRandDBA(r),inner);
+            runTest(GenRandomData.genRandDBA(r),inner);
+            break;
         case DataType.CHARARRAY:
-            return test(GenRandomData.genRandString(r),inner);
+            runTest(GenRandomData.genRandString(r),inner);
+            break;
         case DataType.DOUBLE:
-            return test(r.nextDouble(),inner);
+            runTest(r.nextDouble(),inner);
+            break;
         case DataType.FLOAT:
-            return test(r.nextFloat(),inner);
+            runTest(r.nextFloat(),inner);
+            break;
         case DataType.INTEGER:
-            return test(r.nextLong(),inner);
+            runTest(r.nextLong(),inner);
+            break;
         case DataType.LONG:
-            return test(r.nextLong(),inner);
+            runTest(r.nextLong(),inner);
+            break;
         case DataType.MAP:
-            return test(GenRandomData.genRandMap(r, 10),inner);
+        case DataType.BYTE:
+            return; // map not key type
         case DataType.TUPLE:
-            return test(GenRandomData.genRandSmallBagTuple(r, 10, 100),inner);
+            runTest(GenRandomData.genRandSmallBagTuple(r, 10, 100),inner);
+            break;
+
+        default:
+            fail("No test case for type " + DataType.findTypeName(t));
         }
-        return false;
     }
 
     @Test
     public void testOperator() throws ExecException, IOException{
         byte[] types = DataType.genAllTypes();
-//        Map<Byte, String> map = operatorHelper.genTypeToNameMap();
-//        System.out.println("Testing Package:");
         for (byte b : types) {
-//            System.out.print("\t With " + map.get(b) + ": ");
+            System.out.println("Type " + DataType.findTypeName(b));
             boolean succ = true;
             int NUM_TRIALS = 10;
             boolean[] inner1 = { false , false };
             for (int i = 0; i < NUM_TRIALS; i++)
-                succ &= test(b, inner1);
-            assertEquals(true, succ);
+                pickTest(b, inner1);
             
             boolean[] inner2 = { true , false };
             for (int i = 0; i < NUM_TRIALS; i++)
-                succ &= test(b, inner2);
-            assertEquals(true, succ);
+                pickTest(b, inner2);
             /*if (succ)
                 System.out.println("Success!!");
             else

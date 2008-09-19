@@ -26,7 +26,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.Mapper;
@@ -43,9 +42,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
@@ -54,18 +54,22 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
  * are used by Pig to execute Pig Map Reduce jobs. Since
  * there is a reduce phase, the leaf is bound to be a 
  * POLocalRearrange. So the map phase has to separate the
- * key and indexed tuple and collect it into the output
+ * key and tuple and collect it into the output
  * collector.
  * 
- * The shuffle and sort phase sorts these key &amp; indexed tuples
- * and creates key, List&lt;IndexedTuple&gt; and passes the key and
+ * The shuffle and sort phase sorts these keys &amp; tuples
+ * and creates key, List&lt;Tuple&gt; and passes the key and
  * iterator to the list. The deserialized POPackage operator
- * is used to package the key, List&lt;IndexedTuple&gt; into pigKey, 
+ * is used to package the key, List&lt;Tuple&gt; into pigKey, 
  * Bag&lt;Tuple&gt; where pigKey is of the appropriate pig type and
  * then the result of the package is attached to the reduce
  * plan which is executed if its not empty. Either the result 
  * of the reduce plan or the package res is collected into
  * the output collector. 
+ *
+ * The index of the tuple (that is, which bag it should be placed in by the
+ * package) is packed into the key.  This is done so that hadoop sorts the
+ * keys in order of index for join.
  *
  */
 public class PigMapReduce {
@@ -73,34 +77,50 @@ public class PigMapReduce {
     public static JobConf sJobConf = null;
     
     public static class Map extends PigMapBase implements
-            Mapper<Text, TargetedTuple, WritableComparable, Writable> {
+            Mapper<Text, TargetedTuple, PigNullableWritable, Writable> {
 
         @Override
-        public void collect(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException {
-            Object key = tuple.get(0);
-            IndexedTuple it = (IndexedTuple)tuple.get(1);
-            WritableComparable wcKey = HDataType.getWritableComparableTypes(key, keyType);
-            oc.collect(wcKey, it);
+        public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {
+            Byte index = (Byte)tuple.get(0);
+            PigNullableWritable key =
+                HDataType.getWritableComparableTypes(tuple.get(1), keyType);
+            NullableTuple val = new NullableTuple((Tuple)tuple.get(2));
+            // Both the key and the value need the index.  The key needs it so
+            // that it can be sorted on the index in addition to the key
+            // value.  The value needs it so that POPackage can properly
+            // assign the tuple to its slot in the projection.
+            key.setIndex(index);
+            val.setIndex(index);
+            oc.collect(key, val);
         }
     }
     
     public static class MapWithComparator extends PigMapBase implements
-            Mapper<Text, TargetedTuple, WritableComparable, Writable> {
+            Mapper<Text, TargetedTuple, PigNullableWritable, Writable> {
 
         @Override
-        public void collect(OutputCollector<WritableComparable, Writable> oc,
+        public void collect(OutputCollector<PigNullableWritable, Writable> oc,
                 Tuple tuple) throws ExecException, IOException {
-            Object key = tuple.get(0);
-            Tuple keyTuple = tf.newTuple(1);
-            keyTuple.set(0, key);
-            IndexedTuple it = (IndexedTuple) tuple.get(1);
-            oc.collect(keyTuple, it);
+            Object k = tuple.get(1);
+            Tuple keyTuple = tf.newTuple(k);
+
+            Byte index = (Byte)tuple.get(0);
+            PigNullableWritable key =
+                HDataType.getWritableComparableTypes(keyTuple, DataType.TUPLE);
+            NullableTuple val = new NullableTuple((Tuple)tuple.get(2));
+            // Both the key and the value need the index.  The key needs it so
+            // that it can be sorted on the index in addition to the key
+            // value.  The value needs it so that POPackage can properly
+            // assign the tuple to its slot in the projection.
+            key.setIndex(index);
+            val.setIndex(index);
+            oc.collect(key, val);
         }
     }
 
     public static class Reduce extends MapReduceBase
             implements
-            Reducer<WritableComparable, IndexedTuple, WritableComparable, Writable> {
+            Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
         private final Log log = LogFactory.getLog(getClass());
         
         //The reduce plan
@@ -115,7 +135,7 @@ public class PigMapReduce {
         
         ProgressableReporter pigReporter;
 
-        private OutputCollector<WritableComparable, Writable> outputCollector;
+        private OutputCollector<PigNullableWritable, Writable> outputCollector;
 
         private boolean errorInReduce = false;
         
@@ -152,14 +172,14 @@ public class PigMapReduce {
         }
         
         /**
-         * The reduce function which packages the key and List<IndexedTuple>
-         * into key, Bag<Tuple> after converting Hadoop type key into Pig type.
+         * The reduce function which packages the key and List&lt;Tuple&gt;
+         * into key, Bag&lt;Tuple&gt; after converting Hadoop type key into Pig type.
          * The package result is either collected as is, if the reduce plan is
          * empty or after passing through the reduce plan.
          */
-        public void reduce(WritableComparable key,
-                Iterator<IndexedTuple> indInp,
-                OutputCollector<WritableComparable, Writable> oc,
+        public void reduce(PigNullableWritable key,
+                Iterator<NullableTuple> tupIter,
+                OutputCollector<PigNullableWritable, Writable> oc,
                 Reporter reporter) throws IOException {
             
             // cache the collector for use in runPipeline()
@@ -167,8 +187,7 @@ public class PigMapReduce {
             this.outputCollector = oc;
             pigReporter.setRep(reporter);
             
-            Object k = HDataType.convertToPigType(key);
-            pack.attachInput(k, indInp);
+            pack.attachInput(key, tupIter);
             
             try {
                 Tuple t=null;

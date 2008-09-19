@@ -17,25 +17,31 @@
  */
 package org.apache.pig.impl.io;
 
-import org.apache.hadoop.io.FloatWritable;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 /**
  *
  */
-public class NullableFloatWritable extends PigNullableWritable {
+public class NullableTuple extends PigNullableWritable {
 
-    public NullableFloatWritable() {
-        mValue = new FloatWritable();
+    private TupleFactory mFactory = null;
+
+    public NullableTuple() {
+        if (mFactory == null) {
+            mFactory = TupleFactory.getInstance();
+        }
+        mValue = mFactory.newTuple();
     }
 
     /**
-     * @param value
+     * @param bytes
      */
-    public NullableFloatWritable(float value) {
-        mValue = new FloatWritable(value);
+    public NullableTuple(Tuple t) {
+        mValue = t;
     }
 
     public Object getValueAsPigType() {
-        return isNull() ? null : ((FloatWritable)mValue).get();
+        return isNull() ? null : (Tuple)mValue;
     }
 }

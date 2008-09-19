@@ -126,8 +126,6 @@ public class TestAlgebraicEval extends TestCase {
         
     }
     
-   /* 
-    
     @Test
     public void testSimpleCount() throws Exception {
         File tmpFile = File.createTempFile("test", "txt");
@@ -281,7 +279,6 @@ public class TestAlgebraicEval extends TestCase {
             }
         }
     }
-*/    
     
     private int generateInput(PrintStream ps, boolean withNulls ) {
         int numNulls = 0;

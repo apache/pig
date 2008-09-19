@@ -25,7 +25,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTuple;
-import org.apache.pig.data.IndexedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -34,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
@@ -84,21 +84,21 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         int size=0;
         for(Result res=lr.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNext(t)){
             Tuple t = (Tuple)res.result;
-            IndexedTuple it = (IndexedTuple)t.get(1);
+            Tuple val = (Tuple)t.get(2);
             //Check if the index is same as input index
-            assertEquals((float)0, (float)it.index, 0.01f);
+            assertEquals((byte)0, (byte)(Byte)t.get(0));
             
-            //Check if the input baf contains the value tuple
-            assertEquals(true, TestHelper.bagContains(db, it.toTuple()));
+            //Check if the input bag contains the value tuple
+            assertTrue(TestHelper.bagContains(db, val));
             
             //Check if the input key and the output key are same
-            String inpKey = (String)it.toTuple().get(0);
-            assertEquals(true, inpKey.compareTo((String)t.get(0))==0);
+            String inpKey = (String)val.get(0);
+            assertEquals(0, inpKey.compareTo((String)t.get(1)));
             ++size;
         }
         
         //check if all the tuples in the input are generated
-        assertEquals(true, size==db.size());
+        assertEquals(db.size(), size);
     }
     
     private void setUp2() throws PlanException, ExecException{
@@ -127,23 +127,23 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         int size=0;
         for(Result res=lr.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNext(t)){
             Tuple t = (Tuple)res.result;
-            IndexedTuple it = (IndexedTuple)t.get(1);
+            Tuple val = (Tuple)t.get(2);
             //Check if the index is same as input index
-            assertEquals((float)0, (float)it.index, 0.01f);
+            assertEquals((byte)0, (byte)(Byte)t.get(0));
             
             //Check if the input baf contains the value tuple
-            assertEquals(true, TestHelper.bagContains(db, it.toTuple()));
+            assertTrue(TestHelper.bagContains(db, val));
             
             //Check if the input key and the output key are same
             Tuple inpKey = TupleFactory.getInstance().newTuple(2); 
-            inpKey.set(0,it.toTuple().get(0));
-            inpKey.set(1,it.toTuple().get(1));
-            assertEquals(true, inpKey.compareTo((Tuple)t.get(0))==0);
+            inpKey.set(0, val.get(0));
+            inpKey.set(1, val.get(1));
+            assertEquals(0, inpKey.compareTo((Tuple)t.get(1)));
             ++size;
         }
         
         //check if all the tuples in the input are generated
-        assertEquals(true, size==db.size());
+        assertEquals(db.size(), size);
     }
 
 }

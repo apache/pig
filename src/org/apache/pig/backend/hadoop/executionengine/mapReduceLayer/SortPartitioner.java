@@ -27,6 +27,7 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
+import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
@@ -34,12 +35,20 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.NullableText;
+import org.apache.pig.impl.io.NullableIntWritable;
+import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableFloatWritable;
+import org.apache.pig.impl.io.NullableDoubleWritable;
+import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.PigNullableWritable;
 
-public class SortPartitioner implements Partitioner<WritableComparable, Writable> {
-    Tuple[] quantiles;
-    RawComparator<WritableComparable> comparator;
+public class SortPartitioner implements Partitioner<PigNullableWritable, Writable> {
+    PigNullableWritable[] quantiles;
+    RawComparator<PigNullableWritable> comparator;
     
-    public int getPartition(WritableComparable key, Writable value,
+    public int getPartition(PigNullableWritable key, Writable value,
             int numPartitions){
         int index = Arrays.binarySearch(quantiles, key, comparator);
         if (index < 0)
@@ -58,7 +67,7 @@ public class SortPartitioner implements Partitioner<WritableComparable, Writable
             loader.bindTo(quantilesFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
             
             Tuple t;
-            ArrayList<Tuple> quantiles = new ArrayList<Tuple>();
+            ArrayList<PigNullableWritable> quantiles = new ArrayList<PigNullableWritable>();
             
             while(true){
                 t = loader.getNext();
@@ -68,18 +77,76 @@ public class SortPartitioner implements Partitioner<WritableComparable, Writable
                 Object o = t.get(0);
                 if (o instanceof DataBag) {
                     for (Tuple it : (DataBag)o) {
-                        quantiles.add(it);
+                        addToQuantiles(job, quantiles, it);
                     }
                 } else {
-                    quantiles.add(t);
+                    addToQuantiles(job, quantiles, t);
                 }
             }
-            this.quantiles = quantiles.toArray(new Tuple[0]);
+            convertToArray(job, quantiles);
+            //this.quantiles = quantiles.toArray(new NullableTuple[0]);
         }catch (Exception e){
             throw new RuntimeException(e);
         }
 
         comparator = job.getOutputKeyComparator();
+    }
+
+    private void addToQuantiles(
+            JobConf job,
+            ArrayList<PigNullableWritable> q,
+            Tuple t) {
+        try {
+            if ("true".equals(job.get("pig.usercomparator")) || t.size() > 1) {
+                q.add(new NullableTuple(t));
+            } else {
+                Object o = t.get(0);
+                String kts = job.get("pig.reduce.key.type");
+                if (kts == null) {
+                    throw new RuntimeException("Didn't get reduce key type "
+                        + "from config file.");
+                }
+                q.add(HDataType.getWritableComparableTypes(o,
+                    Byte.valueOf(kts)));
+                /*
+                if (o == null) {
+                    q.add(new NullableTuple(t));
+                } else {
+                    q.add(HDataType.getWritableComparableTypes(o, DataType.findType(o)));
+                }
+                */
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void convertToArray(
+            JobConf job,
+            ArrayList<PigNullableWritable> q) {
+        if ("true".equals(job.get("pig.usercomparator")) ||
+                q.get(0).getClass().equals(NullableTuple.class)) {
+            quantiles = q.toArray(new NullableTuple[0]);
+        } else if (q.get(0).getClass().equals(NullableBytesWritable.class)) {
+            quantiles = q.toArray(new NullableBytesWritable[0]);
+        } else if (q.get(0).getClass().equals(NullableDoubleWritable.class)) {
+            quantiles = q.toArray(new NullableDoubleWritable[0]);
+        } else if (q.get(0).getClass().equals(NullableFloatWritable.class)) {
+            quantiles = q.toArray(new NullableFloatWritable[0]);
+        } else if (q.get(0).getClass().equals(NullableIntWritable.class)) {
+            quantiles = q.toArray(new NullableIntWritable[0]);
+        } else if (q.get(0).getClass().equals(NullableLongWritable.class)) {
+            quantiles = q.toArray(new NullableLongWritable[0]);
+        } else if (q.get(0).getClass().equals(NullableText.class)) {
+            quantiles = q.toArray(new NullableText[0]);
+        } else {
+            throw new RuntimeException("Unexpected class in SortPartitioner");
+        }
+
+System.out.println("Quantiles:");
+for (int i = 0; i < quantiles.length; i++) {
+System.out.println(quantiles[i]);
+}
     }
 
 }

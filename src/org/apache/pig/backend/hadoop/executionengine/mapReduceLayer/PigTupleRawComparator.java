@@ -33,6 +33,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigTupleRawComparator extends WritableComparator implements Configurable {
@@ -75,29 +76,30 @@ public class PigTupleRawComparator extends WritableComparator implements Configu
         return null;
     }
 
+    /**
+     * Compare two NullableTuples as raw bytes.  If neither are null,
+     * then IntWritable.compare() is used.  If both are null then the indices
+     * are compared.  Otherwise the null one is defined to be less.
+     */
     public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
-        // This can't be done on the raw data.  Users are allowed to
-        // implement their own versions of tuples, which means we have no
-        // idea what the underlying representation is.  So step one is to
-        // instantiate each object as a tuple.
-        Tuple t1 = mFact.newTuple();
-        Tuple t2 = mFact.newTuple();
-        try {
-            t1.readFields(new DataInputStream(new ByteArrayInputStream(b1, s1, l1)));
-            t2.readFields(new DataInputStream(new ByteArrayInputStream(b2, s2, l2)));
-        } catch (IOException ioe) {
-            mLog.error("Unable to instantiate tuples for comparison: " +
-                ioe.getMessage());
-            throw new RuntimeException(ioe.getMessage(), ioe);
-        }
+        int rc = 0;
 
-        int rc;
-        if (t1.isNull() || t2.isNull()) {
-            // For sorting purposes two nulls are equal.
-            if (t1.isNull() && t2.isNull()) rc = 0;
-            else if (t1.isNull()) rc = -1;
-            else rc = 1;
-        } else {
+        if (b1[s1] == 0 && b2[s2] == 0) {
+            // This can't be done on the raw data.  Users are allowed to
+            // implement their own versions of tuples, which means we have no
+            // idea what the underlying representation is.  So step one is to
+            // instantiate each object as a tuple.
+            Tuple t1 = mFact.newTuple();
+            Tuple t2 = mFact.newTuple();
+            try {
+                t1.readFields(new DataInputStream(new ByteArrayInputStream(b1, s1 + 1, l1 - 1)));
+                t2.readFields(new DataInputStream(new ByteArrayInputStream(b2, s2 + 1, l2 - 1)));
+            } catch (IOException ioe) {
+                mLog.error("Unable to instantiate tuples for comparison: " +
+                    ioe.getMessage());
+                throw new RuntimeException(ioe.getMessage(), ioe);
+            }
+
             int sz1 = t1.size();
             int sz2 = t2.size();
             if (sz2 < sz1) {
@@ -119,6 +121,11 @@ public class PigTupleRawComparator extends WritableComparator implements Configu
                 }
                 rc = 0;
             }
+        } else {
+            // For sorting purposes two nulls are equal.
+            if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
+            else if (b1[s1] != 0) rc = -1;
+            else rc = 1;
         }
         if (mWholeTuple && !mAsc[0]) rc *= -1;
         return rc;

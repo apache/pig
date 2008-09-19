@@ -8,7 +8,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
@@ -16,6 +15,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -36,7 +36,7 @@ public abstract class PigMapBase extends MapReduceBase{
     protected PhysicalPlan mp;
     protected TupleFactory tf = TupleFactory.getInstance();
     
-    OutputCollector<WritableComparable, Writable> outputCollector;
+    OutputCollector<PigNullableWritable, Writable> outputCollector;
     
     // Reporter that will be used by operators
     // to transmit heartbeat
@@ -123,7 +123,7 @@ public abstract class PigMapBase extends MapReduceBase{
      * the key and indexed tuple.
      */
     public void map(Text key, TargetedTuple inpTuple,
-            OutputCollector<WritableComparable, Writable> oc,
+            OutputCollector<PigNullableWritable, Writable> oc,
             Reporter reporter) throws IOException {
         
         // cache the collector for use in runPipeline() which
@@ -201,7 +201,7 @@ public abstract class PigMapBase extends MapReduceBase{
         
     }
 
-    abstract public void collect(OutputCollector<WritableComparable, Writable> oc, Tuple tuple) throws ExecException, IOException;
+    abstract public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException;
 
     /**
      * @return the keyType

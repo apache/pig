@@ -24,6 +24,7 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
+import org.apache.pig.impl.io.NullableTuple;
 
 
 public abstract class ComparisonFunc extends WritableComparator {
@@ -32,11 +33,13 @@ public abstract class ComparisonFunc extends WritableComparator {
     protected PigProgressable reporter;
     
     public ComparisonFunc() {
-        super(TupleFactory.getInstance().tupleClass());
+        super(NullableTuple.class);
     }
 
     public int compare(WritableComparable a, WritableComparable b) {
-        return compare((Tuple)a, (Tuple)b);
+        // The incoming key will be in a NullableTuple.  But the comparison
+        // function needs a tuple, so pull the tuple out.
+        return compare((Tuple)((NullableTuple)a).getValueAsPigType(), (Tuple)((NullableTuple)b).getValueAsPigType());
     }
 
     /**

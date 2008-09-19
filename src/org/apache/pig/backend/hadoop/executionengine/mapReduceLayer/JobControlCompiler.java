@@ -36,12 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BooleanWritable;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.FloatWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.FileOutputFormat;
@@ -49,25 +43,36 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 
+import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.DoubleWritable;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.ComparisonFunc;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.IndexedTuple;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.NullableDoubleWritable;
+import org.apache.pig.impl.io.NullableFloatWritable;
+import org.apache.pig.impl.io.NullableIntWritable;
+import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableText;
+import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
@@ -79,6 +84,22 @@ import org.apache.pig.impl.util.Pair;
  * which has a JobConf. The MapReduceOper corresponds to a Job
  * and the getJobCong method returns the JobConf that is configured
  * as per the MapReduceOper
+ *
+ * <h2>Comparator Design</h2>
+ * <p>
+ * A few words on how comparators are chosen.  In almost all cases we use raw
+ * comparators (the one exception being when the user provides a comparison
+ * function for order by).  For order by queries the PigTYPERawComparator
+ * functions are used, where TYPE is Int, Long, etc.  These comparators are
+ * null aware and asc/desc aware.  The first byte of each of the
+ * NullableTYPEWritable classes contains info on whether the value is null.
+ * Asc/desc is written as an array into the JobConf with the key pig.sortOrder
+ * so that it can be read by each of the comparators as part of their 
+ * setConf call.
+ * <p>
+ * For non-order by queries, PigTYPEWritableComparator classes are used.
+ * These are all just type specific instances of WritableComparator.
+ *
  */
 public class JobControlCompiler{
     MROperPlan plan;
@@ -334,8 +355,9 @@ public class JobControlCompiler{
                 jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
                 Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
                 jobConf.setOutputKeyClass(keyClass);
+                jobConf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType())); 
                 selectComparator(mro, pack.getKeyType(), jobConf);
-                jobConf.setOutputValueClass(IndexedTuple.class);
+                jobConf.setOutputValueClass(NullableTuple.class);
             }
         
             if(mro.isGlobalSort()){
@@ -348,7 +370,8 @@ public class JobControlCompiler{
                         jobConf.setMapperClass(PigMapReduce.MapWithComparator.class);
                         pack.setKeyType(DataType.TUPLE);
                         jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                        jobConf.setOutputKeyClass(TupleFactory.getInstance().tupleClass());
+                        jobConf.set("pig.usercomparator", "true");
+                        jobConf.setOutputKeyClass(NullableTuple.class);
                         jobConf.setOutputKeyComparatorClass(comparator);
                     }
                 } else {
@@ -370,7 +393,7 @@ public class JobControlCompiler{
         }
         return ret;
     }
-    
+
     public static class PigWritableComparator extends WritableComparator {
         protected PigWritableComparator(Class c) {
             super(c);
@@ -383,37 +406,37 @@ public class JobControlCompiler{
 
     public static class PigIntWritableComparator extends PigWritableComparator {
         public PigIntWritableComparator() {
-            super(IntWritable.class);
+            super(NullableIntWritable.class);
         }
     }
 
     public static class PigLongWritableComparator extends PigWritableComparator {
         public PigLongWritableComparator() {
-            super(LongWritable.class);
+            super(NullableLongWritable.class);
         }
     }
 
     public static class PigFloatWritableComparator extends PigWritableComparator {
         public PigFloatWritableComparator() {
-            super(FloatWritable.class);
+            super(NullableFloatWritable.class);
         }
     }
 
     public static class PigDoubleWritableComparator extends PigWritableComparator {
         public PigDoubleWritableComparator() {
-            super(DoubleWritable.class);
+            super(NullableDoubleWritable.class);
         }
     }
 
     public static class PigCharArrayWritableComparator extends PigWritableComparator {
         public PigCharArrayWritableComparator() {
-            super(Text.class);
+            super(NullableText.class);
         }
     }
 
     public static class PigDBAWritableComparator extends PigWritableComparator {
         public PigDBAWritableComparator() {
-            super(BytesWritable.class);
+            super(NullableBytesWritable.class);
         }
     }
 
@@ -429,25 +452,57 @@ public class JobControlCompiler{
         }
     }
 
+    /*
+    public static class PigRawGrouper extends WritableComparator {
+        protected PigRawGrouper(Class c) {
+            super(c);
+        }
+
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
+            // If it's null, then look at the index.  Else, ignore the index.
+            if (b1[s1] == 0 && b2[s2] == 0) {
+                return WritableComparator.compareBytes(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
+            } else if (b1[s1] != 0 && b2[s2] != 0) {
+                if (b1[s1 + l1 - 1] < b2[s2 + l2 - 1]) return -1;
+                else if (b2[s2 + l2 - 1] > b1[s1 + l1 - 1]) return 1;
+                else return 0;
+            }
+            else if (b1[s1] != 0) return -1;
+            else return 1;
+        }
+    }
+
+    public static class PigCharArrayRawGrouper extends PigRawGrouper {
+        public PigCharArrayRawGrouper() {
+            super(NullableText.class);
+        }
+    }
+    */
+
+
     private void selectComparator(
             MapReduceOper mro,
             byte keyType,
             JobConf jobConf) throws JobCreationException {
-        // If this operator is involved in an order by, use the native
-        // comparators.  Otherwise use bytewise comparison.  Have to
-        // look at the next operator too because if we're the quantile
-        // operation we need to use the native comparators.
-        boolean involved = false;
+        // If this operator is involved in an order by, use the pig specific raw
+        // comparators.  If it has a cogroup, we need to set the comparator class
+        // to the raw comparator and the grouping comparator class to pig specific
+        // raw comparators (which skip the index).  Otherwise use the hadoop provided
+        // raw comparator.
+        
+        // An operator has an order by if global sort is set or if it's successor has
+        // global sort set (because in that case it's the sampling job). 
+        boolean hasOrderBy = false;
         if (mro.isGlobalSort()) {
-            involved = true;
+            hasOrderBy = true;
         } else {
             List<MapReduceOper> succs = plan.getSuccessors(mro);
             if (succs != null) {
                 MapReduceOper succ = succs.get(0);
-                if (succ.isGlobalSort()) involved = true;
+                if (succ.isGlobalSort()) hasOrderBy = true;
             }
         }
-        if (involved) {
+        if (hasOrderBy) {
             switch (keyType) {
             case DataType.INTEGER:
                 jobConf.setOutputKeyComparatorClass(PigIntRawComparator.class);
@@ -481,52 +536,122 @@ public class JobControlCompiler{
                 jobConf.setOutputKeyComparatorClass(PigTupleRawComparator.class);
                 break;
 
-            default:
-                break;
-            }
-        } else {
-            switch (keyType) {
-            case DataType.INTEGER:
-                jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
-                break;
-
-            case DataType.LONG:
-                jobConf.setOutputKeyComparatorClass(PigLongWritableComparator.class);
-                break;
-
-            case DataType.FLOAT:
-                jobConf.setOutputKeyComparatorClass(PigFloatWritableComparator.class);
-                break;
-
-            case DataType.DOUBLE:
-                jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
-                break;
-
-            case DataType.CHARARRAY:
-                jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);
-                break;
-
-            case DataType.BYTEARRAY:
-                jobConf.setOutputKeyComparatorClass(PigDBAWritableComparator.class);
-                break;
-
-            case DataType.MAP:
-                log.error("Using Map as key not supported.");
-                throw new JobCreationException("Using Map as key not supported");
-
-            case DataType.TUPLE:
-                jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
-                break;
-
             case DataType.BAG:
-                jobConf.setOutputKeyComparatorClass(PigBagWritableComparator.class);
-                break;
+                log.error("Using Bag as key not supported.");
+                throw new JobCreationException("Using Bag as key not supported");
 
             default:
-                throw new RuntimeException("Forgot case for type " +
-                    DataType.findTypeName(keyType));
+                break;
             }
+            return;
+        }
 
+            /*
+        try {
+            CogroupFinder cf = new CogroupFinder(mro.mapPlan);
+            cf.visit();
+            int mapRearranges = cf.rearrangeCounter;
+            cf = new CogroupFinder(mro.reducePlan);
+            cf.visit();
+            if (mapRearranges > 1 || cf.rearrangeCounter > 1) {
+                switch (keyType) {
+                case DataType.INTEGER:
+                    jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigIntRawComparator.class);
+                    break;
+
+                case DataType.LONG:
+                    jobConf.setOutputKeyComparatorClass(PigLongWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigLongRawComparator.class);
+                    break;
+
+                case DataType.FLOAT:
+                    jobConf.setOutputKeyComparatorClass(PigFloatWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigFloatRawComparator.class);
+                    break;
+
+                case DataType.DOUBLE:
+                    jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigDoubleRawComparator.class);
+                    break;
+
+                case DataType.CHARARRAY:
+                    jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigCharArrayRawGrouper.class);
+                    break;
+
+                case DataType.BYTEARRAY:
+                    jobConf.setOutputKeyComparatorClass(PigDBAWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigBytesRawComparator.class);
+                    break;
+
+                case DataType.MAP:
+                    log.error("Using Map as key not supported.");
+                    throw new JobCreationException("Using Map as key not supported");
+
+                case DataType.TUPLE:
+                    jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
+                    jobConf.setOutputValueGroupingComparator(PigTupleRawComparator.class);
+                    break;
+
+                case DataType.BAG:
+                    log.error("Using Bag as key not supported.");
+                    throw new JobCreationException("Using Bag as key not supported");
+
+                default:
+                    throw new RuntimeException("Forgot case for type " +
+                        DataType.findTypeName(keyType));
+                }
+                */
+                jobConf.setPartitionerClass(org.apache.hadoop.mapred.lib.HashPartitioner.class);
+                /*
+                return;
+            }
+        } catch (VisitorException ve) {
+            throw new JobCreationException(ve);
+        }
+        */
+
+        switch (keyType) {
+        case DataType.INTEGER:
+            jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
+            break;
+
+        case DataType.LONG:
+            jobConf.setOutputKeyComparatorClass(PigLongWritableComparator.class);
+            break;
+
+        case DataType.FLOAT:
+            jobConf.setOutputKeyComparatorClass(PigFloatWritableComparator.class);
+            break;
+
+        case DataType.DOUBLE:
+            jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
+            break;
+
+        case DataType.CHARARRAY:
+            jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);
+            break;
+
+        case DataType.BYTEARRAY:
+            jobConf.setOutputKeyComparatorClass(PigDBAWritableComparator.class);
+            break;
+
+        case DataType.MAP:
+            log.error("Using Map as key not supported.");
+            throw new JobCreationException("Using Map as key not supported");
+
+        case DataType.TUPLE:
+            jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
+            break;
+
+        case DataType.BAG:
+            log.error("Using Bag as key not supported.");
+            throw new JobCreationException("Using Bag as key not supported");
+
+        default:
+            throw new RuntimeException("Forgot case for type " +
+                DataType.findTypeName(keyType));
         }
     }
 
@@ -581,5 +706,20 @@ public class JobControlCompiler{
             }
         }
     }
+
+    /*
+    private class CogroupFinder extends PhyPlanVisitor {
+        int rearrangeCounter = 0;
+
+        CogroupFinder(PhysicalPlan plan) {
+            super(plan,
+                new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
+        }
+
+        public void visitLocalRearrange(POLocalRearrange lr) {
+            rearrangeCounter++;
+        }
+    }
+    */
 
 }
