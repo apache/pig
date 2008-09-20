@@ -236,6 +236,10 @@ public class POForEach extends PhysicalOperator {
                     bags = null;
                     return inputData;
                 }
+                // if we see a error just return it
+                if(inputData.returnStatus == POStatus.STATUS_ERR) {
+                    return inputData;
+                }
 
 //                Object input = null;
                 

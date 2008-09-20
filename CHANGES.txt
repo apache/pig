@@ -213,4 +213,9 @@ Trunk (unreleased changes)
     PIG-364: Limit return incorrect records when we use multiple reducer
     (daijy via olgan)
 
-    PIG-439: disallow alias renaming
+    PIG-439: disallow alias renaming (pardeepk via olgan)
+
+    PIG-440: Exceptions from UDFs inside a foreach are not captured (pradeepk
+    via olgan)
+
+

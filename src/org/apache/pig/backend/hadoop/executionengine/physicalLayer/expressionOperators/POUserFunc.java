@@ -173,7 +173,7 @@ public class POUserFunc extends ExpressionOperator {
 
 	private Result getNext() throws ExecException {
         Result result = processInput();
-        
+        String errMsg = "";
 		try {
 			if(result.returnStatus == POStatus.STATUS_OK) {
 				result.result = func.exec((Tuple) result.result);
@@ -187,11 +187,11 @@ public class POUserFunc extends ExpressionOperator {
 			return result;
 			
 		} catch (IOException e1) {
-			log.error("Caught error from UDF " + funcSpec.getClassName() + 
-                "[" + e1.getMessage() + "]");
+		    errMsg = "Caught error from UDF " + funcSpec.getClassName() + 
+            "[" + e1.getMessage() + "]";
+			log.error(errMsg);
 		}
-		
-		
+		result.result = errMsg;
 		result.returnStatus = POStatus.STATUS_ERR;
 		return result;
 	}

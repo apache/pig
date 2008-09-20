@@ -379,7 +379,7 @@ public class DefaultTuple implements Tuple {
 
     private void checkBounds(int fieldNum) throws ExecException {
         if (fieldNum >= mFields.size()) {
-            throw new ExecException("Request for field number " + fieldNum +
+            throw new ExecException("Out of bounds access: Request for field number " + fieldNum +
                 " exceeds tuple size of " + mFields.size());
         }
     }
