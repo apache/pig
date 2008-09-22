@@ -33,7 +33,8 @@ public class ProgressableReporter implements PigProgressable {
     }
 
     public void progress() {
-        rep.progress();
+        if(rep!=null)
+            rep.progress();
     }
 
     public void progress(String msg) {

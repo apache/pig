@@ -230,3 +230,6 @@ Trunk (unreleased changes)
 
     PIG-430: Projections in nested filter and inside foreach do not work (sms
     via olgan)
+
+    PIG-445: Null Pointer Exceptions in the mappers leading to lot of retries
+    (shravanmn via olgan)

@@ -194,9 +194,6 @@ public class PigCombiner {
         @Override
         public void close() throws IOException {
             super.close();
-            /*if(runnableReporter!=null)
-                runnableReporter.setDone(true);*/
-            PhysicalOperator.setReporter(null);
         }
 
         /**
