@@ -66,6 +66,7 @@ public class QueryParser {
 	//a map of alias to logical operator for a quick lookup
 	private Map<String, LogicalOperator> mapAliasOp;
 	private static Log log = LogFactory.getLog(QueryParser.class);
+	private boolean bracketed = false;
 	
 	private long getNextId() {
 		return nodeIdGen.getNextNodeId(scope);
@@ -2084,11 +2085,12 @@ LogicalOperator NestedFilter(Schema over, Map<String, LogicalOperator> specs, Lo
 	(
 	<FILTER>
     (
-    LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
 |   eOp = BaseEvalSpec(over, specs, lp, input)
     )
 	{subSchema = eOp.getSchema();}
-	<BY> cond = PCond(subSchema,null,conditionPlan,input)
+	<BY> cond = PCond(subSchema,null,conditionPlan,eOp)
 	)
 	{ 
 		lp.add(eOp);
@@ -2122,7 +2124,8 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 	(
 	( <ORDER> | <ARRANGE> )
     (
-    LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
 |   eOp = BaseEvalSpec(over, specs, lp, input)
     )
 	<BY> 
@@ -2184,7 +2187,8 @@ LogicalOperator NestedDistinct(Schema over, Map<String, LogicalOperator> specs, 
 	(
 	<DISTINCT>
     (
-    LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
 |   eOp = BaseEvalSpec(over, specs, lp, input)
     )
 	)
@@ -2981,7 +2985,8 @@ ExpressionOperator BracketedSimpleProj(Schema over, LogicalPlan lp, LogicalOpera
 	int i; 
 	ExpressionOperator spec = null;
 	log.trace("Entering BracketedSimpleProj");
-	log.debug("eOp: " + eOp.getClass().getName());
+	log.debug("eOp: " + eOp);
+	bracketed = true;
 }
 {
 	(
@@ -2989,7 +2994,7 @@ ExpressionOperator BracketedSimpleProj(Schema over, LogicalPlan lp, LogicalOpera
 |	("(" spec = SimpleProj(over,lp,eOp) ")")	
 	
 	)
-	{log.trace("Exiting BracketedSimpleProj");return spec;}	
+	{log.trace("Exiting BracketedSimpleProj");bracketed=false; return spec;}	
 }
 
 ExpressionOperator SimpleProj(Schema over, LogicalPlan lp, LogicalOperator eOp): 
@@ -3189,7 +3194,7 @@ ExpressionOperator DollarVar(Schema over, Map<String, LogicalOperator> specs, Lo
 			log.debug("eOp: " + eOp.getClass().getName() + " " + eOp);
 			lp.add(project);
 			log.debug("DollarVar: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
-            if(eOp instanceof ExpressionOperator) {
+            if((eOp instanceof ExpressionOperator) && (bracketed)) {
 			    lp.add(eOp);
 			    lp.connect(eOp, project);
             }
@@ -3273,7 +3278,7 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 			try {
 				lp.add(item);
 				log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
-                if(eOp instanceof ExpressionOperator) {
+                if((eOp instanceof ExpressionOperator) && (bracketed)) {
 				    lp.add(eOp);
 				    lp.connect(eOp, item);
                 }

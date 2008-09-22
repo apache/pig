@@ -6,9 +6,9 @@ New For Each(false)[bag] - Test-Plan-Builder-16
 |       |   |
 |       |   Equal To[boolean] - Test-Plan-Builder-14
 |       |   |
-|       |   |---Project[bytearray][1] - Test-Plan-Builder-12
+|       |   |---Project[Unknown][1] - Test-Plan-Builder-12
 |       |   |
-|       |   |---Project[bytearray][2] - Test-Plan-Builder-13
+|       |   |---Project[Unknown][2] - Test-Plan-Builder-13
 |       |
 |       |---Project[tuple][0] - Test-Plan-Builder-10
 |

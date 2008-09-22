@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.net.URL;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 
 import junit.framework.AssertionFailedError;
@@ -1364,6 +1365,46 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         cogroupExpectedSchema.add(bagFs);
         assertTrue(Schema.equals(cogroup.getSchema(), cogroupExpectedSchema, false, false));
         assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray, max_age: double"), false, true));
+    }
+
+    @Test
+    public void testQuery96() throws FrontendException, ParseException {
+        buildPlan("a = load 'input' as (name, age, gpa);");
+        buildPlan("b = filter a by age < 20;");
+        buildPlan("c = group b by age;");
+        String query = "d = foreach c {"
+        + "cf = filter b by gpa < 3.0;"
+        + "cd = distinct cf.gpa;"
+        + "co = order cd by $0;"
+        + "generate group, flatten(co);"
+        + "};";
+        LogicalPlan lp = buildPlan(query);
+
+        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
+        ArrayList<LogicalPlan> foreachPlans = foreach.getForEachPlans();
+        LogicalPlan flattenPlan = foreachPlans.get(1);
+        LogicalOperator project = flattenPlan.getLeaves().get(0);
+        assertTrue(project instanceof LOProject);
+        LogicalOperator sort = flattenPlan.getPredecessors(project).get(0);
+        assertTrue(sort instanceof LOSort);
+        LogicalOperator distinct = flattenPlan.getPredecessors(sort).get(0);
+        assertTrue(distinct instanceof LODistinct);
+
+        //testing the presence of the nested foreach
+        LogicalOperator nestedForeach = flattenPlan.getPredecessors(distinct).get(0);
+        assertTrue(nestedForeach instanceof LOForEach);
+        LogicalPlan nestedForeachPlan = ((LOForEach)nestedForeach).getForEachPlans().get(0);
+        LogicalOperator nestedProject = nestedForeachPlan.getRoots().get(0);
+        assertTrue(nestedProject instanceof LOProject);
+        assertTrue(((LOProject)nestedProject).getCol() == 2);
+
+        //testing the filter inner plan for the absence of the project connected to project
+        LogicalOperator filter = flattenPlan.getPredecessors(nestedForeach).get(0);
+        assertTrue(filter instanceof LOFilter);
+        LogicalPlan comparisonPlan = ((LOFilter)filter).getComparisonPlan();
+        LOLesserThan lessThan = (LOLesserThan)comparisonPlan.getLeaves().get(0);
+        LOProject filterProject = (LOProject)lessThan.getLhsOperand();
+        assertTrue(null == comparisonPlan.getPredecessors(filterProject));
     }
 
     private Schema getSchemaFromString(String schemaString) throws ParseException {
