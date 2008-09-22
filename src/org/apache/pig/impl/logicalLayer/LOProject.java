@@ -233,7 +233,7 @@ public class LOProject extends ExpressionOperator {
                                 if(null != expOpFs) {
                                     Schema s = expOpFs.schema;
                                     if(null != s) {
-                                        mFieldSchema = s.getField(mProjection.get(0));
+                                        mFieldSchema = new Schema.FieldSchema(s.getField(mProjection.get(0)));
                                     } else {
                                         mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                                     }
@@ -245,7 +245,7 @@ public class LOProject extends ExpressionOperator {
                                    Schema s = expressionOperator.getSchema();
                                 log.debug("s: " + s);
                                 if(null != s) {
-                                    mFieldSchema = s.getField(mProjection.get(0));
+                                    mFieldSchema = new Schema.FieldSchema(s.getField(mProjection.get(0)));
                                     log.debug("mFieldSchema alias: " + mFieldSchema.alias);
                                     log.debug("mFieldSchema schema: " + mFieldSchema.schema);
                                 } else {
@@ -266,7 +266,7 @@ public class LOProject extends ExpressionOperator {
                                     log.debug("Schema s: " + s);
                                     if(null != s) {
                                         if(colNum < s.size()) {
-                                            fss.add(s.getField(colNum));
+                                            fss.add(new Schema.FieldSchema(s.getField(colNum)));
                                         } else {
                                             fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
                                         }
@@ -279,7 +279,7 @@ public class LOProject extends ExpressionOperator {
                             } else {
                                 Schema s = expressionOperator.getSchema();
                                 if(null != s) {
-                                    fss.add(s.getField(colNum));
+                                    fss.add(new Schema.FieldSchema(s.getField(colNum)));
                                 } else {
                                     fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
                                 }

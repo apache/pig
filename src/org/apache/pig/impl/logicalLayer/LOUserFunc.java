@@ -97,7 +97,7 @@ public class LOUserFunc extends ExpressionOperator {
         if (null != udfSchema) {
             Schema.FieldSchema fs;
             try {
-                fs = udfSchema.getField(0);
+                fs = new Schema.FieldSchema(udfSchema.getField(0));
             } catch (ParseException pe) {
                 throw new FrontendException(pe.getMessage());
             }

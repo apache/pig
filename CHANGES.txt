@@ -221,4 +221,7 @@ Trunk (unreleased changes)
     PIG-442: Disambiguated alias after a foreach flatten is not accessible a
     couple of statements after the foreach (sms via olgan)
 
+    PIG-424: nested foreach with flatten and agg gives an error (sms via
+    olgan)
+
 

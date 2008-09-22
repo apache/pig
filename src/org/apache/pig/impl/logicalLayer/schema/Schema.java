@@ -137,6 +137,29 @@ public class Schema implements Serializable, Cloneable {
             type = t;
         }
 
+        /**
+         * Copy Constructor.
+         * 
+         * @param fs
+         *           Source FieldSchema
+         * 
+         */
+        public FieldSchema(FieldSchema fs)  {
+            if(null != fs) {
+                alias = fs.alias;
+                if(null != fs.schema) {
+                    schema = new Schema(fs.schema);
+                } else {
+                    schema = null;
+                }
+                type = fs.type;
+            } else {
+                alias = null;
+                schema = null;
+                type = DataType.UNKNOWN;
+            }
+        }
+
         /***
          *  Two field schemas are equal if types and schemas
          *  are equal in all levels.
@@ -456,6 +479,41 @@ public class Schema implements Serializable, Cloneable {
             if(null != fieldSchema) {
                 mFieldSchemas.put(fieldSchema, fieldSchema.alias);
             }
+        }
+    }
+
+    /**
+     * Copy Constructor.
+     * @param s source schema
+     */
+    public Schema(Schema s) {
+
+        if(null != s) {
+            mFields = new ArrayList<FieldSchema>(s.size());
+            mAliases = new HashMap<String, FieldSchema>();
+            mFieldSchemas = new MultiMap<FieldSchema, String>();
+            try {
+                for (int i = 0; i < s.size(); ++i) {
+                    FieldSchema fs = new FieldSchema(s.getField(i));
+                    if(null != fs) {
+                        mFields.add(fs);
+                        if (fs.alias != null) {
+                            mAliases.put(fs.alias, fs);
+                            if(null != fs) {
+                                mFieldSchemas.put(fs, fs.alias);
+                            }
+                        }
+                    }
+                }
+            } catch (ParseException pe) {
+                mFields = new ArrayList<FieldSchema>();
+                mAliases = new HashMap<String, FieldSchema>();
+                mFieldSchemas = new MultiMap<FieldSchema, String>();
+            }
+        } else {
+            mFields = new ArrayList<FieldSchema>();
+            mAliases = new HashMap<String, FieldSchema>();
+            mFieldSchemas = new MultiMap<FieldSchema, String>();
         }
     }
 

@@ -171,7 +171,7 @@ public class LOForEach extends LogicalOperator {
 								for(int i = 0; i < s.size(); ++i) {
                                     Schema.FieldSchema fs;
                                     try {
-                                        fs = s.getField(i);
+                                        fs = new Schema.FieldSchema(s.getField(i));
                                     } catch (ParseException pe) {
                                         throw new FrontendException(pe.getMessage());
                                     }

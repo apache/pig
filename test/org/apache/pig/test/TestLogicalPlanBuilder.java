@@ -1350,6 +1350,22 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         }
     }
 
+    @Test
+    public void testQuery95() throws FrontendException, ParseException {
+        buildPlan("a = load 'myfile' as (name, age, gpa);");
+        buildPlan("b = group a by name;");
+        LogicalPlan lp = buildPlan("c = foreach b {d = order a by $1; generate flatten(d), MAX(a.age) as max_age;};");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+        LOCogroup cogroup = (LOCogroup) lp.getPredecessors(foreach).get(0);
+        Schema.FieldSchema bagFs = new Schema.FieldSchema("a", getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray"), DataType.BAG);
+        Schema.FieldSchema groupFs = new Schema.FieldSchema("group", DataType.BYTEARRAY);
+        Schema cogroupExpectedSchema = new Schema();
+        cogroupExpectedSchema.add(groupFs);
+        cogroupExpectedSchema.add(bagFs);
+        assertTrue(Schema.equals(cogroup.getSchema(), cogroupExpectedSchema, false, false));
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray, max_age: double"), false, true));
+    }
+
     private Schema getSchemaFromString(String schemaString) throws ParseException {
         return getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }
