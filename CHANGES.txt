@@ -1,6 +1,5 @@
 Pig Change Log
 
-
 Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
@@ -205,6 +204,8 @@ Trunk (unreleased changes)
     PIG-333: allowing no parethesis with single column alias with flatten (sms
     via olgan)
 
+    PIG-426: Adding result of two UDFs gives a syntax error
+
     PIG-426: Adding result of two UDFs gives a syntax error (sms via olgan)
 
     PIG-436: alias is lost when single column is flattened (pradeepk via
@@ -224,4 +225,5 @@ Trunk (unreleased changes)
     PIG-424: nested foreach with flatten and agg gives an error (sms via
     olgan)
 
-
+    PIG-411: Pig leaves HOD processes behind if Ctrl-C is used before HOD
+    connection is fully established (olgan)

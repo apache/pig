@@ -360,7 +360,7 @@ public class HExecutionEngine implements ExecutionEngine {
             // setup shutdown hook to make sure we tear down hod connection
             Runtime.getRuntime().addShutdownHook(new ShutdownThread());
 
-            hodProcess = runCommand(server, cmdarray);
+            runCommand(server, cmdarray, true);
 
             // print all the information provided by HOD
             try {
@@ -422,8 +422,12 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     private synchronized void closeHod(String server){
-            if (hodProcess == null)
+            if (hodProcess == null){
+                // just cleanup the dir if it exists and return
+                if (hodConfDir != null)
+                    deleteDir(server, hodConfDir);
                 return;
+            }
 
             // hod deallocate format: hod deallocate -d <conf dir>
             String[] cmdarray = new String[4];
@@ -439,13 +443,17 @@ public class HExecutionEngine implements ExecutionEngine {
             log.debug("Disconnect command: " + cmdToString(cmdarray));
 
             try {
-                Process p = runCommand(server, cmdarray);
+                runCommand(server, cmdarray, false);
            } catch (Exception e) {
                 log.warn("Failed to disconnect from HOD; error: " + e.getMessage());
+                hodProcess.destroy();
            } finally {
-               if (remoteHodConfDir != null)
+               if (remoteHodConfDir != null){
                    deleteDir(server, remoteHodConfDir);
-               deleteDir(LOCAL, hodConfDir);
+                   if (hodConfDir != null)
+                       deleteDir(LOCAL, hodConfDir);
+               }else
+                   deleteDir(server, hodConfDir);
            }
 
            hodProcess = null;
@@ -462,7 +470,7 @@ public class HExecutionEngine implements ExecutionEngine {
         cmdarray[0] = "cat";
         cmdarray[1] = remoteFile;
 
-        Process p = runCommand(server, cmdarray);
+        Process p = runCommand(server, cmdarray, false);
 
         BufferedWriter bw;
         try {
@@ -497,7 +505,7 @@ public class HExecutionEngine implements ExecutionEngine {
 
         return cmd.toString();
     }
-    private Process runCommand(String server, String[] cmdarray) throws ExecException {
+    private Process runCommand(String server, String[] cmdarray, boolean connect) throws ExecException {
         Process p;
         try {
             if (server.equals(LOCAL)) {
@@ -507,6 +515,9 @@ public class HExecutionEngine implements ExecutionEngine {
                 SSHSocketImplFactory fac = SSHSocketImplFactory.getFactory(server);
                 p = fac.ssh(cmdToString(cmdarray));
             }
+
+            if (connect)
+                hodProcess = p;
 
             //this should return as soon as connection is shutdown
             int rc = p.waitFor();
@@ -572,7 +583,7 @@ public class HExecutionEngine implements ExecutionEngine {
             cmdarray[2] = dir;
 
             try{
-                Process p = runCommand(server, cmdarray);
+                runCommand(server, cmdarray, false);
             }catch(Exception e){
                     log.warn("Failed to remove HOD configuration directory - " + dir);
             }
@@ -667,7 +678,7 @@ public class HExecutionEngine implements ExecutionEngine {
             cmdarray[1] = dir;
 
             try{
-                Process p = runCommand(server, cmdarray);
+                runCommand(server, cmdarray, false);
             }
             catch(ExecException e){
                     log.warn("Failed to create HOD configuration directory - " + dir + "Retrying...");
