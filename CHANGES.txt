@@ -218,4 +218,7 @@ Trunk (unreleased changes)
     PIG-440: Exceptions from UDFs inside a foreach are not captured (pradeepk
     via olgan)
 
+    PIG-442: Disambiguated alias after a foreach flatten is not accessible a
+    couple of statements after the foreach (sms via olgan)
+
 

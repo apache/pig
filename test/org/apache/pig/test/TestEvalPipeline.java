@@ -375,7 +375,7 @@ System.out.println(last + " " + t.get(0));
         
     }
     
-    /*public void testNestedPlan() throws Exception{
+    public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -484,7 +484,7 @@ System.out.println(last + " " + t.get(0));
             ++numIdentity;
         }
         assertEquals(5, numIdentity);
-    }*/
+    }
     
 
 }

@@ -1318,12 +1318,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("b = group a by name;");
         buildPlan("c = foreach b generate flatten(a);");
         buildPlan("d = foreach c generate name;");
-        // test that we can refer to "name" field and not a::name
-        try {
-            buildPlan("e = foreach d generate a::name;");
-        } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Invalid alias: a::name in {name: bytearray}"));
-        }
+        // test that we can refer to "name" field and a::name
+        buildPlan("e = foreach d generate a::name;");
     }
     
     @Test
@@ -1350,7 +1346,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         try {
             buildPlan("e = foreach d generate name;");
         } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Invalid alias: name in {a::name: bytearray"));
+            assertTrue(e.getMessage().contains("Found more than one match:"));
         }
     }
 

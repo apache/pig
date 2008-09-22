@@ -464,8 +464,53 @@ public class Schema implements Serializable, Cloneable {
      * @param alias Alias to look up.
      * @return FieldSchema, or null if no such alias is in this tuple.
      */
-    public FieldSchema getField(String alias) {
-        return mAliases.get(alias);
+    public FieldSchema getField(String alias) throws FrontendException {
+        FieldSchema fs = mAliases.get(alias);
+        if(null == fs) {
+            String cocoPrefix = new String("::" + alias);
+            Map<String, Integer> aliasMatches = new HashMap<String, Integer>();
+            //build the map of aliases that have cocoPrefix as the suffix
+            for(String key: mAliases.keySet()) {
+                if(key.endsWith(cocoPrefix)) {
+                    Integer count = aliasMatches.get(key);
+                    if(null == count) {
+                        aliasMatches.put(key, 1);
+                    } else {
+                        aliasMatches.put(key, ++count);
+                    }
+                }
+            }
+            //process the map to check if
+            //1. are there multiple keys with count == 1
+            //2. are there keys with count > 1 --> should never occur
+            //3. if thers is a single key with count == 1 we have our match
+
+            if(aliasMatches.keySet().size() == 0) {
+                return null;
+            }
+            if(aliasMatches.keySet().size() == 1) {
+                Object[] keys = aliasMatches.keySet().toArray();
+                String key = (String)keys[0];
+                if(aliasMatches.get(key) > 1) {
+                    throw new FrontendException("Found duplicate aliases: " + key);
+                }
+                return mAliases.get(key);
+            } else {
+                boolean hasNext = false;
+                StringBuilder sb = new StringBuilder("Found more than one match: ");
+                for (String key: aliasMatches.keySet()) {
+                    if(hasNext) {
+                        sb.append(", ");
+                    } else {
+                        hasNext = true;
+                    }
+                    sb.append(key);
+                }
+                throw new FrontendException(sb.toString());
+            }
+        } else {
+            return fs;
+        }
     }
 
     /**
@@ -722,7 +767,7 @@ public class Schema implements Serializable, Cloneable {
      *            alias of the FieldSchema.
      * @return position of the FieldSchema.
      */
-    public int getPosition(String alias) {
+    public int getPosition(String alias) throws FrontendException{
 
         FieldSchema fs = getField(alias);
 

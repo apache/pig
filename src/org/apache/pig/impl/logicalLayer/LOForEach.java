@@ -325,9 +325,6 @@ public class LOForEach extends LogicalOperator {
 				log.debug("alias: " + alias);
 				if((null != alias) && (count == 1)) {
 					mSchema.addAlias(alias, fs);
-					// alias is unambiguous - so set it
-					// as the alias in the field schema
-					fs.alias = alias;
 				}
 			}
             mIsSchemaComputed = true;

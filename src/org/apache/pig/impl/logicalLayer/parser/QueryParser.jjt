@@ -1550,9 +1550,13 @@ int ColNameOrNum(Schema over) :
 	t = <IDENTIFIER> 
 	{	int i;
 		
-		if ( over == null ||  (i = over.getPosition(t.image)) == -1) {
-			throw new ParseException("Invalid alias: " + t.image + " in " + over);
-		} 
+        try {
+		    if ( over == null ||  (i = over.getPosition(t.image)) == -1) {
+			    throw new ParseException("Invalid alias: " + t.image + " in " + over);
+		    } 
+        } catch (FrontendException fee) {
+            throw new ParseException(fee.getMessage());
+        }
 		
 		log.trace("Exiting ColNameOrNum");
 		return i;
@@ -2011,9 +2015,13 @@ LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, L
             foreachInput = specs.get(t.image);
         }
         if(null == foreachInput) {
-			if ((null == over) ||  (i = over.getPosition(t.image)) == -1) {
-				throw new ParseException("Invalid alias: " + t.image + " in " + over);
-			}
+            try {
+			    if ((null == over) ||  (i = over.getPosition(t.image)) == -1) {
+				    throw new ParseException("Invalid alias: " + t.image + " in " + over);
+			    }
+            } catch (FrontendException fee) {
+                throw new ParseException(fee.getMessage());
+            }
             foreachInput = new LOProject(lp, new OperatorKey(scope, getNextId()), input, i);
         }
 
@@ -3243,14 +3251,18 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 		if (item == null){
 			log.debug("item == null");
 			if (null == over) log.debug("over is null");
-			if ( over == null ||  (i = over.getPosition(t1.image)) == -1) {
-				log.debug("Invalid alias: " + t1.image + " in " + over);
-				if(null != over) {
-					log.debug("Printing out the aliases in the schema");
-					over.printAliases();
-				}
-				throw new ParseException("Invalid alias: " + t1.image + " in " + over);
-			}
+            try {
+			    if ( over == null ||  (i = over.getPosition(t1.image)) == -1) {
+				    log.debug("Invalid alias: " + t1.image + " in " + over);
+				    if(null != over) {
+					    log.debug("Printing out the aliases in the schema");
+					    over.printAliases();
+				    }
+				    throw new ParseException("Invalid alias: " + t1.image + " in " + over);
+			    }
+            } catch (FrontendException fee) {
+                throw new ParseException(fee.getMessage());
+            }
 			log.debug("Position of " + t1.image + " = " + i);
 			if(null != over) {
 				log.debug("Printing out the aliases in the schema");
