@@ -254,6 +254,8 @@ public class JobControlCompiler{
         try{
             //Create the jar of all functions reuired
             File submitJarFile = File.createTempFile("Job", ".jar");
+            // ensure the job jar is deleted on exit
+            submitJarFile.deleteOnExit();
             FileOutputStream fos = new FileOutputStream(submitJarFile);
             JarManager.createJar(fos, mro.UDFs, pigContext);
             

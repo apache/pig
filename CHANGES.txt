@@ -233,3 +233,5 @@ Trunk (unreleased changes)
 
     PIG-445: Null Pointer Exceptions in the mappers leading to lot of retries
     (shravanmn via olgan)
+
+    PIG-444: job.jar is left behined (pradeepk via olgan)
