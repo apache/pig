@@ -944,6 +944,13 @@ public class TypeCheckingVisitor extends LOVisitor {
                 insertRightCastForBinaryOp(binOp, DataType.LONG) ;
             }
         }
+        else if ( (rhsType == DataType.LONG) &&
+                  ( (lhsType == DataType.INTEGER) || (lhsType == DataType.LONG) )
+                ) {
+            if (lhsType == DataType.INTEGER) {
+                insertLeftCastForBinaryOp(binOp, DataType.LONG) ;
+            }
+        }
         else if ( (lhsType == DataType.BYTEARRAY) &&
                   ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
                 ) {
@@ -1206,7 +1213,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
 
         try {
-            func.regenerateSchema();
+            func.regenerateFieldSchema();
         } catch (FrontendException fee) {
             String msg = "Could not set LOUserFunc field schema";
             msgCollector.collect(msg, MessageType.Error);
@@ -1288,6 +1295,16 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new VisitorException(msg) ;
         }
 
+        try {
+            binCond.regenerateFieldSchema();
+        } catch (FrontendException fee) {
+            String msg = "Could not set LOBinCond field schema";
+            msgCollector.collect(msg, MessageType.Error);
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fee) ;
+            throw new VisitorException(msg) ;
+        }
+
     }
 
     private void insertLeftCastForBinCond(LOBinCond binCond, byte toType) {
@@ -1304,7 +1321,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             currentPlan.connect(binCond.getLhsOp(), cast) ;
             currentPlan.connect(cast, binCond) ;
-            binCond.setLhsOp(cast);
         } 
         catch (PlanException ioe) {
             AssertionError err =  new AssertionError("Explicit casting insertion") ;
@@ -1329,7 +1345,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             currentPlan.connect(binCond.getRhsOp(), cast) ;
             currentPlan.connect(cast, binCond) ;
-            binCond.setRhsOp(cast);
         } 
         catch (PlanException ioe) {
             AssertionError err =  new AssertionError("Explicit casting insertion") ;

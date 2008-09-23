@@ -523,7 +523,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOProject project2 = new LOProject(innerPlan, genNewOperatorKey(), load1, 1) ;
         project2.setSentinel(true);
         LOAdd add1 = new LOAdd(innerPlan, genNewOperatorKey(), project1, project2) ;
-        LOConst const1  = new LOConst(innerPlan, genNewOperatorKey(), 10) ;
+        LOConst const1  = new LOConst(innerPlan, genNewOperatorKey(), "10") ;
         const1.setType(DataType.CHARARRAY);
 
         LOGreaterThan gt1 = new LOGreaterThan(innerPlan,

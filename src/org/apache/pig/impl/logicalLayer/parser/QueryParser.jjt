@@ -2807,9 +2807,9 @@ Schema TupleSchema() :
 		fs = FieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);} 
 		( "," fs = FieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);})* 
 	)
-|		{}
+|		{} {list = null;}
 	)
-	{log.debug("Printing Aliases in TupleSchema"); list.printAliases();log.trace("Exiting TupleSchema");return list;}
+	{log.debug("Printing list in TupleSchema" + list); log.trace("Exiting TupleSchema");return list;}
 }
 
 
@@ -2927,9 +2927,9 @@ Schema TypeTupleSchema() :
 		fs = TypeFieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);} 
 		( "," fs = TypeFieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);})* 
 	)
-|		{}
+|		{} {list = null;}
 	)
-	{log.debug("Printing Aliases in TypeTupleSchema"); list.printAliases();log.trace("Exiting TypeTupleSchema");return list;}
+	{log.debug("Printing list in TypeTupleSchema: " + list); log.trace("Exiting TypeTupleSchema");return list;}
 }
 
 // These the simple non-terminals that are shared across many
@@ -3050,7 +3050,6 @@ Tuple Tuple() :
                 obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);} 
 		        ( LOOKAHEAD(2) "," obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);})* 
             )
-            |		{}
 	)
 	)
 	{

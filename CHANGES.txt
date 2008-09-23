@@ -239,3 +239,5 @@ Trunk (unreleased changes)
     PIG-447: improved error messages (pradeepk via olgan)
 
     PIG-448: explain broken after load with types (pradeepk via olgan)
+
+    PIG-380: invalid schema for databag constant (sms via olgan)

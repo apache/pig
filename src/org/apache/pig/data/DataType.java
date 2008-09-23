@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.ArrayList;
 
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
@@ -32,6 +33,9 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * A class of static final values used to encode data type and a number of
@@ -706,4 +710,94 @@ public class DataType {
         return true;
     }
         
+    /***
+     * Determine the field schema of an object
+     * @param o the object whose field schema is to be determined
+     * @return the field schema corresponding to the object
+     * @throws ExecException,FrontendException,SchemaMergeException
+     */
+    public static Schema.FieldSchema determineFieldSchema(Object o) 
+        throws ExecException, FrontendException, SchemaMergeException {
+        byte dt = findType(o);
+
+        switch (dt) {
+        case NULL:
+            return new Schema.FieldSchema(null, NULL);
+
+        case BOOLEAN:
+            return new Schema.FieldSchema(null, BOOLEAN);
+
+        case INTEGER:
+            return new Schema.FieldSchema(null, INTEGER);
+
+        case LONG:
+            return new Schema.FieldSchema(null, LONG);
+
+        case FLOAT:
+            return new Schema.FieldSchema(null, FLOAT);
+
+        case DOUBLE:
+            return new Schema.FieldSchema(null, DOUBLE);
+
+        case BYTEARRAY:
+            return new Schema.FieldSchema(null, BYTEARRAY);
+
+        case CHARARRAY:
+            return new Schema.FieldSchema(null, CHARARRAY);
+
+        case MAP: 
+            return new Schema.FieldSchema(null, MAP);
+        
+        case TUPLE: {
+	            Tuple t = (Tuple)o;
+                long tupleSize = t.size();
+                Schema schema = null;
+
+                if(tupleSize != 0) {
+	                schema = new Schema();
+	                for(int i = 0; i < t.size(); ++i) {
+	                    schema.add(determineFieldSchema(t.get(i))); 
+	                }
+                }
+	            return new Schema.FieldSchema(null, schema, TUPLE);
+            }
+        
+        case BAG: {
+                DataBag b = (DataBag)o;
+                long bagSize = b.size();
+                Schema schema = null;
+
+                if(bagSize != 0) {
+                    Iterator<Tuple> it = b.iterator();
+                    ArrayList<Schema> schemas = new ArrayList<Schema>();
+                    while(it.hasNext()) {
+                        schemas.add(determineFieldSchema((Object)it.next()).schema);
+                    }
+                    schema = schemas.get(0);
+                    if(null == schema) {
+                        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
+                        Schema bagSchema = new Schema(tupleFs);
+                        return new Schema.FieldSchema(null, null, BAG);
+                    }
+                    int schemaSize = schema.size();
+
+                    for(int i = 1; i < schemas.size(); ++i) {
+                        Schema currSchema = schemas.get(i);
+                        if((null == currSchema) || (currSchema.size() != schemaSize)) {
+                            Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
+                            Schema bagSchema = new Schema(tupleFs);
+                            return new Schema.FieldSchema(null, bagSchema, BAG);
+                        }
+                        schema = Schema.mergeSchema(schema, currSchema, false, false, false); 
+                    }
+                }
+                Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
+                Schema bagSchema = new Schema(tupleFs);
+                return new Schema.FieldSchema(null, bagSchema, BAG);
+            }
+        default: {
+                throw new ExecException("Cannot determine field schema for " + o);
+            }
+        }
+    }
 }

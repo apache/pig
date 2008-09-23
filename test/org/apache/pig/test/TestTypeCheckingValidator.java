@@ -136,7 +136,7 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.INTEGER) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20D) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), new DataByteArray()) ;
         constant2.setType(DataType.BYTEARRAY) ;
         LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), 123L) ;
         constant3.setType(DataType.LONG) ;        
@@ -193,7 +193,7 @@ public class TestTypeCheckingValidator extends TestCase {
     public void testExpressionTypeChecking3() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
-        constant1.setType(DataType.BYTEARRAY) ;
+        constant1.setType(DataType.INTEGER) ;
         LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20L) ;
         constant2.setType(DataType.LONG) ;
         LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), 123) ;
@@ -212,7 +212,7 @@ public class TestTypeCheckingValidator extends TestCase {
         plan.connect(constant2, mod1) ;
         plan.connect(mod1, equal1) ;
         plan.connect(constant3, equal1) ;
-                     
+        
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
@@ -329,9 +329,9 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking5() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10F) ;
         constant1.setType(DataType.FLOAT) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20L) ;
         constant2.setType(DataType.LONG) ;
         LOConst constant3 =  new LOConst(plan, genNewOperatorKey(), 123F) ;
         constant3.setType(DataType.FLOAT) ;
@@ -354,7 +354,7 @@ public class TestTypeCheckingValidator extends TestCase {
         plan.connect(constant3, bincond1) ;
         plan.connect(constant4, bincond1) ;
         
-                          
+         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;        
@@ -380,9 +380,9 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testExpressionTypeChecking6() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), "10") ;
         constant1.setType(DataType.CHARARRAY) ;
-        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20) ;
+        LOConst constant2 =  new LOConst(plan, genNewOperatorKey(), 20L) ;
         constant2.setType(DataType.LONG) ;
         
         LOAdd add1 = new LOAdd(plan, genNewOperatorKey(), constant1, constant2) ;
@@ -741,7 +741,7 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testRegexTypeChecking1() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), "10") ;
         constant1.setType(DataType.CHARARRAY) ;
 
         LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1,
@@ -768,7 +768,7 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testRegexTypeChecking2() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
-        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
+        LOConst constant1 = new LOConst(plan, genNewOperatorKey(), new DataByteArray()) ;
         constant1.setType(DataType.BYTEARRAY) ;
 
         LORegexp regex = new LORegexp(plan, genNewOperatorKey(), constant1,
@@ -1514,7 +1514,7 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan innerPlan2 = new LogicalPlan() ;
         LOProject project21 = new LOProject(innerPlan2, genNewOperatorKey(), load1, 0) ;
         project21.setSentinel(true);
-        LOConst const21 = new LOConst(innerPlan2, genNewOperatorKey(), 26) ;
+        LOConst const21 = new LOConst(innerPlan2, genNewOperatorKey(), 26L) ;
         const21.setType(DataType.LONG);
         LOMod mod21 = new LOMod(innerPlan2, genNewOperatorKey(), project21, const21) ;
 
@@ -1612,8 +1612,8 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan innerPlan2 = new LogicalPlan() ;
         LOProject project21 = new LOProject(innerPlan2, genNewOperatorKey(), load1, 0) ;
         project21.setSentinel(true);
-        LOConst const21 = new LOConst(innerPlan2, genNewOperatorKey(), 26) ;
-        const21.setType(DataType.BYTEARRAY);
+        LOConst const21 = new LOConst(innerPlan2, genNewOperatorKey(), "26") ;
+        const21.setType(DataType.CHARARRAY);
         LOMod mod21 = new LOMod(innerPlan2, genNewOperatorKey(), project21, const21) ;
 
         innerPlan2.add(project21) ;
@@ -2448,7 +2448,7 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan innerPlan1 = new LogicalPlan() ;
         LOProject project11 = new LOProject(innerPlan1, genNewOperatorKey(), load1, 0) ;
         project11.setSentinel(true);
-        LOConst const11 = new LOConst(innerPlan1, genNewOperatorKey(), 26F) ;
+        LOConst const11 = new LOConst(innerPlan1, genNewOperatorKey(), "26F") ;
         const11.setType(DataType.CHARARRAY);
         LOSubtract subtract11 = new LOSubtract(innerPlan1,
                                                 genNewOperatorKey(),
@@ -2791,6 +2791,16 @@ public class TestTypeCheckingValidator extends TestCase {
             assertTrue(leaveList.get(0) instanceof LOProject);
         }
         
+    }
+
+    private void printPlan(LogicalPlan lp, String title) {
+        try {
+            System.err.println(title);
+            LOPrinter lv = new LOPrinter(System.err, lp);
+            lv.visit();
+            System.err.println();
+        } catch (Exception e) {
+        }
     }
 
 }

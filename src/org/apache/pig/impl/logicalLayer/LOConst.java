@@ -60,11 +60,17 @@ public class LOConst extends ExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
-            if(DataType.isAtomic(mType)) {
-                mFieldSchema = new Schema.FieldSchema(null, mType);
+            try {
+                mFieldSchema = DataType.determineFieldSchema(mValue);
                 mIsFieldSchemaComputed = true;
+            } catch (Exception e) {
+                mFieldSchema = null;
+                mIsFieldSchemaComputed = false;
+                System.err.println("LOConst: " + e.getMessage());
+                e.printStackTrace();
+                throw new FrontendException(e.getMessage());
             }
         }
         return mFieldSchema;

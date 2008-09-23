@@ -171,7 +171,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     public void testQuery102() {
         // test basic store
         buildPlan("a = load 'a';");
-        printPlan(buildPlan("store a into 'out';"));
+        buildPlan("store a into 'out';");
     }
 
     @Test
@@ -864,13 +864,13 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     public void testQuery68() {
         buildPlan(" a = load 'input1';");
-        buildPlan(" b = foreach a generate 10, {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12l, {()})};");
+        buildPlan(" b = foreach a generate 10, {(16, 4.0e-2, 'hello'), (0.5f, 12l, 'another tuple')};");
     }
 
     @Test
     public void testQuery69() {
         buildPlan(" a = load 'input1';");
-        buildPlan(" b = foreach a generate {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12L, (1), ())};");
+        buildPlan(" b = foreach a generate {(16, 4.0e-2, 'hello'), (0.5f, 'another tuple', 12L, (1))};");
     }
 
     @Test
@@ -1191,7 +1191,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         //the schema of group is unchanged
         lp = buildPlan("c = foreach b generate flatten(group) as (), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("name: chararray, age: int, mycount: long")));
+        assertTrue(foreach.getSchema().equals(getSchemaFromString("group::name: chararray, group::age: int, mycount: long")));
 
         //the first element in group, i.e., name is renamed as myname 
         lp = buildPlan("c = foreach b generate flatten(group) as myname, COUNT(a) as mycount;");
@@ -1405,6 +1405,116 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         LOLesserThan lessThan = (LOLesserThan)comparisonPlan.getLeaves().get(0);
         LOProject filterProject = (LOProject)lessThan.getLhsOperand();
         assertTrue(null == comparisonPlan.getPredecessors(filterProject));
+    }
+
+    @Test
+    public void testQuery97() throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a generate 1;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: int"), false, true));
+
+        lp = buildPlan("b = foreach a generate 1L;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: long"), false, true));
+
+        lp = buildPlan("b = foreach a generate 1.0;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: double"), false, true));
+
+        lp = buildPlan("b = foreach a generate 1.0f;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: float"), false, true));
+
+        lp = buildPlan("b = foreach a generate 'hello';");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: chararray"), false, true));
+    }
+
+    @Test
+    public void testQuery98() throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a generate (1);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: int)"), false, true));
+
+        lp = buildPlan("b = foreach a generate (1L);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: long)"), false, true));
+
+        lp = buildPlan("b = foreach a generate (1.0);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: double)"), false, true));
+
+        lp = buildPlan("b = foreach a generate (1.0f);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: float)"), false, true));
+
+        lp = buildPlan("b = foreach a generate ('hello');");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: chararray)"), false, true));
+
+        lp = buildPlan("b = foreach a generate ('hello', 1, 1L, 1.0f, 1.0);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: chararray, y: int, z: long, a: float, b: double)"), false, true));
+
+        lp = buildPlan("b = foreach a generate ('hello', {(1), (1.0)});");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: chararray, ib:{it:(d: double)})"), false, true));
+
+    }
+
+    @Test
+    public void testQuery99() throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a generate {(1, 'hello'), (2, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: int, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1, 'hello'), (1L, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: long, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1, 'hello'), (1.0f, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: float, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1, 'hello'), (1.0, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1L, 'hello'), (1.0f, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: float, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1L, 'hello'), (1.0, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1.0f, 'hello'), (1.0, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1.0, 'hello'), (1.0f, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+
+        lp = buildPlan("b = foreach a generate {(1.0, 'hello', 3.14), (1.0f, 'world')};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:()}"), false, true));
+
     }
 
     private Schema getSchemaFromString(String schemaString) throws ParseException {

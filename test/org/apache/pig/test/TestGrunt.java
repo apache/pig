@@ -107,7 +107,7 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer("MAPREDUCE");
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'; b = foreach a generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, f: float)};\n";
+        String strCmd = "a = load 'input1'; b = foreach a generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, d: double)};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -137,7 +137,7 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer("MAPREDUCE");
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'; b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, f: float)};};\n";
+        String strCmd = "a = load 'input1'; b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, d: double)};};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
