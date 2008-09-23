@@ -236,4 +236,6 @@ Trunk (unreleased changes)
 
     PIG-444: job.jar is left behined (pradeepk via olgan)
 
-    PIG-447: improved error messages
+    PIG-447: improved error messages (pradeepk via olgan)
+
+    PIG-448: explain broken after load with types (pradeepk via olgan)

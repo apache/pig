@@ -471,10 +471,14 @@ public class PigServer {
             // figure out the leaf to which the store needs to be added
             List<LogicalOperator> leaves = lp.getLeaves();
             LogicalOperator leaf = null;
-            for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
-                LogicalOperator leafOp = it.next();
-                if(leafOp.getAlias().equals(alias))
-                    leaf = leafOp;
+            if(leaves.size() == 1) {
+                leaf = leaves.get(0);
+            } else {
+                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
+                    LogicalOperator leafOp = it.next();
+                    if(leafOp.getAlias().equals(alias))
+                        leaf = leafOp;
+                }
             }
             
             LogicalPlan storePlan = QueryParser.generateStorePlan(
