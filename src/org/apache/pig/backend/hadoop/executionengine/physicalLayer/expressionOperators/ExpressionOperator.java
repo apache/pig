@@ -39,7 +39,7 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public abstract class ExpressionOperator extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
-    private Log log = LogFactory.getLog(getClass());
+    protected Log log = LogFactory.getLog(getClass());
     
     public ExpressionOperator(OperatorKey k) {
         this(k,-1);

@@ -140,12 +140,25 @@ public class POProject extends ExpressionOperator {
         if (star) {
             return res;
         } else if(columns.size() == 1) {
-            ret = inpValue.get(columns.get(0));
+            try {
+                ret = inpValue.get(columns.get(0));
+            } catch (ExecException ee) {
+                log.warn("Attempt to access field " + 
+                    " which was not found in the input");
+                res.returnStatus = POStatus.STATUS_NULL;
+                ret = null;
+            }
         } else {
 	        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
             for(int i: columns) {
-               objList.add(inpValue.get(i)); 
+                try { 
+                    objList.add(inpValue.get(i)); 
+                } catch (ExecException ee) {
+                    log.warn("Attempt to access field " + i +
+                        " which was not found in the input");
+                    objList.add(null);
+                }
             }
 		    ret = tupleFactory.newTuple(objList);
         }
