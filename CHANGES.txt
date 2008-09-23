@@ -235,3 +235,5 @@ Trunk (unreleased changes)
     (shravanmn via olgan)
 
     PIG-444: job.jar is left behined (pradeepk via olgan)
+
+    PIG-447: improved error messages

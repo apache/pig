@@ -415,7 +415,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
-            String msg = "Cannot evaluate output type of Mul/Div Operator" ;
+            String msg = "Incompatible types in Multiplication Operator"
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
@@ -423,7 +425,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOSubtract field schema";
+            String msg = "Could not set LOMultiply field schema";
             msgCollector.collect(msg, MessageType.Error);
             VisitorException vse = new VisitorException(msg) ;
             vse.initCause(fe) ;
@@ -468,7 +470,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
-            String msg = "Cannot evaluate output type of Mul/Div Operator" ;
+            String msg = "Incompatible types in Division Operator"
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
@@ -476,7 +480,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOSubtract field schema";
+            String msg = "Could not set LODivide field schema";
             msgCollector.collect(msg, MessageType.Error);
             VisitorException vse = new VisitorException(msg) ;
             vse.initCause(fe) ;
@@ -521,14 +525,16 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
-            String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
+            String msg = "Incompatible types in Add Operator"
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOSubtract field schema";
+            String msg = "Could not set LOAdd field schema";
             msgCollector.collect(msg, MessageType.Error);
             VisitorException vse = new VisitorException(msg) ;
             vse.initCause(fe) ;
@@ -573,7 +579,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
-            String msg = "Cannot evaluate output type of Add/Subtract Operator" ;
+            String msg = "Incompatible types in Subtract Operator"
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
@@ -632,8 +640,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Cannot evaluate output type of "
-                            + binOp.getClass().getSimpleName()
+            String msg = "Incompatible types in GreaterThan comparision operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
@@ -684,8 +691,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Cannot evaluate output type of "
-                            + binOp.getClass().getSimpleName()
+            String msg = "Incompatible types in GreaterThanEqualTo comparison operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
@@ -735,8 +741,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Cannot evaluate output type of "
-                            + binOp.getClass().getSimpleName()
+            String msg = "Incompatible types in LesserThan comparison operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
@@ -787,8 +792,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Cannot evaluate output type of "
-                            + binOp.getClass().getSimpleName()
+            String msg = "Incompatible types in LesserThanEqualTo comparison operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
@@ -850,7 +854,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             // good
         }
         else {
-            String msg = "Cannot evaluate output type of Equal/NotEqual Operator" ;
+            String msg = "Incompatible types in EqualTo Comparison Operator" 
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
@@ -909,7 +915,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             // good
         }
         else {
-            String msg = "Cannot evaluate output type of Equal/NotEqual Operator" ;
+            String msg = "Incompatible types in NotEqual Comparison Operator"
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
@@ -942,14 +950,16 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
         }
         else {
-            String msg = "Cannot evaluate output type of Mod Operator" ;
+            String msg = "Incompatible types in Mod Operator"
+                            + " LHS:" + DataType.findTypeName(lhsType)
+                            + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOSubtract field schema";
+            String msg = "Could not set LOMod field schema";
             msgCollector.collect(msg, MessageType.Error);
             VisitorException vse = new VisitorException(msg) ;
             vse.initCause(fe) ;
