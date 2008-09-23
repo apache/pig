@@ -29,9 +29,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * Class to represent a UDF specification - essentially 
  * encapsulates the class name and the arguments to the constructor
  */
-/**
- *
- */
 public class FuncSpec implements Serializable, Cloneable {
 
     private static final long serialVersionUID = 2L;

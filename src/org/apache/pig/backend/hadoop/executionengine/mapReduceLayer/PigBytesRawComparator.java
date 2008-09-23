@@ -25,17 +25,23 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.impl.io.NullableBytesWritable;
-import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
-public class PigBytesRawComparator extends BytesWritable.Comparator implements Configurable {
+public class PigBytesRawComparator extends WritableComparator implements Configurable {
 
     private final Log mLog = LogFactory.getLog(getClass());
     private boolean[] mAsc;
+    private BytesWritable.Comparator mWrappedComp;
+
+    public PigBytesRawComparator() {
+        super(NullableBytesWritable.class);
+        mWrappedComp = new BytesWritable.Comparator();
+    }
 
     public void setConf(Configuration conf) {
         if (!(conf instanceof JobConf)) {
@@ -73,7 +79,7 @@ public class PigBytesRawComparator extends BytesWritable.Comparator implements C
         // If either are null, handle differently.
         if (b1[s1] == 0 && b2[s2] == 0) {
             // Subtract 2, one for null byte and one for index byte
-            rc = super.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
+            rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
@@ -84,5 +90,22 @@ public class PigBytesRawComparator extends BytesWritable.Comparator implements C
         return rc;
     }
 
+    public int compare(Object o1, Object o2) {
+        NullableBytesWritable nbw1 = (NullableBytesWritable)o1;
+        NullableBytesWritable nbw2 = (NullableBytesWritable)o2;
+        int rc = 0;
+
+        // If either are null, handle differently.
+        if (!nbw1.isNull() && !nbw2.isNull()) {
+            rc = ((DataByteArray)nbw1.getValueAsPigType()).compareTo((DataByteArray)nbw2.getValueAsPigType());
+        } else {
+            // For sorting purposes two nulls are equal.
+            if (nbw1.isNull() && nbw2.isNull()) rc = 0;
+            else if (nbw1.isNull()) rc = -1;
+            else rc = 1;
+        }
+        if (!mAsc[0]) rc *= -1;
+        return rc;
+    }
 
 }

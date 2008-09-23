@@ -24,17 +24,23 @@ import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 
 import org.apache.pig.backend.hadoop.DoubleWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
-import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
-public class PigDoubleRawComparator extends DoubleWritable.Comparator implements Configurable {
+public class PigDoubleRawComparator extends WritableComparator implements Configurable {
 
     private final Log mLog = LogFactory.getLog(getClass());
     private boolean[] mAsc;
+    private DoubleWritable.Comparator mWrappedComp;
+
+    public PigDoubleRawComparator() {
+        super(NullableDoubleWritable.class);
+        mWrappedComp = new DoubleWritable.Comparator();
+    }
 
     public void setConf(Configuration conf) {
         if (!(conf instanceof JobConf)) {
@@ -71,7 +77,7 @@ public class PigDoubleRawComparator extends DoubleWritable.Comparator implements
 
         // If either are null, handle differently.
         if (b1[s1] == 0 && b2[s2] == 0) {
-            rc = super.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
+            rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
@@ -82,5 +88,21 @@ public class PigDoubleRawComparator extends DoubleWritable.Comparator implements
         return rc;
     }
 
+    public int compare(Object o1, Object o2) {
+        NullableDoubleWritable ndw1 = (NullableDoubleWritable)o1;
+        NullableDoubleWritable ndw2 = (NullableDoubleWritable)o2;
+        int rc = 0;
 
+        // If either are null, handle differently.
+        if (!ndw1.isNull() && !ndw2.isNull()) {
+            rc = ((Double)ndw1.getValueAsPigType()).compareTo((Double)ndw2.getValueAsPigType());
+        } else {
+            // For sorting purposes two nulls are equal.
+            if (ndw1.isNull() && ndw2.isNull()) rc = 0;
+            else if (ndw1.isNull()) rc = -1;
+            else rc = 1;
+        }
+        if (!mAsc[0]) rc *= -1;
+        return rc;
+    }
 }

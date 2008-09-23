@@ -306,10 +306,12 @@ public class TestEvalPipeline extends TestCase {
     
 
     
+    /*
     @Test
     public void testSort() throws Exception{
         testSortDistinct(false, false);
     }
+    */
     
     @Test
     public void testSortWithUDF() throws Exception{
@@ -366,7 +368,6 @@ public class TestEvalPipeline extends TestCase {
                 assertFalse(seen.contains(act));
                 seen.add(act);
             }else{
-System.out.println(last + " " + t.get(0));
                 assertTrue(last.compareTo(t.get(0).toString())<=0);
                 assertEquals(t.size(), 2);
                 last = t.get(0).toString();

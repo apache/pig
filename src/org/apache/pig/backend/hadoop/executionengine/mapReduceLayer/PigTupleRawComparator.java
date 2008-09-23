@@ -33,7 +33,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigTupleRawComparator extends WritableComparator implements Configurable {
@@ -100,35 +100,59 @@ public class PigTupleRawComparator extends WritableComparator implements Configu
                 throw new RuntimeException(ioe.getMessage(), ioe);
             }
 
-            int sz1 = t1.size();
-            int sz2 = t2.size();
-            if (sz2 < sz1) {
-                rc = 1;
-            } else if (sz2 > sz1) {
-                rc = -1;
-            } else {
-                for (int i = 0; i < sz1; i++) {
-                    try {
-                        int c = DataType.compare(t1.get(i), t2.get(i));
-                        if (c != 0) {
-                            if (!mWholeTuple && !mAsc[i]) c *= -1;
-                            else if (mWholeTuple && !mAsc[0]) c *= -1;
-                            return c;
-                        }
-                    } catch (ExecException e) {
-                        throw new RuntimeException("Unable to compare tuples", e);
-                    }
-                }
-                rc = 0;
-            }
+            rc = compareTuple(t1, t2);
+
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
             else if (b1[s1] != 0) rc = -1;
             else rc = 1;
+            if (mWholeTuple && !mAsc[0]) rc *= -1;
         }
-        if (mWholeTuple && !mAsc[0]) rc *= -1;
         return rc;
+    }
+
+    public int compare(Object o1, Object o2) {
+        NullableTuple nt1 = (NullableTuple)o1;
+        NullableTuple nt2 = (NullableTuple)o2;
+        int rc = 0;
+
+        // If either are null, handle differently.
+        if (!nt1.isNull() && !nt2.isNull()) {
+            rc = compareTuple((Tuple)nt1.getValueAsPigType(),
+                (Tuple)nt2.getValueAsPigType());
+        } else {
+            // For sorting purposes two nulls are equal.
+            if (nt1.isNull() && nt2.isNull()) rc = 0;
+            else if (nt1.isNull()) rc = -1;
+            else rc = 1;
+            if (mWholeTuple && !mAsc[0]) rc *= -1;
+        }
+        return rc;
+    }
+
+    private int compareTuple(Tuple t1, Tuple t2) {
+        int sz1 = t1.size();
+        int sz2 = t2.size();
+        if (sz2 < sz1) {
+            return 1;
+        } else if (sz2 > sz1) {
+            return -1;
+        } else {
+            for (int i = 0; i < sz1; i++) {
+                try {
+                    int c = DataType.compare(t1.get(i), t2.get(i));
+                    if (c != 0) {
+                        if (!mWholeTuple && !mAsc[i]) c *= -1;
+                        else if (mWholeTuple && !mAsc[0]) c *= -1;
+                        return c;
+                    }
+                } catch (ExecException e) {
+                    throw new RuntimeException("Unable to compare tuples", e);
+                }
+            }
+            return 0;
+        }
     }
 
 

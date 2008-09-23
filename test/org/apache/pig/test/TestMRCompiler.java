@@ -700,7 +700,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POUserComparisonFunc comparator = new POUserComparisonFunc(
                 new OperatorKey("", r.nextLong()), -1, null, new FuncSpec(funcName));
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, ldFil1.getLeaves(),
-                null, null, comparator);
+                null, new ArrayList<Boolean>(), comparator);
         sort.setRequestedParallelism(20);
         PhysicalPlan nesSortPlan = new PhysicalPlan();
         POProject topPrj = new POProject(new OperatorKey("", r.nextLong()));

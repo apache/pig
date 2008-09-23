@@ -454,34 +454,6 @@ public class JobControlCompiler{
         }
     }
 
-    /*
-    public static class PigRawGrouper extends WritableComparator {
-        protected PigRawGrouper(Class c) {
-            super(c);
-        }
-
-        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
-            // If it's null, then look at the index.  Else, ignore the index.
-            if (b1[s1] == 0 && b2[s2] == 0) {
-                return WritableComparator.compareBytes(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
-            } else if (b1[s1] != 0 && b2[s2] != 0) {
-                if (b1[s1 + l1 - 1] < b2[s2 + l2 - 1]) return -1;
-                else if (b2[s2 + l2 - 1] > b1[s1 + l1 - 1]) return 1;
-                else return 0;
-            }
-            else if (b1[s1] != 0) return -1;
-            else return 1;
-        }
-    }
-
-    public static class PigCharArrayRawGrouper extends PigRawGrouper {
-        public PigCharArrayRawGrouper() {
-            super(NullableText.class);
-        }
-    }
-    */
-
-
     private void selectComparator(
             MapReduceOper mro,
             byte keyType,
@@ -547,72 +519,6 @@ public class JobControlCompiler{
             }
             return;
         }
-
-            /*
-        try {
-            CogroupFinder cf = new CogroupFinder(mro.mapPlan);
-            cf.visit();
-            int mapRearranges = cf.rearrangeCounter;
-            cf = new CogroupFinder(mro.reducePlan);
-            cf.visit();
-            if (mapRearranges > 1 || cf.rearrangeCounter > 1) {
-                switch (keyType) {
-                case DataType.INTEGER:
-                    jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigIntRawComparator.class);
-                    break;
-
-                case DataType.LONG:
-                    jobConf.setOutputKeyComparatorClass(PigLongWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigLongRawComparator.class);
-                    break;
-
-                case DataType.FLOAT:
-                    jobConf.setOutputKeyComparatorClass(PigFloatWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigFloatRawComparator.class);
-                    break;
-
-                case DataType.DOUBLE:
-                    jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigDoubleRawComparator.class);
-                    break;
-
-                case DataType.CHARARRAY:
-                    jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigCharArrayRawGrouper.class);
-                    break;
-
-                case DataType.BYTEARRAY:
-                    jobConf.setOutputKeyComparatorClass(PigDBAWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigBytesRawComparator.class);
-                    break;
-
-                case DataType.MAP:
-                    log.error("Using Map as key not supported.");
-                    throw new JobCreationException("Using Map as key not supported");
-
-                case DataType.TUPLE:
-                    jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
-                    jobConf.setOutputValueGroupingComparator(PigTupleRawComparator.class);
-                    break;
-
-                case DataType.BAG:
-                    log.error("Using Bag as key not supported.");
-                    throw new JobCreationException("Using Bag as key not supported");
-
-                default:
-                    throw new RuntimeException("Forgot case for type " +
-                        DataType.findTypeName(keyType));
-                }
-                */
-                jobConf.setPartitionerClass(org.apache.hadoop.mapred.lib.HashPartitioner.class);
-                /*
-                return;
-            }
-        } catch (VisitorException ve) {
-            throw new JobCreationException(ve);
-        }
-        */
 
         switch (keyType) {
         case DataType.INTEGER:
@@ -708,20 +614,4 @@ public class JobControlCompiler{
             }
         }
     }
-
-    /*
-    private class CogroupFinder extends PhyPlanVisitor {
-        int rearrangeCounter = 0;
-
-        CogroupFinder(PhysicalPlan plan) {
-            super(plan,
-                new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
-        }
-
-        public void visitLocalRearrange(POLocalRearrange lr) {
-            rearrangeCounter++;
-        }
-    }
-    */
-
 }

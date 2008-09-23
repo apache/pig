@@ -25,17 +25,23 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 
 import org.apache.pig.impl.io.NullableText;
-import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
-public class PigTextRawComparator extends Text.Comparator implements Configurable {
+public class PigTextRawComparator extends WritableComparator implements Configurable {
 
     private final Log mLog = LogFactory.getLog(getClass());
     private boolean[] mAsc;
+    private Text.Comparator mWrappedComp;
+
+    public PigTextRawComparator() {
+        super(NullableText.class);
+        mWrappedComp = new Text.Comparator();
+    }
+
 
     public void setConf(Configuration conf) {
         if (!(conf instanceof JobConf)) {
@@ -72,7 +78,7 @@ public class PigTextRawComparator extends Text.Comparator implements Configurabl
 
         // If either are null, handle differently.
         if (b1[s1] == 0 && b2[s2] == 0) {
-            rc = super.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
+            rc = mWrappedComp.compare(b1, s1 + 1, l1 - 2, b2, s2 + 1, l2 - 2);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] != 0 && b2[s2] != 0) rc = 0;
@@ -82,6 +88,25 @@ public class PigTextRawComparator extends Text.Comparator implements Configurabl
         if (!mAsc[0]) rc *= -1;
         return rc;
     }
+
+    public int compare(Object o1, Object o2) {
+        NullableText nt1 = (NullableText)o1;
+        NullableText nt2 = (NullableText)o2;
+        int rc = 0;
+
+        // If either are null, handle differently.
+        if (!nt1.isNull() && !nt2.isNull()) {
+            rc = ((String)nt1.getValueAsPigType()).compareTo((String)nt2.getValueAsPigType());
+        } else {
+            // For sorting purposes two nulls are equal.
+            if (nt1.isNull() && nt2.isNull()) rc = 0;
+            else if (nt1.isNull()) rc = -1;
+            else rc = 1;
+        }
+        if (!mAsc[0]) rc *= -1;
+        return rc;
+    }
+
 
 
 }

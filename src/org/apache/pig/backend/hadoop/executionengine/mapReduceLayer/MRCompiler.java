@@ -1144,8 +1144,13 @@ public class MRCompiler extends PhyPlanVisitor {
         
         List ufInps = new ArrayList();
         ufInps.add(prjStar4);
+        // Turn the asc/desc array into an array of strings so that we can pass it
+        // to the FindQuantiles function.
+        List<Boolean> ascCols = inpSort.getMAscCols();
+        String[] ascs = new String[ascCols.size()];
+        for (int i = 0; i < ascCols.size(); i++) ascs[i] = ascCols.get(i).toString();
         POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, 
-                                 new FuncSpec(FindQuantiles.class.getName()));
+            new FuncSpec(FindQuantiles.class.getName(), ascs));
         ep4.add(uf);
         ep4.connect(prjStar4, uf);
         

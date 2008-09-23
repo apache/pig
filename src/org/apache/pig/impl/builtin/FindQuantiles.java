@@ -25,19 +25,72 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 
 public class FindQuantiles extends EvalFunc<DataBag>{
     BagFactory mBagFactory = BagFactory.getInstance();
+    boolean[] mAsc;
+    enum State { ALL_ASC, ALL_DESC, MIXED };
+    State mState;
     
     private class SortComparator implements Comparator<Tuple> {
         public int compare(Tuple t1, Tuple t2) {
-            return t1.compareTo(t2);
+            switch (mState) {
+            case ALL_ASC:
+                return t1.compareTo(t2);
+
+            case ALL_DESC:
+                return t2.compareTo(t1);
+
+            case MIXED:
+                // Have to break the tuple down and compare it field to field.
+                int sz1 = t1.size();
+                int sz2 = t2.size();
+                if (sz2 < sz1) {
+                    return 1;
+                } else if (sz2 > sz1) {
+                    return -1;
+                } else {
+                    for (int i = 0; i < sz1; i++) {
+                        try {
+                            int c = DataType.compare(t1.get(i), t2.get(i));
+                            if (c != 0) {
+                                if (!mAsc[i]) c *= -1;
+                                return c;
+                            }
+                        } catch (ExecException e) {
+                            throw new RuntimeException("Unable to compare tuples", e);
+                        }
+                    }
+                    return 0;
+                }
+            }
+            return -1; // keep the compiler happy
         }
     }
 
     private Comparator<Tuple> mComparator = new SortComparator();
+
+    public FindQuantiles() {
+        mState = State.ALL_ASC;
+    }
+
+    public FindQuantiles(String[] args) {
+        mAsc = new boolean[args.length];
+        boolean sawAsc = false;
+        boolean sawDesc = false;
+        for (int i = 0; i < args.length; i++) {
+            mAsc[i] = Boolean.parseBoolean(args[i]);
+            if (mAsc[i]) sawAsc = true;
+            else sawDesc = true;
+        }
+        if (sawAsc && sawDesc) mState = State.MIXED;
+        else if (sawDesc) mState = State.ALL_DESC;
+        else mState = State.ALL_ASC; // In cast they gave us no args this
+                                     // defaults to all ascending.
+    }
 
     /**
      * first field in the input tuple is the number of quantiles to generate

@@ -53,6 +53,7 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
         int index = Arrays.binarySearch(quantiles, key, comparator);
         if (index < 0)
             index = -index-1;
+        // Shouldn't this be index % numPartitions?
         return Math.min(index, numPartitions - 1);
     }
 
@@ -84,7 +85,6 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
                 }
             }
             convertToArray(job, quantiles);
-            //this.quantiles = quantiles.toArray(new NullableTuple[0]);
         }catch (Exception e){
             throw new RuntimeException(e);
         }
@@ -108,13 +108,6 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
                 }
                 q.add(HDataType.getWritableComparableTypes(o,
                     Byte.valueOf(kts)));
-                /*
-                if (o == null) {
-                    q.add(new NullableTuple(t));
-                } else {
-                    q.add(HDataType.getWritableComparableTypes(o, DataType.findType(o)));
-                }
-                */
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -142,11 +135,6 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
         } else {
             throw new RuntimeException("Unexpected class in SortPartitioner");
         }
-
-System.out.println("Quantiles:");
-for (int i = 0; i < quantiles.length; i++) {
-System.out.println(quantiles[i]);
-}
     }
 
 }
