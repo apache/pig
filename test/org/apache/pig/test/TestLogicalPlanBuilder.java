@@ -1534,6 +1534,17 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
     
+    @Test
+    public void testQuery105() {
+        // test that the alias "group" can be used
+        // after a flatten(group)
+        String query = "a = load 'st10k' as (name, age, gpa);" +
+"b = group a by name;" +
+"c = foreach b generate flatten(group), COUNT(a) as cnt;" +
+"d = foreach c generate group;";
+        buildPlan(query);
+    }
+    
     private Schema getSchemaFromString(String schemaString) throws ParseException {
         return getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }

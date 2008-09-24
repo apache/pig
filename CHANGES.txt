@@ -245,3 +245,5 @@ Trunk (unreleased changes)
     PIG-451: If an field is part of group followed by flatten, then referring
     to it causes a parse error (pradeepk via olgan)
 
+    PIG-455: "group" alias is lost after a flatten(group) (pradeepk vi olgan)
+

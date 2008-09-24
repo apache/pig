@@ -234,7 +234,7 @@ public class LOForEach extends LogicalOperator {
                                     }
 								} else {
                                     if(!DataType.isSchemaType(planFs.type)) {
-								        newFs = new Schema.FieldSchema(null, planFs.type);
+								        newFs = new Schema.FieldSchema(planFs.alias, planFs.type);
                                     } else {
 								        newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                                     }
