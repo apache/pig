@@ -830,6 +830,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     flat1);
             nfe1.setResultType(DataType.BAG);
             curMROp.reducePlan.addAsLeaf(nfe1);
+            curMROp.setNeedsDistinctCombiner(true);
         }catch(Exception e){
             VisitorException pe = new VisitorException(e.getMessage());
             pe.initCause(e);

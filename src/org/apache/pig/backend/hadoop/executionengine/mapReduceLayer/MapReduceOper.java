@@ -76,6 +76,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     
     //Indicates if this job is an order by job
     boolean globalSort = false;
+
+    // If true, putting an identity combine in this
+    // mapreduce job will speed things up.
+    boolean needsDistinctCombiner = false;
     
     //The quantiles file name if globalSort is true
     String quantFile;
@@ -221,6 +225,14 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public void setGlobalSort(boolean globalSort) {
         this.globalSort = globalSort;
+    }
+
+    public boolean needsDistinctCombiner() { 
+        return needsDistinctCombiner;
+    }
+
+    public void setNeedsDistinctCombiner(boolean nic) {
+        needsDistinctCombiner = nic;
     }
 
     public String getQuantFile() {
