@@ -145,7 +145,7 @@ public class POProject extends ExpressionOperator {
             } catch (ExecException ee) {
                 log.warn("Attempt to access field " + 
                     " which was not found in the input");
-                res.returnStatus = POStatus.STATUS_NULL;
+                res.returnStatus = POStatus.STATUS_OK;
                 ret = null;
             }
         } else {
