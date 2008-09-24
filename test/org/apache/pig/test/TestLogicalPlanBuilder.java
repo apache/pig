@@ -157,29 +157,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         assertTrue(lo instanceof LODefine);
     }
 
-    @Test
-    public void testQuery101() {
-        // test usage of an alias from define
-        String query = "define FUNC ARITY();";
-        buildPlan(query);
 
-        query = "foreach (load 'data') generate FUNC($0);";
-        buildPlan(query);
-    }
-
-    @Test
-    public void testQuery102() {
-        // test basic store
-        buildPlan("a = load 'a';");
-        buildPlan("store a into 'out';");
-    }
-
-    @Test
-    public void testQuery103() {
-        // test store with store function
-        buildPlan("a = load 'a';");
-        buildPlan("store a into 'out' using PigStorage();");
-    }
 
     @Test
     public void testQueryFail1() {
@@ -1517,6 +1495,45 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     }
 
+    @Test
+    public void testQuery101() {
+        // test usage of an alias from define
+        String query = "define FUNC ARITY();";
+        buildPlan(query);
+
+        query = "foreach (load 'data') generate FUNC($0);";
+        buildPlan(query);
+    }
+
+    @Test
+    public void testQuery102() {
+        // test basic store
+        buildPlan("a = load 'a';");
+        buildPlan("store a into 'out';");
+    }
+
+    @Test
+    public void testQuery103() {
+        // test store with store function
+        buildPlan("a = load 'a';");
+        buildPlan("store a into 'out' using PigStorage();");
+    }
+    
+    @Test
+    public void testQuery104() {
+        // check that a field alias can be referenced
+        // by unambiguous free form alias, fully qualified alias
+        // and partially qualified unambiguous alias
+        String query = "a = load 'st10k' as (name, age, gpa);" +
+"b = group a by name;" +
+"c = foreach b generate flatten(a);" +
+"d = filter c by name != 'fred';" +
+"e = group d by name;" +
+"f = foreach e generate flatten(d);" +
+"g = foreach f generate name, d::a::name, a::name;";
+        buildPlan(query);
+    }
+    
     private Schema getSchemaFromString(String schemaString) throws ParseException {
         return getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }

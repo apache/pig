@@ -241,3 +241,7 @@ Trunk (unreleased changes)
     PIG-448: explain broken after load with types (pradeepk via olgan)
 
     PIG-380: invalid schema for databag constant (sms via olgan)
+
+    PIG-451: If an field is part of group followed by flatten, then referring
+    to it causes a parse error (pradeepk via olgan)
+

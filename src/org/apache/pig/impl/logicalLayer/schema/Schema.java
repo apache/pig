@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer.schema;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -554,6 +555,17 @@ public class Schema implements Serializable, Cloneable {
                 }
                 return mAliases.get(key);
             } else {
+                // check if the multiple aliases obtained actually
+                // point to the same field schema - then just return
+                // that field schema
+                Set<FieldSchema> set = new HashSet<FieldSchema>();
+                for (String key: aliasMatches.keySet()) {
+                    set.add(mAliases.get(key));
+                }
+                if(set.size() == 1) {
+                    return set.iterator().next();
+                }
+                
                 boolean hasNext = false;
                 StringBuilder sb = new StringBuilder("Found more than one match: ");
                 for (String key: aliasMatches.keySet()) {
