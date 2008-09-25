@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
@@ -169,7 +170,8 @@ public class HadoopExecutableManager extends ExecutableManager {
             // These are hard-coded begin/end offsets a Hadoop *taskid*
             int beginIndex = 25, endIndex = 31;   
 
-            int tipId = Integer.parseInt(taskId.substring(beginIndex, endIndex));
+            //int tipId = Integer.parseInt(taskId.substring(beginIndex, endIndex));
+            int tipId = TaskAttemptID.forName(taskId).getTaskID().getId();
             return tipId < command.getLogFilesLimit();
         }
         return false;

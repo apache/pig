@@ -332,6 +332,7 @@ public class JobControlCompiler{
                     jobConf.setCombinerClass(PigCombiner.Combine.class);
                     jobConf.set("pig.combinePlan", ObjectSerializer.serialize(mro.combinePlan));
                     jobConf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
+                    jobConf.setCombineOnceOnly(true);
                 } else if (mro.needsDistinctCombiner()) {
                     jobConf.setCombinerClass(DistinctCombiner.Combine.class);
                     log.info("Setting identity combiner class.");

@@ -31,6 +31,7 @@ import java.util.List;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -120,7 +121,8 @@ public class PigSplit implements InputSplit {
     }
 
     public String[] getLocations() throws IOException {
-        BlockLocation[] b = fs.getFileBlockLocations(file, start, length);
+        FileStatus status = fs.getFileStatus(file);
+        BlockLocation[] b = fs.getFileBlockLocations(status, start, length);
         int total = 0;
         for (int i = 0; i < b.length; i++) {
             total += b[i].getHosts().length;

@@ -33,7 +33,7 @@ public abstract class ComparisonFunc extends WritableComparator {
     protected PigProgressable reporter;
     
     public ComparisonFunc() {
-        super(NullableTuple.class);
+        super(NullableTuple.class, true);
     }
 
     public int compare(WritableComparable a, WritableComparable b) {

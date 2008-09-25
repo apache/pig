@@ -8,6 +8,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
@@ -85,7 +86,7 @@ public abstract class Launcher {
     }
     
     protected void getStats(Job job, JobClient jobClient) throws IOException{
-        String MRJobID = job.getMapredJobID();
+        JobID MRJobID = job.getAssignedJobID();
         TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
         getErrorMessages(mapRep, "map");
         totalHadoopTimeSpent += computeTimeSpent(mapRep);
@@ -108,7 +109,7 @@ public abstract class Launcher {
             String msgs[] = reports[i].getDiagnostics();
             for (int j = 0; j < msgs.length; j++) {
                 log.error("Error message from task (" + type + ") " +
-                    reports[i].getTaskId() + msgs[j]);
+                    reports[i].getTaskID() + msgs[j]);
             }
         }
     }
@@ -144,7 +145,7 @@ public abstract class Launcher {
      * @throws IOException
      */
     protected double progressOfRunningJob(Job j, JobClient jobClient) throws IOException{
-        String mrJobID = j.getMapredJobID();
+        JobID mrJobID = j.getAssignedJobID();
         RunningJob rj = jobClient.getJob(mrJobID);
         if(rj==null && j.getState()==Job.SUCCESS)
             return 1;

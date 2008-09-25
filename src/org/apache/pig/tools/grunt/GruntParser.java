@@ -33,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.mapred.JobID;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -276,7 +277,8 @@ public class GruntParser extends PigScriptParser {
     protected void processKill(String jobid) throws IOException
     {
         if (mJobClient != null) {
-            RunningJob job = mJobClient.getJob(jobid);
+            JobID id = JobID.forName(jobid);
+            RunningJob job = mJobClient.getJob(id);
             if (job == null)
                 System.out.println("Job with id " + jobid + " is not active");
             else
