@@ -103,6 +103,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
+        resetState();
         log.trace("Entering CombinerOptimizer.visitMROp");
         if (mr.reducePlan.isEmpty()) return;
 
@@ -436,4 +437,10 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
     }
 
+    // Reset any member variables since we may have already visited one
+    // combine.
+    private void resetState() {
+        mKeyField = -1;
+        mKeyType = 0;
+    }
 }
