@@ -247,5 +247,6 @@ Trunk (unreleased changes)
 
     PIG-455: "group" alias is lost after a flatten(group) (pradeepk vi olgan)
 
-    PIG-458: integration with Hadoop 19 (olgan)
+    PIG-458: integration with Hadoop 18 (olgan)
 
+    PIG-459: increased sleep time before checking for job progress

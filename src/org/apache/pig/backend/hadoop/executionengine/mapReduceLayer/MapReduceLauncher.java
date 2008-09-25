@@ -56,7 +56,7 @@ public class MapReduceLauncher extends Launcher{
                                                    IOException,
                                                    ExecException,
                                                    JobCreationException {
-        long sleepTime = 500;
+        long sleepTime = 5000;
         MROperPlan mrp = compile(php, pc);
         
         ExecutionEngine exe = pc.getExecutionEngine();
