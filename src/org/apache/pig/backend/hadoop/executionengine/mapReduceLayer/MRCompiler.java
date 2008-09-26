@@ -1302,6 +1302,11 @@ public class MRCompiler extends PhyPlanVisitor {
                 st.setSFile(oldSpec);
                 limitAdjustMROp.reducePlan.addAsLeaf(st);
                 limitAdjustMROp.requestedParallelism = -1;
+                // If the operator we're following has global sort set, we
+                // need to indicate that this is a limit after a sort.
+                // This will assure that we get the right sort comparator
+                // set.  Otherwise our order gets wacked (PIG-461).
+                if (mr.isGlobalSort()) limitAdjustMROp.setLimitAfterSort(true);
                 
                 List<MapReduceOper> successorList = MRPlan.getSuccessors(mr);
                 MapReduceOper successors[] = null;

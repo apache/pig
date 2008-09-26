@@ -366,9 +366,13 @@ public class JobControlCompiler{
                 jobConf.setOutputValueClass(NullableTuple.class);
             }
         
-            if(mro.isGlobalSort()){
-                jobConf.set("pig.quantilesFile", mro.getQuantFile());
-                jobConf.setPartitionerClass(SortPartitioner.class);
+            if(mro.isGlobalSort() || mro.isLimitAfterSort()){
+                // Only set the quantiles file and sort partitioner if we're a
+                // global sort, not for limit after sort.
+                if (mro.isGlobalSort()) {
+                    jobConf.set("pig.quantilesFile", mro.getQuantFile());
+                    jobConf.setPartitionerClass(SortPartitioner.class);
+                }
                 if(mro.UDFs.size()==1){
                     String compFuncSpec = mro.UDFs.get(0);
                     Class comparator = PigContext.resolveClassName(compFuncSpec);
@@ -469,9 +473,10 @@ public class JobControlCompiler{
         // raw comparator.
         
         // An operator has an order by if global sort is set or if it's successor has
-        // global sort set (because in that case it's the sampling job). 
+        // global sort set (because in that case it's the sampling job) or if
+        // it's a limit after a sort. 
         boolean hasOrderBy = false;
-        if (mro.isGlobalSort()) {
+        if (mro.isGlobalSort() || mro.isLimitAfterSort()) {
             hasOrderBy = true;
         } else {
             List<MapReduceOper> succs = plan.getSuccessors(mro);

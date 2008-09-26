@@ -77,6 +77,9 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //Indicates if this job is an order by job
     boolean globalSort = false;
 
+    // Indicates if this is a limit after a sort
+    boolean limitAfterSort = false;
+
     // If true, putting an identity combine in this
     // mapreduce job will speed things up.
     boolean needsDistinctCombiner = false;
@@ -225,6 +228,14 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public void setGlobalSort(boolean globalSort) {
         this.globalSort = globalSort;
+    }
+
+    public boolean isLimitAfterSort() {
+        return limitAfterSort;
+    }
+
+    public void setLimitAfterSort(boolean las) {
+        limitAfterSort = las;
     }
 
     public boolean needsDistinctCombiner() { 
