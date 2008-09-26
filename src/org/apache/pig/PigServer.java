@@ -128,6 +128,9 @@ public class PigServer {
     
     public PigServer(PigContext context) throws ExecException {
         this.pigContext = context;
+        if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
+            setJobName("DefaultJobName") ;
+        }
         pigContext.connect();
     }
 

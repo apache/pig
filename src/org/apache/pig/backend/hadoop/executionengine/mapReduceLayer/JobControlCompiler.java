@@ -264,6 +264,7 @@ public class JobControlCompiler{
             jobConf.set("pig.inputs", ObjectSerializer.serialize(inp));
             jobConf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
+            jobConf.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));
     
             // Setup the DistributedCache for this job
             setupDistributedCache(pigContext, jobConf, pigContext.getProperties(), 
