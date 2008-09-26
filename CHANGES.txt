@@ -250,3 +250,6 @@ Trunk (unreleased changes)
     PIG-458: integration with Hadoop 18 (olgan)
 
     PIG-459: increased sleep time before checking for job progress
+
+    PIG-462: LIMIT N should create one output file with N rows (shravanmn via
+    olgan)

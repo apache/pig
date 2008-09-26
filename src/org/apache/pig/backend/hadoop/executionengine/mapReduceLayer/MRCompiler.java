@@ -696,7 +696,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 if (mro.reducePlan.isEmpty())
                 {
                     simpleConnectMapToReduce(mro);
-                    mro.requestedParallelism = -1;
+                    mro.requestedParallelism = 1;
                     POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                     pLimit2.setLimit(op.getLimit());
                     mro.reducePlan.addAsLeaf(pLimit2);
@@ -1301,7 +1301,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 POStore st = getStore();
                 st.setSFile(oldSpec);
                 limitAdjustMROp.reducePlan.addAsLeaf(st);
-                limitAdjustMROp.requestedParallelism = -1;
+                limitAdjustMROp.requestedParallelism = 1;
                 // If the operator we're following has global sort set, we
                 // need to indicate that this is a limit after a sort.
                 // This will assure that we get the right sort comparator

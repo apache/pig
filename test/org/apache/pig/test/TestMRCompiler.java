@@ -828,6 +828,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         goldenPlan = new String(b, 0, len);
+        if (goldenPlan.charAt(len-1) == '\n')
+            goldenPlan = goldenPlan.substring(0, len-1);
 
         pp.explain(System.out);
         System.out.println();
