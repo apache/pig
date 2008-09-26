@@ -59,15 +59,15 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class LogToPhyTranslationVisitor extends LOVisitor {
 
-    Map<LogicalOperator, PhysicalOperator> LogToPhyMap;
+    protected Map<LogicalOperator, PhysicalOperator> LogToPhyMap;
 
     Random r = new Random();
 
-    Stack<PhysicalPlan> currentPlans;
+    protected Stack<PhysicalPlan> currentPlans;
 
-    PhysicalPlan currentPlan;
+    protected PhysicalPlan currentPlan;
 
-    NodeIdGenerator nodeGen = NodeIdGenerator.getGenerator();
+    protected NodeIdGenerator nodeGen = NodeIdGenerator.getGenerator();
 
     private Log log = LogFactory.getLog(getClass());
 

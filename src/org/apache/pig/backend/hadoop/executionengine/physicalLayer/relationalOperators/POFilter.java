@@ -30,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.ExampleTuple;
 
 /**
  * This is an implementation of the Filter operator. It has an Expression Plan
@@ -150,6 +151,11 @@ public class POFilter extends PhysicalOperator {
                 return res;
 
             if (res.result != null && (Boolean) res.result == true) {
+        	if(lineageTracer != null) {
+        	    ExampleTuple tIn = (ExampleTuple) inp.result;
+        	    lineageTracer.insert(tIn);
+        	    lineageTracer.union(tIn, tIn);
+        	}
                 return inp;
             }
         }

@@ -41,6 +41,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -65,6 +66,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
+import org.apache.pig.pen.ExampleGenerator;
 
 /**
  * 
@@ -610,6 +612,21 @@ public class PigServer {
         // pigContext.getExecutionEngine().reclaimScope(this.scope);
     }
 
+    public Map<LogicalOperator, DataBag> getExamples(String alias) {
+        //LogicalPlan plan = aliases.get(aliasOp.get(alias));
+        LogicalPlan plan = null;
+        try {
+            plan = clonePlan(alias);
+        } catch (IOException e) {
+            //Since the original script is parsed anyway, there should not be an
+            //error in this parsing. The only reason there can be an error is when
+            //the files being loaded in load don't exist anymore.
+            e.printStackTrace();
+        }
+        ExampleGenerator exgen = new ExampleGenerator(plan, pigContext);
+        return exgen.getExamples();
+    }
+    
     private ExecJob execute(String alias) throws FrontendException, ExecException {
         ExecJob job = null;
 //        lp.explain(System.out, System.err);

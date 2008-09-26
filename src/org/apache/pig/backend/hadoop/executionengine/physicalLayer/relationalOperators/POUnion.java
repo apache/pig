@@ -29,6 +29,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.ExampleTuple;
 
 /**
  * The union operator that combines the two inputs into a single
@@ -157,6 +158,11 @@ public class POUnion extends PhysicalOperator {
             res.returnStatus = POStatus.STATUS_OK;
             detachInput();
             nextReturnEOP = true ;
+            if(lineageTracer != null) {
+        	ExampleTuple tOut = (ExampleTuple) res.result;
+        	lineageTracer.insert(tOut);
+        	lineageTracer.union(tOut, tOut);
+            }
             return res;
         }
 

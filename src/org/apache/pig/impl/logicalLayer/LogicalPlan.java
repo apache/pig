@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -55,4 +56,23 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
 
         lpp.print(out);
     }
+    
+//    public String toString() {
+//        if(mOps.size() == 0)
+//            return "Empty Plan!";
+//        else{
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//            PrintStream ps = new PrintStream(baos);
+//            try {
+//		explain(baos, ps);
+//	    } catch (VisitorException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	    } catch (IOException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	    }
+//            return baos.toString();
+//        }
+//    }
 }

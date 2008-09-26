@@ -95,6 +95,8 @@ public abstract class PigScriptParser
 	abstract protected void processPig(String cmd) throws IOException;
 
 	abstract protected void processRemove(String path) throws IOException;
+	
+	abstract protected void processIllustrate(String alias) throws IOException;
 
 	 static String unquote(String s)
 	{
@@ -137,6 +139,7 @@ TOKEN: {<QUIT: "quit">}
 TOKEN: {<REGISTER: "register">}
 TOKEN: {<REMOVE: "rm">}
 TOKEN: {<SET: "set">}
+TOKEN: {<ILLUSTRATE: "illustrate">}
 
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
@@ -378,6 +381,10 @@ void parse() throws IOException:
 	<DUMP>
 	t1 = <IDENTIFIER>
 	{processDump(t1.image);}
+	|
+	<ILLUSTRATE>
+	t1 = <IDENTIFIER>
+	{processIllustrate(t1.image);}
 	|
 	<DESCRIBE>
 	t1 = <IDENTIFIER>

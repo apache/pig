@@ -272,6 +272,10 @@ public class POSort extends PhysicalOperator {
         }
         if (it.hasNext()) {
             res.result = it.next();
+            if(lineageTracer != null) {
+                lineageTracer.insert((Tuple) res.result);
+                lineageTracer.union((Tuple)res.result, (Tuple)res.result);
+            }
             res.returnStatus = POStatus.STATUS_OK;
         } else {
             res.returnStatus = POStatus.STATUS_EOP;

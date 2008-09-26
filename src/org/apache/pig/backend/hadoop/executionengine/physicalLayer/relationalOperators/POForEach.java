@@ -23,6 +23,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.ExampleTuple;
 
 public class POForEach extends PhysicalOperator {
 
@@ -48,6 +49,8 @@ public class POForEach extends PhysicalOperator {
     
     //This is the template whcih contains tuples and is flattened out in CreateTuple() to generate the final output
     Object[] data = null;
+    
+    ExampleTuple tIn = null;
     
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
@@ -122,10 +125,17 @@ public class POForEach extends PhysicalOperator {
         if(processingPlan){
             while(true) {
                 res = processPlan();
-                if(res.returnStatus==POStatus.STATUS_OK){
+                if(res.returnStatus==POStatus.STATUS_OK) {
+                    if(lineageTracer !=  null && res.result != null) {
+                	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
+                	tOut.synthetic = tIn.synthetic;
+                	lineageTracer.insert(tOut);
+                	lineageTracer.union(tOut, tIn);
+                	res.result = tOut;
+                    }
                     return res;
                 }
-                if(res.returnStatus==POStatus.STATUS_EOP){
+                if(res.returnStatus==POStatus.STATUS_EOP) {
                     processingPlan = false;
                     break;
                 }
@@ -156,6 +166,16 @@ public class POForEach extends PhysicalOperator {
             res = processPlan();
             
             processingPlan = true;
+
+            if(lineageTracer != null && res.result != null) {
+        	//we check for res.result since that can also be null in the case of flatten
+        	tIn = (ExampleTuple) inp.result;
+        	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
+        	tOut.synthetic = tIn.synthetic;
+        	lineageTracer.insert(tOut);
+        	lineageTracer.union(tOut, tIn);
+        	res.result = tOut;
+            }
             
             return res;
         }
@@ -322,6 +342,11 @@ public class POForEach extends PhysicalOperator {
                 }
             } else
                 out.append(in);
+        }
+        
+        if(lineageTracer != null) {
+            ExampleTuple tOut = new ExampleTuple();
+            tOut.reference(out);
         }
         return out;
     }

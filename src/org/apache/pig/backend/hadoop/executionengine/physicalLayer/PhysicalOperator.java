@@ -34,6 +34,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * 
@@ -114,6 +115,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     static protected DataBag dummyBag;
 
     static protected Map dummyMap;
+    
+    protected LineageTracer lineageTracer;
 
     public PhysicalOperator(OperatorKey k) {
         this(k, -1, null);
@@ -134,6 +137,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         res = new Result();
     }
 
+    public void setLineageTracer(LineageTracer lineage) {
+	this.lineageTracer = lineage;
+    }
+    
     public int getRequestedParallelism() {
         return requestedParallelism;
     }

@@ -253,3 +253,5 @@ Trunk (unreleased changes)
 
     PIG-462: LIMIT N should create one output file with N rows (shravanmn via
     olgan)
+
+    PIG-443:  Illustrate for the Types branch (shubham via olgan)

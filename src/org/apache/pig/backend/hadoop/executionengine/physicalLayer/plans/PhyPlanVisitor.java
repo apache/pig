@@ -22,6 +22,8 @@ import java.util.List;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -218,5 +220,16 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         // TODO Auto-generated method stub
         
     }
+
+    public void visitCogroup(POCogroup cogroup) {
+	// TODO Auto-generated method stub
+	
+    }
+
+    public void visitSplit(org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit split) {
+	// TODO Auto-generated method stub
+	
+    }
+
 
 }

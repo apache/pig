@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.ExampleTuple;
 
 /**
  * The load operator which is used in two ways:
@@ -135,6 +136,10 @@ public class POLoad extends PhysicalOperator {
             }
             else
                 res.returnStatus = POStatus.STATUS_OK;
+            if(lineageTracer != null) {
+        	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
+        	res.result = tOut;
+            }
         } catch (IOException e) {
             log.error("Received error from loader function: " + e);
             return res;

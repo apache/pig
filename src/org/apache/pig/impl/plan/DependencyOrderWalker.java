@@ -73,7 +73,7 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
         return new DependencyOrderWalker<O, P>(plan);
     }
 
-    private void doAllPredecessors(O node,
+    protected void doAllPredecessors(O node,
                                    Set<O> seen,
                                    Collection<O> fifo) throws VisitorException {
         if (!seen.contains(node)) {

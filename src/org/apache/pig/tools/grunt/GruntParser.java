@@ -273,6 +273,11 @@ public class GruntParser extends PigScriptParser {
             System.out.println(t);
         }
     }
+    
+    protected void processIllustrate(String alias) throws IOException
+    {
+	mPigServer.getExamples(alias);
+    }
 
     protected void processKill(String jobid) throws IOException
     {
