@@ -88,15 +88,16 @@ public class MapReduceLauncher extends Launcher{
             log.error("Map reduce job failed");
             for (Job fj : failedJobs) {
                 log.error(fj.getMessage());
-                getStats(fj, jobClient);
+                getStats(fj, jobClient, true);
             }
+            jc.stop(); 
             return false;
         }
 
         List<Job> succJobs = jc.getSuccessfulJobs();
         if(succJobs!=null)
             for(Job job : succJobs){
-                getStats(job,jobClient);
+                getStats(job,jobClient, false);
             }
 
         jc.stop(); 

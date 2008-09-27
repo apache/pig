@@ -20,6 +20,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -70,15 +71,16 @@ public class LocalLauncher extends Launcher{
             log.error("Map reduce job failed");
             for (Job fj : failedJobs) {
                 log.error(fj.getMessage());
-                getStats(fj, jobClient);
+                getStats(fj, jobClient, true);
             }
+            jc.stop(); 
             return false;
         }
 
         List<Job> succJobs = jc.getSuccessfulJobs();
         if(succJobs!=null)
             for(Job job : succJobs){
-                getStats(job,jobClient);
+                getStats(job,jobClient, false);
             }
 
         jc.stop(); 
@@ -111,6 +113,11 @@ public class LocalLauncher extends Launcher{
             CombinerOptimizer co = new CombinerOptimizer(plan);
             co.visit();
         }
+
+        // check whether stream operator is present
+        MRStreamHandler checker = new MRStreamHandler(plan);
+        checker.visit();
+        
         // figure out the type of the key for the map plan
         // this is needed when the key is null to create
         // an appropriate NullableXXXWritable object
@@ -168,13 +175,13 @@ public class LocalLauncher extends Launcher{
                 throw new ExecException(
                         "Something terribly wrong with Job Control.");
             for (Job job : failedJobs) {
-                getStats(job, jobClient);
+                getStats(job, jobClient, true);
             }
         }
         List<Job> succJobs = jc.getSuccessfulJobs();
         if (succJobs != null)
             for (Job job : succJobs) {
-                getStats(job, jobClient);
+                getStats(job, jobClient, false);
             }
 
         jc.stop();

@@ -85,13 +85,13 @@ public abstract class Launcher {
         return (int)(Math.ceil(prog)) == (int)1;
     }
     
-    protected void getStats(Job job, JobClient jobClient) throws IOException{
+    protected void getStats(Job job, JobClient jobClient, boolean errNotDbg) throws IOException{
         JobID MRJobID = job.getAssignedJobID();
         TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
-        getErrorMessages(mapRep, "map");
+        getErrorMessages(mapRep, "map", errNotDbg);
         totalHadoopTimeSpent += computeTimeSpent(mapRep);
         TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
-        getErrorMessages(redRep, "reduce");
+        getErrorMessages(redRep, "reduce", errNotDbg);
         totalHadoopTimeSpent += computeTimeSpent(mapRep);
     }
     
@@ -103,13 +103,18 @@ public abstract class Launcher {
         return timeSpent;
     }
     
-    protected void getErrorMessages(TaskReport reports[], String type)
+    protected void getErrorMessages(TaskReport reports[], String type, boolean errNotDbg)
     {
         for (int i = 0; i < reports.length; i++) {
             String msgs[] = reports[i].getDiagnostics();
             for (int j = 0; j < msgs.length; j++) {
-                log.error("Error message from task (" + type + ") " +
-                    reports[i].getTaskID() + msgs[j]);
+                if (errNotDbg) {
+                    log.error("Error message from task (" + type + ") " +
+                        reports[i].getTaskID() + msgs[j]);
+                } else {
+                    log.debug("Error message from task (" + type + ") " +
+                        reports[i].getTaskID() + msgs[j]);
+                }
             }
         }
     }
