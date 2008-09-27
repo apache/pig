@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
@@ -29,6 +30,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -732,6 +734,7 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
+						
 		}
 		
 		{
@@ -824,6 +827,155 @@ public class TestPOCast extends TestCase {
 			assertEquals(null, res.result);
 		}
 	}
+	
+	private PhysicalPlan constructPlan(POCast op) throws PlanException {
+	    LoadFunc load = new TestLoader();
+        op.setLoadFSpec(load.getClass().getName());
+        POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
+        PhysicalPlan plan = new PhysicalPlan();
+        plan.add(prj);
+        plan.add(op);
+        plan.connect(prj, op);
+        prj.setResultType(DataType.BYTEARRAY);
+        return plan;
+	}
+	
+	/* 
+	 * Test that if the input type is actually same 
+     * as output type and we think that the input type is a
+     * bytearray we still can handle it. This can happen in the
+     * following situation:
+     * If a map in pig (say returned from a UDF) has a key with 
+     * the value being a string, then a lookup of that key being used
+     * in a context which expects a string will cause an implicit cast
+     * to a string. This is because the Pig frontend (logical layer) 
+     * thinks of all map "values" as bytearrays and hence introduces 
+     * a Cast to convert the bytearray to string. Though in reality
+     * the input to the cast is already a string
+     */
+	@Test
+    public void testByteArrayToOtherNoCast() throws PlanException, ExecException {
+        POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
+        PhysicalPlan plan = constructPlan(op);
+        TupleFactory tf = TupleFactory.getInstance();
+        
+        {
+            Tuple t = tf.newTuple();
+            Integer input = new Integer(r.nextInt()); 
+            t.append(input);
+            plan.attachInput(t);
+            Result res = op.getNext(new Integer(0));
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + i);
+                assertEquals(input, res.result);
+            }
+        }
+        
+        {
+            // create a new POCast each time since we 
+            // maintain a state variable per POCast object
+            // indicating if cast is really required
+            POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
+            plan = constructPlan(newOp);
+            Tuple t = tf.newTuple();
+            Float input = new Float(r.nextFloat());
+            t.append(input);
+            plan.attachInput(t);
+            Result res = newOp.getNext(new Float(0));
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + i);
+                assertEquals(input, res.result);
+            }
+        }
+        
+        {
+            // create a new POCast each time since we 
+            // maintain a state variable per POCast object
+            // indicating if cast is really required
+            POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
+            plan = constructPlan(newOp);
+            Tuple t = tf.newTuple();
+            Long input = new Long(r.nextLong());
+            t.append(input);
+            plan.attachInput(t);
+            Result res = newOp.getNext(new Long(0));
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + i);
+                assertEquals(input, res.result);
+            }
+        }
+        
+        {
+            // create a new POCast each time since we 
+            // maintain a state variable per POCast object
+            // indicating if cast is really required
+            POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
+            plan = constructPlan(newOp);
+            Tuple t = tf.newTuple();
+            Double input = new Double(r.nextDouble());
+            t.append(input);
+            plan.attachInput(t);
+            Result res = newOp.getNext(new Double(0));
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + i);
+                assertEquals(input, res.result);
+            }
+        }
+        
+        {
+            // create a new POCast each time since we 
+            // maintain a state variable per POCast object
+            // indicating if cast is really required
+            POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
+            plan = constructPlan(newOp);
+            Tuple t = tf.newTuple();
+            Tuple input = GenRandomData.genRandSmallTuple("test", 1);
+            t.append(input);
+            plan.attachInput(t);
+            Result res = newOp.getNext(tf.newTuple());
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + str);
+                assertEquals(input, res.result);
+            }
+        }
+        
+        {
+            // create a new POCast each time since we 
+            // maintain a state variable per POCast object
+            // indicating if cast is really required
+            POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
+            plan = constructPlan(newOp);
+            Tuple t = tf.newTuple();
+            DataBag input = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
+            t.append(input);
+            plan.attachInput(t);
+            Result res = newOp.getNext(DefaultBagFactory.getInstance().newDefaultBag());
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + str);
+                assertEquals(input, res.result);
+            }
+        }
+        
+        {
+            // create a new POCast each time since we 
+            // maintain a state variable per POCast object
+            // indicating if cast is really required
+            POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
+            plan = constructPlan(newOp);
+            Tuple t = tf.newTuple();
+            Map<Object, Object> input = new HashMap<Object, Object>();
+            input.put("key1", "value1");
+            input.put("key2", "value2");
+            t.append(input);
+            plan.attachInput(t);
+            Result res = newOp.getNext(new HashMap<Object, Object>());
+            if(res.returnStatus == POStatus.STATUS_OK) {
+                //System.out.println(res.result + " : " + str);
+                assertEquals(input, res.result);
+            }
+        }
+        
+    }
 	
 	@Test
 	public void testTupleToOther() throws PlanException, ExecException {
