@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer.validators;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType ;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.*;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.data.DataType ;
@@ -56,11 +56,46 @@ import org.apache.commons.logging.LogFactory;
  */
 public class TypeCheckingVisitor extends LOVisitor {
 
+    private static final int INF = -1;
+
     private static final Log log = LogFactory.getLog(TypeCheckingVisitor.class);
 
     private CompilationMessageCollector msgCollector = null ;
 
     private boolean strictMode = false ;
+    
+    public static MultiMap<Byte, Byte> castLookup = new MultiMap<Byte, Byte>();
+    static{
+        //Ordering here decides the score for the best fit function.
+        //Do not change the order. Conversions to a smaller type is preferred
+        //over conversion to a bigger type where ordering of types is:
+        //INTEGER, LONG, FLOAT, DOUBLE, CHARARRAY, TUPLE, BAG, MAP
+        //from small to big
+//        castLookup.put(DataType.BOOLEAN, DataType.INTEGER);
+//        castLookup.put(DataType.BOOLEAN, DataType.LONG);
+//        castLookup.put(DataType.BOOLEAN, DataType.FLOAT);
+//        castLookup.put(DataType.BOOLEAN, DataType.DOUBLE);
+//        castLookup.put(DataType.BOOLEAN, DataType.CHARARRAY);
+        castLookup.put(DataType.INTEGER, DataType.LONG);
+        castLookup.put(DataType.INTEGER, DataType.FLOAT);
+        castLookup.put(DataType.INTEGER, DataType.DOUBLE);
+//        castLookup.put(DataType.INTEGER, DataType.CHARARRAY);
+        castLookup.put(DataType.LONG, DataType.FLOAT);
+        castLookup.put(DataType.LONG, DataType.DOUBLE);
+//        castLookup.put(DataType.LONG, DataType.CHARARRAY);
+        castLookup.put(DataType.FLOAT, DataType.DOUBLE);
+//        castLookup.put(DataType.FLOAT, DataType.CHARARRAY);
+//        castLookup.put(DataType.DOUBLE, DataType.CHARARRAY);
+//        castLookup.put(DataType.BYTEARRAY, DataType.BOOLEAN);
+        castLookup.put(DataType.BYTEARRAY, DataType.INTEGER);
+        castLookup.put(DataType.BYTEARRAY, DataType.LONG);
+        castLookup.put(DataType.BYTEARRAY, DataType.FLOAT);
+        castLookup.put(DataType.BYTEARRAY, DataType.DOUBLE);
+        castLookup.put(DataType.BYTEARRAY, DataType.CHARARRAY);
+        castLookup.put(DataType.BYTEARRAY, DataType.TUPLE);
+        castLookup.put(DataType.BYTEARRAY, DataType.BAG);
+        castLookup.put(DataType.BYTEARRAY, DataType.MAP);
+    }
 
     public TypeCheckingVisitor(LogicalPlan plan,
                         CompilationMessageCollector messageCollector) {
@@ -1190,28 +1225,40 @@ public class TypeCheckingVisitor extends LOVisitor {
         } catch (Exception e) {
             throw new VisitorException(e);
         }
-        
-        if(funcSpecs != null) {
-            // check the if a FuncSpec matching our schema exists
-            FuncSpec matchingSpec = null;
-            for (Iterator<FuncSpec> iterator = funcSpecs.iterator(); iterator.hasNext();) {
-                FuncSpec fs = iterator.next();
-                if(Schema.equals(s, fs.getInputArgsSchema(), false, true)) {
-                    matchingSpec = fs;
+        FuncSpec matchingSpec = null;
+        if(funcSpecs!=null && funcSpecs.size()!=0){
+            //Some function mappings found. Trying to see
+            //if one of them fits the input schema
+            if((matchingSpec = exactMatch(funcSpecs, s))==null){
+                //Oops, no exact match found. Trying to see if we
+                //have mappings that we can fit using casts.
+                if(byteArrayFound(s) && funcSpecs.size()!=1){
+                    //Oops, we have byte arrays and multiple mappings.
+                    //Throw exception that we can't infer a fit.
+                    String msg = "Could not infer the matching function for " + func.getFuncSpec() + " as multiple of them were found to match " + s.toString() + ". Please use an explicit cast." ;
+                    msgCollector.collect(msg, MessageType.Error);
+                    throw new VisitorException(msg) ;
                 }
-                
-            }
-            if(matchingSpec == null) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(func.getFuncSpec());
-                sb.append(" does not work with inputs of type ");
-                sb.append(s);
-                throw new VisitorException(sb.toString());
-            } else {
-                func.setFuncSpec(matchingSpec);
+                else if((matchingSpec=bestFitMatch(funcSpecs,s))==null){
+                    //Either no byte arrays found or there are byte arrays
+                    //but only one mapping exists.
+                    //However, we could not find a match as there were either
+                    //none fitting the input schema or it was ambiguous.
+                    //Throw exception that we can't infer a fit.
+                    String msg = "Could not infer the matching function for " + func.getFuncSpec() + " as multiple or none of them fit. Please use an explicit cast." ;
+                    msgCollector.collect(msg, MessageType.Error);
+                    throw new VisitorException(msg) ;
+                }
             }
         }
-
+        if(matchingSpec!=null){
+            //Voila! We have a fitting match. Lets insert casts and make
+            //it work.
+            func.setFuncSpec(matchingSpec);
+            insertCastsForUDF(func, s, matchingSpec.getInputArgsSchema());
+        }
+            
+        //Regenerate schema as there might be new additions
         try {
             func.regenerateFieldSchema();
         } catch (FrontendException fee) {
@@ -1221,6 +1268,159 @@ public class TypeCheckingVisitor extends LOVisitor {
             vse.initCause(fee) ;
             throw new VisitorException(msg) ;
         }
+    }
+    
+    /**
+     * Tries to find the schema supported by one of funcSpecs which can
+     * be obtained by inserting a set of casts to the input schema
+     * @param funcSpecs - mappings provided by udf
+     * @param s - input schema
+     * @return the funcSpec that supports the schema that is best suited
+     *          to s. The best suited schema is one that has the
+     *          lowest score as returned by fitPossible().
+     */
+    private FuncSpec bestFitMatch(List<FuncSpec> funcSpecs, Schema s) {
+        FuncSpec matchingSpec = null;
+        long score = INF;
+        long prevBestScore = Long.MAX_VALUE;
+        long bestScore = Long.MAX_VALUE;
+        for (Iterator<FuncSpec> iterator = funcSpecs.iterator(); iterator.hasNext();) {
+            FuncSpec fs = iterator.next();
+            score = fitPossible(s,fs.getInputArgsSchema());
+            if(score!=INF && score<=bestScore){
+                matchingSpec = fs;
+                prevBestScore = bestScore;
+                bestScore = score;
+            }
+        }
+        if(matchingSpec!=null && bestScore!=prevBestScore)
+            return matchingSpec;
+        
+        return null;
+    }
+    
+    /**
+     * Checks to see if any field of the input schema is a byte array
+     * @param s - input schema
+     * @return true if found else false
+     * @throws VisitorException
+     */
+    private boolean byteArrayFound(Schema s) throws VisitorException {
+        for(int i=0;i<s.size();i++){
+            try {
+                FieldSchema fs=s.getField(i);
+                if(fs.type==DataType.BYTEARRAY){
+                    return true;
+                }
+            } catch (ParseException e) {
+                throw new VisitorException(e);
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Finds if there is an exact match between the schema supported by
+     * one of the funcSpecs and the input schema s
+     * @param funcSpecs - mappings provided by udf
+     * @param s - input schema
+     * @return the matching spec if found else null
+     */
+    private FuncSpec exactMatch(List<FuncSpec> funcSpecs, Schema s) {
+        FuncSpec matchingSpec = null;
+        for (Iterator<FuncSpec> iterator = funcSpecs.iterator(); iterator.hasNext();) {
+            FuncSpec fs = iterator.next();
+            if(Schema.equals(s, fs.getInputArgsSchema(), false, true)) {
+                matchingSpec = fs;
+                break;
+            }
+        }
+        return matchingSpec;
+    }
+    
+    /**
+     * Computes a modified version of manhattan distance between 
+     * the two schemas: s1 & s2. Here the value on the same axis
+     * are preferred over values that change axis as this means
+     * that the number of casts required will be lesser on the same
+     * axis. 
+     * 
+     * However, this function ceases to be a metric as the triangle
+     * inequality does not hold.
+     * 
+     * Each schema is an s1.size() dimensional vector.
+     * The ordering for each axis is as defined by castLookup. 
+     * Unallowed casts are returned a dist of INFINITY.
+     * @param s1
+     * @param s2
+     * @return
+     */
+    private long fitPossible(Schema s1, Schema s2) {
+        if(s1==null || s2==null) return INF;
+        List<FieldSchema> sFields = s1.getFields();
+        List<FieldSchema> fsFields = s2.getFields();
+        if(sFields.size()!=fsFields.size())
+            return INF;
+        long score = 0;
+        int castCnt=0;
+        for(int i=0;i<sFields.size();i++){
+            FieldSchema sFS = sFields.get(i);
+            FieldSchema fsFS = fsFields.get(i);
+            
+            if(DataType.isSchemaType(sFS.type)){
+                if(!FieldSchema.equals(sFS, fsFS, false, true))
+                    return INF;
+            }
+            if(FieldSchema.equals(sFS, fsFS, true, true)) continue;
+            if(!castLookup.containsKey(sFS.type))
+                return INF;
+            if(!(castLookup.get(sFS.type).contains(fsFS.type)))
+                return INF;
+            score += ((List)castLookup.get(sFS.type)).indexOf(fsFS.type) + 1;
+            ++castCnt;
+        }
+        return score * castCnt;
+    }
+    
+    private void insertCastsForUDF(LOUserFunc udf, Schema fromSch, Schema toSch) {
+        List<FieldSchema> fsLst = fromSch.getFields();
+        List<FieldSchema> tsLst = toSch.getFields();
+        List<ExpressionOperator> args = udf.getArguments();
+        List<ExpressionOperator> newArgs = new ArrayList<ExpressionOperator>(args.size());
+        int i=-1;
+        for (FieldSchema fFSch : fsLst) {
+            ++i;
+            FieldSchema tFSch = tsLst.get(i); 
+            if(fFSch.type==tFSch.type) {
+                newArgs.add(args.get(i));
+                continue;
+            }
+            collectCastWarning(udf,
+                    fFSch.type,
+                    tFSch.type);
+            LogicalPlan currentPlan = (LogicalPlan) mCurrentWalker.getPlan();
+            /*List<LogicalOperator> list = currentPlan.getPredecessors(udf);
+            if (list == null) {
+                throw new AssertionError("No input for " + udf.getClass());
+            }*/
+            // All uniOps at the moment only work with Expression input
+            ExpressionOperator input = args.get(i);
+            OperatorKey newKey = genNewOperatorKey(udf);
+            LOCast cast = new LOCast(currentPlan, newKey, input, tFSch.type);
+            currentPlan.add(cast);
+            currentPlan.disconnect(input, udf);
+            try {
+                currentPlan.connect(input, cast);
+                currentPlan.connect(cast, udf);
+            } catch (PlanException ioe) {
+                AssertionError err = new AssertionError(
+                        "Explicit casting insertion");
+                err.initCause(ioe);
+                throw err;
+            }
+        }
+        udf.setMArgs(newArgs);
+
     }
 
     /**

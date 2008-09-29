@@ -126,4 +126,8 @@ public class LOUserFunc extends ExpressionOperator {
         mFuncSpec = funcSpec;
     }
 
+    public void setMArgs(List<ExpressionOperator> args) {
+        mArgs = args;
+    }
+
 }

@@ -259,3 +259,5 @@ Trunk (unreleased changes)
     PIG-376: set job name (olgan)
 
     PIG-463: POCast changes (pradeepk via olgan)
+
+    PIG-427: casting input to UDFs

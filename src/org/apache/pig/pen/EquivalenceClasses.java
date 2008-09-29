@@ -36,7 +36,6 @@ import org.apache.pig.impl.logicalLayer.LOUnion;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.util.IdentityHashSet;
 
-import com.sun.tools.jdi.EventSetImpl.Itr;
 
 //These methods are used to generate equivalence classes given the operator name and the output from the operator
 //For example, it gives out 2 eq. classes for filter, one that passes the filter and one that doesn't
