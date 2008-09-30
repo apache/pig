@@ -263,3 +263,5 @@ Trunk (unreleased changes)
     PIG-427: casting input to UDFs
      
     PIG-437: as in alias names causing problems (sms via olgan)
+
+    PIG-54: MIN/MAX don't deal with invalid data (pradeepk via olgan)

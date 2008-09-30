@@ -108,6 +108,9 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
                 if (d == null) continue;
                 sawNonNull = true;
                 curMin = java.lang.Math.min(curMin, d);
+            }catch(NumberFormatException nfe){
+                // do nothing - essentially treat this
+                // particular input as null
             } catch (RuntimeException exp) {
                 ExecException newE =  new ExecException("Error processing: " +
                     t.toString() + exp.getMessage());
