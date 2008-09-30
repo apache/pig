@@ -261,3 +261,5 @@ Trunk (unreleased changes)
     PIG-463: POCast changes (pradeepk via olgan)
 
     PIG-427: casting input to UDFs
+     
+    PIG-437: as in alias names causing problems (sms via olgan)

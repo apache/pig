@@ -146,4 +146,125 @@ public class TestGrunt extends TestCase {
     
         grunt.exec();
     }
+
+    @Test 
+    public void testParsingAsInForeachBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b {generate SUM(a.fast) as fast;};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingAsInForeachWithOutBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b generate SUM(a.fast) as fast;\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingWordWithAsInForeachBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b {generate SUM(a.fast);};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingWordWithAsInForeachWithOutBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b generate SUM(a.fast);\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+
+    @Test 
+    public void testParsingGenerateInForeachBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b {generate a.regenerate;};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingGenerateInForeachWithOutBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b generate a.regenerate;\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingAsGenerateInForeachBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b {generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, cease:chararray, degenerate: double)}, SUM(a.fast) as fast, a.regenerate as degenerated;};\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingAsGenerateInForeachWithOutBlock() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, cease:chararray, degenerate: double)}, SUM(a.fast) as fast, a.regenerate as degenerated;\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
 }

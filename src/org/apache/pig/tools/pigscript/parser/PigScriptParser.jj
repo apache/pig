@@ -192,8 +192,8 @@ TOKEN_MGR_DECLS : {
 {
 	<"'"> {prevState = PIG_START;} : IN_STRING
 |	<"`"> {prevState = PIG_START;} : IN_COMMAND
-|	<["A","a"]["S","s"]> {prevState = PIG_START;} : SCHEMA_DEFINITION
-|   <["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"]> {prevState = PIG_START;} : GENERATE
+|	<(" " | "\t")*["A","a"]["S","s"](" " | "\t")* > {prevState = PIG_START;} : SCHEMA_DEFINITION
+|   <(" " | "\t")*["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"](" " | "\t")* > {prevState = PIG_START;} : GENERATE
 |       <"{"> {pigBlockLevel = 1;} : IN_BLOCK
 |       <"}"> {if (true) throw new TokenMgrError("Unmatched '}'", TokenMgrError.LEXICAL_ERROR);}
 |       <";"> : PIG_END
@@ -241,7 +241,7 @@ TOKEN_MGR_DECLS : {
         saveState(prevState);
         prevState = GENERATE;
     } : BAG_CONSTANT
-|	<["A","a"]["S","s"]> 
+|	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+> 
     {
         prevState = getState(prevState);
         saveState(prevState);
@@ -289,8 +289,8 @@ TOKEN_MGR_DECLS : {
 <IN_BLOCK> MORE :
 {
 	<"\""> {prevState = IN_BLOCK;} : IN_STRING
-|	<["A","a"]["S","s"]> {prevState = IN_BLOCK;} : SCHEMA_DEFINITION
-|   <["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"]> {prevState = IN_BLOCK;} : GENERATE
+|	<(" " | "\t")*["A","a"]["S","s"](" " | "\t")* > {prevState = IN_BLOCK;} : SCHEMA_DEFINITION
+|   <(" " | "\t")*["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"](" " | "\t")*> {prevState = IN_BLOCK;} : GENERATE
 |	<"{"> {pigBlockLevel++;}
 |       <"}"(";")?> {pigBlockLevel--; if (pigBlockLevel == 0) SwitchTo(PIG_END);}
 |	<"'"> {prevState = IN_BLOCK;} : IN_STRING
