@@ -265,3 +265,5 @@ Trunk (unreleased changes)
     PIG-437: as in alias names causing problems (sms via olgan)
 
     PIG-54: MIN/MAX don't deal with invalid data (pradeepk via olgan)
+
+    PIG-470: TextLoader should produce bytearrays (sms via olgan)

@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.pig.LoadFunc;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -56,7 +57,7 @@ public class TextLoader implements LoadFunc{
             return null;
         String line;
         if ((line = in.readLine(utf8, (byte)'\n')) != null) {
-            return mTupleFactory.newTuple(new String(line));
+            return mTupleFactory.newTuple(new DataByteArray(line.getBytes()));
         }
         return null;
     }
