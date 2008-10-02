@@ -95,4 +95,16 @@ public class TypeCheckingTestUtil {
        }
     }
 
+    public static String getCurrentMethodName() {
+       StackTraceElement e[] = Thread.currentThread().getStackTrace() ;
+       boolean doNext = false;
+       for (StackTraceElement s : e) {
+           if (doNext) {
+              return s.getMethodName();
+           }
+           doNext = s.getMethodName().equals("getCurrentMethodName");
+       }
+       return null;
+    }
+
 }

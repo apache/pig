@@ -36,6 +36,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.Handle;
+import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
  * A visitor to discover if any schema has been specified for a file being
@@ -129,6 +134,17 @@ public class TypeCastInserter extends LogicalTransformer {
                     p.connect(proj, cast);
                     
                     cast.setFieldSchema(fs.clone());
+                    LoadFunc loadFunc = null;
+                    if(lo instanceof LOLoad) {
+                        loadFunc = ((LOLoad)lo).getLoadFunc();
+                    } else if (lo instanceof LOStream) {
+                        StreamingCommand command = ((LOStream)lo).getStreamingCommand();
+                        HandleSpec streamOutputSpec = command.getOutputSpec(); 
+                        loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(streamOutputSpec.getSpec());
+                    } else {
+                        throw new OptimizerException("TypeCastInserter invoked with an invalid operator class name:" + lo.getClass().getSimpleName());
+                    }
+                    cast.setLoadFunc(loadFunc);
                     typeChanges.put(fs.canonicalName, fs.type);
                     // Reset the loads field schema to byte array so that it
                     // will reflect reality.

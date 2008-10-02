@@ -51,10 +51,11 @@ public class LONot extends UnaryExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
-            Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
-            mFieldSchema = fs;
+            mFieldSchema = new Schema.FieldSchema(null, DataType.BOOLEAN);
+            mFieldSchema.setParent(getOperand().getFieldSchema().canonicalName, getOperand());
+            mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;
     }

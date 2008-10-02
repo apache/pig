@@ -108,6 +108,7 @@ public class LOMapLookup extends ExpressionOperator {
             } else {
                 mFieldSchema = new Schema.FieldSchema(null, mValueType);
             }
+            mFieldSchema.setParent(mMap.getFieldSchema().canonicalName, mMap);
 
             mIsFieldSchemaComputed = true;
         }

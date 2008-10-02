@@ -47,9 +47,10 @@ public class LONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
-        if(!mIsSchemaComputed) {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
+        if(!mIsFieldSchemaComputed) {
             mFieldSchema = new Schema.FieldSchema(null, getOperand().getType());
+            mFieldSchema.setParent(getOperand().getFieldSchema().canonicalName, getOperand());
             mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;

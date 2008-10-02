@@ -167,11 +167,6 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      */
     public void setCanonicalNames() {
         for (Schema.FieldSchema fs : mSchema.getFields()) {
-            if (fs.canonicalName != null) {
-                throw new RuntimeException("Attempt to rename field " +
-                        fs.alias + " in operator " + name() + " that " +
-                    "already has canonical name "  + fs.canonicalName);
-            }
             fs.canonicalName = CanonicalNamer.getNewName();
         }
     }

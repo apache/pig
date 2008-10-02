@@ -93,10 +93,12 @@ public class LORegexp extends BinaryExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
-            Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
-            mFieldSchema = fs;
+            mFieldSchema = new Schema.FieldSchema(null, DataType.BOOLEAN);
+            mFieldSchema.setParent(getLhsOperand().getFieldSchema().canonicalName, getLhsOperand());
+            mFieldSchema.setParent(getRhsOperand().getFieldSchema().canonicalName, getRhsOperand());
+            mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;
     }

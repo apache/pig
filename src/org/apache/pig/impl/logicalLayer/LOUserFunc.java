@@ -80,35 +80,37 @@ public class LOUserFunc extends ExpressionOperator {
 
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
-        Schema inputSchema = new Schema();
-        for(ExpressionOperator op: mArgs) {
-            if (!DataType.isUsableType(op.getType())) {
-                String msg = "Problem with input: " + op + " of User-defined function: " + this ;
-                mFieldSchema = null;
-                mIsFieldSchemaComputed = false;
-                throw new FrontendException(msg) ;
+        if(!mIsFieldSchemaComputed) {
+            Schema inputSchema = new Schema();
+            for(ExpressionOperator op: mArgs) {
+                if (!DataType.isUsableType(op.getType())) {
+                    String msg = "Problem with input: " + op + " of User-defined function: " + this ;
+                    mFieldSchema = null;
+                    mIsFieldSchemaComputed = false;
+                    throw new FrontendException(msg) ;
+                }
+                inputSchema.add(op.getFieldSchema());    
             }
-            inputSchema.add(op.getFieldSchema());    
-        }
-
-        EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
-        Schema udfSchema = ef.outputSchema(inputSchema);
-
-        if (null != udfSchema) {
-            Schema.FieldSchema fs;
-            try {
-                fs = new Schema.FieldSchema(udfSchema.getField(0));
-            } catch (ParseException pe) {
-                throw new FrontendException(pe.getMessage());
+    
+            EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
+            Schema udfSchema = ef.outputSchema(inputSchema);
+    
+            if (null != udfSchema) {
+                Schema.FieldSchema fs;
+                try {
+                    fs = new Schema.FieldSchema(udfSchema.getField(0));
+                } catch (ParseException pe) {
+                    throw new FrontendException(pe.getMessage());
+                }
+                setType(fs.type);
+                mFieldSchema = fs;
+                mIsFieldSchemaComputed = true;
+            } else {
+                byte returnType = DataType.findType(ef.getReturnType());
+                setType(returnType);
+                mFieldSchema = new Schema.FieldSchema(null, null, returnType);
+                mIsFieldSchemaComputed = true;
             }
-            setType(fs.type);
-            mFieldSchema = fs;
-            mIsFieldSchemaComputed = true;
-        } else {
-            byte returnType = DataType.findType(ef.getReturnType());
-            setType(returnType);
-            mFieldSchema = new Schema.FieldSchema(null, null, returnType);
-            mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;
     }

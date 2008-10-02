@@ -68,6 +68,22 @@ public class LOUnion extends LogicalOperator {
                         mSchema = op.getSchema();
                     }
                 }
+                if(null != mSchema) {
+                    for(Schema.FieldSchema fs: mSchema.getFields()) {
+                        iter = s.iterator();
+                        while(iter.hasNext()) {
+                            op = iter.next();
+                            Schema opSchema = op.getSchema();
+                            if(null != s) {
+                                for(Schema.FieldSchema opFs: opSchema.getFields()) {
+                                    fs.setParent(opFs.canonicalName, op);
+                                }
+                            } else {
+                                fs.setParent(null, op);
+                            }
+                        }
+                    }
+                }
                 mIsSchemaComputed = true;
             } catch (FrontendException fe) {
                 mSchema = null;

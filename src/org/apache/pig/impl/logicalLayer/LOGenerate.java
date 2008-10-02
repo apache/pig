@@ -131,7 +131,7 @@ public class LOGenerate extends LogicalOperator {
                     throw new FrontendException("Could not find operator in plan");
                 }
                 if(op instanceof ExpressionOperator) {
-                    fss.add(((ExpressionOperator)op).getFieldSchema());
+                    fss.add(new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema()));
                     mSchema = new Schema(fss);
                 } else {
                     mSchema = op.getSchema();

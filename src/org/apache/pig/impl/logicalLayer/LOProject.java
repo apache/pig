@@ -194,7 +194,9 @@ public class LOProject extends ExpressionOperator {
                                 + expressionOperator.getClass().getName() + " " + expressionOperator);
                         if(!mSentinel) {
                             //we have an expression operator and hence a list of field shcemas
-                            mFieldSchema = ((ExpressionOperator)expressionOperator).getFieldSchema();
+                            Schema.FieldSchema fs = ((ExpressionOperator)expressionOperator).getFieldSchema();
+                            mFieldSchema = new Schema.FieldSchema(fs);
+                            mFieldSchema.setParent(fs.canonicalName, expressionOperator);
                         } else {
                             //we have a relational operator as input and hence a schema
                             log.debug("expression operator alias: " + expressionOperator.getAlias());
@@ -204,6 +206,7 @@ public class LOProject extends ExpressionOperator {
                             //the type of the operator will be unknown. when type checking is in place
                             //add the type of the operator as a parameter to the fieldschema creation
                             mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
+                            mFieldSchema.setParent(null, expressionOperator);
                             //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                         }
                     } else {
@@ -233,23 +236,30 @@ public class LOProject extends ExpressionOperator {
                                 if(null != expOpFs) {
                                     Schema s = expOpFs.schema;
                                     if(null != s) {
-                                        mFieldSchema = new Schema.FieldSchema(s.getField(mProjection.get(0)));
+                                        Schema.FieldSchema fs = s.getField(mProjection.get(0));
+                                        mFieldSchema = new Schema.FieldSchema(fs);
+                                        mFieldSchema.setParent(fs.canonicalName, expressionOperator);
                                     } else {
                                         mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                        mFieldSchema.setParent(expOpFs.canonicalName, expressionOperator);
                                     }
                                 } else {
                                     mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    mFieldSchema.setParent(null, expressionOperator);
                                 }
                             } else {
                                 log.debug("Input is a logical operator");
-                                   Schema s = expressionOperator.getSchema();
+                                Schema s = expressionOperator.getSchema();
                                 log.debug("s: " + s);
                                 if(null != s) {
-                                    mFieldSchema = new Schema.FieldSchema(s.getField(mProjection.get(0)));
+                                    Schema.FieldSchema fs = s.getField(mProjection.get(0));
+                                    mFieldSchema = new Schema.FieldSchema(fs);
+                                    mFieldSchema.setParent(fs.canonicalName, expressionOperator);
                                     log.debug("mFieldSchema alias: " + mFieldSchema.alias);
                                     log.debug("mFieldSchema schema: " + mFieldSchema.schema);
                                 } else {
                                     mFieldSchema = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    mFieldSchema.setParent(null, expressionOperator);
                                 }
                                 mType = mFieldSchema.type ;
                             }
@@ -259,6 +269,7 @@ public class LOProject extends ExpressionOperator {
                         
                         for (int colNum : mProjection) {
                             log.debug("Col: " + colNum);
+                            Schema.FieldSchema fs;
                             if(!mSentinel) {
                                 Schema.FieldSchema expOpFs = ((ExpressionOperator)expressionOperator).getFieldSchema();
                                 if(null != expOpFs) {
@@ -266,22 +277,36 @@ public class LOProject extends ExpressionOperator {
                                     log.debug("Schema s: " + s);
                                     if(null != s) {
                                         if(colNum < s.size()) {
-                                            fss.add(new Schema.FieldSchema(s.getField(colNum)));
+                                            Schema.FieldSchema parentFs = s.getField(colNum);
+                                            fs = new Schema.FieldSchema(parentFs);
+                                            fss.add(fs);
+                                            fs.setParent(parentFs.canonicalName, expressionOperator);
                                         } else {
-                                            fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                            fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                            fss.add(fs);
+                                            fs.setParent(expOpFs.canonicalName, expressionOperator);
                                         }
                                     } else {
-                                        fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                        fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                        fss.add(fs);
+                                        fs.setParent(expOpFs.canonicalName, expressionOperator);
                                     }
                                 } else {
+                                    fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                                     fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                    fs.setParent(null, expressionOperator);
                                 }
                             } else {
                                 Schema s = expressionOperator.getSchema();
                                 if(null != s) {
-                                    fss.add(new Schema.FieldSchema(s.getField(colNum)));
+                                    Schema.FieldSchema parentFs = s.getField(colNum);
+                                    fs = new Schema.FieldSchema(parentFs);
+                                    fss.add(fs);
+                                    fs.setParent(parentFs.canonicalName, expressionOperator);
                                 } else {
-                                    fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                                    fs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                    fss.add(fs);
+                                    fs.setParent(null, expressionOperator);
                                 }
                             }
                         }
@@ -296,6 +321,7 @@ public class LOProject extends ExpressionOperator {
                     throw new FrontendException(pe.getMessage());
                 }
                 mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), new Schema(fss));
+                mFieldSchema.setParent(null, expressionOperator);
                 mIsFieldSchemaComputed = true;
                 log.debug("mIsStar is false, returning computed field schema of expressionOperator");
             }
@@ -311,6 +337,7 @@ public class LOProject extends ExpressionOperator {
             if(!DataType.isSchemaType(mType)) {
                 Schema pjSchema = new Schema(mFieldSchema);
                 mFieldSchema = new Schema.FieldSchema(getAlias(), pjSchema, DataType.TUPLE);
+                mFieldSchema.setParent(null, expressionOperator);
             } else {
                 mFieldSchema.type = DataType.TUPLE;
             }
@@ -322,6 +349,7 @@ public class LOProject extends ExpressionOperator {
                 if(!DataType.isSchemaType(mType)) {
                     Schema pjSchema = new Schema(mFieldSchema);
                     mFieldSchema = new Schema.FieldSchema(getAlias(), pjSchema, DataType.BAG);
+                    mFieldSchema.setParent(null, expressionOperator);
                 } else {
                     mFieldSchema.type = DataType.BAG;
                 }

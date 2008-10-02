@@ -176,6 +176,16 @@ public class LogicalPlanTester {
 
     }
 
+    public void printPlan(LogicalPlan lp, String title) {
+        try {
+            System.err.println(title);
+            LOPrinter lv = new LOPrinter(System.err, lp);
+            lv.visit();
+            System.err.println();
+        } catch (Exception e) {
+        }
+    }
+
     ////////////// Helpers ////////////////
 
     // The actual plan builder

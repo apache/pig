@@ -66,7 +66,7 @@ public class LOFilter extends LogicalOperator {
             ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {
                 if(input instanceof ExpressionOperator) {
-                    Schema.FieldSchema fs = ((ExpressionOperator)input).getFieldSchema();
+                    Schema.FieldSchema fs = new Schema.FieldSchema(((ExpressionOperator)input).getFieldSchema());
                     if(DataType.isSchemaType(fs.type)) {
                         mSchema = fs.schema;
                     } else {

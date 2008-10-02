@@ -267,3 +267,5 @@ Trunk (unreleased changes)
     PIG-54: MIN/MAX don't deal with invalid data (pradeepk via olgan)
 
     PIG-470: TextLoader should produce bytearrays (sms via olgan)
+
+    PIG-335: lineage (sms vi olgan)

@@ -32,9 +32,25 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.CanonicalNamer;
 
+/**
+ * The Schema class encapsulates the notion of a schema for a relational operator.
+ * A schema is a list of columns that describe the output of a relational operator.
+ * Each column in the relation is represented as a FieldSchema, a static class inside
+ * the Schema. A column by definition has an alias, a type and a possible schema (if the
+ * column is a bag or a tuple). In addition, each column in the schema has a unique
+ * auto generated name used for tracking the lineage of the column in a sequence of
+ * statements.
+ *
+ * The lineage of the column is tracked using a map of the predecessors' columns to
+ * the operators that generate the predecessor columns. The predecessor columns are the
+ * columns required in order to generate the column under consideration.  Similarly, a
+ * reverse lookup of operators that generate the predecessor column to the predecessor
+ * column is maintained.
+ */
 
 public class Schema implements Serializable, Cloneable {
 
@@ -71,7 +87,7 @@ public class Schema implements Serializable, Cloneable {
          */
         public String canonicalName = null;
 
-        /**
+        /*
          * Map of canonical names used for this field in other sections of the
          * plan.  It can occur that a single field will have different
          * canonical names in different branches of a plan.  For example, 
@@ -79,10 +95,25 @@ public class Schema implements Serializable, Cloneable {
          * column will have canonical name, say, of 'r'.  But in branches
          * above the cogroup it may have been known as 's' in the A branch and
          * 't' in the B branch.  This map preserves that.  The key is a
-         * logical operator's key, and the value is the canonical name
+         * logical operator, and the value is the canonical name
          * associated with the field for that operator.
          */
-        public Map<OperatorKey, String> canonicalMap = null;
+        private Map<String, LogicalOperator> canonicalMap = null;
+
+        /**
+         * A reverse lookup of canonical names to logical operators. The reverse
+         * lookup serves cases where the canonical name of the predecessor
+         * cannot be determined. In such cases the keys of the reverse lookup
+         * can be used to navigate the plan
+         */
+        private MultiMap<LogicalOperator, String> reverseCanonicalMap = null;
+        
+        /**
+         * Canonical namer object to generate new canonical names on
+         * request. In order to ensure unique and consistent names, across
+         * all field schema objects, the object is made static.
+         */
+        public static CanonicalNamer canonicalNamer = new CanonicalNamer();
         
         private static Log log = LogFactory.getLog(Schema.FieldSchema.class);
 
@@ -99,6 +130,9 @@ public class Schema implements Serializable, Cloneable {
             alias = a;
             type = t;
             schema = null;            
+            canonicalName = canonicalNamer.getNewName();
+            canonicalMap = new HashMap<String, LogicalOperator>();
+            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
         }
 
         /**
@@ -113,6 +147,9 @@ public class Schema implements Serializable, Cloneable {
             alias = a;
             type = DataType.TUPLE;
             schema = s;
+            canonicalName = canonicalNamer.getNewName();
+            canonicalMap = new HashMap<String, LogicalOperator>();
+            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
         }
 
         /**
@@ -131,11 +168,14 @@ public class Schema implements Serializable, Cloneable {
             alias = a;
             schema = s;
             log.debug("t: " + t + " Bag: " + DataType.BAG + " tuple: " + DataType.TUPLE);
-            if ((null != s) && (t != DataType.BAG) && (t != DataType.TUPLE)) {
+            if ((null != s) && !(DataType.isSchemaType(t))) {
                 throw new FrontendException("Only a BAG or TUPLE can have schemas. Got "
                         + DataType.findTypeName(t));
             }
             type = t;
+            canonicalName = canonicalNamer.getNewName();
+            canonicalMap = new HashMap<String, LogicalOperator>();
+            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
         }
 
         /**
@@ -159,9 +199,27 @@ public class Schema implements Serializable, Cloneable {
                 schema = null;
                 type = DataType.UNKNOWN;
             }
+            canonicalName = canonicalNamer.getNewName();
+            canonicalMap = new HashMap<String, LogicalOperator>();
+            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
         }
 
-        /***
+        public void setParent(String parentCanonicalName, LogicalOperator parent) {
+            if(null != parentCanonicalName) {
+                canonicalMap.put(parentCanonicalName, parent);
+            }
+            reverseCanonicalMap.put(parent, parentCanonicalName);
+        }
+
+        public Map<String, LogicalOperator> getCanonicalMap() {
+            return canonicalMap;
+        }
+
+        public MultiMap<LogicalOperator, String> getReverseCanonicalMap() {
+            return reverseCanonicalMap;
+        }
+
+        /**
          *  Two field schemas are equal if types and schemas
          *  are equal in all levels.
          *
@@ -350,7 +408,7 @@ public class Schema implements Serializable, Cloneable {
                 fs.canonicalName = canonicalName;
                 if (canonicalMap != null) {
                     fs.canonicalMap =
-                        new HashMap<OperatorKey, String>(canonicalMap);
+                        new HashMap<String, LogicalOperator>(canonicalMap);
                 }
                 return fs;
             } catch (FrontendException fe) {

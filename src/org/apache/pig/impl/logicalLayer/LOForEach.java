@@ -172,6 +172,7 @@ public class LOForEach extends LogicalOperator {
                                     Schema.FieldSchema fs;
                                     try {
                                         fs = new Schema.FieldSchema(s.getField(i));
+                                        fs.setParent(s.getField(i).canonicalName, op);
                                     } catch (ParseException pe) {
                                         throw new FrontendException(pe.getMessage());
                                     }
@@ -195,13 +196,23 @@ public class LOForEach extends LogicalOperator {
 									if((null != outerCanonicalAlias) && (null != innerCanonicalAlias)) {
 										String disambiguatorAlias = outerCanonicalAlias + "::" + innerCanonicalAlias;
 										newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
-										fss.add(newFs);
+                                        try {
+                                            newFs.setParent(s.getField(i).canonicalName, op);
+										} catch (ParseException pe) {
+                                            throw new FrontendException(pe.getMessage());
+                                        }
+                                        fss.add(newFs);
                                         updateAliasCount(aliases, disambiguatorAlias);
 										//it's fine if there are duplicates
 										//we just need to record if its due to
 										//flattening
 									} else {
-										newFs = new Schema.FieldSchema(fs.alias, fs.schema, fs.type);
+										newFs = new Schema.FieldSchema(fs);
+                                        try {
+                                            newFs.setParent(s.getField(i).canonicalName, op);
+										} catch (ParseException pe) {
+                                            throw new FrontendException(pe.getMessage());
+                                        }
 										fss.add(newFs);
 									}
                                     updateAliasCount(aliases, innerCanonicalAlias);
@@ -225,10 +236,13 @@ public class LOForEach extends LogicalOperator {
                                         }
                                         updateAliasCount(aliases, newFs.alias);
                                         fss.add(newFs);
+                                        newFs.setParent(null, op);
                                     } else {
                                         for(Schema.FieldSchema ufs: userDefinedSchema.getFields()) {
                                             QueryParser.SchemaUtils.setFieldSchemaDefaultType(ufs, DataType.BYTEARRAY);
-                                            fss.add(new Schema.FieldSchema(ufs.alias, ufs.schema, ufs.type));
+                                            newFs = new Schema.FieldSchema(ufs);
+                                            fss.add(newFs);
+                                            newFs.setParent(null, op);
                                             updateAliasCount(aliases, ufs.alias);
                                         }
                                     }
@@ -239,6 +253,7 @@ public class LOForEach extends LogicalOperator {
 								        newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                                     }
                                     fss.add(newFs);
+                                    newFs.setParent(null, op);
                                 }
 							}
 						} else {
@@ -262,14 +277,17 @@ public class LOForEach extends LogicalOperator {
                         String outerCanonicalAlias = null;
                         if(null != userDefinedSchema) {
                             try {
-                                Schema.FieldSchema userDefinedFieldSchema = userDefinedSchema.getField(0);
+                                Schema.FieldSchema userDefinedFieldSchema = new Schema.FieldSchema(userDefinedSchema.getField(0));
                                 fss.add(userDefinedFieldSchema);
+                                userDefinedFieldSchema.setParent(null, op);
                                 updateAliasCount(aliases, userDefinedFieldSchema.alias);
                             } catch (ParseException pe) {
                                 throw new FrontendException(pe.getMessage());
                             }
                         } else {
-						    fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                            Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+						    fss.add(newFs);
+                            newFs.setParent(null, op);
                         }
 					}
                 } catch (FrontendException fee) {

@@ -167,6 +167,7 @@ public class LOCogroup extends LogicalOperator {
              */
             int arity = mGroupByPlans.get(inputs.get(0)).size();
             for (int i = 0; i < arity; ++i) {
+                Schema.FieldSchema groupByFs;
                 Collection<String> cAliases = positionAlias.get(i);
                 if(null != cAliases) {
                     Object[] aliases = cAliases.toArray();
@@ -181,11 +182,14 @@ public class LOCogroup extends LogicalOperator {
                                     if(!aliasLookup.get(alias)) {
                                         Schema.FieldSchema fs = eOp.getFieldSchema();
                                         if(null != fs) {
-                                            groupByFss.add(new Schema.FieldSchema(alias, fs.schema, fs.type));
+                                            groupByFs = new Schema.FieldSchema(alias, fs.schema, fs.type);
+                                            groupByFss.add(groupByFs);
                                             aliasLookup.put(alias, true);
                                         } else {
-                                            groupByFss.add(new Schema.FieldSchema(alias, null, DataType.BYTEARRAY));
+                                            groupByFs = new Schema.FieldSchema(alias, null, DataType.BYTEARRAY);
+                                            groupByFss.add(groupByFs);
                                         }
+                                        setFieldSchemaParent(groupByFs, positionOperators, i);
                                         break;
                                     } else {
                                         if(j < aliases.length) {
@@ -195,10 +199,19 @@ public class LOCogroup extends LogicalOperator {
                                             //just add the schema of the expression operator with the null alias
                                             Schema.FieldSchema fs = eOp.getFieldSchema();
                                             if(null != fs) {
-                                                groupByFss.add(new Schema.FieldSchema(null, fs.schema, fs.type));
+                                                groupByFs = new Schema.FieldSchema(null, fs.schema, fs.type);
+                                                groupByFss.add(groupByFs);
+                                                for(ExpressionOperator op: cEops) {
+                                                    Schema.FieldSchema opFs = op.getFieldSchema();
+                                                    if(null != opFs) {
+                                                        groupByFs.setParent(opFs.canonicalName, eOp);
+                                                    }
+                                                }
                                             } else {
-                                                groupByFss.add(new Schema.FieldSchema(null, null, DataType.BYTEARRAY));
+                                                groupByFs = new Schema.FieldSchema(null, null, DataType.BYTEARRAY);
+                                                groupByFss.add(groupByFs);
                                             }
+                                            setFieldSchemaParent(groupByFs, positionOperators, i);
                                             break;
                                         }
                                     }
@@ -218,10 +231,10 @@ public class LOCogroup extends LogicalOperator {
                 } else {
                     //We do not have any alias for this position in the group by columns
                     //We have positions $1, $2, etc.
-                    groupByFss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+                    groupByFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                    groupByFss.add(groupByFs);
+                    setFieldSchemaParent(groupByFs, positionOperators, i);
                 }
-                //The schema for these columns is the merged schema of the expression operatore
-                //This part is handled in the type checker
             }            
 
             groupBySchema = new Schema(groupByFss);
@@ -229,7 +242,9 @@ public class LOCogroup extends LogicalOperator {
             if(1 == arity) {
                 byte groupByType = getAtomicGroupByType();
                 Schema groupSchema = groupByFss.get(0).schema;
-                fss.add(new Schema.FieldSchema("group", groupSchema, groupByType));
+                Schema.FieldSchema groupByFs = new Schema.FieldSchema("group", groupSchema, groupByType);
+                setFieldSchemaParent(groupByFs, positionOperators, 0);
+                fss.add(groupByFs);
             } else {
                 Schema mergedGroupSchema = getTupleGroupBySchema();
                 if(mergedGroupSchema.size() != groupBySchema.size()) {
@@ -255,9 +270,10 @@ public class LOCogroup extends LogicalOperator {
             }
             for (LogicalOperator op : inputs) {
                 try {
-                    Schema cSchema = op.getSchema();
-                    fss.add(new Schema.FieldSchema(op.getAlias(), op
-                            .getSchema(), DataType.BAG));
+                    Schema.FieldSchema bagFs = new Schema.FieldSchema(op.getAlias(),
+                            op.getSchema(), DataType.BAG);
+                    fss.add(bagFs);
+                    setFieldSchemaParent(bagFs, op);
                 } catch (FrontendException ioe) {
                     mIsSchemaComputed = false;
                     mSchema = null;
@@ -374,12 +390,35 @@ public class LOCogroup extends LogicalOperator {
 
             for(int j=0;j < innerPlans.size(); j++) {
                 byte innerType = innerPlans.get(j).getSingleLeafPlanOutputType() ;
-                fsList.get(j).type = DataType.mergeType(fsList.get(j).type,
-                                                        innerType) ;
+                ExpressionOperator eOp = (ExpressionOperator)innerPlans.get(j).getSingleLeafPlanOutputOp();
+                Schema.FieldSchema groupFs = fsList.get(j);
+                groupFs.type = DataType.mergeType(groupFs.type, innerType) ;
+                groupFs.setParent(eOp.getFieldSchema().canonicalName, eOp);
             }
         }
 
         return new Schema(fsList) ;
     }
 
+    private void setFieldSchemaParent(Schema.FieldSchema fs, MultiMap<Integer, ExpressionOperator> positionOperators, int position) throws FrontendException {
+        for(ExpressionOperator op: positionOperators.get(position)) {
+            Schema.FieldSchema opFs = op.getFieldSchema();
+            if(null != opFs) {
+                fs.setParent(opFs.canonicalName, op);
+            }
+        }
+    }
+
+    private void setFieldSchemaParent(Schema.FieldSchema fs, LogicalOperator op) throws FrontendException {
+        Schema s = op.getSchema();
+        if(null != s) {
+            for(Schema.FieldSchema inputFs: s.getFields()) {
+                if(null != inputFs) {
+                    fs.setParent(inputFs.canonicalName, op);
+                }
+            }
+        } else {
+            fs.setParent(null, op);
+        }
+    }
 }

@@ -913,7 +913,6 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
             {
                 SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
                 op.setSchema(schema); 
-                op.setCanonicalNames(); 
                 log.debug("Load as schema" + schema);
             } 
         |   fs = AtomSchema() 
@@ -949,7 +948,6 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
             {
                 SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
                 op.setSchema(schema); 
-                op.setCanonicalNames(); 
                 log.debug("Stream as schema()"+ schema);
             } 
         | fs = AtomSchema() 

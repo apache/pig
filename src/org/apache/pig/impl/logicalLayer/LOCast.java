@@ -18,6 +18,7 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -30,6 +31,7 @@ public class LOCast extends ExpressionOperator {
 
     private static final long serialVersionUID = 2L;
     private ExpressionOperator mExpr;
+    private LoadFunc mLoadFunc = null;
 
     /**
      * 
@@ -66,14 +68,8 @@ public class LOCast extends ExpressionOperator {
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
-            if(DataType.isAtomic(mType)) {
-                mFieldSchema = new Schema.FieldSchema(null, mType);
-                if (mExpr.getFieldSchema() != null) {
-                    mFieldSchema.canonicalName =
-                        mExpr.getFieldSchema().canonicalName;
-                }
-                mIsFieldSchemaComputed = true;
-            }
+            mFieldSchema = new Schema.FieldSchema(null, mType);
+            mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;
     }
@@ -86,6 +82,14 @@ public class LOCast extends ExpressionOperator {
     @Override
     public boolean supportsMultipleInputs() {
         return false;
+    }
+
+    public LoadFunc getLoadFunc() {
+        return mLoadFunc;
+    }
+
+    public void setLoadFunc(LoadFunc loadFunc) {
+        mLoadFunc = loadFunc;
     }
 
 }

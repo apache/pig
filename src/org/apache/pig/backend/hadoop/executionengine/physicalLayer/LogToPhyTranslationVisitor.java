@@ -1150,7 +1150,12 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op
                 .getExpression());
         physOp.setResultType(op.getType());
-        ((POCast) physOp).setLoadFSpec(load.getClass().getName());
+        LoadFunc lf = op.getLoadFunc();
+        String lfString = null;
+        if(null != lf) {
+            lfString = lf.getClass().getName();
+            ((POCast) physOp).setLoadFSpec(lfString);
+        }
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
@@ -1159,6 +1164,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
 
     }
+
     @Override
     public void visit(LOLimit limit) throws VisitorException {
             String scope = limit.getOperatorKey().scope;

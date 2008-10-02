@@ -25,9 +25,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.HashSet;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.Algebraic;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -44,6 +46,9 @@ import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType ;
 import org.apache.pig.impl.plan.*;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.data.DataType ;
+import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.Handle;
+import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -359,7 +364,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
     }
 
-    private void insertCastForRegexp(LORegexp rg) {
+    private void insertCastForRegexp(LORegexp rg) throws VisitorException {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
         collectCastWarning(rg, DataType.BYTEARRAY, DataType.CHARARRAY) ;
         OperatorKey newKey = genNewOperatorKey(rg) ;
@@ -376,6 +381,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw err ;
         }
         rg.setOperand(cast) ;
+        this.visit(cast);
     }
 
     public void visit(LOAnd binOp) throws VisitorException {
@@ -1055,7 +1061,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
-                                           byte toType ) {
+                                           byte toType ) throws VisitorException {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
         collectCastWarning(binOp,
                            binOp.getLhsOperand().getType(),
@@ -1075,10 +1081,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw err ;
         }
         binOp.setLhsOperand(cast) ;
+        this.visit(cast);
     }
 
     private void insertRightCastForBinaryOp(BinaryExpressionOperator binOp,
-                                            byte toType ) {
+                                            byte toType ) throws VisitorException {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
         collectCastWarning(binOp,
                            binOp.getRhsOperand().getType(),
@@ -1098,6 +1105,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw err ;
         }
         binOp.setRhsOperand(cast) ;
+        this.visit(cast);
     }
 
     /**
@@ -1139,7 +1147,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     }
 
-    private void insertCastForUniOp(UnaryExpressionOperator uniOp, byte toType) {
+    private void insertCastForUniOp(UnaryExpressionOperator uniOp, byte toType) throws VisitorException {
         collectCastWarning(uniOp,
                            uniOp.getOperand().getType(),
                            toType) ;
@@ -1163,6 +1171,8 @@ public class TypeCheckingVisitor extends LOVisitor {
             err.initCause(ioe) ;
             throw err ;
         }
+
+        this.visit(cast);
 
     }
     
@@ -1507,7 +1517,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     }
 
-    private void insertLeftCastForBinCond(LOBinCond binCond, byte toType) {
+    private void insertLeftCastForBinCond(LOBinCond binCond, byte toType) throws VisitorException {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
 
         collectCastWarning(binCond,
@@ -1528,10 +1538,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw err ;
         } 
         binCond.setLhsOp(cast) ;
+        this.visit(cast);
 
     }
 
-    private void insertRightCastForBinCond(LOBinCond binCond, byte toType) {
+    private void insertRightCastForBinCond(LOBinCond binCond, byte toType) throws VisitorException {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
 
         collectCastWarning(binCond,
@@ -1552,6 +1563,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw err ;
         }               
         binCond.setRhsOp(cast) ;
+        this.visit(cast);
 
     }
 
@@ -1600,6 +1612,17 @@ public class TypeCheckingVisitor extends LOVisitor {
         // cast.getType() already returns the correct type so don't have to 
         // set here. This is a special case where output type is not
         // automatically determined.
+        
+        if(inputType == DataType.BYTEARRAY) {
+            try {
+                LoadFunc loadFunc = getLoadFunc(cast.getExpression());
+                cast.setLoadFunc(loadFunc);
+            } catch (FrontendException fee) {
+                throw new VisitorException("Cannot resolve load function to use for casting from " + 
+                            DataType.findTypeName(inputType) + " to " +
+                            DataType.findTypeName(expectedType) + ". " + fee.getMessage());
+            }
+        }
     }
     
     
@@ -1751,10 +1774,25 @@ public class TypeCheckingVisitor extends LOVisitor {
         LogicalPlan currentPlan = mCurrentWalker.getPlan() ;
         List<LogicalOperator> list = currentPlan.getPredecessors(op) ;
 
-        // LOSplitOutput can only have 1 input
         try {
             // Compute the schema
             op.getSchema() ;
+        }
+        catch (FrontendException fe) {
+            String msg = "Problem while reading"
+                         + " schemas from inputs of LODistinct" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw vse ;
+        }
+    }
+
+    @Override
+    protected void visit(LOLimit op) throws VisitorException {
+        try {
+            // Compute the schema
+            op.regenerateSchema() ;
         }
         catch (FrontendException fe) {
             String msg = "Problem while reading"
@@ -1853,6 +1891,19 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         checkInnerPlan(comparisonPlan) ;
               
+
+        /*
+        try {
+            System.err.println("Filter inner plan typechecked");
+            LOPrinter lv = new LOPrinter(System.err, comparisonPlan);
+            lv.visit();
+            System.err.println();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            e.printStackTrace();
+        }
+        */
+        
         byte innerCondType = comparisonPlan.getLeaves().get(0).getType() ;
         if (innerCondType != DataType.BOOLEAN) {
             String msg = "Filter's condition must evaluate to boolean. Found: " + DataType.findTypeName(innerCondType);
@@ -1890,7 +1941,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         
         try {
             // Compute the schema
-            split.getSchema() ;
+            split.regenerateSchema() ;
         }
         catch (FrontendException ioe) {
             String msg = "Problem while reconciling output schema of LOSplit" ;
@@ -2040,7 +2091,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     // as a new leave of the plan
     private void insertAtomicCastForCOGroupInnerPlan(LogicalPlan innerPlan,
                                                      LOCogroup cg,
-                                                     byte toType) {
+                                                     byte toType) throws VisitorException {
         if(!DataType.isUsableType(toType)) {
             throw new AssertionError("Cannot cast to type " + DataType.findTypeName(toType));
         }
@@ -2063,6 +2114,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             err.initCause(ioe) ;
             throw err ;
         }
+        this.visit(cast);
     }
 
     /**
@@ -2506,6 +2558,157 @@ public class TypeCheckingVisitor extends LOVisitor {
         String scope = neighbor.getOperatorKey().getScope() ;
         long newId = NodeIdGenerator.getGenerator().getNextNodeId(scope) ;
         return new OperatorKey(scope, newId) ;
+    }
+
+    private LoadFunc getLoadFunc(ExpressionOperator exOp) throws FrontendException {
+        Schema.FieldSchema fs = ((ExpressionOperator)exOp).getFieldSchema();
+        if(null == fs) {
+            return null;
+        }
+
+        Map<String, LogicalOperator> canonicalMap = fs.getCanonicalMap();
+        MultiMap<LogicalOperator, String> reverseCanonicalMap = fs.getReverseCanonicalMap();
+        MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
+        
+        if(canonicalMap.keySet().size() > 0) {
+            for(String parentCanonicalName: canonicalMap.keySet()) {
+                LoadFunc lf = getLoadFunc(exOp, parentCanonicalName);
+                if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+            }
+        } else {
+            for(LogicalOperator op: reverseCanonicalMap.keySet()) {
+                for(String parentCanonicalName: reverseCanonicalMap.get(op)) {
+                    LoadFunc lf = getLoadFunc(op, parentCanonicalName);
+                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                }
+            }
+        }
+        if(loadFuncMap.keySet().size() == 0) {
+            return null;
+        }
+        if(loadFuncMap.keySet().size() == 1) {
+            String lfString = loadFuncMap.keySet().iterator().next();
+            return (LoadFunc)(loadFuncMap.get(lfString).iterator().next());
+        }
+
+        throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
+    }
+
+    private LoadFunc getLoadFunc(LogicalOperator op, String parentCanonicalName) throws FrontendException {
+        MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
+        if(op instanceof ExpressionOperator) {
+            if(op instanceof LOUserFunc) {
+                throw new FrontendException("Found a user defined function. Cannot determine the load function to use");
+            }
+            
+            Schema.FieldSchema fs = ((ExpressionOperator)op).getFieldSchema();
+            Map<String, LogicalOperator> canonicalMap = fs.getCanonicalMap();
+            MultiMap<LogicalOperator, String> reverseCanonicalMap = fs.getReverseCanonicalMap();
+            
+            if(canonicalMap.keySet().size() > 0) {
+                for(String canonicalName: canonicalMap.keySet()) {
+                    LoadFunc lf = getLoadFunc(fs, canonicalName);
+                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                }
+            } else {
+                for(LogicalOperator lop: reverseCanonicalMap.keySet()) {
+                    for(String canonicalName: reverseCanonicalMap.get(lop)) {
+                        LoadFunc lf = getLoadFunc(fs, canonicalName);
+                        if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    }
+                }
+            }
+        } else {
+            if(op instanceof LOLoad) {
+                return ((LOLoad)op).getLoadFunc();
+            } else if (op instanceof LOStream) {
+                StreamingCommand command = ((LOStream)op).getStreamingCommand();
+                HandleSpec streamOutputSpec = command.getOutputSpec(); 
+                LoadFunc streamLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(streamOutputSpec.getSpec());
+                return streamLoader;
+            } else if ((op instanceof LOFilter)
+                    || (op instanceof LODistinct)
+                    || (op instanceof LOSort)
+                    || (op instanceof LOSplit)
+                    || (op instanceof LOSplitOutput)
+                    || (op instanceof LOLimit)) {
+                LogicalPlan lp = op.getPlan();
+                LoadFunc lf = getLoadFunc(lp.getPredecessors(op).get(0), parentCanonicalName);
+                return lf;
+                //return getLoadFunc(lp.getPredecessors(op).get(0), parentCanonicalName);        
+            }
+            
+            Schema s = op.getSchema();
+            if(null != s) {
+                for(Schema.FieldSchema fs: s.getFields()) {
+                    if(null != parentCanonicalName && (parentCanonicalName.equals(fs.canonicalName))) {
+                        if(fs.getCanonicalMap().keySet().size() > 0) {
+                            for(String canonicalName: fs.getCanonicalMap().keySet()) {
+                                LoadFunc lf = getLoadFunc(fs, canonicalName);
+                                if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                            }
+                        } else {
+                            LoadFunc lf = getLoadFunc(fs, null);
+                            if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                        }
+                    } else if (null == parentCanonicalName) {
+                        LoadFunc lf = getLoadFunc(fs, null);
+                        if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    }
+                }
+            } else {
+                LogicalPlan lp = op.getPlan();
+                for(LogicalOperator pred: lp.getPredecessors(op)) {
+                    LoadFunc lf = getLoadFunc(pred, parentCanonicalName);
+                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                }
+            }
+        }
+        if(loadFuncMap.keySet().size() == 0) {
+            return null;
+        }
+        if(loadFuncMap.keySet().size() == 1) {
+            String lfString = loadFuncMap.keySet().iterator().next();
+            return (LoadFunc)(loadFuncMap.get(lfString).iterator().next());
+        }
+    
+        throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
+    }
+
+    private LoadFunc getLoadFunc(Schema.FieldSchema fs, String parentCanonicalName) throws FrontendException {
+        if(null == fs) {
+            return null;
+        }
+        Map<String, LogicalOperator> canonicalMap = fs.getCanonicalMap();
+        MultiMap<LogicalOperator, String> reverseCanonicalMap = fs.getReverseCanonicalMap();
+        MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
+
+        if(canonicalMap.keySet().size() > 0) {
+            for(String canonicalName: canonicalMap.keySet()) {
+                if((null == parentCanonicalName) || (parentCanonicalName.equals(canonicalName))) {
+                    LoadFunc lf = getLoadFunc(canonicalMap.get(canonicalName), parentCanonicalName);
+                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                }
+            }
+        } else {
+            for(LogicalOperator op: reverseCanonicalMap.keySet()) {
+                for(String canonicalName: reverseCanonicalMap.get(op)) {
+                    if((null == parentCanonicalName) || (parentCanonicalName.equals(canonicalName))) {
+                        LoadFunc lf = getLoadFunc(op, parentCanonicalName);
+                        if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    }
+                }
+            }
+        }
+        if(loadFuncMap.keySet().size() == 0) {
+            return null;
+        }
+        if(loadFuncMap.keySet().size() == 1) {
+            String lfString = loadFuncMap.keySet().iterator().next();
+            return (LoadFunc)(loadFuncMap.get(lfString).iterator().next());
+        }
+
+        throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
     }
 
 }

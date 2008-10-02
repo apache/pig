@@ -67,6 +67,7 @@ public class LOCross extends LogicalOperator {
             for (LogicalOperator op : inputs) {
                 String opAlias = op.getAlias();
                 Schema s = op.getSchema();
+                Schema.FieldSchema newFs;
 
                 //need to extract the children and create the aliases
                 //assumption here is that flatten is only for one column
@@ -78,7 +79,7 @@ public class LOCross extends LogicalOperator {
                         log.debug("fs.alias: " + fs.alias);
                         if(null != fs.alias) {
                             String disambiguatorAlias = opAlias + "::" + fs.alias;
-                            Schema.FieldSchema newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
+                            newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
                             fss.add(newFs);
                             Integer count;
                             count = aliases.get(fs.alias);
@@ -99,9 +100,10 @@ public class LOCross extends LogicalOperator {
                             //we just need to record if its due to
                             //flattening
                         } else {
-                            Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                            newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                             fss.add(newFs);
                         }
+                        newFs.setParent(fs.canonicalName, op);
                     }
                 } else {
                     mSchema = null;

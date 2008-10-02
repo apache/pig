@@ -53,9 +53,11 @@ public class LODivide extends BinaryExpressionOperator {
     }
 
     @Override
-    public Schema.FieldSchema getFieldSchema() {
+    public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
             mFieldSchema = new Schema.FieldSchema(null, DataType.mergeType(getLhsOperand().getType(), getRhsOperand().getType()));
+            mFieldSchema.setParent(getLhsOperand().getFieldSchema().canonicalName, getLhsOperand());
+            mFieldSchema.setParent(getRhsOperand().getFieldSchema().canonicalName, getRhsOperand());
             mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;

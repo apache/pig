@@ -84,8 +84,7 @@ public abstract class ExpressionOperator extends LogicalOperator {
      *             if there is already a schema and the existing schema cannot
      *             be reconciled with this new schema.
      */
-    public final void setFieldSchema(Schema.FieldSchema fs) throws FrontendException {
-		log.debug("Inside setFieldSchema");
+    public void setFieldSchema(Schema.FieldSchema fs) throws FrontendException {
         mFieldSchema = fs;
         setAlias(fs.alias);
         setType(fs.type);

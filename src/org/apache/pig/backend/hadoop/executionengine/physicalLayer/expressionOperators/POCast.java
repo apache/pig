@@ -44,7 +44,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * Need the full operator implementation.
  */
 public class POCast extends ExpressionOperator {
-    private String loadFSpec;
+    private String loadFSpec = null;
 	transient private LoadFunc load;
 	private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
@@ -63,7 +63,9 @@ public class POCast extends ExpressionOperator {
     
     private void instantiateFunc() {
         if(load!=null) return;
-        this.load = (LoadFunc) PigContext.instantiateFuncFromSpec(this.loadFSpec);
+        if(this.loadFSpec != null) {
+            this.load = (LoadFunc) PigContext.instantiateFuncFromSpec(this.loadFSpec);
+        }
     }
     
     public void setLoadFSpec(String fSpec) {
