@@ -269,3 +269,5 @@ Trunk (unreleased changes)
     PIG-470: TextLoader should produce bytearrays (sms via olgan)
 
     PIG-335: lineage (sms vi olgan)
+
+    PIG-464: bag schema definition (pradeepk via olgan)

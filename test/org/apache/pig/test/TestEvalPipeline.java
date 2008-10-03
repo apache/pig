@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.ExecType.MAPREDUCE;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -487,5 +489,40 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(5, numIdentity);
     }
     
+    @Test
+    public void testComplexData() throws IOException, ExecException {
+        // Create input file with ascii data
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
+        
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+                "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
+        pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        Tuple t = it.next();
+        assertEquals(new Long(2), t.get(0));
+        assertEquals("1", t.get(1).toString());
+        assertEquals("2", t.get(2).toString());
+        assertEquals("value1", t.get(3).toString());
+        assertEquals("value2", t.get(4).toString());
+        
+        //test with BinStorage
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+                "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
+        String output = "/pig/out/TestEvalPipeline-testComplexData";
+        pigServer.deleteFile(output);
+        pigServer.store("a", output, BinStorage.class.getName());
+        pigServer.registerQuery("x = load '" + output +"' using BinStorage() " +
+                "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
+        pigServer.registerQuery("y = foreach x generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
+        it = pigServer.openIterator("y");
+        t = it.next();
+        assertEquals(new Long(2), t.get(0));
+        assertEquals("1", t.get(1).toString());
+        assertEquals("2", t.get(2).toString());
+        assertEquals("value1", t.get(3).toString());
+        assertEquals("value2", t.get(4).toString());
+        
+    }
 
 }

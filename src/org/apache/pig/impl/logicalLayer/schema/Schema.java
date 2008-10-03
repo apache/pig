@@ -405,7 +405,7 @@ public class Schema implements Serializable, Cloneable {
             try {
                 FieldSchema fs = new FieldSchema(alias,
                     (schema == null ? null : schema.clone()), type);
-                fs.canonicalName = canonicalName;
+                fs.canonicalName = canonicalNamer.getNewName();
                 if (canonicalMap != null) {
                     fs.canonicalMap =
                         new HashMap<String, LogicalOperator>(canonicalMap);
@@ -498,13 +498,13 @@ public class Schema implements Serializable, Cloneable {
 
     private List<FieldSchema> mFields;
     private Map<String, FieldSchema> mAliases;
-    private MultiMap<FieldSchema, String> mFieldSchemas;
+    private MultiMap<String, String> mFieldSchemas;
     private static Log log = LogFactory.getLog(Schema.class);
 
     public Schema() {
         mFields = new ArrayList<FieldSchema>();
         mAliases = new HashMap<String, FieldSchema>();
-        mFieldSchemas = new MultiMap<FieldSchema, String>();
+        mFieldSchemas = new MultiMap<String, String>();
     }
 
     /**
@@ -513,12 +513,12 @@ public class Schema implements Serializable, Cloneable {
     public Schema(List<FieldSchema> fields) {
         mFields = fields;
         mAliases = new HashMap<String, FieldSchema>(fields.size());
-        mFieldSchemas = new MultiMap<FieldSchema, String>();
+        mFieldSchemas = new MultiMap<String, String>();
         for (FieldSchema fs : fields) {
             if (fs.alias != null) {
                 mAliases.put(fs.alias, fs);
                 if(null != fs) {
-                    mFieldSchemas.put(fs, fs.alias);
+                    mFieldSchemas.put(fs.canonicalName, fs.alias);
                 }
             }
         }
@@ -532,11 +532,11 @@ public class Schema implements Serializable, Cloneable {
         mFields = new ArrayList<FieldSchema>(1);
         mFields.add(fieldSchema);
         mAliases = new HashMap<String, FieldSchema>(1);
-        mFieldSchemas = new MultiMap<FieldSchema, String>();
+        mFieldSchemas = new MultiMap<String, String>();
         if (fieldSchema.alias != null) {
             mAliases.put(fieldSchema.alias, fieldSchema);
             if(null != fieldSchema) {
-                mFieldSchemas.put(fieldSchema, fieldSchema.alias);
+                mFieldSchemas.put(fieldSchema.canonicalName, fieldSchema.alias);
             }
         }
     }
@@ -550,7 +550,7 @@ public class Schema implements Serializable, Cloneable {
         if(null != s) {
             mFields = new ArrayList<FieldSchema>(s.size());
             mAliases = new HashMap<String, FieldSchema>();
-            mFieldSchemas = new MultiMap<FieldSchema, String>();
+            mFieldSchemas = new MultiMap<String, String>();
             try {
                 for (int i = 0; i < s.size(); ++i) {
                     FieldSchema fs = new FieldSchema(s.getField(i));
@@ -559,7 +559,7 @@ public class Schema implements Serializable, Cloneable {
                         if (fs.alias != null) {
                             mAliases.put(fs.alias, fs);
                             if(null != fs) {
-                                mFieldSchemas.put(fs, fs.alias);
+                                mFieldSchemas.put(fs.canonicalName, fs.alias);
                             }
                         }
                     }
@@ -567,12 +567,12 @@ public class Schema implements Serializable, Cloneable {
             } catch (ParseException pe) {
                 mFields = new ArrayList<FieldSchema>();
                 mAliases = new HashMap<String, FieldSchema>();
-                mFieldSchemas = new MultiMap<FieldSchema, String>();
+                mFieldSchemas = new MultiMap<String, String>();
             }
         } else {
             mFields = new ArrayList<FieldSchema>();
             mAliases = new HashMap<String, FieldSchema>();
-            mFieldSchemas = new MultiMap<FieldSchema, String>();
+            mFieldSchemas = new MultiMap<String, String>();
         }
     }
 
@@ -699,7 +699,7 @@ public class Schema implements Serializable, Cloneable {
                     if (ourFs.alias != null) {
                         log.debug("Removing ourFs.alias: " + ourFs.alias);
                         mAliases.remove(ourFs.alias);
-                        Collection<String> aliases = mFieldSchemas.get(ourFs);
+                        Collection<String> aliases = mFieldSchemas.get(ourFs.canonicalName);
                         if (aliases != null) {
                             List<String> listAliases = new ArrayList<String>();
                             for(String alias: aliases) {
@@ -707,7 +707,7 @@ public class Schema implements Serializable, Cloneable {
                             }
                             for(String alias: listAliases) {
                                 log.debug("Removing alias " + alias + " from multimap");
-                                mFieldSchemas.remove(ourFs, alias);
+                                mFieldSchemas.remove(ourFs.canonicalName, alias);
                             }
                         }
                     }
@@ -715,7 +715,7 @@ public class Schema implements Serializable, Cloneable {
                     log.debug("Setting alias to: " + otherFs.alias);
                     mAliases.put(ourFs.alias, ourFs);
                     if(null != ourFs.alias) {
-                        mFieldSchemas.put(ourFs, ourFs.alias);
+                        mFieldSchemas.put(ourFs.canonicalName, ourFs.alias);
                     }
                 }
                 if (otherFs.type != DataType.UNKNOWN) {
@@ -761,10 +761,13 @@ public class Schema implements Serializable, Cloneable {
         // list with copies of the existing field schemas.
         Map<FieldSchema, FieldSchema> fsMap =
             new HashMap<FieldSchema, FieldSchema>(size());
+        Map<String, FieldSchema> fsCanonicalNameMap =
+            new HashMap<String, FieldSchema>(size());
         for (FieldSchema fs : mFields) {
             FieldSchema copy = fs.clone();
             s.mFields.add(copy);
             fsMap.put(fs, copy);
+            fsCanonicalNameMap.put(fs.canonicalName, copy);
         }
 
         // Build the aliases map
@@ -777,10 +780,10 @@ public class Schema implements Serializable, Cloneable {
         }
 
         // Build the field schemas map
-        for (FieldSchema oldFs : mFieldSchemas.keySet()) {
-            FieldSchema newFs = fsMap.get(oldFs);
+        for (String oldFsCanonicalName : mFieldSchemas.keySet()) {
+            FieldSchema newFs = fsCanonicalNameMap.get(oldFsCanonicalName);
             assert(newFs != null);
-            s.mFieldSchemas.put(newFs, mFieldSchemas.get(oldFs));
+            s.mFieldSchemas.put(newFs.canonicalName, mFieldSchemas.get(oldFsCanonicalName));
         }
 
         return s;
@@ -919,7 +922,7 @@ public class Schema implements Serializable, Cloneable {
         if(null != alias) {
             mAliases.put(alias, fs);
             if(null != fs) {
-                mFieldSchemas.put(fs, alias);
+                mFieldSchemas.put(fs.canonicalName, alias);
             }
         }
     }

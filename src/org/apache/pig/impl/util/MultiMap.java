@@ -160,6 +160,25 @@ public class MultiMap<K, V> implements Serializable {
         return values;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        Set<K> keys = mMap.keySet();
+        boolean hasNext = false;
+        sb.append("{");
+        for (K k : keys) {
+            if(hasNext) {
+                sb.append(",");
+            } else {
+                hasNext = true;
+            }
+            sb.append(k.toString() + "=");
+            sb.append(mMap.get(k));
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+    
     /**
      * Get the number of entries in the map.
      * @return number of entries.
