@@ -56,13 +56,17 @@ public class LocalLauncher extends Launcher{
         new Thread(jc).start();
 
         double lastProg = -1;
+        int perCom = 0;
         while(!jc.allFinished()){
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {}
             double prog = calculateProgress(jc, jobClient)/numMRJobs;
-            if(prog>lastProg)
-                log.info((int)(prog * 100) + "% complete");
+            if(prog>=(lastProg+0.01)){
+                perCom = (int)(prog * 100);
+                if(perCom!=100)
+                    log.info( perCom + "% complete");
+            }
             lastProg = prog;
         }
         // Look to see if any jobs failed.  If so, we need to report that.
@@ -84,7 +88,8 @@ public class LocalLauncher extends Launcher{
             }
 
         jc.stop(); 
-        
+        log.info( "100% complete");
+        log.info("Success!");
         return true;
     }
 

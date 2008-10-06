@@ -271,3 +271,5 @@ Trunk (unreleased changes)
     PIG-335: lineage (sms vi olgan)
 
     PIG-464: bag schema definition (pradeepk via olgan)
+
+    PIG-457: report 100% on successful jobs only (shravanmn via olgan)
