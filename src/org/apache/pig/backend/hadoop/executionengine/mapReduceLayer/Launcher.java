@@ -85,14 +85,22 @@ public abstract class Launcher {
         return (int)(Math.ceil(prog)) == (int)1;
     }
     
-    protected void getStats(Job job, JobClient jobClient, boolean errNotDbg) throws IOException{
+    protected void getStats(Job job, JobClient jobClient, boolean errNotDbg) {
         JobID MRJobID = job.getAssignedJobID();
-        TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
-        getErrorMessages(mapRep, "map", errNotDbg);
-        totalHadoopTimeSpent += computeTimeSpent(mapRep);
-        TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
-        getErrorMessages(redRep, "reduce", errNotDbg);
-        totalHadoopTimeSpent += computeTimeSpent(mapRep);
+        try {
+            TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
+            getErrorMessages(mapRep, "map", errNotDbg);
+            totalHadoopTimeSpent += computeTimeSpent(mapRep);
+            TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
+            getErrorMessages(redRep, "reduce", errNotDbg);
+            totalHadoopTimeSpent += computeTimeSpent(mapRep);
+        } catch (IOException e) {
+            if(job.getState() == Job.SUCCESS) {
+                // if the job succeeded, let the user know that
+                // we were unable to get statistics
+                log.warn("Unable to get job related diagnostics");
+            }
+        }
     }
     
     protected long computeTimeSpent(TaskReport[] mapReports) {

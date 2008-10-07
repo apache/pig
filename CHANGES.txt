@@ -273,3 +273,5 @@ Trunk (unreleased changes)
     PIG-464: bag schema definition (pradeepk via olgan)
 
     PIG-457: report 100% on successful jobs only (shravanmn via olgan)
+
+    PIG-471: ignoring status errors from hadoop (pradeepk via olgan)
