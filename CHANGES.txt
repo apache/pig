@@ -357,3 +357,5 @@ Release 0.1.0 - Unreleased
 	PIG-472: Added RegExLoader to piggybank, an abstract loader class to parse
 	text files via regular espressions (spackest via gates)
 
+	PIG-473: Added CommonLogLoader, a subclass of RegExLoader to piggybank (spackest via gates)
+
