@@ -359,3 +359,5 @@ Release 0.1.0 - Unreleased
 
 	PIG-473: Added CommonLogLoader, a subclass of RegExLoader to piggybank (spackest via gates)
 
+	PIG-474: Added MyRegexLoader, a subclass of RegExLoader, to piggybank (spackest via gates)
+
