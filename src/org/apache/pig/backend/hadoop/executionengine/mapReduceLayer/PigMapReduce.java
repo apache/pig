@@ -48,6 +48,7 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -95,14 +96,26 @@ public class PigMapReduce {
         }
     }
     
+    /**
+     * This "specialized" map class is ONLY to be used in pig queries with
+     * order by a udf. A UDF used for comparison in the order by expects
+     * to be handed tuples. Hence this map class ensures that the "key" used
+     * in the order by is wrapped into a tuple (if it isn't already a tuple)
+     */
     public static class MapWithComparator extends PigMapBase implements
             Mapper<Text, TargetedTuple, PigNullableWritable, Writable> {
 
         @Override
         public void collect(OutputCollector<PigNullableWritable, Writable> oc,
                 Tuple tuple) throws ExecException, IOException {
-            Object k = tuple.get(1);
-            Tuple keyTuple = tf.newTuple(k);
+            Object keyTuple = null;
+            if(keyType != DataType.TUPLE) {
+                Object k = tuple.get(1);
+                keyTuple = tf.newTuple(k);
+            } else {
+                keyTuple = tuple.get(1);
+            }
+            
 
             Byte index = (Byte)tuple.get(0);
             PigNullableWritable key =
@@ -121,23 +134,23 @@ public class PigMapReduce {
     public static class Reduce extends MapReduceBase
             implements
             Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
-        private final Log log = LogFactory.getLog(getClass());
+        protected final Log log = LogFactory.getLog(getClass());
         
         //The reduce plan
-        private PhysicalPlan rp;
+        protected PhysicalPlan rp;
         
         //The POPackage operator which is the
         //root of every Map Reduce plan is
         //obtained through the job conf. The portion
         //remaining after its removal is the reduce
         //plan
-        private POPackage pack;
+        protected POPackage pack;
         
         ProgressableReporter pigReporter;
 
-        private OutputCollector<PigNullableWritable, Writable> outputCollector;
+        protected OutputCollector<PigNullableWritable, Writable> outputCollector;
 
-        private boolean errorInReduce = false;
+        protected boolean errorInReduce = false;
         
         /**
          * Configures the Reduce plan, the POPackage operator
@@ -231,7 +244,7 @@ public class PigMapReduce {
          * @throws ExecException 
          * @throws IOException 
          */
-        private void runPipeline(PhysicalOperator leaf) throws ExecException, IOException {
+        protected void runPipeline(PhysicalOperator leaf) throws ExecException, IOException {
             while(true)
             {
                 Tuple dummyTuple = null;  
@@ -305,6 +318,100 @@ public class PigMapReduce {
                 }
             }
         }
+    }
+    
+    /**
+     * This "specialized" reduce class is ONLY to be used in pig queries with
+     * order by a udf. A UDF used for comparison in the order by expects
+     * to be handed tuples. Hence a specialized map class (PigMapReduce.MapWithComparator)
+     * ensures that the "key" used in the order by is wrapped into a tuple (if it 
+     * isn't already a tuple). This reduce class unwraps this tuple in the case where
+     * the map had wrapped into a tuple and handes the "unwrapped" key to the POPackage
+     * for processing
+     */
+    public static class ReduceWithComparator extends PigMapReduce.Reduce {
+        
+        private byte keyType;
+        
+        /**
+         * Configures the Reduce plan, the POPackage operator
+         * and the reporter thread
+         */
+        @Override
+        public void configure(JobConf jConf) {
+            super.configure(jConf);
+            keyType = pack.getKeyType();
+        }
+
+        /**
+         * The reduce function which packages the key and List&lt;Tuple&gt;
+         * into key, Bag&lt;Tuple&gt; after converting Hadoop type key into Pig type.
+         * The package result is either collected as is, if the reduce plan is
+         * empty or after passing through the reduce plan.
+         */
+        public void reduce(PigNullableWritable key,
+                Iterator<NullableTuple> tupIter,
+                OutputCollector<PigNullableWritable, Writable> oc,
+                Reporter reporter) throws IOException {
+            
+            // cache the collector for use in runPipeline()
+            // which could additionally be called from close()
+            this.outputCollector = oc;
+            pigReporter.setRep(reporter);
+            
+            // If the keyType is not a tuple, the MapWithComparator.collect()
+            // would have wrapped the key into a tuple so that the 
+            // comparison UDF used in the order by can process it.
+            // We need to unwrap the key out of the tuple and hand it
+            // to the POPackage for processing
+            if(keyType != DataType.TUPLE) {
+                Tuple t = (Tuple)(key.getValueAsPigType());
+                try {
+                    key = HDataType.getWritableComparableTypes(t.get(0), keyType);
+                } catch (ExecException e) {
+                    throw WrappedIOException.wrap(e);
+                }
+            }
+            
+            pack.attachInput(key, tupIter);
+            
+            try {
+                Tuple t=null;
+                Result res = pack.getNext(t);
+                if(res.returnStatus==POStatus.STATUS_OK){
+                    Tuple packRes = (Tuple)res.result;
+                    
+                    if(rp.isEmpty()){
+                        oc.collect(null, packRes);
+                        return;
+                    }
+                    
+                    rp.attachInput(packRes);
+
+                    List<PhysicalOperator> leaves = rp.getLeaves();
+                    
+                    PhysicalOperator leaf = leaves.get(0);
+                    runPipeline(leaf);
+                    
+                }
+                
+                if(res.returnStatus==POStatus.STATUS_NULL) {
+                    return;
+                }
+                
+                if(res.returnStatus==POStatus.STATUS_ERR){
+                    IOException ioe = new IOException("Packaging error while processing group");
+                    throw ioe;
+                }
+                    
+                
+            } catch (ExecException e) {
+                IOException ioe = new IOException(e.getMessage());
+                ioe.initCause(e.getCause());
+                throw ioe;
+            }
+        }
+
     }
     
 }

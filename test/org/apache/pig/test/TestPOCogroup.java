@@ -30,7 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrangeForIllustrate;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORead;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POCogroup;
 import org.apache.pig.data.BagFactory;
@@ -78,7 +78,7 @@ public class TestPOCogroup extends TestCase {
         p1.add(prj1);
         List<PhysicalPlan> in1 = new LinkedList<PhysicalPlan>();
         in1.add(p1);
-        POLocalRearrange lr1 = new POLocalRearrange(new OperatorKey("", r
+        POLocalRearrangeForIllustrate lr1 = new POLocalRearrangeForIllustrate(new OperatorKey("", r
                 .nextLong()), -1, inputs1);
         lr1.setPlans(in1);
         lr1.setIndex(0);
@@ -92,7 +92,7 @@ public class TestPOCogroup extends TestCase {
         p2.add(prj2);
         List<PhysicalPlan> in2 = new LinkedList<PhysicalPlan>();
         in2.add(p2);
-        POLocalRearrange lr2 = new POLocalRearrange(new OperatorKey("", r
+        POLocalRearrangeForIllustrate lr2 = new POLocalRearrangeForIllustrate(new OperatorKey("", r
                 .nextLong()), -1, inputs2);
         lr2.setPlans(in2);
         lr2.setIndex(1);
@@ -172,7 +172,7 @@ public class TestPOCogroup extends TestCase {
         p1.add(prj1);
         List<PhysicalPlan> in1 = new LinkedList<PhysicalPlan>();
         in1.add(p1);
-        POLocalRearrange lr1 = new POLocalRearrange(new OperatorKey("", r
+        POLocalRearrangeForIllustrate lr1 = new POLocalRearrangeForIllustrate(new OperatorKey("", r
                 .nextLong()), -1, inputs1);
         lr1.setPlans(in1);
         lr1.setIndex(0);

@@ -10,6 +10,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTrans
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrangeForIllustrate;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POCogroup;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplitOutput;
@@ -52,7 +53,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         for(LogicalOperator lo : inputs) {
             List<LogicalPlan> plans = (List<LogicalPlan>) cg.getGroupByPlans().get(lo);
             
-            POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
+            POLocalRearrangeForIllustrate physOp = new POLocalRearrangeForIllustrate(new OperatorKey(
                     scope, nodeGen.getNextNodeId(scope)), cg
                     .getRequestedParallelism());
             List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();

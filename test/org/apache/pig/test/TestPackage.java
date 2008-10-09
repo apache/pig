@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
@@ -79,6 +81,18 @@ public class TestPackage extends junit.framework.TestCase {
         pop.setInner(inner);
         PigNullableWritable k = HDataType.getWritableComparableTypes(key, (byte)0);
         pop.attachInput(k, db.iterator());
+        
+        // we are not doing any optimization to remove
+        // parts of the "value" which are present in the "key" in this
+        // unit test - so set up the "keyInfo" accordingly in 
+        // the POPackage
+        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = 
+            new HashMap<Integer, Pair<Boolean, Map<Integer,Integer>>>();
+        Pair<Boolean, Map<Integer, Integer>> p = 
+            new Pair<Boolean, Map<Integer, Integer>>(false, new HashMap<Integer, Integer>());
+        keyInfo.put(0, p);
+        keyInfo.put(1, p);
+        pop.setKeyInfo(keyInfo);
         Tuple t = null;
         Result res = null;
         res = (Result) pop.getNext(t);

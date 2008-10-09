@@ -381,7 +381,7 @@ public class JobControlCompiler{
                     Class comparator = PigContext.resolveClassName(compFuncSpec);
                     if(ComparisonFunc.class.isAssignableFrom(comparator)) {
                         jobConf.setMapperClass(PigMapReduce.MapWithComparator.class);
-                        pack.setKeyType(DataType.TUPLE);
+                        jobConf.setReducerClass(PigMapReduce.ReduceWithComparator.class);
                         jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
                         jobConf.set("pig.usercomparator", "true");
                         jobConf.setOutputKeyClass(NullableTuple.class);

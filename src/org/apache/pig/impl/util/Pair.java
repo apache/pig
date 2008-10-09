@@ -34,4 +34,12 @@ public class Pair<T, U> implements Serializable {
         first = f;
         second = s;
     }
+    
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "[" + first.toString() +"," + second.toString() + "]";
+    }
 }

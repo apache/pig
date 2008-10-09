@@ -275,3 +275,6 @@ Trunk (unreleased changes)
     PIG-457: report 100% on successful jobs only (shravanmn via olgan)
 
     PIG-471: ignoring status errors from hadoop (pradeepk via olgan)
+
+    PIG-465: performance improvement - removing keys from the value (pradeepk
+    via olgan)

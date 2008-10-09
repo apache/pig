@@ -76,6 +76,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         //do nothing
     }
     
+    public void visitCombinerPackage(POPostCombinerPackage pkg) throws VisitorException{
+        //do nothing
+    }
+    
     public void visitPOForEach(POForEach nfe) throws VisitorException {
         List<PhysicalPlan> inpPlans = nfe.getInputPlans();
         for (PhysicalPlan plan : inpPlans) {
@@ -229,6 +233,20 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     public void visitSplit(org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit split) {
 	// TODO Auto-generated method stub
 	
+    }
+
+    /**
+     * @param localRearrangeForIllustrate
+     * @throws VisitorException 
+     */
+    public void visitLocalRearrangeForIllustrate(
+            POLocalRearrangeForIllustrate lrfi) throws VisitorException {
+        List<PhysicalPlan> inpPlans = lrfi.getPlans();
+        for (PhysicalPlan plan : inpPlans) {
+            pushWalker(mCurrentWalker.spawnChildWalker(plan));
+            visit();
+        }
+        
     }
 
 

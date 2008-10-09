@@ -18,7 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,6 +32,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -47,31 +50,59 @@ public class POLocalRearrange extends PhysicalOperator {
     /**
      * 
      */
-    private static final long serialVersionUID = 1L;
+    protected static final long serialVersionUID = 1L;
 
-    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private Log log = LogFactory.getLog(getClass());
 
-    List<PhysicalPlan> plans;
+    protected List<PhysicalPlan> plans;
     
-    List<ExpressionOperator> leafOps;
+    protected List<ExpressionOperator> leafOps;
 
     // The position of this LR in the package operator
-    byte index;
+    protected byte index;
     
-    byte keyType;
+    protected byte keyType;
 
-    private boolean mIsDistinct = false;
+    protected boolean mIsDistinct = false;
     
-    private boolean isCross = false;
+    protected boolean isCross = false;
+    
+    // map to store mapping of projected columns to
+    // the position in the "Key" where these will be projected to.
+    // We use this information to strip off these columns
+    // from the "Value" and in POPackage stitch the right "Value"
+    // tuple back by getting these columns from the "key". The goal
+    // is to reduce the amount of the data sent to Hadoop in the map.
+    // Example: a  = load 'bla'; b = load 'bla'; c = cogroup a by ($2, $3), b by ($, $2)
+    // For the first input (a), the map would contain following key:value
+    // 2:0 (2 corresponds to $2 in cogroup a by ($2, $3) and 0 corresponds to 1st index in key)
+    // 3:1 (3 corresponds to $3 in cogroup a by ($2, $3) and 0 corresponds to 2nd index in key)
+    private Map<Integer, Integer> mProjectedColsMap;
 
     // A place holder Tuple used in distinct case where we really don't
     // have any value to pass through.  But hadoop gets cranky if we pass a
     // null, so we'll just create one instance of this empty tuple and
     // pass it for every row.  We only get around to actually creating it if
     // mIsDistinct is set to true.
-    private Tuple mFakeTuple = null;
+    protected Tuple mFakeTuple = null;
+
+	// indicator whether the project in the inner plans
+	// is a project(*) - we set this ONLY when the project(*)
+	// is the ONLY thing in the cogroup by ..
+	private boolean mProjectStar = false;
+
+    // marker to note that the "key" is a tuple
+    // this is required by POPackage to pick things
+    // off the "key" correctly to stitch together the
+    // "value"
+    private boolean isKeyTuple = false;
+
+    private int mProjectedColsMapSize = 0;
+
+    private ArrayList<Integer> minValuePositions;
+    private int minValuePositionsSize = 0;
 
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -89,6 +120,7 @@ public class POLocalRearrange extends PhysicalOperator {
         super(k, rp, inp);
         index = -1;
         leafOps = new ArrayList<ExpressionOperator>();
+        mProjectedColsMap = new HashMap<Integer, Integer>();
     }
 
     @Override
@@ -206,12 +238,13 @@ public class POLocalRearrange extends PhysicalOperator {
                 resLst.add(res);
             }
             res.result = constructLROutput(resLst,(Tuple)inp.result);
+            
             return res;
         }
         return inp;
     }
     
-    private Tuple constructLROutput(List<Result> resLst, Tuple value) throws ExecException{
+    protected Tuple constructLROutput(List<Result> resLst, Tuple value) throws ExecException{
         //Construct key
         Object key;
         if(resLst.size()>1){
@@ -234,17 +267,70 @@ public class POLocalRearrange extends PhysicalOperator {
             output.set(1, key);
             output.set(2, mFakeTuple);
             return output;
-        } else {
-            if(isCross){
-                for(int i=0;i<plans.size();i++)
-                    value.getAll().remove(0);
-            }
-
+        } else if(isCross){
+        
+            for(int i=0;i<plans.size();i++)
+                value.getAll().remove(0);
             //Put the index, key, and value
             //in a tuple and return
             output.set(0, new Byte(index));
             output.set(1, key);
             output.set(2, value);
+            return output;
+        } else {
+
+            //Put the index, key, and value
+            //in a tuple and return
+            output.set(0, new Byte(index));
+            output.set(1, key);
+            
+            // strip off the columns in the "value" which 
+            // are present in the "key"
+            if(mProjectedColsMapSize != 0 || mProjectStar == true) {
+
+                Tuple minimalValue = null;
+                if(!mProjectStar) {
+                    if(minValuePositions == null) {
+                        // the very first time, we will have to build
+                        // the "value" tuple piecemeal but we can
+                        // do better next time round
+                        minValuePositions = new ArrayList<Integer>();
+                        minimalValue = mTupleFactory.newTuple();
+                        // look for individual columns that we are
+                        // projecting
+                        for (int i = 0; i < value.size(); i++) {
+                            if(mProjectedColsMap.get(i) == null) {
+                                // this column was not found in the "key"
+                                // so send it in the "value"
+                                minimalValue.append(value.get(i));
+                                minValuePositions.add(i);
+                            }
+                        }
+                        minValuePositionsSize = minValuePositions.size();
+                    } else {
+                        minimalValue = mTupleFactory.newTuple(minValuePositionsSize);
+                        for(int i = 0; i < minValuePositionsSize; i++) {
+                            minimalValue.set(i, value.get(minValuePositions.get(i)));
+                        }
+                    }
+                } else {
+                    // for the project star case
+                    // we would send out an empty tuple as
+                    // the "value" since all elements are in the
+                    // "key"
+                    minimalValue = mTupleFactory.newTuple();
+    
+                }
+                output.set(2, minimalValue);
+            
+            } else {
+            
+                // there were no columns in the "key"
+                // which we can strip off from the "value"
+                // so just send the value we got
+                output.set(2, value);
+                
+            }
             return output;
         }
     }
@@ -264,9 +350,53 @@ public class POLocalRearrange extends PhysicalOperator {
     public void setPlans(List<PhysicalPlan> plans) {
         this.plans = plans;
         leafOps.clear();
+        int keyIndex = 0; // zero based index for fields in the key
         for (PhysicalPlan plan : plans) {
-            leafOps.add((ExpressionOperator)plan.getLeaves().get(0));
+            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0); 
+            leafOps.add(leaf);
+            
+            // don't optimize CROSS
+            if(!isCross) {
+                // Look for the leaf Ops which are POProject operators - get the 
+                // the columns that these POProject Operators are projecting.
+                // They MUST be projecting either a column or '*'.
+                // Keep track of the columns which are being projected and
+                // the position in the "Key" where these will be projected to.
+                // Then we can use this information to strip off these columns
+                // from the "Value" and in POPackage stitch the right "Value"
+                // tuple back by getting these columns from the "key". The goal
+                // is reduce the amount of the data sent to Hadoop in the map.
+                if(leaf instanceof POProject) {
+                    POProject project = (POProject) leaf;
+                    if(project.isStar()) {
+                        if(plans.size() == 1) {
+                            // note that we have a project *
+                            mProjectStar  = true;
+                            // key will be a tuple in this case
+                            isKeyTuple = true;
+                        } else {
+                            // TODO: currently "group by (*, somethingelse)" is NOT
+                            // allowed. So we should never get here. But once it is
+                            // allowed, we will need to handle it. For now just log
+                            log.debug("Project * in group by not being optimized in key-value transfer");
+                        }
+                    } else {
+                        mProjectedColsMap.put(project.getColumn(), keyIndex);
+                    }
+                    if(project.getResultType() == DataType.TUPLE)
+                        isKeyTuple = true;
+                }
+                keyIndex++;
+            }
         }
+        if(keyIndex > 1) {
+            // make a note that the "key" is a tuple
+            // this is required by POPackage to pick things
+            // off the "key" correctly to stitch together the
+            // "value"
+            isKeyTuple  = true;
+        }
+        mProjectedColsMapSize = mProjectedColsMap.size();
     }
 
     /**
@@ -301,5 +431,74 @@ public class POLocalRearrange extends PhysicalOperator {
         this.isCross = isCross;
     }
 
+    /**
+     * @return the mProjectedColsMap
+     */
+    public Map<Integer, Integer> getProjectedColsMap() {
+        return mProjectedColsMap;
+    }
+
+    /**
+     * @return the mProjectStar
+     */
+    public boolean isProjectStar() {
+        return mProjectStar;
+    }
+
+    /**
+     * @return the keyTuple
+     */
+    public boolean isKeyTuple() {
+        return isKeyTuple;
+    }
+
+    /**
+     * @param plans2
+     * @throws ExecException 
+     */
+    public void setPlansFromCombiner(List<PhysicalPlan> plans) throws ExecException {
+        this.plans = plans;
+        leafOps.clear();
+        mProjectedColsMap.clear();
+        int keyIndex = 0; // zero based index for fields in the key
+        for (PhysicalPlan plan : plans) {
+            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0); 
+            leafOps.add(leaf);
+            
+            // don't optimize CROSS
+            if(!isCross) {
+                // Look for the leaf Ops which are POProject operators - get the 
+                // the columns that these POProject Operators are projecting.
+                // Keep track of the columns which are being projected and
+                // the position in the "Key" where these will be projected to.
+                // Then we can use this information to strip off these columns
+                // from the "Value" and in POPostCombinerPackage stitch the right "Value"
+                // tuple back by getting these columns from the "key". The goal
+                // is reduce the amount of the data sent to Hadoop in the map.
+                if(leaf instanceof POProject) {
+                    POProject project = (POProject) leaf;
+                    if(project.isStar()) {
+                        log.error("Unexpected data during optimization");
+                        throw new ExecException("Unexpected data during optimization (Local rearrange" +
+                                " in combiner has a project *" );
+                    } else {
+                        mProjectedColsMap.put(project.getColumn(), keyIndex);
+                    }
+                    if(project.getResultType() == DataType.TUPLE)
+                        isKeyTuple = true;
+                }
+                keyIndex++;
+            }
+        }
+        if(keyIndex > 1) {
+            // make a note that the "key" is a tuple
+            // this is required by POPackage to pick things
+            // off the "key" correctly to stitch together the
+            // "value"
+            isKeyTuple  = true;
+        }
+        mProjectedColsMapSize  = mProjectedColsMap.size();
+        
+    }
 
 }

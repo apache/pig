@@ -17,8 +17,10 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 /**
  * The package operator that packages
  * the globally rearranged tuples into
@@ -64,6 +67,11 @@ public class POPackage extends PhysicalOperator {
     //The key being worked on
     Object key;
     
+    // marker to indicate if key is a tuple
+    protected boolean isKeyTuple = false;
+    // key as a Tuple object (if the key is a tuple)
+    protected Tuple keyAsTuple;
+    
     //key's type
     byte keyType;
 
@@ -75,6 +83,14 @@ public class POPackage extends PhysicalOperator {
     //Denotes if inner is specified
     //on a particular input
     boolean[] inner;
+    
+    // A mapping of input index to key information got from LORearrange
+    // for that index. The Key information is a pair of boolean, Map.
+    // The boolean indicates whether there is a lone project(*) in the 
+    // cogroup by. If not, the Map has a mapping of column numbers in the 
+    // "value" to column numbers in the "key" which contain the fields in
+    // the "value"
+    protected Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
     
     private final Log log = LogFactory.getLog(getClass());
 
@@ -96,6 +112,7 @@ public class POPackage extends PhysicalOperator {
     public POPackage(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp, inp);
         numInputs = -1;
+        keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
     }
 
     @Override
@@ -127,6 +144,11 @@ public class POPackage extends PhysicalOperator {
     public void attachInput(PigNullableWritable k, Iterator<NullableTuple> inp) {
         tupIter = inp;
         key = k.getValueAsPigType();
+        if(isKeyTuple) {
+            // key is a tuple, cache the key as a
+            // tuple for use in the getNext()
+            keyAsTuple = (Tuple)key;
+        }
     }
 
     /**
@@ -183,8 +205,64 @@ public class POPackage extends PhysicalOperator {
                 copy.set(i, val.get(i));
             }
             */
-            Tuple copy = mTupleFactory.newTuple(val.getAll());
-            if (numInputs > 0) dbs[ntup.getIndex()].add(copy);
+            
+            Tuple copy = null;
+            // The "value (val)" that we just got may not
+            // be the complete "value". It may have some portions
+            // in the "key" (look in POLocalRearrange for more comments)
+            // If this is the case we need to stitch
+            // the "value" together.
+            int index = ntup.getIndex();
+            Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
+                keyInfo.get(index);
+            boolean isProjectStar = lrKeyInfo.first;
+            Map<Integer, Integer> keyLookup = lrKeyInfo.second;
+            int keyLookupSize = keyLookup.size();
+
+            if( keyLookupSize > 0) {
+            
+                // we have some fields of the "value" in the
+                // "key".
+                copy = mTupleFactory.newTuple();
+                int finalValueSize = keyLookupSize + val.size();
+                int valIndex = 0; // an index for accessing elements from 
+                                  // the value (val) that we have currently
+                for(int i = 0; i < finalValueSize; i++) {
+                    Integer keyIndex = keyLookup.get(i);
+                    if(keyIndex == null) {
+                        // the field for this index is not in the
+                        // key - so just take it from the "value"
+                        // we were handed
+                        copy.append(val.get(valIndex));
+                        valIndex++;
+                    } else {
+                        // the field for this index is in the key
+                        if(isKeyTuple) {
+                            // the key is a tuple, extract the
+                            // field out of the tuple
+                            copy.append(keyAsTuple.get(keyIndex));
+                        } else {
+                            copy.append(key);
+                        }
+                    }
+                }
+                
+            } else if (isProjectStar) {
+                
+                log.info("In project star, keyAsTuple:" + keyAsTuple);
+                // the whole "value" is present in the "key"
+                copy = mTupleFactory.newTuple(keyAsTuple.getAll());
+                
+            } else {
+                
+                // there is no field of the "value" in the
+                // "key" - so just make a copy of what we got
+                // as the "value"
+                copy = mTupleFactory.newTuple(val.getAll());
+                
+            }
+            
+            if (numInputs > 0) dbs[index].add(copy);
             if(reporter!=null) reporter.progress();
         }
         
@@ -239,6 +317,27 @@ public class POPackage extends PhysicalOperator {
             clone.inner[i] = inner[i];
         }
         return clone;
+    }
+
+    /**
+     * @param keyInfo the keyInfo to set
+     */
+    public void setKeyInfo(Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo) {
+        this.keyInfo = keyInfo;
+    }
+
+    /**
+     * @param keyTuple the keyTuple to set
+     */
+    public void setKeyTuple(boolean keyTuple) {
+        this.isKeyTuple = keyTuple;
+    }
+
+    /**
+     * @return the keyInfo
+     */
+    public Map<Integer, Pair<Boolean, Map<Integer, Integer>>> getKeyInfo() {
+        return keyInfo;
     }
 
 

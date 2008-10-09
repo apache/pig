@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -393,7 +394,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         func.setAlgebraicFunction(type);
     }
 
-    private void fixUpRearrange(POLocalRearrange rearrange) {
+    private void fixUpRearrange(POLocalRearrange rearrange) throws ExecException {
         // Set the projection to be the key
         PhysicalPlan newPlan = new PhysicalPlan();
         String scope = rearrange.getOperatorKey().scope;
@@ -404,8 +405,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         newPlan.add(proj);
         List<PhysicalPlan> plans = new ArrayList<PhysicalPlan>(1);
         plans.add(newPlan);
-        rearrange.setPlans(plans);
-        rearrange.setIndex(mKeyField);
+        rearrange.setPlansFromCombiner(plans);
     }
 
     private class AlgebraicPlanChecker extends PhyPlanVisitor {

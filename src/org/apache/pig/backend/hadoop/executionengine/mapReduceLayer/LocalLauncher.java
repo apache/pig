@@ -21,6 +21,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -118,7 +119,11 @@ public class LocalLauncher extends Launcher{
             CombinerOptimizer co = new CombinerOptimizer(plan);
             co.visit();
         }
-
+        
+        // optimize key - value handling in package
+        POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);
+        pkgAnnotator.visit();
+        
         // check whether stream operator is present
         MRStreamHandler checker = new MRStreamHandler(plan);
         checker.visit();

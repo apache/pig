@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,6 +37,7 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 /**
  * The package operator that packages the globally rearranged tuples into
  * output format after the combiner stage.  It differs from POPackage in that
@@ -98,15 +100,39 @@ public class POPostCombinerPackage extends POPackage {
         while (tupIter.hasNext()) {
             NullableTuple ntup = tupIter.next();
             Tuple tup = (Tuple)ntup.getValueAsPigType();
-            for (int i = 0; i < tup.size(); i++) {
-                if (mBags[i]) ((DataBag)fields[i]).add((Tuple)tup.get(i));
-                else fields[i] = tup.get(i);
+            // TODO: IMPORTANT ASSUMPTION: Currently we only combine in the
+            // group case and not in cogroups. So there should only
+            // be one LocalRearrange from which we get the keyInfo for
+            // which field in the value is in the key. This LocalRearrange
+            // has an index of -1. When we do support combiner in Cogroups
+            // THIS WILL NEED TO BE REVISITED.
+            Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
+                keyInfo.get(0); // assumption: only group are "combinable", hence index 0
+            Map<Integer, Integer> keyLookup = lrKeyInfo.second;
+            int tupIndex = 0; // an index for accessing elements from 
+                              // the value (tup) that we have currently
+            for(int i = 0; i < mBags.length; i++) {
+                Integer keyIndex = keyLookup.get(i);
+                if(keyIndex == null) {
+                    // the field for this index is not the
+                    // key - so just take it from the "value"
+                    // we were handed - Currently THIS HAS TO BE A BAG
+                    // In future if this changes, THIS WILL NEED TO BE
+                    // REVISITED.
+                    ((DataBag)fields[i]).add((Tuple)tup.get(tupIndex));
+                    tupIndex++;
+                } else {
+                    // the field for this index is in the key
+                    fields[i] = key;
+                }
             }
         }
         
-        //Construct the output tuple by appending
-        //the key and all the above constructed bags
-        //and return it.
+        // The successor of the POPostCombinerPackage as of 
+        // now SHOULD be a POForeach which has been adjusted
+        // to look for the key in the right place - so we will
+        // NOT be adding the key in the result here but mere 
+        // putting all bags into a result tuple and returning it. 
         Tuple res;
         res = mTupleFactory.newTuple(mBags.length);
         for (int i = 0; i < mBags.length; i++) res.set(i, fields[i]);

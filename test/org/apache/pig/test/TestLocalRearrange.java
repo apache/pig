@@ -84,15 +84,29 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         int size=0;
         for(Result res=lr.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNext(t)){
             Tuple t = (Tuple)res.result;
+            String key = (String)t.get(1);
             Tuple val = (Tuple)t.get(2);
+            // The input data has 2 columns of which the first
+            // is the key
+            // With the optimized LocalRearrange, the part
+            // of the "value" present in the "key" is 
+            // excluded from the "value". So to reconstruct
+            // the true "value", create a tuple with "key" in
+            // first position and the "value" (val) we currently
+            // have in the second position
+            assertEquals(1, val.size());
+            
+            Tuple actualVal = new DefaultTuple();
+            actualVal.append(key);
+            actualVal.append(val.get(0));
             //Check if the index is same as input index
             assertEquals((byte)0, (byte)(Byte)t.get(0));
             
             //Check if the input bag contains the value tuple
-            assertTrue(TestHelper.bagContains(db, val));
+            assertTrue(TestHelper.bagContains(db, actualVal));
             
             //Check if the input key and the output key are same
-            String inpKey = (String)val.get(0);
+            String inpKey = (String)actualVal.get(0);
             assertEquals(0, inpKey.compareTo((String)t.get(1)));
             ++size;
         }
@@ -127,10 +141,23 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         int size=0;
         for(Result res=lr.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNext(t)){
             Tuple t = (Tuple)res.result;
+            Tuple key = (Tuple)t.get(1);
             Tuple val = (Tuple)t.get(2);
+            
+            // The input data has 2 columns of which both
+            // are the key.
+            // With the optimized LocalRearrange, the part
+            // of the "value" present in the "key" is 
+            // excluded from the "value". So in this case, 
+            // the "value" coming out of the LocalRearrange
+            // would be an empty tuple
+            assertEquals(0, val.size());
+            
             //Check if the index is same as input index
             assertEquals((byte)0, (byte)(Byte)t.get(0));
             
+            // reconstruct value from tuple
+            val = key;
             //Check if the input baf contains the value tuple
             assertTrue(TestHelper.bagContains(db, val));
             
