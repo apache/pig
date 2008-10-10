@@ -77,8 +77,16 @@ public class LOSort extends LogicalOperator {
         return mSortColPlans;
     }
 
+    public void setSortColPlans(List<LogicalPlan> sortPlans) {
+        mSortColPlans = sortPlans;
+    }
+
     public List<Boolean> getAscendingCols() {
         return mAscCols;
+    }
+
+    public void setAscendingCols(List<Boolean> ascCols) {
+        mAscCols = ascCols;
     }
 
     public FuncSpec getUserFunc() {

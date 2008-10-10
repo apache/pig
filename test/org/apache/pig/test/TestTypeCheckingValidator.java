@@ -3009,6 +3009,72 @@ public class TestTypeCheckingValidator extends TestCase {
     }
 
     @Test
+    public void testGroupLineageStar() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (name, age, gpa);") ;
+        planTester.buildPlan("b = group a by *;") ;
+        planTester.buildPlan("c = foreach b generate flatten(group);") ;
+        LogicalPlan plan = planTester.buildPlan("d = foreach c generate $0 + 1;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+    }
+
+    @Test
+    public void testGroupLineageStarNoSchema() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
+        planTester.buildPlan("b = group a by *;") ;
+        planTester.buildPlan("c = foreach b generate flatten(group);") ;
+        LogicalPlan plan = planTester.buildPlan("d = foreach c generate $0 + 1;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+    }
+
+    @Test
     public void testCogroupLineage() throws Throwable {
         planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
         planTester.buildPlan("b = load 'a' using PigStorage() as (field4, field5, field6: chararray );") ;
@@ -3087,6 +3153,385 @@ public class TestTypeCheckingValidator extends TestCase {
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
 
+    }
+
+    @Test
+    public void testCogroupStarLineage() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() as (field4, field5, field6: chararray );") ;
+        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
+        planTester.buildPlan("d = foreach c generate group, flatten($1), flatten($2);") ;
+        LogicalPlan plan = planTester.buildPlan("e = foreach d generate group, field1 + 1, field4 + 2.0;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupStarLineageFail() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() as (field4, field5, field6: chararray );") ;
+        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
+        planTester.buildPlan("d = foreach c generate group, flatten($1), flatten($2);") ;
+        LogicalPlan plan = planTester.buildPlan("e = foreach d generate group + 1, field1 + 1, field4 + 2.0;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+            fail("Exception expected") ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (!collector.hasError()) {
+            throw new AssertionError("Expect error") ;
+        }
+
+    }
+
+    @Test
+    public void testCogroupStarLineage1() throws Throwable {
+        planTester.buildPlan("a = load 'a' using PigStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() as (field4, field5, field6: chararray );") ;
+        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
+        planTester.buildPlan("d = foreach c generate flatten(group), flatten($1), flatten($2);") ;
+        LogicalPlan plan = planTester.buildPlan("e = foreach d generate $0 + 1, a::field1 + 1, field4 + 2.0;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(1);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupStarLineageNoSchema() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() ;") ;
+        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
+        planTester.buildPlan("d = foreach c generate group, flatten($1), flatten($2);") ;
+        LogicalPlan plan = planTester.buildPlan("e = foreach d generate group, $1 + 1, $2 + 2.0;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupStarLineageNoSchemaFail() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() ;") ;
+        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
+        planTester.buildPlan("d = foreach c generate group, flatten($1), flatten($2);") ;
+        LogicalPlan plan = planTester.buildPlan("e = foreach d generate group + 1, $1 + 1, $2 + 2.0;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+            fail("Exception expected") ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (!collector.hasError()) {
+            throw new AssertionError("Expect error") ;
+        }
+
+    }
+
+    @Test
+    public void testCogroupMultiColumnProjectLineage() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() as (field4, field5, field6: chararray );") ;
+        planTester.buildPlan("c = cogroup a by field1, b by field4 ;") ;
+        planTester.buildPlan("d = foreach c generate group, a.(field1, field2), b.(field4);") ;
+        planTester.buildPlan("e = foreach d generate group, flatten($1), flatten($2);") ;
+        LogicalPlan plan = planTester.buildPlan("f = foreach e generate group, field1 + 1, field4 + 2.0;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupProjectStarLineage() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() as (field4, field5, field6: chararray );") ;
+        planTester.buildPlan("c = cogroup a by field1, b by field4 ;") ;
+        planTester.buildPlan("d = foreach c generate * ;") ;
+        planTester.buildPlan("f = foreach d generate group, flatten(a), flatten(b)  ;") ;
+        LogicalPlan plan = planTester.buildPlan("g = foreach f generate group, field1 + 1, field4 + 2.0  ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupProjectStarLineageNoSchema() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() ;") ;
+        planTester.buildPlan("c = cogroup a by $0, b by $0 ;") ;
+        planTester.buildPlan("d = foreach c generate * ;") ;
+        planTester.buildPlan("f = foreach d generate group, flatten(a), flatten(b)  ;") ;
+        LogicalPlan plan = planTester.buildPlan("g = foreach f generate group, $1 + 1, $2 + 2.0  ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+    }
+
+    @Test
+    public void testCogroupProjectStarLineageMixSchema() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'b' using PigStorage() ;") ;
+        planTester.buildPlan("c = cogroup a by field1, b by $0 ;") ;
+        planTester.buildPlan("d = foreach c generate * ;") ;
+        planTester.buildPlan("f = foreach d generate group, flatten(a), flatten(b)  ;") ;
+        LogicalPlan plan = planTester.buildPlan("g = foreach f generate group, field1 + 1, $4 + 2.0  ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        }
+        catch (PlanValidationException pve) {
+            //not good
+        }
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
     }
 
     @Test
@@ -4133,6 +4578,88 @@ public class TestTypeCheckingValidator extends TestCase {
         planTester.buildPlan("c = cogroup a by $0, b by $0 ;") ;
         planTester.buildPlan("d = foreach c generate group, flatten(a), flatten(b)  ;") ;
         planTester.buildPlan("e = order d by $2 desc;") ;
+        LogicalPlan plan = planTester.buildPlan("f = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupSortStarLineage() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = load 'a' using PigStorage() as (field4, field5, field6: chararray );") ;
+        planTester.buildPlan("c = cogroup a by field1, b by field4 ;") ;
+        planTester.buildPlan("d = foreach c generate group, flatten(a), flatten(b)  ;") ;
+        planTester.buildPlan("e = order d by * desc;") ;
+        LogicalPlan plan = planTester.buildPlan("f = foreach e generate group, field1 + 1, field4 + 2.0  ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+        foreachPlan = foreach.getForEachPlans().get(2);
+        exOp = foreachPlan.getRoots().get(0);
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
+    @Test
+    public void testCogroupSortStarLineageNoSchema() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
+        planTester.buildPlan("b = load 'a' using PigStorage() ;") ;
+        planTester.buildPlan("c = cogroup a by $0, b by $0 ;") ;
+        planTester.buildPlan("d = foreach c generate group, flatten(a), flatten(b)  ;") ;
+        planTester.buildPlan("e = order d by * desc;") ;
         LogicalPlan plan = planTester.buildPlan("f = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
 
         // validate

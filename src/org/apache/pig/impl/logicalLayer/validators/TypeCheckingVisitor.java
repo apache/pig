@@ -1963,8 +1963,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         } catch (FrontendException fe) {
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
-            vse.initCause(fe) ;
+            VisitorException vse = new VisitorException(msg, fe) ;
             throw vse ;
         }
         MultiMap<LogicalOperator, LogicalPlan> groupByPlans
@@ -2034,7 +2033,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                         byte innerType = innerPlan.getSingleLeafPlanOutputType() ;
                         byte expectedType = DataType.BYTEARRAY ;
 
-                        if (!DataType.isAtomic(innerType)) {
+                        if (!DataType.isAtomic(innerType) && (DataType.TUPLE != innerType)) {
                             String msg = "Sorry, group by complex types"
                                        + " will be supported soon" ;
                             msgCollector.collect(msg, MessageType.Error) ;
@@ -2065,8 +2064,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         catch (FrontendException fe) {
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
-            vse.initCause(fe) ;
+            VisitorException vse = new VisitorException(msg, fe) ;
             throw vse ;
         }
 
@@ -2633,9 +2631,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     || (op instanceof LOSplitOutput)
                     || (op instanceof LOLimit)) {
                 LogicalPlan lp = op.getPlan();
-                LoadFunc lf = getLoadFunc(lp.getPredecessors(op).get(0), parentCanonicalName);
-                return lf;
-                //return getLoadFunc(lp.getPredecessors(op).get(0), parentCanonicalName);        
+                return getLoadFunc(lp.getPredecessors(op).get(0), parentCanonicalName);        
             }
             
             Schema s = op.getSchema();
@@ -2710,5 +2706,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
     }
+
 
 }

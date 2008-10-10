@@ -205,7 +205,7 @@ public class LOProject extends ExpressionOperator {
                             //TODO
                             //the type of the operator will be unknown. when type checking is in place
                             //add the type of the operator as a parameter to the fieldschema creation
-                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
+                            mFieldSchema = new Schema.FieldSchema(null, expressionOperator.getSchema(), DataType.TUPLE);
                             mFieldSchema.setParent(null, expressionOperator);
                             //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                         }
@@ -218,9 +218,6 @@ public class LOProject extends ExpressionOperator {
                     mIsFieldSchemaComputed = false;
                     throw fee;
                 }
-                log.debug("mIsStar is true, returning schema of expressionOperator");
-                log.debug("Exiting getSchema()");
-                return mFieldSchema;
             } else {
                 //its n list of columns to project including a single column
                 List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(mProjection.size());
@@ -323,8 +320,8 @@ public class LOProject extends ExpressionOperator {
                 mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), new Schema(fss));
                 mFieldSchema.setParent(null, expressionOperator);
                 mIsFieldSchemaComputed = true;
-                log.debug("mIsStar is false, returning computed field schema of expressionOperator");
             }
+
         }
 
         if(null != mFieldSchema) {
@@ -339,7 +336,9 @@ public class LOProject extends ExpressionOperator {
                 mFieldSchema = new Schema.FieldSchema(getAlias(), pjSchema, DataType.TUPLE);
                 mFieldSchema.setParent(null, expressionOperator);
             } else {
-                mFieldSchema.type = DataType.TUPLE;
+                if(null != mFieldSchema) {
+                    mFieldSchema.type = DataType.TUPLE;
+                }
             }
             setOverloaded(true);
             setType(DataType.TUPLE);
@@ -351,7 +350,9 @@ public class LOProject extends ExpressionOperator {
                     mFieldSchema = new Schema.FieldSchema(getAlias(), pjSchema, DataType.BAG);
                     mFieldSchema.setParent(null, expressionOperator);
                 } else {
-                    mFieldSchema.type = DataType.BAG;
+                    if(null != mFieldSchema) {
+                        mFieldSchema.type = DataType.BAG;
+                    }
                 }
                 setType(DataType.BAG);
             }

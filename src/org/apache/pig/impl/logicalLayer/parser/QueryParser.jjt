@@ -55,6 +55,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.impl.logicalLayer.ProjectStarTranslator;
 
 
 public class QueryParser {
@@ -764,7 +765,13 @@ LogicalPlan Parse() :
 	{ 
 		if(null != root) {
             log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
+
+            //Translate all the project(*) leaves in the plan to a sequence of projections
+            ProjectStarTranslator translate = new ProjectStarTranslator(lp);
+            translate.visit();
+
             addLogicalPlan(root, lp);
+
             try {
 			    log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
             } catch(FrontendException fee) {
@@ -2479,7 +2486,9 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 	(
 		{ 
 			Schema.FieldSchema fs = item.getFieldSchema(); 
-			subSchema = fs.schema; 
+            if(null != fs) {
+			    subSchema = fs.schema; 
+            }
 			log.debug("subSchema: " + subSchema);
 		}
 		( 

@@ -83,6 +83,10 @@ public class LOCogroup extends LogicalOperator {
         return mIsInner;
     }
 
+    public void setInner(boolean[] inner) {
+        mIsInner = inner;
+    }
+
     @Override
     public String name() {
         return "CoGroup " + mKey.scope + "-" + mKey.id;
@@ -192,7 +196,7 @@ public class LOCogroup extends LogicalOperator {
                                         setFieldSchemaParent(groupByFs, positionOperators, i);
                                         break;
                                     } else {
-                                        if(j < aliases.length) {
+                                        if((j + 1) < aliases.length) {
                                             continue;
                                         } else {
                                             //we have seen this alias before
@@ -205,6 +209,8 @@ public class LOCogroup extends LogicalOperator {
                                                     Schema.FieldSchema opFs = op.getFieldSchema();
                                                     if(null != opFs) {
                                                         groupByFs.setParent(opFs.canonicalName, eOp);
+                                                    } else {
+                                                        groupByFs.setParent(null, eOp);
                                                     }
                                                 }
                                             } else {
@@ -231,8 +237,26 @@ public class LOCogroup extends LogicalOperator {
                 } else {
                     //We do not have any alias for this position in the group by columns
                     //We have positions $1, $2, etc.
-                    groupByFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-                    groupByFss.add(groupByFs);
+                    Collection<ExpressionOperator> cEops = positionOperators.get(i);
+                    if(null != cEops) {
+                        ExpressionOperator eOp = (ExpressionOperator) (cEops.toArray())[0];
+                        if(null != eOp) {
+                            Schema.FieldSchema fs = eOp.getFieldSchema();
+                            if(null != fs) {
+                                groupByFs = new Schema.FieldSchema(null, fs.schema, fs.type);
+                                groupByFss.add(groupByFs);
+                            } else {
+                                groupByFs = new Schema.FieldSchema(null, null, DataType.BYTEARRAY);
+                                groupByFss.add(groupByFs);
+                            }
+                        } else {
+                            groupByFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                            groupByFss.add(groupByFs);
+                        }
+                    } else {
+                        groupByFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                        groupByFss.add(groupByFs);
+                    }
                     setFieldSchemaParent(groupByFs, positionOperators, i);
                 }
             }            
@@ -266,7 +290,11 @@ public class LOCogroup extends LogicalOperator {
                     }
                 }
                 
-                fss.add(new Schema.FieldSchema("group", mergedGroupSchema));
+                Schema.FieldSchema groupByFs = new Schema.FieldSchema("group", mergedGroupSchema);
+                fss.add(groupByFs);
+                for(int i = 0; i < arity; ++i) {
+                    setFieldSchemaParent(groupByFs, positionOperators, i);
+                }
             }
             for (LogicalOperator op : inputs) {
                 try {
@@ -341,6 +369,7 @@ public class LOCogroup extends LogicalOperator {
             throw new FrontendException("getAtomicGroupByType is used only when"
                                      + " dealing with atomic group col") ;
         }
+
         byte groupType = DataType.BYTEARRAY ;
         // merge all the inner plan outputs so we know what type
         // our group column should be
@@ -388,13 +417,32 @@ public class LOCogroup extends LogicalOperator {
             List<LogicalPlan> innerPlans
                         = new ArrayList<LogicalPlan>(getGroupByPlans().get(input)) ;
 
+            boolean seenProjectStar = false;
             for(int j=0;j < innerPlans.size(); j++) {
                 byte innerType = innerPlans.get(j).getSingleLeafPlanOutputType() ;
                 ExpressionOperator eOp = (ExpressionOperator)innerPlans.get(j).getSingleLeafPlanOutputOp();
+
+                if(eOp instanceof LOProject) {
+                    if(((LOProject)eOp).isStar()) {
+                        seenProjectStar = true;
+                    }
+                }
+                        
                 Schema.FieldSchema groupFs = fsList.get(j);
                 groupFs.type = DataType.mergeType(groupFs.type, innerType) ;
-                groupFs.setParent(eOp.getFieldSchema().canonicalName, eOp);
+                Schema.FieldSchema fs = eOp.getFieldSchema();
+                if(null != fs) {
+                    groupFs.setParent(eOp.getFieldSchema().canonicalName, eOp);
+                } else {
+                    groupFs.setParent(null, eOp);
+                }
             }
+
+            if(seenProjectStar) {
+                throw new FrontendException("Grouping attributes can either be star (*) or a list of expressions, but not both.");
+                
+            }
+
         }
 
         return new Schema(fsList) ;
@@ -405,6 +453,8 @@ public class LOCogroup extends LogicalOperator {
             Schema.FieldSchema opFs = op.getFieldSchema();
             if(null != opFs) {
                 fs.setParent(opFs.canonicalName, op);
+            } else {
+                fs.setParent(null, op);
             }
         }
     }
@@ -415,6 +465,8 @@ public class LOCogroup extends LogicalOperator {
             for(Schema.FieldSchema inputFs: s.getFields()) {
                 if(null != inputFs) {
                     fs.setParent(inputFs.canonicalName, op);
+                } else {
+                    fs.setParent(null, op);
                 }
             }
         } else {

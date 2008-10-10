@@ -44,7 +44,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.ExecType;
-//import org.apache.pig.impl.builtin.ShellBagEvalFunc;
 import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -60,6 +59,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
+import org.apache.pig.impl.util.MultiMap;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -290,6 +290,16 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
     
     @Test
+    public void testQuery22Fail() {
+        buildPlan("A = load 'a';");
+        try {
+            buildPlan("B = group A by (*, $0);");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Grouping attributes can either be star (*"));
+        }
+    }
+    
+    @Test
     public void testQuery23() {
         buildPlan("A = load 'a';");
         buildPlan("B = load 'b';");
@@ -309,6 +319,17 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         "GENERATE A, FLATTEN(B.$0);" +
         "};";
         buildPlan(query);
+    }
+
+    @Test
+    public void testQuery23Fail() {
+        buildPlan("A = load 'a';");
+        buildPlan("B = load 'b';");
+        try {
+            buildPlan("C = group A by (*, $0), B by ($0, $1);");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Grouping attributes can either be star (*"));
+        }
     }
 
     @Test
@@ -1525,12 +1546,12 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         // by unambiguous free form alias, fully qualified alias
         // and partially qualified unambiguous alias
         String query = "a = load 'st10k' as (name, age, gpa);" +
-"b = group a by name;" +
-"c = foreach b generate flatten(a);" +
-"d = filter c by name != 'fred';" +
-"e = group d by name;" +
-"f = foreach e generate flatten(d);" +
-"g = foreach f generate name, d::a::name, a::name;";
+            "b = group a by name;" +
+            "c = foreach b generate flatten(a);" +
+            "d = filter c by name != 'fred';" +
+            "e = group d by name;" +
+            "f = foreach e generate flatten(d);" +
+            "g = foreach f generate name, d::a::name, a::name;";
         buildPlan(query);
     }
     
@@ -1539,12 +1560,145 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         // test that the alias "group" can be used
         // after a flatten(group)
         String query = "a = load 'st10k' as (name, age, gpa);" +
-"b = group a by name;" +
-"c = foreach b generate flatten(group), COUNT(a) as cnt;" +
-"d = foreach c generate group;";
+            "b = group a by name;" +
+            "c = foreach b generate flatten(group), COUNT(a) as cnt;" +
+            "d = foreach c generate group;";
         buildPlan(query);
     }
     
+    @Test
+    public void testQuery106()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a generate *;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray"), false, true));
+
+    }
+
+    @Test
+    public void testQuery107()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one';");
+
+        lp = buildPlan("b = foreach a generate *;");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        assertTrue(checkPlanForProjectStar(foreachPlan));
+
+    }
+
+    @Test
+    public void testQuery108()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOCogroup cogroup;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = group a by *;");
+        cogroup = (LOCogroup) lp.getLeaves().get(0);
+        Schema groupSchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema bagASchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema.FieldSchema groupFs = new Schema.FieldSchema("group", groupSchema, DataType.TUPLE);
+        Schema.FieldSchema bagAFs = new Schema.FieldSchema("a", bagASchema, DataType.BAG);
+        Schema expectedSchema = new Schema(groupFs);
+        expectedSchema.add(bagAFs);
+        assertTrue(Schema.equals(cogroup.getSchema(), expectedSchema, false, true));
+
+    }
+
+    @Test
+    public void testQuery109()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOCogroup cogroup;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+        buildPlan("b = load 'two' as (first_name, enrol_age, high_school_gpa);");
+
+        lp = buildPlan("c = group a by *, b by *;");
+        cogroup = (LOCogroup) lp.getLeaves().get(0);
+        Schema groupSchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema bagASchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema bagBSchema = getSchemaFromString("first_name: bytearray, enrol_age: bytearray, high_school_gpa: bytearray");
+        Schema.FieldSchema groupFs = new Schema.FieldSchema("group", groupSchema, DataType.TUPLE);
+        Schema.FieldSchema bagAFs = new Schema.FieldSchema("a", bagASchema, DataType.BAG);
+        Schema.FieldSchema bagBFs = new Schema.FieldSchema("b", bagBSchema, DataType.BAG);
+        Schema expectedSchema = new Schema(groupFs);
+        expectedSchema.add(bagAFs);
+        expectedSchema.add(bagBFs);
+        assertTrue(Schema.equals(cogroup.getSchema(), expectedSchema, false, true));
+
+    }
+
+    @Test
+    public void testQuery110()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOLoad load;
+        LOCogroup cogroup;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+        lp = buildPlan("b = load 'two';");
+
+        load = (LOLoad) lp.getLeaves().get(0);
+
+        lp = buildPlan("c = cogroup a by $0, b by *;");
+        cogroup = (LOCogroup) lp.getLeaves().get(0);
+
+        MultiMap<LogicalOperator, LogicalPlan> mapGByPlans = cogroup.getGroupByPlans();
+        LogicalPlan cogroupPlan = (LogicalPlan)(mapGByPlans.get(load).toArray())[0];
+        assertTrue(checkPlanForProjectStar(cogroupPlan) == true);
+
+    }
+
+    @Test
+    public void testQuery111()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOSort sort;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = order a by *;");
+        sort = (LOSort) lp.getLeaves().get(0);
+
+        for(LogicalPlan sortPlan: sort.getSortColPlans()) {
+            assertTrue(checkPlanForProjectStar(sortPlan) == false);
+        }
+
+    }
+
+    @Test
+    public void testQuery112()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+        LOSort sort;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        buildPlan("b = group a by *;");
+        lp = buildPlan("c = foreach b {a1 = order a by *; generate a1;};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        for(LogicalPlan foreachPlan: foreach.getForEachPlans()) {
+            printPlan(foreachPlan);
+            assertTrue(checkPlanForProjectStar(foreachPlan) == true);
+        }
+
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        sort = (LOSort)foreachPlan.getPredecessors(foreachPlan.getLeaves().get(0)).get(0);
+
+        for(LogicalPlan sortPlan: sort.getSortColPlans()) {
+            assertTrue(checkPlanForProjectStar(sortPlan) == true);
+        }
+
+    }
+
     private Schema getSchemaFromString(String schemaString) throws ParseException {
         return getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }
@@ -1568,6 +1722,20 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         System.err.println();
     }
     
+    private boolean checkPlanForProjectStar(LogicalPlan lp) {
+        List<LogicalOperator> leaves = lp.getLeaves();
+
+        for(LogicalOperator op: leaves) {
+            if(op instanceof LOProject) {
+                if(((LOProject) op).isStar()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     // Helper Functions
     
     // Helper Functions
@@ -1598,24 +1766,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             
             //System.err.println("Query: " + query);
             
-            //Just the top level roots and their children
-            //Need a recursive one to travel down the tree
-            /*
-            for(LogicalOperator op: lp.getRoots()) {
-                System.err.println("Logical Plan Root: " + op.getClass().getName() + " object " + op);    
-
-                List<LogicalOperator> listOp = lp.getSuccessors(op);
-                
-                if(null != listOp) {
-                    Iterator<LogicalOperator> iter = listOp.iterator();
-                    while(iter.hasNext()) {
-                        LogicalOperator lop = iter.next();
-                        System.err.println("Successor: " + lop.getClass().getName() + " object " + lop);
-                    }
-                }
-            }
-            */
-
             assertNotNull(lp != null);
             return lp;
         } catch (IOException e) {

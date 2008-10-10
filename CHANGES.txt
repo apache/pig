@@ -278,3 +278,5 @@ Trunk (unreleased changes)
 
     PIG-465: performance improvement - removing keys from the value (pradeepk
     via olgan)
+    
+    PIG-489: (*) processing (sms via olgan)

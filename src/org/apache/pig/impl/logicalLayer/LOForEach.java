@@ -86,8 +86,24 @@ public class LOForEach extends LogicalOperator {
         return mForEachPlans;
     }
 
+    public void setForEachPlans(ArrayList<LogicalPlan> foreachPlans) {
+        mForEachPlans = foreachPlans;
+    }
+
     public List<Boolean> getFlatten() {
         return mFlatten;
+    }
+
+    public void setFlatten(ArrayList<Boolean> flattenList) {
+        mFlatten = flattenList;
+    }
+
+    public List<Schema> getUserDefinedSchema() {
+        return mUserDefinedSchema;
+    }
+
+    public void setUserDefinedSchema(ArrayList<Schema> userDefinedSchema) {
+        mUserDefinedSchema = userDefinedSchema;
     }
 
     @Override
@@ -148,6 +164,24 @@ public class LOForEach extends LogicalOperator {
                 log.debug("Flatten: " + mFlatten.get(planCtr));
                 Schema.FieldSchema planFs;
 
+                if(op instanceof LOProject) {
+                    //the check for the type is required for statements like
+                    //foreach cogroup {
+                    // a1 = order a by *;
+                    // generate a1;
+                    //}
+                    //In the above script, the generate a1, will translate to 
+                    //project(a1) -> project(*) and will not be translated to a sequence of projects
+                    //As a result the project(*) will remain but the return type is a bag
+                    //project*) with a data type set to tuple indicataes a project(*) from an input
+                    //that has no schema
+                    if( (((LOProject)op).isStar() ) && (((LOProject)op).getType() == DataType.TUPLE) ) {
+                        mSchema = null;
+                        mIsSchemaComputed = true;
+                        return mSchema;
+                    }
+                }
+                
                 try {
 	                planFs = ((ExpressionOperator)op).getFieldSchema();
                     log.debug("planFs: " + planFs);
@@ -285,9 +319,9 @@ public class LOForEach extends LogicalOperator {
                                 throw new FrontendException(pe.getMessage());
                             }
                         } else {
-                            Schema.FieldSchema newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
-						    fss.add(newFs);
-                            newFs.setParent(null, op);
+                            mSchema = null;
+                            mIsSchemaComputed = true;
+                            return mSchema;
                         }
 					}
                 } catch (FrontendException fee) {

@@ -390,6 +390,7 @@ public class Schema implements Serializable, Cloneable {
                 sb.append(" cn: ");
                 sb.append(canonicalName);
             }
+
             return sb.toString();
         }
 
@@ -515,9 +516,9 @@ public class Schema implements Serializable, Cloneable {
         mAliases = new HashMap<String, FieldSchema>(fields.size());
         mFieldSchemas = new MultiMap<String, String>();
         for (FieldSchema fs : fields) {
-            if (fs.alias != null) {
-                mAliases.put(fs.alias, fs);
-                if(null != fs) {
+            if(null != fs) {
+                if (fs.alias != null) {
+                    mAliases.put(fs.alias, fs);
                     mFieldSchemas.put(fs.canonicalName, fs.alias);
                 }
             }
@@ -533,9 +534,9 @@ public class Schema implements Serializable, Cloneable {
         mFields.add(fieldSchema);
         mAliases = new HashMap<String, FieldSchema>(1);
         mFieldSchemas = new MultiMap<String, String>();
-        if (fieldSchema.alias != null) {
-            mAliases.put(fieldSchema.alias, fieldSchema);
-            if(null != fieldSchema) {
+        if(null != fieldSchema) {
+            if (fieldSchema.alias != null) {
+                mAliases.put(fieldSchema.alias, fieldSchema);
                 mFieldSchemas.put(fieldSchema.canonicalName, fieldSchema.alias);
             }
         }
@@ -554,13 +555,11 @@ public class Schema implements Serializable, Cloneable {
             try {
                 for (int i = 0; i < s.size(); ++i) {
                     FieldSchema fs = new FieldSchema(s.getField(i));
+                    mFields.add(fs);
                     if(null != fs) {
-                        mFields.add(fs);
                         if (fs.alias != null) {
                             mAliases.put(fs.alias, fs);
-                            if(null != fs) {
-                                mFieldSchemas.put(fs.canonicalName, fs.alias);
-                            }
+                            mFieldSchemas.put(fs.canonicalName, fs.alias);
                         }
                     }
                 }
@@ -850,6 +849,11 @@ public class Schema implements Serializable, Cloneable {
 
                 FieldSchema fs = schema.getField(i) ;
 
+                if(fs == null) {
+                    sb.append("null");
+                    continue;
+                }
+                
                 if (fs.alias != null) {
                     sb.append(fs.alias);
                     sb.append(": ");
@@ -870,8 +874,9 @@ public class Schema implements Serializable, Cloneable {
                     }
                 } else if (fs.type == DataType.MAP) {
                     sb.append(DataType.findTypeName(fs.type) + "[ ]") ;
+                } else {
+                    sb.append(DataType.findTypeName(fs.type)) ;
                 }
-                // TODO: Support Map
             }
         }
 
@@ -886,8 +891,11 @@ public class Schema implements Serializable, Cloneable {
 
     public void add(FieldSchema f) {
         mFields.add(f);
-        if (null != f.alias) {
-            mAliases.put(f.alias, f);
+        if(null != f) {
+            mFieldSchemas.put(f.canonicalName, f.alias);
+            if (null != f.alias) {
+                mAliases.put(f.alias, f);
+            }
         }
     }
 
