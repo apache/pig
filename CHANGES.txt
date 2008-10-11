@@ -280,3 +280,5 @@ Trunk (unreleased changes)
     via olgan)
     
     PIG-489: (*) processing (sms via olgan)
+
+    PIG-475: missing heartbeats (shravanmn via olgan)

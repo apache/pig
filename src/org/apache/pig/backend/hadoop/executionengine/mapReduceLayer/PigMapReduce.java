@@ -199,7 +199,8 @@ public class PigMapReduce {
             // which could additionally be called from close()
             this.outputCollector = oc;
             pigReporter.setRep(reporter);
-            
+            PhysicalOperator.setReporter(pigReporter);
+
             pack.attachInput(key, tupIter);
             
             try {
