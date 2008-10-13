@@ -367,3 +367,7 @@ Release 0.1.0 - Unreleased
 
     PIG-487: Added HostExtractor, a piggybank eval func that, given a URL,
 	determines the host (spackest via gates).
+
+	PIG-488: Added SearchTermExtractor, a piggybank eval func that, for many
+	search engines, recognizes the search term in the URL returns it to the
+	caller (spackest via gates).
