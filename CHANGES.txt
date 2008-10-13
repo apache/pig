@@ -364,3 +364,6 @@ Release 0.1.0 - Unreleased
     PIG-486: Added SearchEngineExtractor, a piggybank eval func that
 	recognizes a set of the most common search engines in a URL and extracts
 	the name of the search engine (spackest via gates).
+
+    PIG-487: Added HostExtractor, a piggybank eval func that, given a URL,
+	determines the host (spackest via gates).
