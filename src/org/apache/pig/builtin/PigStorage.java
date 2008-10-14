@@ -179,7 +179,7 @@ public class PigStorage extends Utf8StorageConverter
 
             case DataType.CHARARRAY:
                 // oddly enough, writeBytes writes a string
-                mOut.write(((String)field).getBytes());
+                mOut.write(((String)field).getBytes("UTF-8"));
                 break;
 
             case DataType.MAP:

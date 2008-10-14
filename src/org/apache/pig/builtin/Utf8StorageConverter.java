@@ -85,7 +85,7 @@ abstract public class Utf8StorageConverter {
     public String bytesToCharArray(byte[] b) throws IOException {
         if(b == null)
             return null;
-        return new String(b);
+        return new String(b, "UTF-8");
     }
 
     public Double bytesToDouble(byte[] b) throws IOException {
