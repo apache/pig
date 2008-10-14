@@ -24,7 +24,9 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Map;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -144,7 +146,9 @@ public class TextLoader implements LoadFunc{
     /**
      * TextLoader does not provide a schema.
      */
-    public Schema determineSchema(URL fileName) throws IOException {
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
+        // TODO Auto-generated method stub
         return null;
     }
 

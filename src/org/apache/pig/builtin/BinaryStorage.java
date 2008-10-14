@@ -22,8 +22,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -144,13 +146,14 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.net.URL)
+     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
      */
-    public Schema determineSchema(URL fileName) throws IOException {
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
         // TODO Auto-generated method stub
         return null;
     }
-
+    
     /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
      */

@@ -282,3 +282,5 @@ Trunk (unreleased changes)
     PIG-489: (*) processing (sms via olgan)
 
     PIG-475: missing heartbeats (shravanmn via olgan)
+
+    PIG-468: make determine Schema work for BinStorage (pradeepk via olgan)

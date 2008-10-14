@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Slice;
 import org.apache.pig.Slicer;
@@ -193,9 +194,11 @@ public class RangeSlicer
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.net.URL)
+     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
      */
-    public Schema determineSchema(URL fileName) throws IOException {
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
+        // TODO Auto-generated method stub
         return null;
     }
 

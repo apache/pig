@@ -38,6 +38,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -47,14 +48,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.logicalLayer.ExpressionOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
@@ -395,10 +389,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             return null;
         }
         
-        public Schema determineSchema(URL filename) {
-            return null;
-        }
-        
         public void fieldsToRead(Schema schema) {
             
         }
@@ -470,6 +460,15 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 	    public byte[] toBytes(Tuple t) throws IOException {
             return null;
 	    }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+         */
+        public Schema determineSchema(String fileName, ExecType execType,
+                DataStorage storage) throws IOException {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
     
     

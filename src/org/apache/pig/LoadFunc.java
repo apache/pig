@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -150,9 +151,18 @@ public interface LoadFunc {
      * (not run time) to see if the loader can provide a schema for the data.  The
      * loader may be able to do this if the data is self describing (e.g. JSON).  If
      * the loader cannot determine the schema, it can return a null.
-     * @param fileName Name of the file to be read.
+     * LoadFunc implementations which need to open the input "fileName", can use 
+     * FileLocalizer.open(String fileName, ExecType execType, DataStorage storage) to get
+     * an InputStream which they can use to initialize their loader implementation. They
+     * can then use this to read the input data to discover the schema. Note: this will
+     * work only when the fileName represents a file on Local File System or Hadoop file 
+     * system
+     * @param fileName Name of the file to be read.(this will be the same as the filename 
+     * in the "load statement of the script)
+     * @param execType - execution mode of the pig script - one of ExecType.LOCAL or ExecType.MAPREDUCE
+     * @param storage - the DataStorage object corresponding to the execType
      * @return a Schema describing the data if possible, or null otherwise.
      * @throws IOException.
      */
-    public Schema determineSchema(URL fileName) throws IOException;
+    public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException;
 }

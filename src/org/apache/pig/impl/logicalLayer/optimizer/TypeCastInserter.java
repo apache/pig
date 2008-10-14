@@ -32,6 +32,7 @@ import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -63,22 +64,35 @@ public class TypeCastInserter extends LogicalTransformer {
     @Override
     public boolean check(List<LogicalOperator> nodes) throws OptimizerException {
         try {
-            Schema s = getOperator(nodes).getSchema();
+            LogicalOperator op = getOperator(nodes);
+            Schema s = op.getSchema();
             if (s == null) return false;
     
             boolean sawOne = false;
             List<Schema.FieldSchema> fss = s.getFields();
             List<Byte> types = new ArrayList<Byte>(s.size());
-            for (Schema.FieldSchema fs : fss) {
-                if (fs.type != DataType.BYTEARRAY) sawOne = true;
-                types.add(fs.type);
+            Schema determinedSchema = null;
+            if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
+                determinedSchema = ((LOLoad)op).getDeterminedSchema();
+            }
+            for (int i = 0; i < fss.size(); i++) {
+                if (fss.get(i).type != DataType.BYTEARRAY) {
+                    if(determinedSchema == null || 
+                            (fss.get(i).type != determinedSchema.getField(i).type)) {
+                            // Either no schema was determined by loader OR the type 
+                            // from the "determinedSchema" is different
+                            // from the type specified - so we need to cast
+                            sawOne = true;
+                        }
+                }
+                types.add(fss.get(i).type);
             }
 
             // If all we've found are byte arrays, we don't need a projection.
             return sawOne;
-        } catch (FrontendException fe) {
+        } catch (Exception e) {
             throw new OptimizerException("Caught exception while trying to " +
-                " check if type casts are needed", fe);
+                " check if type casts are needed", e);
         }
     }
     
@@ -117,6 +131,14 @@ public class TypeCastInserter extends LogicalTransformer {
             ArrayList<LogicalPlan> genPlans = new ArrayList<LogicalPlan>(s.size());
             ArrayList<Boolean> flattens = new ArrayList<Boolean>(s.size());
             Map<String, Byte> typeChanges = new HashMap<String, Byte>();
+            // if we are inserting casts in a load and if the loader
+            // implements determineSchema(), insert casts only where necessary
+            // Note that in this case, the data coming out of the loader is not
+            // a BYTEARRAY but is whatever determineSchema() says it is.
+            Schema determinedSchema = null;
+            if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
+                determinedSchema = ((LOLoad)lo).getDeterminedSchema();
+            }
             for (int i = 0; i < s.size(); i++) {
                 LogicalPlan p = new LogicalPlan();
                 genPlans.add(p);
@@ -128,27 +150,37 @@ public class TypeCastInserter extends LogicalTransformer {
                 p.add(proj);
                 Schema.FieldSchema fs = s.getField(i);
                 if (fs.type != DataType.BYTEARRAY) {
-                    LOCast cast = new LOCast(p, OperatorKey.genOpKey(scope),
-                        proj, fs.type);
-                    p.add(cast);
-                    p.connect(proj, cast);
-                    
-                    cast.setFieldSchema(fs.clone());
-                    LoadFunc loadFunc = null;
-                    if(lo instanceof LOLoad) {
-                        loadFunc = ((LOLoad)lo).getLoadFunc();
-                    } else if (lo instanceof LOStream) {
-                        StreamingCommand command = ((LOStream)lo).getStreamingCommand();
-                        HandleSpec streamOutputSpec = command.getOutputSpec(); 
-                        loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(streamOutputSpec.getSpec());
-                    } else {
-                        throw new OptimizerException("TypeCastInserter invoked with an invalid operator class name:" + lo.getClass().getSimpleName());
-                    }
-                    cast.setLoadFunc(loadFunc);
-                    typeChanges.put(fs.canonicalName, fs.type);
-                    // Reset the loads field schema to byte array so that it
-                    // will reflect reality.
-                    fs.type = DataType.BYTEARRAY;
+                    if(determinedSchema == null || (fs.type != determinedSchema.getField(i).type)) {
+                            // Either no schema was determined by loader OR the type 
+                            // from the "determinedSchema" is different
+                            // from the type specified - so we need to cast
+                            LOCast cast = new LOCast(p, OperatorKey.genOpKey(scope),
+                                proj, fs.type);
+                            p.add(cast);
+                            p.connect(proj, cast);
+                            
+                            cast.setFieldSchema(fs.clone());
+                            LoadFunc loadFunc = null;
+                            if(lo instanceof LOLoad) {
+                                loadFunc = ((LOLoad)lo).getLoadFunc();
+                            } else if (lo instanceof LOStream) {
+                                StreamingCommand command = ((LOStream)lo).getStreamingCommand();
+                                HandleSpec streamOutputSpec = command.getOutputSpec(); 
+                                loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(streamOutputSpec.getSpec());
+                            } else {
+                                throw new OptimizerException("TypeCastInserter invoked with an invalid operator class name:" + lo.getClass().getSimpleName());
+                            }
+                            cast.setLoadFunc(loadFunc);
+                            typeChanges.put(fs.canonicalName, fs.type);
+                            if(determinedSchema == null) {
+                                // Reset the loads field schema to byte array so that it
+                                // will reflect reality.
+                                fs.type = DataType.BYTEARRAY;
+                            } else {
+                                // Reset the type to what determinedSchema says it is
+                                fs.type = determinedSchema.getField(i).type;
+                            }
+                        }
                 }
             }
 

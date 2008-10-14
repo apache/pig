@@ -445,7 +445,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
                                   new FileSpec("pi", new FuncSpec(pigStorage)),
-                                  null, true) ;
+                                  null, null, true) ;
 
         // set schemas
         load1.setEnforcedSchema(null) ;
@@ -511,7 +511,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
                                   new FileSpec("pi", new FuncSpec(pigStorage)),
-                                  null, true) ;
+                                  null, null, true) ;
 
         // set schemas
         load1.setEnforcedSchema(null) ;

@@ -428,22 +428,46 @@ public class Schema implements Serializable, Cloneable {
         */
 
         public Schema.FieldSchema mergePrefixFieldSchema(Schema.FieldSchema otherFs) throws SchemaMergeException {
-            return mergePrefixFieldSchema(otherFs, true);
+            return mergePrefixFieldSchema(otherFs, true, false);
         }
 
+        /***
+         * Recursively prefix merge two schemas
+         * @param otherFs the other field schema to be merged with
+         * @param otherTakesAliasPrecedence true if aliases from the other
+         *                                  field schema take precedence
+         * @return the prefix merged field schema this can be null if one schema is null and
+         *         allowIncompatibleTypes is true
+         *
+         * @throws SchemaMergeException if they cannot be merged
+         */
+
+         public Schema.FieldSchema mergePrefixFieldSchema(Schema.FieldSchema otherFs,
+                                             boolean otherTakesAliasPrecedence)
+                                                 throws SchemaMergeException {
+             return mergePrefixFieldSchema(otherFs, otherTakesAliasPrecedence, false);
+         }
+         
         /***
         * Recursively prefix merge two schemas
         * @param otherFs the other field schema to be merged with
         * @param otherTakesAliasPrecedence true if aliases from the other
         *                                  field schema take precedence
-        * @return the prefix merged field schema this can be null if one schema is null and
-        *         allowIncompatibleTypes is true
+        * @param allowMergeableTypes true if "mergeable" types should be allowed.
+        *   Two types are mergeable if any of the following conditions is true IN THE
+        *   BELOW ORDER of checks:
+        *   1) if either one has a type null or unknown and other has a type OTHER THAN
+        *   null or unknown, the result type will be the latter non null/unknown type
+        *   2) If either type is bytearray, then result type will be the other (possibly non BYTEARRAY) type
+        *   3) If current type can be casted to the other type, then the result type will be the
+        *   other type 
+        * @return the prefix merged field schema this can be null. 
         *
         * @throws SchemaMergeException if they cannot be merged
         */
 
         public Schema.FieldSchema mergePrefixFieldSchema(Schema.FieldSchema otherFs,
-                                            boolean otherTakesAliasPrecedence)
+                                            boolean otherTakesAliasPrecedence, boolean allowMergeableTypes)
                                                 throws SchemaMergeException {
             Schema.FieldSchema myFs = this;
             Schema.FieldSchema mergedFs = null;
@@ -453,19 +477,29 @@ public class Schema implements Serializable, Cloneable {
                 return myFs;
             }
 
-            if((myFs.type == DataType.NULL || myFs.type == DataType.UNKNOWN)
-                && (otherFs.type == DataType.NULL || otherFs.type == DataType.UNKNOWN)) {
+            if(isNullOrUnknownType(myFs) && isNullOrUnknownType(otherFs)) {
                 throw new SchemaMergeException("Type mismatch. No useful type for merging. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
             } else if(myFs.type == otherFs.type) {
                 mergedType = myFs.type;
-            } else if((myFs.type == DataType.NULL || myFs.type == DataType.UNKNOWN) 
-                && (otherFs.type == DataType.NULL)) {
-                mergedType = DataType.BYTEARRAY;
-            } else if ((myFs.type != DataType.NULL && myFs.type != DataType.UNKNOWN)
-                && (otherFs.type == DataType.NULL)) {
+            } else if (!isNullOrUnknownType(myFs) && isNullOrUnknownType(otherFs)) {
                 mergedType = myFs.type;
             } else {
-                throw new SchemaMergeException("Type mismatch. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+                if (allowMergeableTypes) {
+                    if (isNullOrUnknownType(myFs) && !isNullOrUnknownType(otherFs)) {
+                        mergedType = otherFs.type;
+                    }  else if(otherFs.type == DataType.BYTEARRAY) {
+                        // just set mergeType to myFs's type (could even be BYTEARRAY)
+                        mergedType = myFs.type;
+                    } else {
+                        if(castable(otherFs, myFs)) {
+                            mergedType = otherFs.type;
+                        } else {
+                            throw new SchemaMergeException("Type mismatch. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+                        }
+                    }
+                } else {
+                    throw new SchemaMergeException("Type mismatch. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+                }
             }
     
             String mergedAlias = mergeAlias(myFs.alias,
@@ -481,7 +515,7 @@ public class Schema implements Serializable, Cloneable {
                 // merge inner schemas because both sides have schemas
                 if(null != myFs.schema) {
                     mergedSubSchema = myFs.schema.mergePrefixSchema(otherFs.schema,
-                                                     otherTakesAliasPrecedence);
+                                                     otherTakesAliasPrecedence, allowMergeableTypes);
                 } else {
                     mergedSubSchema = otherFs.schema;
                 }
@@ -493,6 +527,10 @@ public class Schema implements Serializable, Cloneable {
                 }
             }
             return mergedFs;
+        }
+        
+        private boolean isNullOrUnknownType(FieldSchema fs) {
+            return (fs.type == DataType.NULL || fs.type == DataType.UNKNOWN);
         }
 
     }
@@ -1307,6 +1345,31 @@ public class Schema implements Serializable, Cloneable {
     public Schema mergePrefixSchema(Schema other,
                                boolean otherTakesAliasPrecedence)
                                     throws SchemaMergeException {
+        return mergePrefixSchema(other, otherTakesAliasPrecedence, false);
+    }
+    
+    /***
+     * Recursively prefix merge two schemas
+     * @param other the other schema to be merged with
+     * @param otherTakesAliasPrecedence true if aliases from the other
+     *                                  schema take precedence
+     * @param allowMergeableTypes true if "mergeable" types should be allowed.
+     *   Two types are mergeable if any of the following conditions is true IN THE 
+     *   BELOW ORDER of checks:
+     *   1) if either one has a type null or unknown and other has a type OTHER THAN
+     *   null or unknown, the result type will be the latter non null/unknown type
+     *   2) If either type is bytearray, then result type will be the other (possibly  non BYTEARRAY) type
+     *   3) If current type can be casted to the other type, then the result type will be the
+     *   other type 
+     * @return the prefix merged schema this can be null if one schema is null and
+     *         allowIncompatibleTypes is true
+     *
+     * @throws SchemaMergeException if they cannot be merged
+     */
+
+    public Schema mergePrefixSchema(Schema other,
+                               boolean otherTakesAliasPrecedence, boolean allowMergeableTypes)
+                                    throws SchemaMergeException {
         Schema schema = this;
 
         if (other == null) {
@@ -1332,7 +1395,7 @@ public class Schema implements Serializable, Cloneable {
             FieldSchema myFs = mylist.get(idx) ;
             FieldSchema otherFs = otherlist.get(idx) ;
 
-            FieldSchema mergedFs = myFs.mergePrefixFieldSchema(otherFs, otherTakesAliasPrecedence);
+            FieldSchema mergedFs = myFs.mergePrefixFieldSchema(otherFs, otherTakesAliasPrecedence, allowMergeableTypes);
             outputList.add(mergedFs) ;
         }
         // if the first schema has leftover, then append the rest

@@ -20,16 +20,22 @@ package org.apache.pig.impl.logicalLayer;
 import java.io.IOException;
 import java.net.URL;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import sun.awt.motif.MDataTransferer;
 
 public class LOLoad extends LogicalOperator {
     private static final long serialVersionUID = 2L;
@@ -37,9 +43,12 @@ public class LOLoad extends LogicalOperator {
 
     private FileSpec mInputFileSpec;
     private LoadFunc mLoadFunc;
-    private URL mSchemaFile;
+    private String mSchemaFile;
     private Schema mEnforcedSchema = null ;
+    private DataStorage mStorage;
+    private ExecType mExecType;
     private static Log log = LogFactory.getLog(LOLoad.class);
+    private Schema mDeterminedSchema = null;
 
     /**
      * @param plan
@@ -53,11 +62,15 @@ public class LOLoad extends LogicalOperator {
      * 
      */
     public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
-            URL schemaFile, boolean splittable) throws IOException {
+            ExecType execType, DataStorage storage, boolean splittable) throws IOException {
         super(plan, key);
-
         mInputFileSpec = inputFileSpec;
-        mSchemaFile = schemaFile;
+        //mSchemaFile = schemaFile;
+        // schemaFile is the input file since we are trying
+        // to deduce the schema by looking at the input file
+        mSchemaFile = inputFileSpec.getFileName();
+        mStorage = storage;
+        mExecType = execType;
         this.splittable = splittable;
 
          try { 
@@ -95,7 +108,7 @@ public class LOLoad extends LogicalOperator {
         mInputFileSpec = inputFileSpec;
     }
 
-    public URL getSchemaFile() {
+    public String getSchemaFile() {
         return mSchemaFile;
     }
 
@@ -121,11 +134,13 @@ public class LOLoad extends LogicalOperator {
                     return mSchema ;
                 }
 
-                if(null != mSchemaFile) {
-                    mSchema = mLoadFunc.determineSchema(mSchemaFile);
+                if(null == mDeterminedSchema) {
+                    mSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
+                    mDeterminedSchema  = mSchema;
                 }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
+                ioe.printStackTrace();
                 FrontendException fee = new FrontendException(ioe.getMessage());
                 fee.initCause(ioe);
                 mIsSchemaComputed = false;
@@ -135,6 +150,35 @@ public class LOLoad extends LogicalOperator {
         }
         return mSchema;
     }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#setSchema(org.apache.pig.impl.logicalLayer.schema.Schema)
+     */
+    @Override
+    public void setSchema(Schema schema) throws ParseException {
+        // In general, operators don't generate their schema until they're
+        // asked, so ask them to do it.
+        try {
+            getSchema();
+        } catch (FrontendException ioe) {
+            // It's fine, it just means we don't have a schema yet.
+        }
+        if (mSchema == null) {
+            log.debug("Operator schema is null; Setting it to new schema");
+            mSchema = schema;
+        } else {
+            log.debug("Reconciling schema");
+            log.debug("mSchema: " + mSchema + " schema: " + schema);
+            try {
+                mSchema = mSchema.mergePrefixSchema(schema, true, true);
+            } catch (SchemaMergeException e) {
+                ParseException pe = new ParseException("Unable to merge schemas");
+                pe.initCause(e);
+                throw pe;
+            }
+        }
+    }
+    
 
     @Override
     public boolean supportsMultipleInputs() {
@@ -164,6 +208,13 @@ public class LOLoad extends LogicalOperator {
     @Override
     public byte getType() {
         return DataType.BAG ;
+    }
+
+    /**
+     * @return the DeterminedSchema
+     */
+    public Schema getDeterminedSchema() {
+        return mDeterminedSchema;
     }
 
 }

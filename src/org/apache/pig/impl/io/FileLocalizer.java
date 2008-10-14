@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.Stack;
 import java.util.Properties ;
@@ -177,69 +178,107 @@ public class FileLocalizer {
                 throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
             }
             
-            ArrayList<ElementDescriptor> arrayList = 
-                new ArrayList<ElementDescriptor>();
-            Iterator<ElementDescriptor> allElements = 
-                ((ContainerDescriptor)elem).iterator();
-            
-            while (allElements.hasNext()) {
-                ElementDescriptor nextElement = allElements.next();
-                if (!nextElement.systemElement()) {
-                    arrayList.add(nextElement);
-                }
-            }
-            
-            elements = new ElementDescriptor[ arrayList.size() ];
-            arrayList.toArray(elements);
-        
+            // elem is a directory - recursively get all files in it
+            elements = getFileElementDescriptors(elem);
         } else {
             // It might be a glob
             if (!globMatchesFiles(elem, elem.getDataStorage())) {
                 throw new IOException(elem.toString() + " does not exist");
+            } else {
+                elements = getFileElementDescriptors(elem); 
+                return new DataStorageInputStreamIterator(elements);
+                
             }
         }
         
         return new DataStorageInputStreamIterator(elements);
     }
     
-    private static InputStream openLFSFile(ElementDescriptor elem) throws IOException{
-        ElementDescriptor[] elements = null;
-        
-        if (elem.exists()) {
-            try {
-                if(! elem.getDataStorage().isContainer(elem.toString())) {
-                    return elem.open();
+    /**
+     * recursively get all "File" element descriptors present in the input element descriptor
+     * @param elem input element descriptor
+     * @return an array of Element descriptors for files present (found by traversing all levels of dirs)
+     *  in the input element descriptor
+     * @throws DataStorageException
+     */
+    private static ElementDescriptor[] getFileElementDescriptors(ElementDescriptor elem) throws DataStorageException {
+        DataStorage store = elem.getDataStorage();
+        ElementDescriptor[] elems = store.asCollection(elem.toString());
+        // elems could have directories in it, if so
+        // get the files out so that it contains only files
+        List<ElementDescriptor> paths = new ArrayList<ElementDescriptor>();
+        List<ElementDescriptor> filePaths = new ArrayList<ElementDescriptor>();
+        for (int m = 0; m < elems.length; m++) {
+            paths.add(elems[m]);
+        }
+        for (int j = 0; j < paths.size(); j++) {
+            ElementDescriptor fullPath = store.asElement(store
+                    .getActiveContainer(), paths.get(j));
+            // Skip hadoop's private/meta files ...
+            if (fullPath.systemElement()) {
+                continue;
+            }
+            
+            if (fullPath instanceof ContainerDescriptor) {
+                for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
+                    paths.add(child);
                 }
-            }
-            catch (DataStorageException e) {
-                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
-            }
-            
-            ArrayList<ElementDescriptor> arrayList = 
-                new ArrayList<ElementDescriptor>();
-            Iterator<ElementDescriptor> allElements = 
-                ((ContainerDescriptor)elem).iterator();
-            
-            while (allElements.hasNext()) {
-                ElementDescriptor ed = allElements.next();
-                int li = ed.toString().lastIndexOf(File.separatorChar);
-                String fName = ed.toString().substring(li+1);
-                if(fName.charAt(0)=='.')
-                    continue;
-                arrayList.add(ed);
-            }
-            
-            elements = new ElementDescriptor[ arrayList.size() ];
-            arrayList.toArray(elements);
-        
-        } else {
-            // It might be a glob
-            if (!globMatchesFiles(elem, elem.getDataStorage())) {
-                throw new IOException(elem.toString() + " does not exist");
+                continue;
+            } else {
+                // this is a file, add it to filePaths
+                filePaths.add(fullPath);
             }
         }
-        
-        return new DataStorageInputStreamIterator(elements);
+        elems = new ElementDescriptor[filePaths.size()];
+        filePaths.toArray(elems);
+        return elems;
+    }
+    
+    private static InputStream openLFSFile(ElementDescriptor elem) throws IOException{
+        // IMPORTANT NOTE: Currently we use HXXX classes to represent
+        // files and dirs in local mode - so we can just delegate this
+        // call to openDFSFile(elem). When we have true local mode files
+        // and dirs THIS WILL NEED TO CHANGE
+        return openDFSFile(elem);
+    }
+    
+    /**
+     * This function returns an input stream to a local file system file or
+     * a file residing on Hadoop's DFS
+     * @param fileName The filename to open
+     * @param execType execType indicating whether executing in local mode or MapReduce mode (Hadoop)
+     * @param storage The DataStorage object used to open the fileSpec
+     * @return InputStream to the fileSpec
+     * @throws IOException
+     */
+    static public InputStream open(String fileName, ExecType execType, DataStorage storage) throws IOException {
+        fileName = checkDefaultPrefix(execType, fileName);
+        if (!fileName.startsWith(LOCAL_PREFIX)) {
+            ElementDescriptor elem = storage.asElement(fullPath(fileName, storage));
+            return openDFSFile(elem);
+        }
+        else {
+            fileName = fileName.substring(LOCAL_PREFIX.length());
+            ElementDescriptor elem = storage.asElement(fullPath(fileName, storage));
+            return openLFSFile(elem);
+        }
+    }
+    
+    private static String fullPath(String fileName, DataStorage storage) {
+        String fullPath;
+        try {
+            if (fileName.charAt(0) != '/') {
+                ElementDescriptor currentDir = storage.getActiveContainer();
+                ElementDescriptor elem = storage.asElement(currentDir.toString(), fileName);
+                
+                fullPath = elem.toString();
+            } else {
+                fullPath = fileName;
+            }
+        } catch (DataStorageException e) {
+            fullPath = fileName;
+        }
+        return fullPath;
     }
     
     static public InputStream open(String fileSpec, PigContext pigContext) throws IOException {

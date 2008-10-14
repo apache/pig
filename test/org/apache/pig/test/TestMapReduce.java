@@ -55,6 +55,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.junit.Before;
 import org.apache.pig.test.utils.TestHelper;
@@ -245,10 +246,6 @@ public class TestMapReduce extends TestCase {
 
         public void fieldsToRead(Schema schema) {}
 
-        public Schema determineSchema(URL fileName) throws IOException {
-            return null;
-        }
-
 	    public byte[] toBytes(DataBag bag) throws IOException {
 	        return null;
 	    }
@@ -280,6 +277,15 @@ public class TestMapReduce extends TestCase {
 	    public byte[] toBytes(Tuple t) throws IOException {
 	        return null;
 	    }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+         */
+        public Schema determineSchema(String fileName, ExecType execType,
+                DataStorage storage) throws IOException {
+            // TODO Auto-generated method stub
+            return null;
+        }
 
     }
 

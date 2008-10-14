@@ -524,5 +524,125 @@ public class TestEvalPipeline extends TestCase {
         assertEquals("value2", t.get(4).toString());
         
     }
+    
+    
+    @Test
+    public void testBinStorageDetermineSchema() throws IOException, ExecException {
+        // Create input file with ascii data
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
+        
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+                "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
+        pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        Tuple t = it.next();
+        assertEquals(new Long(2), t.get(0));
+        assertEquals(1, t.get(1));
+        assertEquals(2, t.get(2));
+        assertEquals("value1", t.get(3).toString());
+        assertEquals("value2", t.get(4).toString());
+        
+        //test with BinStorage
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+                "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
+        String output = "/pig/out/TestEvalPipeline-testBinStorageDetermineSchema";
+        pigServer.deleteFile(output);
+        pigServer.store("a", output, BinStorage.class.getName());
+        // test with different load specifications
+        String[] loads = {"p = load '" + output +"' using BinStorage() " +
+                "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);",
+                "p = load '" + output +"' using BinStorage() " +
+                "as (b, t2, m);",
+                "p = load '" + output +"' using BinStorage() ;"};
+        // the corresponding generate statements
+        String[] generates = {"q = foreach p generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2', b;",
+                "q = foreach p generate COUNT(b), t2.$0, t2.$1, m#'key1', m#'key2', b;",
+                "q = foreach p generate COUNT($0), $1.$0, $1.$1, $2#'key1', $2#'key2', $0;"};
+        
+        for (int i = 0; i < loads.length; i++) {
+            pigServer.registerQuery(loads[i]);
+            pigServer.registerQuery(generates[i]);
+            it = pigServer.openIterator("q");
+            t = it.next();
+            assertEquals(new Long(2), t.get(0));
+            assertEquals(Integer.class, t.get(1).getClass());
+            assertEquals(1, t.get(1));
+            assertEquals(Integer.class, t.get(2).getClass());
+            assertEquals(2, t.get(2));
+            assertEquals("value1", t.get(3).toString());
+            assertEquals("value2", t.get(4).toString());
+            assertEquals(DefaultDataBag.class, t.get(5).getClass());
+            DataBag bg = (DataBag)t.get(5);
+            for (Iterator<Tuple> bit = bg.iterator(); bit.hasNext();) {
+                Tuple bt = bit.next();
+                assertEquals(String.class, bt.get(0).getClass());
+                assertEquals(String.class, bt.get(1).getClass());            
+            }
+        }        
+    }
 
+    @Test
+    public void testBinStorageDetermineSchema2() throws IOException, ExecException {
+        // Create input file with ascii data
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"pigtester\t10\t1.2"});
+        
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+                "as (name:chararray, age:int, gpa:double);");
+        String output = "/pig/out/TestEvalPipeline-testBinStorageDetermineSchema2";
+        pigServer.deleteFile(output);
+        pigServer.store("a", output, BinStorage.class.getName());
+        // test with different load specifications
+        String[] loads = {"p = load '" + output +"' using BinStorage() " +
+                "as (name:chararray, age:int, gpa:double);",
+                "p = load '" + output +"' using BinStorage() " +
+                "as (name, age, gpa);",
+                "p = load '" + output +"' using BinStorage() ;"};
+        // the corresponding generate statements
+        String[] generates = {"q = foreach p generate name, age, gpa;",
+                "q = foreach p generate name, age, gpa;",
+                "q = foreach p generate $0, $1, $2;"};
+        
+        for (int i = 0; i < loads.length; i++) {
+            pigServer.registerQuery(loads[i]);
+            pigServer.registerQuery(generates[i]);
+            Iterator<Tuple> it = pigServer.openIterator("q");
+            Tuple t = it.next();
+            assertEquals("pigtester", t.get(0));
+            assertEquals(String.class, t.get(0).getClass());
+            assertEquals(10, t.get(1));
+            assertEquals(Integer.class, t.get(1).getClass());
+            assertEquals(1.2, t.get(2));
+            assertEquals(Double.class, t.get(2).getClass());
+        }
+        
+        // test that valid casting is allowed
+        pigServer.registerQuery("p = load '" + output + "' using BinStorage() " +
+                " as (name, age:long, gpa:float);");
+        pigServer.registerQuery("q = foreach p generate name, age, gpa;");
+        Iterator<Tuple> it = pigServer.openIterator("q");
+        Tuple t = it.next();
+        assertEquals("pigtester", t.get(0));
+        assertEquals(String.class, t.get(0).getClass());
+        assertEquals(10L, t.get(1));
+        assertEquals(Long.class, t.get(1).getClass());
+        assertEquals(1.2f, t.get(2));
+        assertEquals(Float.class, t.get(2).getClass());
+        
+        // test that implicit casts work
+        pigServer.registerQuery("p = load '" + output + "' using BinStorage() " +
+        " as (name, age, gpa);");
+        pigServer.registerQuery("q = foreach p generate name, age + 1L, (int)gpa;");
+        it = pigServer.openIterator("q");
+        t = it.next();
+        assertEquals("pigtester", t.get(0));
+        assertEquals(String.class, t.get(0).getClass());
+        assertEquals(11L, t.get(1));
+        assertEquals(Long.class, t.get(1).getClass());
+        assertEquals(1, t.get(2));
+        assertEquals(Integer.class, t.get(2).getClass());
+    }
+
+    
 }

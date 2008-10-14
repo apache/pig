@@ -18,6 +18,7 @@
 
 package org.apache.pig.test.utils;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
@@ -193,6 +194,11 @@ public class LogicalPlanTester {
 
         LogicalPlanBuilder.classloader = LogicalPlanTester.class.getClassLoader() ;
         PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
+        try {
+            pigContext.connect();
+        } catch (ExecException e1) {
+            fail(e1.getClass().getName() + ": " + e1.getMessage() + " -- " + query);
+        }
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
 
         try {
@@ -222,6 +228,7 @@ public class LogicalPlanTester {
             fail("IOException: " + e.getMessage());
         }
         catch (Exception e) {
+            e.printStackTrace();
             fail(e.getClass().getName() + ": " + e.getMessage() + " -- " + query);
         }
         return null;

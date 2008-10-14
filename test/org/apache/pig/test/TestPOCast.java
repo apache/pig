@@ -24,7 +24,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -627,10 +629,6 @@ public class TestPOCast extends TestCase {
             return null;
         }
         
-        public Schema determineSchema(URL filename) {
-            return null;
-        }
-        
         public void fieldsToRead(Schema schema) {
             
         }
@@ -707,6 +705,15 @@ public class TestPOCast extends TestCase {
 	    public byte[] toBytes(Tuple t) throws IOException {
 	        return null;
 	    }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+         */
+        public Schema determineSchema(String fileName, ExecType execType,
+                DataStorage storage) throws IOException {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
 	
 	@Test

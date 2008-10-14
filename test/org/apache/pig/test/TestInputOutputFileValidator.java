@@ -115,7 +115,7 @@ public class TestInputOutputFileValidator extends TestCase {
             new FileSpec(inputFile, new FuncSpec("org.apache.pig.builtin.PigStorage")) ;
         FileSpec filespec2 =
             new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
-        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null, true) ;       
+        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null, null, true) ;       
         LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2) ;
         
         plan.add(load) ;

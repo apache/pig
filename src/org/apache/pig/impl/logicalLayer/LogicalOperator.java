@@ -120,7 +120,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      *             if there is already a schema and the existing schema cannot
      *             be reconciled with this new schema.
      */
-    public final void setSchema(Schema schema) throws ParseException {
+    public void setSchema(Schema schema) throws ParseException {
         // In general, operators don't generate their schema until they're
         // asked, so ask them to do it.
         try {

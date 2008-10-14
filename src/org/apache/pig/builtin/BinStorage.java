@@ -23,18 +23,26 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.ReversibleLoadStoreFunc;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 public class BinStorage implements ReversibleLoadStoreFunc {
@@ -199,9 +207,31 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         }
     }
 
-    public Schema determineSchema(URL fileName) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+     */
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
+        InputStream is = FileLocalizer.open(fileName, execType, storage);
+        bindTo(fileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        // get the first record from the input file
+        // and figure out the schema from the data in
+        // the first record
+        Tuple t = getNext();
+        if(t == null) {
+            // we couldn't get a valid record from the input
+            return null;
+        }
+        int numFields = t.size();
+        Schema s = new Schema();
+        for (int i = 0; i < numFields; i++) {
+            try {
+                s.add(DataType.determineFieldSchema(t.get(i)));
+            } catch (Exception e) {
+                throw WrappedIOException.wrap(e);
+            } 
+        }
+        return s;
     }
 
     public void fieldsToRead(Schema schema) {
