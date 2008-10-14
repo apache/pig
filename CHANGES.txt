@@ -371,3 +371,6 @@ Release 0.1.0 - Unreleased
 	PIG-488: Added SearchTermExtractor, a piggybank eval func that, for many
 	search engines, recognizes the search term in the URL returns it to the
 	caller (spackest via gates).
+
+	PIG-476: Added DateExtractor, a piggybank eval func that extracts a date
+	from a string (spackest via gates).
