@@ -35,8 +35,6 @@ import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import sun.awt.motif.MDataTransferer;
-
 public class LOLoad extends LogicalOperator {
     private static final long serialVersionUID = 2L;
     protected boolean splittable = true;
