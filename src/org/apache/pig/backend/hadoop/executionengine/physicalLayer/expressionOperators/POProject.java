@@ -181,9 +181,9 @@ public class POProject extends ExpressionOperator {
         }
         DataBag outBag = BagFactory.getInstance().newDefaultBag();
         for (Tuple tuple : inpBag) {
-            Tuple tmpTuple = tupleFactory.newTuple();
+            Tuple tmpTuple = tupleFactory.newTuple(columns.size());
             for (int i = 0; i < columns.size(); i++)
-                tmpTuple.append(tuple.get(columns.get(i)));
+                tmpTuple.set(i, tuple.get(columns.get(i)));
             outBag.add(tmpTuple);
         }
         res.result = outBag;

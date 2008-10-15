@@ -583,6 +583,22 @@ public class TestEvalPipeline extends TestCase {
     }
 
     @Test
+    public void testProjectBag() throws IOException, ExecException {
+        // This tests make sure that when a bag with multiple columns is
+        // projected all columns apear in the output
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"f1\tf2\tf3"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x, y, z);");
+        pigServer.registerQuery("b = group a by x;");
+        pigServer.registerQuery("c = foreach b generate flatten(a.(y, z));");
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        Tuple t = it.next();
+        assertEquals(2, t.size());
+        assertEquals("f2", t.get(0).toString());
+        assertEquals("f3", t.get(1).toString());
+    }
+
+    @Test
     public void testBinStorageDetermineSchema2() throws IOException, ExecException {
         // Create input file with ascii data
         File input = Util.createInputFile("tmp", "", 
@@ -643,6 +659,4 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(1, t.get(2));
         assertEquals(Integer.class, t.get(2).getClass());
     }
-
-    
 }

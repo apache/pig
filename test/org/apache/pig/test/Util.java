@@ -165,6 +165,7 @@ public class Util {
 			                           String[] inputData) 
 	throws IOException {
 		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
+        f.deleteOnExit();
 		PrintWriter pw = new PrintWriter(f);
 		for (int i=0; i<inputData.length; i++){
 			pw.println(inputData[i]);
