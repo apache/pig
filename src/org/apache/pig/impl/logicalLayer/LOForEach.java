@@ -294,17 +294,19 @@ public class LOForEach extends LogicalOperator {
 							//just populate the schema with the field schema of the expression operator
                             //check if the user has defined a schema for the operator; compare the schema
                             //with that of the expression operator field schema and then add it to the list
+                            Schema.FieldSchema newFs = new Schema.FieldSchema(planFs);
                             if(null != userDefinedSchema) {
                                 try {
-                                    planFs = planFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));
-                                    updateAliasCount(aliases, planFs.alias);
+                                    newFs = newFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));
+                                    updateAliasCount(aliases, newFs.alias);
                                 } catch (SchemaMergeException sme) {
                                     throw new FrontendException(sme.getMessage());
                                 } catch (ParseException pe) {
                                     throw new FrontendException(pe.getMessage());
                                 }
                             }
-	                   		fss.add(planFs);
+                            newFs.setParent(planFs.canonicalName, op);
+                            fss.add(newFs);
 						}
 					} else {
 						//did not get a valid list of field schemas

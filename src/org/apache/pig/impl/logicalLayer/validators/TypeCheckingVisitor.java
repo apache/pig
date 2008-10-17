@@ -1616,11 +1616,20 @@ public class TypeCheckingVisitor extends LOVisitor {
         if(inputType == DataType.BYTEARRAY) {
             try {
                 LoadFunc loadFunc = getLoadFunc(cast.getExpression());
+                if((null == loadFunc) && (expectedType != DataType.BYTEARRAY)) {
+                    String msg = "Internal error. Could not resolve load function to use for casting from " + 
+                                DataType.findTypeName(inputType) + " to " +
+                                DataType.findTypeName(expectedType) + ". Found null.";
+                    msgCollector.collect(msg, MessageType.Error);
+                    throw new VisitorException(msg); 
+                }
                 cast.setLoadFunc(loadFunc);
             } catch (FrontendException fee) {
-                throw new VisitorException("Cannot resolve load function to use for casting from " + 
+                String msg = "Cannot resolve load function to use for casting from " + 
                             DataType.findTypeName(inputType) + " to " +
-                            DataType.findTypeName(expectedType) + ". " + fee.getMessage());
+                            DataType.findTypeName(expectedType) + ". " + fee.getMessage();
+                msgCollector.collect(msg, MessageType.Error);
+                throw new VisitorException(msg, fee); 
             }
         }
     }

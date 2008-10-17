@@ -156,7 +156,7 @@ public class TestTypeCheckingValidator extends TestCase {
     }
 
     @Test
-    public void testExpressionTypeChecking2() throws Throwable {
+    public void testExpressionTypeChecking2Fail() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.INTEGER) ;
@@ -193,23 +193,20 @@ public class TestTypeCheckingValidator extends TestCase {
                       
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-        typeValidator.validate(plan, collector) ;        
+        
+        try {
+            typeValidator.validate(plan, collector) ;
+        } catch (PlanValidationException pve) {
+            // good
+        }
+        
         printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
-        if (collector.hasError()) {
-            throw new Exception("Error during type checking") ;
+        if (!collector.hasError()) {
+            throw new Exception("Error expected during type checking") ;
         }       
         
-        // Induction check
-        assertEquals(DataType.INTEGER, sub1.getType()) ;
-        assertEquals(DataType.BOOLEAN, gt1.getType()) ;
-        assertEquals(DataType.BOOLEAN, and1.getType()) ;
-        assertEquals(DataType.BOOLEAN, not1.getType()) ;
-        
-        // Cast insertion check
-        assertEquals(DataType.INTEGER, sub1.getRhsOperand().getType()) ;
-        assertEquals(DataType.LONG, gt1.getLhsOperand().getType()) ;
     }
     
     
@@ -790,7 +787,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
     // Positive case with cast insertion
     @Test
-    public void testRegexTypeChecking2() throws Throwable {
+    public void testRegexTypeChecking2Fail() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), new DataByteArray()) ;
         constant1.setType(DataType.BYTEARRAY) ;
@@ -805,22 +802,21 @@ public class TestTypeCheckingValidator extends TestCase {
 
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-        typeValidator.validate(plan, collector) ;
+        try {
+            typeValidator.validate(plan, collector) ;
+        } catch (PlanValidationException pve) {
+            // good
+        }
         printMessageCollector(collector) ;
 
         printTypeGraph(plan) ;
 
         // After type checking
 
-        // check type
-        System.out.println(DataType.findTypeName(regex.getType())) ;
-        assertEquals(DataType.BOOLEAN, regex.getType()) ;
-
-        // check wiring
-        LOCast cast = (LOCast) regex.getOperand() ;
-        assertEquals(cast.getType(), DataType.CHARARRAY);
-
-        assertEquals(cast.getExpression(), constant1) ;
+        if (!collector.hasError()) {
+            throw new Exception("Error expected during type checking") ;
+        }       
+        
     }
 
         // Negative case
@@ -5442,6 +5438,110 @@ public class TestTypeCheckingValidator extends TestCase {
     }
 
     @Test
+    public void testMapLookupLineage() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
+        planTester.buildPlan("b = foreach a generate field1#'key1' as map1;") ;
+        LogicalPlan plan = planTester.buildPlan("c = foreach b generate map1#'key2' + 1 ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+    }
+
+    @Test
+    public void testMapLookupLineageNoSchema() throws Throwable {
+        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
+        planTester.buildPlan("b = foreach a generate $0#'key1';") ;
+        LogicalPlan plan = planTester.buildPlan("c = foreach b generate $0#'key2' + 1 ;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
+
+        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+
+    }
+
+    @Test
+    public void testMapLookupLineage2() throws Throwable {
+        planTester.buildPlan("a = load 'a' as (s, m, l);") ;
+        planTester.buildPlan("b = foreach a generate s#'x' as f1, s#'y' as f2, s#'z' as f3;") ;
+        planTester.buildPlan("c = group b by f1;") ;
+        LogicalPlan plan = planTester.buildPlan("d = foreach c {fil = filter b by f2 == 1; generate flatten(group), SUM(fil.f3);};") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
+
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+
+        LOFilter filter = (LOFilter)foreachPlan.getSuccessors(exOp).get(0);
+        LogicalPlan filterPlan = filter.getComparisonPlan();
+
+        exOp = filterPlan.getRoots().get(0);
+
+        if(! (exOp instanceof LOProject)) exOp = filterPlan.getRoots().get(1);
+
+        
+        LOCast cast = (LOCast)filterPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+
+    }
+
     ////////////////////////// Helper //////////////////////////////////
     private void checkForEachCasting(LOForEach foreach, int idx, boolean isCast, byte toType) {
         LogicalPlan plan = foreach.getForEachPlans().get(idx) ;
