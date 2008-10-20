@@ -291,3 +291,5 @@ Trunk (unreleased changes)
 
     PIG-500: Load Func for POCast is not being set in some cases (sms via
     olgan)
+
+    PIG-499: parser issue with as (sms via olgan)

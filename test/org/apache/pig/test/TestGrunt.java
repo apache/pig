@@ -77,7 +77,7 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer("MAPREDUCE");
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'as (b: bag{t(i: int, c:chararray, f: float)});\n";
+        String strCmd = "a = load 'input1' as (b: bag{t(i: int, c:chararray, f: float)});\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -85,6 +85,25 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
     
         grunt.exec();
+    }
+
+    @Test 
+    public void testBagSchemaFail() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'input1'as (b: bag{t(i: int, c:chararray, f: float)});\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("Encountered \";\""));
+        }
     }
 
     @Test 
@@ -198,6 +217,21 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b generate SUM(a.fast);\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test 
+    public void testParsingWordWithAsInForeachWithOutBlock2() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "cash = load 'foo' as (foo, fast); b = foreach cash generate fast * 2.0;\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
