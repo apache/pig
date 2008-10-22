@@ -17,13 +17,13 @@
  */
 package org.apache.pig.impl.io;
 
-import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -51,6 +51,8 @@ public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
     
     static public final String LOCAL_PREFIX  = "file:";
+    static public final int STYLE_UNIX = 0;
+    static public final int STYLE_WINDOWS = 1;
 
     public static class DataStorageInputStreamIterator extends InputStream {
         InputStream current;
@@ -534,5 +536,43 @@ public class FileLocalizer {
                 log.warn("Unable to delete output file on failure: " + elem.toString());
             }
     	}
+    }
+    /**
+     * Convert path from Windows convention to Unix convention. Invoked under
+     * cygwin.
+     * 
+     * @param path
+     *            path in Windows convention
+     * @return path in Unix convention, null if fail
+     */
+    static public String parseCygPath(String path, int style) {
+        String[] command; 
+        if (style==STYLE_WINDOWS)
+            command = new String[] { "cygpath", "-w", path };
+        else
+            command = new String[] { "cygpath", "-u", path };
+        Process p = null;
+        try {
+            p = Runtime.getRuntime().exec(command);
+        } catch (IOException e) {
+            return null;
+        }
+        int exitVal = 0;
+        try {
+            exitVal = p.waitFor();
+        } catch (InterruptedException e) {
+            return null;
+        }
+        if (exitVal != 0)
+            return null;
+        String line = null;
+        try {
+            InputStreamReader isr = new InputStreamReader(p.getInputStream());
+            BufferedReader br = new BufferedReader(isr);
+            line = br.readLine();
+        } catch (IOException e) {
+            return null;
+        }
+        return line;
     }
 }

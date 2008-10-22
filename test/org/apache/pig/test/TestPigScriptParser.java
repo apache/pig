@@ -36,7 +36,7 @@ public class TestPigScriptParser extends TestCase {
         // Start the real parsing job
         {
         	// Initial statement
-        	String query = String.format("A = LOAD '%s' ;", tempFile) ;
+        	String query = String.format("A = LOAD '%s' ;", Util.encodeEscape(tempFile)) ;
         	ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes()); 
         	QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp) ;
         	LogicalPlan lp = parser.Parse() ; 

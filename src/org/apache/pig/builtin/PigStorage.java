@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.commons.logging.LogFactory;
@@ -55,8 +56,14 @@ public class PigStorage extends Utf8StorageConverter
     private byte fieldDel = '\t';
     private ByteArrayOutputStream mBuf = null;
     private ArrayList<Object> mProtoTuple = null;
+    private int os;
+    private static final int OS_UNIX = 0;
+    private static final int OS_WINDOWS = 1;
     
     public PigStorage() {
+        os = OS_UNIX;
+        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+            os = OS_WINDOWS;
     }
 
     /**
@@ -67,6 +74,7 @@ public class PigStorage extends Utf8StorageConverter
      *            ("\t" is the default.)
      */
     public PigStorage(String delimiter) {
+        this();
         if (delimiter.length() == 1) {
             this.fieldDel = (byte)delimiter.charAt(0);
         } else if (delimiter.length() > 1 && delimiter.charAt(0) == '\\') {
@@ -214,7 +222,13 @@ public class PigStorage extends Utf8StorageConverter
             // TODO, once this can take schemas, we need to figure out
             // if the user requested this to be viewed as a certain
             // type, and if so, then construct it appropriately.
-            mProtoTuple.add(new DataByteArray(mBuf.toByteArray()));
+            byte[] array = mBuf.toByteArray();
+            if (array[array.length-1]=='\r' && os==OS_WINDOWS)
+                array = Arrays.copyOf(array, array.length-1);
+            if (array.length==0)
+                mProtoTuple.add(null);
+            else
+                mProtoTuple.add(new DataByteArray(array));
         }
         mBuf.reset();
     }

@@ -58,7 +58,7 @@ public class TestStore extends junit.framework.TestCase {
     @Before
     public void setUp() throws Exception {
         st = GenPhyOp.topStoreOp();
-        fSpec = new FileSpec("file:////tmp/storeTest.txt",
+        fSpec = new FileSpec("file:/tmp/storeTest.txt",
                       new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
         st.setSFile(fSpec);
         pc = new PigContext();

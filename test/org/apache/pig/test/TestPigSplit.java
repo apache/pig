@@ -90,7 +90,7 @@ public class TestPigSplit extends PigExecTestCase {
         }
         pw.close();
         
-        pigServer.registerQuery("a = load 'file:" + f + "';");
+        pigServer.registerQuery("a = load '" + Util.generateURI(f.toString()) + "';");
         pigServer.registerQuery("a = filter a by $0 == '1';");
 
         Iterator<Tuple> iter = pigServer.openIterator("a");

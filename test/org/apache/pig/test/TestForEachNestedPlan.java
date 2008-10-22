@@ -49,7 +49,7 @@ public class TestForEachNestedPlan extends TestCase {
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Running testInnerOrderBy with nullFlags set to :" + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
-            pig.registerQuery("a = load 'file:" + tmpFile + "'; ");
+            pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString()) + "'; ");
             pig.registerQuery("b = group a by $0; ");
             pig.registerQuery("c = foreach b { " + "     c1 = order $1 by *; "
                     + "    generate flatten(c1); " + "};");

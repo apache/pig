@@ -43,16 +43,16 @@ public class TestBZip extends TestCase {
             cos.write((-i + "\n").getBytes());
         }
         cos.close();
-        pig.registerQuery("AA=load 'file:" + in.getAbsolutePath() + "';");
+        pig.registerQuery("AA=load '" + Util.generateURI(in.getAbsolutePath()) + "';");
         pig.registerQuery("A=foreach (group (filter AA by $0 > 0) all) generate flatten($1);");
-        pig.store("A", "file:" + out.getAbsolutePath());
+        pig.store("A", Util.generateURI(out.getAbsolutePath()));
         CBZip2InputStream cis = new CBZip2InputStream(
                 new LocalSeekableInputStream(new File(out, "part-00000.bz")));
         // Just a sanity check, to make sure it was a bzip file; we
         // will do the value verification later
         assertEquals(100, cis.read(new byte[100]));
         cis.close();
-        pig.registerQuery("B=load 'file:" + out.getAbsolutePath() + "';");
+        pig.registerQuery("B=load '" + Util.generateURI(out.getAbsolutePath()) + "';");
         Iterator<Tuple> i = pig.openIterator("B");
         HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
         while (i.hasNext()) {
@@ -87,15 +87,15 @@ public class TestBZip extends TestCase {
         fos.write("55\n".getBytes());
         fos.close();
         System.out.println(in.getAbsolutePath());
-        pig.registerQuery("AA=load 'file:" + in.getAbsolutePath() + "';");
+        pig.registerQuery("AA=load '" + Util.generateURI(in.getAbsolutePath()) + "';");
         pig
                 .registerQuery("A=foreach (group (filter AA by $0 < '0') all) generate flatten($1);");
-        pig.store("A", "file:" + out.getAbsolutePath());
+        pig.store("A", Util.generateURI(out.getAbsolutePath()));
         CBZip2InputStream cis = new CBZip2InputStream(
                 new LocalSeekableInputStream(new File(out, "part-00000.bz")));
         assertEquals(-1, cis.read(new byte[100]));
         cis.close();
-        pig.registerQuery("B=load 'file:" + out.getAbsolutePath() + "';");
+        pig.registerQuery("B=load '" + Util.generateURI(out.getAbsolutePath()) + "';");
         pig.openIterator("B");
         in.delete();
         out.delete();

@@ -91,7 +91,7 @@ public class TestBestFitCast extends TestCase {
         //Passing (long, int)
         //Possible matches: (float, float) , (long, double)
         //Chooses (long, double) as it has only one cast compared to two for (float, float)
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "' as (x:long, y:int);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:long, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(x,y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");
@@ -110,7 +110,7 @@ public class TestBestFitCast extends TestCase {
         //Passing (int, int)
         //Possible matches: (float, float) , (long, double)
         //Throws Exception as ambiguous definitions found
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "' as (x:long, y:int);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:long, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(y,y);");
         try{
             pigServer.openIterator("B");
@@ -126,7 +126,7 @@ public class TestBestFitCast extends TestCase {
         //Passing (int, int)
         //Possible matches: (float, float) , (long, double)
         //Chooses (float, float) as both options lead to same score and (float, float) occurs first.
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "' as (x:long, y:int);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:long, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "((float)y,(float)y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");
@@ -145,7 +145,7 @@ public class TestBestFitCast extends TestCase {
         //Passing (long)
         //Possible matches: (float), (integer), (double)
         //Chooses (float) as it leads to a better score that to (double)
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "' as (x:long, y:int);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:long, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(x);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");
@@ -163,7 +163,7 @@ public class TestBestFitCast extends TestCase {
         //Passing bytearrays
         //Possible matches: (float, float) , (long, double)
         //Throws exception since more than one funcSpec and inp is bytearray
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
         pigServer.registerQuery("B = FOREACH A generate $0, " + UDF1.class.getName() + "($1,$1);");
         try{
             pigServer.openIterator("B");

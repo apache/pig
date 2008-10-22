@@ -192,7 +192,7 @@ public class DataType {
         case NULL:      return "NULL";
         case BOOLEAN:   return "boolean";
         case BYTE:      return "byte";
-        case INTEGER:   return "integer";
+        case INTEGER:   return "int";
         case LONG:      return "long";
         case FLOAT:     return "float";
         case DOUBLE:    return "double";

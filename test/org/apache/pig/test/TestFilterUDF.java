@@ -67,7 +67,7 @@ public class TestFilterUDF extends TestCase {
     @Test
     public void testFilterUDF() throws Exception{
         
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "' as (x:int);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:int);");
         pigServer.registerQuery("B = filter A by " + MyFilterFunction.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");

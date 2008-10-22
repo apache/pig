@@ -95,7 +95,7 @@ public class TestAlgebraicEval extends TestCase {
                 }
                 ps.close();                
             }
-            pig.registerQuery(" a = group (load 'file:" + tmpFile + "') by ($0,$1);");
+            pig.registerQuery(" a = group (load '" + Util.generateURI(tmpFile.toString()) + "') by ($0,$1);");
             pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
             Iterator<Tuple> it = pig.openIterator("b");
             int count = 0;
@@ -134,7 +134,7 @@ public class TestAlgebraicEval extends TestCase {
         
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             int numNulls = generateInput(ps, nullFlags[i]);
-            String query = "myid =  foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1);";
+            String query = "myid =  foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate COUNT($1);";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");
@@ -153,7 +153,7 @@ public class TestAlgebraicEval extends TestCase {
         
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             int numNulls = generateInput(ps, nullFlags[i]);
-            String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate group, COUNT($1) ;";
+            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate group, COUNT($1) ;";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");
@@ -171,7 +171,7 @@ public class TestAlgebraicEval extends TestCase {
             System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             int numNulls = generateInput(ps, nullFlags[i]);
-            String query = "myid = foreach (group (load 'file:" + tmpFile + "') all) generate COUNT($1), group ;";
+            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate COUNT($1), group ;";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");
@@ -210,7 +210,7 @@ public class TestAlgebraicEval extends TestCase {
                 }
             }         
             ps.close();
-            String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
+            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");
@@ -257,7 +257,7 @@ public class TestAlgebraicEval extends TestCase {
                 }
             }
             ps.close();
-            String query = "myid = foreach (group (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
+            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");

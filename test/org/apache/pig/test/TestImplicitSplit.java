@@ -36,7 +36,7 @@ public class TestImplicitSplit extends TestCase{
             ps.println(i);
         }
         ps.close();
-        pigServer.registerQuery("A = LOAD 'file:" + tmpFile + "';");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
         pigServer.registerQuery("B = filter A by $0<=10;");
         pigServer.registerQuery("C = filter A by $0>10;");
         pigServer.registerQuery("D = union B,C;");

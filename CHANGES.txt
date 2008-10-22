@@ -287,6 +287,12 @@ Trunk (unreleased changes)
 
     PIG-494: invalid handling of UTF-8 data in PigStorage (pradeepk via olgan)
 
+    PIG-501: Make branches/types work under cygwin (daijy via olgan)
+
+    PIG-504: cleanup illustrate not to produce cn= (shubham via olgan)
+
+    PIG-469: make sure that describe says "int" not "integer" (sms via olgan)
+
     PIG-495: projecting of bags only give 1 field (olgan)
 
     PIG-500: Load Func for POCast is not being set in some cases (sms via

@@ -80,7 +80,7 @@ public class TestLocalPOSplit extends TestCase {
 
         dat.close();
 
-        String query = "split (load '" + datFile.getAbsolutePath()
+        String query = "split (load '" + Util.encodeEscape(datFile.getAbsolutePath())
                 + "') into a if $0 == 2, b if $0 == 9, c if $0 == 7 ;";
 
         LogicalPlan plan = buildPlan(query);

@@ -7,6 +7,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOStore;
@@ -153,7 +154,11 @@ public class TestInputOutputFileValidator extends TestCase {
         ElementDescriptor localElem =
             ctx.getLfs().asElement(fp1.getAbsolutePath());           
             
-        ElementDescriptor distribElem = ctx.getDfs().asElement(fp1.getAbsolutePath()) ;
+        String path = fp1.getAbsolutePath();
+        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+            path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
+            
+        ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
     
         localElem.copy(distribElem, null, false);
             
@@ -163,8 +168,12 @@ public class TestInputOutputFileValidator extends TestCase {
     private String createHadoopNonExistenceTempFile(PigContext ctx) throws Throwable {
         
         File fp1 = generateTempFile() ;         
-            
-        ElementDescriptor distribElem = ctx.getDfs().asElement(fp1.getAbsolutePath()) ;
+         
+        String path = fp1.getAbsolutePath();
+        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+            path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
+        
+        ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
         
         if (distribElem.exists()) {
             distribElem.delete() ;

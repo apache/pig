@@ -386,10 +386,10 @@ public class Schema implements Serializable, Cloneable {
                 sb.append(")");
             }
 
-            if (canonicalName != null) {
-                sb.append(" cn: ");
-                sb.append(canonicalName);
-            }
+//            if (canonicalName != null) {
+//                sb.append(" cn: ");
+//                sb.append(canonicalName);
+//            }
 
             return sb.toString();
         }

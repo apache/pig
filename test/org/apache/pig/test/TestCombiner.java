@@ -78,8 +78,8 @@ public class TestCombiner extends TestCase {
             ps.println(line);
         }
         ps.close();
-        pig.registerQuery(loadAlias + " = load 'file:"
-                + inputFile + "' using "
+        pig.registerQuery(loadAlias + " = load '"
+                + Util.generateURI(inputFile.toString()) + "' using "
                 + PigStorage.class.getName() + "(',');");
     }
 

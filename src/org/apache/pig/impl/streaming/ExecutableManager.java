@@ -40,6 +40,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.streaming.InputHandler.InputType;
 import org.apache.pig.impl.streaming.OutputHandler.OutputType;
 
@@ -199,41 +200,6 @@ public class ExecutableManager {
     }
 
     /**
-     * Convert path from Windows convention to Unix convention. Invoked under
-     * cygwin.
-     * 
-     * @param path
-     *            path in Windows convention
-     * @return path in Unix convention, null if fail
-     */
-    private String parseCygPath(String path) {
-        String[] command = new String[] { "cygpath", "-u", path };
-        Process p = null;
-        try {
-            p = Runtime.getRuntime().exec(command);
-        } catch (IOException e) {
-            return null;
-        }
-        int exitVal = 0;
-        try {
-            exitVal = p.waitFor();
-        } catch (InterruptedException e) {
-            return null;
-        }
-        if (exitVal != 0)
-            return null;
-        String line = null;
-        try {
-            InputStreamReader isr = new InputStreamReader(p.getInputStream());
-            BufferedReader br = new BufferedReader(isr);
-            line = br.readLine();
-        } catch (IOException e) {
-            return null;
-        }
-        return line;
-    }
-
-    /**
      * Set up the run-time environment of the managed process.
      * 
      * @param pb
@@ -249,7 +215,7 @@ public class ExecutableManager {
                 .getProperty("user.dir");
 
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
-            String unixCwd = parseCygPath(cwd);
+            String unixCwd = FileLocalizer.parseCygPath(cwd, FileLocalizer.STYLE_UNIX);
             if (unixCwd == null)
                 throw new RuntimeException(
                         "Can not convert Windows path to Unix path under cygwin");

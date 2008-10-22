@@ -105,7 +105,11 @@ public class TestJobSubmission extends junit.framework.TestCase{
     public void setUp() throws Exception{
         curDir = System.getProperty("user.dir");
         inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+            inpDir="/"+FileLocalizer.parseCygPath(inpDir, FileLocalizer.STYLE_WINDOWS);
         golDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/GoldenFiles/";
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+            golDir="/"+FileLocalizer.parseCygPath(golDir, FileLocalizer.STYLE_WINDOWS);
     }
     
     @After

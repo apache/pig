@@ -74,7 +74,7 @@ public class TestCompressedFiles extends TestCase {
     @Test
     public void testCompressed1() throws Throwable {
         PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pig.registerQuery("A = foreach (cogroup (load 'file:"+gzFile+"') by $1, (load 'file:"+datFile + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
+        pig.registerQuery("A = foreach (cogroup (load '"+Util.generateURI(gzFile.toString())+"') by $1, (load '"+Util.generateURI(datFile.toString()) + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
         Iterator it = pig.openIterator("A");
         boolean success = true;
         while(it.hasNext()) {

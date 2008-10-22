@@ -93,7 +93,19 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
         outDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/OutputFiles/";
         golDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/GoldenFiles/";
+        inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
+        
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+            inpDir="/"+FileLocalizer.parseCygPath(inpDir, FileLocalizer.STYLE_WINDOWS);
+        
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+            golDir="/"+FileLocalizer.parseCygPath(golDir, FileLocalizer.STYLE_WINDOWS);
+        
         File f = new File(outDir);
+        
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+            outDir="/"+FileLocalizer.parseCygPath(outDir, FileLocalizer.STYLE_WINDOWS);
+        
         boolean didMakeDir = f.mkdirs();
         /*if(!didMakeDir)
             throw new Exception("Could not Create Directory " + outDir);*/

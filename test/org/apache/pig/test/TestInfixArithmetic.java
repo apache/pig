@@ -63,7 +63,7 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
+            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
             log.info(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("A");
@@ -92,7 +92,7 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
+            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
             log.info(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("A");
@@ -119,7 +119,7 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
+            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
             log.info(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("A");
@@ -146,7 +146,7 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load 'file:" + tmpFile + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1 ;";
+            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1 ;";
             log.info(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("A");

@@ -59,6 +59,8 @@ public class TextLoader implements LoadFunc{
             return null;
         String line;
         if ((line = in.readLine(utf8, (byte)'\n')) != null) {
+            if (line.length()>0 && line.charAt(line.length()-1)=='\r' && System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+                line = line.substring(0, line.length()-1);
             return mTupleFactory.newTuple(new DataByteArray(line.getBytes()));
         }
         return null;
