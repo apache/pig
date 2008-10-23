@@ -374,3 +374,6 @@ Release 0.1.0 - Unreleased
 
 	PIG-476: Added DateExtractor, a piggybank eval func that extracts a date
 	from a string (spackest via gates).
+
+	PIG-503: Changed default date format for DateExtractor (spackest via
+	gates).
