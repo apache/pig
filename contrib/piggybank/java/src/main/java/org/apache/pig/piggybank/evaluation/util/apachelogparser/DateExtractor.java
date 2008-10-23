@@ -23,7 +23,7 @@ import org.apache.pig.data.Tuple;
 
 /**
  * DateExtractor has three different constructors which each allow for different functionality. The
- * incomingDateFormat (MM-dd-yyyy by default) is used to match the date string that gets passed in from the
+ * incomingDateFormat (yyyy-MM-dd by default) is used to match the date string that gets passed in from the
  * log. The outgoingDateFormat (dd/MMM/yyyy:HH:mm:ss Z by default) is used to format the returned string.
  * 
  * Different constructors exist for each combination; please use the appropriate respective constructor.
@@ -34,13 +34,13 @@ import org.apache.pig.data.Tuple;
  * 
  * From pig latin you will need to use aliases to use a non-default format, like
  * 
- * define MyDateExtractor org.apache.pig.piggybank.evaluation.util.apachelogparser.DateExtractor("MM-yyyy");
+ * define MyDateExtractor org.apache.pig.piggybank.evaluation.util.apachelogparser.DateExtractor("yyyy-MM");
  * 
  * A = FOREACH row GENERATE DateExtractor(dayTime);
  */
 public class DateExtractor extends EvalFunc<DataAtom> {
     private static SimpleDateFormat DEFAULT_INCOMING_DATE_FORMAT = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss Z");
-    private static SimpleDateFormat DEFAULT_OUTGOING_DATE_FORMAT = new SimpleDateFormat("MM-dd-yyyy");
+    private static SimpleDateFormat DEFAULT_OUTGOING_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
     private SimpleDateFormat incomingDateFormat;
     private SimpleDateFormat outgoingDateFormat;
@@ -85,8 +85,7 @@ public class DateExtractor extends EvalFunc<DataAtom> {
         try {
             date = incomingDateFormat.parse(incomingDateString);
         } catch (ParseException e) {
-            System.err.println("Unable to parse incoming date string " +
-                incomingDateString + ", " + e.getMessage());
+            System.err.println("Unable to parse incoming date string " + incomingDateString + ", " + e.getMessage());
             return;
         }
 

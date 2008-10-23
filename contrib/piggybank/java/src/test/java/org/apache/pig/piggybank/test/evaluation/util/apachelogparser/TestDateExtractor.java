@@ -36,7 +36,7 @@ public class TestDateExtractor extends TestCase {
         Tuple input = new Tuple(new DataAtom("20/Sep/2008:23:53:04 -0600"));
         DataAtom output = new DataAtom();
         dayExtractor.exec(input, output);
-        assertEquals("09-20-2008", output.toString());
+        assertEquals("2008-09-20", output.toString());
     }
 
     @Test
@@ -51,7 +51,7 @@ public class TestDateExtractor extends TestCase {
         input = new Tuple(new DataAtom("20/Sep/2008:23:53:04 -0600"));
         output = new DataAtom();
         dayExtractor.exec(input, output);
-        assertEquals("09-20-2008", output.toString());
+        assertEquals("2008-09-20", output.toString());
     }
 
     @Test
