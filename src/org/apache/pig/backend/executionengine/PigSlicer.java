@@ -29,6 +29,7 @@ import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Creates a slice per block size element in all files at location. If location
@@ -71,18 +72,21 @@ public class PigSlicer implements Slicer {
             if (fullPath.systemElement()) {
                 continue;
             }
-            if (fullPath instanceof ContainerDescriptor) {
-                for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
-                    paths.add(child);
+            try {
+                if (fullPath instanceof ContainerDescriptor) {
+                    for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
+                        paths.add(child);
+                    }
+                    continue;
                 }
-                continue;
+            } catch (Exception e) { 
+                throw WrappedIOException.wrap(e);
             }
             Map<String, Object> stats = fullPath.getStatistics();
             long bs = (Long) (stats.get(ElementDescriptor.BLOCK_SIZE_KEY));
             long size = (Long) (stats.get(ElementDescriptor.LENGTH_KEY));
             long pos = 0;
             String name = fullPath.toString();
-            // System.out.println(size + " " + name);
             if (name.endsWith(".gz") || !splittable) {
                 // Anything that ends with a ".gz" we must process as a complete
                 // file
