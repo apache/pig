@@ -84,6 +84,10 @@ public class POPackage extends PhysicalOperator {
     //on a particular input
     boolean[] inner;
     
+    // flag to denote whether there is a distinct
+    // leading to this package
+    protected boolean distinct = false;
+    
     // A mapping of input index to key information got from LORearrange
     // for that index. The Key information is a pair of boolean, Map.
     // The boolean indicates whether there is a lone project(*) in the 
@@ -182,97 +186,36 @@ public class POPackage extends PhysicalOperator {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        //Create numInputs bags
-        DataBag[] dbs = null;
-        if (numInputs > 0) {
+        Tuple res;
+        if(distinct) {
+            // only set the key which has the whole
+            // tuple 
+            res = mTupleFactory.newTuple(1);
+            res.set(0, key);
+        } else {
+            //Create numInputs bags
+            DataBag[] dbs = null;
             dbs = new DataBag[numInputs];
             for (int i = 0; i < numInputs; i++) {
                 dbs[i] = mBagFactory.newDefaultBag();
             }
-        }
-        
-        //For each indexed tup in the inp, sort them
-        //into their corresponding bags based
-        //on the index
-        while (tupIter.hasNext()) {
-            NullableTuple ntup = tupIter.next();
-            // Need to make a copy of the value, as hadoop uses the same ntup
-            // to represent each value.
-            Tuple val = (Tuple)ntup.getValueAsPigType();
-            /*
-            Tuple copy = mTupleFactory.newTuple(val.size());
-            for (int i = 0; i < val.size(); i++) {
-                copy.set(i, val.get(i));
-            }
-            */
             
-            Tuple copy = null;
-            // The "value (val)" that we just got may not
-            // be the complete "value". It may have some portions
-            // in the "key" (look in POLocalRearrange for more comments)
-            // If this is the case we need to stitch
-            // the "value" together.
-            int index = ntup.getIndex();
-            Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
-                keyInfo.get(index);
-            boolean isProjectStar = lrKeyInfo.first;
-            Map<Integer, Integer> keyLookup = lrKeyInfo.second;
-            int keyLookupSize = keyLookup.size();
-
-            if( keyLookupSize > 0) {
-            
-                // we have some fields of the "value" in the
-                // "key".
-                copy = mTupleFactory.newTuple();
-                int finalValueSize = keyLookupSize + val.size();
-                int valIndex = 0; // an index for accessing elements from 
-                                  // the value (val) that we have currently
-                for(int i = 0; i < finalValueSize; i++) {
-                    Integer keyIndex = keyLookup.get(i);
-                    if(keyIndex == null) {
-                        // the field for this index is not in the
-                        // key - so just take it from the "value"
-                        // we were handed
-                        copy.append(val.get(valIndex));
-                        valIndex++;
-                    } else {
-                        // the field for this index is in the key
-                        if(isKeyTuple) {
-                            // the key is a tuple, extract the
-                            // field out of the tuple
-                            copy.append(keyAsTuple.get(keyIndex));
-                        } else {
-                            copy.append(key);
-                        }
-                    }
-                }
-                
-            } else if (isProjectStar) {
-                
-                log.info("In project star, keyAsTuple:" + keyAsTuple);
-                // the whole "value" is present in the "key"
-                copy = mTupleFactory.newTuple(keyAsTuple.getAll());
-                
-            } else {
-                
-                // there is no field of the "value" in the
-                // "key" - so just make a copy of what we got
-                // as the "value"
-                copy = mTupleFactory.newTuple(val.getAll());
-                
+            //For each indexed tup in the inp, sort them
+            //into their corresponding bags based
+            //on the index
+            while (tupIter.hasNext()) {
+                NullableTuple ntup = tupIter.next();
+                int index = ntup.getIndex();
+                Tuple copy = getValueTuple(ntup, index);            
+                dbs[index].add(copy);
+                if(reporter!=null) reporter.progress();
             }
             
-            if (numInputs > 0) dbs[index].add(copy);
-            if(reporter!=null) reporter.progress();
-        }
-        
-        //Construct the output tuple by appending
-        //the key and all the above constructed bags
-        //and return it.
-        Tuple res;
-        res = mTupleFactory.newTuple(numInputs+1);
-        res.set(0,key);
-        if (numInputs > 0) {
+            //Construct the output tuple by appending
+            //the key and all the above constructed bags
+            //and return it.
+            res = mTupleFactory.newTuple(numInputs+1);
+            res.set(0,key);
             int i=-1;
             for (DataBag bag : dbs) {
                 if(inner[++i]){
@@ -293,6 +236,73 @@ public class POPackage extends PhysicalOperator {
         return r;
     }
 
+    protected Tuple getValueTuple(NullableTuple ntup, int index) throws ExecException {
+     // Need to make a copy of the value, as hadoop uses the same ntup
+        // to represent each value.
+        Tuple val = (Tuple)ntup.getValueAsPigType();
+        /*
+        Tuple copy = mTupleFactory.newTuple(val.size());
+        for (int i = 0; i < val.size(); i++) {
+            copy.set(i, val.get(i));
+        }
+        */
+        
+        Tuple copy = null;
+        // The "value (val)" that we just got may not
+        // be the complete "value". It may have some portions
+        // in the "key" (look in POLocalRearrange for more comments)
+        // If this is the case we need to stitch
+        // the "value" together.
+        Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
+            keyInfo.get(index);
+        boolean isProjectStar = lrKeyInfo.first;
+        Map<Integer, Integer> keyLookup = lrKeyInfo.second;
+        int keyLookupSize = keyLookup.size();
+
+        if( keyLookupSize > 0) {
+        
+            // we have some fields of the "value" in the
+            // "key".
+            copy = mTupleFactory.newTuple();
+            int finalValueSize = keyLookupSize + val.size();
+            int valIndex = 0; // an index for accessing elements from 
+                              // the value (val) that we have currently
+            for(int i = 0; i < finalValueSize; i++) {
+                Integer keyIndex = keyLookup.get(i);
+                if(keyIndex == null) {
+                    // the field for this index is not in the
+                    // key - so just take it from the "value"
+                    // we were handed
+                    copy.append(val.get(valIndex));
+                    valIndex++;
+                } else {
+                    // the field for this index is in the key
+                    if(isKeyTuple) {
+                        // the key is a tuple, extract the
+                        // field out of the tuple
+                        copy.append(keyAsTuple.get(keyIndex));
+                    } else {
+                        copy.append(key);
+                    }
+                }
+            }
+            
+        } else if (isProjectStar) {
+            
+            // the whole "value" is present in the "key"
+            copy = mTupleFactory.newTuple(keyAsTuple.getAll());
+            
+        } else {
+            
+            // there is no field of the "value" in the
+            // "key" - so just make a copy of what we got
+            // as the "value"
+            copy = mTupleFactory.newTuple(val.getAll());
+            
+        }
+        return copy;
+    }
+    
     public byte getKeyType() {
         return keyType;
     }
@@ -338,6 +348,20 @@ public class POPackage extends PhysicalOperator {
      */
     public Map<Integer, Pair<Boolean, Map<Integer, Integer>>> getKeyInfo() {
         return keyInfo;
+    }
+
+    /**
+     * @return the distinct
+     */
+    public boolean isDistinct() {
+        return distinct;
+    }
+
+    /**
+     * @param distinct the distinct to set
+     */
+    public void setDistinct(boolean distinct) {
+        this.distinct = distinct;
     }
 
 

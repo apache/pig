@@ -301,3 +301,5 @@ Trunk (unreleased changes)
     PIG-499: parser issue with as (sms via olgan)
 
     PIG-507: permission error not reported (pradeepk via olgan)
+
+    PIG-508: problem with double joins (pradeepk via olgan)

@@ -49,6 +49,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Pair;
 
 import junit.framework.TestCase;
 
@@ -658,5 +659,38 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(Long.class, t.get(1).getClass());
         assertEquals(1, t.get(2));
         assertEquals(Integer.class, t.get(2).getClass());
+    }
+    
+    @Test
+    public void testCogroupWithInputFromGroup() throws IOException, ExecException {
+        // Create input file with ascii data
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"pigtester\t10\t1.2", "pigtester\t15\t1.2", 
+                "pigtester2\t10\t1.2",
+                "pigtester3\t10\t1.2", "pigtester3\t20\t1.2", "pigtester3\t30\t1.2"});
+        
+        Map<String, Pair<Long, Long>> resultMap = new HashMap<String, Pair<Long, Long>>();
+        // we will in essence be doing a group on first column and getting
+        // SUM over second column and a count for the group - store
+        // the results for the three groups above so we can check the output
+        resultMap.put("pigtester", new Pair<Long, Long>(25L, 2L));
+        resultMap.put("pigtester2", new Pair<Long, Long>(10L, 1L));
+        resultMap.put("pigtester3", new Pair<Long, Long>(60L, 3L));
+        
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+                "as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("b = group a by name;");
+        pigServer.registerQuery("c = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+        "as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("d = cogroup b by group, c by name;");
+        pigServer.registerQuery("e = foreach d generate flatten(group), SUM(c.age), COUNT(c.name);");
+        Iterator<Tuple> it = pigServer.openIterator("e");
+        for(int i = 0; i < resultMap.size(); i++) {
+            Tuple t = it.next();
+            assertEquals(true, resultMap.containsKey(t.get(0)));
+            Pair<Long, Long> output = resultMap.get(t.get(0)); 
+            assertEquals(output.first, t.get(1));
+            assertEquals(output.second, t.get(2));
+        }
     }
 }

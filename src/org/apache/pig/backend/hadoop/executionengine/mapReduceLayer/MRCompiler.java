@@ -809,7 +809,8 @@ public class MRCompiler extends PhyPlanVisitor {
             
             POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
             pkg.setKeyType(DataType.TUPLE);
-            pkg.setNumInps(0);
+            pkg.setDistinct(true);
+            pkg.setNumInps(1);
             boolean[] inner = {false}; 
             pkg.setInner(inner);
             curMROp.reducePlan.add(pkg);
