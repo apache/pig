@@ -377,3 +377,5 @@ Release 0.1.0 - Unreleased
 
 	PIG-503: Changed default date format for DateExtractor (spackest via
 	gates).
+
+    move to hadoop
