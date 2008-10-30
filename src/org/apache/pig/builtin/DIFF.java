@@ -18,7 +18,9 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -33,8 +35,6 @@ import org.apache.pig.data.TupleFactory;
  * will emit any Tuples that are in on of the DataBags but not the other. If the
  * fields are values, it will emit tuples with values that do not match.
  * 
- * @author breed
- *
  */
 public class DIFF extends EvalFunc<DataBag> {
     TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -78,48 +78,20 @@ public class DIFF extends EvalFunc<DataBag> {
             DataBag bag1,
             DataBag bag2,
             DataBag emitTo) {
-        // Create two distinct versions of the bag.  This will speed up
-        // comparison, and provide us a sorted order so we don't have to do
-        // an n^2 lookup.
-        DataBag d1 = mBagFactory.newDistinctBag();
-        DataBag d2 = mBagFactory.newDistinctBag();
-        Iterator<Tuple> i1 = d1.iterator();
-        Iterator<Tuple> i2 = d2.iterator();
-        while (i1.hasNext()) d1.add(i1.next());
-        while (i2.hasNext()) d2.add(i2.next());
+        // Build two hash tables and probe with first one, then the other.
+        // This does make the assumption that the distinct set of keys from
+        // each bag will fit in memory.
+        Set<Tuple> s1 = new HashSet<Tuple>();
+        Iterator<Tuple> i1 = bag1.iterator();
+        while (i1.hasNext()) s1.add(i1.next());
 
-        i1 = d1.iterator();
-        i2 = d2.iterator();
+        Set<Tuple> s2 = new HashSet<Tuple>();
+        Iterator<Tuple> i2 = bag2.iterator();
+        while (i2.hasNext()) s2.add(i2.next());
 
-        Tuple t1 = i1.next();
-        Tuple t2 = i2.next();
+        for (Tuple t : s1) if (!s2.contains(t)) emitTo.add(t);
+        for (Tuple t : s2) if (!s1.contains(t)) emitTo.add(t);
 
-        while (i1.hasNext() && i2.hasNext()) {
-            int c = t1.compareTo(t2);
-
-            if (c < 0) {
-                // place t1 in the result bag and advance i1
-                emitTo.add(t1);
-                t1 = i1.next();
-            } else if (c > 0) {
-                // place t2 in the result bag and advance i2
-                emitTo.add(t2);
-                t2 = i2.next();
-            } else if (c == 0) {
-                // put neither in the result bag, advance both iterators
-                t1 = i1.next();
-                t2 = i2.next();
-            }
-        }
-
-        // One ran out, put all the rest of the other (if there are any) in
-        // the result bag.
-        while (i1.hasNext()) {
-            emitTo.add(i1.next());
-        }
-        while (i2.hasNext()) {
-            emitTo.add(i2.next());
-        }
     }
     
     

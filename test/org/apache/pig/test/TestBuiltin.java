@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -889,6 +890,44 @@ public class TestBuiltin extends TestCase {
         Tuple f2 = lfunc.getNext();
         
         assertTrue(f1.equals(f2));        
+    }
+
+    @Test
+    public void testDIFF() throws Exception {
+        // Test it in the case with two bags.
+        BagFactory bf = BagFactory.getInstance();
+        TupleFactory tf = TupleFactory.getInstance();
+
+        DataBag b1 = bf.newDefaultBag();
+        DataBag b2 = bf.newDefaultBag();
+        for (int i = 0; i < 10; i++) b1.add(tf.newTuple(new Integer(i)));
+        for (int i = 0; i < 10; i += 2) b2.add(tf.newTuple(new Integer(i)));
+        Tuple t = tf.newTuple(2);
+        t.set(0, b1);
+        t.set(1, b2);
+        DIFF d = new DIFF();
+        DataBag result = d.exec(t);
+
+        assertEquals(5, result.size());
+        Iterator<Tuple> i = result.iterator();
+        int[] values = new int[5];
+        for (int j = 0; j < 5; j++) values[j] = (Integer)i.next().get(0);
+        Arrays.sort(values);
+        for (int j = 1; j < 10; j += 2) assertEquals(j, values[j/2]);
+
+        // Test it in the case of two objects that are equals
+        t = tf.newTuple(2);
+        t.set(0, new Integer(1));
+        t.set(1, new Integer(1));
+        result = d.exec(t);
+        assertEquals(0, result.size());
+
+        // Test it in the case of two objects that are not equal
+        t = tf.newTuple(2);
+        t.set(0, new Integer(1));
+        t.set(1, new Integer(2));
+        result = d.exec(t);
+        assertEquals(2, result.size());
     }
     
     private static String getInputType(String typeFor) {
