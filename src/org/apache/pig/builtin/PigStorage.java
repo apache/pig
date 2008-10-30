@@ -223,8 +223,15 @@ public class PigStorage extends Utf8StorageConverter
             // if the user requested this to be viewed as a certain
             // type, and if so, then construct it appropriately.
             byte[] array = mBuf.toByteArray();
-            if (array[array.length-1]=='\r' && os==OS_WINDOWS)
-                array = Arrays.copyOf(array, array.length-1);
+            if (array[array.length-1]=='\r' && os==OS_WINDOWS) {
+                // This is a java 1.6 function.  Until pig officially moves to
+                // 1.6 we can't use this.
+                // array = Arrays.copyOf(array, array.length-1);
+                byte[] tmp = new byte[array.length - 1];
+                for (int i = 0; i < array.length - 1; i++) tmp[i] = array[i];
+                array = tmp;
+            }
+                
             if (array.length==0)
                 mProtoTuple.add(null);
             else
