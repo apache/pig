@@ -379,3 +379,6 @@ Release 0.1.0 - Unreleased
 	gates).
 
     move to hadoop
+
+	PIG-509: Added CombinedLogLoader, loads logs that were created using
+	Apache's combined log format (spackest via gates).
