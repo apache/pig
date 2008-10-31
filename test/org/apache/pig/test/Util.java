@@ -18,6 +18,8 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -166,7 +168,7 @@ public class Util {
 	throws IOException {
 		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
         f.deleteOnExit();
-		PrintWriter pw = new PrintWriter(f);
+		PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"));
 		for (int i=0; i<inputData.length; i++){
 			pw.println(inputData[i]);
 		}

@@ -693,4 +693,18 @@ public class TestEvalPipeline extends TestCase {
             assertEquals(output.second, t.get(2));
         }
     }
+    
+    @Test
+    public void testUtf8Dump() throws IOException, ExecException {
+        
+        // Create input file with unicode data
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"wendyξ"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
+        "as (name:chararray);");
+        Iterator<Tuple> it = pigServer.openIterator("a");
+        Tuple t = it.next();
+        assertEquals("wendyξ", t.get(0));
+        
+    }
 }

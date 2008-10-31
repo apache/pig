@@ -303,3 +303,6 @@ Trunk (unreleased changes)
     PIG-507: permission error not reported (pradeepk via olgan)
 
     PIG-508: problem with double joins (pradeepk via olgan)
+
+    PIG-497: problems with UTF8 handling in BinStorage (pradeepk via olgan)
+

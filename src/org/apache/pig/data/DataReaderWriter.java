@@ -105,12 +105,8 @@ public class DataReaderWriter {
                 return new DataByteArray(ba);
                                      }
 
-            case DataType.CHARARRAY: {
-                int size = in.readInt();
-                byte[] ba = new byte[size];
-                in.readFully(ba);
-                return new String(ba);
-                                     }
+            case DataType.CHARARRAY:
+                return in.readUTF();
 
             case DataType.NULL:
                 return null;
@@ -194,9 +190,7 @@ public class DataReaderWriter {
 
             case DataType.CHARARRAY: {
                 out.writeByte(DataType.CHARARRAY);
-                String s = (String)val;
-                out.writeInt(s.length());
-                out.writeBytes(s);
+                out.writeUTF((String)val);
                 break;
                                      }
 
