@@ -518,6 +518,7 @@ public class Schema implements Serializable, Cloneable {
                                                      otherTakesAliasPrecedence, allowMergeableTypes);
                 } else {
                     mergedSubSchema = otherFs.schema;
+                    setSchemaDefaultType(mergedSubSchema, DataType.BYTEARRAY);
                 }
                 // create the merged field
                 try {
@@ -528,6 +529,22 @@ public class Schema implements Serializable, Cloneable {
             }
             return mergedFs;
         }
+
+        /**
+         * Recursively set NULL type to the specifid type 
+         * @param fs the field schema whose NULL type has to be set 
+         * @param t the specified type
+         */
+        public static void setFieldSchemaDefaultType(Schema.FieldSchema fs, byte t) {
+            if(null == fs) return;
+            if(DataType.NULL == fs.type) {
+                fs.type = t;
+            }
+            if(DataType.isSchemaType(fs.type)) {
+                setSchemaDefaultType(fs.schema, t);
+            }
+        }
+
         
         private boolean isNullOrUnknownType(FieldSchema fs) {
             return (fs.type == DataType.NULL || fs.type == DataType.UNKNOWN);
@@ -1421,6 +1438,18 @@ public class Schema implements Serializable, Cloneable {
         return new Schema(outputList) ;
     }
 
+    /**
+     * Recursively set NULL type to the specifid type in a schema
+     * @param schema the schema whose NULL type has to be set 
+     * @param t the specified type
+     */
+    public static void setSchemaDefaultType(Schema s, byte t) {
+        if(null == s) return;
+        for(Schema.FieldSchema fs: s.getFields()) {
+            FieldSchema.setFieldSchemaDefaultType(fs, t);
+        }
+    }
+    
 }
 
 

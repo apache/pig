@@ -156,7 +156,7 @@ public class TestTypeCheckingValidator extends TestCase {
     }
 
     @Test
-    public void testExpressionTypeChecking2Fail() throws Throwable {
+    public void testExpressionTypeChecking2() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), 10) ;
         constant1.setType(DataType.INTEGER) ;
@@ -194,18 +194,25 @@ public class TestTypeCheckingValidator extends TestCase {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         
-        try {
-            typeValidator.validate(plan, collector) ;
-        } catch (PlanValidationException pve) {
-            // good
-        }
+        typeValidator.validate(plan, collector) ;
         
         printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
-        if (!collector.hasError()) {
-            throw new Exception("Error expected during type checking") ;
+        if (collector.hasError()) {
+            throw new Exception("Error not expected during type checking") ;
         }       
+
+
+        // Induction check   
+        assertEquals(DataType.INTEGER, sub1.getType()) ;    
+        assertEquals(DataType.BOOLEAN, gt1.getType()) ;     
+        assertEquals(DataType.BOOLEAN, and1.getType()) ;    
+        assertEquals(DataType.BOOLEAN, not1.getType()) ;    
+
+        // Cast insertion check     
+        assertEquals(DataType.INTEGER, sub1.getRhsOperand().getType()) ;    
+        assertEquals(DataType.LONG, gt1.getLhsOperand().getType()) ;
         
     }
     
@@ -787,7 +794,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
     // Positive case with cast insertion
     @Test
-    public void testRegexTypeChecking2Fail() throws Throwable {
+    public void testRegexTypeChecking2() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         LOConst constant1 = new LOConst(plan, genNewOperatorKey(), new DataByteArray()) ;
         constant1.setType(DataType.BYTEARRAY) ;
@@ -802,21 +809,25 @@ public class TestTypeCheckingValidator extends TestCase {
 
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-        try {
-            typeValidator.validate(plan, collector) ;
-        } catch (PlanValidationException pve) {
-            // good
-        }
+        typeValidator.validate(plan, collector) ;
         printMessageCollector(collector) ;
 
         printTypeGraph(plan) ;
 
         // After type checking
 
-        if (!collector.hasError()) {
-            throw new Exception("Error expected during type checking") ;
+        if (collector.hasError()) {
+            throw new Exception("Error not expected during type checking") ;
         }       
         
+        // check type
+        System.out.println(DataType.findTypeName(regex.getType())) ;
+        assertEquals(DataType.BOOLEAN, regex.getType()) ;
+                                         
+        // check wiring      
+        LOCast cast = (LOCast) regex.getOperand() ;      
+        assertEquals(cast.getType(), DataType.CHARARRAY);    
+        assertEquals(cast.getExpression(), constant1) ;
     }
 
         // Negative case
@@ -3573,6 +3584,8 @@ public class TestTypeCheckingValidator extends TestCase {
 
     }
 
+    // The following test is commented out with PIG-505
+    /*
     @Test
     public void testCogroupUDFLineageFail() throws Throwable {
         planTester.buildPlan("a = load 'a' using BinStorage() as (field1, field2: float, field3: chararray );") ;
@@ -3602,6 +3615,7 @@ public class TestTypeCheckingValidator extends TestCase {
         }
 
     }
+    */
 
     @Test
     public void testCogroupLineage2NoSchema() throws Throwable {

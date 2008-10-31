@@ -262,6 +262,44 @@ public class TestEvalPipeline extends TestCase {
         }
     }
     
+    static public class MapUDF extends EvalFunc<Map<Object, Object>> {
+        @Override
+        public Map<Object, Object> exec(Tuple input) throws IOException {
+
+            TupleFactory tupleFactory = TupleFactory.getInstance();
+            ArrayList<Object> objList = new ArrayList<Object>();
+            objList.add(new Integer(1));
+            objList.add(new Double(1.0));
+            objList.add(new Float(1.0));
+            objList.add(new String("World!"));
+            Tuple tuple = tupleFactory.newTuple(objList);
+
+            BagFactory bagFactory = BagFactory.getInstance();
+            DataBag bag = bagFactory.newDefaultBag();
+            bag.add(tuple);
+
+            Map<Object, Object> mapInMap = new HashMap<Object, Object>();
+            mapInMap.put("int", new Integer(10));
+            mapInMap.put("float", new Float(10.0));
+
+            Map<Object, Object> myMap = new HashMap<Object, Object>();
+            myMap.put("string", new String("Hello"));
+            myMap.put("int", new Integer(1));
+            myMap.put("long", new Long(1));
+            myMap.put("float", new Float(1.0));
+            myMap.put("double", new Double(1.0));
+            myMap.put("dba", new DataByteArray(new String("bytes").getBytes()));
+            myMap.put("map", mapInMap);
+            myMap.put("tuple", tuple);
+            myMap.put("bag", bag);
+            return myMap; 
+        }
+
+        public Schema outputSchema(Schema input) {
+            return new Schema(new Schema.FieldSchema(null, DataType.MAP));
+        }
+    }
+    
     
     @Test
     public void testBagFunctionWithFlattening() throws Exception{
@@ -707,4 +745,76 @@ public class TestEvalPipeline extends TestCase {
         assertEquals("wendyξ", t.get(0));
         
     }
+
+    public void testMapUDF() throws Exception{
+        int LOOP_COUNT = 2;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = foreach A generate " + MapUDF.class.getName() + "($0) as mymap;"); //the argument does not matter
+        String query = "C = foreach B {"
+        + "generate (double)mymap#'double' as d, (long)mymap#'long' + (float)mymap#'float' as float_sum, CONCAT((chararray) mymap#'string', ' World!'), mymap#'int' * 10, (bag{tuple()}) mymap#'bag' as mybag, (tuple()) mymap#'tuple' as mytuple, (map[])mymap#'map' as mapInMap, mymap#'dba' as dba;"
+        + "};";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertEquals(1.0, (Double)t.get(0), 0.01);
+            assertEquals(2.0, (Float)t.get(1), 0.01);
+            assertTrue(((String)t.get(2)).equals("Hello World!"));
+            assertEquals(new Integer(10), (Integer)t.get(3));
+            assertEquals(1, ((DataBag)t.get(4)).size());
+            assertEquals(4, ((Tuple)t.get(5)).size());
+            assertEquals(2, ((Map<Object, Object>)t.get(6)).size());
+            assertEquals(DataByteArray.class, t.get(7).getClass());
+            assertEquals(8, t.size());
+            ++numIdentity;
+        }
+        assertEquals(LOOP_COUNT * LOOP_COUNT, numIdentity);
+    }
+
+    public void testMapUDFFail() throws Exception{
+        int LOOP_COUNT = 2;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = foreach A generate " + MapUDF.class.getName() + "($0) as mymap;"); //the argument does not matter
+        String query = "C = foreach B {"
+        + "generate mymap#'dba' * 10;"
+        + "};";
+
+        pigServer.registerQuery(query);
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+            fail("Error expected.");
+        } catch (Exception e) {
+            e.getMessage().contains("Cannot determine");
+        }
+    }
+
 }

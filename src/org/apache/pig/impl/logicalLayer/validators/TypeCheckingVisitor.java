@@ -1500,7 +1500,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             binCond.setType(lhsType);
         }
         else {
-            String msg = "Unsupported input type for BinCond: lhs = " + lhsType + "; rhs = " + rhsType;
+            String msg = "Unsupported input type for BinCond: lhs = " + DataType.findTypeName(lhsType) + "; rhs = " + DataType.findTypeName(rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
             throw new VisitorException(msg) ;
         }
@@ -1616,13 +1616,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         if(inputType == DataType.BYTEARRAY) {
             try {
                 LoadFunc loadFunc = getLoadFunc(cast.getExpression());
-                if((null == loadFunc) && (expectedType != DataType.BYTEARRAY)) {
-                    String msg = "Internal error. Could not resolve load function to use for casting from " + 
-                                DataType.findTypeName(inputType) + " to " +
-                                DataType.findTypeName(expectedType) + ". Found null.";
-                    msgCollector.collect(msg, MessageType.Error);
-                    throw new VisitorException(msg); 
-                }
                 cast.setLoadFunc(loadFunc);
             } catch (FrontendException fee) {
                 String msg = "Cannot resolve load function to use for casting from " + 
@@ -1900,19 +1893,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         checkInnerPlan(comparisonPlan) ;
               
-
-        /*
-        try {
-            System.err.println("Filter inner plan typechecked");
-            LOPrinter lv = new LOPrinter(System.err, comparisonPlan);
-            lv.visit();
-            System.err.println();
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            e.printStackTrace();
-        }
-        */
-        
         byte innerCondType = comparisonPlan.getLeaves().get(0).getType() ;
         if (innerCondType != DataType.BOOLEAN) {
             String msg = "Filter's condition must evaluate to boolean. Found: " + DataType.findTypeName(innerCondType);
@@ -2605,7 +2585,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
         if(op instanceof ExpressionOperator) {
             if(op instanceof LOUserFunc) {
-                throw new FrontendException("Found a user defined function. Cannot determine the load function to use");
+                return null;
             }
             
             Schema.FieldSchema fs = ((ExpressionOperator)op).getFieldSchema();

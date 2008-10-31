@@ -1706,7 +1706,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
         QueryParser queryParser = new QueryParser(stream) ;
         Schema schema = queryParser.TupleSchema() ;
-        QueryParser.SchemaUtils.setSchemaDefaultType(schema, defaultType);
+        Schema.setSchemaDefaultType(schema, defaultType);
         return schema;
     }
 

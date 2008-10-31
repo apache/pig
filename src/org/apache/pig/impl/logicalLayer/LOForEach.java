@@ -273,7 +273,7 @@ public class LOForEach extends LogicalOperator {
                                         newFs.setParent(null, op);
                                     } else {
                                         for(Schema.FieldSchema ufs: userDefinedSchema.getFields()) {
-                                            QueryParser.SchemaUtils.setFieldSchemaDefaultType(ufs, DataType.BYTEARRAY);
+                                            Schema.FieldSchema.setFieldSchemaDefaultType(ufs, DataType.BYTEARRAY);
                                             newFs = new Schema.FieldSchema(ufs);
                                             fss.add(newFs);
                                             newFs.setParent(null, op);

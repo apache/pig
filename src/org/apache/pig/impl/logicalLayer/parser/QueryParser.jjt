@@ -524,25 +524,6 @@ public class QueryParser {
         }
         log.trace("Exiting attachPlan");
     }
-
-    public static class SchemaUtils {
-        public static void setSchemaDefaultType(Schema s, byte t) {
-            if(null == s) return;
-            for(Schema.FieldSchema fs: s.getFields()) {
-                setFieldSchemaDefaultType(fs, t);
-            }
-        }
-    
-        public static void setFieldSchemaDefaultType(Schema.FieldSchema fs, byte t) {
-            if(null == fs) return;
-            if(DataType.NULL == fs.type) {
-                fs.type = t;
-            }
-            if(DataType.isSchemaType(fs.type)) {
-                setSchemaDefaultType(fs.schema, t);
-            }
-        }
-    }
 	
 }
 
@@ -852,7 +833,7 @@ LogicalOperator Expr(LogicalPlan lp) :
 }
 {
 	(
-	( op = NestedExpr(lp) [ <AS> "(" schema = TupleSchema() ")" {SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); op.setSchema(schema);} ] )
+	( op = NestedExpr(lp) [ <AS> "(" schema = TupleSchema() ")" {Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); op.setSchema(schema);} ] )
 |	op = BaseExpr(lp)
 	)
 	{log.trace("Exiting Expr"); return op;}
@@ -918,7 +899,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
         (
             LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
             {
-                SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
                 op.setSchema(schema); 
                 log.debug("Load as schema" + schema);
             } 
@@ -953,7 +934,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
         (
             LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
             {
-                SchemaUtils.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
                 op.setSchema(schema); 
                 log.debug("Stream as schema()"+ schema);
             } 

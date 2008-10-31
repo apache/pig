@@ -138,7 +138,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToInteger(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToInteger(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int." + " castToType: " + castToType + " name: " + DataType.findTypeName(castToType);
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to Integer");
 				}
@@ -265,7 +271,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToLong(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToLong(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to long.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to Long");
 				}
@@ -387,7 +399,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToDouble(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToDouble(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to double.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to Double");
 				}
@@ -508,7 +526,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToFloat(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToFloat(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to float.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to Float");
 				}
@@ -631,7 +655,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToCharArray(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToCharArray(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to string.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to CharArray");
 				}
@@ -742,7 +772,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToTuple(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToTuple(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to Tuple");
 				}
@@ -820,7 +856,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToBag(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToBag(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to DataBag");
 				}
@@ -898,7 +940,13 @@ public class POCast extends ExpressionOperator {
 
                 }
         		try {
-					res.result = load.bytesToMap(dba.get());
+                    if(null != load) {
+					    res.result = load.bytesToMap(dba.get());
+                    } else {
+					    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";
+					    log.error(msg);
+                        throw new ExecException(msg);
+                    }
 				} catch (IOException e) {
 					log.error("Error while casting from ByteArray to Map");
 				}

@@ -205,7 +205,7 @@ public class LOProject extends ExpressionOperator {
                             //TODO
                             //the type of the operator will be unknown. when type checking is in place
                             //add the type of the operator as a parameter to the fieldschema creation
-                            mFieldSchema = new Schema.FieldSchema(null, expressionOperator.getSchema(), DataType.TUPLE);
+                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
                             mFieldSchema.setParent(null, expressionOperator);
                             //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                         }

@@ -306,3 +306,4 @@ Trunk (unreleased changes)
 
     PIG-497: problems with UTF8 handling in BinStorage (pradeepk via olgan)
 
+    PIG-505: working with map elements (sms via olgan)
