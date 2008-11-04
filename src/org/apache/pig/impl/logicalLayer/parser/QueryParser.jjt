@@ -239,6 +239,10 @@ public class QueryParser {
 
 	
 		//Construct the cogroup operator and add it to the logical plan
+        // for join, inner is true for all the inputs involved in the join
+        for (int i = 0; i < n; i++) {
+			(gis.get(i)).isInner = true;
+        }
 		LogicalOperator cogroup = parseCogroup(gis, lp);
 		lp.add(cogroup);
 		log.debug("Added operator " + cogroup.getClass().getName() + " to the logical plan");
@@ -249,7 +253,6 @@ public class QueryParser {
 			ExpressionOperator column = new LOProject(projectPlan, new OperatorKey(scope, getNextId()), projectInput, i+1);
 			flattenList.add(true);
 			flattenedColumns.add(column);
-			(gis.get(i)).isInner = true;
 			projectPlan.add(column);
             if(projectInput instanceof ExpressionOperator) {
 			    projectPlan.add(projectInput);

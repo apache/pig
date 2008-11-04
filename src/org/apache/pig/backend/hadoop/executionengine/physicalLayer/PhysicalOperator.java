@@ -213,7 +213,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public Result processInput() throws ExecException {
         
         Result res = new Result();
-        Tuple inpValue = null;
         if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
@@ -224,7 +223,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         if(reporter!=null) reporter.progress();
             
         if (!isInputAttached()) {
-            return inputs.get(0).getNext(inpValue);
+            return inputs.get(0).getNext(dummyTuple);
         } else {
             res.result = input;
             res.returnStatus = (res.result == null ? POStatus.STATUS_NULL: POStatus.STATUS_OK);

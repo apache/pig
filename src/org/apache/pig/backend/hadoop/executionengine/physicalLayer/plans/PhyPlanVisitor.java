@@ -206,6 +206,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         // TODO Auto-generated method stub
         
     }
+    
+    public void visitJoinPackage(POJoinPackage joinPackage) throws VisitorException{
+        //do nothing
+    }
 
     public void visitCast(POCast cast) {
         // TODO Auto-generated method stub
@@ -246,6 +250,14 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
             pushWalker(mCurrentWalker.spawnChildWalker(plan));
             visit();
         }
+        
+    }
+
+    /**
+     * @param optimizedForEach
+     */
+    public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) {
+        // TODO Auto-generated method stub
         
     }
 

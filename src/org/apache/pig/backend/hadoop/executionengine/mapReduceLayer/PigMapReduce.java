@@ -40,6 +40,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TargetedTuple;
@@ -201,8 +202,32 @@ public class PigMapReduce {
             pigReporter.setRep(reporter);
             PhysicalOperator.setReporter(pigReporter);
 
-            pack.attachInput(key, tupIter);
-            
+            // In the case we optimize the join, we combine
+            // POPackage and POForeach - so we could get many
+            // tuples out of the getnext() call of POJoinPackage
+            // In this case, we process till we see EOP from 
+            // POJoinPacakage.getNext()
+            if (pack instanceof POJoinPackage)
+            {
+                pack.attachInput(key, tupIter);
+                while (true)
+                {
+                    if (processOnePackageOutput(oc))
+                        break;
+                }
+            }
+            else {
+                // join is not optimized, so package will
+                // give only one tuple out for the key
+                pack.attachInput(key, tupIter);
+                processOnePackageOutput(oc);
+            }
+        }
+        
+        // return: false-more output
+        //         true- end of processing
+        public boolean processOnePackageOutput(OutputCollector<PigNullableWritable, Writable> oc) throws IOException
+        {
             try {
                 Tuple t=null;
                 Result res = pack.getNext(t);
@@ -211,7 +236,7 @@ public class PigMapReduce {
                     
                     if(rp.isEmpty()){
                         oc.collect(null, packRes);
-                        return;
+                        return false;
                     }
                     
                     rp.attachInput(packRes);
@@ -224,15 +249,19 @@ public class PigMapReduce {
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_NULL) {
-                    return;
+                    return false;
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
                     IOException ioe = new IOException("Packaging error while processing group");
                     throw ioe;
                 }
-                    
                 
+                if(res.returnStatus==POStatus.STATUS_EOP) {
+                    return true;
+                }
+                    
+                return false;
             } catch (ExecException e) {
                 IOException ioe = new IOException(e.getMessage());
                 ioe.initCause(e.getCause());

@@ -1,5 +1,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,25 +34,37 @@ public class POForEach extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
     
-    private List<Boolean> isToBeFlattened;
-    private List<PhysicalPlan> inputPlans;
-    private List<PhysicalOperator> planLeaves = new LinkedList<PhysicalOperator>();
-    private Log log = LogFactory.getLog(getClass());
+    protected List<PhysicalPlan> inputPlans;
+    protected Log log = LogFactory.getLog(getClass());
+    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
     //Since the plan has a generate, this needs to be maintained
     //as the generate can potentially return multiple tuples for
     //same call.
-    private boolean processingPlan = false;
+    protected boolean processingPlan = false;
     
     //its holds the iterators of the databags given by the input expressions which need flattening.
-    Iterator<Tuple> [] its = null;
+    protected Iterator<Tuple> [] its = null;
     
     //This holds the outputs given out by the input expressions of any datatype
-    Object [] bags = null;
+    protected Object [] bags = null;
     
     //This is the template whcih contains tuples and is flattened out in CreateTuple() to generate the final output
-    Object[] data = null;
+    protected Object[] data = null;
+    
+    // store result types of the plan leaves
+    protected byte[] resultTypes = null;
+    
+    // array version of isToBeFlattened - this is purely
+    // for optimization - instead of calling isToBeFlattened.get(i)
+    // we can do the quicker array access - isToBeFlattenedArray[i].
+    // Also we can store "boolean" values rather than "Boolean" objects
+    // so we can also save on the Boolean.booleanValue() calls
+    protected boolean[] isToBeFlattenedArray;
     
     ExampleTuple tIn = null;
+    protected int noItems;
+
+    protected PhysicalOperator[] planLeafOps = null;
     
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
@@ -70,7 +84,7 @@ public class POForEach extends PhysicalOperator {
     
     public POForEach(OperatorKey k, int rp, List<PhysicalPlan> inp, List<Boolean>  isToBeFlattened){
         super(k, rp);
-        this.isToBeFlattened = isToBeFlattened;
+        setUpFlattens(isToBeFlattened);
         this.inputPlans = inp;
         getLeaves();
     }
@@ -86,11 +100,11 @@ public class POForEach extends PhysicalOperator {
         return "New For Each" + "(" + fString + ")" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
     
-    private String getFlatStr() {
-        if(isToBeFlattened==null)
+    String getFlatStr() {
+        if(isToBeFlattenedArray ==null)
             return "";
         StringBuilder sb = new StringBuilder();
-        for (Boolean b : isToBeFlattened) {
+        for (Boolean b : isToBeFlattenedArray) {
             sb.append(b);
             sb.append(',');
         }
@@ -181,15 +195,14 @@ public class POForEach extends PhysicalOperator {
         }
     }
 
-    private Result processPlan() throws ExecException{
-        int noItems = planLeaves.size();
+    protected Result processPlan() throws ExecException{
         Result res = new Result();
         
         //We check if all the databags have exhausted the tuples. If so we enforce the reading of new data by setting data and its to null
         if(its != null) {
             boolean restartIts = true;
             for(int i = 0; i < noItems; ++i) {
-                if(its[i] != null && isToBeFlattened.get(i) == true)
+                if(its[i] != null && isToBeFlattenedArray[i] == true)
                     restartIts &= !its[i].hasNext();
             }
             //this means that all the databags have reached their last elements. so we need to force reading of fresh databags
@@ -208,44 +221,42 @@ public class POForEach extends PhysicalOperator {
                 //Getting the iterators
                 //populate the input data
                 Result inputData = null;
-                byte resultType = ((PhysicalOperator)planLeaves.get(i)).getResultType();
-                switch(resultType) {
+                switch(resultTypes[i]) {
                 case DataType.BAG:
-                    DataBag b = null;
-                    inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(b);
+                    inputData = planLeafOps[i].getNext(dummyBag);
                     break;
 
-                case DataType.TUPLE : Tuple t = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(t);
+                case DataType.TUPLE :
+                inputData = planLeafOps[i].getNext(dummyTuple);
                 break;
-                case DataType.BYTEARRAY : DataByteArray db = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(db);
+                case DataType.BYTEARRAY :
+                inputData = planLeafOps[i].getNext(dummyDBA);
                 break; 
-                case DataType.MAP : Map map = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(map);
+                case DataType.MAP :
+                inputData = planLeafOps[i].getNext(dummyMap);
                 break;
-                case DataType.BOOLEAN : Boolean bool = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(bool);
+                case DataType.BOOLEAN :
+                inputData = planLeafOps[i].getNext(dummyBool);
                 break;
-                case DataType.INTEGER : Integer integer = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(integer);
+                case DataType.INTEGER :
+                inputData = planLeafOps[i].getNext(dummyInt);
                 break;
-                case DataType.DOUBLE : Double d = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(d);
+                case DataType.DOUBLE :
+                inputData = planLeafOps[i].getNext(dummyDouble);
                 break;
-                case DataType.LONG : Long l = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(l);
+                case DataType.LONG :
+                inputData = planLeafOps[i].getNext(dummyLong);
                 break;
-                case DataType.FLOAT : Float f = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(f);
+                case DataType.FLOAT :
+                inputData = planLeafOps[i].getNext(dummyFloat);
                 break;
-                case DataType.CHARARRAY : String str = null;
-                inputData = ((PhysicalOperator)planLeaves.get(i)).getNext(str);
+                case DataType.CHARARRAY :
+                inputData = planLeafOps[i].getNext(dummyString);
                 break;
 
                 default:
                     String msg = new String("Unknown type " +
-                        DataType.findTypeName(resultType));
+                        DataType.findTypeName(resultTypes[i]));
                     log.error(msg);
                     throw new ExecException(msg);
                 }
@@ -265,7 +276,7 @@ public class POForEach extends PhysicalOperator {
                 
                 bags[i] = inputData.result;
                 
-                if(inputData.result instanceof DataBag && isToBeFlattened.get(i)) 
+                if(inputData.result instanceof DataBag && isToBeFlattenedArray[i]) 
                     its[i] = ((DataBag)bags[i]).iterator();
                 else 
                     its[i] = null;
@@ -279,7 +290,7 @@ public class POForEach extends PhysicalOperator {
                 //we instantiate the template array and start populating it with data
                 data = new Object[noItems];
                 for(int i = 0; i < noItems; ++i) {
-                    if(isToBeFlattened.get(i) && bags[i] instanceof DataBag) {
+                    if(isToBeFlattenedArray[i] && bags[i] instanceof DataBag) {
                         if(its[i].hasNext()) {
                             data[i] = its[i].next();
                         } else {
@@ -305,7 +316,7 @@ public class POForEach extends PhysicalOperator {
                 //we try to find the last expression which needs flattening and start iterating over it
                 //we also try to update the template array
                 for(int index = noItems - 1; index >= 0; --index) {
-                    if(its[index] != null && isToBeFlattened.get(index)) {
+                    if(its[index] != null && isToBeFlattenedArray[index]) {
                         if(its[index].hasNext()) {
                             data[index] =  its[index].next();
                             res.result = CreateTuple(data);
@@ -313,6 +324,11 @@ public class POForEach extends PhysicalOperator {
                             return res;
                         }
                         else{
+                            // reset this index's iterator so cross product can be achieved
+                            // we would be resetting this way only for the indexes from the end
+                            // when the first index which needs to be flattened has reached the
+                            // last element in its iterator, we won't come here - instead, we reset
+                            // all iterators at the beginning of this method.
                             its[index] = ((DataBag)bags[index]).iterator();
                             data[index] = its[index].next();
                         }
@@ -329,15 +345,15 @@ public class POForEach extends PhysicalOperator {
      * @param data array that is the template for the final flattened tuple
      * @return the final flattened tuple
      */
-    private Tuple CreateTuple(Object[] data) throws ExecException {
-        TupleFactory tf = TupleFactory.getInstance();
-        Tuple out = tf.newTuple();
+    protected Tuple CreateTuple(Object[] data) throws ExecException {
+        Tuple out =  mTupleFactory.newTuple();
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
             
-            if(isToBeFlattened.get(i) && in instanceof Tuple) {
+            if(isToBeFlattenedArray[i] && in instanceof Tuple) {
                 Tuple t = (Tuple)in;
-                for(int j = 0; j < t.size(); ++j) {
+                int size = t.size();
+                for(int j = 0; j < size; ++j) {
                     out.append(t.get(j));
                 }
             } else
@@ -352,25 +368,45 @@ public class POForEach extends PhysicalOperator {
     }
 
     
-    private void attachInputToPlans(Tuple t) {
+    protected void attachInputToPlans(Tuple t) {
         //super.attachInput(t);
         for(PhysicalPlan p : inputPlans) {
             p.attachInput(t);
         }
     }
     
-    private void getLeaves() {
+    protected void getLeaves() {
         if (inputPlans != null) {
             int i=-1;
+            if(isToBeFlattenedArray == null) {
+                isToBeFlattenedArray = new boolean[inputPlans.size()];
+            }
+            planLeafOps = new PhysicalOperator[inputPlans.size()];
             for(PhysicalPlan p : inputPlans) {
                 ++i;
                 PhysicalOperator leaf = (PhysicalOperator)p.getLeaves().get(0); 
-                planLeaves.add(leaf);
+                planLeafOps[i] = leaf;
                 if(leaf instanceof POProject &&
                         leaf.getResultType() == DataType.TUPLE &&
                         ((POProject)leaf).isStar())
-                    isToBeFlattened.set(i, true);
+                    isToBeFlattenedArray[i] = true;
             }
+        }
+        // we are calculating plan leaves
+        // so lets reinitialize
+        reInitialize();
+    }
+    
+    private void reInitialize() {
+        if(planLeafOps != null) {
+            noItems = planLeafOps.length;
+            resultTypes = new byte[noItems];
+            for (int i = 0; i < resultTypes.length; i++) {
+                resultTypes[i] = planLeafOps[i].getResultType();
+            }
+        } else {
+            noItems = 0;
+            resultTypes = null;
         }
     }
     
@@ -380,22 +416,49 @@ public class POForEach extends PhysicalOperator {
 
     public void setInputPlans(List<PhysicalPlan> plans) {
         inputPlans = plans;
-        planLeaves.clear();
+        planLeafOps = null;
         getLeaves();
     }
 
     public void addInputPlan(PhysicalPlan plan, boolean flatten) {
         inputPlans.add(plan);
-        planLeaves.add(plan.getLeaves().get(0));
-        isToBeFlattened.add(flatten);
+        // add to planLeafOps
+        // copy existing leaves
+        PhysicalOperator[] newPlanLeafOps = new PhysicalOperator[planLeafOps.length + 1];
+        for (int i = 0; i < planLeafOps.length; i++) {
+            newPlanLeafOps[i] = planLeafOps[i];
+        }
+        // add to the end
+        newPlanLeafOps[planLeafOps.length] = plan.getLeaves().get(0); 
+        planLeafOps = newPlanLeafOps;
+        
+        // add to isToBeFlattenedArray
+        // copy existing values
+        boolean[] newIsToBeFlattenedArray = new boolean[isToBeFlattenedArray.length + 1];
+        for(int i = 0; i < isToBeFlattenedArray.length; i++) {
+            newIsToBeFlattenedArray[i] = isToBeFlattenedArray[i];
+        }
+        // add to end
+        newIsToBeFlattenedArray[isToBeFlattenedArray.length] = flatten;
+        isToBeFlattenedArray = newIsToBeFlattenedArray;
+        
+        // we just added a leaf - reinitialize
+        reInitialize();
     }
 
     public void setToBeFlattened(List<Boolean> flattens) {
-        isToBeFlattened = flattens;
+        setUpFlattens(flattens);
     }
 
     public List<Boolean> getToBeFlattened() {
-        return isToBeFlattened;
+        List<Boolean> result = null;
+        if(isToBeFlattenedArray != null) {
+            result = new ArrayList<Boolean>();
+            for (int i = 0; i < isToBeFlattenedArray.length; i++) {
+                result.add(isToBeFlattenedArray[i]);
+            }
+        }
+        return result;
     }
 
     /**
@@ -409,17 +472,33 @@ public class POForEach extends PhysicalOperator {
         for (PhysicalPlan plan : inputPlans) {
             plans.add(plan.clone());
         }
-        List<Boolean> flattens = new
-            ArrayList<Boolean>(isToBeFlattened.size());
-        for (Boolean b : isToBeFlattened) {
-            // Boolean is immutable, so using same reference is ok
-            flattens.add(b);
+        List<Boolean> flattens = null;
+        if(isToBeFlattenedArray != null) {
+            flattens = new
+                ArrayList<Boolean>(isToBeFlattenedArray.length);
+            for (boolean b : isToBeFlattenedArray) {
+                flattens.add(b);
+            }
         }
         return new POForEach(new OperatorKey(mKey.scope, 
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, plans, flattens);
     }
 
-
-
+    public boolean inProcessing()
+    {
+        return processingPlan;
+    }
+    
+    protected void setUpFlattens(List<Boolean> isToBeFlattened) {
+        if(isToBeFlattened == null) {
+            isToBeFlattenedArray = null;
+        } else {
+            isToBeFlattenedArray = new boolean[isToBeFlattened.size()];
+            int i = 0;
+            for (Iterator<Boolean> it = isToBeFlattened.iterator(); it.hasNext();) {
+                isToBeFlattenedArray[i++] = it.next();
+            }
+        }
+    }
 }

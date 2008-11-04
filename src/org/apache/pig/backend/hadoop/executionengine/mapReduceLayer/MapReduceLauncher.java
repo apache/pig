@@ -33,12 +33,14 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.CoGroupStreamingOptimizerVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ConfigurationValidator;
@@ -144,6 +146,11 @@ public class MapReduceLauncher extends Launcher{
         // check whether stream operator is present
         MRStreamHandler checker = new MRStreamHandler(plan);
         checker.visit();
+        
+        // optimize joins
+        CoGroupStreamingOptimizerVisitor cgso = new MRCompiler.CoGroupStreamingOptimizerVisitor(plan, 
+                pc.getProperties().getProperty("join.biggest.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE));
+        cgso.visit();
         
         // figure out the type of the key for the map plan
         // this is needed when the key is null to create

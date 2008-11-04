@@ -51,6 +51,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
@@ -1175,6 +1176,181 @@ public class MRCompiler extends PhyPlanVisitor {
         return mro;
     }
 
+    static class CoGroupStreamingOptimizerVisitor extends MROpPlanVisitor {
+        
+        Log log = LogFactory.getLog(this.getClass());
+        String chunkSize;
+        CoGroupStreamingOptimizerVisitor(MROperPlan plan, String chunkSize) {
+            super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+            this.chunkSize = chunkSize;
+        }
+        
+        /**indTupIter
+         * Look for pattern POPackage->POForEach(if both are flatten), change it to POJoinPackage
+         * We can avoid materialize the input and construct the result of join on the fly
+         * 
+         * @param mr - map-reduce plan to optimize
+         */ 
+        @Override
+        public void visitMROp(MapReduceOper mr) throws VisitorException {
+            // Only optimize:
+            // 1. POPackage->POForEach is the root of reduce plan
+            // 2. POUnion is the leaf of map plan (so that we exclude distinct, sort...)
+            // 3. No combiner plan
+            // 4. POForEach nested plan only contains POProject in any depth
+            // 5. Inside POForEach, all occurrences of the last input are flattened
+            if (mr.mapPlan.isEmpty()) return;
+            if (mr.reducePlan.isEmpty()) return;
+
+            // Check combiner plan
+            if (!mr.combinePlan.isEmpty())
+                return;
+            
+            // Check map plan
+            List<PhysicalOperator> mpLeaves = mr.mapPlan.getLeaves();
+            if (mpLeaves.size()!=1) {
+                return;
+            }
+            PhysicalOperator op = mpLeaves.get(0);
+            
+            if (!(op instanceof POUnion)) {
+                return;
+            }
+            
+            // Check reduce plan
+            List<PhysicalOperator> mrRoots = mr.reducePlan.getRoots();
+            if (mrRoots.size()!=1) {
+                return;
+            }
+            
+            op = mrRoots.get(0);
+            if (!(op instanceof POPackage)) {
+                return;
+            }
+            POPackage pack = (POPackage)op;
+            
+            List<PhysicalOperator> sucs = mr.reducePlan.getSuccessors(pack);
+            if (sucs.size()!=1) {
+                return;
+            }
+            
+            op = sucs.get(0);
+            boolean lastInputFlattened = true;
+            boolean allSimple = true;
+            if (op instanceof POForEach)
+            {
+                POForEach forEach = (POForEach)op;
+                List<PhysicalPlan> planList = forEach.getInputPlans();
+                List<Boolean> flatten = forEach.getToBeFlattened();
+                POProject projOfLastInput = null;
+                int i = 0;
+                // check all nested foreach plans
+                // 1. If it is simple projection
+                // 2. If last input is all flattened
+                for (PhysicalPlan p:planList)
+                {
+                    PhysicalOperator opProj = p.getRoots().get(0);
+                    if (!(opProj instanceof POProject))
+                    {
+                        allSimple = false;
+                        break;
+                    }
+                    POProject proj = (POProject)opProj;
+                    // the project should just be for one column
+                    // from the input
+                    if(proj.getColumns().size() != 1) {
+                        allSimple = false;
+                        break;
+                    }
+                    
+                    // if input to project is the last input
+                    if (proj.getColumn() == pack.getNumInps())
+                    {
+                        // if we had already seen another project
+                        // which was also for the last input, then
+                        // we might be trying to flatten twice on the
+                        // last input in which case we can't optimize by
+                        // just streaming the tuple to those projects
+                        // IMPORTANT NOTE: THIS WILL NEED TO CHANGE WHEN WE
+                        // OPTIMIZE BUILTINS LIKE SUM() AND COUNT() TO
+                        // TAKE IN STREAMING INPUT
+                        if(projOfLastInput != null) {
+                            allSimple = false;
+                            break;
+                        }
+                        projOfLastInput = proj;
+                        // make sure the project is on a bag which needs to be
+                        // flattened
+                        if (!flatten.get(i) || proj.getResultType() != DataType.BAG)
+                        {
+                            lastInputFlattened = false;
+                            break;
+                        }
+                    }
+                    
+                    // if all deeper operators are all project
+                    PhysicalOperator succ = p.getSuccessors(proj)!=null?p.getSuccessors(proj).get(0):null;
+                    while (succ!=null)
+                    {
+                        if (!(succ instanceof POProject))
+                        {
+                            allSimple = false;
+                            break;
+                        }
+                        // make sure successors of the last project also project bags
+                        // we will be changing it to project tuples
+                        if(proj == projOfLastInput && ((POProject)succ).getResultType() != DataType.BAG) {
+                            allSimple = false;
+                            break;
+                        }
+                        succ = p.getSuccessors(succ)!=null?p.getSuccessors(succ).get(0):null;
+                    }
+                    i++;
+                    if (allSimple==false)
+                        break;
+                }
+                
+                if (lastInputFlattened && allSimple && projOfLastInput != null)
+                {
+                    // Now we can optimize the map-reduce plan
+                    
+                    // Replace POPackage->POForeach to POJoinPackage
+                    String scope = pack.getOperatorKey().scope;
+                    NodeIdGenerator nig = NodeIdGenerator.getGenerator();
+                    POJoinPackage joinPackage;
+                    joinPackage = new POJoinPackage(
+                                new OperatorKey(scope, nig.getNextNodeId(scope)), 
+                                -1, pack, forEach);
+                    joinPackage.setChunkSize(Long.parseLong(chunkSize));
+                    PhysicalOperator nextOp = null;
+                    List<PhysicalOperator> succs = mr.reducePlan.getSuccessors(forEach);
+                    if (succs!=null)
+                    {
+                        if (succs.size()!=1)
+                        {
+                            String msg = new String("forEach can only have one successor");
+                            log.error(msg);
+                            throw new VisitorException(msg);
+                        }
+                        nextOp = succs.get(0);
+                    }
+                    mr.reducePlan.remove(pack);
+                    
+                    try {
+                        mr.reducePlan.replace(forEach, joinPackage);
+                    } catch (PlanException e) {
+                        String msg = new String("Error rewrite POJoinPackage");
+                        log.error(msg);
+                        throw new VisitorException(msg, e);
+                    }
+                    
+                    log.info("Rewrite: POPackage->POForEach to POJoinPackage");
+                }
+            }
+        }
+
+    }
+    
     private class RearrangeAdjuster extends MROpPlanVisitor {
 
         RearrangeAdjuster(MROperPlan plan) {
