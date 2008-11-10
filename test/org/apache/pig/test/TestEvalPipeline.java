@@ -817,4 +817,20 @@ public class TestEvalPipeline extends TestCase {
         }
     }
 
+    @Test
+    public void testLoadCtorArgs() throws IOException, ExecException {
+        
+        // Create input file
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"hello:world"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + 
+                "' using org.apache.pig.test.PigStorageNoDefCtor(':');");
+        pigServer.registerQuery("b = foreach a generate (chararray)$0, (chararray)$1;");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        Tuple t = it.next();
+        assertEquals("hello", t.get(0));
+        assertEquals("world", t.get(1));
+        
+    }
+
 }

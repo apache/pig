@@ -18,6 +18,7 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
@@ -31,7 +32,7 @@ public class LOCast extends ExpressionOperator {
 
     private static final long serialVersionUID = 2L;
     private ExpressionOperator mExpr;
-    private LoadFunc mLoadFunc = null;
+    private FuncSpec mLoadFuncSpec = null;
 
     /**
      * 
@@ -84,12 +85,12 @@ public class LOCast extends ExpressionOperator {
         return false;
     }
 
-    public LoadFunc getLoadFunc() {
-        return mLoadFunc;
+    public FuncSpec getLoadFuncSpec() {
+        return mLoadFuncSpec;
     }
 
-    public void setLoadFunc(LoadFunc loadFunc) {
-        mLoadFunc = loadFunc;
+    public void setLoadFuncSpec(FuncSpec loadFuncSpec) {
+        mLoadFuncSpec = loadFuncSpec;
     }
 
 }

@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -44,7 +45,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * Need the full operator implementation.
  */
 public class POCast extends ExpressionOperator {
-    private String loadFSpec = null;
+    private FuncSpec loadFSpec = null;
 	transient private LoadFunc load;
 	private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
@@ -68,8 +69,8 @@ public class POCast extends ExpressionOperator {
         }
     }
     
-    public void setLoadFSpec(String fSpec) {
-    	this.loadFSpec = fSpec;
+    public void setLoadFSpec(FuncSpec lf) {
+    	this.loadFSpec = lf;
         instantiateFunc();
     }
 

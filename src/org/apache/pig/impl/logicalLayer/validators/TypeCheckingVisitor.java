@@ -1615,8 +1615,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         
         if(inputType == DataType.BYTEARRAY) {
             try {
-                LoadFunc loadFunc = getLoadFunc(cast.getExpression());
-                cast.setLoadFunc(loadFunc);
+                FuncSpec loadFuncSpec = getLoadFuncSpec(cast.getExpression());
+                cast.setLoadFuncSpec(loadFuncSpec);
             } catch (FrontendException fee) {
                 String msg = "Cannot resolve load function to use for casting from " + 
                             DataType.findTypeName(inputType) + " to " +
@@ -2547,7 +2547,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         return new OperatorKey(scope, newId) ;
     }
 
-    private LoadFunc getLoadFunc(ExpressionOperator exOp) throws FrontendException {
+    private FuncSpec getLoadFuncSpec(ExpressionOperator exOp) throws FrontendException {
         Schema.FieldSchema fs = ((ExpressionOperator)exOp).getFieldSchema();
         if(null == fs) {
             return null;
@@ -2555,34 +2555,34 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         Map<String, LogicalOperator> canonicalMap = fs.getCanonicalMap();
         MultiMap<LogicalOperator, String> reverseCanonicalMap = fs.getReverseCanonicalMap();
-        MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
+        MultiMap<String, FuncSpec> loadFuncSpecMap = new MultiMap<String, FuncSpec>();
         
         if(canonicalMap.keySet().size() > 0) {
             for(String parentCanonicalName: canonicalMap.keySet()) {
-                LoadFunc lf = getLoadFunc(exOp, parentCanonicalName);
-                if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                FuncSpec lfSpec = getLoadFuncSpec(exOp, parentCanonicalName);
+                if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
             }
         } else {
             for(LogicalOperator op: reverseCanonicalMap.keySet()) {
                 for(String parentCanonicalName: reverseCanonicalMap.get(op)) {
-                    LoadFunc lf = getLoadFunc(op, parentCanonicalName);
-                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    FuncSpec lfSpec = getLoadFuncSpec(op, parentCanonicalName);
+                    if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                 }
             }
         }
-        if(loadFuncMap.keySet().size() == 0) {
+        if(loadFuncSpecMap.keySet().size() == 0) {
             return null;
         }
-        if(loadFuncMap.keySet().size() == 1) {
-            String lfString = loadFuncMap.keySet().iterator().next();
-            return (LoadFunc)(loadFuncMap.get(lfString).iterator().next());
+        if(loadFuncSpecMap.keySet().size() == 1) {
+            String lfString = loadFuncSpecMap.keySet().iterator().next();
+            return loadFuncSpecMap.get(lfString).iterator().next();
         }
 
-        throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
+        throw new FrontendException("Found more than one load function to use: " + loadFuncSpecMap.keySet());
     }
 
-    private LoadFunc getLoadFunc(LogicalOperator op, String parentCanonicalName) throws FrontendException {
-        MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
+    private FuncSpec getLoadFuncSpec(LogicalOperator op, String parentCanonicalName) throws FrontendException {
+        MultiMap<String, FuncSpec> loadFuncSpecMap = new MultiMap<String, FuncSpec>();
         if(op instanceof ExpressionOperator) {
             if(op instanceof LOUserFunc) {
                 return null;
@@ -2594,25 +2594,25 @@ public class TypeCheckingVisitor extends LOVisitor {
             
             if(canonicalMap.keySet().size() > 0) {
                 for(String canonicalName: canonicalMap.keySet()) {
-                    LoadFunc lf = getLoadFunc(fs, canonicalName);
-                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    FuncSpec lfSpec = getLoadFuncSpec(fs, canonicalName);
+                    if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                 }
             } else {
                 for(LogicalOperator lop: reverseCanonicalMap.keySet()) {
                     for(String canonicalName: reverseCanonicalMap.get(lop)) {
-                        LoadFunc lf = getLoadFunc(fs, canonicalName);
-                        if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                        FuncSpec lfSpec = getLoadFuncSpec(fs, canonicalName);
+                        if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                     }
                 }
             }
         } else {
             if(op instanceof LOLoad) {
-                return ((LOLoad)op).getLoadFunc();
+                return ((LOLoad)op).getInputFile().getFuncSpec();
             } else if (op instanceof LOStream) {
                 StreamingCommand command = ((LOStream)op).getStreamingCommand();
                 HandleSpec streamOutputSpec = command.getOutputSpec(); 
-                LoadFunc streamLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(streamOutputSpec.getSpec());
-                return streamLoader;
+                FuncSpec streamLoaderSpec = new FuncSpec(streamOutputSpec.getSpec());
+                return streamLoaderSpec;
             } else if ((op instanceof LOFilter)
                     || (op instanceof LODistinct)
                     || (op instanceof LOSort)
@@ -2620,7 +2620,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     || (op instanceof LOSplitOutput)
                     || (op instanceof LOLimit)) {
                 LogicalPlan lp = op.getPlan();
-                return getLoadFunc(lp.getPredecessors(op).get(0), parentCanonicalName);        
+                return getLoadFuncSpec(lp.getPredecessors(op).get(0), parentCanonicalName);        
             }
             
             Schema s = op.getSchema();
@@ -2629,71 +2629,71 @@ public class TypeCheckingVisitor extends LOVisitor {
                     if(null != parentCanonicalName && (parentCanonicalName.equals(fs.canonicalName))) {
                         if(fs.getCanonicalMap().keySet().size() > 0) {
                             for(String canonicalName: fs.getCanonicalMap().keySet()) {
-                                LoadFunc lf = getLoadFunc(fs, canonicalName);
-                                if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                                FuncSpec lfSpec = getLoadFuncSpec(fs, canonicalName);
+                                if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                             }
                         } else {
-                            LoadFunc lf = getLoadFunc(fs, null);
-                            if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                            FuncSpec lfSpec = getLoadFuncSpec(fs, null);
+                            if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                         }
                     } else if (null == parentCanonicalName) {
-                        LoadFunc lf = getLoadFunc(fs, null);
-                        if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                        FuncSpec lfSpec = getLoadFuncSpec(fs, null);
+                        if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                     }
                 }
             } else {
                 LogicalPlan lp = op.getPlan();
                 for(LogicalOperator pred: lp.getPredecessors(op)) {
-                    LoadFunc lf = getLoadFunc(pred, parentCanonicalName);
-                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    FuncSpec lfSpec = getLoadFuncSpec(pred, parentCanonicalName);
+                    if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                 }
             }
         }
-        if(loadFuncMap.keySet().size() == 0) {
+        if(loadFuncSpecMap.keySet().size() == 0) {
             return null;
         }
-        if(loadFuncMap.keySet().size() == 1) {
-            String lfString = loadFuncMap.keySet().iterator().next();
-            return (LoadFunc)(loadFuncMap.get(lfString).iterator().next());
+        if(loadFuncSpecMap.keySet().size() == 1) {
+            String lfString = loadFuncSpecMap.keySet().iterator().next();
+            return loadFuncSpecMap.get(lfString).iterator().next();
         }
     
-        throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
+        throw new FrontendException("Found more than one load function to use: " + loadFuncSpecMap.keySet());
     }
 
-    private LoadFunc getLoadFunc(Schema.FieldSchema fs, String parentCanonicalName) throws FrontendException {
+    private FuncSpec getLoadFuncSpec(Schema.FieldSchema fs, String parentCanonicalName) throws FrontendException {
         if(null == fs) {
             return null;
         }
         Map<String, LogicalOperator> canonicalMap = fs.getCanonicalMap();
         MultiMap<LogicalOperator, String> reverseCanonicalMap = fs.getReverseCanonicalMap();
-        MultiMap<String, LoadFunc> loadFuncMap = new MultiMap<String, LoadFunc>();
+        MultiMap<String, FuncSpec> loadFuncSpecMap = new MultiMap<String, FuncSpec>();
 
         if(canonicalMap.keySet().size() > 0) {
             for(String canonicalName: canonicalMap.keySet()) {
                 if((null == parentCanonicalName) || (parentCanonicalName.equals(canonicalName))) {
-                    LoadFunc lf = getLoadFunc(canonicalMap.get(canonicalName), parentCanonicalName);
-                    if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                    FuncSpec lfSpec = getLoadFuncSpec(canonicalMap.get(canonicalName), parentCanonicalName);
+                    if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                 }
             }
         } else {
             for(LogicalOperator op: reverseCanonicalMap.keySet()) {
                 for(String canonicalName: reverseCanonicalMap.get(op)) {
                     if((null == parentCanonicalName) || (parentCanonicalName.equals(canonicalName))) {
-                        LoadFunc lf = getLoadFunc(op, parentCanonicalName);
-                        if(null != lf) loadFuncMap.put(lf.getClass().getName(), lf);
+                        FuncSpec lfSpec = getLoadFuncSpec(op, parentCanonicalName);
+                        if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                     }
                 }
             }
         }
-        if(loadFuncMap.keySet().size() == 0) {
+        if(loadFuncSpecMap.keySet().size() == 0) {
             return null;
         }
-        if(loadFuncMap.keySet().size() == 1) {
-            String lfString = loadFuncMap.keySet().iterator().next();
-            return (LoadFunc)(loadFuncMap.get(lfString).iterator().next());
+        if(loadFuncSpecMap.keySet().size() == 1) {
+            String lfString = loadFuncSpecMap.keySet().iterator().next();
+            return loadFuncSpecMap.get(lfString).iterator().next();
         }
 
-        throw new FrontendException("Found more than one load function to use: " + loadFuncMap.keySet());
+        throw new FrontendException("Found more than one load function to use: " + loadFuncSpecMap.keySet());
     }
 
 

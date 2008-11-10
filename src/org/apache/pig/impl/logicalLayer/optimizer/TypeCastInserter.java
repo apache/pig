@@ -37,6 +37,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -160,17 +161,17 @@ public class TypeCastInserter extends LogicalTransformer {
                             p.connect(proj, cast);
                             
                             cast.setFieldSchema(fs.clone());
-                            LoadFunc loadFunc = null;
+                            FuncSpec loadFuncSpec = null;
                             if(lo instanceof LOLoad) {
-                                loadFunc = ((LOLoad)lo).getLoadFunc();
+                                loadFuncSpec = ((LOLoad)lo).getInputFile().getFuncSpec();
                             } else if (lo instanceof LOStream) {
                                 StreamingCommand command = ((LOStream)lo).getStreamingCommand();
                                 HandleSpec streamOutputSpec = command.getOutputSpec(); 
-                                loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(streamOutputSpec.getSpec());
+                                loadFuncSpec = new FuncSpec(streamOutputSpec.getSpec());
                             } else {
                                 throw new OptimizerException("TypeCastInserter invoked with an invalid operator class name:" + lo.getClass().getSimpleName());
                             }
-                            cast.setLoadFunc(loadFunc);
+                            cast.setLoadFuncSpec(loadFuncSpec);
                             typeChanges.put(fs.canonicalName, fs.type);
                             if(determinedSchema == null) {
                                 // Reset the loads field schema to byte array so that it

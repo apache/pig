@@ -307,3 +307,6 @@ Trunk (unreleased changes)
     PIG-497: problems with UTF8 handling in BinStorage (pradeepk via olgan)
 
     PIG-505: working with map elements (sms via olgan)
+
+    PIG-517: load functiin with parameters does not work with cast (pradeepk
+    via olgan)

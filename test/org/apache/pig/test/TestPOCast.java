@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -68,7 +69,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoadFSpec(load.getClass().getName());
+		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -173,7 +174,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoadFSpec(load.getClass().getName());
+		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -284,7 +285,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoadFSpec(load.getClass().getName());
+		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -406,7 +407,7 @@ public class TestPOCast extends TestCase {
 		
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoadFSpec(load.getClass().getName());
+		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -509,7 +510,7 @@ public class TestPOCast extends TestCase {
 	public void testStringToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoadFSpec(load.getClass().getName());
+		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -720,7 +721,7 @@ public class TestPOCast extends TestCase {
 	public void testByteArrayToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
-		op.setLoadFSpec(load.getClass().getName());
+		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -837,7 +838,7 @@ public class TestPOCast extends TestCase {
 	
 	private PhysicalPlan constructPlan(POCast op) throws PlanException {
 	    LoadFunc load = new TestLoader();
-        op.setLoadFSpec(load.getClass().getName());
+        op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
         POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         PhysicalPlan plan = new PhysicalPlan();
         plan.add(prj);
@@ -987,7 +988,7 @@ public class TestPOCast extends TestCase {
 	@Test
 	public void testTupleToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
-		op.setLoadFSpec(PigStorage.class.getName());
+		op.setLoadFSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -1096,7 +1097,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
-		    op.setLoadFSpec(BinStorage.class.getName());
+		    op.setLoadFSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(tNew);
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
@@ -1106,7 +1107,7 @@ public class TestPOCast extends TestCase {
 	@Test
 	public void testBagToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
-		op.setLoadFSpec(PigStorage.class.getName());
+		op.setLoadFSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -1197,7 +1198,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
-		    op.setLoadFSpec(BinStorage.class.getName());
+		    op.setLoadFSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(t);
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
@@ -1207,7 +1208,7 @@ public class TestPOCast extends TestCase {
 	@Test
 	public void testMapToOther() throws PlanException, ExecException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
-		op.setLoadFSpec(PigStorage.class.getName());
+		op.setLoadFSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
@@ -1293,7 +1294,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
-		    op.setLoadFSpec(BinStorage.class.getName());
+		    op.setLoadFSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(t);
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);

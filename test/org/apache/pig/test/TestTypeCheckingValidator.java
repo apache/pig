@@ -53,8 +53,9 @@ public class TestTypeCheckingValidator extends TestCase {
                 simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
             File fileA = new File("a");
             File fileB = new File("b");
-            // Create file if it does not exist
             try {
+                fileA.delete();
+                fileB.delete();
                 if(!fileA.createNewFile() || !fileB.createNewFile())
                     fail("Unable to create input files");
             } catch (IOException e) {
@@ -2832,7 +2833,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc() == null);
+        assertTrue(cast.getLoadFuncSpec() == null);
 
     }
 
@@ -2863,7 +2864,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -2894,7 +2895,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -2927,7 +2928,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -2960,7 +2961,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -2992,7 +2993,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -3024,7 +3025,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -3057,7 +3058,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -3090,7 +3091,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -3124,13 +3125,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3165,13 +3166,13 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
         LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3210,13 +3211,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3283,20 +3284,20 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(1);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3335,13 +3336,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3410,13 +3411,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3456,13 +3457,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3501,13 +3502,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
 
     @Test
@@ -3545,13 +3546,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
 
     @Test
@@ -3646,13 +3647,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3687,7 +3688,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc() == null);
+        assertTrue(cast.getLoadFuncSpec() == null);
 
     }
 
@@ -3754,7 +3755,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
     }
 
     @Test
@@ -3817,7 +3818,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3881,7 +3882,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -3941,7 +3942,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)filterPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -3972,7 +3973,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)filterPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4003,7 +4004,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4034,7 +4035,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4069,13 +4070,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4110,13 +4111,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4147,7 +4148,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)bPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
         LOSplitOutput splitOutputC = (LOSplitOutput)plan.getLeaves().get(0);
         LogicalPlan cPlan = splitOutputC.getConditionPlan();
@@ -4158,7 +4159,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         cast = (LOCast)cPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
     }
 
     @Test
@@ -4188,7 +4189,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)bPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
         LOSplitOutput splitOutputC = (LOSplitOutput)plan.getLeaves().get(0);
         LogicalPlan cPlan = splitOutputC.getConditionPlan();
@@ -4199,7 +4200,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         cast = (LOCast)cPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4230,7 +4231,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4261,7 +4262,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4296,13 +4297,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4337,13 +4338,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4374,7 +4375,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4405,7 +4406,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4440,13 +4441,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4481,13 +4482,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4518,7 +4519,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4549,7 +4550,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -4584,13 +4585,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4625,13 +4626,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4666,13 +4667,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4707,13 +4708,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4746,13 +4747,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(1);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
 
     @Test
@@ -4789,7 +4790,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
     }
 
     @Test
@@ -4852,7 +4853,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -4914,13 +4915,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(1);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
 
     @Test
@@ -4957,7 +4958,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
     }
 
     @Test
@@ -4996,7 +4997,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
 
     @Test
@@ -5029,7 +5030,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -5069,7 +5070,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
 
     @Test
@@ -5099,7 +5100,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -5130,7 +5131,7 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -5165,13 +5166,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -5206,13 +5207,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -5248,13 +5249,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -5290,13 +5291,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
 
@@ -5328,7 +5329,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -5360,7 +5361,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(1);
 
@@ -5401,13 +5402,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -5441,13 +5442,13 @@ public class TestTypeCheckingValidator extends TestCase {
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
@@ -5480,7 +5481,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
         LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -5513,7 +5514,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
         LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.BinStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
     }
 
@@ -5552,7 +5553,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         
         LOCast cast = (LOCast)filterPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFunc().toString().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
 
