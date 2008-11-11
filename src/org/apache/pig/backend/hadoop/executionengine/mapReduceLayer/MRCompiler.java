@@ -1176,11 +1176,11 @@ public class MRCompiler extends PhyPlanVisitor {
         return mro;
     }
 
-    static class CoGroupStreamingOptimizerVisitor extends MROpPlanVisitor {
+    static class LastInputStreamingOptimizer extends MROpPlanVisitor {
         
         Log log = LogFactory.getLog(this.getClass());
         String chunkSize;
-        CoGroupStreamingOptimizerVisitor(MROperPlan plan, String chunkSize) {
+        LastInputStreamingOptimizer(MROperPlan plan, String chunkSize) {
             super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
             this.chunkSize = chunkSize;
         }
@@ -1199,12 +1199,14 @@ public class MRCompiler extends PhyPlanVisitor {
             // 3. No combiner plan
             // 4. POForEach nested plan only contains POProject in any depth
             // 5. Inside POForEach, all occurrences of the last input are flattened
+            
             if (mr.mapPlan.isEmpty()) return;
             if (mr.reducePlan.isEmpty()) return;
 
             // Check combiner plan
-            if (!mr.combinePlan.isEmpty())
+            if (!mr.combinePlan.isEmpty()) {
                 return;
+            }
             
             // Check map plan
             List<PhysicalOperator> mpLeaves = mr.mapPlan.getLeaves();
@@ -1313,43 +1315,49 @@ public class MRCompiler extends PhyPlanVisitor {
                 if (lastInputFlattened && allSimple && projOfLastInput != null)
                 {
                     // Now we can optimize the map-reduce plan
-                    
                     // Replace POPackage->POForeach to POJoinPackage
-                    String scope = pack.getOperatorKey().scope;
-                    NodeIdGenerator nig = NodeIdGenerator.getGenerator();
-                    POJoinPackage joinPackage;
-                    joinPackage = new POJoinPackage(
-                                new OperatorKey(scope, nig.getNextNodeId(scope)), 
-                                -1, pack, forEach);
-                    joinPackage.setChunkSize(Long.parseLong(chunkSize));
-                    PhysicalOperator nextOp = null;
-                    List<PhysicalOperator> succs = mr.reducePlan.getSuccessors(forEach);
-                    if (succs!=null)
-                    {
-                        if (succs.size()!=1)
-                        {
-                            String msg = new String("forEach can only have one successor");
-                            log.error(msg);
-                            throw new VisitorException(msg);
-                        }
-                        nextOp = succs.get(0);
-                    }
-                    mr.reducePlan.remove(pack);
-                    
-                    try {
-                        mr.reducePlan.replace(forEach, joinPackage);
-                    } catch (PlanException e) {
-                        String msg = new String("Error rewrite POJoinPackage");
-                        log.error(msg);
-                        throw new VisitorException(msg, e);
-                    }
-                    
-                    log.info("Rewrite: POPackage->POForEach to POJoinPackage");
+                    replaceWithPOJoinPackage(mr.reducePlan, pack, forEach, chunkSize);
                 }
             }
         }
 
+        public static void replaceWithPOJoinPackage(PhysicalPlan plan,
+                POPackage pack, POForEach forEach, String chunkSize) throws VisitorException {
+            String scope = pack.getOperatorKey().scope;
+            NodeIdGenerator nig = NodeIdGenerator.getGenerator();
+            POJoinPackage joinPackage;
+            joinPackage = new POJoinPackage(
+                        new OperatorKey(scope, nig.getNextNodeId(scope)), 
+                        -1, pack, forEach);
+            joinPackage.setChunkSize(Long.parseLong(chunkSize));
+            List<PhysicalOperator> succs = plan.getSuccessors(forEach);
+            if (succs!=null)
+            {
+                if (succs.size()!=1)
+                {
+                    String msg = new String("forEach can only have one successor");
+                    LogFactory.
+                        getLog(LastInputStreamingOptimizer.class).error(msg);
+                    throw new VisitorException(msg);
+                }
+            }
+            plan.remove(pack);
+            
+            try {
+                plan.replace(forEach, joinPackage);
+            } catch (PlanException e) {
+                String msg = new String("Error rewrite POJoinPackage");
+                LogFactory.
+                getLog(LastInputStreamingOptimizer.class).error(msg);
+                throw new VisitorException(msg, e);
+            }
+            
+            LogFactory.
+            getLog(LastInputStreamingOptimizer.class).info("Rewrite: POPackage->POForEach to POJoinPackage");
+        }
+
     }
+    
     
     private class RearrangeAdjuster extends MROpPlanVisitor {
 

@@ -39,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TargetedTuple;
@@ -58,6 +59,8 @@ public class PigCombiner {
             Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
         private final Log log = LogFactory.getLog(getClass());
 
+        private final static Tuple DUMMYTUPLE = null;
+        
         private byte keyType;
         
         //The reduce plan
@@ -118,17 +121,40 @@ public class PigCombiner {
             
             pigReporter.setRep(reporter);
             
-            pack.attachInput(key, tupIter);
+            // In the case we optimize, we combine
+            // POPackage and POForeach - so we could get many
+            // tuples out of the getnext() call of POJoinPackage
+            // In this case, we process till we see EOP from 
+            // POJoinPacakage.getNext()
+            if (pack instanceof POJoinPackage)
+            {
+                pack.attachInput(key, tupIter);
+                while (true)
+                {
+                    if (processOnePackageOutput(oc))
+                        break;
+                }
+            }
+            else {
+                // not optimized, so package will
+                // give only one tuple out for the key
+                pack.attachInput(key, tupIter);
+                processOnePackageOutput(oc);
+            }
             
+        }
+        
+        // return: false-more output
+        //         true- end of processing
+        public boolean processOnePackageOutput(OutputCollector<PigNullableWritable, Writable> oc) throws IOException {
             try {
-                Tuple t=null;
-                Result res = pack.getNext(t);
+                Result res = pack.getNext(DUMMYTUPLE);
                 if(res.returnStatus==POStatus.STATUS_OK){
                     Tuple packRes = (Tuple)res.result;
                     
                     if(cp.isEmpty()){
                         oc.collect(null, packRes);
-                        return;
+                        return false;
                     }
                     
                     cp.attachInput(packRes);
@@ -137,7 +163,7 @@ public class PigCombiner {
 
                     PhysicalOperator leaf = leaves.get(0);
                     while(true){
-                        Result redRes = leaf.getNext(t);
+                        Result redRes = leaf.getNext(DUMMYTUPLE);
                         
                         if(redRes.returnStatus==POStatus.STATUS_OK){
                             Tuple tuple = (Tuple)redRes.result;
@@ -157,7 +183,7 @@ public class PigCombiner {
                         }
                         
                         if(redRes.returnStatus==POStatus.STATUS_EOP)
-                            return;
+                            break;
                         
                         if(redRes.returnStatus==POStatus.STATUS_NULL)
                             continue;
@@ -171,21 +197,26 @@ public class PigCombiner {
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_NULL)
-                    return;
+                    return false;
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
                     IOException ioe = new IOException("Packaging error while processing group");
                     throw ioe;
                 }
+                
+                if(res.returnStatus==POStatus.STATUS_EOP) {
+                    return true;
+                }
                     
+                return false;    
                 
             } catch (ExecException e) {
                 IOException ioe = new IOException(e.getMessage());
                 ioe.initCause(e.getCause());
                 throw ioe;
             }
+
         }
-        
         
         /**
          * Will be called once all the intermediate keys and values are

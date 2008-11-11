@@ -33,7 +33,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.CoGroupStreamingOptimizerVisitor;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
@@ -133,9 +133,12 @@ public class MapReduceLauncher extends Launcher{
         comp.randomizeFileLocalizer();
         comp.compile();
         MROperPlan plan = comp.getMRPlan();
+        String lastInputChunkSize = 
+            pc.getProperties().getProperty(
+                    "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
         String prop = System.getProperty("pig.exec.nocombiner");
         if (!("true".equals(prop)))  {
-            CombinerOptimizer co = new CombinerOptimizer(plan);
+            CombinerOptimizer co = new CombinerOptimizer(plan, lastInputChunkSize);
             co.visit();
         }
         
@@ -148,9 +151,9 @@ public class MapReduceLauncher extends Launcher{
         checker.visit();
         
         // optimize joins
-        CoGroupStreamingOptimizerVisitor cgso = new MRCompiler.CoGroupStreamingOptimizerVisitor(plan, 
-                pc.getProperties().getProperty("join.biggest.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE));
-        cgso.visit();
+        LastInputStreamingOptimizer liso = 
+            new MRCompiler.LastInputStreamingOptimizer(plan, lastInputChunkSize);
+        liso.visit();
         
         // figure out the type of the key for the map plan
         // this is needed when the key is null to create

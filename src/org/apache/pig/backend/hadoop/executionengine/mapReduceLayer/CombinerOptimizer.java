@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -97,9 +98,12 @@ public class CombinerOptimizer extends MROpPlanVisitor {
     private int mKeyField = -1;
 
     private byte mKeyType = 0;
+    
+    private String chunkSize;
 
-    public CombinerOptimizer(MROperPlan plan) {
+    public CombinerOptimizer(MROperPlan plan, String chunkSize) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+        this.chunkSize = chunkSize;
     }
 
     @Override
@@ -194,7 +198,12 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     fixUpRearrange(clr);
                     mr.combinePlan.add(clr);
                     mr.combinePlan.connect(cfe, clr);
-
+                    
+                    // stream input to the algebraics in the 
+                    // combine plan
+                    LastInputStreamingOptimizer.replaceWithPOJoinPackage(
+                            mr.combinePlan, cp, cfe, chunkSize);
+                    
                     // Use the ExprType list returned from algebraic to tell
                     // POPostCombinerPackage which fields need projected and
                     // which placed in bags.

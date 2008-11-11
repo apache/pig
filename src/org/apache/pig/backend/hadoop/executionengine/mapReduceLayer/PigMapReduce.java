@@ -77,6 +77,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 public class PigMapReduce {
 
     public static JobConf sJobConf = null;
+    private final static Tuple DUMMYTUPLE = null;
     
     public static class Map extends PigMapBase implements
             Mapper<Text, TargetedTuple, PigNullableWritable, Writable> {
@@ -229,8 +230,7 @@ public class PigMapReduce {
         public boolean processOnePackageOutput(OutputCollector<PigNullableWritable, Writable> oc) throws IOException
         {
             try {
-                Tuple t=null;
-                Result res = pack.getNext(t);
+                Result res = pack.getNext(DUMMYTUPLE);
                 if(res.returnStatus==POStatus.STATUS_OK){
                     Tuple packRes = (Tuple)res.result;
                     
@@ -277,8 +277,7 @@ public class PigMapReduce {
         protected void runPipeline(PhysicalOperator leaf) throws ExecException, IOException {
             while(true)
             {
-                Tuple dummyTuple = null;  
-                Result redRes = leaf.getNext(dummyTuple);
+                Result redRes = leaf.getNext(DUMMYTUPLE);
                 if(redRes.returnStatus==POStatus.STATUS_OK){
                     outputCollector.collect(null, (Tuple)redRes.result);
                     continue;
@@ -406,8 +405,7 @@ public class PigMapReduce {
             pack.attachInput(key, tupIter);
             
             try {
-                Tuple t=null;
-                Result res = pack.getNext(t);
+                Result res = pack.getNext(DUMMYTUPLE);
                 if(res.returnStatus==POStatus.STATUS_OK){
                     Tuple packRes = (Tuple)res.result;
                     

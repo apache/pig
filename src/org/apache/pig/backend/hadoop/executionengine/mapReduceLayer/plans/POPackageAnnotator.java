@@ -26,6 +26,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPostCombinerPackage;
@@ -54,7 +55,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
         
-        // POPackage could be present in the combine plan
+        // POPackage OR POJoinPackage could be present in the combine plan
         // OR in the reduce plan. POPostCombinerPackage could
         // be present only in the reduce plan. Search in these two
         // plans accordingly
@@ -137,6 +138,15 @@ public class POPackageAnnotator extends MROpPlanVisitor {
         public void visitPackage(POPackage pkg) throws VisitorException {
             this.pkg = pkg;
         };
+        
+        /* (non-Javadoc)
+         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitJoinPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage)
+         */
+        @Override
+        public void visitJoinPackage(POJoinPackage joinPackage)
+                throws VisitorException {
+            this.pkg = joinPackage;
+        }
         
         /* (non-Javadoc)
          * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitCombinerPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPostCombinerPackage)
