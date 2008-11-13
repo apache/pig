@@ -310,3 +310,5 @@ Trunk (unreleased changes)
 
     PIG-517: load functiin with parameters does not work with cast (pradeepk
     via olgan)
+
+    PIG-525: make sure cast for udf parameters works (olgan)

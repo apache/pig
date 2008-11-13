@@ -1422,10 +1422,16 @@ public class TypeCheckingVisitor extends LOVisitor {
             try {
                 currentPlan.connect(input, cast);
                 currentPlan.connect(cast, udf);
+                this.visit(cast);
             } catch (PlanException ioe) {
                 AssertionError err = new AssertionError(
                         "Explicit casting insertion");
                 err.initCause(ioe);
+                throw err;
+            } catch (VisitorException ve) {
+                AssertionError err = new AssertionError(
+                        "Explicit casting insertion");
+                err.initCause(ve);
                 throw err;
             }
         }

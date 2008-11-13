@@ -86,6 +86,34 @@ public class TestBestFitCast extends TestCase {
 
     }
     
+    public static class UDF2 extends EvalFunc<String>{
+        /**
+         * java level API
+         * @param input expects a single numeric DataAtom value
+         * @param output returns a single numeric DataAtom value, cosine value of the argument
+         */
+        @Override
+        public String exec(Tuple input) throws IOException {
+            try{
+                String str = (String)input.get(0);
+                return str.toUpperCase();
+            }catch (Exception e){
+                return null;
+            }
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+         */
+        @Override
+        public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+            List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
+            return funcList;
+        }    
+
+    }
+    
     @Test
     public void test1() throws Exception{
         //Passing (long, int)
@@ -172,5 +200,18 @@ public class TestBestFitCast extends TestCase {
             assertEquals(true,msg.contains("multiple of them were found to match"));
         }
         
+    }
+
+    @Test
+    public void test6() throws Exception{
+        // test UDF with single mapping function 
+        // where bytearray is passed in as input parameter
+        File input = Util.createInputFile("tmp", "", new String[] {"abc"});
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(input.toString()) +"';");
+        pigServer.registerQuery("B = FOREACH A GENERATE " + UDF2.class.getName() + "($0);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        Tuple t = iter.next();
+        assertEquals("ABC", t.get(0));
     }
 }
