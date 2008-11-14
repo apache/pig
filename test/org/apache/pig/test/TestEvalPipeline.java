@@ -833,4 +833,139 @@ public class TestEvalPipeline extends TestCase {
         
     }
 
+    @Test
+    public void testNestedPlanForCloning() throws Exception{
+        int LOOP_COUNT = 10;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = group A by $0;");
+        String query = "C = foreach B {"
+        + "C1 = filter A by not($0 <= -1);"
+        + "C2 = distinct C1;"
+        + "C3 = distinct A;"
+        + "C4 = order A by $0;"
+        + "generate (group + 1) * 10, COUNT(C4), COUNT(C2), SUM(C2.$1)," +  TitleNGrams.class.getName() + "(C3), MAX(C3.$1), C2;"
+        + "};";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertEquals((Integer)((numIdentity + 1) * 10), (Integer)t.get(0));
+            assertEquals((Long)10L, (Long)t.get(1));
+            assertEquals((Long)5L, (Long)t.get(2));
+            assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
+            assertEquals(8.0, (Double)t.get(5), 0.01);
+            assertEquals(5L, ((DataBag)t.get(6)).size());
+            assertEquals(7, t.size());
+            ++numIdentity;
+        }
+        assertEquals(LOOP_COUNT, numIdentity);
+    }
+
+    @Test
+    public void testArithmeticCloning() throws Exception{
+        int LOOP_COUNT = 10;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = distinct A;");
+        String query = "C = foreach B {"
+        + "C1 = $1 - $0;"
+        + "C2 = $1%2;"
+        + "C3 = ($1 == 0? 0 : $0/$1);"
+        + "generate C1, C2, C3;"
+        + "};";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+
+        int numRows = 0;
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j = 0; j < LOOP_COUNT; j+=2){
+                Tuple t = null;
+                if(iter.hasNext()) t = iter.next();
+                assertEquals(3, t.size());
+                assertEquals(new Double(j - i), (Double)t.get(0), 0.01);
+                assertEquals((Integer)(j%2), (Integer)t.get(1));
+                if(j == 0) {
+                    assertEquals(0.0, (Double)t.get(2), 0.01);
+                } else {
+                    assertEquals((Double)((double)i/j), (Double)t.get(2), 0.01);
+                }
+                ++numRows;
+            }
+        }
+
+        assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
+    }
+
+    @Test
+    public void testExpressionReUse() throws Exception{
+        int LOOP_COUNT = 10;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = distinct A;");
+        String query = "C = foreach B {"
+        + "C1 = $0 + $1;"
+        + "C2 = C1 + $0;"
+        + "generate C1, C2;"
+        + "};";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+
+        int numRows = 0;
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j = 0; j < LOOP_COUNT; j+=2){
+                Tuple t = null;
+                if(iter.hasNext()) t = iter.next();
+                assertEquals(2, t.size());
+                assertEquals(new Double(i + j), (Double)t.get(0), 0.01);
+                assertEquals(new Double(i + j + i), (Double)t.get(1));
+                ++numRows;
+            }
+        }
+
+        assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
+    }
 }

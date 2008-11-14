@@ -109,4 +109,17 @@ public class LOSplitOutput extends LogicalOperator {
         super.unsetSchema();
     }
 
+    /**
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOSplitOutput splitOutputClone = (LOSplitOutput)super.clone();
+        LogicalPlanCloneHelper lpCloner = new LogicalPlanCloneHelper(mCondPlan);
+        splitOutputClone.mCondPlan = lpCloner.getClonedPlan();
+        return splitOutputClone;
+    }
+
 }

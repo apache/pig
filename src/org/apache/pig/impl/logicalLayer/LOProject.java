@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -405,6 +406,24 @@ public class LOProject extends ExpressionOperator {
         sb.append(" isSentinel=") ;
         sb.append(mSentinel) ;
         return sb.toString() ;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.ExpressionOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOProject clone = (LOProject)super.clone();
+        
+        // deep copy project specific attributes
+        clone.mProjection = new ArrayList<Integer>();
+        for (Iterator<Integer> it = mProjection.iterator(); it.hasNext();) {
+            clone.mProjection.add(new Integer(it.next()));
+        }
+        
+        return clone;
     }
 
 }

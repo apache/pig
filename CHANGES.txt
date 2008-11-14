@@ -312,3 +312,5 @@ Trunk (unreleased changes)
     via olgan)
 
     PIG-525: make sure cast for udf parameters works (olgan)
+
+    PIG-512: Expressions in foreach lead to errors (sms via olgan)

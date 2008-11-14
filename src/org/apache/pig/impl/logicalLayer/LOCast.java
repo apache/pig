@@ -56,6 +56,10 @@ public class LOCast extends ExpressionOperator {
         return mExpr;
     }
 
+    public void setExpression(ExpressionOperator expr) {
+        mExpr = expr;
+    }
+
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
@@ -91,6 +95,20 @@ public class LOCast extends ExpressionOperator {
 
     public void setLoadFuncSpec(FuncSpec loadFuncSpec) {
         mLoadFuncSpec = loadFuncSpec;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.ExpressionOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOCast clone = (LOCast)super.clone();
+        if(mLoadFuncSpec != null) {
+            clone.mLoadFuncSpec = mLoadFuncSpec.clone();
+        }
+        return clone;
     }
 
 }

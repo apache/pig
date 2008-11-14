@@ -55,7 +55,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.impl.logicalLayer.ProjectStarTranslator;
+import org.apache.pig.impl.plan.VisitorException;
 
 
 public class QueryParser {
@@ -1699,7 +1699,24 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
                     }
                 }
             }
-            foreachPlans.add(generatePlan);
+            LogicalPlanCloner lpCloner = new LogicalPlanCloner(generatePlan);
+            LogicalPlan generatePlanClone;
+            try {
+                generatePlanClone = lpCloner.getClonedPlan();
+            } catch (CloneNotSupportedException cnse) {
+                log.error(cnse.getMessage());
+                cnse.printStackTrace();
+                ParseException pe = new ParseException("Not able to clone foreach plan");
+                pe.initCause(cnse);
+                throw pe;
+            }
+            RemoveRedundantOperators removeOperators = new RemoveRedundantOperators(generatePlanClone);
+            try {
+                removeOperators.visit();
+            } catch (VisitorException ve) {
+                throw new ParseException("Could not remove redundant operators in foreach plan.").initCause(ve);
+            }
+            foreachPlans.add(generatePlanClone);
         }
 
 		resetGenerateState();

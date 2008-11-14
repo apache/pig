@@ -28,7 +28,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 /**
  * Base class for all types of operators.
  */
-abstract public class Operator<V extends PlanVisitor> implements Serializable, Comparable<Operator> {
+abstract public class Operator<V extends PlanVisitor> implements Serializable, Comparable<Operator>, Cloneable {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -115,7 +115,17 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable, C
         return mKey.compareTo(o.mKey);
     }
     
-    
-    
+    /**
+     * @see java.lang.Object#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        Object o = super.clone();
+        Operator opClone = (Operator)o;
+        opClone.mKey = new OperatorKey(mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope));
+        return opClone;
+    }
     
 }

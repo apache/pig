@@ -67,7 +67,7 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         String actualPlan = printLimitGraph(plan);
         System.out.println("We get:");
         System.out.println(actualPlan);
-		assertEquals(goldenPlan, actualPlan);
+		assertEquals(goldenPlan, actualPlan + "\n");
     }
     
     @Test

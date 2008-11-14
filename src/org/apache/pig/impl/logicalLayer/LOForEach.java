@@ -395,4 +395,40 @@ public class LOForEach extends LogicalOperator {
         super.unsetSchema();
     }
 
+    /**
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        // Do generic LogicalOperator cloning
+        LOForEach forEachClone = (LOForEach)super.clone();
+        
+        // create deep copies of attributes specific to foreach
+        if(mFlatten != null) {
+            forEachClone.mFlatten = new ArrayList<Boolean>();
+            for (Iterator<Boolean> it = mFlatten.iterator(); it.hasNext();) {
+                forEachClone.mFlatten.add(new Boolean(it.next()));
+            }
+        }
+        
+        if(mForEachPlans != null) {
+            forEachClone.mForEachPlans = new ArrayList<LogicalPlan>();
+            for (Iterator<LogicalPlan> it = mForEachPlans.iterator(); it.hasNext();) {
+                LogicalPlanCloneHelper lpCloneHelper = new LogicalPlanCloneHelper(it.next());
+                forEachClone.mForEachPlans.add(lpCloneHelper.getClonedPlan());
+            }
+        }
+        
+        if(mUserDefinedSchema != null) {
+            forEachClone.mUserDefinedSchema = new ArrayList<Schema>();
+            for (Iterator<Schema> it = mUserDefinedSchema.iterator(); it.hasNext();) {
+                Schema s = it.next();
+                forEachClone.mUserDefinedSchema.add(s != null ? s.clone() : null);
+            }
+        }
+        return forEachClone;
+    }
+
 }

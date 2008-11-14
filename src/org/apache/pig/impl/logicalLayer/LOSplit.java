@@ -56,6 +56,10 @@ public class LOSplit extends LogicalOperator {
         return mOutputs;
     }
 
+    public void setOutputs(ArrayList<LogicalOperator> outputs) {
+        mOutputs = outputs;
+    }
+
     public void addOutput(LogicalOperator lOp) {
         mOutputs.add(lOp);
     }
@@ -105,4 +109,14 @@ public class LOSplit extends LogicalOperator {
         return DataType.BAG;
     }
     
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOSplit splitClone = (LOSplit)super.clone();
+        return splitClone;
+    }
 }

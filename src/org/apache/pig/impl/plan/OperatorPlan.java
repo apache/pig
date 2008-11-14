@@ -48,7 +48,7 @@ import org.apache.commons.logging.LogFactory;
  * for graph manipulators (such as the validators and optimizers) to
  * understand the internals of various nodes.
  */
-public abstract class OperatorPlan<E extends Operator> implements Iterable, Serializable {
+public abstract class OperatorPlan<E extends Operator> implements Iterable, Serializable, Cloneable {
     protected Map<E, OperatorKey> mOps;
     protected Map<OperatorKey, E> mKeys;
     protected MultiMap<E, E> mFromEdges;

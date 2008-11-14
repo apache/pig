@@ -18,6 +18,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -61,6 +62,10 @@ public class LOUserFunc extends ExpressionOperator {
 
     public List<ExpressionOperator> getArguments() {
         return mArgs;
+    }
+
+    public void setArguments(List<ExpressionOperator> args) {
+        mArgs = args;
     }
 
     @Override
@@ -130,6 +135,19 @@ public class LOUserFunc extends ExpressionOperator {
 
     public void setMArgs(List<ExpressionOperator> args) {
         mArgs = args;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.ExpressionOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOUserFunc clone = (LOUserFunc)super.clone();
+        //note that mFuncSpec cannot be null in LOUserFunc
+        clone.mFuncSpec = mFuncSpec.clone();
+        return clone;
     }
 
 }

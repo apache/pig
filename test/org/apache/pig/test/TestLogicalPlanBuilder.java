@@ -1698,6 +1698,24 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     }
 
+    @Test
+    public void testQuery113()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+        LOSort sort;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a {exp1 = age + gpa; exp2 = exp1 + age; generate exp1, exp2;};");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        for(LogicalPlan foreachPlan: foreach.getForEachPlans()) {
+            printPlan(foreachPlan);
+            assertTrue(checkPlanForProjectStar(foreachPlan) == false);
+        }
+
+    }
+
     private Schema getSchemaFromString(String schemaString) throws ParseException {
         return getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }

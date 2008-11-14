@@ -1161,6 +1161,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         OperatorKey newKey = genNewOperatorKey(uniOp) ;
         LOCast cast = new LOCast(currentPlan, newKey, input, toType) ;
         
+        currentPlan.add(cast);
         currentPlan.disconnect(input, uniOp) ;
         try {
             currentPlan.connect(input, cast) ;
@@ -1172,6 +1173,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw err ;
         }
 
+        uniOp.setOperand(cast);
         this.visit(cast);
 
     }

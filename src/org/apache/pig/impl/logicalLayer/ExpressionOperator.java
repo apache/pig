@@ -132,6 +132,18 @@ public abstract class ExpressionOperator extends LogicalOperator {
         }
     }
 
+    /**
+     * @see org.apache.pig.impl.plan.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        ExpressionOperator exOpClone = (ExpressionOperator)super.clone();
+        if(mFieldSchema != null)
+            exOpClone.mFieldSchema = this.mFieldSchema.clone();
+        return exOpClone;
+    }
 
 }
 

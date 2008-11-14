@@ -151,4 +151,38 @@ public class LOGenerate extends LogicalOperator {
         v.visit(this);
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        // Do generic LogicalOperator cloning
+        LOGenerate generateClone = (LOGenerate)super.clone();
+        
+        // create deep copies of attributes specific to foreach
+        if(mFlatten != null) {
+            generateClone.mFlatten = new ArrayList<Boolean>();
+            for (Iterator<Boolean> it = mFlatten.iterator(); it.hasNext();) {
+                generateClone.mFlatten.add(new Boolean(it.next()));
+            }
+        }
+        
+        if(mGeneratePlans != null) {
+            generateClone.mGeneratePlans = new ArrayList<LogicalPlan>();
+            for (Iterator<LogicalPlan> it = mGeneratePlans.iterator(); it.hasNext();) {
+                LogicalPlanCloneHelper lpCloneHelper = new LogicalPlanCloneHelper(it.next());
+                generateClone.mGeneratePlans.add(lpCloneHelper.getClonedPlan());
+            }
+        }
+        
+        if(mUserDefinedSchema != null) {
+            generateClone.mUserDefinedSchema = new ArrayList<Schema>();
+            for (Iterator<Schema> it = mUserDefinedSchema.iterator(); it.hasNext();) {
+                Schema s = it.next();
+                generateClone.mUserDefinedSchema.add(s != null ? s.clone() : null);
+            }
+        }
+        return generateClone;
+    }
+
 }

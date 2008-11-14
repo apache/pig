@@ -70,6 +70,10 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
         return mOperand;
     }
 
+    public void setOperand(ExpressionOperator eOp) {
+        mOperand = eOp;
+    }
+
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
@@ -78,6 +82,17 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
     @Override
     public boolean supportsMultipleInputs() {
         return false;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.ExpressionOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        UnaryExpressionOperator unExOpClone = (UnaryExpressionOperator)super.clone();
+        return unExOpClone;
     }
 
 }

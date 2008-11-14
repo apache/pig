@@ -77,6 +77,10 @@ public class LOMapLookup extends ExpressionOperator {
         return mMap;
     }
 
+    public void setMap(ExpressionOperator map) {
+        mMap = map;
+    }
+
     public Object getLookUpKey() {
         return mMapKey;
     }
@@ -118,6 +122,23 @@ public class LOMapLookup extends ExpressionOperator {
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.ExpressionOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOMapLookup clone = (LOMapLookup)super.clone();
+        
+        // deep copy project specific attributes
+        if(mValueSchema != null) {
+            clone.mValueSchema = mValueSchema.clone();
+        }
+
+        return clone;
     }
 
 }

@@ -111,6 +111,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -128,7 +129,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
         
     public void testSort() throws VisitorException, IOException {
@@ -139,6 +140,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -158,7 +160,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println("-------------");
         
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
         
     public void testDistinct() throws VisitorException, IOException {
@@ -169,6 +171,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -187,7 +190,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
     
     public void testCogroup() throws VisitorException, IOException {
@@ -200,6 +203,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -235,6 +239,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -253,7 +258,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
     
     public void testComparison() throws VisitorException, IOException {
@@ -267,6 +272,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -285,7 +291,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
 
     @Test
@@ -299,6 +305,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -317,7 +324,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
     
     
@@ -332,6 +339,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -350,7 +358,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
 
     @Test
@@ -362,6 +370,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -380,7 +389,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         
-        assertEquals(true, compiledPlan.compareTo(goldenPlan) == 0);
+        assertEquals(compiledPlan, goldenPlan);
     }
     
     @Test
@@ -393,6 +402,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -415,8 +425,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println();
         System.out.println(compiledPlan);
         System.out.println("-------------");
-        boolean flag = false;
-        //System.out.println("GoldenPlan1\n" + goldenPlan1 + "\nGoldenPlan2\n" + goldenPlan2);
+
         if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0) {
             // good
         }
@@ -446,6 +455,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     	int MAX_SIZE = 100000;
     	ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
         
         if(generate){
@@ -454,7 +464,6 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
             return;
         }
         
-//        compiledPlan += "\n"; //for the string compare, the files contain an additional \n
     	FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull1.gld");
     	FileInputStream fis2 = new FileInputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull2.gld");
         byte[] b1 = new byte[MAX_SIZE];
@@ -469,8 +478,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println();
         System.out.println(compiledPlan);
         System.out.println("-------------");
-        boolean flag = false;
-        //System.out.println("GoldenPlan1\n" + goldenPlan1 + "\nGoldenPlan2\n" + goldenPlan2);
+
         if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0)  {
             // good
         }
@@ -496,6 +504,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         int MAX_SIZE = 100000;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         pp.explain(baos);
+        baos.write((int)'\n');
         String compiledPlan = baos.toString();
 
         if(generate){

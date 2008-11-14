@@ -274,4 +274,17 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         return true;
     }
 
+    /**
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LogicalOperator loClone = (LogicalOperator)super.clone();
+        if(mSchema != null)
+            loClone.mSchema = this.mSchema.clone();
+        return loClone;
+    }
+
 }

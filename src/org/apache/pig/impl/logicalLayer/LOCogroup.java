@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -77,6 +78,10 @@ public class LOCogroup extends LogicalOperator {
 
     public MultiMap<LogicalOperator, LogicalPlan> getGroupByPlans() {
         return mGroupByPlans;
+    }    
+
+    public void setGroupByPlans(MultiMap<LogicalOperator, LogicalPlan> groupByPlans) {
+        mGroupByPlans = groupByPlans;
     }    
 
     public boolean[] getInner() {
@@ -473,4 +478,35 @@ public class LOCogroup extends LogicalOperator {
             fs.setParent(null, op);
         }
     }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        
+        // first start with LogicalOperator clone
+        LOCogroup  cogroupClone = (LOCogroup)super.clone();
+        
+        // create deep copy of other cogroup specific members
+        cogroupClone.mIsInner = new boolean[mIsInner.length];
+        for (int i = 0; i < mIsInner.length; i++) {
+            cogroupClone.mIsInner[i] = mIsInner[i];
+        }
+        
+        cogroupClone.mGroupByPlans = new MultiMap<LogicalOperator, LogicalPlan>();
+        for (Iterator<LogicalOperator> it = mGroupByPlans.keySet().iterator(); it.hasNext();) {
+            LogicalOperator relOp = it.next();
+            Collection<LogicalPlan> values = mGroupByPlans.get(relOp);
+            for (Iterator<LogicalPlan> planIterator = values.iterator(); planIterator.hasNext();) {
+                LogicalPlanCloneHelper lpCloneHelper = new LogicalPlanCloneHelper(planIterator.next());
+                cogroupClone.mGroupByPlans.put(relOp, lpCloneHelper.getClonedPlan());
+            }
+        }
+        
+        return cogroupClone;
+    }
+
 }

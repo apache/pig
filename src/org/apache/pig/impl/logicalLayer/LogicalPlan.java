@@ -27,9 +27,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.PlanException;
 
 public class LogicalPlan extends OperatorPlan<LogicalOperator> {
     private static final long serialVersionUID = 2L;
@@ -75,4 +77,59 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
 //            return baos.toString();
 //        }
 //    }
+
+    /**
+     * Do not use the clone method directly. Use {@link LogicalPlanCloner} instead.
+     */
+    @Override
+    public LogicalPlan clone() throws CloneNotSupportedException {
+        LogicalPlan clone = new LogicalPlan();
+
+        // Get all the nodes in this plan, and clone them.  As we make
+        // clones, create a map between clone and original.  Then walk the
+        // connections in this plan and create equivalent connections in the
+        // clone.
+        Map<LogicalOperator, LogicalOperator> matches = 
+            //new HashMap<LogicalOperator, LogicalOperator>(mOps.size());
+            LogicalPlanCloneHelper.mOpToCloneMap;
+        for (LogicalOperator op : mOps.keySet()) {
+            try {
+            LogicalOperator c = (LogicalOperator)op.clone();
+            clone.add(c);
+            matches.put(op, c);
+            } catch (CloneNotSupportedException cnse) {
+                cnse.printStackTrace();
+                throw cnse;
+            }
+        }
+
+        // Build the edges
+        for (LogicalOperator op : mToEdges.keySet()) {
+            LogicalOperator cloneTo = matches.get(op);
+            if (cloneTo == null) {
+                String msg = new String("Unable to find clone for op "
+                    + op.name());
+                log.error(msg);
+                throw new RuntimeException(msg);
+            }
+            Collection<LogicalOperator> fromOps = mToEdges.get(op);
+            for (LogicalOperator fromOp : fromOps) {
+                LogicalOperator cloneFrom = matches.get(fromOp);
+                if (cloneFrom == null) {
+                    String msg = new String("Unable to find clone for op "
+                        + fromOp.name());
+                    log.error(msg);
+                    throw new RuntimeException(msg);
+                }
+                try {
+                    clone.connect(cloneFrom, cloneTo);
+                } catch (PlanException pe) {
+                    throw new RuntimeException(pe);
+                }
+            }
+        }
+
+        return clone;
+    }
+    
 }

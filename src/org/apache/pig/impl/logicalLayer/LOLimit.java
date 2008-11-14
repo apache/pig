@@ -81,4 +81,15 @@ public class LOLimit extends LogicalOperator {
     {
     	return new LOLimit(mPlan, OperatorKey.genOpKey(mKey.scope), mLimit);
     }
+
+    /**
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOLimit limitClone = (LOLimit)super.clone();
+        return limitClone;
+    }
 }

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Iterator;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -169,4 +170,35 @@ public class LOSort extends LogicalOperator {
     public byte getType() {
         return DataType.BAG ;
     }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOSort clone = (LOSort) super.clone();
+        
+        // deep copy sort related attributes
+        if(mAscCols != null) {
+            clone.mAscCols = new ArrayList<Boolean>();
+            for (Iterator<Boolean> it = mAscCols.iterator(); it.hasNext();) {
+                clone.mAscCols.add(new Boolean(it.next()));
+            }
+        }
+        
+        if(mSortFunc != null)
+            clone.mSortFunc = mSortFunc.clone();
+        
+        if(mSortColPlans != null) {
+            clone.mSortColPlans = new ArrayList<LogicalPlan>();
+            for (Iterator<LogicalPlan> it = mSortColPlans.iterator(); it.hasNext();) {
+                LogicalPlanCloneHelper lpCloneHelper = new LogicalPlanCloneHelper(it.next());
+                clone.mSortColPlans.add(lpCloneHelper.getClonedPlan());            
+            }
+        }
+        return clone;
+    }
+
 }

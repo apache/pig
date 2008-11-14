@@ -72,6 +72,10 @@ public class LOBinCond extends ExpressionOperator {
         return mRhsOp;
     }
     
+    public void setCond(ExpressionOperator cond) {
+        mCond = cond;
+    }
+
     public void setLhsOp(ExpressionOperator op) {
         mLhsOp = op ;
     }
@@ -115,6 +119,17 @@ public class LOBinCond extends ExpressionOperator {
     @Override
     public boolean supportsMultipleInputs() {
         return true;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.ExpressionOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOBinCond clone = (LOBinCond)super.clone();
+        return clone;
     }
 
 }

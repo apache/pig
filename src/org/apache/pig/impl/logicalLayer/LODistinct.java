@@ -103,4 +103,16 @@ public class LODistinct extends LogicalOperator {
     public byte getType() {
         return DataType.BAG ;
     }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LODistinct distinctClone = (LODistinct)super.clone();
+        return distinctClone;
+    }
+
 }
