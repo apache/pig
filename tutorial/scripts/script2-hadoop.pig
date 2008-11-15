@@ -25,7 +25,7 @@ REGISTER ./tutorial.jar;
 
 -- Use the PigStorage function to load the excite log file into the raw bag as an array of records.
 -- Input: (user,time,query) 
-raw = LOAD 'excite.log.bz2' USING PigStorage('\t') AS (user, time, query);
+raw = LOAD 'excite.log.bz2' USING PigStorage('\t') AS (user: chararray, time: chararray, query: chararray);
 
 -- Call the NonURLDetector UDF to remove records if the query field is empty or a URL.
 clean1 = FILTER raw BY org.apache.pig.tutorial.NonURLDetector(query);
