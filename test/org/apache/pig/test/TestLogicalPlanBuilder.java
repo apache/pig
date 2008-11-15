@@ -54,6 +54,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.test.util.Identity;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -1684,7 +1685,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         foreach = (LOForEach) lp.getLeaves().get(0);
 
         for(LogicalPlan foreachPlan: foreach.getForEachPlans()) {
-            printPlan(foreachPlan);
             assertTrue(checkPlanForProjectStar(foreachPlan) == true);
         }
 
@@ -1713,6 +1713,84 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             printPlan(foreachPlan);
             assertTrue(checkPlanForProjectStar(foreachPlan) == false);
         }
+
+    }
+
+    @Test
+    public void testQuery114()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+        LOSort sort;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a generate " + Identity.class.getName() + "(name, age);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema("name", DataType.BYTEARRAY));
+        s.add(new Schema.FieldSchema("age", DataType.BYTEARRAY));
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, s, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs);
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+
+    }
+
+    @Test
+    public void testQuery115()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+        LOSort sort;
+
+        buildPlan("a = load 'one' as (name, age, gpa);");
+
+        lp = buildPlan("b = foreach a generate " + Identity.class.getName() + "(*);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema("name", DataType.BYTEARRAY));
+        s.add(new Schema.FieldSchema("age", DataType.BYTEARRAY));
+        s.add(new Schema.FieldSchema("gpa", DataType.BYTEARRAY));
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, s, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs);
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+
+    }
+
+    @Test
+    public void testQuery116()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+        LOSort sort;
+
+        buildPlan("a = load 'one';");
+
+        lp = buildPlan("b = foreach a generate " + Identity.class.getName() + "($0, $1);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+        s.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, s, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs);
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+
+    }
+
+    @Test
+    public void testQuery117()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+        LOSort sort;
+
+        buildPlan("a = load 'one';");
+
+        lp = buildPlan("b = foreach a generate " + Identity.class.getName() + "(*);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs);
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
 
     }
 

@@ -50,6 +50,7 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.test.util.Identity;
 
 import junit.framework.TestCase;
 
@@ -250,18 +251,6 @@ public class TestEvalPipeline extends TestCase {
         }
     }
 
-    
-    static public class Identity extends EvalFunc<Tuple> {
-        @Override
-        public Tuple exec(Tuple input) throws IOException {
-           return input; 
-        }
-
-        public Schema outputSchema(Schema input) {
-            return input;
-        }
-    }
-    
     static public class MapUDF extends EvalFunc<Map<Object, Object>> {
         @Override
         public Map<Object, Object> exec(Tuple input) throws IOException {
@@ -968,4 +957,42 @@ public class TestEvalPipeline extends TestCase {
 
         assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
+
+    @Test
+    public void testIdentity() throws Exception{
+        int LOOP_COUNT = 2;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random();
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j=0;j<LOOP_COUNT;j+=2){
+                ps.println(i+"\t"+j);
+                ps.println(i+"\t"+j);
+            }
+        }
+        ps.close();
+
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
+        pigServer.getPigContext()).toString();
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = distinct A ;"); //the argument does not matter
+        pigServer.registerQuery("C = foreach B generate FLATTEN(" + Identity.class.getName() + "($0, $1));"); //the argument does not matter
+
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+        int numRows = 0;
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            for(int j = 0; j < LOOP_COUNT; j+=2){
+                Tuple t = null;
+                if(iter.hasNext()) t = iter.next();
+                assertEquals(2, t.size());
+                assertEquals(new Double(i), new Double(t.get(0).toString()), 0.01);
+                assertEquals(new Double(j), new Double(t.get(1).toString()), 0.01);
+                ++numRows;
+            }
+        }
+
+        assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
+    }
+
 }

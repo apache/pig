@@ -99,11 +99,18 @@ public class LOUserFunc extends ExpressionOperator {
     
             EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
             Schema udfSchema = ef.outputSchema(inputSchema);
-    
+            byte returnType = DataType.findType(ef.getReturnType());
+
             if (null != udfSchema) {
                 Schema.FieldSchema fs;
                 try {
-                    fs = new Schema.FieldSchema(udfSchema.getField(0));
+                    if(udfSchema.size() == 0) {
+                        fs = new Schema.FieldSchema(null, null, returnType);
+                    } else if(udfSchema.size() == 1) {
+                        fs = new Schema.FieldSchema(udfSchema.getField(0));
+                    } else {
+                        fs = new Schema.FieldSchema(null, udfSchema, DataType.TUPLE);
+                    }
                 } catch (ParseException pe) {
                     throw new FrontendException(pe.getMessage());
                 }
@@ -111,7 +118,6 @@ public class LOUserFunc extends ExpressionOperator {
                 mFieldSchema = fs;
                 mIsFieldSchemaComputed = true;
             } else {
-                byte returnType = DataType.findType(ef.getReturnType());
                 setType(returnType);
                 mFieldSchema = new Schema.FieldSchema(null, null, returnType);
                 mIsFieldSchemaComputed = true;
