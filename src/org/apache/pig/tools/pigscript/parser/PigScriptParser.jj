@@ -94,7 +94,7 @@ public abstract class PigScriptParser
 	
 	abstract protected void processPig(String cmd) throws IOException;
 
-	abstract protected void processRemove(String path) throws IOException;
+	abstract protected void processRemove(String path, String opt) throws IOException;
 	
 	abstract protected void processIllustrate(String alias) throws IOException;
 
@@ -139,6 +139,7 @@ TOKEN: {<PWD: "pwd">}
 TOKEN: {<QUIT: "quit">}
 TOKEN: {<REGISTER: "register">}
 TOKEN: {<REMOVE: "rm">}
+TOKEN: {<REMOVEFORCE: "rmf">}
 TOKEN: {<SET: "set">}
 TOKEN: {<ILLUSTRATE: "illustrate">}
 
@@ -435,8 +436,14 @@ void parse() throws IOException:
 	<REMOVE>
 	(
 		t1 = GetPath()
-		{processRemove(t1.image);}
-	)+	
+		{processRemove(t1.image, null);}
+	)+
+	|
+	<REMOVEFORCE>
+	(
+		t1 = GetPath()
+		{processRemove(t1.image, "force");}
+	)+
 	|
 	<SCRIPT_DONE>
 	{quit();}

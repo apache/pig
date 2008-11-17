@@ -439,15 +439,19 @@ public class GruntParser extends PigScriptParser {
             mPigServer.registerQuery(cmd, start);
     }
 
-    protected void processRemove(String path) throws IOException
+    protected void processRemove(String path, String options ) throws IOException
     {
         ElementDescriptor dfsPath = mDfs.asElement(path);
         
         if (!dfsPath.exists()) {
-            throw new IOException("File or directory " + path + " does not exist.");            
+            if (options == null || !options.equalsIgnoreCase("force")) {
+                throw new IOException("File or directory " + path + " does not exist."); 
+            }
         }
+        else {
             
-        dfsPath.delete();
+            dfsPath.delete();
+        }
     }
 
     private PigServer mPigServer;
