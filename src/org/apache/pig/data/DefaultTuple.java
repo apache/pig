@@ -190,9 +190,6 @@ public class DefaultTuple implements Tuple {
         StringBuilder buf = new StringBuilder();
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object field = it.next();
-            if (DataType.isComplex(field)) {
-                throw new ExecException("Unable to convert non-flat tuple to string.");
-            }
             buf.append(field == null ? "" : field.toString());
             if (it.hasNext())
                 buf.append(delim);
@@ -219,7 +216,7 @@ public class DefaultTuple implements Tuple {
                     }
                 }
             } else {
-                sb.append("NULL");
+                sb.append("");
             }
             if (it.hasNext())
                 sb.append(",");

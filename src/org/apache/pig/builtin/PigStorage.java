@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Iterator;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
@@ -35,6 +36,7 @@ import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -59,6 +61,7 @@ public class PigStorage extends Utf8StorageConverter
     private int os;
     private static final int OS_UNIX = 0;
     private static final int OS_WINDOWS = 1;
+    private static final String UTF8 = "UTF-8";
     
     public PigStorage() {
         os = OS_UNIX;
@@ -143,6 +146,109 @@ public class PigStorage extends Utf8StorageConverter
         mOut = os;
     }
 
+    private void putField(Object field) throws IOException {
+        //string constants for each delimiter
+        String tupleBeginDelim = "(";
+        String tupleEndDelim = ")";
+        String bagBeginDelim = "{";
+        String bagEndDelim = "}";
+        String mapBeginDelim = "[";
+        String mapEndDelim = "]";
+        String fieldDelim = ",";
+        String mapKeyValueDelim = "#";
+
+        switch (DataType.findType(field)) {
+        case DataType.NULL:
+            break; // just leave it empty
+
+        case DataType.BOOLEAN:
+            mOut.write(((Boolean)field).toString().getBytes());
+            break;
+
+        case DataType.INTEGER:
+            mOut.write(((Integer)field).toString().getBytes());
+            break;
+
+        case DataType.LONG:
+            mOut.write(((Long)field).toString().getBytes());
+            break;
+
+        case DataType.FLOAT:
+            mOut.write(((Float)field).toString().getBytes());
+            break;
+
+        case DataType.DOUBLE:
+            mOut.write(((Double)field).toString().getBytes());
+            break;
+
+        case DataType.BYTEARRAY: {
+            byte[] b = ((DataByteArray)field).get();
+            mOut.write(b, 0, b.length);
+            break;
+                                 }
+
+        case DataType.CHARARRAY:
+            // oddly enough, writeBytes writes a string
+            mOut.write(((String)field).getBytes(UTF8));
+            break;
+
+        case DataType.MAP:
+            boolean mapHasNext = false;
+            Map<Object, Object> m = (Map<Object, Object>)field;
+            mOut.write(mapBeginDelim.getBytes(UTF8));
+            for(Object o: m.keySet()) {
+                if(mapHasNext) {
+                    mOut.write(fieldDelim.getBytes(UTF8));
+                } else {
+                    mapHasNext = true;
+                }
+                putField(o);
+                mOut.write(mapKeyValueDelim.getBytes(UTF8));
+                putField(m.get(o));
+            }
+            mOut.write(mapEndDelim.getBytes(UTF8));
+            break;
+
+        case DataType.TUPLE:
+            boolean tupleHasNext = false;
+            Tuple t = (Tuple)field;
+            mOut.write(tupleBeginDelim.getBytes(UTF8));
+            for(int i = 0; i < t.size(); ++i) {
+                if(tupleHasNext) {
+                    mOut.write(fieldDelim.getBytes(UTF8));
+                } else {
+                    tupleHasNext = true;
+                }
+                try {
+                    putField(t.get(i));
+                } catch (ExecException ee) {
+                    throw new RuntimeException(ee);
+                }
+            }
+            mOut.write(tupleEndDelim.getBytes(UTF8));
+            break;
+
+        case DataType.BAG:
+            boolean bagHasNext = false;
+            mOut.write(bagBeginDelim.getBytes(UTF8));
+            Iterator<Tuple> tupleIter = ((DataBag)field).iterator();
+            while(tupleIter.hasNext()) {
+                if(bagHasNext) {
+                    mOut.write(fieldDelim.getBytes(UTF8));
+                } else {
+                    bagHasNext = true;
+                }
+                putField((Object)tupleIter.next());
+            }
+            mOut.write(bagEndDelim.getBytes(UTF8));
+            break;
+            
+        default:
+            throw new RuntimeException("Unknown datatype " + 
+                DataType.findType(field));
+        }
+    }
+
     public void putNext(Tuple f) throws IOException {
         // I have to convert integer fields to string, and then to bytes.
         // If I use a DataOutputStream to convert directly from integer to
@@ -155,51 +261,8 @@ public class PigStorage extends Utf8StorageConverter
             } catch (ExecException ee) {
                 throw new RuntimeException(ee);
             }
-            switch (DataType.findType(field)) {
-            case DataType.NULL:
-                break; // just leave it empty
 
-            case DataType.BOOLEAN:
-                mOut.write(((Boolean)field).toString().getBytes());
-                break;
-
-            case DataType.INTEGER:
-                mOut.write(((Integer)field).toString().getBytes());
-                break;
-
-            case DataType.LONG:
-                mOut.write(((Long)field).toString().getBytes());
-                break;
-
-            case DataType.FLOAT:
-                mOut.write(((Float)field).toString().getBytes());
-                break;
-
-            case DataType.DOUBLE:
-                mOut.write(((Double)field).toString().getBytes());
-                break;
-
-            case DataType.BYTEARRAY: {
-                byte[] b = ((DataByteArray)field).get();
-                mOut.write(b, 0, b.length);
-                break;
-                                     }
-
-            case DataType.CHARARRAY:
-                // oddly enough, writeBytes writes a string
-                mOut.write(((String)field).getBytes("UTF-8"));
-                break;
-
-            case DataType.MAP:
-            case DataType.TUPLE:
-            case DataType.BAG:
-                throw new IOException("Cannot store a non-flat tuple " +
-                    "using PigStorage");
-                
-            default:
-                throw new RuntimeException("Unknown datatype " + 
-                    DataType.findType(field));
-            }
+            putField(field);
 
             if (i == sz - 1) {
                 // last field in tuple.

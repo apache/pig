@@ -236,4 +236,30 @@ public class GenRandomData {
         t.append(null);
         return t;
     }
+
+    public static Tuple genRandSmallBagTextTupleWithNulls(Random r, int num, int limit){
+        if(r==null){
+            Tuple t = new DefaultTuple();
+            t.append("RANDOM");
+            return t;
+        }
+        Tuple t = new DefaultTuple();
+        t.append(genRandSmallTupDataBag(r, num, limit));
+        t.append(new Boolean(r.nextBoolean()).toString());
+        //TODO Fix
+        //The text representation of byte array and char array
+        //cannot be disambiguated without annotation. For now,
+        //the tuples will not contain byte array
+        //t.append(genRandTextDBA(r));
+        t.append(genRandString(r));
+        t.append(r.nextDouble());
+        t.append(r.nextFloat());
+        t.append(r.nextInt());
+        t.append(r.nextLong());
+        t.append(genRandMap(r, num));
+        t.append(genRandSmallTuple(r, 100));
+        t.append(null);
+        return t;
+    }
+    
 }

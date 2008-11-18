@@ -316,3 +316,5 @@ Trunk (unreleased changes)
     PIG-512: Expressions in foreach lead to errors (sms via olgan)
 
     PIG-528: use UDF return in schema computation (sms via olgan)
+
+    PIG-527: allow PigStorage to write out complex output (sms via olgan)
