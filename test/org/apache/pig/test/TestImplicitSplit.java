@@ -1,9 +1,13 @@
 package org.apache.pig.test;
 
 
+import static org.apache.pig.test.utils.TypeCheckingTestUtil.printMessageCollector;
+import static org.apache.pig.test.utils.TypeCheckingTestUtil.printTypeGraph;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import junit.framework.TestCase;
@@ -11,6 +15,12 @@ import junit.framework.TestCase;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.PlanSetter;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,5 +58,74 @@ public class TestImplicitSplit extends TestCase{
             ++cnt;
         }
         assertEquals(20, cnt);
+    }
+    
+    @Test
+    public void testImplicitSplitInCoGroup() throws Exception {
+        // this query is similar to the one reported in JIRA - PIG-537
+        // Create input file
+        File inputA = Util.createInputFile("tmp", "", 
+                new String[] {"a:1", "b:2", "b:20", "c:3", "c:30"});
+        File inputB = Util.createInputFile("tmp", "", 
+                new String[] {"a:first", "b:second", "c:third"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(inputA.toString()) + 
+                "' using PigStorage(':') as (name:chararray, marks:int);");
+        pigServer.registerQuery("b = load 'file:" + Util.encodeEscape(inputA.toString()) + 
+                "' using PigStorage(':') as (name:chararray, rank:chararray);");
+        pigServer.registerQuery("c = cogroup a by name, b by name;");
+        pigServer.registerQuery("d = foreach c generate group, FLATTEN(a.marks) as newmarks;");
+        pigServer.registerQuery("e = cogroup a by marks, d by newmarks;");
+        pigServer.registerQuery("f = foreach e generate group, flatten(a), flatten(d);");
+        HashMap<Integer, Object[]> results = new HashMap<Integer, Object[]>();
+        results.put(1, new Object[] { "a", 1, "a", 1 });
+        results.put(2, new Object[] { "b", 2, "b", 2 });
+        results.put(3, new Object[] { "c", 3, "c", 3 });
+        results.put(20, new Object[] { "b", 20, "b", 20 });
+        results.put(30, new Object[] { "c", 30, "c", 30 });
+        
+        Iterator<Tuple> it = pigServer.openIterator("f");
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            System.err.println("Tuple:" + t);
+            Integer group = (Integer)t.get(0);
+            Object[] groupValues = results.get(group);
+            for(int i = 0; i < 4; i++) {
+                assertEquals(groupValues[i], t.get(i+1));    
+            }
+        }
+    }
+    
+    @Test
+    public void testImplicitSplitInCoGroup2() throws Exception {
+        // this query is similar to the one reported in JIRA - PIG-537
+        LogicalPlanTester planTester = new LogicalPlanTester();
+        planTester.buildPlan("a = load 'file1' using PigStorage(':') as (name:chararray, marks:int);");
+        planTester.buildPlan("b = load 'file2' using PigStorage(':') as (name:chararray, rank:chararray);");
+        planTester.buildPlan("c = cogroup a by name, b by name;");
+        planTester.buildPlan("d = foreach c generate group, FLATTEN(a.marks) as newmarks;");
+        planTester.buildPlan("e = cogroup a by marks, d by newmarks;");
+        LogicalPlan plan = planTester.buildPlan("f = foreach e generate group, flatten(a), flatten(d);");
+        
+        // Set the logical plan values correctly in all the operators
+        PlanSetter ps = new PlanSetter(plan);
+        ps.visit();
+        
+        // run through validator
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;        
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        
+        if (collector.hasError()) {
+            throw new Exception("Error during type checking") ;
+        }
+
+        // this will run ImplicitSplitInserter
+        TestLogicalOptimizer.optimizePlan(plan);
+        
+        // get Schema of leaf and compare:
+        Schema expectedSchema = Util.getSchemaFromString("grp: int,A::username: chararray,A::marks: int,AB::group: chararray,AB::newmarks: int");
+        assertTrue(Schema.equals(expectedSchema, plan.getLeaves().get(0).getSchema(),false, true));
     }
 }

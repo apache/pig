@@ -50,7 +50,7 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.test.util.Identity;
+import org.apache.pig.test.utils.Identity;
 
 import junit.framework.TestCase;
 

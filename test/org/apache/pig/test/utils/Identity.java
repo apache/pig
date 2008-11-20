@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.test.util;
+package org.apache.pig.test.utils;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;

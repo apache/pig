@@ -31,6 +31,7 @@ import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 
 public class ImplicitSplitInserter extends LogicalTransformer {
@@ -69,23 +70,62 @@ public class ImplicitSplitInserter extends LogicalTransformer {
             List<LogicalOperator> succs = 
                 new ArrayList<LogicalOperator>(mPlan.getSuccessors(nodes.get(0)));
             int index = -1;
-            boolean nodeConnectedToSplit = false;
+            // For two successors of nodes.get(0) here is a pictorial
+            // representation of the change required:
+            // BEFORE:
+            // Succ1  Succ2
+            //  \       /
+            //  nodes.get(0)
+            
+            //  SHOULD BECOME:
+            
+            // AFTER:
+            // Succ1          Succ2
+            //   |              |
+            // SplitOutput SplitOutput
+            //      \       /
+            //        Split
+            //          |
+            //        nodes.get(0)
+            
+            // Here is how this will be accomplished.
+            // First (the same) Split Operator will be "inserted between" nodes.get(0)
+            // and all its successors. The "insertBetween" API is used which makes sure
+            // the ordering of operators in the graph is preserved. So we get the following: 
+            // Succ1        Succ2
+            //    |          |
+            //   Split     Split
+            //      \      /  
+            //      nodes.get(0)
+            
+            // Then all but the first connection between nodes.get(0) and the Split 
+            // Operator are removed using "disconnect" - so we get the following:
+            // Succ1          Succ2
+            //      \       /
+            //        Split
+            //          |
+            //        nodes.get(0)
+            
+            // Now a new SplitOutputOperator is "inserted between" the Split operator
+            // and the successors. So we get:
+            // Succ1          Succ2
+            //   |              |
+            // SplitOutput SplitOutput
+            //      \       /
+            //        Split
+            //          |
+            //        nodes.get(0)
+            
+            
             for (LogicalOperator succ : succs) {
-                if(!nodeConnectedToSplit) {
-                    mPlan.insertBetween(nodes.get(0), splitOp, succ);
-                    // nodes.get(0) should be connected to Split (only once) and
-                    // split -> splitoutput -> successor - this is for the first successor  
-                    // for the next successor we just want to connect in the order 
-                    // split -> splitoutput -> successor without involving nodes.get(0)
-                    // in the above call we have connected
-                    // nodes.get(0) to split (we will set the flag
-                    // to true later in this loop iteration). Hence in subsequent 
-                    // iterations we will only disconnect nodes.get(0) from its
-                    // successor and connect the split-splitoutput chain
-                    // to the successor
-                } else {
-                    mPlan.disconnect(nodes.get(0), succ);                    
-                }
+                mPlan.insertBetween(nodes.get(0), splitOp, succ);
+            }
+            
+            for(int i = 1; i < succs.size(); i++) {
+                mPlan.disconnect(nodes.get(0), splitOp); 
+            }
+
+            for (LogicalOperator succ : succs) {
                 LogicalPlan condPlan = new LogicalPlan();
                 LOConst cnst = new LOConst(mPlan, new OperatorKey(scope, 
                         idGen.getNextNodeId(scope)), new Boolean(true));
@@ -95,22 +135,11 @@ public class ImplicitSplitInserter extends LogicalTransformer {
                         new OperatorKey(scope, idGen.getNextNodeId(scope)), ++index, condPlan);
                 splitOp.addOutput(splitOutput);
                 mPlan.add(splitOutput);
-                
-                if(!nodeConnectedToSplit) {
-                    // node.get(0) should be connected to Split (only once) and
-                    // split to splitoutput to successor - this is for the first successor  
-                    // for the next successor we just want to connect in the order 
-                    // split - splitoutput - successor.
-                    // the call below is in the first successor case
-                    mPlan.insertBetween(splitOp, splitOutput, succ);    
-                    nodeConnectedToSplit = true;
-                } else {
-                    mPlan.connect(splitOp, splitOutput);
-                    mPlan.connect(splitOutput, succ);
-                }
+                mPlan.insertBetween(splitOp, splitOutput, succ);
                 // Patch up the contained plans of succ
                 fixUpContainedPlans(nodes.get(0), splitOutput, succ, null);
             }
+            
         } catch (Exception e) {
             throw new OptimizerException(e);
         }

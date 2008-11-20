@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
@@ -30,6 +31,9 @@ import junit.framework.Assert;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 public class Util {
     private static BagFactory mBagFactory = BagFactory.getInstance();
@@ -235,5 +239,17 @@ public class Util {
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
             return "file:/"+encodeEscape(path);
         return "file:"+path;
+    }
+
+    public static Schema getSchemaFromString(String schemaString) throws ParseException {
+        return Util.getSchemaFromString(schemaString, DataType.BYTEARRAY);
+    }
+
+    static Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
+        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
+        QueryParser queryParser = new QueryParser(stream) ;
+        Schema schema = queryParser.TupleSchema() ;
+        Schema.setSchemaDefaultType(schema, defaultType);
+        return schema;
     }
 }

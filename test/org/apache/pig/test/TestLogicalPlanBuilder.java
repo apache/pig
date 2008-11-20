@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -51,10 +50,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.test.util.Identity;
+import org.apache.pig.test.utils.Identity;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -1180,70 +1178,70 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         //the first element in group, i.e., name is renamed as myname
         lp = buildPlan("c = foreach b generate flatten(group) as (myname), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("myname: chararray, age: int, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("myname: chararray, age: int, mycount: long")));
 
         //the first and second elements in group, i.e., name and age are renamed as myname and myage
         lp = buildPlan("c = foreach b generate flatten(group) as (myname, myage), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("myname: chararray, myage: int, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("myname: chararray, myage: int, mycount: long")));
 
         //the schema of group is unchanged
         lp = buildPlan("c = foreach b generate flatten(group) as (), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("group::name: chararray, group::age: int, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("group::name: chararray, group::age: int, mycount: long")));
 
         //the first element in group, i.e., name is renamed as myname 
         lp = buildPlan("c = foreach b generate flatten(group) as myname, COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("myname: chararray, age: int, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("myname: chararray, age: int, mycount: long")));
 
         //group is renamed as mygroup
         lp = buildPlan("c = foreach b generate group as mygroup, COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
 
         //group is renamed as mygroup and the first element is renamed as myname
         lp = buildPlan("c = foreach b generate group as mygroup:(myname), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(myname: chararray, age: int), mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("mygroup:(myname: chararray, age: int), mycount: long")));
 
         //group is renamed as mygroup and the elements are renamed as myname and myage
         lp = buildPlan("c = foreach b generate group as mygroup:(myname, myage), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(myname: chararray, myage: int), mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("mygroup:(myname: chararray, myage: int), mycount: long")));
 
         //group is renamed to mygroup as the tuple schema is empty
         lp = buildPlan("c = foreach b generate group as mygroup:(), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("mygroup:(name: chararray, age: int), mycount: long")));
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         buildPlan("c = load 'another_file';");
         buildPlan("d = cogroup a by $0, c by $0;");
         lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as (x, y, z), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: bytearray, y: bytearray, z: bytearray, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: bytearray, y: bytearray, z: bytearray, mycount: long")));
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         buildPlan("c = load 'another_file';");
         buildPlan("d = cogroup a by $0, c by $0;");
         lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as (x: int, y: float, z), COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: int, y: float, z: bytearray, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: int, y: float, z: bytearray, mycount: long")));
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         buildPlan("c = load 'another_file';");
         buildPlan("d = cogroup a by $0, c by $0;");
         lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as x, COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: bytearray, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: bytearray, mycount: long")));
 
         //setting the schema of flattened bag that has no schema with the user defined schema
         buildPlan("c = load 'another_file';");
         buildPlan("d = cogroup a by $0, c by $0;");
         lp = buildPlan("e = foreach d generate flatten(DIFF(a, c)) as x: int, COUNT(a) as mycount;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(foreach.getSchema().equals(getSchemaFromString("x: int, mycount: long")));
+        assertTrue(foreach.getSchema().equals(Util.getSchemaFromString("x: int, mycount: long")));
 
     }
 
@@ -1357,13 +1355,13 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         LogicalPlan lp = buildPlan("c = foreach b {d = order a by $1; generate flatten(d), MAX(a.age) as max_age;};");
         LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
         LOCogroup cogroup = (LOCogroup) lp.getPredecessors(foreach).get(0);
-        Schema.FieldSchema bagFs = new Schema.FieldSchema("a", getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray"), DataType.BAG);
+        Schema.FieldSchema bagFs = new Schema.FieldSchema("a", Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray"), DataType.BAG);
         Schema.FieldSchema groupFs = new Schema.FieldSchema("group", DataType.BYTEARRAY);
         Schema cogroupExpectedSchema = new Schema();
         cogroupExpectedSchema.add(groupFs);
         cogroupExpectedSchema.add(bagFs);
         assertTrue(Schema.equals(cogroup.getSchema(), cogroupExpectedSchema, false, false));
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray, max_age: double"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray, max_age: double"), false, true));
     }
 
     @Test
@@ -1415,23 +1413,23 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         lp = buildPlan("b = foreach a generate 1;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: int"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("x: int"), false, true));
 
         lp = buildPlan("b = foreach a generate 1L;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: long"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("x: long"), false, true));
 
         lp = buildPlan("b = foreach a generate 1.0;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: double"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("x: double"), false, true));
 
         lp = buildPlan("b = foreach a generate 1.0f;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: float"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("x: float"), false, true));
 
         lp = buildPlan("b = foreach a generate 'hello';");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("x: chararray"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("x: chararray"), false, true));
     }
 
     @Test
@@ -1443,31 +1441,31 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         lp = buildPlan("b = foreach a generate (1);");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: int)"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: int)"), false, true));
 
         lp = buildPlan("b = foreach a generate (1L);");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: long)"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: long)"), false, true));
 
         lp = buildPlan("b = foreach a generate (1.0);");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: double)"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: double)"), false, true));
 
         lp = buildPlan("b = foreach a generate (1.0f);");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: float)"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: float)"), false, true));
 
         lp = buildPlan("b = foreach a generate ('hello');");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: chararray)"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: chararray)"), false, true));
 
         lp = buildPlan("b = foreach a generate ('hello', 1, 1L, 1.0f, 1.0);");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: chararray, y: int, z: long, a: float, b: double)"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: chararray, y: int, z: long, a: float, b: double)"), false, true));
 
         lp = buildPlan("b = foreach a generate ('hello', {(1), (1.0)});");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("t:(x: chararray, ib:{it:(d: double)})"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("t:(x: chararray, ib:{it:(d: double)})"), false, true));
 
     }
 
@@ -1480,39 +1478,39 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         lp = buildPlan("b = foreach a generate {(1, 'hello'), (2, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: int, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: int, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1, 'hello'), (1L, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: long, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: long, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1, 'hello'), (1.0f, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: float, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: float, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1, 'hello'), (1.0, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1L, 'hello'), (1.0f, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: float, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: float, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1L, 'hello'), (1.0, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1.0f, 'hello'), (1.0, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1.0, 'hello'), (1.0f, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:(x: double, y: chararray)}"), false, true));
 
         lp = buildPlan("b = foreach a generate {(1.0, 'hello', 3.14), (1.0f, 'world')};");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("b:{t:()}"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("b:{t:()}"), false, true));
 
     }
 
@@ -1575,7 +1573,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         lp = buildPlan("b = foreach a generate *;");
         foreach = (LOForEach) lp.getLeaves().get(0);
-        assertTrue(Schema.equals(foreach.getSchema(), getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray"), false, true));
+        assertTrue(Schema.equals(foreach.getSchema(), Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray"), false, true));
 
     }
 
@@ -1603,8 +1601,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         lp = buildPlan("b = group a by *;");
         cogroup = (LOCogroup) lp.getLeaves().get(0);
-        Schema groupSchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
-        Schema bagASchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema groupSchema = Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema bagASchema = Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
         Schema.FieldSchema groupFs = new Schema.FieldSchema("group", groupSchema, DataType.TUPLE);
         Schema.FieldSchema bagAFs = new Schema.FieldSchema("a", bagASchema, DataType.BAG);
         Schema expectedSchema = new Schema(groupFs);
@@ -1623,9 +1621,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         lp = buildPlan("c = group a by *, b by *;");
         cogroup = (LOCogroup) lp.getLeaves().get(0);
-        Schema groupSchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
-        Schema bagASchema = getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
-        Schema bagBSchema = getSchemaFromString("first_name: bytearray, enrol_age: bytearray, high_school_gpa: bytearray");
+        Schema groupSchema = Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema bagASchema = Util.getSchemaFromString("name: bytearray, age: bytearray, gpa: bytearray");
+        Schema bagBSchema = Util.getSchemaFromString("first_name: bytearray, enrol_age: bytearray, high_school_gpa: bytearray");
         Schema.FieldSchema groupFs = new Schema.FieldSchema("group", groupSchema, DataType.TUPLE);
         Schema.FieldSchema bagAFs = new Schema.FieldSchema("a", bagASchema, DataType.BAG);
         Schema.FieldSchema bagBFs = new Schema.FieldSchema("b", bagBSchema, DataType.BAG);
@@ -1792,18 +1790,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         Schema expectedSchema = new Schema(tupleFs);
         assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
 
-    }
-
-    private Schema getSchemaFromString(String schemaString) throws ParseException {
-        return getSchemaFromString(schemaString, DataType.BYTEARRAY);
-    }
-
-    private Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
-        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
-        QueryParser queryParser = new QueryParser(stream) ;
-        Schema schema = queryParser.TupleSchema() ;
-        Schema.setSchemaDefaultType(schema, defaultType);
-        return schema;
     }
 
     private void printPlan(LogicalPlan lp) {

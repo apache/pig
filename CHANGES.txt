@@ -318,3 +318,6 @@ Trunk (unreleased changes)
     PIG-528: use UDF return in schema computation (sms via olgan)
 
     PIG-527: allow PigStorage to write out complex output (sms via olgan)
+
+    PIG-537: Failure in Hadoop map collect stage due to type mismatch in the
+    keys used in cogroup (pradeepk vi olgan)
