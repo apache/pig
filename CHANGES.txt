@@ -1,6 +1,30 @@
 Pig Change Log
 
-Release 0.1.0 - Unreleased
+Trunk (unreleased changes)
+
+  INCOMPATIBLE CHANGES
+
+  IMPROVEMENTS 
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
+Release 0.1.1 - Unreleased
+
+INCOMPATIBLE CHANGES
+
+NEW FEATURES
+
+IMPROVEMENTS
+
+PIG-253: integration with hadoop-18
+
+BUG FIXES
+
+PIG-342: Fix DistinctDataBag to recalculate size after it has spilled. (bdimcheff via gates)
+
+Release 0.1.0 - - 2008-09-11
 
   INCOMPATIBLE CHANGES
 
@@ -341,4 +365,11 @@ Release 0.1.0 - Unreleased
     PIG-34: changes to build process to create distribution tar file
 
     PIG-34: updated CHANGES.txt
+
+	PIG-472: Added RegExLoader to piggybank, an abstract loader class to parse
+	text files via regular espressions (spackest via gates)
+
+	PIG-473: Added CommonLogLoader, a subclass of RegExLoader to piggybank (spackest via gates)
+
+	PIG-474: Added MyRegexLoader, a subclass of RegExLoader, to piggybank (spackest via gates)
 

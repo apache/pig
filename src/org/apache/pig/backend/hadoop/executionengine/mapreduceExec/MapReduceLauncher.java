@@ -175,6 +175,9 @@ public class MapReduceLauncher {
             }
             if (pom.toCombine != null) {
                 conf.set("pig.combineFunc", ObjectSerializer.serialize(pom.toCombine));
+                // this is to make sure that combiner is only called once
+                // since we can't handle no combine or multiple combines
+                conf.setCombineOnceOnly(true);
             }
             if (pom.groupFuncs != null) {
                 conf.set("pig.groupFuncs", ObjectSerializer.serialize(pom.groupFuncs));

@@ -25,7 +25,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="0.1.0-dev" />
+    <property name="version" value="0.2.0-dev" />
     <property name="final.name" value="${name}-${version}" />
 
     <!-- source properties -->
@@ -58,7 +58,7 @@
     <property name="build.javadoc" value="${build.docs}/api" />
     <property name="build.encoding" value="ISO-8859-1" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
-    <property name="hadoop.jarfile" value="hadoop17.jar" />
+    <property name="hadoop.jarfile" value="hadoop18.jar" />
 
     <!-- distribution properties -->
     <property name="staging.dir" value="${build.dir}/staging"/>

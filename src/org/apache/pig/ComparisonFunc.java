@@ -26,7 +26,7 @@ import org.apache.pig.data.Tuple;
 
 public abstract class ComparisonFunc extends WritableComparator {
     public ComparisonFunc() {
-        super(Tuple.class);
+        super(Tuple.class, true);
     }
 
     public int compare(WritableComparable a, WritableComparable b) {
