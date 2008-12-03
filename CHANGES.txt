@@ -321,3 +321,5 @@ Trunk (unreleased changes)
 
     PIG-537: Failure in Hadoop map collect stage due to type mismatch in the
     keys used in cogroup (pradeepk vi olgan)
+
+    PIG-538: support for null constants

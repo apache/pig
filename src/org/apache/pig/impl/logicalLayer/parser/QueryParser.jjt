@@ -3114,6 +3114,7 @@ Object AtomDatum():
 |	t = <FLOATNUMBER> {obj = new Float(Float.parseFloat(t.image));}
 |	t = <DOUBLENUMBER> {obj = new Double(Double.parseDouble(t.image));}
 |	t = <QUOTEDSTRING> {obj = unquote(t.image);}
+|   t = <NULL> {obj = null;}
 	)
 	{
         log.debug("Number: " + t.image + " obj type: " + DataType.findTypeName(DataType.findType(obj)));

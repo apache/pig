@@ -1792,6 +1792,54 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     }
 
+    @Test
+    public void testNullConsArithExprs() {
+        String query = "a = load 'a' as (x:int, y:double);" +
+        		"b = foreach a generate x + null, x * null, x / null, x - null, null % x, " +
+                "y + null, y * null, y / null, y - null;";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testNullConsBincond1() {
+        String query = "a = load 'a' as (x:int, y:double);" +
+        		"b = foreach a generate (2 > 1? null : 1), ( 2 < 1 ? null : 1), " +
+        		"(2 > 1 ? 1 : null), ( 2 < 1 ? 1 : null);";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testNullConsBincond2() {
+        String query = "a = load 'a' as (x:int, y:double);" +
+                 "b = foreach a generate (null is null ? 1 : 2), ( null is not null ? 2 : 1);";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testNullConsForEachGenerate() {
+        String query = "a = load 'a' as (x:int, y:double);" +
+        		"b = foreach a generate x, null, y, null;";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testNullConsOuterJoin() {
+        String query = "a = load 'a' as (x:int, y:chararray);" +
+        		"b = load 'b' as (u:int, v:chararray);" +
+        		"c = cogroup a by x, b by u;" +
+        		"d = foreach c generate flatten((SIZE(a) == 0 ? null : a)), " +
+        		"flatten((SIZE(b) == 0 ? null : b));";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testNullConsConcatSize() {
+        String query = "a = load 'a' as (x:int, y:double, str:chararray);" +
+        		"b = foreach a generate SIZE(null), CONCAT(str, null), " +
+        "CONCAT(null, str);";
+        buildPlan(query);
+    }
+    
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

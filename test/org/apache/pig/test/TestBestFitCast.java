@@ -31,6 +31,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -40,6 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.sun.org.apache.bcel.internal.ExceptionConstants;
 import com.sun.org.apache.xerces.internal.impl.xpath.regex.ParseException;
 
 import junit.framework.TestCase;
@@ -47,17 +49,25 @@ import junit.framework.TestCase;
 public class TestBestFitCast extends TestCase {
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
-    private File tmpFile;
+    private File tmpFile, tmpFile2;
+    int LOOP_SIZE = 20;
     
     public TestBestFitCast() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
-        int LOOP_SIZE = 20;
         tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         long l = 0;
         for(int i = 1; i <= LOOP_SIZE; i++) {
             ps.println(l + "\t" + i);
+        }
+        ps.close();
+        
+        tmpFile2 = File.createTempFile("test2", "txt");
+        ps = new PrintStream(new FileOutputStream(tmpFile2));
+        l = 0;
+        for(int i = 1; i <= LOOP_SIZE; i++) {
+            ps.println(l + "\t" + i + "\t" + i);
         }
         ps.close();
     }
@@ -129,6 +139,466 @@ public class TestBestFitCast extends TestCase {
             return funcList;
         }    
 
+    }
+    
+    /**
+     * For testing with input schemas which have byte arrays
+     */
+    public static class UDF3 extends EvalFunc<Tuple>{
+        
+        /**
+         * a UDF which simply returns its input as output
+         */
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            return input;
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+         */
+        @Override
+        public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+            List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+            
+            // the following schema should match when the input is
+            // just a {bytearray} - exact match
+            funcList.add(new FuncSpec(this.getClass().getName(), 
+                    new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY))));
+            // the following schema should match when the input is
+            // just a {int} - exact match
+            funcList.add(new FuncSpec(this.getClass().getName(), 
+                    new Schema(new Schema.FieldSchema(null, DataType.INTEGER))));
+            
+            // The following two schemas will cause conflict when input schema
+            // is {float, bytearray} since bytearray can be casted either to long
+            // or double. However when input schema is {bytearray, int}, it should work
+            // since bytearray should get casted to float and int to long. Likewise if
+            // input schema is {bytearray, long} or {bytearray, double} it should work
+            funcList.add(new FuncSpec(this.getClass().getName(), 
+                    new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
+                            new Schema.FieldSchema(null, DataType.DOUBLE)))));
+            funcList.add(new FuncSpec(this.getClass().getName(), 
+                    new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
+                            new Schema.FieldSchema(null, DataType.LONG)))));
+            
+            
+            // The following two schemas will cause conflict when input schema is
+            // {bytearray, int, int} since the two ints could be casted to long, double
+            // or double, long. Likewise input schema of either {bytearray, long, long}
+            // or {bytearray, double, double} would cause conflict. Input schema of
+            // {bytearray, long, double} or {bytearray, double, long} should not cause
+            // conflict since only the bytearray needs to be casted to float. Input schema
+            // of {float, bytearray, long} or {float, long, bytearray} should also
+            // work since only the bytearray needs to be casted. Input schema of
+            // {float, bytearray, int} will cause conflict since we could cast int to 
+            // long or double and bytearray to long or double. Input schema of
+            // {bytearray, long, int} should work and should match the first schema below for 
+            // matching wherein the bytearray is cast to float and the int to double.
+            funcList.add(new FuncSpec(this.getClass().getName(), 
+                    new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
+                            new Schema.FieldSchema(null, DataType.DOUBLE),
+                            new Schema.FieldSchema(null, DataType.LONG)))));
+            funcList.add(new FuncSpec(this.getClass().getName(), 
+                    new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
+                            new Schema.FieldSchema(null, DataType.LONG),
+                            new Schema.FieldSchema(null, DataType.DOUBLE)))));
+            
+            return funcList;
+        }    
+
+    }
+
+    @Test
+    public void testByteArrayCast1() throws IOException {
+        //Passing (float, bytearray)
+        //Ambiguous matches: (float, long) , (float, double)
+        boolean exceptionCaused = false;
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:float, y);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("B");
+        } catch(Exception e) {
+            exceptionCaused = true;
+            String msg = e.getMessage();
+            assertTrue(msg.contains("Multiple matching functions"));
+            assertTrue(msg.contains("{float,double}, {float,long}"));
+        }
+        assertTrue(exceptionCaused);
+    }
+    
+    @Test
+    public void testByteArrayCast2() throws IOException, ExecException {
+        // Passing (bytearray, int)
+        // Possible matches: (float, long) , (float, double)
+        // Chooses (float, long) since in both cases bytearray is cast to float and the
+        // cost of casting int to long < int to double
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:int);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast3() throws IOException, ExecException {
+        // Passing (bytearray, long)
+        // Possible matches: (float, long) , (float, double)
+        // Chooses (float, long) since that is the only exact match without bytearray
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:long);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x, y);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast4() throws IOException, ExecException {
+        // Passing (bytearray, double)
+        // Possible matches: (float, long) , (float, double)
+        // Chooses (float, double) since that is the only exact match without bytearray
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:double);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Double);
+            assertEquals((Double)((Tuple)t.get(1)).get(1), new Double(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+
+    @Test
+    public void testByteArrayCast5() throws IOException, ExecException {
+        // Passing (bytearray, int, int )
+        // Ambiguous matches: (float, long, double) , (float, double, long)
+        // bytearray can be casted to float but the two ints cannot be unambiguously
+        // casted
+        boolean exceptionCaused = false;
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:int);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("B");
+        }catch(Exception e) {
+            exceptionCaused = true;
+            String msg = e.getMessage();
+            assertTrue(msg.contains("Multiple matching functions"));
+            assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
+        }
+        assertTrue(exceptionCaused);
+    }
+    
+    @Test
+    public void testByteArrayCast6() throws IOException, ExecException {
+        // Passing (bytearray, long, long )
+        // Ambiguous matches: (float, long, double) , (float, double, long)
+        // bytearray can be casted to float but the two longs cannot be
+        // unambiguously casted
+        boolean exceptionCaused = false;
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:long);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("B");
+        }catch(Exception e) {
+            exceptionCaused = true;
+            String msg = e.getMessage();
+            assertTrue(msg.contains("Multiple matching functions"));
+            assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
+        }
+        assertTrue(exceptionCaused);
+    }
+    
+    @Test
+    public void testByteArrayCast7() throws IOException, ExecException {
+        // Passing (bytearray, double, double )
+        // Ambiguous matches: (float, long, double) , (float, double, long)
+        // bytearray can be casted to float but the two doubles cannot be 
+        // casted with a permissible cast
+        boolean exceptionCaused = false;
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:double);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("B");
+        }catch(Exception e) {
+            exceptionCaused = true;
+            String msg = e.getMessage();
+            assertTrue(msg.contains("Could not infer the matching function"));
+        }
+        assertTrue(exceptionCaused);
+    }
+    
+    @Test
+    public void testByteArrayCast8() throws IOException, ExecException {
+        // Passing (bytearray, long, double)
+        // Possible matches: (float, long, double) , (float, double, long)
+        // Chooses (float, long, double) since that is the only exact match without bytearray
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' as (x, y:long, z:double);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
+            assertTrue(((Tuple)t.get(1)).get(2) instanceof Double);
+            assertEquals((Double)((Tuple)t.get(1)).get(2), new Double(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast9() throws IOException, ExecException {
+        // Passing (bytearray, double, long)
+        // Possible matches: (float, long, double) , (float, double, long)
+        // Chooses (float, double, long) since that is the only exact match without bytearray
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' as (x, y:double, z:long);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Double);
+            assertEquals((Double)((Tuple)t.get(1)).get(1), new Double(cnt + 1));
+            assertTrue(((Tuple)t.get(1)).get(2) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(2), new Long(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast10() throws IOException, ExecException {
+        // Passing (float, long, bytearray)
+        // Possible matches: (float, long, double) , (float, double, long)
+        // Chooses (float, long, double) since that is the only exact match without bytearray
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' as (x:float, y:long, z);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
+            assertTrue(((Tuple)t.get(1)).get(2) instanceof Double);
+            assertEquals((Double)((Tuple)t.get(1)).get(2), new Double(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast11() throws IOException, ExecException {
+        // Passing (float, bytearray, long)
+        // Possible matches: (float, long, double) , (float, double, long)
+        // Chooses (float, double, long) since that is the only exact match without bytearray
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' as (x:float, y, z:long);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Double);
+            assertEquals((Double)((Tuple)t.get(1)).get(1), new Double(cnt + 1));
+            assertTrue(((Tuple)t.get(1)).get(2) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(2), new Long(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast12() throws IOException, ExecException {
+        // Passing (float, bytearray, int )
+        // Ambiguous matches: (float, long, double) , (float, double, long)
+        // will cause conflict since we could cast int to 
+        // long or double and bytearray to long or double.
+        boolean exceptionCaused = false;
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' as (x:float, y, z:int);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("B");
+        }catch(Exception e) {
+            exceptionCaused = true;
+            String msg = e.getMessage();
+            assertTrue(msg.contains("Multiple matching functions"));
+            assertTrue(msg.contains("({float,double,long}, {float,long,double}"));
+        }
+        assertTrue(exceptionCaused);
+    }
+    
+    @Test
+    public void testByteArrayCast13() throws IOException, ExecException {
+        // Passing (bytearray, long, int)
+        // Possible matches: (float, long, double) , (float, double, long)
+        // Chooses (float, long, double) since for the bytearray there is a 
+        // single unambiguous cast to float. For the other two args, it is
+        // less "costlier" to cast the last int to double than cast the long
+        // to double and int to long
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' as (x, y:long, z:int);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
+            assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
+            assertTrue(((Tuple)t.get(1)).get(2) instanceof Double);
+            assertEquals((Double)((Tuple)t.get(1)).get(2), new Double(cnt + 1));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast14() throws IOException, ExecException {
+        // Passing (bag{(bytearray)})
+        // Possible matches: bag{(bytearray)}, bag{(int)}, bag{(long)}, bag{(float)}, bag{(double)}
+        // Chooses bag{(bytearray)} because it is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("C = FOREACH B generate SUM(A.y);");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Tuple t = iter.next();
+        assertTrue(t.get(0) instanceof Double);
+        assertEquals(new Double(210), (Double)t.get(0));
+    }
+    
+    @Test
+    public void testByteArrayCast15() throws IOException, ExecException {
+        // Passing (bytearray)
+        // Possible matches: (bytearray), (int)
+        // Chooses (bytearray) because that is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y);");
+        pigServer.registerQuery("B = FOREACH A generate " + UDF3.class.getName() + "(y);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(0)).get(0) instanceof DataByteArray);
+            byte[] expected = Integer.toString(cnt + 1).getBytes();
+            byte[] actual = ((DataByteArray)((Tuple)t.get(0)).get(0)).get();
+            assertEquals(expected.length, actual.length);
+            for(int i = 0; i < expected.length; i++) {
+                assertEquals(expected[i], actual[i]);
+            }
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testByteArrayCast16() throws IOException, ExecException {
+        // Passing (int)
+        // Possible matches: (bytearray), (int)
+        // Chooses (int) because that is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:int);");
+        pigServer.registerQuery("B = FOREACH A generate " + UDF3.class.getName() + "(y);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No Output received");
+        int cnt = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(((Tuple)t.get(0)).get(0) instanceof Integer);
+            assertEquals(new Integer(cnt + 1), (Integer)((Tuple)t.get(0)).get(0));
+            ++cnt;
+        }
+        assertEquals(LOOP_SIZE, cnt);
+    }
+    
+    @Test
+    public void testIntSum() throws IOException, ExecException {
+        // Passing (bag{(int)})
+        // Possible matches: bag{(bytearray)}, bag{(int)}, bag{(long)}, bag{(float)}, bag{(double)}
+        // Chooses bag{(int)} since it is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:int);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("C = FOREACH B generate SUM(A.y);");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Tuple t = iter.next();
+        assertTrue(t.get(0) instanceof Long);
+        assertEquals(new Long(210), (Long)t.get(0));
+    }
+    
+    @Test
+    public void testLongSum() throws IOException, ExecException {
+        // Passing (bag{(long)})
+        // Possible matches: bag{(bytearray)}, bag{(int)}, bag{(long)}, bag{(float)}, bag{(double)}
+        // Chooses bag{(long)} since it is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:long);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("C = FOREACH B generate SUM(A.y);");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Tuple t = iter.next();
+        assertTrue(t.get(0) instanceof Long);
+        assertEquals(new Long(210), (Long)t.get(0));
+    }
+    
+    @Test
+    public void testFloatSum() throws IOException, ExecException {
+        // Passing (bag{(float)})
+        // Possible matches: bag{(bytearray)}, bag{(int)}, bag{(long)}, bag{(float)}, bag{(double)}
+        // Chooses bag{(float)} since it is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:float);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("C = FOREACH B generate SUM(A.y);");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Tuple t = iter.next();
+        assertTrue(t.get(0) instanceof Double);
+        assertEquals(new Double(210), (Double)t.get(0));
+    }
+    
+    @Test
+    public void testDoubleSum() throws IOException, ExecException {
+        // Passing (bag{(double)})
+        // Possible matches: bag{(bytearray)}, bag{(int)}, bag{(long)}, bag{(float)}, bag{(double)}
+        // Chooses bag{(double)} since it is an exact match
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x, y:double);");
+        pigServer.registerQuery("B = group A all;");
+        pigServer.registerQuery("C = FOREACH B generate SUM(A.y);");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Tuple t = iter.next();
+        assertTrue(t.get(0) instanceof Double);
+        assertEquals(new Double(210), (Double)t.get(0));
     }
     
     @Test
@@ -214,7 +684,7 @@ public class TestBestFitCast extends TestCase {
             pigServer.openIterator("B");
         }catch (Exception e) {
             String msg = e.getMessage();
-            assertEquals(true,msg.contains("multiple of them were found to match"));
+            assertEquals(true,msg.contains("Multiple matching functions"));
         }
         
     }

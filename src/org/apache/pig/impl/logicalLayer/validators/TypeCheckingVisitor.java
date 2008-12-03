@@ -19,6 +19,9 @@
 package org.apache.pig.impl.logicalLayer.validators;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -26,14 +29,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.HashSet;
+import java.util.TreeMap;
+
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Algebraic;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
+import org.apache.pig.impl.logicalLayer.LOUserFunc;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 
@@ -45,7 +52,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType ;
 import org.apache.pig.impl.plan.*;
 import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.data.DataType ;
+import org.apache.pig.impl.util.Pair;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
@@ -385,8 +393,10 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     public void visit(LOAnd binOp) throws VisitorException {
-        ExpressionOperator lhs = binOp.getLhsOperand() ;
-        ExpressionOperator rhs = binOp.getRhsOperand() ;
+        // if lhs or rhs is null constant then cast it to boolean
+        insertCastsForNullToBoolean(binOp);
+        ExpressionOperator lhs = binOp.getLhsOperand();
+        ExpressionOperator rhs = binOp.getRhsOperand();
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
@@ -401,10 +411,26 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     }
 
+    /**
+     * @param binOp
+     * @throws VisitorException
+     */
+    private void insertCastsForNullToBoolean(BinaryExpressionOperator binOp)
+            throws VisitorException {
+        if (binOp.getLhsOperand() instanceof LOConst
+                && ((LOConst) binOp.getLhsOperand()).getValue() == null)
+            insertLeftCastForBinaryOp(binOp, DataType.BOOLEAN);
+        if (binOp.getRhsOperand() instanceof LOConst
+                && ((LOConst) binOp.getRhsOperand()).getValue() == null)
+            insertRightCastForBinaryOp(binOp, DataType.BOOLEAN);
+    }
+
     @Override
     public void visit(LOOr binOp) throws VisitorException {
-        ExpressionOperator lhs = binOp.getLhsOperand() ;
-        ExpressionOperator rhs = binOp.getRhsOperand() ;
+        // if lhs or rhs is null constant then cast it to boolean
+        insertCastsForNullToBoolean(binOp);
+        ExpressionOperator lhs = binOp.getLhsOperand();
+        ExpressionOperator rhs = binOp.getRhsOperand();
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
@@ -894,10 +920,18 @@ public class TypeCheckingVisitor extends LOVisitor {
                   (rhsType == DataType.MAP) ) {
             // good
         }
-        else {
-            String msg = "Incompatible types in EqualTo Comparison Operator" 
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+        // A constant null is always bytearray - so cast it
+        // to rhs type
+        else if (binOp.getLhsOperand() instanceof LOConst
+                && ((LOConst) binOp.getLhsOperand()).getValue() == null) {
+            insertLeftCastForBinaryOp(binOp, rhsType);
+        } else if (binOp.getRhsOperand() instanceof LOConst
+                && ((LOConst) binOp.getRhsOperand()).getValue() == null) {
+            insertRightCastForBinaryOp(binOp, lhsType);
+        } else {
+            String msg = "Incompatible types in EqualTo Comparison Operator"
+                    + " LHS:" + DataType.findTypeName(lhsType) + " RHS:"
+                    + DataType.findTypeName(rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new VisitorException(msg) ;
         }
@@ -955,7 +989,15 @@ public class TypeCheckingVisitor extends LOVisitor {
                   (rhsType == DataType.MAP) ) {
             // good
         }
-        else {
+        // A constant null is always bytearray - so cast it
+        // to rhs type
+        else if (binOp.getLhsOperand() instanceof LOConst
+                && ((LOConst) binOp.getLhsOperand()).getValue() == null) {
+            insertLeftCastForBinaryOp(binOp, rhsType);
+        } else if (binOp.getRhsOperand() instanceof LOConst
+                && ((LOConst) binOp.getRhsOperand()).getValue() == null) {
+            insertRightCastForBinaryOp(binOp, lhsType);
+        } else {
             String msg = "Incompatible types in NotEqual Comparison Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
@@ -1046,8 +1088,11 @@ public class TypeCheckingVisitor extends LOVisitor {
     
     @Override
     public void visit(LONot uniOp) throws VisitorException {
-        byte type = uniOp.getOperand().getType() ;
-
+        if (uniOp.getOperand() instanceof LOConst
+                && ((LOConst) uniOp.getOperand()).getValue() == null) {
+            insertCastForUniOp(uniOp, DataType.BOOLEAN);
+        }
+        byte type = uniOp.getOperand().getType();
         if (type != DataType.BOOLEAN) {
             String msg = "NOT can be used with boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
@@ -1237,37 +1282,95 @@ public class TypeCheckingVisitor extends LOVisitor {
         } catch (Exception e) {
             throw new VisitorException(e);
         }
+        
+        /**
+         * Here is an explanation of the way the matching UDF funcspec will be chosen
+         * based on actual types in the input schema.
+         * First an "exact" match is tried for each of the fields in the input schema
+         * with the corresponding fields in the candidate funcspecs' schemas. 
+         * 
+         * If exact match fails, then first a check if made if the input schema has any
+         * bytearrays in it. 
+         * 
+         * If there are NO bytearrays in the input schema, then a best fit match is attempted
+         * for the different fields. Essential a permissible cast from one type to another
+         * is given a "score" based on its position in the "castLookup" table. A final
+         * score for a candidate funcspec is deduced as  
+         *               SUM(score_of_particular_cast*noOfCastsSoFar). 
+         * If no permissible casts are possible, the score for the candidate is -1. Among 
+         * the non -1 score candidates, the candidate with the lowest score is chosen. 
+         * 
+         * If there are bytearrays in the input schema, a modified exact match is tried. In this
+         * matching, bytearrays in the input schema are not considered. As a result of
+         * ignoring the bytearrays, we could get multiple candidate funcspecs which match
+         * "exactly" for the other columns - if this is the case, we notify the user of
+         * the ambiguity and error out. Else if all other (non byte array) fields 
+         * matched exactly, then we can cast bytearray(s) to the corresponding type(s)
+         * in the matched udf schema. If this modified exact match fails, the above best fit 
+         * algorithm is attempted by initially coming up with scores and candidate funcSpecs 
+         * (with bytearray(s) being ignored in the scoring process). Then a check is 
+         * made to ensure that the positions which have bytearrays in the input schema
+         * have the same type (for a given position) in the corresponding positions in
+         * all the candidate funcSpecs. If this is not the case, it indicates a conflict
+         * and the user is notified of the error (because we have more than
+         * one choice for the destination type of the cast for the bytearray). If this is the case,
+         * the candidate with the lowest score is chosen. 
+         */
+        
+        
+        
         FuncSpec matchingSpec = null;
+        boolean notExactMatch = false;
         if(funcSpecs!=null && funcSpecs.size()!=0){
             //Some function mappings found. Trying to see
             //if one of them fits the input schema
-            if((matchingSpec = exactMatch(funcSpecs, s))==null){
+            if((matchingSpec = exactMatch(funcSpecs, s, func))==null){
                 //Oops, no exact match found. Trying to see if we
                 //have mappings that we can fit using casts.
-                if(byteArrayFound(s) && funcSpecs.size()!=1){
-                    //Oops, we have byte arrays and multiple mappings.
-                    //Throw exception that we can't infer a fit.
-                    String msg = "Could not infer the matching function for " + func.getFuncSpec() + " as multiple of them were found to match " + s.toString() + ". Please use an explicit cast." ;
+                notExactMatch = true;
+                if(byteArrayFound(s)){
+                    // try "exact" matching all other fields except the byte array 
+                    // fields and if they all exact match and we have only one candidate
+                    // for the byte array cast then that's the matching one!
+                    if((matchingSpec = exactMatchWithByteArrays(funcSpecs, s, func))==null){
+                        // "exact" match with byte arrays did not work - try best fit match
+                        if((matchingSpec = bestFitMatchWithByteArrays(funcSpecs, s, func)) == null) {
+                            String msg = "Could not infer the matching function for "
+                                + func.getFuncSpec()
+                                + " as multiple or none of them fit. Please use an explicit cast.";
+                            msgCollector.collect(msg, MessageType.Error);
+                            throw new VisitorException(msg);
+                        }
+                    }
+                } else if ((matchingSpec = bestFitMatch(funcSpecs, s)) == null) {
+                    // Either no byte arrays found or there are byte arrays
+                    // but only one mapping exists.
+                    // However, we could not find a match as there were either
+                    // none fitting the input schema or it was ambiguous.
+                    // Throw exception that we can't infer a fit.
+                    String msg = "Could not infer the matching function for "
+                            + func.getFuncSpec()
+                            + " as multiple or none of them fit. Please use an explicit cast.";
                     msgCollector.collect(msg, MessageType.Error);
-                    throw new VisitorException(msg) ;
-                }
-                else if((matchingSpec=bestFitMatch(funcSpecs,s))==null){
-                    //Either no byte arrays found or there are byte arrays
-                    //but only one mapping exists.
-                    //However, we could not find a match as there were either
-                    //none fitting the input schema or it was ambiguous.
-                    //Throw exception that we can't infer a fit.
-                    String msg = "Could not infer the matching function for " + func.getFuncSpec() + " as multiple or none of them fit. Please use an explicit cast." ;
-                    msgCollector.collect(msg, MessageType.Error);
-                    throw new VisitorException(msg) ;
+                    throw new VisitorException(msg);
                 }
             }
         }
         if(matchingSpec!=null){
             //Voila! We have a fitting match. Lets insert casts and make
             //it work.
+            // notify the user about the match we picked if it was not
+            // an exact match
+            if(notExactMatch) {
+                String msg = "Function " + func.getFuncSpec().getClassName() + "()" +
+                             " will be called with following argument types: " +
+                             matchingSpec.getInputArgsSchema() + ". If you want to use " +
+                             "different input argument types, please use explicit casts.";
+                msgCollector.collect(msg, MessageType.Warning);
+            }
             func.setFuncSpec(matchingSpec);
             insertCastsForUDF(func, s, matchingSpec.getInputArgsSchema());
+            
         }
             
         //Regenerate schema as there might be new additions
@@ -1282,6 +1385,41 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
     }
     
+    /**
+     * Finds if there is an exact match between the schema supported by
+     * one of the funcSpecs and the input schema s. Here first exact match
+     * for all non byte array fields is first attempted and if there is
+     * exactly one candidate, it is chosen (since the bytearray(s) can
+     * just be casted to corresponding type(s) in the candidate)
+     * @param funcSpecs - mappings provided by udf
+     * @param s - input schema
+     * @param func - LOUserfunc for which matching is requested
+     * @return the matching spec if found else null
+     * @throws VisitorException 
+     */
+    private FuncSpec exactMatchWithByteArrays(List<FuncSpec> funcSpecs,
+            Schema s, LOUserFunc func) throws VisitorException {
+        // exact match all fields except byte array fields
+        // ignore byte array fields for matching
+        return exactMatchHelper(funcSpecs, s, func, true);
+    }
+
+    /**
+     * Finds if there is an exact match between the schema supported by
+     * one of the funcSpecs and the input schema s. Here an exact match
+     * for all fields is attempted.
+     * @param funcSpecs - mappings provided by udf
+     * @param s - input schema
+     * @param func - LOUserfunc for which matching is requested
+     * @return the matching spec if found else null
+     * @throws VisitorException 
+     */
+    private FuncSpec exactMatch(List<FuncSpec> funcSpecs, Schema s,
+            LOUserFunc func) throws VisitorException {
+        // exact match all fields, don't ignore byte array fields
+        return exactMatchHelper(funcSpecs, s, func, false);
+    }
+
     /**
      * Tries to find the schema supported by one of funcSpecs which can
      * be obtained by inserting a set of casts to the input schema
@@ -1307,8 +1445,113 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         if(matchingSpec!=null && bestScore!=prevBestScore)
             return matchingSpec;
-        
+
         return null;
+    }
+
+    private class ScoreFuncSpecListComparator implements Comparator<Pair<Long, FuncSpec>> {
+
+        /* (non-Javadoc)
+         * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
+         */
+        @Override
+        public int compare(Pair<Long, FuncSpec> o1, Pair<Long, FuncSpec> o2) {
+            if(o1.first < o2.first)
+                return -1;
+            else if (o1.first > o2.first)
+                return 1;
+            else
+                return 0;
+        }
+        
+    }
+    
+    /**
+     * Tries to find the schema supported by one of funcSpecs which can be
+     * obtained by inserting a set of casts to the input schema
+     * 
+     * @param funcSpecs -
+     *            mappings provided by udf
+     * @param s -
+     *            input schema
+     * @return the funcSpec that supports the schema that is best suited to s.
+     *         The best suited schema is one that has the lowest score as
+     *         returned by fitPossible().
+     * @throws VisitorException
+     */
+    private FuncSpec bestFitMatchWithByteArrays(List<FuncSpec> funcSpecs,
+            Schema s, LOUserFunc func) throws VisitorException {
+		List<Pair<Long, FuncSpec>> scoreFuncSpecList = new ArrayList<Pair<Long,FuncSpec>>();
+        for (Iterator<FuncSpec> iterator = funcSpecs.iterator(); iterator
+                .hasNext();) {
+            FuncSpec fs = iterator.next();
+            long score = fitPossible(s, fs.getInputArgsSchema());
+            if (score != INF) {
+                scoreFuncSpecList.add(new Pair<Long, FuncSpec>(score, fs));
+            }
+        }
+
+        // if no candidates found, return null
+        if(scoreFuncSpecList.size() == 0)
+            return null;
+        
+        if(scoreFuncSpecList.size() > 1) {
+            // sort the candidates based on score
+            Collections.sort(scoreFuncSpecList, new ScoreFuncSpecListComparator());
+            
+            // if there are two (or more) candidates with the same *lowest* score
+            // we cannot choose one of them - notify the user
+            if (scoreFuncSpecList.get(0).first == scoreFuncSpecList.get(1).first) {
+                String msg = "Multiple matching functions for "
+                        + func.getFuncSpec() + " with input schemas: " + "("
+                        + scoreFuncSpecList.get(0).second.getInputArgsSchema() + ", " 
+                        + scoreFuncSpecList.get(1).second.getInputArgsSchema() + "). Please use an explicit cast.";
+                msgCollector.collect(msg, MessageType.Error);
+                throw new VisitorException(msg);
+            }
+        
+            // now consider the bytearray fields
+            List<Integer> byteArrayPositions = getByteArrayPositions(s);
+            // make sure there is only one type to "cast to" for the byte array
+            // positions among the candidate funcSpecs
+            Map<Integer, Pair<FuncSpec, Byte>> castToMap = new HashMap<Integer, Pair<FuncSpec, Byte>>();
+            for (Iterator<Pair<Long, FuncSpec>> it = scoreFuncSpecList.iterator(); it.hasNext();) {
+                FuncSpec funcSpec = it.next().second;
+                Schema sch = funcSpec.getInputArgsSchema();
+                for (Iterator<Integer> iter = byteArrayPositions.iterator(); iter
+                        .hasNext();) {
+                    Integer i = iter.next();
+                    try {
+                        if (!castToMap.containsKey(i)) {
+                            // first candidate
+                            castToMap.put(i, new Pair<FuncSpec, Byte>(funcSpec, sch
+                                    .getField(i).type));
+                        } else {
+                            // make sure the existing type from an earlier candidate
+                            // matches
+                            Pair<FuncSpec, Byte> existingPair = castToMap.get(i);
+                            if (sch.getField(i).type != existingPair.second) {
+                                String msg = "Multiple matching functions for "
+                                        + func.getFuncSpec() + " with input schema: " 
+                                        + "(" + existingPair.first.getInputArgsSchema() 
+                                        + ", " + funcSpec.getInputArgsSchema() 
+                                        + "). Please use an explicit cast.";
+                                msgCollector.collect(msg, MessageType.Error);
+                                throw new VisitorException(msg);
+                            }
+                        }
+                    } catch (ParseException e) {
+                        new VisitorException(e);
+                    }
+                }
+            }
+        }
+        
+        // if we reached here, it means we have >= 1 candidates and these candidates
+        // have the same type for position which have bytearray in the input
+        // Also the candidates are stored sorted by score in a list - we can now
+        // just return the first candidate (the one with the lowest score)
+        return scoreFuncSpecList.get(0).second;
     }
     
     /**
@@ -1330,26 +1573,134 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         return false;
     }
-    
+
+    /**
+     * Gets the positions in the schema which are byte arrays
+     * 
+     * @param s -
+     *            input schema
+     * @throws VisitorException
+     */
+    private List<Integer> getByteArrayPositions(Schema s)
+            throws VisitorException {
+        List<Integer> result = new ArrayList<Integer>();
+        for (int i = 0; i < s.size(); i++) {
+            try {
+                FieldSchema fs = s.getField(i);
+                if (fs.type == DataType.BYTEARRAY) {
+                    result.add(i);
+                }
+            } catch (ParseException e) {
+                throw new VisitorException(e);
+            }
+        }
+        return result;
+    }
+
     /**
      * Finds if there is an exact match between the schema supported by
      * one of the funcSpecs and the input schema s
      * @param funcSpecs - mappings provided by udf
      * @param s - input schema
+     * @param ignoreByteArrays - flag for whether the exact match is to computed
+     * after ignoring bytearray (if true) or without ignoring bytearray (if false)
      * @return the matching spec if found else null
+     * @throws VisitorException 
      */
-    private FuncSpec exactMatch(List<FuncSpec> funcSpecs, Schema s) {
-        FuncSpec matchingSpec = null;
+    private FuncSpec exactMatchHelper(List<FuncSpec> funcSpecs, Schema s, LOUserFunc func, boolean ignoreByteArrays) throws VisitorException {
+        List<FuncSpec> matchingSpecs = new ArrayList<FuncSpec>();
         for (Iterator<FuncSpec> iterator = funcSpecs.iterator(); iterator.hasNext();) {
             FuncSpec fs = iterator.next();
-            if(Schema.equals(s, fs.getInputArgsSchema(), false, true)) {
-                matchingSpec = fs;
-                break;
+            if (schemaEqualsForMatching(s, fs.getInputArgsSchema(), ignoreByteArrays)) {
+                matchingSpecs.add(fs);
             }
         }
-        return matchingSpec;
+        if(matchingSpecs.size() == 0)
+            return null;
+        
+        if(matchingSpecs.size() > 1) {
+            String msg = "Multiple matching functions for "
+                                        + func.getFuncSpec() + " with input schema: " 
+                                        + "(" + matchingSpecs.get(0).getInputArgsSchema() 
+                                        + ", " + matchingSpecs.get(1).getInputArgsSchema() 
+                                        + "). Please use an explicit cast.";
+            msgCollector.collect(msg, MessageType.Error);
+            throw new VisitorException(msg);
+        }
+        
+        // exactly one matching spec - return it
+        return matchingSpecs.get(0);
     }
-    
+
+    /***************************************************************************
+     * Compare two schemas for equality for argument matching purposes. This is
+     * a more relaxed form of Schema.equals wherein first the Datatypes of the
+     * field schema are checked for equality. Then if a field schema in the udf
+     * schema is for a complex type AND if the inner schema is NOT null, check
+     * for schema equality of the inner schemas of the UDF field schema and
+     * input field schema
+     * 
+     * @param inputSchema
+     * @param udfSchema
+     * @param ignoreByteArrays
+     * @return true if FieldSchemas are equal for argument matching, false
+     *         otherwise
+     */
+    public static boolean schemaEqualsForMatching(Schema inputSchema,
+            Schema udfSchema, boolean ignoreByteArrays) {
+        // If both of them are null, they are equal
+        if ((inputSchema == null) && (udfSchema == null)) {
+            return true;
+        }
+
+        // otherwise
+        if (inputSchema == null) {
+            return false;
+        }
+
+        if (udfSchema == null) {
+            return false;
+        }
+
+        if (inputSchema.size() != udfSchema.size())
+            return false;
+
+        Iterator<FieldSchema> i = inputSchema.getFields().iterator();
+        Iterator<FieldSchema> j = udfSchema.getFields().iterator();
+
+        while (i.hasNext()) {
+
+            FieldSchema inputFieldSchema = i.next();
+            FieldSchema udfFieldSchema = j.next();
+
+            if(ignoreByteArrays && inputFieldSchema.type == DataType.BYTEARRAY) {
+                continue;
+            }
+            
+            if (inputFieldSchema.type != udfFieldSchema.type) {
+                return false;
+            }
+
+            // if a field schema in the udf schema is for a complex
+            // type AND if the inner schema is NOT null, check for schema
+            // equality of the inner schemas of the UDF field schema and
+            // input field schema. If the field schema in the udf schema is
+            // for a complex type AND if the inner schema IS null it means
+            // the udf is applicable for all input which has the same type
+            // for that field (irrespective of inner schema)
+            if (DataType.isSchemaType(udfFieldSchema.type)
+                    && udfFieldSchema.schema != null) {
+                // Compare recursively using field schema
+                if (!FieldSchema.equals(inputFieldSchema, udfFieldSchema,
+                        false, true)) {
+                    return false;
+                }
+            }
+
+        }
+        return true;
+    }
+
     /**
      * Computes a modified version of manhattan distance between 
      * the two schemas: s1 & s2. Here the value on the same axis
@@ -1377,6 +1728,14 @@ public class TypeCheckingVisitor extends LOVisitor {
         int castCnt=0;
         for(int i=0;i<sFields.size();i++){
             FieldSchema sFS = sFields.get(i);
+
+            // if we have a byte array do not include it
+            // in the computation of the score - bytearray
+            // fields will be looked at separately outside
+            // of this function
+            if (sFS.type == DataType.BYTEARRAY)
+                continue;
+
             FieldSchema fsFS = fsFields.get(i);
             
             if(DataType.isSchemaType(sFS.type)){
@@ -1420,10 +1779,8 @@ public class TypeCheckingVisitor extends LOVisitor {
             OperatorKey newKey = genNewOperatorKey(udf);
             LOCast cast = new LOCast(currentPlan, newKey, input, tFSch.type);
             currentPlan.add(cast);
-            currentPlan.disconnect(input, udf);
             try {
-                currentPlan.connect(input, cast);
-                currentPlan.connect(cast, udf);
+                currentPlan.insertBetween(input, cast, udf);
                 this.visit(cast);
             } catch (PlanException ioe) {
                 AssertionError err = new AssertionError(
@@ -1482,7 +1839,15 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinCond(binCond, lhsType);
             binCond.setType(DataType.mergeType(lhsType, rhsType));
         }
-        else if (lhsType == rhsType) {
+        // A constant null is always bytearray - so cast it
+        // to rhs type
+        else if (binCond.getLhsOp() instanceof LOConst
+                && ((LOConst) binCond.getLhsOp()).getValue() == null) {
+            insertLeftCastForBinCond(binCond, rhsType);
+        } else if (binCond.getRhsOp() instanceof LOConst
+                && ((LOConst) binCond.getRhsOp()).getValue() == null) {
+            insertRightCastForBinCond(binCond, lhsType);
+        } else if (lhsType == rhsType) {
             // Matching schemas if we're working with tuples
             if (DataType.isSchemaType(lhsType)) {            
                 try {
@@ -1534,11 +1899,19 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         OperatorKey newKey = genNewOperatorKey(binCond) ;
         LOCast cast = new LOCast(currentPlan, newKey, binCond.getLhsOp(), toType) ;
+        // if we are casting a null constant, also set its field schema to the
+        // field schema of the other operator in the bincond
+        if (binCond.getLhsOp() instanceof LOConst
+                && ((LOConst) binCond.getLhsOp()).getValue() == null) {
+            try {
+                    cast.setFieldSchema(binCond.getRhsOp().getFieldSchema());
+            } catch (FrontendException e) {
+                throw new VisitorException(e);
+            }
+        }
         currentPlan.add(cast) ;
-        currentPlan.disconnect(binCond.getLhsOp(), binCond) ;
         try {
-            currentPlan.connect(binCond.getLhsOp(), cast) ;
-            currentPlan.connect(cast, binCond) ;
+            currentPlan.insertBetween(binCond.getLhsOp(), cast, binCond);
         } 
         catch (PlanException ioe) {
             AssertionError err =  new AssertionError("Explicit casting insertion") ;
@@ -1559,11 +1932,19 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         OperatorKey newKey = genNewOperatorKey(binCond) ;
         LOCast cast = new LOCast(currentPlan, newKey, binCond.getRhsOp(), toType) ;
+        // if we are casting a null constant, also set its field schema to the
+        // field schema of the other operator in the bincond
+        if (binCond.getRhsOp() instanceof LOConst
+                && ((LOConst) binCond.getRhsOp()).getValue() == null) {
+            try {
+                cast.setFieldSchema(binCond.getLhsOp().getFieldSchema());
+            } catch (FrontendException e) {
+                throw new VisitorException(e);
+            }
+        }
         currentPlan.add(cast) ;
-        currentPlan.disconnect(binCond.getRhsOp(), binCond) ;
         try {
-            currentPlan.connect(binCond.getRhsOp(), cast) ;
-            currentPlan.connect(cast, binCond) ;
+            currentPlan.insertBetween(binCond.getRhsOp(), cast, binCond) ;
         } 
         catch (PlanException ioe) {
             AssertionError err =  new AssertionError("Explicit casting insertion") ;

@@ -722,7 +722,7 @@ public class DataType {
 
         switch (dt) {
         case NULL:
-            return new Schema.FieldSchema(null, NULL);
+            return new Schema.FieldSchema(null, BYTEARRAY);
 
         case BOOLEAN:
             return new Schema.FieldSchema(null, BOOLEAN);
