@@ -694,7 +694,9 @@ public class DataType {
             }
             sb.append(o.toString());
             sb.append("#");
-            sb.append(m.get(o).toString());
+            if(m.get(o) != null) {
+                sb.append(m.get(o).toString());
+            }
         }
         sb.append("]");
         return sb.toString();

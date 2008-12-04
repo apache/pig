@@ -3091,6 +3091,8 @@ void KeyValuePair(Map<Object, Object> keyValues) :
 {
 	(key = AtomDatum() "#" value = Datum())
 	{
+		if(key == null)
+		    throw new ParseException("key in a map cannot be null (provided input has '"+ key + "#" + value + "')");
 		keyValues.put(key, value);
 		log.trace("Exiting KeyValuePair");
 	}

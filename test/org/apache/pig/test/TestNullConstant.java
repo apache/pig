@@ -7,12 +7,14 @@ package org.apache.pig.test;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.junit.Before;
 import org.junit.Test;
@@ -122,4 +124,47 @@ public class TestNullConstant extends TestCase {
         }
     }
 
+    @Test
+    public void testExplicitCast() throws IOException, ExecException {
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"10\t11.0\tstring"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("b = foreach a generate (int)null, (double)null, (chararray)null, (map[])null;");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        Tuple t = it.next();
+        for (int i = 0; i < 3; i++) {
+            assertEquals(null, t.get(i));
+        }
+    }
+    
+    @Test
+    public void testComplexNullConstants() throws IOException, ExecException {
+        File input = Util.createInputFile("tmp", "", 
+                new String[] {"10\t11.0\tstring"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("b = foreach a generate {(null)}, ['2'#null];");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        Tuple t = it.next();
+        assertEquals(null, ((DataBag)t.get(0)).iterator().next().get(0));
+        assertEquals(null, ((Map<Object, Object>)t.get(1)).get("2"));
+        
+    }
+
+    @Test
+    public void testMapNullKeyFailure() throws IOException {
+        File input;
+        input = Util.createInputFile("tmp", "", 
+                new String[] {"10\t11.0\tstring"});
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+
+        boolean exceptionOccured = false;
+        try {
+            pigServer.registerQuery("b = foreach a generate [null#'2'];");
+        } catch(Exception e) {
+            exceptionOccured = true;
+            String msg = e.getMessage();
+            assertTrue(msg.contains("key in a map cannot be null"));
+        }
+        if(!exceptionOccured) fail();        
+    }
 }
