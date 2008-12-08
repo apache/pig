@@ -1839,7 +1839,44 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         "CONCAT(null, str);";
         buildPlan(query);
     }
+
+    @Test
+    public void testFilterUdfDefine() {
+        String query = "define isempty IsEmpty(); a = load 'a' as (x:int, y:double, str:chararray);" +
+        		"b = filter a by isempty(*);";
+        buildPlan(query);
+    }
     
+    @Test
+    public void testLoadUdfDefine() {
+        String query = "define PS PigStorage(); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
+        		"b = filter a by IsEmpty(*);";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testLoadUdfConstructorArgDefine() {
+        String query = "define PS PigStorage(':'); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
+        		"b = filter a by IsEmpty(*);";
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testStoreUdfDefine() {
+        String query = "define PS PigStorage(); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
+        		"b = filter a by IsEmpty(*);" +
+                "store b into 'x' using PS;" ;
+        buildPlan(query);
+    }
+    
+    @Test
+    public void testStoreUdfConstructorArgDefine() {
+        String query = "define PS PigStorage(':'); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
+        		"b = filter a by IsEmpty(*);" +
+                "store b into 'x' using PS;" ;
+        buildPlan(query);
+    }
+
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

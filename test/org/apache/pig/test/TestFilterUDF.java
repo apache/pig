@@ -32,9 +32,9 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.data.*;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.test.utils.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,8 +44,9 @@ public class TestFilterUDF extends TestCase {
     private MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
     
+    TupleFactory tf = TupleFactory.getInstance();
+
     public TestFilterUDF() throws ExecException, IOException{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         int LOOP_SIZE = 20;
         tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -57,11 +58,29 @@ public class TestFilterUDF extends TestCase {
     
     @Before
     public void setUp() throws Exception {
-        
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        int LOOP_SIZE = 20;
+        tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        for(int i = 1; i <= LOOP_SIZE; i++) {
+            ps.println(i);
+        }
+        ps.close();
     }
 
     @After
     public void tearDown() throws Exception {
+        tmpFile.delete();
+    }
+    
+    private File createFile(String[] data) throws Exception{
+        File f = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(f);
+        for (int i=0; i<data.length; i++){
+            pw.println(data[i]);
+        }
+        pw.close();
+        return f;
     }
     
     static public class MyFilterFunction extends EvalFunc<Boolean>{
@@ -96,4 +115,38 @@ public class TestFilterUDF extends TestCase {
         }
         assertEquals(10, cnt);
     }
+
+    @Test
+    public void testFilterUDFusingDefine() throws Exception{
+        File inputFile= createFile(
+                    new String[]{ 
+                        "www.paulisageek.com\t4",
+                        "www.yahoo.com\t12344",
+                        "google.com\t1",
+                        "us2.amazon.com\t4141"
+                    }
+                );
+
+        File filterFile = createFile(
+                    new String[]{ 
+                        "12344"
+                    }
+                );
+
+        pigServer.registerQuery("define FILTER_CRITERION " + FILTERFROMFILE.class.getName() + "('" + FileLocalizer.hadoopify(Util.generateURI(filterFile.toString()), pigServer.getPigContext()) + "');");
+        pigServer.registerQuery("a = LOAD '" + Util.generateURI(inputFile.toString()) + "' as (url:chararray, numvisits:int);");
+        pigServer.registerQuery("b = filter a by FILTER_CRITERION(numvisits);");
+
+        Tuple expectedTuple = tf.newTuple();
+        expectedTuple.append(new String("www.yahoo.com"));
+        expectedTuple.append(new Integer("12344"));
+
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(t.equals(expectedTuple));
+        }
+
+    }
+        
 }

@@ -54,6 +54,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ComparisonFunc;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -615,6 +618,33 @@ class StringUtils {
         }
 }
 
+class FunctionType {
+    public static final byte UNKNOWNFUNC = 0;
+    public static final byte EVALFUNC = 2;
+    public static final byte COMPARISONFUNC = 4;
+    public static final byte LOADFUNC = 8; 
+    public static final byte STOREFUNC = 16;
+
+    public static void tryCasting(Object func, byte funcType) throws Exception {
+        switch(funcType) {
+        case FunctionType.EVALFUNC:
+			EvalFunc evalFunc = (EvalFunc) func;
+            break;
+        case FunctionType.COMPARISONFUNC:
+			ComparisonFunc comparisonFunc = (ComparisonFunc) func;
+            break;
+        case FunctionType.LOADFUNC:
+			LoadFunc loadFunc = (LoadFunc) func;
+            break;
+        case FunctionType.STOREFUNC:
+			StoreFunc storeFunc = (StoreFunc) func;
+            break;
+        default:
+            throw new Exception("Received an unknown function type: " + funcType);
+        }
+    }
+}
+
 PARSER_END(QueryParser)
 
 // Skip all the new lines, tabs and spaces
@@ -972,12 +1002,7 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 {
 	(	filename = FileName()
 		(
-		<USING>  funcName = QualifiedFunction() "(" funcArgs = StringList() ")"
-		{
-			funcSpecAsString = funcName + "(" + funcArgs + ")";
-			funcSpec = new FuncSpec(funcSpecAsString);
-			log.debug("LoadClause: funcSpec = " + funcSpec);
-		}
+        <USING>  funcSpec = NonEvalFuncSpec(FunctionType.LOADFUNC)
 		)?
 		(
 		<SPLIT> <BY> t3 = <QUOTEDSTRING>
@@ -990,7 +1015,7 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 		)?
 	)
 	{
-		if (funcSpecAsString == null){
+		if (funcSpec == null){
 			funcSpecAsString = PigStorage.class.getName();
 			funcSpec = new FuncSpec(funcSpecAsString);
 			log.debug("LoadClause: funcSpec = " + funcSpec);
@@ -1272,23 +1297,7 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 				log.debug("PUnaryCond: Connected operator " + cond.getClass().getName() + " " + cond + " to " + lhs + " logical plan " + lp);
 			}
 		)
-|	LOOKAHEAD(EvalFunction() "(") 
-		(evalFunc=EvalFunction() "(" args=EvalArgs(over,specs,lp,input) ")" 
-			{
-                FuncSpec funcSpec = new FuncSpec(evalFunc.getClass().getName());
-                Type javaType = evalFunc.getReturnType();
-                byte type = DataType.findType(javaType);
-
-                log.debug("Return type of UDF: " + DataType.findTypeName(type));
-				cond = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
-				lp.add(cond);
-				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
-				for(ExpressionOperator exprOp: args) {
-					lp.connect(exprOp, cond);
-					log.debug("PUnaryCond: Added operator " + exprOp.getClass().getName() + " " + cond + " to logical plan " + lp);
-				}
-			}
-		)
+|	LOOKAHEAD(EvalFuncSpec(over, specs, lp, input)) cond = EvalFuncSpec(over,specs,lp, input, FunctionType.EVALFUNC)
 |	cond = PNullCond(over,specs,lp,input)
 |	cond = PNotCond(over,specs,lp,input)
 
@@ -1433,6 +1442,7 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 	boolean asc = true; 
 	String funcName = null; 
 	Token t1;
+    FuncSpec funcSpec = null;
 	log.trace("Entering OrderClause");
 }
 {
@@ -1461,13 +1471,13 @@ LogicalOperator OrderClause(LogicalPlan lp) :
 		}	
 	)
 	(
-        <USING>  funcName = QualifiedFunction()
+	    <USING>  funcSpec = NonEvalFuncSpec(FunctionType.COMPARISONFUNC)
     )?
 
 	)
 	{
 		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
-		                          (funcName != null ? new FuncSpec(funcName) : null));
+		                          funcSpec );
 		sort.setStar(star);
 		sort.setLimit(-1);
 		lp.add(sort);
@@ -1860,17 +1870,16 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
     String stream, deserializer;
     StreamingCommand.HandleSpec[] handleSpecs;
     String functionName = "PigStorage", functionArgs="";
+    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) != 0 ? FunctionType.LOADFUNC : FunctionType.STOREFUNC) ;
+    FuncSpec funcSpec = null;
 } 
 {
     stream = CommandStream() 
     [
-        <USING> functionName = QualifiedFunction() 
-        [
-            "(" functionArgs = StringList() ")"
-        ]
+	    <USING>  funcSpec = NonEvalFuncSpec(funcType)
     ]
     {
-        deserializer = functionName + "(" + functionArgs + ")";
+        deserializer = (funcSpec == null? functionName + "(" + ")" : funcSpec.toString());
         command.addHandleSpec(handle, 
                               new HandleSpec(stream, deserializer)
                              );
@@ -1879,13 +1888,10 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
         "," 
         stream = CommandStream() 
         [
-            <USING> functionName = QualifiedFunction() 
-            [
-                "(" functionArgs = StringList() ")"
-            ]
+	        <USING>  funcSpec = NonEvalFuncSpec(funcType)
         ] 
         {
-            deserializer = functionName + "(" + functionArgs + ")";
+            deserializer = (funcSpec == null? functionName + "(" + ")" : funcSpec.toString());
             command.addHandleSpec(handle, 
                                   new HandleSpec(stream, deserializer)
                                  );
@@ -1921,22 +1927,20 @@ void ErrorSpec(StreamingCommand command, String alias): {Token t1, t2; int limit
 	}
 }
 LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; String fileName; String functionSpec = null; 
-                                                String functionName, functionArgs;}
+                                                String functionName, functionArgs; FuncSpec funcSpec = null;}
 {
     t = <IDENTIFIER> <INTO> fileName = FileName()
     (
-        <USING> functionName = QualifiedFunction() {functionSpec = functionName;}
-        (
-            "(" functionArgs = StringList() ")" {functionSpec = functionSpec + "(" + functionArgs + ")";}
-        )?
+        <USING>  funcSpec = NonEvalFuncSpec(FunctionType.STOREFUNC)
     )?
     {
 
-        if (functionSpec == null)
-            functionSpec = PigStorage.class.getName() + "()";
+        if (funcSpec == null) {
+            funcSpec = new FuncSpec(PigStorage.class.getName() + "()");
+        }
 
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
-                                            new FileSpec(fileName, new FuncSpec(functionSpec)));
+                                            new FileSpec(fileName, funcSpec));
 
         LogicalOperator input = mapAliasOp.get(t.image);
         if (input == null)
@@ -1975,7 +1979,7 @@ void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<Logical
 	(
 	t = <IDENTIFIER> "="
 	(
-	LOOKAHEAD(FuncEvalSpec(over, specs, lp, input)) item = InfixExpr(over,specs,lp, input)
+	LOOKAHEAD(EvalFuncSpec(over, specs, lp, input, FunctionType.EVALFUNC)) item = InfixExpr(over,specs,lp, input)
     {
         lp.add(item);
     }
@@ -2126,6 +2130,7 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 	LogicalOperator eOp;
 	Token t; 
 	boolean asc = true; 
+    FuncSpec funcSpec = null;
 	log.trace("Entering NestedSortOrArrange");}
 {
 	(
@@ -2157,13 +2162,13 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 			}		
 	)     
     (
-        <USING>  funcName = QualifiedFunction()
+        <USING>  funcSpec = NonEvalFuncSpec(FunctionType.COMPARISONFUNC)
     )?
 	)
 	{	
 		log.debug("Before creating LOSort");
 		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
-		                          (funcName != null ? new FuncSpec(funcName) : null));
+		                          funcSpec);
 		sort.setStar(star);
 		log.debug("After creating LOSort");
 		try {
@@ -2479,8 +2484,8 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
     LOOKAHEAD(Const(lp)) item = Const(lp)
 |	(
 	(
-		LOOKAHEAD(FuncEvalSpec(over,specs,lp,input))
-		item = FuncEvalSpec(over,specs,lp,input)
+		LOOKAHEAD(EvalFuncSpec(over,specs,lp,input, FunctionType.EVALFUNC))
+		item = EvalFuncSpec(over,specs,lp,input, FunctionType.EVALFUNC)
 	|	item = ColOrSpec(over,specs,lp,input) 
 	| 	item = BinCond(over,specs,lp,input)
 	
@@ -2547,7 +2552,7 @@ ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, Logi
 }
 
 
-ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input, byte funcType) : 
 {
 	String funcName = null; 
 	FuncSpec funcSpec = null; 
@@ -2556,52 +2561,114 @@ ExpressionOperator FuncEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 	List<ExpressionOperator> args;
 	ExpressionOperator userFunc;
     LOUserFunc userAliasFunc = null;
-    EvalFunc evalFunc = null;
-	log.trace("Entering FuncEvalSpec");
+    Object func = null;
+	log.trace("Entering EvalFuncSpec");
 }
 {
 	(
     (
     LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
     {
-        
+		func = pigContext.instantiateFuncFromAlias(funcNameAlias);
 		try{
-			evalFunc = (EvalFunc) pigContext.instantiateFuncFromAlias(funcNameAlias);
-            Type javaType = evalFunc.getReturnType();
-            log.debug("Type: " + javaType);
-            log.debug("funcName: " + funcName + " class name: " + evalFunc.getClass().getName() + " return type: " + DataType.findType(javaType));
-		}catch (Exception e){
+            FunctionType.tryCasting(func, funcType);
+		} catch (Exception e){
 			throw new ParseException(e.getMessage());
 		}
     }
     )
-|   evalFunc=EvalFunction()
+|   func=EvalFunction(funcType)
     )
     "(" args=EvalArgs(over,specs,lp,input) ")" 
 	{
-		if(null != evalFunc) {
-            funcName = evalFunc.getClass().getName();
+		if(null != func) {
+            funcName = func.getClass().getName();
             if(null != funcNameAlias) {
                 funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
             } else {
                 funcSpec = new FuncSpec(funcName);
             }
-            Type javaType = evalFunc.getReturnType();
-            byte type = DataType.findType(javaType);
-            log.debug("Return type of UDF: " + DataType.findTypeName(type));
-            log.debug("FuncEvalSpec: funcSpec: " + funcSpec);
+            byte type = DataType.BYTEARRAY;
+            switch(funcType) {
+            case FunctionType.EVALFUNC:
+                Type javaType = ((EvalFunc)func).getReturnType();
+                type = DataType.findType(javaType);
+                log.debug("Return type of UDF: " + DataType.findTypeName(type));
+                log.debug("EvalFuncSpec: funcSpec: " + funcSpec);
+                break;
+            default:
+                throw new ParseException("Received an unknown function type: " + funcType);
+            }
 			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
         } else {
             throw new ParseException("Could not instantiate function: " + funcNameAlias);
         }
 		lp.add(userFunc);
-		log.debug("FuncEvalSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
+		log.debug("EvalFuncSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
 		for(ExpressionOperator exprOp: args) {
 			lp.connect(exprOp, userFunc);
-			log.debug("FuncEvalSpec: Connected operator " + exprOp.getClass().getName() + " " + exprOp+ " to " + userFunc + " logical plan " + lp);
+			log.debug("EvalFuncSpec: Connected operator " + exprOp.getClass().getName() + " " + exprOp+ " to " + userFunc + " logical plan " + lp);
 		}
-		log.trace("Exiting FuncEvalSpec");
+		log.trace("Exiting EvalFuncSpec");
 		return userFunc;
+	}
+}
+
+FuncSpec NonEvalFuncSpec(byte funcType) : 
+{
+	String functionName = null; 
+	FuncSpec funcSpec = null; 
+	String funcNameAlias = null; 
+    String functionArgs = null;
+    Object func = null;
+	log.trace("Entering NonEvalFuncSpec");
+}
+{
+	(
+    (
+    LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
+    {
+		func = pigContext.instantiateFuncFromAlias(funcNameAlias);
+		try{
+            FunctionType.tryCasting(func, funcType);
+		} catch (Exception e){
+			throw new ParseException(e.getMessage());
+		}
+    }
+    )
+|   functionName = QualifiedFunction() ( "(" functionArgs = StringList() ")" )?
+    )
+	{
+		if(null != func) {
+            functionName = func.getClass().getName();
+            if(null != funcNameAlias) {
+                funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
+            } else {
+                funcSpec = new FuncSpec(functionName);
+            }
+        } else if (functionName != null) {
+            funcSpec = new FuncSpec(functionName + (functionArgs == null? "(" + ")" : "(" + functionArgs + ")"));
+        } else {
+            throw new ParseException("Could not instantiate function: " + funcNameAlias);
+        }
+            switch(funcType) {
+            case FunctionType.COMPARISONFUNC:
+            case FunctionType.LOADFUNC:
+            case FunctionType.STOREFUNC:
+                //funcSpec = new FuncSpec(func.getClass().getName() + (functionArgs == null? "(" + ")" : "(" + functionArgs + ")"));
+                System.err.println("funcSpec: " + funcSpec);
+                func = pigContext.instantiateFuncFromSpec(funcSpec);
+		        try{
+                    FunctionType.tryCasting(func, funcType);
+		        } catch (Exception e){
+			        throw new ParseException(e.getMessage());
+		        }
+                break;
+            default:
+                throw new ParseException("Received an unknown function type: " + funcType);
+            }
+		log.trace("Exiting NonEvalFuncSpec");
+		return funcSpec;
 	}
 }
 
@@ -2943,26 +3010,24 @@ Schema TypeTupleSchema() :
 
 // These the simple non-terminals that are shared across many
 
-EvalFunc  EvalFunction() : 
+Object  EvalFunction(byte funcType) : 
 {
 	String funcName;
-    EvalFunc ef;
+    Object func = null;
 	log.trace("Entering EvalFunction");
 }
 {
 	funcName = QualifiedFunction()
 	{
+        func = pigContext.instantiateFuncFromAlias(funcName);
 		try{
-			ef = (EvalFunc) pigContext.instantiateFuncFromAlias(funcName);
-            Type javaType = ef.getReturnType();
-            log.debug("Type: " + javaType);
-            log.debug("funcName: " + funcName + " class name: " + ef.getClass().getName() + " return type: " + DataType.findType(javaType));
+            FunctionType.tryCasting(func, funcType);
 		}catch (Exception e){
 			throw new ParseException(e.getMessage());
 		}
 		log.trace("Exiting EvalFunction");
 		
-		return ef;
+		return func;
 	}
 }
 

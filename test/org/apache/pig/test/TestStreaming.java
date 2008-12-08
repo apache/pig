@@ -302,6 +302,77 @@ public class TestStreaming extends PigExecTestCase {
     }
 
     @Test
+    public void testInputShipSpecsWithUDFDefine() throws Exception {
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
+        File input = Util.createInputFile("tmp", "", 
+                                          new String[] {"A,1", "B,2", "C,3", 
+                                                        "D,2", "A,5", "B,5", 
+                                                        "C,8", "A,8", "D,8", 
+                                                        "A,9"});
+
+        // Perl script 
+        String[] script = 
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE,  $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          "  print STDOUT \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "}",
+                         };
+        File command1 = Util.createInputFile("script", "pl", script);
+        File command2 = Util.createInputFile("script", "pl", script);
+        
+        // Expected results
+        String[] expectedFirstFields = 
+            new String[] {"A", "B", "C", "A", "D", "A"};
+        Integer[] expectedSecondFields = new Integer[] {5, 5, 8, 8, 8, 9};
+        Tuple[] expectedResults =
+                setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
+
+        // Pig query to run
+        
+        pigServer.registerQuery(
+                "define PS " + PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery(
+                "define CMD1 `" + command1.getName() + " foo` " +
+                "ship ('" + Util.encodeEscape(command1.toString()) + "') " +
+                "input('foo' using PS ) " +
+                "output(stdout using PS ) " +
+                "stderr();"); 
+        pigServer.registerQuery(
+                "define CMD2 `" + command2.getName() + " bar` " +
+                "ship ('" + Util.encodeEscape(command2.toString()) + "') " +
+                "input('bar' using PS ) " +
+                "output(stdout using PS ) " +        
+                "stderr();"); 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using PS ;");
+        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
+        pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA " +
+        		                "through CMD1;");
+        pigServer.registerQuery("OP = stream STREAMED_DATA through CMD2;");
+        
+        String output = "/pig/out";
+        pigServer.deleteFile(output);
+        pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
+        
+        InputStream op = FileLocalizer.open(output, pigServer.getPigContext());
+        PigStorage ps = new PigStorage(",");
+        ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
+        List<Tuple> outputs = new ArrayList<Tuple>();
+        Tuple t;
+        while ((t = ps.getNext()) != null) {
+            outputs.add(t);
+        }
+
+        // Run the query and check the results
+        Util.checkQueryOutputs(outputs.iterator(), expectedResults);
+    }
+
+    @Test
     public void testInputCacheSpecs() throws Exception {
         // Can't run this without HDFS
         if(execType == ExecType.LOCAL)
@@ -436,6 +507,68 @@ public class TestStreaming extends PigExecTestCase {
         Util.checkQueryOutputs(outputs.iterator(), expectedResults);
     }
 
+    @Test
+	public void testOutputShipSpecsWithUDFDefine() throws Exception {
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
+	    File input = Util.createInputFile("tmp", "", 
+	                                      new String[] {"A,1", "B,2", "C,3", 
+	                                                    "D,2", "A,5", "B,5", 
+	                                                    "C,8", "A,8", "D,8", 
+	                                                    "A,9"});
+
+	    // Perl script 
+	    String[] script = 
+	        new String[] {
+	                      "#!/usr/bin/perl",
+                          "open(OUTFILE, \">\", $ARGV[0]) or die \"Can't open \".$ARGV[1].\"!: $!\";",
+                          "open(OUTFILE2, \">\", $ARGV[1]) or die \"Can't open \".$ARGV[2].\"!: $!\";",
+                          "while (<STDIN>) {",
+                          "  print OUTFILE \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "  print OUTFILE2 \"A,10\n\";",
+                          "}",
+	                     };
+	    File command = Util.createInputFile("script", "pl", script);
+
+        // Expected results
+        String[] expectedFirstFields = 
+            new String[] {"A", "A", "A", "A", "A", "A"};
+        Integer[] expectedSecondFields = new Integer[] {10, 10, 10, 10, 10, 10};
+        Tuple[] expectedResults = 
+                setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
+
+        // Pig query to run
+        pigServer.registerQuery(
+                "define PS " + PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery(
+                "define CMD `" + command.getName() + " foo bar` " +
+                "ship ('" + Util.encodeEscape(command.toString()) + "') " +
+        		"output('foo' using PS, " +
+        		"'bar' using PS) " +
+        		"stderr();"); 
+        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using PS;");
+        pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > 3;");
+        pigServer.registerQuery("OP = stream FILTERED_DATA through CMD;");                
+        
+        String output = "/pig/out";
+        pigServer.deleteFile(output);
+        pigServer.store("OP", output, PigStorage.class.getName() + "(',')");
+        
+        InputStream op = FileLocalizer.open(output+"/bar", 
+                                            pigServer.getPigContext());
+        PigStorage ps = new PigStorage(",");
+        ps.bindTo("", new BufferedPositionedInputStream(op), 0, Long.MAX_VALUE); 
+        List<Tuple> outputs = new ArrayList<Tuple>();
+        Tuple t;
+        while ((t = ps.getNext()) != null) {
+            outputs.add(t);
+        }
+
+        // Run the query and check the results
+        Util.checkQueryOutputs(outputs.iterator(), expectedResults);
+    }
     @Test
     public void testInputOutputSpecs() throws Exception {
         // FIXME : this should be tested in all modes
