@@ -234,7 +234,36 @@ public class LOProject extends ExpressionOperator {
                                 if(null != expOpFs) {
                                     Schema s = expOpFs.schema;
                                     if(null != s) {
-                                        Schema.FieldSchema fs = s.getField(mProjection.get(0));
+                                        Schema.FieldSchema fs;
+                                        if(s.isTwoLevelAccessRequired()) {
+                                            // this is the case where the schema is that of
+                                            // a bag which has just one tuple fieldschema which
+                                            // in turn has a list of fieldschemas. So the field
+                                            // schema we are trying to construct would be of the
+                                            // item we are trying to project inside the tuple 
+                                            // fieldschema - because currently when we say b.i where
+                                            // b is a bag, we are trying to access the item i
+                                            // present in the tuple in the bag.
+                                            
+                                            // check that indeed we only have one field schema
+                                            // which is that of a tuple
+                                            if(s.getFields().size() != 1) {
+                                                throw new FrontendException("Expected a bag schema with a single " +
+                                                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                                                        " but got a bag schema with multiple elements.");
+                                            }
+                                            Schema.FieldSchema tupleFS = s.getField(0);
+                                            if(tupleFS.type != DataType.TUPLE) {
+                                                throw new FrontendException("Expected a bag schema with a single " +
+                                                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                                                        " but got an element of type " +
+                                                        DataType.findTypeName(tupleFS.type));
+                                            }
+                                            fs = tupleFS.schema.getField(mProjection.get(0));
+                                        } else {
+                                            // normal single level access
+                                            fs = s.getField(mProjection.get(0));
+                                        }
                                         mFieldSchema = new Schema.FieldSchema(fs);
                                         mFieldSchema.setParent(fs.canonicalName, expressionOperator);
                                     } else {

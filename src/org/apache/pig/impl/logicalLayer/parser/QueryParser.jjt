@@ -2858,6 +2858,10 @@ Schema.FieldSchema SchemaBag() :
 	( t1 = <IDENTIFIER> ) [LOOKAHEAD(2) ":" <BAG> | ":"] "{" (fs = SchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" 
 	{
         s = new Schema(fs);
+        // since this schema has tuple field schema which internally
+        // has a list of field schemas for the actual items in the bag
+        // an access to any field in the bag is a  two level access
+        s.setTwoLevelAccessRequired(true);
 		if (null != t1) {
 			log.debug("BAG alias " + t1.image);
 			fs = new Schema.FieldSchema(t1.image, s, DataType.BAG);

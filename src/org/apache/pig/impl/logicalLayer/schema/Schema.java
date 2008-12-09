@@ -556,6 +556,28 @@ public class Schema implements Serializable, Cloneable {
     private Map<String, FieldSchema> mAliases;
     private MultiMap<String, String> mFieldSchemas;
     private static Log log = LogFactory.getLog(Schema.class);
+    // In bags which have a schema with a tuple which contains
+    // the fields present in it, if we access the second field (say)
+    // we are actually trying to access the second field in the
+    // tuple in the bag. This is currently true for two cases:
+    // 1) bag constants - the schema of bag constant has a tuple
+    // which internally has the actual elements
+    // 2) When bags are loaded from input data, if the user 
+    // specifies a schema with the "bag" type, he has to specify
+    // the bag as containing a tuple with the actual elements in 
+    // the schema declaration. However in both the cases above,
+    // the user can still say b.i where b is the bag and i is 
+    // an element in the bag's tuple schema. So in these cases,
+    // the access should translate to a lookup for "i" in the 
+    // tuple schema present in the bag. To indicate this, the
+    // flag below is used. It is false by default because, 
+    // currently we use bag as the type for relations. However 
+    // the schema of a relation does NOT have a tuple fieldschema
+    // with items in it. Instead, the schema directly has the 
+    // field schema of the items. So for a relation "b", the 
+    // above b.i access would be a direct single level access
+    // of i in b's schema. This is treated as the "default" case
+    private boolean twoLevelAccessRequired = false;
 
     public Schema() {
         mFields = new ArrayList<FieldSchema>();
@@ -604,6 +626,7 @@ public class Schema implements Serializable, Cloneable {
     public Schema(Schema s) {
 
         if(null != s) {
+            twoLevelAccessRequired = s.twoLevelAccessRequired;
             mFields = new ArrayList<FieldSchema>(s.size());
             mAliases = new HashMap<String, FieldSchema>();
             mFieldSchemas = new MultiMap<String, String>();
@@ -840,6 +863,7 @@ public class Schema implements Serializable, Cloneable {
             s.mFieldSchemas.put(newFs.canonicalName, mFieldSchemas.get(oldFsCanonicalName));
         }
 
+        s.twoLevelAccessRequired = twoLevelAccessRequired;
         return s;
     }
 
@@ -962,23 +986,57 @@ public class Schema implements Serializable, Cloneable {
      * @return position of the FieldSchema.
      */
     public int getPosition(String alias) throws FrontendException{
-
-        FieldSchema fs = getField(alias);
-
-        if (null == fs) {
-            return -1;
+        if(twoLevelAccessRequired) {
+            // this is the case where "this" schema is that of
+            // a bag which has just one tuple fieldschema which
+            // in turn has a list of fieldschemas. The alias supplied
+            // should be treated as an alias in the tuple's schema
+            
+            // check that indeed we only have one field schema
+            // which is that of a tuple
+            if(mFields.size() != 1) {
+                throw new FrontendException("Expected a bag schema with a single " +
+                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                        " but got a bag schema with multiple elements.");
+            }
+            Schema.FieldSchema tupleFS = mFields.get(0);
+            if(tupleFS.type != DataType.TUPLE) {
+                throw new FrontendException("Expected a bag schema with a single " +
+                		"element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                		" but got an element of type " +
+                		DataType.findTypeName(tupleFS.type));
+            }
+            
+            // check if the alias supplied is that of the tuple 
+            // itself - then disallow it since we do not allow access
+            // to the tuple itself - we only allow access to the fields
+            // in the tuple
+            if(alias.equals(tupleFS.alias)) {
+                throw new FrontendException("Access to the tuple ("+ alias + ") of " +
+                		"the bag is disallowed. Only access to the elements of " +
+                		"the tuple in the bag is allowed.");
+            }
+            
+            // all is good - get the position from the tuple's schema
+            return tupleFS.schema.getPosition(alias);
+        } else {
+            FieldSchema fs = getField(alias);
+    
+            if (null == fs) {
+                return -1;
+            }
+    
+            log.debug("fs: " + fs);
+            int index = -1;
+            for(int i = 0; i < mFields.size(); ++i) {
+                log.debug("mFields(" + i + "): " + mFields.get(i) + " alias: " + mFields.get(i).alias);
+                if(fs == mFields.get(i)) {index = i;}
+            }
+    
+            log.debug("index: " + index);
+            return index;
+            //return mFields.indexOf(fs);
         }
-
-        log.debug("fs: " + fs);
-        int index = -1;
-        for(int i = 0; i < mFields.size(); ++i) {
-            log.debug("mFields(" + i + "): " + mFields.get(i) + " alias: " + mFields.get(i).alias);
-            if(fs == mFields.get(i)) {index = i;}
-        }
-
-        log.debug("index: " + index);
-        return index;
-        //return mFields.indexOf(fs);
     }
 
     public void addAlias(String alias, FieldSchema fs) {
@@ -1435,7 +1493,9 @@ public class Schema implements Serializable, Cloneable {
             }
         }
 
-        return new Schema(outputList) ;
+        Schema s = new Schema(outputList) ;
+        s.setTwoLevelAccessRequired(other.twoLevelAccessRequired);
+        return s;
     }
 
     /**
@@ -1448,6 +1508,20 @@ public class Schema implements Serializable, Cloneable {
         for(Schema.FieldSchema fs: s.getFields()) {
             FieldSchema.setFieldSchemaDefaultType(fs, t);
         }
+    }
+
+    /**
+     * @return the twoLevelAccess
+     */
+    public boolean isTwoLevelAccessRequired() {
+        return twoLevelAccessRequired;
+    }
+
+    /**
+     * @param twoLevelAccess the twoLevelAccess to set
+     */
+    public void setTwoLevelAccessRequired(boolean twoLevelAccess) {
+        this.twoLevelAccessRequired = twoLevelAccess;
     }
     
 }

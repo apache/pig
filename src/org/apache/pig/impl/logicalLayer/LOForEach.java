@@ -201,6 +201,30 @@ public class LOForEach extends LogicalOperator {
 							//i.e., flatten(A), flatten(A.x) and NOT
 							//flatten(B.(x,y,z))
 							Schema s = planFs.schema;
+							if(null != s && s.isTwoLevelAccessRequired()) {
+							    // this is the case where the schema is that of
+					            // a bag which has just one tuple fieldschema which
+					            // in turn has a list of fieldschemas. The schema
+							    // after flattening would consist of the fieldSchemas
+							    // present in the tuple
+					            
+					            // check that indeed we only have one field schema
+					            // which is that of a tuple
+					            if(s.getFields().size() != 1) {
+					                throw new FrontendException("Expected a bag schema with a single " +
+					                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+					                        " but got a bag schema with multiple elements.");
+					            }
+					            Schema.FieldSchema tupleFS = s.getField(0);
+					            if(tupleFS.type != DataType.TUPLE) {
+					                throw new FrontendException("Expected a bag schema with a single " +
+					                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+					                        " but got an element of type " +
+					                        DataType.findTypeName(tupleFS.type));
+					            }
+					            s = tupleFS.schema;
+							    
+							}
 							if(null != s) {
 								for(int i = 0; i < s.size(); ++i) {
                                     Schema.FieldSchema fs;
@@ -330,6 +354,8 @@ public class LOForEach extends LogicalOperator {
                     mSchema = null;
                     mIsSchemaComputed = false;
                     throw fee;
+                } catch (ParseException e) {
+                    throw new FrontendException(e);
                 }
             }
 			//check for duplicate column names and throw an error if there are duplicates

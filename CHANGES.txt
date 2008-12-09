@@ -324,7 +324,10 @@ Trunk (unreleased changes)
 
     PIG-538: support for null constants (pradeepk via olgan)
 
-    PIG-385: more null handling (pradeepl via olgan)
+    PIG-385: more null handling (pradeepk via olgan)
 
     PIG-546: FilterFunc calls empty constructor when it should be calling
-    parameterized constructor
+    parameterized constructor (sms via olgan)
+
+    PIG-449: Schemas for bags should contain tuples all the time (pradeepk via
+    olgan)

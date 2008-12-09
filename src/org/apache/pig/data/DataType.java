@@ -795,6 +795,10 @@ public class DataType {
                 }
                 Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
                 Schema bagSchema = new Schema(tupleFs);
+                // since this schema has tuple field schema which internally
+                // has a list of field schemas for the actual items in the bag
+                // an access to any field in the bag is a  two level access
+                bagSchema.setTwoLevelAccessRequired(true);
                 return new Schema.FieldSchema(null, bagSchema, BAG);
             }
         default: {

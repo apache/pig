@@ -38,6 +38,7 @@ import java.lang.reflect.Method;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import org.junit.Before;
 import org.junit.After;
@@ -551,7 +552,17 @@ public class TestPigServer extends TestCase {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("b: {site: chararray,count: int,itemCounts::itemCountsTuple: (type: chararray,typeCount: int,f: float,m: map[ ])}") == true);
+            // strip away the initial schema alias and the
+            // curlies surrounding the schema to construct
+            // the schema object from the schema string
+            s = s.replaceAll("^.*\\{", "");
+            s = s.replaceAll("\\}$", "");
+            Schema actual = Util.getSchemaFromString( s);
+            Schema expected = Util.getSchemaFromString(
+                    "site: chararray,count: int," +
+                    "itemCounts::type: chararray,itemCounts::typeCount: int," +
+                    "itemCounts::f: float,itemCounts::m: map[ ]");
+            assertEquals(expected, actual);
         }
 
     }
