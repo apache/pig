@@ -51,6 +51,7 @@ public class POCogroup extends PhysicalOperator {
     
     Tuple[] data = null;
     Iterator<Tuple>[] its = null;
+    boolean[] inner;
 
     public POCogroup(OperatorKey k) {
 	super(k);
@@ -68,6 +69,10 @@ public class POCogroup extends PhysicalOperator {
 
     public POCogroup(OperatorKey k, int rp, List<PhysicalOperator> inp) {
 	super(k, rp, inp);
+    }
+    
+    public void setInner(boolean[] inner) {
+        this.inner = inner;
     }
 
     @Override
@@ -149,6 +154,14 @@ public class POCogroup extends PhysicalOperator {
 	    res.result = output;
 	
 	res.returnStatus = POStatus.STATUS_OK;
+//    System.out.println(output);
+	for(int i = 0; i < size; i++) {
+	    if(inner != null && inner[i] && ((DataBag)output.get(i+1)).size() == 0) {
+	        res.returnStatus = POStatus.STATUS_NULL;
+	        break;
+	    }
+	}
+	
 	
 	return res;
     }
@@ -160,15 +173,18 @@ public class POCogroup extends PhysicalOperator {
 	for(int i = 0; i < size; i++) {
 	    DataBag bag = new SortedDataBag(new groupComparator());
 	    for(Result input = inputs.get(i).getNext(dummyTuple); input.returnStatus != POStatus.STATUS_EOP; input = inputs.get(i).getNext(dummyTuple)) {
-		if(input.returnStatus == POStatus.STATUS_ERR) {
-		    throw new ExecException("Error accumulating output at local Cogroup operator");
-		}
-		bag.add((Tuple) input.result);
+	        if(input.returnStatus == POStatus.STATUS_ERR) {
+	            throw new ExecException("Error accumulating output at local Cogroup operator");
+	        }
+	        if(input.returnStatus == POStatus.STATUS_NULL)
+	            continue;
+	        bag.add((Tuple) input.result);
 	    }
+	    
 	    its[i] = bag.iterator();
 	    data[i] = its[i].next();
 	}
-	
+
     }
     
 //    private Tuple getSmallest(Tuple[] data) {
@@ -191,7 +207,7 @@ public class POCogroup extends PhysicalOperator {
 		t = data[i];
 		continue; //since the previous data was probably null so we dont really need a comparison
 	    }
-	    if(comp.compare(t, (Tuple) data[i]) < 0) 
+	    if(comp.compare(t, (Tuple) data[i]) > 0) 
 		t = data[i];
 	}
 	return t;

@@ -32,7 +32,7 @@ public abstract class PigExecTestCase extends TestCase {
 
     protected final Log log = LogFactory.getLog(getClass());
     
-    protected ExecType execType = MAPREDUCE;
+    protected ExecType execType = LOCAL;
     
     private MiniCluster cluster;
     protected PigServer pigServer;

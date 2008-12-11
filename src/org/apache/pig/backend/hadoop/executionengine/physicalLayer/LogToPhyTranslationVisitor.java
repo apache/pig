@@ -71,7 +71,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
     private Log log = LogFactory.getLog(getClass());
 
-    PigContext pc;
+    protected PigContext pc;
 
     LoadFunc load;
 

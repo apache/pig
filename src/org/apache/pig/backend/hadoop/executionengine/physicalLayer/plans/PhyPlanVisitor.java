@@ -261,5 +261,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         
     }
 
+    public void visitCross(POCross cross) {
+        // TODO Auto-generated method stub
+        
+    }
+
 
 }

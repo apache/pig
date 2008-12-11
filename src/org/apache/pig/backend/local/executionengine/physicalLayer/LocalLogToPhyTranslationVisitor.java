@@ -26,15 +26,18 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrangeForIllustrate;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POCogroup;
+import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POCross;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplitOutput;
+import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POStreamLocal;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
+import org.apache.pig.impl.logicalLayer.LOCross;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
+import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -62,7 +65,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         List<LogicalOperator> inputs = cg.getInputs();
         
         POCogroup poc = new POCogroup(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cg.getRequestedParallelism());
-        
+        poc.setInner(cg.getInner());
         currentPlan.add(poc);
         
         int count = 0;
@@ -158,6 +161,49 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             log.error("Invalid physical operator in the plan" + e.getMessage());
             throw new VisitorException(e);
         }
+    }
+    
+    @Override
+    public void visit(LOStream stream) throws VisitorException {
+        String scope = stream.getOperatorKey().scope;
+        POStreamLocal poStream = new POStreamLocal(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), stream.getExecutableManager(), 
+                stream.getStreamingCommand(), pc.getProperties());
+        currentPlan.add(poStream);
+        LogToPhyMap.put(stream, poStream);
+        
+        List<LogicalOperator> op = stream.getPlan().getPredecessors(stream);
+
+        PhysicalOperator from = LogToPhyMap.get(op.get(0));
+        try {
+            currentPlan.connect(from, poStream);
+        } catch (PlanException e) {
+            log.error("Invalid physical operators in the physical plan"
+                    + e.getMessage());
+            throw new VisitorException(e);
+        }
+    }
+    
+    @Override
+    public void visit(LOCross cross) throws VisitorException {
+        String scope = cross.getOperatorKey().scope;
+        
+        POCross pocross = new POCross(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
+        LogToPhyMap.put(cross, pocross);
+        currentPlan.add(pocross);
+        
+        
+        for(LogicalOperator in : cross.getInputs()) {
+            PhysicalOperator from = LogToPhyMap.get(in);
+            try {
+                currentPlan.connect(from, pocross);
+            } catch (PlanException e) {
+                log.error("Invalid physical operators in the physical plan"
+                        + e.getMessage());
+                throw new VisitorException(e);
+            }
+        }
+        //currentPlan.explain(System.out);
     }
 
 }

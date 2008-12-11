@@ -54,9 +54,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.local.executionengine.physicalLayer.LocalLogToPhyTranslationVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import java.util.Iterator;
-
 
 public class LocalExecutionEngine implements ExecutionEngine {
 
@@ -64,19 +64,20 @@ public class LocalExecutionEngine implements ExecutionEngine {
     protected DataStorage ds;
     protected NodeIdGenerator nodeIdGenerator;
 
-    // key: the operator key from the logical plan that originated the physical plan
+    // key: the operator key from the logical plan that originated the physical
+    // plan
     // val: the operator key for the root of the phyisical plan
     protected Map<OperatorKey, OperatorKey> logicalToPhysicalKeys;
-    
+
     protected Map<OperatorKey, PhysicalOperator> physicalOpTable;
-    
+
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, LocalResult> materializedResults;
-    
+
     public LocalExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
         this.ds = pigContext.getLfs();
-        this.nodeIdGenerator = NodeIdGenerator.getGenerator(); 
+        this.nodeIdGenerator = NodeIdGenerator.getGenerator();
         this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
         this.physicalOpTable = new HashMap<OperatorKey, PhysicalOperator>();
         this.materializedResults = new HashMap<OperatorKey, LocalResult>();
@@ -85,7 +86,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
     public DataStorage getDataStorage() {
         return this.ds;
     }
-    
+
     public void init() throws ExecException {
         ;
     }
@@ -93,30 +94,46 @@ public class LocalExecutionEngine implements ExecutionEngine {
     public void close() throws ExecException {
         ;
     }
-        
+
     public Properties getConfiguration() throws ExecException {
         return this.pigContext.getProperties();
     }
-        
-    public void updateConfiguration(Properties newConfiguration) 
-        throws ExecException {
+
+    public void updateConfiguration(Properties newConfiguration)
+            throws ExecException {
         // there is nothing to do here.
     }
-        
+
     public Map<String, Object> getStatistics() throws ExecException {
         throw new UnsupportedOperationException();
     }
 
-    
-    public PhysicalPlan compile(LogicalPlan plan,
-                                Properties properties) throws ExecException {
+    // public PhysicalPlan compile(LogicalPlan plan,
+    // Properties properties) throws ExecException {
+    // if (plan == null) {
+    // throw new ExecException("No Plan to compile");
+    // }
+    //
+    // try {
+    // LogToPhyTranslationVisitor translator =
+    // new LogToPhyTranslationVisitor(plan);
+    // translator.setPigContext(pigContext);
+    // translator.visit();
+    // return translator.getPhysicalPlan();
+    // } catch (VisitorException ve) {
+    // throw new ExecException(ve);
+    // }
+    // }
+
+    public PhysicalPlan compile(LogicalPlan plan, Properties properties)
+            throws ExecException {
         if (plan == null) {
             throw new ExecException("No Plan to compile");
         }
 
         try {
-            LogToPhyTranslationVisitor translator = 
-                new LogToPhyTranslationVisitor(plan);
+            LocalLogToPhyTranslationVisitor translator = new LocalLogToPhyTranslationVisitor(
+                    plan);
             translator.setPigContext(pigContext);
             translator.visit();
             return translator.getPhysicalPlan();
@@ -125,42 +142,45 @@ public class LocalExecutionEngine implements ExecutionEngine {
         }
     }
 
-    public ExecJob execute(PhysicalPlan plan,
-                            String jobName) throws ExecException {
+    public ExecJob execute(PhysicalPlan plan, String jobName)
+            throws ExecException {
         try {
-            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
+            PhysicalOperator leaf = (PhysicalOperator) plan.getLeaves().get(0);
             FileSpec spec = null;
-            if(!(leaf instanceof POStore)){
+            if (!(leaf instanceof POStore)) {
                 String scope = leaf.getOperatorKey().getScope();
                 POStore str = new POStore(new OperatorKey(scope,
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+                        NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
-                    pigContext).toString(),
-                    new FuncSpec(BinStorage.class.getName()));
+                        pigContext).toString(), new FuncSpec(BinStorage.class
+                        .getName()));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
-            }
-            else{
-                spec = ((POStore)leaf).getSFile();
+            } else {
+                spec = ((POStore) leaf).getSFile();
             }
 
-            LocalLauncher launcher = new LocalLauncher();
+            // LocalLauncher launcher = new LocalLauncher();
+            LocalPigLauncher launcher = new LocalPigLauncher();
             boolean success = launcher.launchPig(plan, jobName, pigContext);
-            if(success)
-                return new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            if (success)
+                return new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext,
+                        spec);
             else
                 return new LocalJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
         } catch (Exception e) {
-            // There are a lot of exceptions thrown by the launcher.  If this
-            // is an ExecException, just let it through.  Else wrap it.
-            if (e instanceof ExecException) throw (ExecException)e;
-            else throw new ExecException(e.getMessage(), e);
+            // There are a lot of exceptions thrown by the launcher. If this
+            // is an ExecException, just let it through. Else wrap it.
+            if (e instanceof ExecException)
+                throw (ExecException) e;
+            else
+                throw new ExecException(e.getMessage(), e);
         }
     }
 
-    public LocalJob submit(PhysicalPlan plan,
-                           String jobName) throws ExecException {
+    public LocalJob submit(PhysicalPlan plan, String jobName)
+            throws ExecException {
         throw new UnsupportedOperationException();
     }
 
@@ -172,33 +192,32 @@ public class LocalExecutionEngine implements ExecutionEngine {
 
             ExecTools.checkLeafIsStore(plan, pigContext);
 
-            LocalLauncher launcher = new LocalLauncher();
+            // LocalLauncher launcher = new LocalLauncher();
+            LocalPigLauncher launcher = new LocalPigLauncher();
             launcher.explain(plan, pigContext, stream);
         } catch (Exception ve) {
             throw new RuntimeException(ve);
         }
     }
 
-    public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
+    public Collection<ExecJob> runningJobs(Properties properties)
+            throws ExecException {
         return new HashSet<ExecJob>();
     }
-    
+
     public Collection<String> activeScopes() throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     public void reclaimScope(String scope) throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     private OperatorKey doCompile(OperatorKey logicalKey,
-                                  Map<OperatorKey, LogicalOperator> logicalOpTable,
-                                  Properties properties) 
-            throws ExecException {
-        
+            Map<OperatorKey, LogicalOperator> logicalOpTable,
+            Properties properties) throws ExecException {
+
         return null;
     }
-    
+
 }
-
-

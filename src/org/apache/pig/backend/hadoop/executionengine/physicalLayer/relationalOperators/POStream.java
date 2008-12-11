@@ -45,15 +45,15 @@ public class POStream extends PhysicalOperator {
     private StreamingCommand command;               // Actual command to be run
     private Properties properties;
 
-    private boolean initialized = false;
+    protected boolean initialized = false;
     
-    private BlockingQueue<Result> binaryOutputQueue = new ArrayBlockingQueue<Result>(1);
+    protected BlockingQueue<Result> binaryOutputQueue = new ArrayBlockingQueue<Result>(1);
 
-    private BlockingQueue<Result> binaryInputQueue = new ArrayBlockingQueue<Result>(1);
+    protected BlockingQueue<Result> binaryInputQueue = new ArrayBlockingQueue<Result>(1);
 
-    private boolean allInputFromPredecessorConsumed = false;
+    protected boolean allInputFromPredecessorConsumed = false;
 
-    private boolean allOutputFromBinaryProcessed = false;
+    protected boolean allOutputFromBinaryProcessed = false;
 
     public POStream(OperatorKey k, ExecutableManager executableManager, 
                       StreamingCommand command, Properties properties) {
