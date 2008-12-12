@@ -714,11 +714,18 @@ public class TestBuiltin extends TestCase {
         
         
         // Tuple size
+        Tuple t5 = TupleFactory.getInstance().newTuple();
+        t5.append(t1);
         expected = new Long(3);
         size = new TupleSize();
         msg = "[Testing TupleSize on input type: Tuple]";
-        assertTrue(msg, expected.equals(size.exec(t1)));
+        assertTrue(msg, expected.equals(size.exec(t5)));
         
+        // Test for ARITY function.
+        // It is depricated but we still need to make sure it works
+        ARITY arrity = new ARITY();
+        msg = "[Testing ARRITY on input type: Tuple]";
+        //assertTrue(msg, expected.equals(arrity.exec(t5)));
     }
 
     // Builtin APPLY Functions

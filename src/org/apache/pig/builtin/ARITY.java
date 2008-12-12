@@ -23,12 +23,21 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 public class ARITY extends EvalFunc<Integer> {
 
     @Override
     public Integer exec(Tuple input) throws IOException {
-        return new Integer(input.size());
+        if (input.size() == 0)
+            return null;
+        try{
+            Tuple t = (Tuple)input.get(0);
+            if (t == null) return null;
+            return new Integer(t.size());
+        }catch(Exception e){
+            throw WrappedIOException.wrap(e); 
+        }
     }
 
     @Override

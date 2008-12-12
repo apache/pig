@@ -23,7 +23,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Generates the size of the first field of a tuple.
@@ -31,8 +31,16 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class TupleSize extends EvalFunc<Long> {
 
     @Override
-    public Long exec(Tuple input) {
-        return input == null ? null : new Long(input.size());
+    public Long exec(Tuple input) throws IOException {
+        if (input.size() == 0)
+            return null;
+        try{
+            Tuple t = (Tuple)input.get(0);
+            if (t == null) return null;
+            return new Long(t.size());
+        }catch(Exception e){
+            throw WrappedIOException.wrap(e);            
+        }
     }
 
     @Override
