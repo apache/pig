@@ -1454,7 +1454,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         /* (non-Javadoc)
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
          */
-        @Override
         public int compare(Pair<Long, FuncSpec> o1, Pair<Long, FuncSpec> o2) {
             if(o1.first < o2.first)
                 return -1;

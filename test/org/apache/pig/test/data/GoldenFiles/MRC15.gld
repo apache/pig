@@ -50,7 +50,7 @@ MapReduce(1,GFCross) - -156:
         |   |
         |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -144
         |
-        |---MapReduce(-1,FindQuantiles,TestMRCompiler$WeirdComparator) - -130:
+        |---MapReduce(1,FindQuantiles,TestMRCompiler$WeirdComparator) - -130:
             |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -143
             |   |
             |   |---New For Each(false)[tuple] - -142

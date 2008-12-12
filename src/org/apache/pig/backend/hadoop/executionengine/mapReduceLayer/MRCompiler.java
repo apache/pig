@@ -1172,7 +1172,7 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.reducePlan.connect(nfe3, str);
         
         mro.setReduceDone(true);
-//        mro.requestedParallelism = rp;
+        mro.requestedParallelism = 1;
         return mro;
     }
 

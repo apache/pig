@@ -331,3 +331,9 @@ Trunk (unreleased changes)
 
     PIG-449: Schemas for bags should contain tuples all the time (pradeepk via
     olgan)
+
+	PIG-543: Restore local mode to truly run locally instead of use map
+	reduce. (shubhamc via gates)
+
+	PIG-556: Changed FindQuantiles to report progress.  Fixed issue with null
+	reporter being passed to EvalFuncs. (gates)

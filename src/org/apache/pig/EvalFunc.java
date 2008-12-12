@@ -23,6 +23,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -36,19 +39,15 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressab
  * The programmer should not make assumptions about state maintained
  * between invocations of the invoke() method since the Pig runtime
  * will schedule and localize invocations based on information provided
- * at runtime.
- * 
- * The programmer should not directly extend this class but instead
- * extend one of the subclasses where we have bound the parameter T 
- * to a specific Datum
- * 
- * @author database-systems@yahoo.research
- *
+ * at runtime.  The programmer also should not make assumptions about when or
+ * how many times the class will be instantiated, since it may be instantiated
+ * multiple times in both the front and back end.
  */
 public abstract class EvalFunc<T>  {
     // UDFs must use this to report progress
     // if the exec is taking more that 300 ms
     protected PigProgressable reporter;
+    protected Log log = LogFactory.getLog(getClass());
 
     private static int nextSchemaId; // for assigning unique ids to UDF columns
     protected String getSchemaName(String name, Schema input) {
@@ -118,7 +117,8 @@ public abstract class EvalFunc<T>  {
         
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
     protected void progress() { 
-        if(reporter!=null) reporter.progress();
+        if (reporter != null) reporter.progress();
+        else log.warn("No reporter object provided to UDF " + this.getClass().getName());
     }
 
     /**
@@ -166,7 +166,7 @@ public abstract class EvalFunc<T>  {
     }
 
 
-    public void setReporter(PigProgressable reporter) {
+    public final void setReporter(PigProgressable reporter) {
         this.reporter = reporter;
     }
     

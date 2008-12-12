@@ -96,6 +96,12 @@ public class POUserFunc extends ExpressionOperator {
 	
 	public Result processInput() throws ExecException {
 
+        // Make sure the reporter is set, because it isn't getting carried
+        // across in the serialization (don't know why).  I suspect it's as
+        // cheap to call the setReporter call everytime as to check whether I
+        // have (hopefully java will inline it).
+        func.setReporter(reporter);
+
 		Result res = new Result();
 		Tuple inpValue = null;
 		if (input == null && (inputs == null || inputs.size()==0)) {

@@ -125,6 +125,7 @@ public class FindQuantiles extends EvalFunc<DataBag>{
                 nextQuantile+=toSkip+1;
             }
             i++;
+            if (i % 1000 == 0) progress();
         }
         return output;
     }
