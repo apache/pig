@@ -45,6 +45,8 @@
     <property name="build.encoding" value="ISO-8859-1" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
     <property name="hadoop.jarfile" value="hadoop18.jar" />
+    <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
+    <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
 
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
@@ -97,6 +99,8 @@
     <!-- setup the classpath -->
     <path id="classpath">
         <fileset file="${lib.dir}/${hadoop.jarfile}" />
+        <fileset file="${lib.dir}/${hbase.jarfile}" />
+        <fileset file="${lib.dir}/${hbase.test.jarfile}" />
         <fileset file="${lib.dir}/javacc.jar" />
         <fileset file="${lib.dir}/jsch-0.1.33.jar" />
         <fileset file="${lib.dir}/junit-4.1.jar" />

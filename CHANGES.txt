@@ -337,3 +337,5 @@ Trunk (unreleased changes)
 
 	PIG-556: Changed FindQuantiles to report progress.  Fixed issue with null
 	reporter being passed to EvalFuncs. (gates)
+
+	PIG-6: Add load support from hbase (hustlmsp via gates).
