@@ -218,6 +218,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         // and figure out the schema from the data in
         // the first record
         Tuple t = getNext();
+        is.close();
         if(t == null) {
             // we couldn't get a valid record from the input
             return null;

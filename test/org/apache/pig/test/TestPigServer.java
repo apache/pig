@@ -306,7 +306,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("a: {field1: int,field2: float,field3: chararray}") == true);
         }
-
+        reader.close();
     }
 
     @Test
@@ -327,7 +327,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -348,7 +348,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -369,7 +369,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -390,7 +390,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -411,7 +411,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("b: {int}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -445,7 +445,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("Schema for b unknown.") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -467,7 +467,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("c: {group: int,a: {field1: int,field2: float,field3: chararray},b: {field4: bytearray,field5: double,field6: chararray}}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -489,7 +489,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -511,7 +511,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -533,7 +533,7 @@ public class TestPigServer extends TestCase {
         while ((s = reader.readLine()) != null) {
             assertTrue(s.equals("c: {field1: int,field2: double,field3: chararray}") == true);
         }
-
+        fileWithStdOutContents.close();
     }
 
     @Test
@@ -564,6 +564,6 @@ public class TestPigServer extends TestCase {
                     "itemCounts::f: float,itemCounts::m: map[ ]");
             assertEquals(expected, actual);
         }
-
+        fileWithStdOutContents.close();
     }
 }

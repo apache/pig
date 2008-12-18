@@ -102,7 +102,7 @@ public class TestGrunt extends TestCase {
         try {
             grunt.exec();
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("Encountered \";\""));
+            assertTrue(e.getMessage().contains("Encountered \" \";\""));
         }
     }
 

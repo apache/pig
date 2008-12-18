@@ -332,6 +332,8 @@ Trunk (unreleased changes)
     PIG-449: Schemas for bags should contain tuples all the time (pradeepk via
     olgan)
 
+    PIG-501: make unit tests run under windows (daijy via olgan)
+
 	PIG-543: Restore local mode to truly run locally instead of use map
 	reduce. (shubhamc via gates)
 
