@@ -341,3 +341,5 @@ Trunk (unreleased changes)
 	reporter being passed to EvalFuncs. (gates)
 
 	PIG-6: Add load support from hbase (hustlmsp via gates).
+
+    PIG-522: make negation work (pradeepk via olgan)

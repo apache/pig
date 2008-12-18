@@ -1087,6 +1087,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op
                 .getPlan().getPredecessors(op).get(0));
         ((PONegative) physOp).setExpr(from);
+        ((PONegative) physOp).setResultType(op.getType());
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {

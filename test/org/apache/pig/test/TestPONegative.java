@@ -17,9 +17,12 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -40,6 +43,7 @@ public class TestPONegative extends TestCase {
     DataBag bag = BagFactory.getInstance().newDefaultBag();
     Random r = new Random();
     TupleFactory tf = TupleFactory.getInstance();
+    MiniCluster miniCluster = MiniCluster.buildCluster();
     final int MAX = 10;
     
     public void testPONegInt () throws PlanException, ExecException {
@@ -313,6 +317,21 @@ public class TestPONegative extends TestCase {
             }
         }
         
+    }
+    
+    public void testPONegType() throws Exception {
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, miniCluster.getProperties());
+        File f = Util.createInputFile("tmp", "", new String[] {"a", "b", "c"});
+        pig.registerQuery("a = load '" + Util.generateURI(f.toString()) + "';");
+        // -1 is modeled as POnegative with Constant(1)
+        pig.registerQuery("b = foreach a generate SIZE(-1);");
+        Iterator<Tuple> it = pig.openIterator("b");
+        int i = 0;
+        while(it.hasNext()) {
+            assertEquals(1L, it.next().get(0));
+            i++;
+        }
+        assertEquals(3, i);
     }
 
 }

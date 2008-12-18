@@ -30,7 +30,7 @@ New For Each(false,false,false,false,false,false)[bag] - Test-Plan-Builder-220
 |   |
 |   |---Project[bytearray][2] - Test-Plan-Builder-216
 |   |
-|   PONegative[tuple] - Test-Plan-Builder-219
+|   PONegative[bytearray] - Test-Plan-Builder-219
 |   |
 |   |---Project[bytearray][1] - Test-Plan-Builder-218
 |
