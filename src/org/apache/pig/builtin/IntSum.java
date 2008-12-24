@@ -49,7 +49,7 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -61,10 +61,33 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
+            // Initial is called in the map - for SUM
+            // we just send the tuple down
             try {
-                return tfact.newTuple(sum(input));
+                // input is a bag with one tuple containing
+                // the column we are trying to sum
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                Integer i = (Integer)tp.get(0);
+                return tfact.newTuple(i != null ? 
+                        new Long(i) : null);
+            }catch(NumberFormatException nfe){
+                // treat this particular input as null
+                return tfact.newTuple(null);
+            } catch (ExecException e) {
+                throw WrappedIOException.wrap("Caught exception in IntSum.Initial", e);
+            }
+        }
+    }
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return tfact.newTuple(sumLongs(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in IntSum.Initial", ee);
+                throw WrappedIOException.wrap("Caught exception in IntSum.Intermediate", ee);
             }
         }
     }
@@ -72,40 +95,45 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         @Override
         public Long exec(Tuple input) throws IOException {
             try {
-                // Can't just call sum, because the intermediate results are
-                // now Longs insteads of Integers.
-                DataBag values = (DataBag)input.get(0);
-        
-                // if we were handed an empty bag, return NULL
-                // this is in compliance with SQL standard
-                if(values.size() == 0) {
-                    return null;
-                }
-
-                long sum = 0;
-                boolean sawNonNull = false;
-                for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-                    Tuple t = (Tuple) it.next();
-                    try {
-                        Long l = (Long)(t.get(0));
-                        if (l == null) continue;
-                        sawNonNull = true;
-                        sum += l;
-                    }catch(RuntimeException exp) {
-                        throw WrappedIOException.wrap(
-                            "Caught exception in IntSum.Final", exp);
-                    }
-                }
-        
-                
-                if(sawNonNull) {
-                    return new Long(sum);
-                } else {
-                    return null;
-                }
-            } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in IntSum.Final", ee);
+                return sumLongs(input);
+            } catch (ExecException e) {
+                 throw WrappedIOException.wrap("Caught exception in IntSum.Intermediate", e);
             }
+        }
+    }
+
+    static protected Long sumLongs(Tuple input) throws ExecException {
+        // Can't just call sum, because the intermediate results are
+        // now Longs insteads of Integers.
+        DataBag values = (DataBag)input.get(0);
+
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        long sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = (Tuple) it.next();
+            try {
+                Long l = (Long)(t.get(0));
+                if (l == null) continue;
+                sawNonNull = true;
+                sum += l;
+            }catch(RuntimeException exp) {
+                throw new ExecException(
+                        "Error processing: " +
+                        t.toString() + exp.getMessage(), exp);
+            }
+        }
+
+        
+        if(sawNonNull) {
+            return new Long(sum);
+        } else {
+            return null;
         }
     }
 

@@ -26,11 +26,13 @@ import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.backend.executionengine.ExecException;
 
 
@@ -70,7 +72,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Intermed.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -80,13 +82,26 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
     static public class Initial extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException {
+            Tuple t = mTupleFactory.newTuple(2);
             try {
-                Tuple t = mTupleFactory.newTuple(2);
-                t.set(0, sum(input));
-                t.set(1, new Long(count(input)));
+                // input is a bag with one tuple containing
+                // the column we are trying to avg
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                DataByteArray dba = (DataByteArray)tp.get(0); 
+                t.set(0, dba != null ? Double.valueOf(dba.toString()) : null);
+                t.set(1, 1L);
                 return t;
-            } catch(RuntimeException t) {
-                throw new RuntimeException(t.getMessage() + ": " + input);
+            } catch(NumberFormatException nfe) {
+                // invalid input,
+                // treat this input as null
+                try {
+                    t.set(0, null);
+                    t.set(1, 1L);
+                } catch (ExecException e) {
+                    throw WrappedIOException.wrap(e);
+                }
+                return t;
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
                 oughtToBeEE.initCause(ee);
@@ -96,7 +111,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         }
     }
 
-    static public class Intermed extends EvalFunc<Tuple> {
+    static public class Intermediate extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException {
             try {
@@ -151,8 +166,15 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             Double d = (Double)t.get(0);
-            if(d == null) continue;
-            sawNonNull = true;
+            // we count nulls in avg as contributing 0
+            // a departure from SQL for performance of 
+            // COUNT() which implemented by just inspecting
+            // size of the bag
+            if(d == null) {
+                d = 0.0;
+            } else {
+                sawNonNull = true;
+            }
             sum += d;
             count += (Long)t.get(1);
         }
@@ -183,13 +205,11 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             try{
-                Double d = DataType.toDouble(t.get(0));
+                DataByteArray dba = (DataByteArray)t.get(0);
+                Double d = dba != null ? Double.valueOf(dba.toString()) : null;
                 if (d == null) continue;
                 sawNonNull = true;
                 sum += d;
-            }catch(NumberFormatException nfe){
-                // do nothing - essentially treat this
-                // particular input as null
             }catch(RuntimeException exp) {
                 ExecException newE =  new ExecException("Error processing: " +
                     t.toString() + exp.getMessage(), exp);
@@ -203,7 +223,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
             return null;
         }
     }
-    
+
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 

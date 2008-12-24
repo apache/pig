@@ -41,7 +41,8 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
     @Override
     public Long exec(Tuple input) throws IOException {
         try {
-            return count(input);
+            DataBag bag = (DataBag)input.get(0);
+            return bag.size();
         } catch (ExecException ee) {
             throw WrappedIOException.wrap("Caught exception in COUNT", ee);
         }
@@ -52,7 +53,7 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
     }
 
     public String getIntermed() {
-        return Intermed.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -63,21 +64,20 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            try {
-                return mTupleFactory.newTuple(count(input));
-            } catch (ExecException ee) {
-                throw WrappedIOException.wrap(
-                    "Caught exception in COUNT.Initial", ee);
-            }
+            // Since Initial is guaranteed to be called
+            // only in the map, it will be called with an
+            // input of a bag with a single tuple - the 
+            // count should always be 1.
+            return mTupleFactory.newTuple(new Long(1));
         }
     }
 
-    static public class Intermed extends EvalFunc<Tuple> {
+    static public class Intermediate extends EvalFunc<Tuple> {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
             try {
-                return mTupleFactory.newTuple(count(input));
+                return mTupleFactory.newTuple(sum(input));
             } catch (ExecException ee) {
                 throw WrappedIOException.wrap(
                     "Caught exception in COUNT.Intermed", ee);
@@ -95,17 +95,6 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
                     "Caught exception in COUNT.Final", ee);
             }
         }
-    }
-
-    static protected Long count(Tuple input) throws ExecException {
-        Object values = input.get(0);        
-        if (values instanceof DataBag)
-            return ((DataBag)values).size();
-        else if (values instanceof Map)
-            return new Long(((Map)values).size());
-        else
-            throw new ExecException("Cannot count a " +
-                DataType.findTypeName(values));
     }
 
     static protected Long sum(Tuple input) throws ExecException, NumberFormatException {

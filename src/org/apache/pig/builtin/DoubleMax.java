@@ -51,7 +51,7 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -59,6 +59,25 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                // input is a bag with one tuple containing
+                // the column we are trying to max on
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                return tfact.newTuple((Double)(tp.get(0)));
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
+            }
+        }
+    }
+
+    static public class Intermediate extends EvalFunc<Tuple> {
         private static TupleFactory tfact = TupleFactory.getInstance();
 
         @Override

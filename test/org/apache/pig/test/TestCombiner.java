@@ -82,5 +82,44 @@ public class TestCombiner extends TestCase {
                 + Util.generateURI(inputFile.toString()) + "' using "
                 + PigStorage.class.getName() + "(',');");
     }
+    
+    
+    @Test
+    public void testNoCombinerUse() {
+        // To simulate this, we will have two input files
+        // with exactly one input record - this should result
+        // in two map tasks and each would process only one record
+        // hence the combiner would not get called.
+    }
+    
+    @Test
+    public void testMultiCombinerUse() throws Exception {
+        // test the scenario where the combiner is called multiple
+        // times - this can happen when the output of the map > io.sort.mb
+        // let's set the io.sort.mb to 1MB and > 1 MB map data.
+        String[] input = new String[500*1024];
+        for(int i = 0; i < input.length; i++) {
+            if(i % 2 == 0) {
+                input[i] = Integer.toString(1);
+            } else {
+                input[i] = Integer.toString(0);
+            }
+        }
+        File f1 = Util.createFile(input);
+        Properties props = cluster.getProperties();
+        props.setProperty("io.sort.mb", "1");
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, props);
+        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' as (x:int);");
+        pigServer.registerQuery("b = group a all;");
+        pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), MIN(a.$0), MAX(a.$0), AVG(a.$0);");
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        Tuple t = it.next();
+        assertEquals(512000L, t.get(0));
+        assertEquals(256000L, t.get(1));
+        assertEquals(0, t.get(2));
+        assertEquals(1, t.get(3));
+        assertEquals(0.5, t.get(4));
+        assertFalse(it.hasNext());
+    }
 
 }

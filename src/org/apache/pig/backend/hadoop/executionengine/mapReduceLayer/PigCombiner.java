@@ -189,8 +189,12 @@ public class PigCombiner {
                             continue;
                         
                         if(redRes.returnStatus==POStatus.STATUS_ERR){
-                            IOException ioe = new IOException("Received Error while " +
-                                    "processing the reduce plan.");
+                            String msg = "Received Error while " +
+                            "processing the combine plan.";
+                            if(redRes.result != null) {
+                                msg += redRes.result;
+                            }
+                            IOException ioe = new IOException(msg);
                             throw ioe;
                         }
                     }

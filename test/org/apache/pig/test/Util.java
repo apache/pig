@@ -252,4 +252,14 @@ public class Util {
         Schema.setSchemaDefaultType(schema, defaultType);
         return schema;
     }
+
+    public static File createFile(String[] data) throws Exception{
+        File f = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(f);
+        for (int i=0; i<data.length; i++){
+            pw.println(data[i]);
+        }
+        pw.close();
+        return f;
+    }
 }

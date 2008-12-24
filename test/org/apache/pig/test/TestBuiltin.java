@@ -28,6 +28,7 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 
+import org.apache.pig.Algebraic;
 import org.apache.pig.FilterFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -38,6 +39,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.*;
 import org.apache.pig.data.*;
+import org.apache.pig.data.DefaultAbstractBag.BagDelimiterTuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.PigContext;
@@ -48,14 +50,24 @@ public class TestBuiltin extends TestCase {
     //private String initString = "local";
     MiniCluster cluster = MiniCluster.buildCluster();
 
+    TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
+    BagFactory bagFactory = DefaultBagFactory.getInstance();
     
     // some inputs
-    private static Integer[] IntInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
-    private static Long[] LongInput = { 145769183483345L, null, 4345639849L, 3435543121L, 2L, 5L, 9L, 7L, 8L, 6L, 10L };
-    private static Float[] FloatInput = { 10.4f, 2.35f, 3.099f, null, 4.08495f, 5.350f, 6.78f, 7.0f, 8.0f, 9.0f, 0.09f };
-    private static Double[] DoubleInput = { 5.5673910, 121.0, 3.0, 0.000000834593, 1.0, 6.0, 7.0, 8.0, 9.0, 10.0, null };
+    private static Integer[] intInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
+    private static Long[] intAsLong = { 3L, 1L, 2L, 4L, 5L, 7L, null, 6L, 8L, 9L, 10L };
+    
+    private static Long[] longInput = { 145769183483345L, null, 4345639849L, 3435543121L, 2L, 5L, 9L, 7L, 8L, 6L, 10L };
+    
+    private static Float[] floatInput = { 10.4f, 2.35f, 3.099f, null, 4.08495f, 5.350f, 6.78f, 7.0f, 8.0f, 9.0f, 0.09f };
+    private static Double[] floatAsDouble = { 10.4, 2.35, 3.099, null, 4.08495, 5.350, 6.78, 7.0, 8.0, 9.0, 0.09 };
+    
+    private static Double[] doubleInput = { 5.5673910, 121.0, 3.0, 0.000000834593, 1.0, 6.0, 7.0, 8.0, 9.0, 10.0, null };
+    
     private static String[] ba = { "7", "2", "3", null, "4", "5", "6", "1", "8", "9", "10"};
-    private static String[] StringInput = {"unit", "test", null, "input", "string"};
+    private static Double[] baAsDouble = { 7.0, 2.0, 3.0, null, 4.0, 5.0, 6.0, 1.0, 8.0, 9.0, 10.0};
+    
+    private static String[] stringInput = {"unit", "test", null, "input", "string"};
     private static DataByteArray[] ByteArrayInput = Util.toDataByteArrays(ba);
 
     // The HashMaps below are used to set up the appropriate EvalFunc,
@@ -65,204 +77,440 @@ public class TestBuiltin extends TestCase {
     // per aggregate), all cases for a given aggregate stage are handled
     // in one test case in a loop 
     
+    // A mapping between name of Aggregate function to its corresponding EvalFunc object
     private static HashMap<String, EvalFunc<?>> evalFuncMap = new HashMap<String, EvalFunc<?>>();
+    
+    // A mapping between a type name (example: "Integer") and a tuple containing
+    // a bag of inputs of that type
     private static HashMap<String, Tuple> inputMap = new HashMap<String, Tuple>();
+    
+    // A mapping between name of Aggregate function and the input type of its
+    // argument 
     private static HashMap<String, String> allowedInput = new HashMap<String, String>();
+    
+    // A mapping between name of Aggregate function and the output value (based on the
+    // inputs above)
     private static HashMap<String, Object> expectedMap = new HashMap<String, Object>();
+    
+    String[] stages = {"Initial", "Intermediate", "Final"};
+    
+    String[][] aggs = {
+            {"SUM", "IntSum", "LongSum", "FloatSum", "DoubleSum"},
+            {"AVG", "IntAvg", "LongAvg", "FloatAvg", "DoubleAvg"},
+            {"MIN", "IntMin", "LongMin", "FloatMin", "DoubleMin", "StringMin"},
+            {"MAX", "IntMax", "LongMax", "FloatMax", "DoubleMax", "StringMax"},
+            {"COUNT"},
+            };
+    
+    String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String" };
     
     @Override
     public void setUp() {
        
-        // First set up data structs for "base" SUM, MIN and MAX
+        // First set up data structs for "base" SUM, MIN and MAX and AVG.
         // The allowed input and expected output data structs for 
-        // the "Initial" and "Final" stages can be based on the 
-        // "base" case
-        evalFuncMap.put("SUM", new SUM());
-        allowedInput.put("SUM", "ByteArray");
+        // the "Intermediate" and "Final" stages can be based on the 
+        // "base" case - the allowed inputs for Initial stage can be based
+        // on the "base" case.  In the test cases, the
+        // output of Initial is sent to Intermediate, so we don't
+        // explicitly test the output of Initial and hence do not
+        // need to set up expectedMap.
+        
+        // first set up EvalFuncMap and expectedMap
+        setupEvalFuncMap();
+        
         expectedMap.put("SUM", new Double(55));
-        evalFuncMap.put("DoubleSum", new DoubleSum());
-        allowedInput.put("DoubleSum", "Double");
         expectedMap.put("DoubleSum", new Double(170.567391834593));
-        evalFuncMap.put("IntSum", new IntSum());
-        allowedInput.put("IntSum", "Integer");
         expectedMap.put("IntSum", new Long(55));
-        evalFuncMap.put("LongSum", new LongSum());
-        allowedInput.put("LongSum", "Long");
         expectedMap.put("LongSum", new Long(145776964666362L));
-        evalFuncMap.put("FloatSum", new FloatSum());        
-        allowedInput.put("FloatSum", "Float");
         expectedMap.put("FloatSum", new Double(56.15395));
 
-
-        evalFuncMap.put("MIN", new MIN());
-        allowedInput.put("MIN", "ByteArray");
+        expectedMap.put("AVG", new Double(5.0));
+        expectedMap.put("DoubleAvg", new Double(15.506126530417545));
+        expectedMap.put("LongAvg", new Double(1.3252451333305637E13));
+        expectedMap.put("IntAvg", new Double(5.0));
+        expectedMap.put("FloatAvg", new Double(5.104904507723722));
+        
         expectedMap.put("MIN", new Double(1));
-        evalFuncMap.put("IntMin", new IntMin());
-        allowedInput.put("IntMin", "Integer");
         expectedMap.put("IntMin", new Integer(1));
-        evalFuncMap.put("LongMin", new LongMin());
-        allowedInput.put("LongMin", "Long");
         expectedMap.put("LongMin", new Long(2));
-        evalFuncMap.put("FloatMin", new FloatMin());
-        allowedInput.put("FloatMin", "Float");
         expectedMap.put("FloatMin", new Float(0.09f));
-        evalFuncMap.put("DoubleMin", new DoubleMin());
-        allowedInput.put("DoubleMin", "Double");
         expectedMap.put("DoubleMin", new Double(0.000000834593));
-        evalFuncMap.put("StringMin", new StringMin());
-        allowedInput.put("StringMin", "String");
         expectedMap.put("StringMin", "input");
         
-        evalFuncMap.put("MAX", new MAX());
-        allowedInput.put("MAX", "ByteArray");
         expectedMap.put("MAX", new Double(10));
-        evalFuncMap.put("IntMax", new IntMax());
-        allowedInput.put("IntMax", "Integer");
         expectedMap.put("IntMax", new Integer(10));
-        evalFuncMap.put("LongMax", new LongMax());
-        allowedInput.put("LongMax", "Long");
         expectedMap.put("LongMax", new Long(145769183483345L));
-        evalFuncMap.put("FloatMax", new FloatMax());
-        allowedInput.put("FloatMax", "Float");
         expectedMap.put("FloatMax", new Float(10.4f));
-        evalFuncMap.put("DoubleMax", new DoubleMax());
-        allowedInput.put("DoubleMax", "Double");
         expectedMap.put("DoubleMax", new Double(121.0));
-        evalFuncMap.put("StringMax", new StringMax());
-        allowedInput.put("StringMax", "String");
-        expectedMap.put("String", "unit");
+        expectedMap.put("StringMax", "unit");
+        
+        expectedMap.put("COUNT", new Long(11));
 
+        // set up allowedInput
+        for (String[] aggGroups : aggs) {
+            int i = 0;
+            for(String agg: aggGroups) {
+                allowedInput.put(agg, inputTypeAsString[i++]);
+            }
+        }
+        
         // The idea here is that we can reuse the same input
         // and expected output of the algebraic functions
-        // for their Initial and Final Stages 
-        String[] stages = {"Initial", "Final"};
-        String[] aggs = {"SUM", "DoubleSum", "IntSum", "LongSum", "FloatSum",
-                        "MIN", "IntMin", "LongMin", "FloatMin", "StringMin",
-                        "MAX", "IntMax", "LongMax", "FloatMax", "StringMax",};
-        for (String agg : aggs) {
-            for (String stage : stages) {
-                // For Int Sum Final and Float Sum Final, the input is expected
-                // be Long and Double respectively
-                if((agg + stage).equals("IntSumFinal")) {
-                    allowedInput.put(agg + stage, allowedInput.get("LongSum"));
-                    expectedMap.put(agg + stage, expectedMap.get("LongSum"));
-                } else if ((agg + stage).equals("FloatSumFinal")) {
-                    allowedInput.put(agg + stage, allowedInput.get("DoubleSum"));
-                    expectedMap.put(agg + stage, expectedMap.get("DoubleSum"));
-                } else {
-                    // In all other cases, the input and expected output
-                    // for "Initial" and "Final" stages should match the input
-                    // and expected output for the aggregate function itself
-                    allowedInput.put(agg + stage, allowedInput.get(agg));
-                    expectedMap.put(agg + stage, expectedMap.get(agg));
+        // for their Intermediate and Final Stages. For the 
+        // Initial stage we can reuse the input of the algebraic
+        // function.
+        
+        for (String[] aggGroups : aggs) {
+            for(String agg: aggGroups) {
+                for (String stage : stages) {
+                    if(stage.equals("Initial")) {
+                        // For the Initial function, the input should match the input
+                        // for the aggregate function itself. In the test cases, the
+                        // output of Initial is sent to Intermediate, so we don't
+                        // explicitly test the output of Initial and hence do not
+                        // need to set up expectedMap.
+                        allowedInput.put(agg + stage, allowedInput.get(agg));
+                    } else {
+                        // For IntSumIntermediate and IntSumFinal and 
+                        // FloatSumIntermediate and FloatSumFinal, the input is expected
+                        // be of types Long and Double respectively (Initial version
+                        // of these functions is supposed to convert the Int to Long
+                        // and Float to Double respectively) - Likewise for SUMIntermediate
+                        // and SumFinal the input is expected to be Double - The Initial
+                        // version is supposed to convert byteArrays to Double
+                        if((agg).equals("IntSum") || (agg).equals("IntAvg")) {
+                            allowedInput.put(agg + stage, "IntegerAsLong");
+                        } else if ((agg).equals("FloatSum") || agg.equals("FloatAvg")) {
+                            allowedInput.put(agg + stage, "FloatAsDouble");
+                        }else if ((agg).equals("MIN") || agg.equals("MAX") ||  
+                                (agg.equals("SUM")) || agg.equals("AVG")) {
+                            // For MIN and MAX the Intermediate and Final functions
+                            // expect input to be Doubles (Initial is supposed to
+                            // convert the ByteArray to Double)
+                            allowedInput.put(agg + stage, "ByteArrayAsDouble");
+                        } else {
+                            // In all other cases, the input and expected output
+                            // for "Intermediate" and "Final" stages should match the input
+                            // and expected output for the aggregate function itself
+                            allowedInput.put(agg + stage, allowedInput.get(agg));
+                            
+                        }
+                        // For Average, we set up expectedMap only for the "Final" stage
+                        // For other aggs, set up expected Map for both "Intermediate"
+                        // and "Final"
+                        if(! agg.matches("(?i)avg") || stage.equals("Final")) {
+                            expectedMap.put(agg + stage, expectedMap.get(agg));
+                        }
+                    }
                 }
             }
-            
         }
-        // Set up the EvalFunc data structure for "Initial" and
-        // "Final" stages of SUM, MIN and MAX
-        evalFuncMap.put("SUMInitial", new SUM.Initial());
-        evalFuncMap.put("DoubleSumInitial", new DoubleSum.Initial());
-        evalFuncMap.put("IntSumInitial", new IntSum.Initial());
-        evalFuncMap.put("LongSumInitial", new LongSum.Initial());
-        evalFuncMap.put("FloatSumInitial", new FloatSum.Initial());
         
-        evalFuncMap.put("SUMFinal", new SUM.Final());
-        evalFuncMap.put("DoubleSumFinal", new DoubleSum.Final());
-        evalFuncMap.put("IntSumFinal", new IntSum.Final());
-        evalFuncMap.put("LongSumFinal", new LongSum.Final());
-        evalFuncMap.put("FloatSumFinal", new FloatSum.Final());
-
-        evalFuncMap.put("MINInitial", new MIN.Initial());
-        evalFuncMap.put("IntMinInitial", new IntMin.Initial());
-        evalFuncMap.put("LongMinInitial", new LongMin.Initial());
-        evalFuncMap.put("FloatMinInitial", new FloatMin.Initial());
-        evalFuncMap.put("DoubleMinInitial", new DoubleMin.Initial());
-        evalFuncMap.put("StringMinInitial", new StringMin.Initial());
-        
-        evalFuncMap.put("MINFinal", new MIN.Final());
-        evalFuncMap.put("IntMinFinal", new IntMin.Final());
-        evalFuncMap.put("LongMinFinal", new LongMin.Final());
-        evalFuncMap.put("FloatMinFinal", new FloatMin.Final());
-        evalFuncMap.put("DoubleMinFinal", new DoubleMin.Final());
-        evalFuncMap.put("StringMinFinal", new StringMin.Final());
-
-
-        evalFuncMap.put("MAXInitial", new MAX.Initial());
-        evalFuncMap.put("IntMaxInitial", new IntMax.Initial());
-        evalFuncMap.put("LongMaxInitial", new LongMax.Initial());
-        evalFuncMap.put("FloatMaxInitial", new FloatMax.Initial());
-        evalFuncMap.put("DoubleMaxInitial", new DoubleMax.Initial());
-        evalFuncMap.put("StringMaxInitial", new StringMax.Initial());
-        
-        evalFuncMap.put("MAXFinal", new MAX.Final());
-        evalFuncMap.put("IntMaxFinal", new IntMax.Final());
-        evalFuncMap.put("LongMaxFinal", new LongMax.Final());
-        evalFuncMap.put("FloatMaxFinal", new FloatMax.Final());
-        evalFuncMap.put("DoubleMaxFinal", new DoubleMax.Final());
-        evalFuncMap.put("StringMaxFinal", new StringMax.Final());
-
-        // For Avg, the expected output (for the sum part) for Initial are the 
+        // For Avg, the expected output (for the sum part) for Intermediate are the 
         // same as SUM - so handled a little differently accordingly
-        evalFuncMap.put("AVG", new AVG());
-        allowedInput.put("AVG", "ByteArray");
-        expectedMap.put("AVG", new Double(5.0));
-        evalFuncMap.put("DoubleAvg", new DoubleAvg());
-        allowedInput.put("DoubleAvg", "Double");
-        expectedMap.put("DoubleAvg", new Double(15.506126530417545));
-        evalFuncMap.put("LongAvg", new LongAvg());
-        allowedInput.put("LongAvg", "Long");
-        expectedMap.put("LongAvg", new Double(1.3252451333305637E13));
-        evalFuncMap.put("IntAvg", new IntAvg());
-        allowedInput.put("IntAvg", "Integer");
-        expectedMap.put("IntAvg", new Double(5.0));
-        evalFuncMap.put("FloatAvg", new FloatAvg());
-        allowedInput.put("FloatAvg", "Float");
-        expectedMap.put("FloatAvg", new Double(5.104904507723722));
-
-        String[] avgs = {"AVG", "LongAvg", "DoubleAvg", "IntAvg", "FloatAvg"};
-        for (String avg : avgs) {
-            for (String stage : stages) {
-                allowedInput.put(avg + stage, allowedInput.get(avg));
-                if(stage.equals("Final"))
-                    expectedMap.put(avg + stage, expectedMap.get(avg));
-            }
-            
-        }
-
-        
-        evalFuncMap.put("AVGInitial", new AVG.Initial());
-        expectedMap.put("AVGInitial", expectedMap.get("SUM"));
-        evalFuncMap.put("DoubleAvgInitial", new DoubleAvg.Initial());
-        expectedMap.put("DoubleAvgInitial", expectedMap.get("DoubleSum"));
-        evalFuncMap.put("LongAvgInitial", new LongAvg.Initial());
-        expectedMap.put("LongAvgInitial", expectedMap.get("LongSum"));
-        evalFuncMap.put("IntAvgInitial", new IntAvg.Initial());
-        expectedMap.put("IntAvgInitial", expectedMap.get("IntSum"));
-        evalFuncMap.put("FloatAvgInitial", new FloatAvg.Initial());
-        expectedMap.put("FloatAvgInitial", expectedMap.get("FloatSum"));
-        
-        evalFuncMap.put("AVGFinal", new AVG.Final());
-        evalFuncMap.put("DoubleAvgFinal", new DoubleAvg.Final());
-        evalFuncMap.put("LongAvgFinal", new LongAvg.Final());
-        evalFuncMap.put("IntAvgFinal", new IntAvg.Final());
-        evalFuncMap.put("FloatAvgFinal", new FloatAvg.Final());
-
+        expectedMap.put("AVGIntermediate", expectedMap.get("SUM"));
+        expectedMap.put("DoubleAvgIntermediate", expectedMap.get("DoubleSum"));
+        expectedMap.put("LongAvgIntermediate", expectedMap.get("LongSum"));
+        expectedMap.put("IntAvgIntermediate", expectedMap.get("IntSum"));
+        expectedMap.put("FloatAvgIntermediate", expectedMap.get("FloatSum"));
         
         // set up input hash
         try{
-            inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), IntInput));
-            inputMap.put("Long", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), LongInput));
-            inputMap.put("Float", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), FloatInput));
-            inputMap.put("Double", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), DoubleInput));
+            inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intInput));
+            inputMap.put("IntegerAsLong", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intAsLong));
+            inputMap.put("Long", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), longInput));
+            inputMap.put("Float", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatInput));
+            inputMap.put("FloatAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatAsDouble));
+            inputMap.put("Double", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), doubleInput));
             inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
-            inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), StringInput));
+            inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
+            inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
             
         }catch(ExecException e) {
             e.printStackTrace();
         }
     }
       
+    /**
+     * 
+     */
+    private void setupEvalFuncMap() {
+
+        for (String[] aggGroup : aggs) {
+            for (String agg : aggGroup) {
+                // doing this as a two step process because PigContext.instantiateFuncFromSpec("SUM.Intermediate")
+                // fails with class resolution error.
+                EvalFunc<?> func = (EvalFunc<?>)PigContext.instantiateFuncFromSpec(agg);
+                evalFuncMap.put(agg, func);
+                evalFuncMap.put(agg + "Initial", (EvalFunc<?>)PigContext.instantiateFuncFromSpec(((Algebraic)func).getInitial()));
+                evalFuncMap.put(agg + "Intermediate", (EvalFunc<?>)PigContext.instantiateFuncFromSpec(((Algebraic)func).getIntermed()));
+                evalFuncMap.put(agg + "Final", (EvalFunc<?>)PigContext.instantiateFuncFromSpec(((Algebraic)func).getFinal()));
+            }
+        }
+    }
+
+    /**
+     * Test the case where the combiner is not called - so initial is called
+     * and then final is called
+     * @throws Exception
+     */
+    @Test
+    public void testAggNoCombine() throws Exception {
+        
+        for (String[] aggGroup : aggs) {
+            String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
+            String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
+            
+            for (String stage: stages) {
+                String[] aggTypesArray = null;
+                if(stage.equals("Initial")) {
+                    aggInitialTypes = new String[aggGroup.length];
+                    aggTypesArray = aggInitialTypes;
+                } else  if(stage.equals("Final")) {
+                    aggFinalTypes = new String[aggGroup.length];
+                    aggTypesArray = aggFinalTypes;
+                } else { // Intermediate
+                    continue;
+                }
+                for (int i = 0; i < aggTypesArray.length; i++) {
+                    aggTypesArray[i] = aggGroup[i] + stage;
+                }
+            }
+
+            for(int k = 0; k < aggFinalTypes.length; k++) {
+                EvalFunc<?> avgInitial = evalFuncMap.get(aggInitialTypes[k]);
+                Tuple tup = inputMap.get(getInputType(aggInitialTypes[k]));
+                
+                // To test this case, first AVGInitial is called for each input
+                // value and output of it is put into a bag. The bag containing
+                // all AVGInitial output is provided as input to AVGFinal
+                
+                // The tuple we got above has a bag with input
+                // values. Lets call AVGInitial with each value:
+                DataBag bg = (DataBag) tup.get(0);
+                DataBag  finalInputBg = bagFactory.newDefaultBag();
+                for (Tuple tuple : bg) {
+                    DataBag initialInputBg = bagFactory.newDefaultBag();
+                    initialInputBg.add(tuple);
+                    Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
+                    finalInputBg.add((Tuple)avgInitial.exec(initialInputTuple));
+                }
+    
+                Tuple finalInputTuple = tupleFactory.newTuple(finalInputBg);
+                EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
+                String msg = "[Testing " + aggGroup[k] + " on input type: " + getInputType(aggFinalTypes[k]);
+                System.err.println(msg + " for no combiner case]");
+                Object output = aggFinal.exec(finalInputTuple);
+                msg += " ( (output) " + output + " == " + getExpected(aggFinalTypes[k]) + " (expected) )]";
+                // for doubles, precisions can be a problem - so check
+                // if the type is double for expected result and check
+                // within some precision
+                if(getExpected(aggFinalTypes[k]) instanceof Double) {
+                    assertEquals(msg, (Double)getExpected(aggFinalTypes[k]), (Double)output, 0.00001);
+                } else {
+                    assertEquals(msg, getExpected(aggFinalTypes[k]), output);
+                }
+            }    
+        }
+    }
+   
+    /**
+     * Test the case where the combiner is called once - so initial is called
+     * and then Intermediate and then final is called
+     * @throws Exception
+     */
+    @Test
+    public void testAggSingleCombine() throws Exception {
+        
+        for (String[] aggGroup : aggs) {
+            String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
+            String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
+            String[] aggIntermediateTypes = null; // will contains AVGIntermediate, DoubleAvgIntermediate etc
+            for (String stage: stages) {
+                String[] aggTypesArray = null;
+                if(stage.equals("Initial")) {
+                    aggInitialTypes = new String[aggGroup.length];
+                    aggTypesArray = aggInitialTypes;
+                } else if (stage.equals("Intermediate")) {
+                    aggIntermediateTypes = new String[aggGroup.length];
+                    aggTypesArray = aggIntermediateTypes;
+                } else  {// final 
+                    aggFinalTypes = new String[aggGroup.length];
+                    aggTypesArray = aggFinalTypes;
+                }
+
+                for (int i = 0; i < aggTypesArray.length; i++) {
+                    aggTypesArray[i] = aggGroup[i] + stage;
+                }
+            }
+            for(int k = 0; k < aggFinalTypes.length; k++) {
+                EvalFunc<?> aggInitial = evalFuncMap.get(aggInitialTypes[k]);
+                Tuple tup = inputMap.get(getInputType(aggInitialTypes[k]));
+                // To test this case, first <Agg>Initial is called for each input
+                // value. The output from <Agg>Initial for the first half of inputs is
+                // put into one bag and the next half into another. Then these two
+                // bags are provided as inputs to two separate calls of <Agg>Intermediate.
+                // The outputs from the two calls to <Agg>Intermediate are put into a bag 
+                // and sent as input to <Agg>Final
+                
+                // The tuple we got above has a bag with input
+                // values. Lets call <Agg>Initial with each value:
+                DataBag bg = (DataBag) tup.get(0);
+                DataBag  intermediateInputBg1 = bagFactory.newDefaultBag();
+                DataBag  intermediateInputBg2 = bagFactory.newDefaultBag();
+                int i = 0;
+                for (Tuple tuple : bg) {
+                    DataBag initialInputBg = bagFactory.newDefaultBag();
+                    initialInputBg.add(tuple);
+                    Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
+                    if(i < bg.size()/2) {
+                        intermediateInputBg1.add((Tuple)aggInitial.exec(initialInputTuple));
+                    } else {
+                        intermediateInputBg2.add((Tuple)aggInitial.exec(initialInputTuple));
+                    }
+                    i++;
+                }
+
+                EvalFunc<?> avgIntermediate = evalFuncMap.get(aggIntermediateTypes[k]);
+                DataBag finalInputBg = bagFactory.newDefaultBag();
+                Tuple intermediateInputTuple = tupleFactory.newTuple(intermediateInputBg1);
+                finalInputBg.add((Tuple)avgIntermediate.exec(intermediateInputTuple));
+                intermediateInputTuple = tupleFactory.newTuple(intermediateInputBg2);
+                finalInputBg.add((Tuple)avgIntermediate.exec(intermediateInputTuple));
+                
+                Tuple finalInputTuple = tupleFactory.newTuple(finalInputBg);
+                EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
+                String msg = "[Testing " + aggGroup[k] + " on input type: " + getInputType(aggFinalTypes[k]);
+                System.err.println(msg + " for single combiner case]");
+                Object output = aggFinal.exec(finalInputTuple);
+                msg += " ( (output) " + output + " == " + getExpected(aggFinalTypes[k]) + " (expected) )]";
+                // for doubles, precisions can be a problem - so check
+                // if the type is double for expected result and check
+                // within some precision
+                if(getExpected(aggFinalTypes[k]) instanceof Double) {
+                    assertEquals(msg, (Double)getExpected(aggFinalTypes[k]), (Double)output, 0.00001);
+                } else {
+                    assertEquals(msg, getExpected(aggFinalTypes[k]), output);
+                }
+            }    
+        }
+    
+    }
+         
+    
+    /**
+     * Test the case where the combiner is called more than once - so initial is called
+     * and then Intermediate called couple of times and then final is called
+     * @throws Exception
+     */
+    @Test
+    public void testAggMultipleCombine() throws Exception {
+        
+        for (String[] aggGroup : aggs) {
+            String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
+            String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
+            String[] aggIntermediateTypes = null; // will contains AVGIntermediate, DoubleAvgIntermediate etc
+            for (String stage: stages) {
+                String[] aggTypesArray = null;
+                if(stage.equals("Initial")) {
+                    aggInitialTypes = new String[aggGroup.length];
+                    aggTypesArray = aggInitialTypes;
+                } else if (stage.equals("Intermediate")) {
+                    aggIntermediateTypes = new String[aggGroup.length];
+                    aggTypesArray = aggIntermediateTypes;
+                } else  {// final 
+                    aggFinalTypes = new String[aggGroup.length];
+                    aggTypesArray = aggFinalTypes;
+                }
+
+                for (int i = 0; i < aggTypesArray.length; i++) {
+                    aggTypesArray[i] = aggGroup[i] + stage;
+                }
+            }
+            for(int k = 0; k < aggFinalTypes.length; k++) {
+                EvalFunc<?> aggInitial = evalFuncMap.get(aggInitialTypes[k]);
+                Tuple tup = inputMap.get(getInputType(aggInitialTypes[k]));
+                // To test this case, first <Agg>Initial is called for each input
+                // value. The output from <Agg>Initial for quarter of values from 
+                // the inputs is put into one bag. Then 4 calls are made to Intermediate
+                // with each bag going to one call. This simulates the call in the map-combine
+                // boundary. The outputs from the first two calls to Intermediate above are
+                // put into a bag and the output from the next two calls put into another bag.
+                // These two bags are provided as inputs to two separate calls of <Agg>Intermediate.
+                // This simulates the call in the combine-reduce boundary.
+                // The outputs from the two calls to <Agg>Intermediate are put into a bag 
+                // and sent as input to <Agg>Final
+                
+                // The tuple we got above has a bag with input
+                // values. Lets call <Agg>Initial with each value:
+                DataBag bg = (DataBag) tup.get(0);
+                DataBag[]  mapIntermediateInputBgs = new DataBag[4];
+                for (int i = 0; i < mapIntermediateInputBgs.length; i++) {
+                    mapIntermediateInputBgs[i] = bagFactory.newDefaultBag();
+                }
+                Iterator<Tuple> it = bg.iterator();
+                for(int i = 0; i < 4; i++) {
+                    for(int j = 0; j < bg.size()/4; j++) {
+                        DataBag initialInputBg = bagFactory.newDefaultBag();
+                        initialInputBg.add(it.next());
+                        Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
+                        mapIntermediateInputBgs[i].add((Tuple)aggInitial.exec(initialInputTuple));
+                    }
+                    if(i == 3) {
+                        // if the last quarter has more elements process them
+                        while(it.hasNext()) {
+                            DataBag initialInputBg = bagFactory.newDefaultBag();
+                            initialInputBg.add(it.next());
+                            Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
+                            mapIntermediateInputBgs[i].add((Tuple)aggInitial.exec(initialInputTuple));
+                        }
+                    }
+                }
+
+                EvalFunc<?> aggIntermediate = evalFuncMap.get(aggIntermediateTypes[k]);
+                DataBag[] reduceIntermediateInputBgs = new DataBag[2];
+                for (int i = 0; i < reduceIntermediateInputBgs.length; i++) {
+                    reduceIntermediateInputBgs[i] = bagFactory.newDefaultBag();                    
+                }
+
+                // simulate call to combine after map
+                for(int i = 0; i < 4; i++) {
+                    Tuple intermediateInputTuple = tupleFactory.newTuple(mapIntermediateInputBgs[i]);
+                    if(i < 2) {
+                        reduceIntermediateInputBgs[0].add((Tuple)aggIntermediate.exec(intermediateInputTuple));
+                    } else {
+                        reduceIntermediateInputBgs[1].add((Tuple)aggIntermediate.exec(intermediateInputTuple));
+                    }
+                }
+               
+                DataBag finalInputBag = bagFactory.newDefaultBag();
+                // simulate call to combine before reduce
+                for(int i = 0; i < 2; i++) {
+                    Tuple intermediateInputTuple = tupleFactory.newTuple(reduceIntermediateInputBgs[i]);
+                    finalInputBag.add((Tuple)aggIntermediate.exec(intermediateInputTuple));
+                }
+                
+                // simulate call to final (in reduce)
+                Tuple finalInputTuple = tupleFactory.newTuple(finalInputBag);
+                EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
+                String msg = "[Testing " + aggGroup[k] + " on input type: " + getInputType(aggFinalTypes[k]);
+                System.err.println(msg + " for multiple combiner case]");
+                Object output = aggFinal.exec(finalInputTuple);
+                msg += " ( (output) " + output + " == " + getExpected(aggFinalTypes[k]) + " (expected) )]";
+                // for doubles, precisions can be a problem - so check
+                // if the type is double for expected result and check
+                // within some precision
+                if(getExpected(aggFinalTypes[k]) instanceof Double) {
+                    assertEquals(msg, (Double)getExpected(aggFinalTypes[k]), (Double)output, 0.00001);
+                } else {
+                    assertEquals(msg, getExpected(aggFinalTypes[k]), output);
+                }
+            }    
+        }
+    
+    }
+
     // Builtin MATH Functions
     // =======================
     @Test
@@ -280,49 +528,92 @@ public class TestBuiltin extends TestCase {
     }
 
     @Test
-    public void testAVGInitial() throws Exception {
-        String[] avgTypes = {"AVGInitial", "DoubleAvgInitial", "LongAvgInitial", "IntAvgInitial", "FloatAvgInitial"};
+    public void testAVGIntermediate() throws Exception {
+        String[] avgTypes = {"AVGIntermediate", "DoubleAvgIntermediate", "LongAvgIntermediate", "IntAvgIntermediate", "FloatAvgIntermediate"};
         for(int k = 0; k < avgTypes.length; k++) {
             EvalFunc<?> avg = evalFuncMap.get(avgTypes[k]);
             String inputType = getInputType(avgTypes[k]);
             Tuple tup = inputMap.get(inputType);
-            Object output = avg.exec(tup);
+            // The tuple we got above has a bag with input
+            // values. Input to the Intermediate.exec() however comes
+            // from the map which would put each value and a count of
+            // 1 in a tuple and send it down. So lets create a bag with
+            // tuples that have two fields - the value and a count 1.
+            DataBag bag = (DataBag) tup.get(0);
+            DataBag  bg = bagFactory.newDefaultBag();
+            for (Tuple t: bag) {
+                Tuple newTuple = tupleFactory.newTuple(2);
+                newTuple.set(0, t.get(0));
+                newTuple.set(1, new Long(1));
+                bg.add(newTuple);                
+            }
+            Tuple intermediateInput = tupleFactory.newTuple();
+            intermediateInput.append(bg);
             
-            if(inputType == "Long" || inputType == "Integer") {
+            Object output = avg.exec(intermediateInput);
+            
+            if(inputType == "Long" || inputType == "Integer" || inputType == "IntegerAsLong") {
                 Long l = (Long)((Tuple)output).get(0);
                 String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
                               l + " == " + getExpected(avgTypes[k]) + " (expected) )]";
-                assertEquals(msg, l, (Long)getExpected(avgTypes[k]));
+                assertEquals(msg, (Long)getExpected(avgTypes[k]), l);
             } else {
                 Double f1 = (Double)((Tuple)output).get(0);
                 String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
                                f1 + " == " + getExpected(avgTypes[k]) + " (expected) )]";
-                assertEquals(msg, f1, (Double)getExpected(avgTypes[k]), 0.00001);
+                assertEquals(msg, (Double)getExpected(avgTypes[k]), f1, 0.00001);
             }
             Long f2 = (Long)((Tuple)output).get(1);
             assertEquals("[Testing " + avgTypes[k] + " on input type: "+ 
                 inputType+"]Expected count to be 11", 11, f2.longValue());
         }
     }
-
+    
     @Test
     public void testAVGFinal() throws Exception {
         String[] avgTypes = {"AVGFinal", "DoubleAvgFinal", "LongAvgFinal", "IntAvgFinal", "FloatAvgFinal"};
-        String[] avgInitialTypes = {"AVGInitial", "DoubleAvgInitial", "LongAvgInitial", "IntAvgInitial", "FloatAvgInitial"};
+        String[] avgIntermediateTypes = {"AVGIntermediate", "DoubleAvgIntermediate", "LongAvgIntermediate", "IntAvgIntermediate", "FloatAvgIntermediate"};
         for(int k = 0; k < avgTypes.length; k++) {
             EvalFunc<?> avg = evalFuncMap.get(avgTypes[k]);
             Tuple tup = inputMap.get(getInputType(avgTypes[k]));
             
-            // To test AVGFinal, AVGInitial should first be called and
-            // the output of AVGInitial should be supplied as input to
-            // AVGFinal. To simulate this, we will call Initial twice
+            // To test AVGFinal, AVGIntermediate should first be called and
+            // the output of AVGIntermediate should be supplied as input to
+            // AVGFinal. To simulate this, we will call Intermediate twice
             // on the above tuple and collect the outputs and pass it to
             // Final.
             
-            // get the right "Initial" EvalFunc
-            EvalFunc<?> avgInitial = evalFuncMap.get(avgInitialTypes[k]);
-            Object output1 = avgInitial.exec(tup);
-            Object output2 = avgInitial.exec(tup);
+            // get the right "Intermediate" EvalFunc
+            EvalFunc<?> avgIntermediate = evalFuncMap.get(avgIntermediateTypes[k]);
+            // The tuple we got above has a bag with input
+            // values. Input to the Intermediate.exec() however comes
+            // from the map which would put each value and a count of
+            // 1 in a tuple and send it down. So lets create a bag with
+            // tuples that have two fields - the value and a count 1.
+            // The input has 10 values - lets put the first five of them
+            // in the input to the first call of AVGIntermediate and the
+            // remaining five in the second call.
+            DataBag bg = (DataBag) tup.get(0);
+            DataBag  bg1 = bagFactory.newDefaultBag();
+            DataBag  bg2 = bagFactory.newDefaultBag();
+            int i = 0;
+            for (Tuple t: bg) {
+                Tuple newTuple = tupleFactory.newTuple(2);
+                newTuple.set(0, t.get(0));
+                newTuple.set(1, new Long(1));
+                if(i < 5) {
+                    bg1.add(newTuple);
+                } else {
+                    bg2.add(newTuple);
+                }
+                i++;
+            }
+            Tuple intermediateInput1 = tupleFactory.newTuple();
+            intermediateInput1.append(bg1);
+            Object output1 = avgIntermediate.exec(intermediateInput1);
+            Tuple intermediateInput2 = tupleFactory.newTuple();
+            intermediateInput2.append(bg2);
+            Object output2 = avgIntermediate.exec(intermediateInput2);
             
             DataBag bag = Util.createBag(new Tuple[]{(Tuple)output1, (Tuple)output2});
             
@@ -331,7 +622,7 @@ public class TestBuiltin extends TestCase {
             Object output = avg.exec(finalTuple);
             String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
             output + " == " + getExpected(avgTypes[k]) + " (expected) )]";
-            assertEquals(msg, (Double)output, (Double)getExpected(avgTypes[k]), 0.00001);
+            assertEquals(msg, (Double)getExpected(avgTypes[k]), (Double)output, 0.00001);
         }    
     }
 
@@ -349,41 +640,23 @@ public class TestBuiltin extends TestCase {
     }
 
     @Test
-    public void testCOUNTMap() throws Exception {
-        Map<Object, Object> map = new HashMap<Object, Object>();
-        
-        Tuple tup = TupleFactory.getInstance().newTuple();
-        tup.append(map);
-        
-        EvalFunc<Long> count = new COUNT();
-        FilterFunc isEmpty = new IsEmpty();
-        
-        assertTrue(isEmpty.exec(tup));
-        Long output = count.exec(tup);
-        assertTrue(output == 0);
-        
-        map.put("a", "a");
-
-        assertFalse(isEmpty.exec(tup));
-        output = count.exec(tup);
-        assertTrue(output == 1);
-
-        
-        map.put("b", TupleFactory.getInstance().newTuple());
-
-        assertFalse(isEmpty.exec(tup));
-        output = count.exec(tup);
-        assertTrue(output == 2);
-        
-    }
-
-    @Test
-    public void testCOUNTInitial() throws Exception {
+    public void testCOUNTIntermed() throws Exception {
         int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        
+        DataBag intermediateInputBag = bagFactory.newDefaultBag();
+        // call initial and then Intermed
+        for (int i : input) {
+            Tuple t = tupleFactory.newTuple(new Integer(i));
+            DataBag b = bagFactory.newDefaultBag();
+            b.add(t);
+            Tuple initialInput = tupleFactory.newTuple(b);
+            EvalFunc<?> initial = new COUNT.Initial();
+            intermediateInputBag.add((Tuple)initial.exec(initialInput));
+        }
 
-        EvalFunc<Tuple> count = new COUNT.Initial();
-        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
-        Tuple output = count.exec(tup);
+        EvalFunc<Tuple> countIntermed = new COUNT.Intermediate();
+        Tuple intermediateInput = tupleFactory.newTuple(intermediateInputBag);
+        Tuple output = countIntermed.exec(intermediateInput);
 
         Long f1 = DataType.toLong(output.get(0));
         assertEquals("Expected count to be 10", 10, f1.longValue());
@@ -421,8 +694,8 @@ public class TestBuiltin extends TestCase {
     }
 
     @Test
-    public void testSUMInitial() throws Exception {
-        String[] sumTypes = {"SUMInitial", "DoubleSumInitial", "LongSumInitial", "IntSumInitial", "FloatSumInitial"};
+    public void testSUMIntermed() throws Exception {
+        String[] sumTypes = {"SUMIntermediate", "DoubleSumIntermediate", "LongSumIntermediate", "IntSumIntermediate", "FloatSumIntermediate"};
         for(int k = 0; k < sumTypes.length; k++) {
             EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
             String inputType = getInputType(sumTypes[k]);
@@ -432,8 +705,7 @@ public class TestBuiltin extends TestCase {
             
             String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
                             ((Tuple)output).get(0) + " == " + getExpected(sumTypes[k]) + " (expected) )]";
-
-            if(inputType == "Integer" || inputType == "Long") {
+            if(inputType.equals("Integer") || inputType.equals("Long") || inputType.equals("IntegerAsLong")) {
               assertEquals(msg, (Long) ((Tuple)output).get(0), (Long)getExpected(sumTypes[k]), 0.00001);
             } else {
               assertEquals(msg, (Double) ((Tuple)output).get(0), (Double)getExpected(sumTypes[k]), 0.00001);
@@ -453,7 +725,7 @@ public class TestBuiltin extends TestCase {
             String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
             output + " == " + getExpected(sumTypes[k]) + " (expected) )]";
 
-            if(inputType == "Integer" || inputType == "Long") {
+            if(inputType.equals("Integer") || inputType.equals("Long") || inputType.equals("IntegerAsLong")) {
               assertEquals(msg, (Long)output, (Long)getExpected(sumTypes[k]), 0.00001);
             } else {
               assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
@@ -491,9 +763,9 @@ public class TestBuiltin extends TestCase {
 
 
     @Test
-    public void testMINInitial() throws Exception {
+    public void testMINIntermediate() throws Exception {
         
-        String[] minTypes = {"MINInitial", "LongMinInitial", "IntMinInitial", "FloatMinInitial"};
+        String[] minTypes = {"MINIntermediate", "LongMinIntermediate", "IntMinIntermediate", "FloatMinIntermediate"};
         for(int k = 0; k < minTypes.length; k++) {
             EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
             String inputType = getInputType(minTypes[k]);
@@ -578,9 +850,9 @@ public class TestBuiltin extends TestCase {
 
 
     @Test
-    public void testMAXInitial() throws Exception {
+    public void testMAXIntermed() throws Exception {
         
-        String[] maxTypes = {"MAXInitial", "LongMaxInitial", "IntMaxInitial", "FloatMaxInitial"};
+        String[] maxTypes = {"MAXIntermediate", "LongMaxIntermediate", "IntMaxIntermediate", "FloatMaxIntermediate"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
             String inputType = getInputType(maxTypes[k]);

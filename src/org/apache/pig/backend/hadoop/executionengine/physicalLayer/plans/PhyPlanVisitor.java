@@ -76,7 +76,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         //do nothing
     }
     
-    public void visitCombinerPackage(POPostCombinerPackage pkg) throws VisitorException{
+    public void visitCombinerPackage(POCombinerPackage pkg) throws VisitorException{
         //do nothing
     }
     
@@ -257,6 +257,15 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
      * @param optimizedForEach
      */
     public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /**
+     * @param preCombinerLocalRearrange
+     */
+    public void visitPreCombinerLocalRearrange(
+            POPreCombinerLocalRearrange preCombinerLocalRearrange) {
         // TODO Auto-generated method stub
         
     }

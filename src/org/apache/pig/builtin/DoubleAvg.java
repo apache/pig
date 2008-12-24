@@ -69,7 +69,7 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Intermed.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -81,8 +81,12 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
         public Tuple exec(Tuple input) throws IOException {
             try {
                 Tuple t = mTupleFactory.newTuple(2);
-                t.set(0, sum(input));
-                t.set(1, new Long(count(input)));
+                // input is a bag with one tuple containing
+                // the column we are trying to avg on
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                t.set(0, (Double)(tp.get(0)));
+                t.set(1, 1L);
                 return t;
             } catch(RuntimeException t) {
                 throw new RuntimeException(t.getMessage() + ": " + input);
@@ -95,7 +99,7 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
         }
     }
 
-    static public class Intermed extends EvalFunc<Tuple> {
+    static public class Intermediate extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException {
             try {
@@ -150,8 +154,15 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             Double d = (Double)t.get(0);
-            if(d == null) continue;
-            sawNonNull = true;
+            // we count nulls in avg as contributing 0
+            // a departure from SQL for performance of 
+            // COUNT() which implemented by just inspecting
+            // size of the bag
+            if(d == null) {
+                d = 0.0;
+            } else {
+                sawNonNull = true;
+            }
             sum += d;
             count += (Long)t.get(1);
         }

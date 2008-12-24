@@ -27,6 +27,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -56,7 +57,7 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -69,7 +70,30 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
         @Override
         public Tuple exec(Tuple input) throws IOException {
             try {
-                return tfact.newTuple(max(input));
+                // input is a bag with one tuple containing
+                // the column we are trying to max on 
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                DataByteArray dba = (DataByteArray)tp.get(0); 
+                return tfact.newTuple(dba != null ?
+                        Double.valueOf(dba.toString()): null);
+            } catch (NumberFormatException e) {
+                return tfact.newTuple(null);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
+            }
+        }
+    }
+
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return tfact.newTuple(maxDoubles(input));
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
                 oughtToBeEE.initCause(ee);
@@ -81,7 +105,7 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
         @Override
         public Double exec(Tuple input) throws IOException {
             try {
-                return max(input);
+                return maxDoubles(input);
             } catch (ExecException ee) {
                 IOException oughtToBeEE = new IOException();
                 oughtToBeEE.initCause(ee);
@@ -104,13 +128,49 @@ public class MAX extends EvalFunc<Double> implements Algebraic {
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             try {
-                Double d = DataType.toDouble(t.get(0));
+                DataByteArray dba = (DataByteArray)t.get(0);
+                Double d = dba != null ? Double.valueOf(dba.toString()) : null;
                 if (d == null) continue;
                 sawNonNull = true;
                 curMax = java.lang.Math.max(curMax, d);
-            }catch(NumberFormatException nfe){
-                // do nothing - essentially treat this
-                // particular input as null
+            } catch (RuntimeException exp) {
+                ExecException newE = new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage());
+                newE.initCause(exp);
+                throw newE;
+            }
+        }
+
+        if(sawNonNull) {
+            return new Double(curMax);
+        } else {
+            return null;
+        }
+    }
+    
+    // same as above function except all its inputs are 
+    // always Double - this should be used for better performance
+    // since we don't have to check the type of the object to
+    // decide it is a double. This should be used when the initial,
+    // intermediate and final versions are used.
+    static protected Double maxDoubles(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double curMax = Double.NEGATIVE_INFINITY;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                Double d = (Double)t.get(0);
+                if (d == null) continue;
+                sawNonNull = true;
+                curMax = java.lang.Math.max(curMax, d);
             } catch (RuntimeException exp) {
                 ExecException newE = new ExecException("Error processing: " +
                     t.toString() + exp.getMessage());

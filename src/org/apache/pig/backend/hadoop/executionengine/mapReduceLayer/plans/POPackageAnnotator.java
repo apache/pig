@@ -29,7 +29,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPostCombinerPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
@@ -75,7 +75,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             if(pkg != null) {
                 // if the POPackage is actually a POPostCombinerPackage, then we should
                 // just look for the corresponding LocalRearrange(s) in the combine plan
-                if(pkg instanceof POPostCombinerPackage) {
+                if(pkg instanceof POCombinerPackage) {
                     if(patchPackage(mr.combinePlan, pkg) != pkg.getNumInps()) {
                         throw new VisitorException("Unexpected problem while trying " +
                         		"to optimize (could not find LORearrange in combine plan)");
@@ -152,7 +152,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
          * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitCombinerPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPostCombinerPackage)
          */
         @Override
-        public void visitCombinerPackage(POPostCombinerPackage pkg)
+        public void visitCombinerPackage(POCombinerPackage pkg)
                 throws VisitorException {
             this.pkg = pkg;
         }

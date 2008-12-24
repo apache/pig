@@ -27,6 +27,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -54,7 +55,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -66,10 +67,33 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
+            // Initial is called in the map - for SUM
+            // we just send the tuple down
             try {
-                return tfact.newTuple(sum(input));
+                // input is a bag with one tuple containing
+                // the column we are trying to sum
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                DataByteArray dba = (DataByteArray)tp.get(0); 
+                return tfact.newTuple(dba != null?
+                        Double.valueOf(dba.toString()): null);
+            }catch(NumberFormatException nfe){
+                // treat this particular input as null
+                return tfact.newTuple(null);
+            } catch (ExecException e) {
+                throw WrappedIOException.wrap("Caught exception in SUM.Initial", e);
+            }
+        }
+    }
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return tfact.newTuple(sumDoubles(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in SUM.Initial", ee);
+                throw WrappedIOException.wrap("Caught exception in SUM.Intermediate", ee);
             }
         }
     }
@@ -77,7 +101,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         @Override
         public Double exec(Tuple input) throws IOException {
             try {
-                return sum(input);
+                return sumDoubles(input);
             } catch (ExecException ee) {
                 throw WrappedIOException.wrap("Caught exception in SUM.Final", ee);
             }
@@ -98,13 +122,54 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             try {
-                Double d = DataType.toDouble(t.get(0));
+                DataByteArray dba = (DataByteArray)t.get(0);
+                Double d = 
+                    dba != null ? Double.valueOf(dba.toString()): null;
                 if (d == null) continue;
                 sawNonNull = true;
                 sum += d;
-            }catch(NumberFormatException nfe){
-                // do nothing - essentially treat this
-                // particular input as null
+            
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage(), exp);
+                throw newE;
+            }
+        }
+        
+        
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
+    }
+
+    // same as above function except all its inputs are 
+    // always Double - this should be used for better performance
+    // since we don't have to check the type of the object to
+    // decide it is a double. This should be used when the initial,
+    // intermediate and final versions are used.
+    static protected Double sumDoubles(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                // we can cast directly because we SHOULD
+                // only be getting Doubles here
+                Double d = (Double)(t.get(0));
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            
             }catch(RuntimeException exp) {
                 ExecException newE =  new ExecException("Error processing: " +
                     t.toString() + exp.getMessage(), exp);

@@ -50,7 +50,7 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -62,10 +62,32 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
+            // Initial is called in the map - for SUM
+            // we just send the tuple down
             try {
-                return tfact.newTuple(sum(input));
+                // input is a bag with one tuple containing
+                // the column we are trying to sum
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+				// send down a double since intermediate
+				// would  be sending a double
+                Float f = (Float)tp.get(0);
+                return tfact.newTuple(f != null ? 
+                        new Double(f) : null);
+            } catch (ExecException e) {
+                throw WrappedIOException.wrap("Caught exception in FloatSum.Initial", e);
+            }
+        }
+    }
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return tfact.newTuple(sumDoubles(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in FloatSum.Initial", ee);
+                throw WrappedIOException.wrap("Caught exception in FloatSum.Intermediate", ee);
             }
         }
     }
@@ -73,41 +95,47 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
         @Override
         public Double exec(Tuple input) throws IOException {
             try {
-                // Can't just call sum, because the intermediate results are
-                // now Doubles insteads of Floats.
-                DataBag values = (DataBag)input.get(0);
-        
-                // if we were handed an empty bag, return NULL
-                // this is in compliance with SQL standard
-                if(values.size() == 0) {
-                    return null;
-                }
-
-                double sum = 0;
-                boolean sawNonNull = false;
-                for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-                    Tuple t = (Tuple) it.next();
-                    try {
-                        Double d = (Double)(t.get(0));
-                        if (d == null) continue;
-                        sawNonNull = true;
-                        sum += d;
-                    }catch(RuntimeException exp) {
-                        throw WrappedIOException.wrap(
-                            "Caught exception in FloatSum.Final", exp);
-                    }
-                }
-        
-                
-                if(sawNonNull) {
-                    return new Double(sum);
-                } else {
-                    return null;
-                }
+                return sumDoubles(input);                
             } catch (ExecException ee) {
                 throw WrappedIOException.wrap("Caught exception in FloatSum.Final", ee);
             }
         }
+    }
+    
+    static protected Double sumDoubles(Tuple input) throws ExecException {
+        // Can't just call sum, because the intermediate results are
+        // now Doubles insteads of Floats.
+        DataBag values = (DataBag)input.get(0);
+
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = (Tuple) it.next();
+            try {
+                Double d = (Double)(t.get(0));
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                        t.toString() + exp.getMessage(), exp);
+                    throw newE;
+            }
+        }
+
+        
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
+
     }
 
     static protected  Double sum(Tuple input) throws ExecException {

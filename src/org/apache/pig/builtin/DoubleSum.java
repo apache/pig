@@ -31,6 +31,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -54,7 +55,7 @@ public class DoubleSum extends EvalFunc<Double> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -66,10 +67,28 @@ public class DoubleSum extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
+            // Initial is called in the map - for SUM
+            // we just send the tuple down
+            try {
+                // input is a bag with one tuple containing
+                // the column we are trying to sum
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                return tfact.newTuple((Double)( tp.get(0)));
+            } catch (ExecException e) {
+                throw WrappedIOException.wrap("Caught exception in DoubleSum.Initial", e);
+            }
+        }
+    }
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
             try {
                 return tfact.newTuple(sum(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
+                IOException oughtToBeEE = new IOException("Caught exception in DoubleSum.Intermediate");
                 oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }
@@ -81,7 +100,7 @@ public class DoubleSum extends EvalFunc<Double> implements Algebraic {
             try {
                 return sum(input);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
+                IOException oughtToBeEE = new IOException("Caught exception in DoubleSum.Final");
                 oughtToBeEE.initCause(ee);
                 throw oughtToBeEE;
             }

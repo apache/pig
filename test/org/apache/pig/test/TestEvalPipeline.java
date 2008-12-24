@@ -83,20 +83,10 @@ public class TestEvalPipeline extends TestCase {
     }
     
     
-    private File createFile(String[] data) throws Exception{
-        File f = File.createTempFile("tmp", "");
-        PrintWriter pw = new PrintWriter(f);
-        for (int i=0; i<data.length; i++){
-            pw.println(data[i]);
-        }
-        pw.close();
-        return f;
-    }
-    
     @Test
     public void testFunctionInsideFunction() throws Exception{
         
-        File f1 = createFile(new String[]{"a:1","b:1","a:1"});
+        File f1 = Util.createFile(new String[]{"a:1","b:1","a:1"});
 
         pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate 1-1/1;");
@@ -111,8 +101,8 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testJoin() throws Exception{
                 
-        File f1 = createFile(new String[]{"a:1","b:1","a:1"});
-        File f2 = createFile(new String[]{"b","b","a"});
+        File f1 = Util.createFile(new String[]{"a:1","b:1","a:1"});
+        File f2 = Util.createFile(new String[]{"b","b","a"});
         
         pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = load '" + Util.generateURI(f2.toString()) + "';");
@@ -292,7 +282,7 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testBagFunctionWithFlattening() throws Exception{
-        File queryLogFile = createFile(
+        File queryLogFile = Util.createFile(
                     new String[]{ 
                         "stanford\tdeer\tsighting",
                         "bush\tpresident",
@@ -304,7 +294,7 @@ public class TestEvalPipeline extends TestCase {
                     }
                 );
                 
-        File newsFile = createFile(
+        File newsFile = Util.createFile(
                     new String[]{
                         "deer seen at stanford",
                         "george bush visits stanford", 
