@@ -52,19 +52,19 @@ public class MRPrinter extends MROpPlanVisitor {
         mStream.println("MapReduce node " + mr.getOperatorKey().toString());
         if (mr.mapPlan != null && mr.mapPlan.size() > 0) {
             mStream.println("Map Plan");
-            PlanPrinter printer = new PlanPrinter(mr.mapPlan);
+            PlanPrinter printer = new PlanPrinter(mr.mapPlan, mStream);
             printer.visit();
             mStream.println("--------");
         }
         if (mr.combinePlan != null && mr.combinePlan.size() > 0) {
             mStream.println("Combine Plan");
-            PlanPrinter printer = new PlanPrinter(mr.combinePlan);
+            PlanPrinter printer = new PlanPrinter(mr.combinePlan, mStream);
             printer.visit();
             mStream.println("--------");
         }
         if (mr.reducePlan != null && mr.reducePlan.size() > 0) {
             mStream.println("Reduce Plan");
-            PlanPrinter printer = new PlanPrinter(mr.reducePlan);
+            PlanPrinter printer = new PlanPrinter(mr.reducePlan, mStream);
             printer.visit();
             mStream.println("--------");
         }

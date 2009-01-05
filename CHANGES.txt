@@ -344,4 +344,6 @@ Trunk (unreleased changes)
 
     PIG-522: make negation work (pradeepk via olgan)
 
-    PIG-563: support for multiple combiner invocations
+    PIG-563: support for multiple combiner invocations (pradeepk via olgan)
+
+    PIG-580: using combiner to compute distinct aggs (pradeepk via olgan)

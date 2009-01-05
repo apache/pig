@@ -18,11 +18,13 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
@@ -43,10 +45,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 
@@ -92,6 +96,8 @@ import org.apache.pig.impl.util.Pair;
  *
  */
 public class CombinerOptimizer extends MROpPlanVisitor {
+
+    private static final String DISTINCT_UDF_CLASSNAME = org.apache.pig.builtin.Distinct.class.getName();
 
     private Log log = LogFactory.getLog(getClass());
 
@@ -340,7 +346,8 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         for (int i = 0; i < plans.size(); i++) {
             ExprType t = algebraic(plans.get(i), flattens.get(i), i);
             types.add(t);
-            atLeastOneAlgebraic |= (t == ExprType.ALGEBRAIC);
+            atLeastOneAlgebraic |= 
+                (t == ExprType.ALGEBRAIC || t == ExprType.DISTINCT);
             noNonAlgebraics &= (t != ExprType.NOT_ALGEBRAIC);
         }
         if (!atLeastOneAlgebraic || !noNonAlgebraics) return null;
@@ -368,7 +375,10 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         AlgebraicPlanChecker apc = new AlgebraicPlanChecker(pp);
         apc.visit();
         if (apc.sawNonAlgebraic) return ExprType.NOT_ALGEBRAIC;
-
+        if(apc.sawDistinctAgg) return ExprType.DISTINCT;
+        
+        // we did not see a Non algebraic or a distinct so far
+        // proceed to check leaves
         PhysicalOperator leaf = leaves.get(0);
         if (leaf instanceof POProject) {
             POProject proj = (POProject)leaf;
@@ -414,6 +424,49 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 changeFunc(mfe, mPlans.get(i), POUserFunc.INITIAL);
                 changeFunc(cfe, cPlans.get(i), POUserFunc.INTERMEDIATE);
                 changeFunc(rfe, rPlans.get(i), POUserFunc.FINAL);
+            } else if (exprs.get(i) == ExprType.DISTINCT) {
+                // A PODistinct in the plan will always have
+                // a Project[bag](*) as its successor.
+                // We will replace it with a POUserFunc with "Distinct" as 
+                // the underlying UDF. 
+                // In the map and combine, we will make this POUserFunc
+                // the leaf of the plan by removing other operators which
+                // are descendants up to the leaf.
+                // In the reduce we will keep descendants intact. Further
+                // down in fixProjectAndInputs we will change the inputs to
+                // this POUserFunc in the combine and reduce plans to be
+                // just projections of the column "i"
+                PhysicalPlan[] plans = new PhysicalPlan[] { 
+                        mPlans.get(i), cPlans.get(i), rPlans.get(i) };
+                byte[] funcTypes = new byte[] { POUserFunc.INITIAL, 
+                        POUserFunc.INTERMEDIATE, POUserFunc.FINAL };
+                for (int j = 0; j < plans.length; j++) {
+                    DistinctPatcher dp = new DistinctPatcher(plans[j]);
+                    try {
+                        dp.visit();
+                    } catch (VisitorException e) {
+                        throw new PlanException(e);
+                    }
+                    
+                    
+                    PhysicalOperator leaf = plans[j].getLeaves().get(0);
+                    // make the Distinct POUserFunc the leaf in the map and combine plans.
+                    if( j != plans.length - 1) {
+                        while(!((leaf instanceof POUserFunc) && 
+                                ((POUserFunc)leaf).getFuncSpec().getClassName().startsWith(DISTINCT_UDF_CLASSNAME))) {
+                            plans[j].remove(leaf);
+                            // get the new leaf
+                            leaf = plans[j].getLeaves().get(0);
+                        }
+                        
+                    } 
+                    // Also set the Distinct's function to type Initial in map
+                    // to type Intermediate in combine plan and to type Final in
+                    // the reduce
+                    POUserFunc distinctFunc = (POUserFunc)getDistinctUserFunc(plans[j], leaf);
+                    distinctFunc.setAlgebraicFunction(funcTypes[j]);
+                }
+                
             }
         }
 
@@ -439,43 +492,93 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         // they are in ( we just want to take output from the combine and
         // use that as input in the reduce/combine plan).  UDFs will be left the same but their
         // inputs altered.  Any straight projections will also be altered.
-        fixProjectAndInputs(cPlans);
-        fixProjectAndInputs(rPlans);
+        fixProjectAndInputs(cPlans, exprs);
+        fixProjectAndInputs(rPlans, exprs);
+        
+        
+        // we have modified the foreach inner plans - so set them
+        // again for the foreach so that foreach can do any re-initialization
+        // around them.
+        // FIXME - this is a necessary evil right now because the leaves are explicitly
+        // stored in the POForeach as a list rather than computed each time at 
+        // run time from the plans for optimization. Do we want to have the Foreach
+        // compute the leaves each time and have Java optimize it (will Java optimize?)?
+        mfe.setInputPlans(mPlans);
+        cfe.setInputPlans(cPlans);
+        rfe.setInputPlans(rPlans);
     }
 
     /**
      * @param plans
+     * @param exprs 
      * @throws PlanException 
      */
-    private void fixProjectAndInputs(List<PhysicalPlan> plans) throws PlanException {
+    private void fixProjectAndInputs(List<PhysicalPlan> plans, List<ExprType> exprs) throws PlanException {
         for (int i = 0; i < plans.size(); i++) {
-            List<PhysicalOperator> leaves = plans.get(i).getLeaves();
-            if (leaves == null || leaves.size() != 1) {
-                throw new RuntimeException("Expected to find plan with single leaf!");
-            }
-            PhysicalOperator leaf = leaves.get(0);
+                List<PhysicalOperator> leaves = plans.get(i).getLeaves();
+                if (leaves == null || leaves.size() != 1) {
+                    throw new RuntimeException("Expected to find plan with single leaf!");
+                }
+                PhysicalOperator leaf = leaves.get(0);
+                // the combine plan could have an extra foreach inner plan
+                // to project the key - so make sure we check the index
+                // before looking in exprs
+                if(i < exprs.size()  && exprs.get(i) == ExprType.DISTINCT) {
+                    // if there is a distinctagg, we have to
+                    // look for the Distinct POUserFunc and 
+                    // change its input to be a project of
+                    // column "i"
+                    PhysicalOperator op = getDistinctUserFunc(plans.get(i), leaf);
+                    setProjectInput(op, plans.get(i), i);
+                } else {
+                    // Leaf should be either a projection or a UDF
+                    if (leaf instanceof POProject) {
+                        ((POProject)leaf).setColumn(i);
+                    } else if (leaf instanceof POUserFunc) {
+                        setProjectInput(leaf, plans.get(i), i);
+                    }
+              }
+        }
+    }
 
-            // Leaf should be either a projection or a UDF
-            if (leaf instanceof POProject) {
-                ((POProject)leaf).setColumn(i);
-            } else if (leaf instanceof POUserFunc) {
-                String scope = leaf.getOperatorKey().scope;
-                POProject proj = new POProject(new OperatorKey(scope, 
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)),
-                    leaf.getRequestedParallelism(), i);
-                proj.setResultType(DataType.BAG);
-                // Remove old connections and elements from the plan
-                plans.get(i).trimAbove(leaf);
-                plans.get(i).add(proj);
-                plans.get(i).connect(proj, leaf);
-                List<PhysicalOperator> inputs =
-                    new ArrayList<PhysicalOperator>(1);
-                inputs.add(proj);
-                leaf.setInputs(inputs);
+    /**
+     * @param op
+     * @param index 
+     * @param plan 
+     * @throws PlanException 
+     */
+    private void setProjectInput(PhysicalOperator op, PhysicalPlan plan, int index) throws PlanException {
+        String scope = op.getOperatorKey().scope;
+        POProject proj = new POProject(new OperatorKey(scope, 
+            NodeIdGenerator.getGenerator().getNextNodeId(scope)),
+            op.getRequestedParallelism(), index);
+        proj.setResultType(DataType.BAG);
+        // Remove old connections and elements from the plan
+        plan.trimAbove(op);
+        plan.add(proj);
+        plan.connect(proj, op);
+        List<PhysicalOperator> inputs =
+            new ArrayList<PhysicalOperator>(1);
+        inputs.add(proj);
+        op.setInputs(inputs);
+        
+    }
+
+    /**
+     * @param plan
+     * @param operator
+     * @return
+     */
+    private PhysicalOperator getDistinctUserFunc(PhysicalPlan plan, PhysicalOperator operator) {
+        if(operator instanceof POUserFunc ) { 
+            if(((POUserFunc)operator).getFuncSpec().getClassName().startsWith(DISTINCT_UDF_CLASSNAME)) {
+                return operator;
             }
         }
-
+        return getDistinctUserFunc(plan, plan.getPredecessors(operator).get(0));
+        
     }
+
 
     /**
      * @param fe
@@ -520,16 +623,106 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
     private class AlgebraicPlanChecker extends PhyPlanVisitor {
         boolean sawNonAlgebraic = false;
+        boolean sawDistinctAgg = false;
+        private boolean sawForeach = false;
 
         AlgebraicPlanChecker(PhysicalPlan plan) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
+            super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
         }
 
+        /* (non-Javadoc)
+         * @see org.apache.pig.impl.plan.PlanVisitor#visit()
+         */
+        @Override
+        public void visit() throws VisitorException {
+            super.visit();
+            // if we saw foreach and distinct agg its ok
+            // else if we only saw foreach, mark it as non algebraic
+            if(sawForeach && !sawDistinctAgg) {
+                sawNonAlgebraic = true;
+            }
+        }
+        
         @Override
         public void visitDistinct(PODistinct distinct) throws VisitorException {
+            if(sawDistinctAgg) {
+                // we want to combine only in the case where there is only
+                // one PODistinct which is the only input to an agg
+                // we apparently have seen a PODistinct before, so lets not
+                // combine.
+                sawNonAlgebraic = true;
+            }
+            // check that this distinct is the only input to an agg
+            // We could have the following two cases
+            // script 1:
+            // ..
+            // b = group a by ...
+            // c = foreach b { x = distinct a; generate AGG(x), ...}
+            // The above script leads to the following plan for AGG(x):
+            // POUserFunc(org.apache.pig.builtin.COUNT)[long] 
+            //   |
+            //   |---Project[bag][*] 
+            //       |
+            //       |---PODistinct[bag] 
+            //           |
+            //           |---Project[tuple][1] 
+
+            // script 2:
+            // ..
+            // b = group a by ...
+            // c = foreach b { x = distinct a; generate AGG(x.$1), ...}
+            // The above script leads to the following plan for AGG(x.$1):
+            // POUserFunc(org.apache.pig.builtin.IntSum)[long]
+            //   |
+            //   |---Project[bag][1]
+            //       |
+            //       |---Project[bag][*]
+            //           |
+            //           |---PODistinct[bag]
+            //               |
+            //               |---Project[tuple][1]
+            // So tracing from the PODistinct to its successors upto the leaf, we should
+            // see a Project[bag][*] as the immediate successor and an optional Project[bag]
+            // as the next successor till we see the leaf.
+            PhysicalOperator leaf = mPlan.getLeaves().get(0);
+            // the leaf has to be a POUserFunc (need not be algebraic)
+            if(leaf instanceof POUserFunc) {
+                List<PhysicalOperator> immediateSuccs = mPlan.getSuccessors(distinct);
+                if(immediateSuccs.size() == 1 && immediateSuccs.get(0) instanceof POProject) {
+                    if(checkSuccessorIsLeaf(leaf, immediateSuccs.get(0))) { // script 1 above
+                        sawDistinctAgg = true;
+                        return;
+                    } else { // check for script 2 scenario above
+                        List<PhysicalOperator> nextSuccs = mPlan.getSuccessors(immediateSuccs.get(0));
+                        if(nextSuccs.size() == 1) {
+                            PhysicalOperator op = nextSuccs.get(0);
+                            if(op instanceof POProject) {
+                                if(checkSuccessorIsLeaf(leaf, op)) {
+                                    sawDistinctAgg = true;
+                                    return;
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
+            // if we did not return above, that means we did not see
+            // the pattern we expected
             sawNonAlgebraic = true;
         }
-
+        
+        private boolean checkSuccessorIsLeaf(PhysicalOperator leaf, PhysicalOperator opToCheck) {
+            List<PhysicalOperator> succs = mPlan.getSuccessors(opToCheck);
+            if(succs.size() == 1) {
+                PhysicalOperator op = succs.get(0);
+                if(op == leaf) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
         @Override
         public void visitFilter(POFilter filter) throws VisitorException {
             sawNonAlgebraic = true;
@@ -537,7 +730,11 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
         @Override
         public void visitPOForEach(POForEach fe) throws VisitorException {
-            sawNonAlgebraic = true;
+            // we need to allow foreach as input for distinct
+            // but don't want it for other things (why?). So lets
+            // flag the presence of Foreach and if this is present
+            // with a distinct agg, it will be allowed.
+            sawForeach = true;
         }
 
         @Override
@@ -546,6 +743,84 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         }
 
     }
+    
+    /**
+     * A visitor to replace   
+     * Project[bag][*] 
+     *  |
+     *  |---PODistinct[bag]
+     * with 
+     * POUserFunc(org.apache.pig.builtin.Distinct)[DataBag]    
+     */
+    private class DistinctPatcher extends PhyPlanVisitor {
+
+        public boolean patched = false;
+        /**
+         * @param plan
+         * @param walker
+         */
+        public DistinctPatcher(PhysicalPlan plan,
+                PlanWalker<PhysicalOperator, PhysicalPlan> walker) {
+            super(plan, walker);
+        }
+
+        /**
+         * @param physicalPlan
+         */
+        public DistinctPatcher(PhysicalPlan physicalPlan) {
+            this(physicalPlan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(physicalPlan));
+        }
+        
+        /* (non-Javadoc)
+         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitProject(org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject)
+         */
+        @Override
+        public void visitProject(POProject proj) throws VisitorException {
+            // check if this project is preceded by PODistinct and
+            // has the return type bag
+            
+            
+            List<PhysicalOperator> preds = mPlan.getPredecessors(proj);
+            if(preds == null) return; // this is a leaf project and so not interesting for patching
+            PhysicalOperator pred = preds.get(0);
+            if(preds.size() == 1 && pred instanceof PODistinct) {
+                if(patched) {
+                    // we should not already have been patched since the
+                    // Project-Distinct pair should occur only once
+                    throw new VisitorException(
+                            "Unexpected Project-Distinct pair while trying to set up plans for use with combiner.");
+                }
+                // we have stick in the POUserfunc(org.apache.pig.builtin.Distinct)[DataBag]
+                // in place of the Project-PODistinct pair
+                PhysicalOperator distinctPredecessor = mPlan.getPredecessors(pred).get(0);
+                
+                try {
+                    String scope = proj.getOperatorKey().scope;
+                    List<PhysicalOperator> funcInput = new ArrayList<PhysicalOperator>();
+                    FuncSpec fSpec = new FuncSpec(DISTINCT_UDF_CLASSNAME);
+                    funcInput.add(distinctPredecessor);
+                    // explicitly set distinctPredecessor's result type to
+                    // be tuple - this is relevant when distinctPredecessor is
+                    // originally a POForeach with return type BAG - we need to
+                    // set it to tuple so we get a stream of tuples. 
+                    distinctPredecessor.setResultType(DataType.TUPLE);
+                    POUserFunc func = new POUserFunc(new OperatorKey(scope, 
+                            NodeIdGenerator.getGenerator().getNextNodeId(scope)),-1, funcInput, fSpec);
+                    func.setResultType(DataType.BAG);
+                    mPlan.replace(proj, func);
+                    mPlan.remove(pred);
+                    // connect the the newly add "func" to
+                    // the predecessor to the earlier PODistinct
+                    mPlan.connect(distinctPredecessor, func);
+                } catch (PlanException e) {
+                    throw new VisitorException(e);
+                }
+                patched = true;
+            } 
+        }
+
+    }
+
 
     // Reset any member variables since we may have already visited one
     // combine.

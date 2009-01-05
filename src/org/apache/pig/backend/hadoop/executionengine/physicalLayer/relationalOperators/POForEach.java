@@ -497,9 +497,11 @@ public class POForEach extends PhysicalOperator {
                 flattens.add(b);
             }
         }
-        return new POForEach(new OperatorKey(mKey.scope, 
-            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
-            requestedParallelism, plans, flattens);
+        POForEach clone = new POForEach(new OperatorKey(mKey.scope, 
+                NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
+                requestedParallelism, plans, flattens);
+        clone.setResultType(getResultType());
+        return clone;
     }
 
     public boolean inProcessing()

@@ -105,4 +105,8 @@ public class MiniCluster {
     public Properties getProperties() {
         return ConfigurationUtil.toProperties(m_conf);
     }
+    
+    public FileSystem getFileSystem() {
+        return m_fileSys;
+    }
 }

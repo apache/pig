@@ -908,6 +908,40 @@ public class TestBuiltin extends TestCase {
 
     }
     
+    
+    @Test
+    public void testDistinct() throws Exception {
+    
+        Integer[] inp = new Integer[] { 1, 2 , 3, 1 ,4, 5, 3};
+        DataBag inputBag = Util.createBagOfOneColumn(inp);
+        EvalFunc<Tuple> initial = new Distinct.Initial();
+        DataBag intermedInputBg1 = bagFactory.newDefaultBag();
+        DataBag intermedInputBg2 = bagFactory.newDefaultBag();
+        int i = 0;
+        for (Tuple t : inputBag) {
+            Tuple initialOutput = initial.exec(tupleFactory.newTuple(t));
+            if(i < inp.length/2 ) {
+                intermedInputBg1.add(initialOutput);
+            } else {
+                intermedInputBg2.add(initialOutput);
+            }
+            i++;
+        }
+        
+        EvalFunc<Tuple> intermed = new Distinct.Intermediate();
+        
+        DataBag finalInputBg = bagFactory.newDefaultBag();
+        finalInputBg.add(intermed.exec(tupleFactory.newTuple(intermedInputBg1)));
+        finalInputBg.add(intermed.exec(tupleFactory.newTuple(intermedInputBg2)));
+        EvalFunc<DataBag> fin = new Distinct.Final();
+        DataBag result = fin.exec(tupleFactory.newTuple(finalInputBg));
+        
+        Integer[] exp = new Integer[] { 1, 2, 3, 4, 5};
+        DataBag expectedBag = Util.createBagOfOneColumn(exp);
+        assertEquals(expectedBag, result);
+        
+    }
+    
     @Test
     public void testCONCAT() throws Exception {
         

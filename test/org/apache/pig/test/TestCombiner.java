@@ -17,11 +17,13 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -105,13 +107,20 @@ public class TestCombiner extends TestCase {
                 input[i] = Integer.toString(0);
             }
         }
-        File f1 = Util.createFile(input);
+        Util.createInputFile(cluster, "MultiCombinerUseInput.txt", input);
         Properties props = cluster.getProperties();
         props.setProperty("io.sort.mb", "1");
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, props);
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' as (x:int);");
+        pigServer.registerQuery("a = load 'MultiCombinerUseInput.txt' as (x:int);");
         pigServer.registerQuery("b = group a all;");
         pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), MIN(a.$0), MAX(a.$0), AVG(a.$0);");
+
+        // make sure there is a combine plan in the explain output
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        pigServer.explain("c", ps);
+        assertTrue(baos.toString().matches("(?si).*combine plan.*"));
+
         Iterator<Tuple> it = pigServer.openIterator("c");
         Tuple t = it.next();
         assertEquals(512000L, t.get(0));
@@ -120,6 +129,156 @@ public class TestCombiner extends TestCase {
         assertEquals(1, t.get(3));
         assertEquals(0.5, t.get(4));
         assertFalse(it.hasNext());
+        Util.deleteFile(cluster, "MultiCombinerUseInput.txt");
+    }
+    
+    @Test
+    public void testDistinctAggs1() throws Exception {
+        // test the use of combiner for distinct aggs:
+        String input[] = {
+                "pig1\t18\t2.1",
+                "pig2\t24\t3.3",
+                "pig5\t45\t2.4",
+                "pig1\t18\t2.1",
+                "pig1\t19\t2.1",
+                "pig2\t24\t4.5",
+                "pig1\t20\t3.1" };
+
+        Util.createInputFile(cluster, "distinctAggs1Input.txt", input);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.registerQuery("a = load 'distinctAggs1Input.txt' as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("b = group a by name;");
+        pigServer.registerQuery("c = foreach b  {" +
+        		"        x = distinct a.age;" +
+        		"        y = distinct a.gpa;" +
+        		"        z = distinct a;" +
+        		"        generate group, COUNT(x), SUM(x.age), SUM(y.gpa), SUM(a.age), " +
+        		"                       SUM(a.gpa), COUNT(z.age), COUNT(z), SUM(z.age);};");
+        
+        // make sure there is a combine plan in the explain output
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        pigServer.explain("c", ps);
+        assertTrue(baos.toString().matches("(?si).*combine plan.*"));
+
+        HashMap<String, Object[]> results = new HashMap<String, Object[]>();
+        results.put("pig1", new Object[] {"pig1",3L,57L,5.2,75L,9.4,3L,3L,57L});
+        results.put("pig2", new Object[] {"pig2",1L,24L,7.8,48L,7.8,2L,2L,48L});
+        results.put("pig5", new Object[] {"pig5",1L,45L,2.4,45L,2.4,1L,1L,45L});
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            List<Object> fields = t.getAll();
+            Object[] expected = results.get((String)fields.get(0));
+            int i = 0;
+            for (Object field : fields) {
+                assertEquals(expected[i++], field);
+            }
+        }
+        Util.deleteFile(cluster, "distinctAggs1Input.txt");
+        
+    }
+
+    @Test
+    public void testDistinctNoCombiner() throws Exception {
+        // test that combiner is NOT invoked when
+        // one of the elements in the foreach generate
+        // is a distinct() as the leaf
+        String input[] = {
+                "pig1\t18\t2.1",
+                "pig2\t24\t3.3",
+                "pig5\t45\t2.4",
+                "pig1\t18\t2.1",
+                "pig1\t19\t2.1",
+                "pig2\t24\t4.5",
+                "pig1\t20\t3.1" };
+
+        Util.createInputFile(cluster, "distinctNoCombinerInput.txt", input);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.registerQuery("a = load 'distinctNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("b = group a by name;");
+        pigServer.registerQuery("c = foreach b  {" +
+                "        z = distinct a;" +
+                "        generate group, z, SUM(a.age), SUM(a.gpa);};");
+        
+        // make sure there is a combine plan in the explain output
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        pigServer.explain("c", ps);
+        assertFalse(baos.toString().matches("(?si).*combine plan.*"));
+
+        HashMap<String, Object[]> results = new HashMap<String, Object[]>();
+        results.put("pig1", new Object[] {"pig1","bag-place-holder",75L,9.4});
+        results.put("pig2", new Object[] {"pig2","bag-place-holder",48L,7.8});
+        results.put("pig5", new Object[] {"pig5","bag-place-holder",45L,2.4});
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            List<Object> fields = t.getAll();
+            Object[] expected = results.get((String)fields.get(0));
+            int i = 0;
+            for (Object field : fields) {
+                if(i == 1) {
+                    // ignore the second field which is a bag
+                    // for comparison here
+                    continue;
+                }
+                assertEquals(expected[i++], field);
+            }
+        }
+        Util.deleteFile(cluster, "distinctNoCombinerInput.txt");
+        
+    }
+
+    @Test
+    public void testForEachNoCombiner() throws Exception {
+        // test that combiner is NOT invoked when
+        // one of the elements in the foreach generate
+        // has a foreach in the plan without a distinct agg
+        String input[] = {
+                "pig1\t18\t2.1",
+                "pig2\t24\t3.3",
+                "pig5\t45\t2.4",
+                "pig1\t18\t2.1",
+                "pig1\t19\t2.1",
+                "pig2\t24\t4.5",
+                "pig1\t20\t3.1" };
+
+        Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("b = group a by name;");
+        pigServer.registerQuery("c = foreach b  {" +
+                "        z = a.age;" +
+                "        generate group, z, SUM(a.age), SUM(a.gpa);};");
+        
+        // make sure there is a combine plan in the explain output
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        pigServer.explain("c", ps);
+        assertFalse(baos.toString().matches("(?si).*combine plan.*"));
+
+        HashMap<String, Object[]> results = new HashMap<String, Object[]>();
+        results.put("pig1", new Object[] {"pig1","bag-place-holder",75L,9.4});
+        results.put("pig2", new Object[] {"pig2","bag-place-holder",48L,7.8});
+        results.put("pig5", new Object[] {"pig5","bag-place-holder",45L,2.4});
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            List<Object> fields = t.getAll();
+            Object[] expected = results.get((String)fields.get(0));
+            int i = 0;
+            for (Object field : fields) {
+                if(i == 1) {
+                    // ignore the second field which is a bag
+                    // for comparison here
+                    continue;
+                }
+                assertEquals(expected[i++], field);
+            }
+        }
+        Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
+        
     }
 
 }

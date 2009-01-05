@@ -32,6 +32,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -42,7 +43,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * 
  * 
  */
-public class PODistinct extends PhysicalOperator {
+public class PODistinct extends PhysicalOperator implements Cloneable {
 
     private boolean inputsAccumulated = false;
     private DataBag distinctBag = null;
@@ -120,6 +121,14 @@ public class PODistinct extends PhysicalOperator {
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitDistinct(this);
+    }
+    /* (non-Javadoc)
+     * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator#clone()
+     */
+    @Override
+    public PODistinct clone() throws CloneNotSupportedException {
+        // TODO Auto-generated method stub
+        return new PODistinct(new OperatorKey(this.mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)), this.requestedParallelism, this.inputs);
     }
 
 }

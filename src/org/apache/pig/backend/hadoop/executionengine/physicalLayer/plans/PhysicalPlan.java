@@ -118,6 +118,29 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         }
         super.remove(op);
     }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.OperatorPlan#replace(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void replace(PhysicalOperator oldNode, PhysicalOperator newNode)
+            throws PlanException {
+        List<PhysicalOperator> oldNodeSuccessors = getSuccessors(oldNode);
+        super.replace(oldNode, newNode);
+        if(oldNodeSuccessors != null) {
+            for (PhysicalOperator preds : oldNodeSuccessors) {
+                List<PhysicalOperator> inputs = preds.getInputs();
+                // now replace oldNode with newNode in
+                // the input list of oldNode's successors
+                for(int i = 0; i < inputs.size(); i++) {
+                    if(inputs.get(i) == oldNode) {
+                        inputs.set(i, newNode);
+                    }
+                }    
+            }
+        }
+        
+    }
 
     /* (non-Javadoc)
      * @see org.apache.pig.impl.plan.OperatorPlan#add(org.apache.pig.impl.plan.Operator)

@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,15 +49,22 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     int levelCntr = -1;
 
     OutputStream printer;
+    
+    PrintStream stream = System.out;
 
     public PlanPrinter(P plan) {
         super(plan, new DepthFirstWalker<O, P>(plan));
+    }
+    
+    public PlanPrinter(P plan, PrintStream stream) {
+        super(plan, new DepthFirstWalker<O, P>(plan));
+        this.stream = stream;
     }
 
     @Override
     public void visit() throws VisitorException {
         try {
-            System.out.write(depthFirstPP().getBytes());
+            stream.write(depthFirstPP().getBytes());
         } catch (IOException e) {
             throw new VisitorException(e.getMessage());
         }
@@ -89,7 +97,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
             }
         }
         if (newPredecessors.size() > 0) {
-            System.out.println();
+            stream.println();
             breadthFirst(newPredecessors, seen);
         }
     }
@@ -182,35 +190,35 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
 
     private void dispTabs() {
         for (int i = 0; i < levelCntr; i++)
-            System.out.print(TAB1);
+            stream.print(TAB1);
     }
 
     public void visitLoad(POLoad op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
 
     public void visitStore(POStore op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
 
     public void visitFilter(POFilter op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
 
     public void visitLocalRearrange(POLocalRearrange op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
 
     public void visitGlobalRearrange(POGlobalRearrange op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
 
     public void visitPackage(POPackage op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
 
     public void visitStartMap(POUnion op) {
-        System.out.print(op.name() + "   ");
+        stream.print(op.name() + "   ");
     }
     
 }

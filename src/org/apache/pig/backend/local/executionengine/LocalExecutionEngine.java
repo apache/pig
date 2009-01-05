@@ -186,7 +186,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
 
     public void explain(PhysicalPlan plan, PrintStream stream) {
         try {
-            PlanPrinter printer = new PlanPrinter(plan);
+            PlanPrinter printer = new PlanPrinter(plan, stream);
             printer.visit();
             stream.println();
 

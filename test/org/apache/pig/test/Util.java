@@ -29,6 +29,9 @@ import java.util.Map;
 import static java.util.regex.Matcher.quoteReplacement;
 import junit.framework.Assert;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -118,6 +121,16 @@ public class Util {
         return b;
     }
     
+    static public<T> DataBag createBagOfOneColumn(T[] input) throws ExecException {
+        DataBag result = mBagFactory.newDefaultBag();
+        for (int i = 0; i < input.length; i++) {
+            Tuple t = mTupleFactory.newTuple(1);
+            t.set(0, input[i]);
+            result.add(t);
+        }
+        return result;
+    }
+    
     static public Map<Object, Object> createMap(String[] contents)
     {
         Map<Object, Object> m = new HashMap<Object, Object>();
@@ -179,6 +192,44 @@ public class Util {
 		pw.close();
 		return f;
 	}
+	
+	/**
+     * Helper to create a dfs file on the Minicluster DFS with given
+     * input data for use in test cases.
+     * 
+     * @param miniCluster reference to the Minicluster where the file should be created
+     * @param fileName pathname of the file to be created
+     * @param inputData input for test cases, each string in inputData[] is written
+     *                  on one line
+     * @throws IOException
+     */
+    static public void createInputFile(MiniCluster miniCluster, String fileName, 
+                                       String[] inputData) 
+    throws IOException {
+        FileSystem fs = miniCluster.getFileSystem();
+        if(fs.exists(new Path(fileName))) {
+            throw new IOException("File " + fileName + " already exists on the minicluster");
+        }
+        FSDataOutputStream stream = fs.create(new Path(fileName));
+        PrintWriter pw = new PrintWriter(new OutputStreamWriter(stream, "UTF-8"));
+        for (int i=0; i<inputData.length; i++){
+            pw.println(inputData[i]);
+        }
+        pw.close();
+    }
+    
+    /**
+     * Helper to remove a dfs file from the minicluster DFS
+     * 
+     * @param miniCluster reference to the Minicluster where the file should be deleted
+     * @param fileName pathname of the file to be deleted
+     * @throws IOException
+     */
+    static public void deleteFile(MiniCluster miniCluster, String fileName) 
+    throws IOException {
+        FileSystem fs = miniCluster.getFileSystem();
+        fs.delete(new Path(fileName), true);
+    }
 
 	/**
 	 * Helper function to check if the result of a Pig Query is in line with 
