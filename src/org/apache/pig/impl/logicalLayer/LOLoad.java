@@ -40,10 +40,10 @@ public class LOLoad extends LogicalOperator {
     protected boolean splittable = true;
 
     private FileSpec mInputFileSpec;
-    private LoadFunc mLoadFunc;
+    transient private LoadFunc mLoadFunc;
     private String mSchemaFile;
     private Schema mEnforcedSchema = null ;
-    private DataStorage mStorage;
+    transient private DataStorage mStorage;
     private ExecType mExecType;
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;

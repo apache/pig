@@ -18,6 +18,7 @@
 package org.apache.pig.data;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,7 +28,7 @@ import java.util.Collection;
  * need to be able to implement compareTo, toString, hashCode, and some
  * other methods.
  */
-public class DataByteArray implements Comparable {
+public class DataByteArray implements Comparable, Serializable {
     byte[] mData = null;
 
     /**

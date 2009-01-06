@@ -18,6 +18,8 @@
 package org.apache.pig;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -67,6 +69,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
+import org.apache.pig.tools.grunt.GruntParser;
 
 /**
  * 
@@ -347,6 +350,23 @@ public class PigServer {
     
     public void registerQuery(String query) throws IOException {
         registerQuery(query, 1);
+    }
+    
+    public void registerScript(String fileName) throws IOException {
+        try {
+            GruntParser grunt = new GruntParser(new FileReader(new File(fileName)));
+            grunt.setInteractive(false);
+            grunt.setParams(this);
+            grunt.parseStopOnError();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new IOException(e.getCause());
+        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new IOException(e.getCause());
+        }
     }
 
     public void dumpSchema(String alias) throws IOException{

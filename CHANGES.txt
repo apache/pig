@@ -351,3 +351,5 @@ Trunk (unreleased changes)
     PIG-558: Distinct followed by a Join results in Invalid size 0 for a tuple
     error (pradeepk via olgan)
 
+	PIG-572 A PigServer.registerScript() method, which lets a client
+	programmatically register a Pig Script.  (shubhamc via gates)

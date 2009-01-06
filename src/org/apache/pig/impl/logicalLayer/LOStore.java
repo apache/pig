@@ -37,7 +37,7 @@ public class LOStore extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
     private FileSpec mOutputFile;
-    private StoreFunc mStoreFunc;
+    transient private StoreFunc mStoreFunc;
     private static Log log = LogFactory.getLog(LOStore.class);
 
     /**
