@@ -53,7 +53,9 @@ public class DataReaderWriter {
                 // front and then filling in the spaces.
                 // Read the size.
                 int sz = in.readInt();
-                if (sz < 1) {
+                // if sz == 0, we construct an "empty" tuple -
+                // presumably the writer wrote an empty tuple!
+                if (sz < 0) {
                     throw new IOException("Invalid size " + sz +
                         " for a tuple");
                 }

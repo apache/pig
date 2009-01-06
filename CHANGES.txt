@@ -347,3 +347,7 @@ Trunk (unreleased changes)
     PIG-563: support for multiple combiner invocations (pradeepk via olgan)
 
     PIG-580: using combiner to compute distinct aggs (pradeepk via olgan)
+
+    PIG-558: Distinct followed by a Join results in Invalid size 0 for a tuple
+    error (pradeepk via olgan)
+

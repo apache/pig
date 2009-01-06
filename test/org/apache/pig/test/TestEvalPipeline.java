@@ -60,6 +60,7 @@ public class TestEvalPipeline extends TestCase {
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
+    BagFactory mBf = BagFactory.getInstance();
     
     @Before
     @Override
@@ -984,5 +985,64 @@ public class TestEvalPipeline extends TestCase {
 
         assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
+    
+    @Test
+    public void testCogroupAfterDistinct() throws Exception {
+        String[] input1 = {
+                "abc",
+                "abc",
+                "def",
+                "def",
+                "def",
+                "abc",
+                "def",
+                "ghi"
+                };
+        String[] input2 = {
+            "ghi	4",
+            "rst	12344",
+            "uvw	1",
+            "xyz	4141"
+            };
+        Util.createInputFile(cluster, "table1", input1);
+        Util.createInputFile(cluster, "table2", input2);
+        
+        pigServer.registerQuery("nonuniqtable1 = LOAD 'table1' AS (f1:chararray);");
+        pigServer.registerQuery("table1 = DISTINCT nonuniqtable1;");
+        pigServer.registerQuery("table2 = LOAD 'table2' AS (f1:chararray, f2:int);");
+        pigServer.registerQuery("temp = COGROUP table1 BY f1 INNER, table2 BY f1;");
+        Iterator<Tuple> it = pigServer.openIterator("temp");
+        
+        // results should be:
+        // (abc,{(abc)},{})
+        // (def,{(def)},{})
+        // (ghi,{(ghi)},{(ghi,4)})
+        HashMap<String, Tuple> results = new HashMap<String, Tuple>();
+        Object[] row = new Object[] { "abc",
+                Util.createBagOfOneColumn(new String[] { "abc"}), mBf.newDefaultBag() };
+        results.put("abc", Util.createTuple(row)); 
+        row = new Object[] { "def",
+                Util.createBagOfOneColumn(new String[] { "def"}), mBf.newDefaultBag() };
+        results.put("def", Util.createTuple(row));
+        Object[] thirdColContents = new Object[] { "ghi", 4 };
+        Tuple t = Util.createTuple(thirdColContents);
+        row = new Object[] { "ghi",
+                Util.createBagOfOneColumn(new String[] { "ghi"}), Util.createBag(new Tuple[] { t })};
+        results.put("ghi", Util.createTuple(row));
+
+        while(it.hasNext()) {
+            Tuple tup = it.next();
+            List<Object> fields = tup.getAll();
+            Tuple expected = results.get((String)fields.get(0));
+            int i = 0;
+            for (Object field : fields) {
+                assertEquals(expected.get(i++), field);
+            }
+        }
+        
+        Util.deleteFile(cluster, "table1");
+        Util.deleteFile(cluster, "table2");
+    }
+    
 
 }
