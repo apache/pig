@@ -353,3 +353,5 @@ Trunk (unreleased changes)
 
 	PIG-572 A PigServer.registerScript() method, which lets a client
 	programmatically register a Pig Script.  (shubhamc via gates)
+
+    PIG-570:  problems with handling bzip data (breed via olgan)

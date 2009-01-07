@@ -85,6 +85,12 @@ public class PigSlicer implements Slicer {
             Map<String, Object> stats = fullPath.getStatistics();
             long bs = (Long) (stats.get(ElementDescriptor.BLOCK_SIZE_KEY));
             long size = (Long) (stats.get(ElementDescriptor.LENGTH_KEY));
+            // this hook is mainly for testing, but i'm sure someone can find
+            // something fun to do with it
+            String bsString = System.getProperty("pig.overrideBlockSize");
+            if (bsString != null) {
+                bs = Integer.parseInt(bsString);
+            }
             long pos = 0;
             String name = fullPath.toString();
             if (name.endsWith(".gz") || !splittable) {

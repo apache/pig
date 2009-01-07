@@ -192,10 +192,13 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     int j2;
     char z;
     
-    private long retPos, oldPos;
+    // The positioning is a bit tricky. we set newPos when we start reading a new block
+    // and we set retPos to newPos once we have read a character from that block.
+    // see getPos() for more detail
+    private long retPos, newPos = -1;
 
     public CBZip2InputStream(SeekableInputStream zStream, int blockSize) throws IOException {
-        retPos = oldPos = zStream.tell();
+        retPos = newPos = zStream.tell();
     	ll8 = null;
         tt = null;
         checkComputedCombinedCRC = blockSize == -1;
@@ -213,6 +216,11 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         if (streamEnd) {
             return -1;
         } else {
+            if (retPos < newPos) {
+                retPos = newPos;
+            } else {
+                retPos = newPos+1;
+            }
             int retChar = currentChar;
             switch(currentState) {
             case START_BLOCK_STATE:
@@ -240,15 +248,15 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         }
     }
 
+    /**
+     * This is supposed to approximate the position in the underlying stream. However,
+     * with compression, the underlying stream position is very vague. One position may
+     * have multiple positions and visa versa. So we do something very subtle:
+     * The position of the first byte of a compressed block will have the position of
+     * the block header at the start of the block. Every byte after the first byte will
+     * be one plus the position of the block header.
+     */
     public long getPos() throws IOException{
-        if (innerBsStream == null)
-            return retPos;
-        long newPos = innerBsStream.tell();
-    
-        if (newPos != oldPos){
-            retPos = oldPos;
-            oldPos = newPos;
-        }
         return retPos;
     }
     
@@ -273,7 +281,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         computedCombinedCRC = 0;
     }
 
-    private final static long mask = 0x1ffffffffffL;
+    private final static long mask = 0xffffffffffffL;
     private final static long eob = 0x314159265359L & mask;
     private final static long eos = 0x177245385090L & mask;
     
@@ -284,6 +292,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
             return;
         }
 
+        newPos = innerBsStream.tell();
         if (!searchForMagic) {
             char magic1, magic2, magic3, magic4;
             char magic5, magic6;
@@ -306,7 +315,11 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
                 return;
             }
         } else {
-            long magic = bsR(41);
+            long magic = 0;
+            for(int i = 0; i < 6; i++) {
+                magic <<= 8;
+                magic |= bsGetUChar();
+            }
             while(magic != eos && magic != eob) {
                 magic <<= 1;
                 magic &= mask;

@@ -110,6 +110,32 @@ public class TestMapReduce extends TestCase {
 
     }
 
+    /**
+     * This test checks records that align perfectly on
+     * bzip block boundaries and hdfs block boundaries 
+     */
+    @Test
+    public void testBZip2Aligned() throws Throwable {
+        int offsets[] = { 219642, 219643, 219644, 552019, 552020 };
+        for(int i = 1; i < offsets.length; i ++) {
+            System.setProperty("pig.overrideBlockSize", Integer.toString(offsets[i]));
+            PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+            PigServer pig = new PigServer(pigContext);
+            pig.registerQuery("a = load 'file:test/org/apache/pig/test/data/bzipTest.bz2';");
+            //pig.registerQuery("a = foreach (group (load 'file:test/org/apache/pig/test/data/bzipTest.bz2') all) generate COUNT($1);");
+            Iterator<Tuple> it = pig.openIterator("a");
+            int count = 0;
+            while(it.hasNext()) {
+                Tuple t = it.next();
+                String s = t.get(0).toString();
+                s = s.substring(0, 7);
+                assertEquals("Using blocksize " + offsets[i] + " problem with " + t, count, Integer.parseInt(s, 16));
+                count++;
+            }
+            //assertEquals("1000000", it.next().getField(0));
+        }
+    }
+    
     @Test
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
