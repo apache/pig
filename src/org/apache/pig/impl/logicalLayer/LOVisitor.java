@@ -135,6 +135,24 @@ abstract public class LOVisitor extends
             }
         }
     }
+    
+    protected void visit(LOFRJoin frj) throws VisitorException {
+        // Visit each of the inputs of cogroup.
+        MultiMap<LogicalOperator, LogicalPlan> mapGByPlans = frj.getJoinColPlans();
+        for(LogicalOperator op: frj.getInputs()) {
+            for(LogicalPlan lp: mapGByPlans.get(op)) {
+                if (null != lp) {
+                    // TODO FIX - How do we know this should be a
+                    // DependencyOrderWalker?  We should be replicating the
+                    // walker the current visitor is using.
+                    PlanWalker w = new DependencyOrderWalker(lp);
+                    pushWalker(w);
+                    w.walk(this);
+                    popWalker();
+                }
+            }
+        }
+    }
 
     /**
      * 

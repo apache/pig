@@ -189,7 +189,7 @@ public class TypeCastInserter extends LogicalTransformer {
             // position that has a type other than byte array.
             LOForEach foreach = new LOForEach(mPlan,
                 OperatorKey.genOpKey(scope), genPlans, flattens);
-
+            foreach.setAlias(lo.getAlias());
             // Insert the foreach into the plan and patch up the plan.
             insertAfter(lo, foreach, null);
 

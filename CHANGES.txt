@@ -6,6 +6,8 @@ Trunk (unreleased changes)
 
   NEW FEATURES
 
+    PIG-554 Added fragment replicate map side join (shravanmn via pkamath and gates)
+
   OPTIMIZATIONS
 
   BUG FIXES

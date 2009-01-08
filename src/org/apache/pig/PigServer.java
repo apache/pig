@@ -369,7 +369,7 @@ public class PigServer {
         }
     }
 
-    public void dumpSchema(String alias) throws IOException{
+    public Schema dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
             try {
@@ -380,6 +380,7 @@ public class PigServer {
             Schema schema = lp.getLeaves().get(0).getSchema();
             if (schema != null) System.out.println(alias + ": " + schema.toString());    
             else System.out.println("Schema for " + alias + " unknown.");
+            return schema;
         } catch (FrontendException fe) {
             throw WrappedIOException.wrap(
                 "Unable to describe schema for alias " + alias, fe);

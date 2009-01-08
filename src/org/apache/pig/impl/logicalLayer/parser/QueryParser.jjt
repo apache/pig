@@ -221,6 +221,59 @@ public class QueryParser {
 		log.trace("Exiting parseCogroup");
 		return cogroup;
 	}
+	
+	/**
+	 * Mimicing parseCogroup as the parsing logic for FRJoin remains exactly the same.
+	 */
+	LogicalOperator parseFRJoin(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
+		
+		log.trace("Entering parseCogroup");
+		log.debug("LogicalPlan: " + lp);
+		
+		int n = gis.size();
+		log.debug("Number of cogroup inputs = " + n);
+		
+		ArrayList<LogicalOperator> los = new ArrayList<LogicalOperator>();
+		ArrayList<ArrayList<LogicalPlan>> plans = new ArrayList<ArrayList<LogicalPlan>>();
+		MultiMap<LogicalOperator, LogicalPlan> groupByPlans = new MultiMap<LogicalOperator, LogicalPlan>();
+		//Map<LogicalOperator, LogicalPlan> groupByPlans = new HashMap<LogicalOperator, LogicalPlan>();
+		boolean[] isInner = new boolean[n];
+		
+		int arity = gis.get(0).plans.size();
+		
+		for (int i = 0; i < n ; i++){
+			
+			CogroupInput gi = gis.get(i);
+			los.add(gi.op);
+			ArrayList<LogicalPlan> planList = gi.plans;
+			plans.add(gi.plans);
+			int numGrpByOps = planList.size();
+			log.debug("Number of group by operators = " + numGrpByOps);
+
+			if(arity != numGrpByOps) {
+				throw new ParseException("The arity of the group by columns do not match.");
+			}
+			for(int j = 0; j < numGrpByOps; ++j) {
+			    groupByPlans.put(gi.op, planList.get(j));
+				for(LogicalOperator root: planList.get(j).getRoots()) {
+					log.debug("Cogroup input plan root: " + root);
+				}
+			}
+			isInner[i] = gi.isInner;
+		}
+		
+		LogicalOperator frj = new LOFRJoin(lp, new OperatorKey(scope, getNextId()), groupByPlans, isInner, gis.get(0).op);
+		lp.add(frj);
+		log.debug("Added operator " + frj.getClass().getName() + " object " + frj + " to the logical plan " + lp);
+		
+		for(LogicalOperator op: los) {
+			lp.connect(op, frj);
+			log.debug("Connected operator " + op.getClass().getName() + " to " + frj.getClass().getName() + " in the logical plan");
+		}
+
+		log.trace("Exiting parseFRJoin");
+		return frj;
+	}
 			
 	/**
 	 * The join operator is translated to foreach 
@@ -1598,11 +1651,14 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
 	log.trace("Entering JoinClause");
 	log.debug("LogicalPlan: " + lp);
+	LogicalOperator frj = null;
 }
 {
 	(gi = GroupItem(lp) { gis.add(gi); }
-	("," gi = GroupItem(lp) { gis.add(gi); })+)
-	{log.trace("Exiting JoinClause"); return rewriteJoin(gis, lp);}
+	("," gi = GroupItem(lp) { gis.add(gi); })+
+	// The addition of using replicated to indicate FRJoin
+	[<USING> ("\"replicated\"" | "\"repl\"") { frj = parseFRJoin(gis, lp); }] )
+	{log.trace("Exiting JoinClause"); return (frj==null) ? rewriteJoin(gis, lp) : frj;}
 	
 }
 

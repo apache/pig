@@ -702,6 +702,71 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         poPackage.setInner(cg.getInner());
         LogToPhyMap.put(cg, poPackage);
     }
+    
+    
+    /**
+     * Create the inner plans used to configure the Local Rearrange operators(ppLists)
+     * Extract the keytypes and create the POFRJoin operator.
+     */
+    @Override
+    protected void visit(LOFRJoin frj) throws VisitorException {
+        String scope = frj.getOperatorKey().scope;
+        List<LogicalOperator> inputs = frj.getInputs();
+        List<List<PhysicalPlan>> ppLists = new ArrayList<List<PhysicalPlan>>();
+        List<Byte> keyTypes = new ArrayList<Byte>();
+        
+        int fragment = findFrag(inputs,frj.getFragOp());
+        List<PhysicalOperator> inp = new ArrayList<PhysicalOperator>();
+        for (LogicalOperator op : inputs) {
+            inp.add(LogToPhyMap.get(op));
+            List<LogicalPlan> plans = (List<LogicalPlan>) frj.getJoinColPlans()
+                    .get(op);
+            
+            List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
+            currentPlans.push(currentPlan);
+            for (LogicalPlan lp : plans) {
+                currentPlan = new PhysicalPlan();
+                PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
+                        .spawnChildWalker(lp);
+                pushWalker(childWalker);
+                mCurrentWalker.walk(this);
+                exprPlans.add((PhysicalPlan) currentPlan);
+                popWalker();
+
+            }
+            currentPlan = currentPlans.pop();
+            ppLists.add(exprPlans);
+            
+            if (plans.size() > 1) {
+                keyTypes.add(DataType.TUPLE);
+            } else {
+                keyTypes.add(exprPlans.get(0).getLeaves().get(0).getResultType());
+            }
+        }
+        POFRJoin pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),frj.getRequestedParallelism(),
+                                    inp, ppLists, keyTypes, null, fragment);
+        pfrj.setResultType(DataType.TUPLE);
+        currentPlan.add(pfrj);
+        for (LogicalOperator op : inputs) {
+            try {
+                currentPlan.connect(LogToPhyMap.get(op), pfrj);
+            } catch (PlanException e) {
+                log.error("Invalid physical operators in the physical plan"
+                        + e.getMessage());
+                throw new VisitorException(e);
+            }
+        }
+        LogToPhyMap.put(frj, pfrj);
+    }
+
+    private int findFrag(List<LogicalOperator> inputs, LogicalOperator fragOp) {
+        int i=-1;
+        for (LogicalOperator lop : inputs) {
+            if(fragOp.getOperatorKey().equals(lop.getOperatorKey()))
+                return ++i;
+        }
+        return -1;
+    }
 
     @Override
     public void visit(LOFilter filter) throws VisitorException {

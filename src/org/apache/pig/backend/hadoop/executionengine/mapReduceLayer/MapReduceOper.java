@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
@@ -96,6 +97,11 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     NodeIdGenerator nig;
 
     private String scope;
+    
+    //Fragment Replicate Join State
+    boolean frjoin = false;
+    FileSpec[] replFiles = null;
+    int fragment = -1;
     
     int requestedParallelism = -1;
     
@@ -292,5 +298,29 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
      */
     public void setStreamInReduce(boolean streamInReduce) {
         this.streamInReduce = streamInReduce;
+    }
+    
+    public int getFragment() {
+        return fragment;
+    }
+
+    public void setFragment(int fragment) {
+        this.fragment = fragment;
+    }
+
+    public boolean isFrjoin() {
+        return frjoin;
+    }
+
+    public void setFrjoin(boolean frjoin) {
+        this.frjoin = frjoin;
+    }
+
+    public FileSpec[] getReplFiles() {
+        return replFiles;
+    }
+
+    public void setReplFiles(FileSpec[] replFiles) {
+        this.replFiles = replFiles;
     }
 }

@@ -47,6 +47,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
@@ -778,7 +779,80 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
-    
+    /**
+     * This is an operator which will have multiple inputs(= to number of join inputs)
+     * But it prunes off all inputs but the fragment input and creates separate MR jobs
+     * for each of the replicated inputs and uses these as the replicated files that
+     * are configured in the POFRJoin operator. It also sets that this is FRJoin job
+     * and some parametes associated with it.
+     */
+    @Override
+    public void visitFRJoin(POFRJoin op) throws VisitorException {
+        try{
+            FileSpec[] replFiles = new FileSpec[op.getInputs().size()];
+            for (int i=0; i<replFiles.length; i++) {
+                if(i==op.getFragment()) continue;
+                replFiles[i] = getTempFileSpec();
+            }
+            op.setReplFiles(replFiles);
+            
+            List<OperatorKey> opKeys = new ArrayList<OperatorKey>(op.getInputs().size());
+            for (PhysicalOperator pop : op.getInputs()) {
+                opKeys.add(pop.getOperatorKey());
+            }
+            int fragPlan = 0;
+            for(int i=0;i<compiledInputs.length;i++){
+                MapReduceOper mro = compiledInputs[i];
+                OperatorKey opKey = (!mro.isMapDone()) ?  mro.mapPlan.getLeaves().get(0).getOperatorKey()
+                                                       :  mro.reducePlan.getLeaves().get(0).getOperatorKey();
+                if(opKeys.indexOf(opKey)==op.getFragment()){
+                    curMROp = mro;
+                    fragPlan = i;
+                    continue;
+                }
+                POStore str = getStore();
+                str.setSFile(replFiles[opKeys.indexOf(opKey)]);
+                if (!mro.isMapDone()) {
+                    mro.mapPlan.addAsLeaf(str);
+                    mro.setMapDoneSingle(true);
+                } else if (mro.isMapDone() && !mro.isReduceDone()) {
+                    mro.reducePlan.addAsLeaf(str);
+                    mro.setReduceDone(true);
+                } else {
+                    log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
+                    throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
+                }
+            }
+            for(int i=0;i<compiledInputs.length;i++){
+                if(i==fragPlan) continue;
+                MRPlan.connect(compiledInputs[i], curMROp);
+            }
+            
+            if (!curMROp.isMapDone()) {
+                curMROp.mapPlan.addAsLeaf(op);
+            } else if (curMROp.isMapDone() && !curMROp.isReduceDone()) {
+                curMROp.reducePlan.addAsLeaf(op);
+            } else {
+                log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
+                throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
+            }
+            List<List<PhysicalPlan>> joinPlans = op.getJoinPlans();
+            if(joinPlans!=null)
+                for (List<PhysicalPlan> joinPlan : joinPlans) {
+                    if(joinPlan!=null)
+                        for (PhysicalPlan plan : joinPlan) {
+                            addUDFs(plan);
+                        }
+                }
+            curMROp.setFrjoin(true);
+            curMROp.setFragment(op.getFragment());
+            curMROp.setReplFiles(op.getReplFiles());
+        }catch(Exception e){
+            VisitorException pe = new VisitorException(e.getMessage());
+            pe.initCause(e);
+            throw pe;
+        }
+    }
 
     @Override
     public void visitDistinct(PODistinct op) throws VisitorException {

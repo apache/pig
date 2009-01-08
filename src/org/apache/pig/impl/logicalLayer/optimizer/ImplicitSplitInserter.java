@@ -60,6 +60,7 @@ public class ImplicitSplitInserter extends LogicalTransformer {
         NodeIdGenerator idGen = NodeIdGenerator.getGenerator();
         LOSplit splitOp = new LOSplit(mPlan, new OperatorKey(scope, 
                 idGen.getNextNodeId(scope)), new ArrayList<LogicalOperator>());
+        splitOp.setAlias(nodes.get(0).getAlias());
         try {
             mPlan.add(splitOp);
             
@@ -136,6 +137,7 @@ public class ImplicitSplitInserter extends LogicalTransformer {
                 splitOp.addOutput(splitOutput);
                 mPlan.add(splitOutput);
                 mPlan.insertBetween(splitOp, splitOutput, succ);
+                splitOutput.setAlias(splitOp.getAlias());
                 // Patch up the contained plans of succ
                 fixUpContainedPlans(nodes.get(0), splitOutput, succ, null);
             }

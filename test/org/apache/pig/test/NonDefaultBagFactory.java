@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.util.Comparator;
+import java.util.List;
 
 import org.apache.pig.data.*;
 
@@ -25,6 +26,13 @@ import org.apache.pig.data.*;
 // default bag factory.
 public class NonDefaultBagFactory extends BagFactory {
     public DataBag newDefaultBag() { return null; }
+    /* (non-Javadoc)
+     * @see org.apache.pig.data.BagFactory#newDefaultBag(java.util.List)
+     */
+    @Override
+    public DataBag newDefaultBag(List<Tuple> listOfTuples) {
+        return null;
+    }
     public DataBag newSortedBag(Comparator<Tuple> comp) { return null; }
     public DataBag newDistinctBag() { return null; }
 

@@ -77,6 +77,7 @@ public class POLoad extends PhysicalOperator {
     
     public POLoad(OperatorKey k, int rp, FileSpec lFile,boolean splittable) {
         super(k, rp);
+        this.lFile = lFile;
         this.splittable = splittable;
     }
     

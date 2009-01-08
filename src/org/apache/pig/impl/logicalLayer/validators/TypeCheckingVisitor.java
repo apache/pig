@@ -2092,6 +2092,9 @@ public class TypeCheckingVisitor extends LOVisitor {
                 // We may have to compute the schema of the input again
                 // because we have just inserted
                 if (insertedOp != null) {
+                    if(insertedOp.getAlias()==null){
+                        insertedOp.setAlias(inputs.get(i).getAlias());
+                    }
                     try {
                         this.visit(insertedOp);
                     }
@@ -2328,6 +2331,135 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw vse ;
         }
     }
+    
+    /**
+     * Mimics the type checking of LOCogroup
+     */
+    protected void visit(LOFRJoin frj) throws VisitorException {
+        try {
+            frj.regenerateSchema();
+        } catch (FrontendException fe) {
+            String msg = "Cannot resolve COGroup output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            VisitorException vse = new VisitorException(msg, fe) ;
+            throw vse ;
+        }
+        MultiMap<LogicalOperator, LogicalPlan> joinColPlans
+                                                    = frj.getJoinColPlans() ;
+        List<LogicalOperator> inputs = frj.getInputs() ;
+        
+        // Type checking internal plans.
+        for(int i=0;i < inputs.size(); i++) {
+            LogicalOperator input = inputs.get(i) ;
+            List<LogicalPlan> innerPlans
+                        = new ArrayList<LogicalPlan>(joinColPlans.get(input)) ;
+
+            for(int j=0; j < innerPlans.size(); j++) {
+
+                LogicalPlan innerPlan = innerPlans.get(j) ;
+                
+                // Check that the inner plan has only 1 output port
+                if (!innerPlan.isSingleLeafPlan()) {
+                    String msg = "COGroup's inner plans can only"
+                                 + "have one output (leaf)" ;
+                    msgCollector.collect(msg, MessageType.Error) ;
+                    throw new VisitorException(msg) ;
+                }
+
+                checkInnerPlan(innerPlans.get(j)) ;
+            }
+        }
+        
+        try {
+
+            if (!frj.isTupleJoinCol()) {
+                // merge all the inner plan outputs so we know what type
+                // our group column should be
+
+                // TODO: Don't recompute schema here
+                //byte groupType = schema.getField(0).type ;
+                byte groupType = frj.getAtomicJoinColType() ;
+
+                // go through all inputs again to add cast if necessary
+                for(int i=0;i < inputs.size(); i++) {
+                    LogicalOperator input = inputs.get(i) ;
+                    List<LogicalPlan> innerPlans
+                                = new ArrayList<LogicalPlan>(joinColPlans.get(input)) ;
+                    // Checking innerPlan size already done above
+                    byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
+                    if (innerType != groupType) {
+                        insertAtomicCastForFRJInnerPlan(innerPlans.get(0),
+                                                            frj,
+                                                            groupType) ;
+                    }
+                }
+            }
+            else {
+
+                // TODO: Don't recompute schema here
+                //Schema groupBySchema = schema.getField(0).schema ;
+                Schema groupBySchema = frj.getTupleJoinColSchema() ;
+
+                // go through all inputs again to add cast if necessary
+                for(int i=0;i < inputs.size(); i++) {
+                    LogicalOperator input = inputs.get(i) ;
+                    List<LogicalPlan> innerPlans
+                                = new ArrayList<LogicalPlan>(joinColPlans.get(input)) ;
+                    for(int j=0;j < innerPlans.size(); j++) {
+                        LogicalPlan innerPlan = innerPlans.get(j) ;
+                        byte innerType = innerPlan.getSingleLeafPlanOutputType() ;
+                        byte expectedType = DataType.BYTEARRAY ;
+
+                        if (!DataType.isAtomic(innerType) && (DataType.TUPLE != innerType)) {
+                            String msg = "Sorry, group by complex types"
+                                       + " will be supported soon" ;
+                            msgCollector.collect(msg, MessageType.Error) ;
+                            VisitorException vse = new VisitorException(msg) ;
+                            throw vse ;
+                        }
+
+                        try {
+                            expectedType = groupBySchema.getField(j).type ;
+                        }
+                        catch(ParseException pe) {
+                            String msg = "Cannot resolve COGroup output schema" ;
+                            msgCollector.collect(msg, MessageType.Error) ;
+                            VisitorException vse = new VisitorException(msg) ;
+                            vse.initCause(pe) ;
+                            throw vse ;
+                        }
+
+                        if (innerType != expectedType) {
+                            insertAtomicCastForFRJInnerPlan(innerPlan,
+                                                                frj,
+                                                                expectedType) ;
+                        }
+                    }
+                }
+            }
+        }
+        catch (FrontendException fe) {
+            String msg = "Cannot resolve COGroup output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            VisitorException vse = new VisitorException(msg, fe) ;
+            throw vse ;
+        }
+
+        // TODO: Don't recompute schema here. Remove all from here!
+        // Generate output schema based on the schema generated from
+        // COGroup itself
+
+        try {
+            Schema outputSchema = frj.regenerateSchema() ;
+        }
+        catch (FrontendException fe) {
+            String msg = "Cannot resolve COGroup output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            VisitorException vse = new VisitorException(msg) ;
+            vse.initCause(fe) ;
+            throw vse ;
+        }
+    }
 
     /**
      * COGroup
@@ -2460,7 +2592,35 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw vse ;
         }
     }
+    
+    private void insertAtomicCastForFRJInnerPlan(LogicalPlan innerPlan,
+            LOFRJoin frj, byte toType) throws VisitorException {
+        if (!DataType.isUsableType(toType)) {
+            throw new AssertionError("Cannot cast to type "
+                    + DataType.findTypeName(toType));
+        }
 
+        List<LogicalOperator> leaves = innerPlan.getLeaves();
+        if (leaves.size() > 1) {
+            throw new AssertionError(
+                    "insertAtomicForCOGroupInnerPlan cannot be"
+                            + " used when there is more than 1 output port");
+        }
+        ExpressionOperator currentOutput = (ExpressionOperator) leaves.get(0);
+        collectCastWarning(frj, currentOutput.getType(), toType);
+        OperatorKey newKey = genNewOperatorKey(currentOutput);
+        LOCast cast = new LOCast(innerPlan, newKey, currentOutput, toType);
+        innerPlan.add(cast);
+        try {
+            innerPlan.connect(currentOutput, cast);
+        } catch (PlanException ioe) {
+            AssertionError err = new AssertionError(
+                    "Explicit casting insertion");
+            err.initCause(ioe);
+            throw err;
+        }
+        this.visit(cast);
+    }
 
     // This helps insert casting to atomic types in COGroup's inner plans
     // as a new leave of the plan

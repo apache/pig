@@ -30,6 +30,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.Transformer;
 import org.apache.pig.impl.plan.optimizer.Transformer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOFRJoin;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
@@ -182,6 +183,10 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
             LOCogroup cg = (LOCogroup) before ;
             cg.switchGroupByPlanOp(after, newNode);
         }
+        if (before instanceof LOFRJoin) {
+            LOFRJoin frj = (LOFRJoin) before ;
+            frj.switchJoinColPlanOp(after, newNode);
+        }
 
         // Visit all the inner plans of before and change their projects to
         // connect to newNode instead of after.
@@ -189,7 +194,10 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         List<LogicalPlan> plans = new ArrayList<LogicalPlan>();
         if (before instanceof LOCogroup) {
             plans.addAll((((LOCogroup)before).getGroupByPlans()).values());
-        } else if (before instanceof LOSort) {
+        } else if (before instanceof LOFRJoin) {
+            plans.addAll((((LOFRJoin)before).getJoinColPlans()).values());
+        }
+        else if (before instanceof LOSort) {
             plans.addAll(((LOSort)before).getSortColPlans());
         } else if (before instanceof LOFilter) {
             plans.add(((LOFilter)before).getComparisonPlan());

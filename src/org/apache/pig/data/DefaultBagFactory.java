@@ -18,6 +18,7 @@
 package org.apache.pig.data;
 
 import java.util.Comparator;
+import java.util.List;
 
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
@@ -30,6 +31,18 @@ public class DefaultBagFactory extends BagFactory {
      */
     public DataBag newDefaultBag() {
         DataBag b = new DefaultDataBag();
+        registerBag(b);
+        return b;
+    }
+    
+    /**
+     * Get a default (unordered, not distinct) data bag from
+     * an existing list of tuples. Note that the bag does NOT
+     * copy the tuples but uses the provided list as its backing store.
+     * So it takes ownership of the list.
+     */
+    public DataBag newDefaultBag(List<Tuple> listOfTuples) {
+        DataBag b = new DefaultDataBag(listOfTuples);
         registerBag(b);
         return b;
     }

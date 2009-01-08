@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.io.FileNotFoundException;
 
 import org.apache.commons.logging.Log;
@@ -49,6 +50,16 @@ public class DefaultDataBag extends DefaultAbstractBag {
  
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
+    }
+
+    /**
+     * This constructor creates a bag out of an existing list
+     * of tuples by taking ownership of the list and NOT
+     * copying the contents of the list.
+     * @param listOfTuples List<Tuple> containing the tuples
+     */
+    public DefaultDataBag(List<Tuple> listOfTuples) {
+        mContents = listOfTuples;
     }
 
     public boolean isSorted() {
