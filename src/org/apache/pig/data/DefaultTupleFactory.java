@@ -39,6 +39,10 @@ public class DefaultTupleFactory extends TupleFactory {
         return new DefaultTuple(c);
     }
 
+    public Tuple newTupleNoCopy(List list) {
+        return new DefaultTuple(list, 1);
+    }
+
     public Tuple newTuple(Object datum) {
         Tuple t = new DefaultTuple(1);
         try {

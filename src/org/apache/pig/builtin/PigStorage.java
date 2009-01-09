@@ -110,16 +110,17 @@ public class PigStorage extends Utf8StorageConverter
         if (mBuf == null) mBuf = new ByteArrayOutputStream(4096);
         mBuf.reset();
         while (true) {
-            // Hadoop's FSDataInputStream (which my input stream is based
-            // on at some point) is buffered, so I don't need to buffer.
+            // BufferedPositionedInputStream is buffered, so I don't need
+            // to buffer.
             int b = in.read();
 
             if (b == fieldDel) {
                 readField();
             } else if (b == recordDel) {
                 readField();
-                Tuple t =  mTupleFactory.newTuple(mProtoTuple);
-                mProtoTuple.clear();
+                //Tuple t =  mTupleFactory.newTuple(mProtoTuple);
+                Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
+                mProtoTuple = null;
                 return t;
             } else if (b == -1) {
                 // hit end of file

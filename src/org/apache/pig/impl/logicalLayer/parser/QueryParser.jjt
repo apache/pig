@@ -2712,7 +2712,6 @@ FuncSpec NonEvalFuncSpec(byte funcType) :
             case FunctionType.LOADFUNC:
             case FunctionType.STOREFUNC:
                 //funcSpec = new FuncSpec(func.getClass().getName() + (functionArgs == null? "(" + ")" : "(" + functionArgs + ")"));
-                System.err.println("funcSpec: " + funcSpec);
                 func = pigContext.instantiateFuncFromSpec(funcSpec);
 		        try{
                     FunctionType.tryCasting(func, funcType);

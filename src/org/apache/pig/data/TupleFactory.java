@@ -90,10 +90,18 @@ public abstract class TupleFactory {
     public abstract Tuple newTuple(int size);
     
     /**
-     * Create a tuple from the provided list of objects.
+     * Create a tuple from the provided list of objects.  The underlying list
+     * will be copied.
      * @param c List of objects to use as the fields of the tuple.
      */
     public abstract Tuple newTuple(List c);
+
+    /**
+     * Create a tuple from a provided list of objects, keeping the provided
+     * list.  The new tuple will take over ownership of the provided list.
+     * @param list List of objects that will become the fields of the tuple.
+     */
+    public abstract Tuple newTupleNoCopy(List list);
 
     /**
      * Create a tuple with a single element.  This is useful because of

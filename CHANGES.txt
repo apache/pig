@@ -357,3 +357,5 @@ Trunk (unreleased changes)
 	programmatically register a Pig Script.  (shubhamc via gates)
 
     PIG-570:  problems with handling bzip data (breed via olgan)
+
+	PIG-599: Added buffering to BufferedPositionedInputStream (gates)

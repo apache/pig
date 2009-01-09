@@ -76,6 +76,19 @@ public class DefaultTuple implements Tuple {
     }
 
     /**
+     * Construct a tuple from an existing list of objects.  Package
+     * level so that callers cannot directly invoke it.
+     * @param c List of objects to turn into a tuple.  This list will be kept
+     * as part of the tuple.
+     * @param junk Just used to differentiate from the constructor above that
+     * copies the list.
+     */
+    DefaultTuple(List<Object> c, int junk) {
+        mFields = c;
+    }
+
+
+    /**
      * Make this tuple reference the contents of another.  This method does not copy
      * the underlying data.   It maintains references to the data from the original
      * tuple (and possibly even to the data structure holding the data).
