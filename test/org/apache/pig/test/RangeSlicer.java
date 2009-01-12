@@ -19,18 +19,25 @@
 package org.apache.pig.test;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
 
+import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.Slice;
 import org.apache.pig.Slicer;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * Makes slices each containing a single value from 0 to value - 1.
  */
 public class RangeSlicer
-    implements Slicer
+    implements Slicer, LoadFunc
 {
 
     /**
@@ -110,7 +117,9 @@ public class RangeSlicer
             throws IOException
         {
             if (!read) {
-                value.appendField(new DataAtom(val));
+                Tuple t = TupleFactory.getInstance().newTuple();
+                t.append(val);
+                value.reference(t);
                 read = true;
                 return true;
             }
@@ -118,5 +127,92 @@ public class RangeSlicer
         }
 
         private static final long serialVersionUID = 1L;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bindTo(java.lang.String, org.apache.pig.impl.io.BufferedPositionedInputStream, long, long)
+     */
+    public void bindTo(String fileName, BufferedPositionedInputStream is,
+            long offset, long end) throws IOException {      
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToBag(byte[])
+     */
+    public DataBag bytesToBag(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToCharArray(byte[])
+     */
+    public String bytesToCharArray(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToDouble(byte[])
+     */
+    public Double bytesToDouble(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToFloat(byte[])
+     */
+    public Float bytesToFloat(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToInteger(byte[])
+     */
+    public Integer bytesToInteger(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToLong(byte[])
+     */
+    public Long bytesToLong(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToMap(byte[])
+     */
+    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#bytesToTuple(byte[])
+     */
+    public Tuple bytesToTuple(byte[] b) throws IOException {
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+     */
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
+     */
+    public void fieldsToRead(Schema schema) {
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getNext()
+     */
+    public Tuple getNext() throws IOException {
+        return null;
     }
 }

@@ -18,25 +18,36 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
  * Generates the sum of the values of the first field of a tuple.
  */
-public class SUM extends EvalFunc<DataAtom> implements Algebraic {
+public class SUM extends EvalFunc<Double> implements Algebraic {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(sum(input));
+    public Double exec(Tuple input) throws IOException {
+        try {
+            return sum(input);
+        } catch (ExecException ee) {
+            throw WrappedIOException.wrap("Caught exception in SUM", ee);
+        }
     }
 
     public String getInitial() {
@@ -44,7 +55,7 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -52,57 +63,144 @@ public class SUM extends EvalFunc<DataAtom> implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
-        @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(sum(input)));
-        }
-    }
-    static public class Final extends EvalFunc<DataAtom> {
-        @Override
-        public void exec(Tuple input, DataAtom output) throws IOException {
-            output.setValue(sum(input));
-        }
-    }
+        private static TupleFactory tfact = TupleFactory.getInstance();
 
-    static protected double sum(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
-
-        double sum = 0;
-    int i = 0;
-        Tuple t = null;
-        for (Iterator it = values.iterator(); it.hasNext();) {
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            // Initial is called in the map - for SUM
+            // we just send the tuple down
             try {
-                t = (Tuple) it.next();
-                i++;
-                sum += t.getAtomField(0).numval();
-            }catch(RuntimeException exp) {
-                StringBuilder msg = new StringBuilder();
-                msg.append("iteration = ");
-                msg.append(i);
-                msg.append("bag size = ");
-                msg.append(values.size());
-                msg.append(" partial sum = ");
-                msg.append(sum);
-                msg.append("\n");
-                if (t != null) {
-                    msg.append("previous tupple = ");
-                    msg.append(t.toString());
-                }
-                StringBuilder errorMsg = new StringBuilder();
-                errorMsg.append(exp.getMessage());
-                errorMsg.append(" additional info: ");
-                errorMsg.append(msg.toString());
-                throw new RuntimeException(errorMsg.toString());
-                //throw new RuntimeException(exp.getMessage() + " error processing: " + t.toString());
+                // input is a bag with one tuple containing
+                // the column we are trying to sum
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                DataByteArray dba = (DataByteArray)tp.get(0); 
+                return tfact.newTuple(dba != null?
+                        Double.valueOf(dba.toString()): null);
+            }catch(NumberFormatException nfe){
+                // treat this particular input as null
+                return tfact.newTuple(null);
+            } catch (ExecException e) {
+                throw WrappedIOException.wrap("Caught exception in SUM.Initial", e);
             }
         }
-
-        return sum;
     }
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return tfact.newTuple(sumDoubles(input));
+            } catch (ExecException ee) {
+                throw WrappedIOException.wrap("Caught exception in SUM.Intermediate", ee);
+            }
+        }
+    }
+    static public class Final extends EvalFunc<Double> {
+        @Override
+        public Double exec(Tuple input) throws IOException {
+            try {
+                return sumDoubles(input);
+            } catch (ExecException ee) {
+                throw WrappedIOException.wrap("Caught exception in SUM.Final", ee);
+            }
+        }
+    }
+
+    static protected Double sum(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                DataByteArray dba = (DataByteArray)t.get(0);
+                Double d = 
+                    dba != null ? Double.valueOf(dba.toString()): null;
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage(), exp);
+                throw newE;
+            }
+        }
+        
+        
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
+    }
+
+    // same as above function except all its inputs are 
+    // always Double - this should be used for better performance
+    // since we don't have to check the type of the object to
+    // decide it is a double. This should be used when the initial,
+    // intermediate and final versions are used.
+    static protected Double sumDoubles(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                // we can cast directly because we SHOULD
+                // only be getting Doubles here
+                Double d = (Double)(t.get(0));
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage(), exp);
+                throw newE;
+            }
+        }
+        
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
+    }
+
     @Override
     public Schema outputSchema(Schema input) {
-        return new AtomSchema("sum" + count++);
+        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
     }
 
-    private static int count = 1;
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
+        funcList.add(new FuncSpec(DoubleSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+        funcList.add(new FuncSpec(FloatSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+        funcList.add(new FuncSpec(IntSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+        funcList.add(new FuncSpec(LongSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        return funcList;
+    }    
+    
 }

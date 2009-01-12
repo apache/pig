@@ -21,12 +21,16 @@ package org.apache.pig;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.List;
 
-import org.apache.pig.data.Datum;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 
 
 /**
@@ -35,16 +39,26 @@ import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
  * The programmer should not make assumptions about state maintained
  * between invocations of the invoke() method since the Pig runtime
  * will schedule and localize invocations based on information provided
- * at runtime.
- * 
- * The programmer should not directly extend this class but instead
- * extend one of the subclasses where we have bound the parameter T 
- * to a specific Datum
- * 
- * @author database-systems@yahoo.research
- *
+ * at runtime.  The programmer also should not make assumptions about when or
+ * how many times the class will be instantiated, since it may be instantiated
+ * multiple times in both the front and back end.
  */
-public abstract class EvalFunc<T extends Datum>  {
+public abstract class EvalFunc<T>  {
+    // UDFs must use this to report progress
+    // if the exec is taking more that 300 ms
+    protected PigProgressable reporter;
+    protected Log log = LogFactory.getLog(getClass());
+
+    private static int nextSchemaId; // for assigning unique ids to UDF columns
+    protected String getSchemaName(String name, Schema input) {
+        String alias = name + "_";
+        if (input.getAliases().size() > 0){
+            alias += input.getAliases().iterator().next() + "_";
+        }
+
+        alias += ++nextSchemaId;
+        return alias;
+    }
     
     protected Type returnType;
     
@@ -59,47 +73,42 @@ public abstract class EvalFunc<T extends Datum>  {
             superType = superClass.getGenericSuperclass();
             superClass = superClass.getSuperclass();
         }
-        StringBuilder errMsg = new StringBuilder();
-        errMsg.append(getClass());
-        errMsg.append("extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.");
+        String errMsg = getClass() + "extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.";
         
         if (!(superType instanceof ParameterizedType))
-            throw new RuntimeException(errMsg.toString());
+            throw new RuntimeException(errMsg);
         
         Type[] parameters  = ((ParameterizedType)superType).getActualTypeArguments();
         
         if (parameters.length != 1)
-                throw new RuntimeException(errMsg.toString());
+                throw new RuntimeException(errMsg);
         
         returnType = parameters[0];
         
-        if (returnType == Datum.class){
-            throw new RuntimeException("Eval function must return a specific type of Datum");
-        }
         
         
         //Type check the initial, intermediate, and final functions
         if (this instanceof Algebraic){
             Algebraic a = (Algebraic)this;
             
-            errMsg = new StringBuilder();
-            errMsg.append("function of ");
-            errMsg.append(getClass().getName());
-            errMsg.append(" is not of the expected type.");
-            if (getReturnTypeFromSpec(a.getInitial()) != Tuple.class)
-                throw new RuntimeException("Initial " + errMsg.toString());
-            if (getReturnTypeFromSpec(a.getIntermed()) != Tuple.class)
-                    throw new RuntimeException("Intermediate " + errMsg.toString());
-            if (getReturnTypeFromSpec(a.getFinal()) != returnType)
-                    throw new RuntimeException("Final " + errMsg.toString());
+            errMsg = "function of " + getClass().getName() + " is not of the expected type.";
+            if (getReturnTypeFromSpec(new FuncSpec(a.getInitial())) != Tuple.class)
+                throw new RuntimeException("Initial " + errMsg);
+            if (getReturnTypeFromSpec(new FuncSpec(a.getIntermed())) != Tuple.class)
+                    throw new RuntimeException("Intermediate " + errMsg);
+            if (getReturnTypeFromSpec(new FuncSpec(a.getFinal())) != returnType)
+                    throw new RuntimeException("Final " + errMsg);
         }
         
     }
     
 
-    private Type getReturnTypeFromSpec(String funcSpec){
-        return ((EvalFunc) PigContext.instantiateFuncFromSpec(funcSpec))
-                .getReturnType();
+    private Type getReturnTypeFromSpec(FuncSpec funcSpec){
+        try{
+            return ((EvalFunc<?>)PigContext.instantiateFuncFromSpec(funcSpec)).getReturnType();
+        }catch (ClassCastException e){
+            throw new RuntimeException(funcSpec + " does not specify an eval func", e);
+        }
     }
     
     public Type getReturnType(){
@@ -108,16 +117,8 @@ public abstract class EvalFunc<T extends Datum>  {
         
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
     protected void progress() { 
-        //This part appears to be unused and is causing problems due to changing hadoop signature
-        /*
-        if (PigMapReduce.reporter != null) {
-            try {
-                PigMapReduce.reporter.progress();
-            } catch (IOException ignored) {
-            }
-        }
-        */
-        
+        if (reporter != null) reporter.progress();
+        else log.warn("No reporter object provided to UDF " + this.getClass().getName());
     }
 
     /**
@@ -136,24 +137,44 @@ public abstract class EvalFunc<T extends Datum>  {
      * invocations of this method.
      * 
      * @param input the Tuple to be processed.
+     * @return result, of type T.
      * @throws IOException
      */
-    abstract public void exec(Tuple input, T output) throws IOException;
+    abstract public T exec(Tuple input) throws IOException;
     
     /**
      * @param input Schema of the input
      * @return Schema of the output
      */
     public Schema outputSchema(Schema input) {
-        return new TupleSchema();
+        return null;
     }
     
     /**
      * This function should be overriden to return true for functions that return their values
-     * asynchronously. 
-     * @return
+     * asynchronously.  Currently pig never attempts to execute a function
+     * asynchronously.
+     * @return true if the function can be executed asynchronously.
      */
     public boolean isAsynchronous(){
         return false;
+    }
+
+
+    public PigProgressable getReporter() {
+        return reporter;
+    }
+
+
+    public final void setReporter(PigProgressable reporter) {
+        this.reporter = reporter;
+    }
+    
+    /**
+     * @return A List containing FuncSpec objects representing the Function class
+     * which can handle the inputs corresponding to the schema in the objects
+     */
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException{
+        return null;
     }
 }

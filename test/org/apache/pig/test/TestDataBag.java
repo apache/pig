@@ -17,23 +17,12 @@
  */
 package org.apache.pig.test;
 
-/*
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.Iterator;
-import java.util.Random;
-*/
-
 import java.util.*;
 import java.io.IOException;
 
 import org.junit.Test;
 
 import org.apache.pig.data.*;
-import org.apache.pig.impl.eval.*;
 import org.apache.pig.impl.util.Spillable;
 
 /**
@@ -74,8 +63,8 @@ public class TestDataBag extends junit.framework.TestCase {
             return bag;
         }
 
-        public DataBag newSortedBag(EvalSpec sortSpec) {
-            DataBag bag = new SortedDataBag(sortSpec);
+        public DataBag newSortedBag(Comparator<Tuple> comp) {
+            DataBag bag = new SortedDataBag(comp);
             mMemMgr.register(bag);
             return bag;
         }
@@ -97,7 +86,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -125,7 +114,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -155,7 +144,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = new Tuple(new DataAtom(i));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -185,14 +174,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -220,14 +209,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -262,7 +251,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -290,7 +279,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -319,7 +308,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -349,14 +338,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -383,14 +372,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -424,7 +413,7 @@ public class TestDataBag extends junit.framework.TestCase {
         PriorityQueue<Tuple> rightAnswer = new PriorityQueue<Tuple>(20);
 
         for (int i = 0; i < 10; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -461,7 +450,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 373; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt()));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt()));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -491,7 +480,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -519,7 +508,7 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -549,7 +538,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 50; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -581,14 +570,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -616,14 +605,14 @@ public class TestDataBag extends junit.framework.TestCase {
 
         // Write tuples into both
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
             b.add(t);
             rightAnswer.add(t);
         }
         mgr.forceSpill();
 
         for (int i = 0; i < 50; i++) {
-            Tuple t = new Tuple(new DataAtom(i));
+            Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
             b.add(t);
             rightAnswer.add(t);
         }
@@ -660,7 +649,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 321; j++) {
             for (int i = 0; i < 50; i++) {
-                Tuple t = new Tuple(new DataAtom(rand.nextInt() % 5));
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(rand.nextInt() % 5));
                 b.add(t);
                 rightAnswer.add(t);
             }
@@ -680,6 +669,66 @@ public class TestDataBag extends junit.framework.TestCase {
             bIter.hasNext());
     }
 
+    // Test the default bag factory.
+    @Test
+    public void testDefaultBagFactory() throws Exception {
+        BagFactory f = BagFactory.getInstance();
+
+        DataBag bag = f.newDefaultBag();
+        DataBag sorted = f.newSortedBag(null);
+        DataBag distinct = f.newDistinctBag();
+
+        assertTrue("Expected a default bag", (bag instanceof DefaultDataBag));
+        assertTrue("Expected a sorted bag", (sorted instanceof SortedDataBag));
+        assertTrue("Expected a distinct bag", (distinct instanceof DistinctDataBag));
+    }
+
+    @Test
+    public void testProvidedBagFactory() throws Exception {
+        // Test bogus factory name.
+        BagFactory.resetSelf();
+        System.setProperty("pig.data.bag.factory.name", "no such class");
+        System.setProperty("pig.data.bag.factory.jar", "file:./pig.jar");
+        boolean caughtIt = false;
+        try {
+            BagFactory f = BagFactory.getInstance();
+        } catch (RuntimeException re) {
+            assertEquals("Expected Unable to instantiate message",
+                "Unable to instantiate bag factory no such class",
+                re.getMessage());
+            caughtIt = true;
+        }
+        assertTrue("Expected to catch exception", caughtIt);
+
+        // Test factory that isn't a BagFactory
+        BagFactory.resetSelf();
+        System.setProperty("pig.data.bag.factory.name",
+            "org.apache.pig.test.TestDataBag");
+        System.setProperty("pig.data.bag.factory.jar",
+            "file:./pig.jar");
+        caughtIt = false;
+        try {
+            BagFactory f = BagFactory.getInstance();
+        } catch (RuntimeException re) {
+            assertEquals("Expected does not extend BagFactory message", 
+                "Provided factory org.apache.pig.test.TestDataBag does not extend BagFactory!",
+                re.getMessage());
+            caughtIt = true;
+        }
+        assertTrue("Expected to catch exception", caughtIt);
+
+        // Test that we can instantiate our test factory.
+        BagFactory.resetSelf();
+        System.setProperty("pig.data.bag.factory.name",
+            "org.apache.pig.test.NonDefaultBagFactory");
+        System.setProperty("pig.data.bag.factory.jar", "file:./pig.jar");
+        BagFactory f = BagFactory.getInstance();
+        DataBag b = f.newDefaultBag();
+        b = f.newSortedBag(null);
+        b = f.newDistinctBag();
+
+        BagFactory.resetSelf();
+    }
 }
 
 

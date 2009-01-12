@@ -29,24 +29,38 @@ PARSER_BEGIN(PigScriptParser)
 package org.apache.pig.tools.pigscript.parser;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Stack;
+
+import jline.ConsoleReader;
 
 public abstract class PigScriptParser
 {
 	protected boolean mInteractive;
-
+	protected ConsoleReader mConsoleReader;
+	
 	public void setInteractive(boolean interactive)
 	{
 		mInteractive = interactive;
 		token_source.interactive = interactive;
 	}
 	
+    public int getLineNumber()
+    {
+        return jj_input_stream.getBeginLine();
+    }
+
+	public void setConsoleReader(ConsoleReader c)
+    {
+        mConsoleReader = c;
+        token_source.consoleReader = c;
+    }
+    
 	abstract public void prompt();
 	
 	abstract protected void quit();
 	
 	abstract protected void processDescribe(String alias) throws IOException;
-	
-	abstract protected void processIllustrate(String alias) throws IOException;
 
     abstract protected void processExplain(String alias) throws IOException;
 	
@@ -80,7 +94,9 @@ public abstract class PigScriptParser
 	
 	abstract protected void processPig(String cmd) throws IOException;
 
-	abstract protected void processRemove(String path) throws IOException;
+	abstract protected void processRemove(String path, String opt) throws IOException;
+	
+	abstract protected void processIllustrate(String alias) throws IOException;
 
 	 static String unquote(String s)
 	{
@@ -99,6 +115,7 @@ SKIP : { " " |  "\t" }
 // Skip comments(single line and multiline)
 SKIP : {
    <"--"(~["\r","\n"])*>
+|  <"#!" (~["\r","\n"])*>
 |  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
 }
 
@@ -122,6 +139,7 @@ TOKEN: {<PWD: "pwd">}
 TOKEN: {<QUIT: "quit">}
 TOKEN: {<REGISTER: "register">}
 TOKEN: {<REMOVE: "rm">}
+TOKEN: {<REMOVEFORCE: "rmf">}
 TOKEN: {<SET: "set">}
 TOKEN: {<ILLUSTRATE: "illustrate">}
 
@@ -136,16 +154,31 @@ TOKEN: {<SCRIPT_DONE: "scriptDone">}
 TOKEN_MGR_DECLS : {
         int pigBlockLevel = 0;
         int funcBlockLevel = 0;
+        int tupleSchemaLevel = 0;
+        int bagSchemaLevel = 0;
+        int bagConstantLevel = 0;
 	int prevState = DEFAULT;
 	boolean interactive = false;
+	ConsoleReader consoleReader = null;
+    Stack<Integer> stack = new Stack<Integer>();
 	public void secondary_prompt()
 	{
 		if (interactive)
 		{
-			System.err.print(">> ");
-			System.err.flush();
+			/*System.err.print(">> ");
+			System.err.flush();*/
+		    consoleReader.setDefaultPrompt(">> ");
 		}
 	}
+
+    public int getState(int state) {
+        if(!stack.empty()) return stack.pop();
+        return state;
+    }
+
+    public void saveState(int state) {
+        stack.push(state);
+    }
 
 }
 
@@ -161,13 +194,15 @@ TOKEN_MGR_DECLS : {
 {
 	<"'"> {prevState = PIG_START;} : IN_STRING
 |	<"`"> {prevState = PIG_START;} : IN_COMMAND
+|	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+ > {prevState = PIG_START;} : SCHEMA_DEFINITION
+|   <(" " | "\t")+["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"](" " | "\t")+ > {prevState = PIG_START;} : GENERATE
 |       <"{"> {pigBlockLevel = 1;} : IN_BLOCK
 |       <"}"> {if (true) throw new TokenMgrError("Unmatched '}'", TokenMgrError.LEXICAL_ERROR);}
 |       <";"> : PIG_END
 |	<"--"> {prevState = PIG_START;} : SINGLE_LINE_COMMENT
 |	<"/*"> {prevState = PIG_START;} : MULTI_LINE_COMMENT
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
-|       <(~[])>
+|       <(~[])> 
 }
 
 <SINGLE_LINE_COMMENT> MORE :
@@ -199,9 +234,65 @@ TOKEN_MGR_DECLS : {
 |	<(~[])>
 }
 
+<GENERATE> MORE :
+{
+    <"{"> 
+    {
+        bagConstantLevel++; 
+        prevState = getState(prevState);
+        saveState(prevState);
+        prevState = GENERATE;
+    } : BAG_CONSTANT
+|	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+> 
+    {
+        prevState = getState(prevState);
+        saveState(prevState);
+        prevState = GENERATE; 
+     } : SCHEMA_DEFINITION
+|	<";"> 
+    {
+        prevState = getState(prevState);
+        if(prevState == PIG_START) {
+            input_stream.backup(1);
+            image.deleteCharAt(image.length()-1);
+        }
+        SwitchTo(prevState);
+    }
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])> 
+}
+
+<SCHEMA_DEFINITION> MORE :
+{
+    <"("> {tupleSchemaLevel++;}
+|   <")"> {tupleSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
+|   <"{"> {bagSchemaLevel++;}
+|   <"}"> {bagSchemaLevel--; if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) SwitchTo(prevState); }
+|	<("," | ";" )> 
+    {
+        if ((tupleSchemaLevel == 0) && (bagSchemaLevel == 0)) {
+            input_stream.backup(1);
+            image.deleteCharAt(image.length()-1);
+            SwitchTo(prevState);
+        }
+    }
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])>
+}
+
+<BAG_CONSTANT> MORE :
+{
+    <"{"> {bagConstantLevel++;}
+|   <"}"> {bagConstantLevel--; if (bagConstantLevel == 0) SwitchTo(prevState);}
+|	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|	<(~[])>
+}
+
 <IN_BLOCK> MORE :
 {
 	<"\""> {prevState = IN_BLOCK;} : IN_STRING
+|	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+ > {prevState = IN_BLOCK;} : SCHEMA_DEFINITION
+|   <(" " | "\t")+["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"](" " | "\t")+> {prevState = IN_BLOCK;} : GENERATE
 |	<"{"> {pigBlockLevel++;}
 |       <"}"(";")?> {pigBlockLevel--; if (pigBlockLevel == 0) SwitchTo(PIG_END);}
 |	<"'"> {prevState = IN_BLOCK;} : IN_STRING
@@ -293,13 +384,13 @@ void parse() throws IOException:
 	t1 = <IDENTIFIER>
 	{processDump(t1.image);}
 	|
-	<DESCRIBE>
-	t1 = <IDENTIFIER>
-	{processDescribe(t1.image);}
-	|
 	<ILLUSTRATE>
 	t1 = <IDENTIFIER>
 	{processIllustrate(t1.image);}
+	|
+	<DESCRIBE>
+	t1 = <IDENTIFIER>
+	{processDescribe(t1.image);}
 	|
     <EXPLAIN>
 	t1 = <IDENTIFIER>
@@ -345,8 +436,14 @@ void parse() throws IOException:
 	<REMOVE>
 	(
 		t1 = GetPath()
-		{processRemove(t1.image);}
-	)+	
+		{processRemove(t1.image, null);}
+	)+
+	|
+	<REMOVEFORCE>
+	(
+		t1 = GetPath()
+		{processRemove(t1.image, "force");}
+	)+
 	|
 	<SCRIPT_DONE>
 	{quit();}

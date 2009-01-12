@@ -25,12 +25,9 @@ import java.io.InputStream;
 import java.util.Random;
 
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.pig.PigServer;
-import org.apache.pig.PigServer.ExecType;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.Test;
 
-import junit.framework.TestCase;
 
 public class TestBinaryStorage extends PigExecTestCase {
     private static final String simpleEchoStreamingCommand = 

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -31,10 +30,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
-import org.apache.pig.impl.eval.collector.DataCollector;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.impl.streaming.ExecutableManager;
-import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
@@ -70,10 +68,9 @@ public class HadoopExecutableManager extends ExecutableManager {
     
     public HadoopExecutableManager() {}
     
-    public void configure(Properties properties, StreamingCommand command, 
-                          DataCollector endOfPipe) 
+    public void configure(POStream stream) 
     throws IOException, ExecException {
-        super.configure(properties, command, endOfPipe);
+        super.configure(stream);
         
         // Chmod +x the executable
         File executable = new File(command.getExecutable());
@@ -87,15 +84,15 @@ public class HadoopExecutableManager extends ExecutableManager {
             }
         }
         
+        // Save a copy of the JobConf
+        job = PigMapReduce.sJobConf;
+        
         // Save the output directory for the Pig Script
-        scriptOutputDir = properties.getProperty("pig.streaming.task.output.dir");
-        scriptLogDir = properties.getProperty("pig.streaming.log.dir");
+        scriptOutputDir = job.get("pig.streaming.task.output.dir");
+        scriptLogDir = job.get("pig.streaming.log.dir", "_logs");
         
         // Save the taskid
-        taskId = properties.getProperty("pig.streaming.task.id");
-        
-        // Save a copy of the JobConf
-        job = PigMapReduce.getPigContext().getJobConf();
+        taskId = job.get("mapred.task.id");
     }
     
     protected void exec() throws IOException {
@@ -122,7 +119,7 @@ public class HadoopExecutableManager extends ExecutableManager {
         super.exec();
     }
 
-    public void close() throws IOException, ExecException {
+    public void close() throws IOException {
         try {
             super.close();
 
@@ -145,7 +142,7 @@ public class HadoopExecutableManager extends ExecutableManager {
                         System.err.println("Failed to save secondary output '" + 
                                            fileName + "' of task: " + taskId +
                                            " with " + ioe);
-                        throw new ExecException(ioe);
+                        throw ioe;
                     }
                 }
         }
@@ -170,6 +167,10 @@ public class HadoopExecutableManager extends ExecutableManager {
      */
     private boolean writeErrorToHDFS(int limit, String taskId) {
         if (command.getPersistStderr()) {
+            // These are hard-coded begin/end offsets a Hadoop *taskid*
+            int beginIndex = 25, endIndex = 31;   
+
+            //int tipId = Integer.parseInt(taskId.substring(beginIndex, endIndex));
             int tipId = TaskAttemptID.forName(taskId).getTaskID().getId();
             return tipId < command.getLogFilesLimit();
         }

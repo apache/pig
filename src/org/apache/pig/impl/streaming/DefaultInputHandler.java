@@ -26,8 +26,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link DefaultInputHandler} handles the input for the Pig-Streaming
- * executable in a {@link InputType#SYNCHRONOUS} manner by feeding it input
+ * DefaultInputHandler handles the input for the Pig-Streaming
+ * executable in a synchronous manner by feeding it input
  * via its <code>stdin</code>.  
  */
 public class DefaultInputHandler extends InputHandler {
@@ -51,10 +51,26 @@ public class DefaultInputHandler extends InputHandler {
         super.bindTo(stdin);
     }
     
-    public void close() throws IOException {
-        super.close();
-        stdin.flush();
-        stdin.close();
-        stdin = null;
+    @Override
+    public synchronized void close(Process process) throws IOException {
+        if(!alreadyClosed) {
+            alreadyClosed = true;
+            super.close(process);
+            try {
+                stdin.flush();
+                stdin.close();
+                stdin = null;
+            } catch(IOException e) {
+	            // check if we got an exception because
+                // the process actually completed and we were
+                // trying to flush and close it's stdin
+                if(process == null || process.exitValue() != 0) {
+                    // the process had not terminated normally 
+                    // throw the exception we got                    
+                    throw e;
+                }
+            }
+            
+        }
     }
 }

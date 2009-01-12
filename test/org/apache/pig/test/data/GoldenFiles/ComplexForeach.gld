@@ -1,0 +1,15 @@
+New For Each(false)[bag] - Test-Plan-Builder-22
+|   |
+|   Project[bag][*] - Test-Plan-Builder-21
+|   |
+|   |---Filter[bag] - Test-Plan-Builder-17
+|       |   |
+|       |   Equal To[boolean] - Test-Plan-Builder-20
+|       |   |
+|       |   |---Project[Unknown][1] - Test-Plan-Builder-18
+|       |   |
+|       |   |---Project[Unknown][2] - Test-Plan-Builder-19
+|       |
+|       |---Project[tuple][0] - Test-Plan-Builder-16
+|
+|---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-15

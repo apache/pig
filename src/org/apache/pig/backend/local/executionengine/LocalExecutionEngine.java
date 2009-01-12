@@ -18,13 +18,16 @@
 
 package org.apache.pig.backend.local.executionengine;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Properties;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import org.apache.pig.ReversibleLoadStoreFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.BagFactory;
@@ -34,13 +37,26 @@ import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.executionengine.ExecLogicalPlan;
-import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
+import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
-import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.physicalLayer.PhysicalOperator;
-import org.apache.pig.impl.logicalLayer.parser.NodeIdGenerator;
-
+import org.apache.pig.backend.executionengine.util.ExecTools;
+import org.apache.pig.backend.hadoop.executionengine.HJob;
+import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LocalLauncher;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.local.executionengine.physicalLayer.LocalLogToPhyTranslationVisitor;
+import org.apache.pig.impl.plan.VisitorException;
+import java.util.Iterator;
 
 public class LocalExecutionEngine implements ExecutionEngine {
 
@@ -48,32 +64,29 @@ public class LocalExecutionEngine implements ExecutionEngine {
     protected DataStorage ds;
     protected NodeIdGenerator nodeIdGenerator;
 
-    // key: the operator key from the logical plan that originated the physical plan
+    // key: the operator key from the logical plan that originated the physical
+    // plan
     // val: the operator key for the root of the phyisical plan
     protected Map<OperatorKey, OperatorKey> logicalToPhysicalKeys;
-    
-    protected Map<OperatorKey, ExecPhysicalOperator> physicalOpTable;
-    
+
+    protected Map<OperatorKey, PhysicalOperator> physicalOpTable;
+
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, LocalResult> materializedResults;
-    
+
     public LocalExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
         this.ds = pigContext.getLfs();
-        this.nodeIdGenerator = NodeIdGenerator.getGenerator(); 
+        this.nodeIdGenerator = NodeIdGenerator.getGenerator();
         this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
-        this.physicalOpTable = new HashMap<OperatorKey, ExecPhysicalOperator>();
+        this.physicalOpTable = new HashMap<OperatorKey, PhysicalOperator>();
         this.materializedResults = new HashMap<OperatorKey, LocalResult>();
-    }
-    
-    public Map<OperatorKey, OperatorKey> getLogicalToPhysicalMap() {
-    	return logicalToPhysicalKeys;
     }
 
     public DataStorage getDataStorage() {
         return this.ds;
     }
-    
+
     public void init() throws ExecException {
         ;
     }
@@ -81,219 +94,130 @@ public class LocalExecutionEngine implements ExecutionEngine {
     public void close() throws ExecException {
         ;
     }
-        
+
     public Properties getConfiguration() throws ExecException {
         return this.pigContext.getProperties();
     }
-        
-    public void updateConfiguration(Properties newConfiguration) 
-        throws ExecException {
+
+    public void updateConfiguration(Properties newConfiguration)
+            throws ExecException {
         // there is nothing to do here.
     }
-        
+
     public Map<String, Object> getStatistics() throws ExecException {
         throw new UnsupportedOperationException();
     }
 
-    
-    public LocalPhysicalPlan compile(ExecLogicalPlan plan,
-                                     Properties properties)
+    // public PhysicalPlan compile(LogicalPlan plan,
+    // Properties properties) throws ExecException {
+    // if (plan == null) {
+    // throw new ExecException("No Plan to compile");
+    // }
+    //
+    // try {
+    // LogToPhyTranslationVisitor translator =
+    // new LogToPhyTranslationVisitor(plan);
+    // translator.setPigContext(pigContext);
+    // translator.visit();
+    // return translator.getPhysicalPlan();
+    // } catch (VisitorException ve) {
+    // throw new ExecException(ve);
+    // }
+    // }
+
+    public PhysicalPlan compile(LogicalPlan plan, Properties properties)
             throws ExecException {
         if (plan == null) {
             throw new ExecException("No Plan to compile");
         }
 
-        return compile(new ExecLogicalPlan[]{ plan } , properties);
-    }
-
-    public LocalPhysicalPlan compile(ExecLogicalPlan[] plans,
-                                     Properties properties)
-            throws ExecException {
-        if (plans == null) {
-            throw new ExecException("No Plans to compile");
-        }
-
-        OperatorKey physicalKey = null;
-        for (int i = 0; i < plans.length; ++i) {
-            ExecLogicalPlan curPlan = null;
-
-            curPlan = plans[ i ];
-     
-            OperatorKey logicalKey = curPlan.getRoot();
-            
-            physicalKey = logicalToPhysicalKeys.get(logicalKey);
-            
-            if (physicalKey == null) {
-                physicalKey = doCompile(curPlan.getRoot(),
-                                        curPlan.getOpTable(),
-                                        properties);
-                
-                logicalToPhysicalKeys.put(logicalKey, physicalKey);
-            }
-        }
-        
-        return new LocalPhysicalPlan(physicalKey, physicalOpTable);
-    }
-
-    public LocalJob execute(ExecPhysicalPlan plan) throws ExecException {
-        DataBag results = BagFactory.getInstance().newDefaultBag();
         try {
-            PhysicalOperator pp = (PhysicalOperator)physicalOpTable.get(plan.getRoot());
-
-            pp.visit(new InstantiateFuncCallerPOVisitor(pigContext, physicalOpTable));
-            pp.open();
-            
-            Tuple t;
-            while ((t = (Tuple) pp.getNext()) != null) {
-                results.add(t);
-            }
-            
-            pp.close();
+            LocalLogToPhyTranslationVisitor translator = new LocalLogToPhyTranslationVisitor(
+                    plan);
+            translator.setPigContext(pigContext);
+            translator.visit();
+            return translator.getPhysicalPlan();
+        } catch (VisitorException ve) {
+            throw new ExecException(ve);
         }
-        catch (Exception e) {
-            throw new ExecException(e);
-        }
-        
-        return new LocalJob(results, JOB_STATUS.COMPLETED);
     }
 
-    public LocalJob submit(ExecPhysicalPlan plan) throws ExecException {
+    public ExecJob execute(PhysicalPlan plan, String jobName)
+            throws ExecException {
+        try {
+            PhysicalOperator leaf = (PhysicalOperator) plan.getLeaves().get(0);
+            FileSpec spec = null;
+            if (!(leaf instanceof POStore)) {
+                String scope = leaf.getOperatorKey().getScope();
+                POStore str = new POStore(new OperatorKey(scope,
+                        NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+                str.setPc(pigContext);
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                        pigContext).toString(), new FuncSpec(BinStorage.class
+                        .getName()));
+                str.setSFile(spec);
+                plan.addAsLeaf(str);
+            } else {
+                spec = ((POStore) leaf).getSFile();
+            }
+
+            // LocalLauncher launcher = new LocalLauncher();
+            LocalPigLauncher launcher = new LocalPigLauncher();
+            boolean success = launcher.launchPig(plan, jobName, pigContext);
+            if (success)
+                return new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext,
+                        spec);
+            else
+                return new LocalJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
+        } catch (Exception e) {
+            // There are a lot of exceptions thrown by the launcher. If this
+            // is an ExecException, just let it through. Else wrap it.
+            if (e instanceof ExecException)
+                throw (ExecException) e;
+            else
+                throw new ExecException(e.getMessage(), e);
+        }
+    }
+
+    public LocalJob submit(PhysicalPlan plan, String jobName)
+            throws ExecException {
         throw new UnsupportedOperationException();
     }
 
-    public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
+    public void explain(PhysicalPlan plan, PrintStream stream) {
+        try {
+            PlanPrinter printer = new PlanPrinter(plan, stream);
+            printer.visit();
+            stream.println();
+
+            ExecTools.checkLeafIsStore(plan, pigContext);
+
+            // LocalLauncher launcher = new LocalLauncher();
+            LocalPigLauncher launcher = new LocalPigLauncher();
+            launcher.explain(plan, pigContext, stream);
+        } catch (Exception ve) {
+            throw new RuntimeException(ve);
+        }
+    }
+
+    public Collection<ExecJob> runningJobs(Properties properties)
+            throws ExecException {
         return new HashSet<ExecJob>();
     }
-    
+
     public Collection<String> activeScopes() throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     public void reclaimScope(String scope) throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     private OperatorKey doCompile(OperatorKey logicalKey,
-                                  Map<OperatorKey, LogicalOperator> logicalOpTable,
-                                  Properties properties) 
-            throws ExecException {
-        
-        LocalResult materializedResult = materializedResults.get(logicalKey);
-        
-        if (materializedResult != null) {
-            
-            if (PigContext.instantiateFuncFromSpec(materializedResult.outFileSpec.getFuncSpec()) 
-                                                            instanceof ReversibleLoadStoreFunc) {
-                ExecPhysicalOperator pp = new POLoad(logicalKey.getScope(),
-                            nodeIdGenerator.getNextNodeId(logicalKey.getScope()),
-                            physicalOpTable,
-                            pigContext, 
-                            materializedResult.outFileSpec,
-                            LogicalOperator.FIXED);
+            Map<OperatorKey, LogicalOperator> logicalOpTable,
+            Properties properties) throws ExecException {
 
-               OperatorKey ppKey = new OperatorKey(pp.getScope(), pp.getId());
-               return ppKey;          
-            }
-
-        }
-
-        OperatorKey physicalKey = new OperatorKey();
-        
-        if (compileOperator(logicalKey, logicalOpTable, properties, physicalKey)) {
-            for (int i = 0; i < logicalOpTable.get(logicalKey).getInputs().size(); ++i) {
-                ((PhysicalOperator)physicalOpTable.get(physicalKey)).inputs[i] = 
-                    doCompile(logicalOpTable.get(logicalKey).getInputs().get(i), logicalOpTable, properties);
-            }
-        }
-
-        return physicalKey;
+        return null;
     }
-    
-    private boolean compileOperator(OperatorKey logicalKey, 
-                                    Map<OperatorKey, LogicalOperator> logicalOpTable,
-                                    Properties properties,
-                                    OperatorKey physicalKey) 
-            throws ExecException {
-        ExecPhysicalOperator pp;
-        LogicalOperator lo = logicalOpTable.get(logicalKey);
-        String scope = lo.getScope();
-        boolean compileInputs = true;
-        
-        if (lo instanceof LOEval) {
-            
-            pp = new POEval(scope,
-                           nodeIdGenerator.getNextNodeId(scope),
-                           physicalOpTable,
-                           ((LOEval) lo).getSpec(),
-                           lo.getOutputType());
-        } 
-        else if (lo instanceof LOCogroup) {
-            pp = new POCogroup(scope,
-                               nodeIdGenerator.getNextNodeId(scope),
-                               physicalOpTable,
-                               ((LOCogroup) lo).getSpecs(),
-                               lo.getOutputType());
-        }  
-        else if (lo instanceof LOLoad) {
-            pp = new POLoad(scope,
-                            nodeIdGenerator.getNextNodeId(scope),
-                            physicalOpTable,
-                            pigContext, 
-                            ((LOLoad)lo).getInputFileSpec(),
-                            lo.getOutputType());
-        }
-        else if (lo instanceof LOSplitOutput) {
-            LOSplitOutput loso = (LOSplitOutput)lo;
-            LOSplit los = ((LOSplit)(logicalOpTable.get(loso.getInputs().get(0))));
-            
-            pp = new POSplit(scope,
-                             nodeIdGenerator.getNextNodeId(scope),
-                             physicalOpTable,
-                             doCompile(los.getInputs().get(0),
-                                       logicalOpTable,
-                                       properties), 
-                             los.getConditions(),
-                             loso.getReadFrom(),
-                             lo.getOutputType());
-            
-            compileInputs = false;
-        }
-        else if (lo instanceof LOStore) {
-            pp = new POStore(scope,
-                             nodeIdGenerator.getNextNodeId(scope),
-                             physicalOpTable,
-                             lo.getInputs().get(0),
-                             materializedResults,
-                             ((LOStore)lo).getOutputFileSpec(),
-                             ((LOStore)lo).isAppend(),
-                             pigContext);
-        } 
-        else if (lo instanceof LOUnion) {
-            pp = new POUnion(scope,
-                             nodeIdGenerator.getNextNodeId(scope),
-                             physicalOpTable,
-                             ((LOUnion)lo).getInputs().size(),
-                             lo.getOutputType());
-        } 
-        else if (lo instanceof LOSort) {
-            pp = new POSort(scope,
-                            nodeIdGenerator.getNextNodeId(scope),
-                            physicalOpTable,
-                            ((LOSort)lo).getSortSpec(),
-                            lo.getOutputType());
-        }
-        else {
-            throw new ExecException("Internal error: Unknown logical operator.");
-        }
-        
-        physicalKey.scope = pp.getScope();
-        physicalKey.id = pp.getId();
-        
-        logicalToPhysicalKeys.put(logicalKey, physicalKey);
-        
-        return compileInputs;
-    }
+
 }
-
-
-

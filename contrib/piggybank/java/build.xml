@@ -54,7 +54,8 @@
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.classes}"/>
-        <pathelement location="${pigjar}"/>
+        <pathelement location="${test.src.dir}"/>
+        <path refid="pigudf.classpath"/>
     </path>
 
     <target name="init">

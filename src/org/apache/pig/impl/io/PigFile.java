@@ -59,7 +59,7 @@ public class PigFile {
     public void store(DataBag data, StoreFunc sfunc, PigContext pigContext) throws IOException {
         BufferedOutputStream bos = new BufferedOutputStream(FileLocalizer.create(file, append, pigContext));
         sfunc.bindTo(bos);
-        for (Iterator<Tuple> it = data.content(); it.hasNext();) {
+        for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
             Tuple row = it.next();
             sfunc.putNext(row);
         }
@@ -68,11 +68,6 @@ public class PigFile {
     }
 
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("PigFile: file: ");
-        sb.append(this.file);
-        sb.append(", append: ");
-        sb.append(this.append);
-        return sb.toString();
+        return "PigFile: file: " + this.file + ", append: " + this.append;
     }
 }

@@ -18,33 +18,53 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
  * Generates the average of the values of the first field of a tuple. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global application
  */
-public class AVG extends EvalFunc<DataAtom> implements Algebraic {
+public class AVG extends EvalFunc<Double> implements Algebraic {
     
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        double sum = sum(input);
-        double count = count(input);
+    public Double exec(Tuple input) throws IOException {
+        try {
+            Double sum = sum(input);
+            if(sum == null) {
+                // either we were handed an empty bag or a bag
+                // filled with nulls - return null in this case
+                return null;
+            }
+            double count = count(input);
 
-        double avg = 0;
-        if (count > 0)
-            avg = sum / count;
-
-        output.setValue(avg);
+            Double avg = null;
+            if (count > 0)
+                avg = new Double(sum / count);
+    
+            return avg;
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            oughtToBeEE.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public String getInitial() {
@@ -52,7 +72,7 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Intermed.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -61,87 +81,165 @@ public class AVG extends EvalFunc<DataAtom> implements Algebraic {
 
     static public class Initial extends EvalFunc<Tuple> {
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
+        public Tuple exec(Tuple input) throws IOException {
+            Tuple t = mTupleFactory.newTuple(2);
             try {
-            output.appendField(new DataAtom(sum(input)));
-            output.appendField(new DataAtom(count(input)));
-            // output.appendField(new DataAtom("processed by initial"));
-            } catch(RuntimeException t) {
-                throw new RuntimeException(t.getMessage() + ": " + input, t);
+                // input is a bag with one tuple containing
+                // the column we are trying to avg
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                DataByteArray dba = (DataByteArray)tp.get(0); 
+                t.set(0, dba != null ? Double.valueOf(dba.toString()) : null);
+                t.set(1, 1L);
+                return t;
+            } catch(NumberFormatException nfe) {
+                // invalid input,
+                // treat this input as null
+                try {
+                    t.set(0, null);
+                    t.set(1, 1L);
+                } catch (ExecException e) {
+                    throw WrappedIOException.wrap(e);
+                }
+                return t;
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
             }
-        }
-    }
-
-    static public class Intermed extends EvalFunc<Tuple> {
-        @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            combine(input.getBagField(0), output);
-        }
-    }
-
-    static public class Final extends EvalFunc<DataAtom> {
-        @Override
-        public void exec(Tuple input, DataAtom output) throws IOException {
-            Tuple combined = new Tuple();
-            if(input.getField(0) instanceof DataBag) {
-                combine(input.getBagField(0), combined);    
-            } else {
-                throw new RuntimeException("Bag not found in: " + input);
                 
-                
-                //combined = input.getTupleField(0);
-            }
-            double sum = combined.getAtomField(0).numval();
-            double count = combined.getAtomField(1).numval();
-
-            double avg = 0;
-            if (count > 0) {
-                avg = sum / count;
-            }
-            output.setValue(avg);
         }
     }
 
-    static protected void combine(DataBag values, Tuple output) throws IOException {
+    static public class Intermediate extends EvalFunc<Tuple> {
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                DataBag b = (DataBag)input.get(0);
+                return combine(b);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
+            }
+        }
+    }
+
+    static public class Final extends EvalFunc<Double> {
+        @Override
+        public Double exec(Tuple input) throws IOException {
+            try {
+                DataBag b = (DataBag)input.get(0);
+                Tuple combined = combine(b);
+
+                Double sum = (Double)combined.get(0);
+                if(sum == null) {
+                    return null;
+                }
+                double count = (Long)combined.get(1);
+
+                Double avg = null;
+                if (count > 0) {
+                    avg = new Double(sum / count);
+                }
+                return avg;
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
+            }
+        }
+    }
+
+    static protected Tuple combine(DataBag values) throws ExecException {
         double sum = 0;
-        double count = 0;
+        long count = 0;
 
-        for (Iterator it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
-//            if(!(t.getField(0) instanceof DataAtom)) {
-//                throw new RuntimeException("Unexpected Type: " + t.getField(0).getClass().getName() + " in " + t);
-//            }
-            
-            sum += t.getAtomField(0).numval();
-            count += t.getAtomField(1).numval();
+        // combine is called from Intermediate and Final
+        // In either case, Initial would have been called
+        // before and would have sent in valid tuples
+        // Hence we don't need to check if incoming bag
+        // is empty
+
+        Tuple output = mTupleFactory.newTuple(2);
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            Double d = (Double)t.get(0);
+            // we count nulls in avg as contributing 0
+            // a departure from SQL for performance of 
+            // COUNT() which implemented by just inspecting
+            // size of the bag
+            if(d == null) {
+                d = 0.0;
+            } else {
+                sawNonNull = true;
+            }
+            sum += d;
+            count += (Long)t.get(1);
         }
-
-        output.appendField(new DataAtom(sum));
-        output.appendField(new DataAtom(count));
+        if(sawNonNull) {
+            output.set(0, new Double(sum));
+        } else {
+            output.set(0, null);
+        }
+        output.set(1, new Long(count));
+        return output;
     }
 
-    static protected long count(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
-
-        
+    static protected long count(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
         return values.size();
     }
 
-    static protected double sum(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
-
-        double sum = 0;
-        for (Iterator it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
-            sum += t.getAtomField(0).numval();
+    static protected Double sum(Tuple input) throws ExecException, IOException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        if(values.size() == 0) {
+            return null;
         }
 
-        return sum;
-    }
-    
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new AtomSchema("average");
+        double sum = 0;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try{
+                DataByteArray dba = (DataByteArray)t.get(0);
+                Double d = dba != null ? Double.valueOf(dba.toString()) : null;
+                if (d == null) continue;
+                sawNonNull = true;
+                sum += d;
+            }catch(RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage(), exp);
+                throw newE;
+            }
+        }
+
+        if(sawNonNull) {
+            return new Double(sum);
+        } else {
+            return null;
+        }
     }
 
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
+        funcList.add(new FuncSpec(DoubleAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+        funcList.add(new FuncSpec(FloatAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+        funcList.add(new FuncSpec(IntAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+        funcList.add(new FuncSpec(LongAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        return funcList;
+    }    
 }

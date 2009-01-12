@@ -1,0 +1,35 @@
+Package[tuple]{tuple} - Test-Plan-Builder-51
+|
+|---Global Rearrange[tuple] - Test-Plan-Builder-50
+    |
+    |---Local Rearrange[tuple]{tuple}(false) - Test-Plan-Builder-52
+    |   |   |
+    |   |   Add[bytearray] - Test-Plan-Builder-55
+    |   |   |
+    |   |   |---Project[bytearray][0] - Test-Plan-Builder-53
+    |   |   |
+    |   |   |---Project[bytearray][1] - Test-Plan-Builder-54
+    |   |   |
+    |   |   Subtract[bytearray] - Test-Plan-Builder-58
+    |   |   |
+    |   |   |---Project[bytearray][0] - Test-Plan-Builder-56
+    |   |   |
+    |   |   |---Project[bytearray][1] - Test-Plan-Builder-57
+    |   |
+    |   |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-48
+    |
+    |---Local Rearrange[tuple]{tuple}(false) - Test-Plan-Builder-59
+        |   |
+        |   Add[bytearray] - Test-Plan-Builder-62
+        |   |
+        |   |---Project[bytearray][0] - Test-Plan-Builder-60
+        |   |
+        |   |---Project[bytearray][1] - Test-Plan-Builder-61
+        |   |
+        |   Subtract[bytearray] - Test-Plan-Builder-65
+        |   |
+        |   |---Project[bytearray][0] - Test-Plan-Builder-63
+        |   |
+        |   |---Project[bytearray][1] - Test-Plan-Builder-64
+        |
+        |---Load(b:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-49

@@ -18,29 +18,32 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.pig.FilterFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Datum;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.DataType;
 
 
 public class IsEmpty extends FilterFunc {
 
     @Override
-    public boolean exec(Tuple input) throws IOException {
-        Datum values = input.getField(0);
-        if (values instanceof DataBag) {
-            return ((DataBag)values).size() == 0;
-        } else if (values instanceof DataMap) {
-            return ((DataMap)values).cardinality() == 0;
-        } else {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Cannot test a ");
-            sb.append(values.getClass().getSimpleName());
-            sb.append(" for emptiness.");
-            throw new IOException(sb.toString());
+    public Boolean exec(Tuple input) throws IOException {
+        try {
+            Object values = input.get(0);        
+            if (values instanceof DataBag)
+                return ((DataBag)values).size() == 0;
+            else if (values instanceof Map)
+                return ((Map)values).size() == 0;
+            else
+                throw new IOException("Cannot test a " +
+                    DataType.findTypeName(values) + " for emptiness.");
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            oughtToBeEE.initCause(ee);
+            throw oughtToBeEE;
         }
     }
 

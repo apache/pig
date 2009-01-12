@@ -17,13 +17,22 @@
  */
 package org.apache.pig.builtin;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Map;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
@@ -33,13 +42,14 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 public class TextLoader implements LoadFunc{
     BufferedPositionedInputStream in;
     final private static Charset utf8 = Charset.forName("UTF8");
-    long                end;
+    long end;
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
         this.in = in;
         this.end = end;
         // Since we are not block aligned we throw away the first
-        // record and could on a different instance to read it
+        // record and count on a different instance to read it
         if (offset != 0)
             getNext();
     }
@@ -49,14 +59,130 @@ public class TextLoader implements LoadFunc{
             return null;
         String line;
         if ((line = in.readLine(utf8, (byte)'\n')) != null) {
-            if (line.length()>0 && line.charAt(line.length()-1)=='\r')
+            if (line.length()>0 && line.charAt(line.length()-1)=='\r' && System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
                 line = line.substring(0, line.length()-1);
-
-            Tuple t = new Tuple(1);
-            t.setField(0, new DataAtom(line));
-            return t;
+            return mTupleFactory.newTuple(new DataByteArray(line.getBytes()));
         }
         return null;
     }
 
+    /**
+     * TextLoader does not support conversion to Boolean.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Boolean bytesToBoolean(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Boolean");
+    }
+    
+    /**
+     * TextLoader does not support conversion to Integer
+     * @throws IOException if the value cannot be cast.
+     */
+    public Integer bytesToInteger(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Integer");
+    }
+
+    /**
+     * TextLoader does not support conversion to Long
+     * @throws IOException if the value cannot be cast.
+     */
+    public Long bytesToLong(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Long");
+    }
+
+    /**
+     * TextLoader does not support conversion to Float
+     * @throws IOException if the value cannot be cast.
+     */
+    public Float bytesToFloat(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Float");
+    }
+
+    /**
+     * TextLoader does not support conversion to Double
+     * @throws IOException if the value cannot be cast.
+     */
+    public Double bytesToDouble(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Double");
+    }
+
+    /**
+     * Cast data from bytes to chararray value.  
+     * @param b byte array to be cast.
+     * @return String value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public String bytesToCharArray(byte[] b) throws IOException {
+        return new String(b);
+    }
+
+    /**
+     * TextLoader does not support conversion to Map
+     * @throws IOException if the value cannot be cast.
+     */
+    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Map");
+    }
+
+    /**
+     * TextLoader does not support conversion to Tuple
+     * @throws IOException if the value cannot be cast.
+     */
+    public Tuple bytesToTuple(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Tuple");
+    }
+
+    /**
+     * TextLoader does not support conversion to Bag
+     * @throws IOException if the value cannot be cast.
+     */
+    public DataBag bytesToBag(byte[] b) throws IOException {
+        throw new IOException("TextLoader does not support conversion to Bag");
+    }
+
+    /**
+     * TextLoader doesn't make use of this.
+     */
+    public void fieldsToRead(Schema schema) {}
+
+    /**
+     * TextLoader does not provide a schema.
+     */
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public byte[] toBytes(DataBag bag) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Bag");
+    }
+
+    public byte[] toBytes(String s) throws IOException {
+        return s.getBytes();
+    }
+
+    public byte[] toBytes(Double d) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Double");
+    }
+
+    public byte[] toBytes(Float f) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Float");
+    }
+
+    public byte[] toBytes(Integer i) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Integer");
+    }
+
+    public byte[] toBytes(Long l) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Long");
+    }
+
+    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Map");
+    }
+
+    public byte[] toBytes(Tuple t) throws IOException {
+        throw new IOException("TextLoader does not support conversion from Tuple");
+    }
 }

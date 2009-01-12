@@ -49,20 +49,25 @@ import org.apache.commons.logging.LogFactory;
  * ArrayList and then sorted.  Dispite all these machinations, this was
  * found to be faster than storing it in a TreeSet.
  */
-public class DistinctDataBag extends DataBag {
+public class DistinctDataBag extends DefaultAbstractBag {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
 
     private static final Log log = LogFactory.getLog(DistinctDataBag.class);
+
+    private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
     public DistinctDataBag() {
         mContents = new HashSet<Tuple>();
     }
 
-    @Override
     public boolean isSorted() {
         return false;
     }
     
-    @Override
     public boolean isDistinct() {
         return true;
     }
@@ -89,7 +94,6 @@ public class DistinctDataBag extends DataBag {
     }
     
     
-    @Override
     public Iterator<Tuple> iterator() {
         return new DistinctDataBagIterator();
     }
@@ -286,7 +290,7 @@ public class DistinctDataBag extends DataBag {
 
                 // Fast foward past the tuples we've already put in the
                 // queue.
-                Tuple t = new Tuple();
+                Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
                     try {
                         t.readFields(in);
@@ -397,7 +401,7 @@ public class DistinctDataBag extends DataBag {
             DataInputStream in = mStreams.get(fileNum);
             if (in != null) {
                 // There's still data in this file
-                c.tuple = new Tuple();
+                c.tuple = gTupleFactory.newTuple();
                 do {
                     try {
                         c.tuple.readFields(in);

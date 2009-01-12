@@ -22,10 +22,11 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.io.FileNotFoundException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,25 +37,39 @@ import org.apache.commons.logging.LogFactory;
  * are stored in an ArrayList, since there is no concern for order or
  * distinctness.
  */
-public class DefaultDataBag extends DataBag {
+public class DefaultDataBag extends DefaultAbstractBag {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
+
+    private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
     private static final Log log = LogFactory.getLog(DefaultDataBag.class);
-
+ 
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
     }
 
-    @Override
+    /**
+     * This constructor creates a bag out of an existing list
+     * of tuples by taking ownership of the list and NOT
+     * copying the contents of the list.
+     * @param listOfTuples List<Tuple> containing the tuples
+     */
+    public DefaultDataBag(List<Tuple> listOfTuples) {
+        mContents = listOfTuples;
+    }
+
     public boolean isSorted() {
         return false;
     }
     
-    @Override
     public boolean isDistinct() {
         return false;
     }
     
-    @Override
     public Iterator<Tuple> iterator() {
         return new DefaultDataBagIterator();
     }
@@ -83,7 +98,7 @@ public class DefaultDataBag extends DataBag {
                 while (i.hasNext()) {
                     i.next().write(out);
                     spilled++;
-                    // This will report progress every 16383 records.
+                    // This will spill every 16383 records.
                     if ((spilled & 0x3fff) == 0) reportProgress();
                 }
                 out.flush();
@@ -182,7 +197,7 @@ public class DefaultDataBag extends DataBag {
                         "Unable to find our spill file", fnfe);
                     throw new RuntimeException(fnfe);
                 }
-                Tuple t = new Tuple();
+                Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
                     try {
                         t.readFields(mIn);
@@ -215,7 +230,7 @@ public class DefaultDataBag extends DataBag {
         private Tuple readFromFile() {
             if (mIn != null) {
                 // We already have a file open
-                Tuple t = new Tuple();
+                Tuple t = gTupleFactory.newTuple();
                 try {
                     t.readFields(mIn);
                     return t;

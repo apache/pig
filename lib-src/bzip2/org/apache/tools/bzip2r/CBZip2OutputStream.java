@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /*
  * The Apache Software License, Version 1.1
  *
@@ -368,7 +367,7 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
      *
      */
     public void write(int bv) throws IOException {
-    	written = true;
+        written = true;
         int b = (256 + bv) % 256;
         if (currentChar != -1) {
             if (currentChar == b) {

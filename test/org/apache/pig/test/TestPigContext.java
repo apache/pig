@@ -18,7 +18,6 @@
 
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType.LOCAL;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +27,7 @@ import java.util.Properties;
 
 import junit.framework.TestCase;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.junit.After;
@@ -46,7 +46,7 @@ public class TestPigContext extends TestCase {
     @Before
     @Override
     protected void setUp() throws Exception {
-        pigContext = new PigContext(LOCAL, getProperties());
+        pigContext = new PigContext(ExecType.LOCAL, getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
     }
     
@@ -66,7 +66,7 @@ public class TestPigContext extends TestCase {
      */
     @Test
     public void testSetProperties_way_num02() throws Exception {
-        PigServer pigServer = new PigServer(LOCAL, getProperties());
+        PigServer pigServer = new PigServer(ExecType.LOCAL, getProperties());
         registerAndStore(pigServer);
         
         check_asserts();
@@ -100,7 +100,7 @@ public class TestPigContext extends TestCase {
 
     private List<String> getCommands() {
         List<String> commands = new ArrayList<String>();
-        commands.add("my_input = LOAD '" + Util.encodeEscape(input.getAbsolutePath().toString()) + "' USING PigStorage();");
+        commands.add("my_input = LOAD '" + Util.encodeEscape(input.getAbsolutePath()) + "' USING PigStorage();");
         commands.add("words = FOREACH my_input GENERATE FLATTEN(TOKENIZE(*));");
         commands.add("grouped = GROUP words BY $0;");
         commands.add("counts = FOREACH grouped GENERATE group, COUNT(words);");

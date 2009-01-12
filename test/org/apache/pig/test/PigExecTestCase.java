@@ -17,14 +17,14 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
-import static org.apache.pig.PigServer.ExecType.LOCAL;
+import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.apache.pig.ExecType.LOCAL;
 import junit.framework.TestCase;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.junit.After;
 import org.junit.Before;
 
@@ -32,7 +32,7 @@ public abstract class PigExecTestCase extends TestCase {
 
     protected final Log log = LogFactory.getLog(getClass());
     
-    protected ExecType execType = MAPREDUCE;
+    protected ExecType execType = LOCAL;
     
     private MiniCluster cluster;
     protected PigServer pigServer;

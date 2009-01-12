@@ -23,6 +23,10 @@ import java.util.*;
 import java.util.jar.*;
 import java.text.ParseException;
 
+import jline.ConsoleReader;
+import jline.ConsoleReaderInputStream;
+import jline.History;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -32,15 +36,16 @@ import org.apache.log4j.Level;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.PropertyConfigurator;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.PropertiesUtil;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.grunt.PigCompletor;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
@@ -240,7 +245,7 @@ public static void main(String args[])
         case STRING: {
             // Gather up all the remaining arguments into a string and pass them into
             // grunt.
-            StringBuilder sb = new StringBuilder();
+            StringBuffer sb = new StringBuffer();
             String remainders[] = opts.getRemainingArgs();
             for (int i = 0; i < remainders.length; i++) {
                 if (i != 0) sb.append(' ');
@@ -265,8 +270,15 @@ public static void main(String args[])
         if (remainders == null) {
             // Interactive
             mode = ExecMode.SHELL;
-            in = new BufferedReader(new InputStreamReader(System.in));
-            grunt = new Grunt(in, pigContext);
+            ConsoleReader reader = new ConsoleReader(System.in, new OutputStreamWriter(System.out));
+            reader.addCompletor(new PigCompletor());
+            reader.setDefaultPrompt("grunt> ");
+            final String HISTORYFILE = ".pig_history";
+            String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
+            reader.setHistory(new History(new File(historyFile)));
+            ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
+            grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
+            grunt.setConsoleReader(reader);
             grunt.run();
             rc = 0;
             return;
@@ -385,7 +397,6 @@ private static BufferedReader runParamPreprocessor(BufferedReader origPigScript,
     }
 }
     
-   
 private static String getVersionString() {
 	String findContainingJar = JarManager.findContainingJar(Main.class);
 	  try { 

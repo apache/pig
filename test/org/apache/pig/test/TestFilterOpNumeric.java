@@ -17,7 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -28,18 +27,29 @@ import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
 import junit.framework.TestCase;
 
-public class TestFilterOpNumeric extends PigExecTestCase {
+public class TestFilterOpNumeric extends TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
+    private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
+    private PigServer pig;
     
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+
+
     @Test
     public void testNumericEq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -52,20 +62,20 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using "+PigStorage.class.getName() +"(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by $0 == $1;";
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.equals(second));
         
-            String sfirst = t.getAtomField(0).strval();
-            String ssecond = t.getAtomField(1).strval();
+            String sfirst = t.get(0).toString();
+            String ssecond = t.get(1).toString();
             assertFalse(sfirst.equals(ssecond));
         }
     }
@@ -82,16 +92,16 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertFalse(first.equals(second));
         }
     }
@@ -108,17 +118,19 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " +
+                PigStorage.class.getName() +
+                "(':') as (f1: double, f2:double);");
         String query = "A = filter A by $0 > $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) > 0);
         }
     }
@@ -131,23 +143,23 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "';");
-        String query = "A = foreach A generate ($1 >= '"+ LOOP_COUNT+"'-'10'?'1':'0');";
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "';");
+        String query = "A = foreach A generate ($1 >= "+ LOOP_COUNT+"-10?'1':'0');";
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
+            Double first = Double.valueOf(t.get(0).toString());
             if (first == 1)
-            	count++;
+                count++;
             else
-            	assertTrue(first == 0);
+                assertTrue(first == 0);
             
         }
-        assertTrue(count == 10);
+        assertEquals("expected count of 10", 10, count);
     }
     
     
@@ -159,24 +171,22 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "';");
-        String query = "A = foreach A generate ($0 < '10'?($1 >= '5' ? '2': '1') : '0');";
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "';");
+        String query = "A = foreach A generate ($0 < 10?($1 >= 5 ? 2: 1) : 0);";
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
+            Integer first = (Integer)t.get(0);
             count+=first;
-           	assertTrue(first == 1 || first == 2 || first == 0);
+            assertTrue(first == 1 || first == 2 || first == 0);
             
         }
-        assertTrue(count == 15);
+        assertEquals("expected count of 15", 15, count);
     }
-    
-    
     
     @Test 
     public void testNumericLt() throws Throwable {
@@ -190,19 +200,20 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by $0 < $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) < 0);
         }
+        
     }
 
     
@@ -220,17 +231,17 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 >= $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) >= 0);
         }
     }
@@ -249,17 +260,17 @@ public class TestFilterOpNumeric extends PigExecTestCase {
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by $0 <= $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            Double first = t.getAtomField(0).numval();
-            Double second = t.getAtomField(1).numval();
+            Double first = Double.valueOf(t.get(0).toString());
+            Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) <= 0);
         }
     }

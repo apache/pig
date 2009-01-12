@@ -32,24 +32,28 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.PriorityQueue;
-
+  
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.impl.eval.EvalSpec;
-
 
 
 /**
  * An ordered collection of Tuples (possibly) with multiples.  Data is
- * stored unsorted in an ArrayList as it comes in, and only sorted when it
- * is time to dump
+ * stored unsorted as it comes in, and only sorted when it is time to dump
  * it to a file or when the first iterator is requested.  Experementation
  * found this to be the faster than storing it sorted to begin with.
  * 
  * We allow a user defined comparator, but provide a default comparator in
  * cases where the user doesn't specify one.
  */
-public class SortedDataBag extends DataBag {
+public class SortedDataBag extends DefaultAbstractBag{
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
+
+    private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
     private static final Log log = LogFactory.getLog(SortedDataBag.class);
 
@@ -68,31 +72,23 @@ public class SortedDataBag extends DataBag {
     }
 
     /**
-     * @param spec EvalSpec to use to do the sorting. spec.getComparator()
-     * will be called to populate our mComp field.  If null,
+     * @param comp Comparator to use to do the sorting.  If null,
      * DefaultComparator will be used.
      */
-    public SortedDataBag(EvalSpec spec) {
-        if (spec == null) {
-            mComp = new DefaultComparator();
-        } else {
-            mComp = spec.getComparator();
-        }
+    public SortedDataBag(Comparator<Tuple> comp) {
+        mComp = (comp == null) ? new DefaultComparator() : comp;
 
         mContents = new ArrayList<Tuple>();
     }
 
-    @Override
     public boolean isSorted() {
         return true;
     }
     
-    @Override
     public boolean isDistinct() {
         return false;
     }
     
-    @Override
     public Iterator<Tuple> iterator() {
         return new SortedDataBagIterator();
     }
@@ -265,7 +261,7 @@ public class SortedDataBag extends DataBag {
 
                 // Fast foward past the tuples we've already put in the
                 // queue.
-                Tuple t = new Tuple();
+                Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
                     try {
                         t.readFields(in);
@@ -372,7 +368,7 @@ public class SortedDataBag extends DataBag {
             DataInputStream in = mStreams.get(fileNum);
             if (in != null) {
                 // There's still data in this file
-                c.tuple = new Tuple();
+                c.tuple = gTupleFactory.newTuple();
                 try {
                     c.tuple.readFields(in);
                     mMergeQ.add(c);

@@ -24,10 +24,15 @@ import java.util.ArrayList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class TimestampedTuple extends Tuple {
+public class TimestampedTuple extends DefaultTuple {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2L;
     private static final Log log = LogFactory.getLog(TimestampedTuple.class);
-    
+    static String defaultDelimiter = "[,\t]";
+
     protected double timestamp = 0;      // timestamp of this tuple
     protected boolean heartbeat = false;  // true iff this is a heartbeat (i.e. purpose is just to convey new timestamp; carries no data)
     
@@ -53,7 +58,7 @@ public class TimestampedTuple extends Tuple {
             delimiter = defaultDelimiter;
         }
         String[] splitString = textLine.split(delimiter, -1);
-        fields = new ArrayList<Datum>(splitString.length-1);
+        mFields = new ArrayList<Object>(splitString.length-1);
         for (int i = 0; i < splitString.length; i++) {
             if (i==timestampColumn){
                 try{
@@ -62,10 +67,8 @@ public class TimestampedTuple extends Tuple {
                     log.error("Could not parse timestamp " + splitString[i]);
                 }
             }else{
-                fields.add(new DataAtom(splitString[i]));
+                mFields.add(new String(splitString[i]));
             }
         }
     }
-
-    
 }

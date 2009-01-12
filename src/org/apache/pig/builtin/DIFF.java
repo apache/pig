@@ -18,12 +18,16 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 
 /**
@@ -31,51 +35,63 @@ import org.apache.pig.data.Tuple;
  * will emit any Tuples that are in on of the DataBags but not the other. If the
  * fields are values, it will emit tuples with values that do not match.
  * 
- * @author breed
- *
  */
 public class DIFF extends EvalFunc<DataBag> {
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
+    BagFactory mBagFactory = BagFactory.getInstance();
+
     /**
      * Compares a tuple with two fields. Emits any differences.
      * @param input a tuple with exactly two fields.
      * @throws IOException if there are not exactly two fields in a tuple
      */
     @Override
-    public void exec(Tuple input, DataBag output) throws IOException {
-        if (input.arity() != 2) {
-            throw new IOException("DIFF must compare two fields not " + input.arity());
+    public DataBag exec(Tuple input) throws IOException {
+        if (input.size() != 2) {
+            throw new IOException("DIFF must compare two fields not " +
+                input.size());
         }
-        if (input.getField(0) instanceof DataBag) {
-            DataBag field1 = input.getBagField(0);
-            DataBag field2 = input.getBagField(1);
-            Iterator<Tuple> it1 = field1.iterator();
-            checkInBag(field2, it1, output);
-            Iterator<Tuple> it2 = field2.iterator();
-            checkInBag(field1, it2, output);
-        } else {
-            DataAtom d1 = input.getAtomField(0);
-            DataAtom d2 = input.getAtomField(1);
-            if (!d1.equals(d2)) {
-                output.add(new Tuple(d1));
-                output.add(new Tuple(d2));
+        try {
+            DataBag output = mBagFactory.newDefaultBag();
+            Object o1 = input.get(0);
+            if (o1 instanceof DataBag) {
+                DataBag bag1 = (DataBag)o1;
+                DataBag bag2 = (DataBag)input.get(1);
+                computeDiff(bag1, bag2, output);
+            } else {
+                Object d1 = input.get(0);
+                Object d2 = input.get(1);
+                if (!d1.equals(d2)) {
+                    output.add(mTupleFactory.newTuple(d1));
+                    output.add(mTupleFactory.newTuple(d2));
+                }
             }
+            return output;
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            oughtToBeEE.initCause(ee);
+            throw oughtToBeEE;
         }
     }
 
-    private void checkInBag(DataBag bag, Iterator<Tuple> iterator, DataBag emitTo) throws IOException {
-        while(iterator.hasNext()) {
-            Tuple t = iterator.next();
-            Iterator<Tuple> it2 = bag.iterator();
-            boolean found = false;
-            while(it2.hasNext()) {
-                if (t.equals(it2.next())) {
-                    found = true;
-                }
-            }
-            if (!found) {
-                emitTo.add(t);
-            }
-        }
+    private void computeDiff(
+            DataBag bag1,
+            DataBag bag2,
+            DataBag emitTo) {
+        // Build two hash tables and probe with first one, then the other.
+        // This does make the assumption that the distinct set of keys from
+        // each bag will fit in memory.
+        Set<Tuple> s1 = new HashSet<Tuple>();
+        Iterator<Tuple> i1 = bag1.iterator();
+        while (i1.hasNext()) s1.add(i1.next());
+
+        Set<Tuple> s2 = new HashSet<Tuple>();
+        Iterator<Tuple> i2 = bag2.iterator();
+        while (i2.hasNext()) s2.add(i2.next());
+
+        for (Tuple t : s1) if (!s2.contains(t)) emitTo.add(t);
+        for (Tuple t : s2) if (!s1.contains(t)) emitTo.add(t);
+
     }
     
     

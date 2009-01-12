@@ -22,19 +22,7 @@ import java.io.IOException;
 import org.apache.pig.data.Tuple;
 
 
-public abstract class FilterFunc {
-    
-                /**
-     * This callback method must be implemented by all subclasses. This
-     * is the method that will be invoked on every Tuple of a given dataset.
-     * Since the dataset may be divided up in a variety of ways the programmer
-     * should not make assumptions about state that is maintained between
-     * invocations of this method.
-     * 
-     * @param input the Tuple to be processed.
-     * @throws IOException
-     */
-    abstract public boolean exec(Tuple input) throws IOException;
+public abstract class FilterFunc extends EvalFunc<Boolean> {
     
     /**
      * Placeholder for cleanup to be performed at the end. User defined functions can override.

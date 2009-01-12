@@ -20,8 +20,9 @@ package org.apache.pig.impl.io;
 
 import java.io.IOException;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.Slicer;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.PigSlicer;
 import org.apache.pig.impl.PigContext;
@@ -50,11 +51,9 @@ public class ValidatingInputFileSpec extends FileSpec {
     public ValidatingInputFileSpec(String fileName, String funcSpec,
             PigContext context) throws IOException {
 
-        super(fileName, funcSpec);
-        if (context.getExecType() != ExecType.LOCAL) {
-            validate(context.getDfs());
-        }
-    }
+        super(fileName, new FuncSpec(funcSpec));
+        validate(context.getFs());
+    }    
 
     private void validate(DataStorage store) throws IOException {
         getSlicer().validate(store, getFileName());

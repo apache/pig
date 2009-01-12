@@ -17,10 +17,18 @@
  */
 package org.apache.pig.backend.executionengine;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.Slice;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -37,15 +45,15 @@ import org.apache.tools.bzip2r.CBZip2InputStream;
  */
 public class PigSlice implements Slice {
 
-    public PigSlice(String path, String parser, long start, long length) {
+    public PigSlice(String path, FuncSpec parser, long start, long length) {
         this.file = path;
         this.start = start;
         this.length = length;
         this.parser = parser;
     }
 
-    public String[] getLocations() {
-        return new String[] { file };
+    public FuncSpec getParser() {
+        return parser;
     }
 
     public long getStart() {
@@ -54,6 +62,10 @@ public class PigSlice implements Slice {
     
     public long getLength() {
         return length;
+    }
+
+    public String[] getLocations() {
+        return new String[] { file };
     }
 
     public void init(DataStorage base) throws IOException {
@@ -90,10 +102,10 @@ public class PigSlice implements Slice {
         if (t == null) {
             return false;
         }
-        value.copyFrom(t);
+        value.reference(t);
         return true;
     }
-
+    
     public long getPos() throws IOException {
         return fsis.tell();
     }
@@ -107,12 +119,51 @@ public class PigSlice implements Slice {
         float finish = getLength();
         return progress / finish;
     }
+    
+    public void readFields(DataInput is) throws IOException {
+        file = is.readUTF();
+        start = is.readLong();
+        length = is.readLong();
+        parser = (FuncSpec)this.readObject(is);
+    }
 
+    public void write(DataOutput os) throws IOException {
+        os.writeUTF(file);
+        os.writeLong(start);
+        os.writeLong(length);
+        this.writeObject(parser, os);
+    }
+    
+    private void writeObject(Serializable obj, DataOutput os)
+    throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(obj);
+        byte[] bytes = baos.toByteArray();
+        os.writeInt(bytes.length);
+        os.write(bytes);
+    }
+
+    private Object readObject(DataInput is) throws IOException {
+        byte[] bytes = new byte[is.readInt()];
+        is.readFully(bytes);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(
+                bytes));
+        try {
+            return ois.readObject();
+        } catch (ClassNotFoundException cnfe) {
+            IOException newE = new IOException(cnfe.getMessage());
+            newE.initCause(cnfe);
+            throw newE;
+        }
+    }
+
+    
     // assigned during construction
     String file;
     long start;
     long length;
-    String parser;
+    FuncSpec parser;
 
     // Created as part of init
     private InputStream is;

@@ -23,142 +23,148 @@ import java.util.List;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FilterFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultDataBag;
+import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.DefaultTupleFactory;
 
 public class TutorialTest {
 
-  private static Tuple[] getTuples(String[] queries) {
-    Tuple[] tuples = new Tuple[queries.length];
-    for (int i = 0; i < tuples.length; i++) {
-      tuples[i] = new Tuple();
-      tuples[i].appendField(new DataAtom(queries[i]));
-    }
-    return tuples;
-  }
-  
-  public static String[] testDataAtomEvals(EvalFunc<DataAtom> eval, Tuple[] tuples) {
-    
-    List<String> res = new ArrayList<String>();
-    try {
-      for (Tuple t : tuples) {
-        DataAtom atom = new DataAtom();
-        eval.exec(t, atom);
-        System.out.println("Converted: " + t + " to (" + atom + ")");
-        res.add(atom.strval());
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-      System.exit(1);
-    }
-
-    System.out.println("===");
-    return res.toArray(new String[res.size()]);
-  }
-  
-  public static DataBag[] testDataBagEvals(EvalFunc<DataBag> eval, Tuple[] tuples) {
-    
-    List<DataBag> res = new ArrayList<DataBag>();
-    try {
-      for (Tuple t : tuples) {
-        DataBag bag = new DefaultDataBag();
-        eval.exec(t, bag);
-        System.out.println("Converted: " + t + " to (" + bag + ")");
-        res.add(bag);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-      System.exit(1);
-    }
-
-    System.out.println("===");
-    return res.toArray(new DataBag[res.size()]);
-  }
-
-  public static String[] testFilters (FilterFunc filter, Tuple[] tuples) {
-    List<String> res = new ArrayList<String>();
-    try {
-      for (Tuple t : tuples) {
-        if (filter.exec(t)) {
-          System.out.println("accepted: " + t);
-          res.add(t.getAtomField(0).strval());
-        } else {
-          System.out.println("rejected: " + t);
+    private static Tuple[] getTuples(String[] queries) {
+        Tuple[] tuples = new Tuple[queries.length];
+        for (int i = 0; i < tuples.length; i++) {
+            tuples[i] = DefaultTupleFactory.getInstance().newTuple(1);
+            try{tuples[i].set(0, queries[i]);}catch(Exception e){}
         }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-      System.exit(1);
+        return tuples;
+    }
+  
+    public static String[] testDataAtomEvals(EvalFunc<String> eval, Tuple[] tuples) {
+        List<String> res = new ArrayList<String>();
+        try {
+            for (Tuple t : tuples) {
+                String output = eval.exec(t);
+                System.out.println("Converted: " + t + " to (" + output + ")");
+                res.add(output);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("===");
+        return res.toArray(new String[res.size()]);
+    }
+  
+    public static DataBag[] testDataBagEvals(EvalFunc<DataBag> eval, Tuple[] tuples) {
+        List<DataBag> res = new ArrayList<DataBag>();
+        try {
+            for (Tuple t : tuples) {
+                DataBag output = eval.exec(t);
+                System.out.println("Converted: " + t + " to (" + output + ")");
+                res.add(output);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("===");
+        return res.toArray(new DataBag[res.size()]);
     }
 
-    System.out.println("===");
-    return res.toArray(new String[res.size()]);
-  }
+    public static String[] testFilters (FilterFunc filter, Tuple[] tuples) {
+        List<String> res = new ArrayList<String>();
+        try {
+            for (Tuple t : tuples) {
+                if (filter.exec(t)) {
+                    System.out.println("accepted: " + t);
+                    res.add((String)t.get(0));
+                } else {
+                    System.out.println("rejected: " + t);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
 
-  public static void main(String[] args) {
-    String[] queries = {
-        "http://www.yahoo.com/",
-        "\"http://www.yahoo.com/\"",
-        "   http;//www.yahoo.com/ ",
-        "https://www.yahoo.com/",
-        "www.yahoo.com/",
-        "\"www.yahoo.com/\"",
-        "a real nice query ",
-        "an UPPER CASE query",
-        "  ",
-        " nude picture",
-        " +XXX",
-        "\" +porno \"",
-    };
+        System.out.println("===");
+        return res.toArray(new String[res.size()]);
+    }
+
+    public static void main(String[] args) {
+        String[] queries = {
+            "http://www.yahoo.com/",
+            "\"http://www.yahoo.com/\"",
+            "   http;//www.yahoo.com/ ",
+            "https://www.yahoo.com/",
+            "www.yahoo.com/",
+            "\"www.yahoo.com/\"",
+            "a real nice query ",
+            "an UPPER CASE query",
+            "  ",
+            " nude picture",
+            " +XXX",
+            "\" +porno \"",
+        };
     
-    NonURLDetector filter1 = new NonURLDetector();
-    String[] q1 = testFilters(filter1, getTuples(queries));
+        NonURLDetector filter1 = new NonURLDetector();
+        String[] q1 = testFilters(filter1, getTuples(queries));
 
-    ToLower eval1 = new ToLower();
-    String[] q2 = testDataAtomEvals(eval1, getTuples(q1));
+        ToLower eval1 = new ToLower();
+        String[] q2 = testDataAtomEvals(eval1, getTuples(q1));
     
-    String[] timestamps = {
-        "970916072134",
-        "970916072311",
-        "970916123431",
-    };
+        String[] timestamps = {
+            "970916072134",
+            "970916072311",
+            "970916123431",
+        };
     
-    ExtractHour eval2 = new ExtractHour();
-    testDataAtomEvals(eval2, getTuples(timestamps));
+        ExtractHour eval2 = new ExtractHour();
+        testDataAtomEvals(eval2, getTuples(timestamps));
 
-    DataBag bag = new DefaultDataBag();
+        DataBag bag = DefaultBagFactory.getInstance().newDefaultBag();
     
-    Tuple t1 = new Tuple();
-    t1.appendField(new DataAtom("word"));
-    t1.appendField(new DataAtom("02"));
-    t1.appendField(new DataAtom(2));
-    bag.add(t1);
+        Tuple t1 = DefaultTupleFactory.getInstance().newTuple(3);
+        try{
+            t1.set(0, "word");
+            t1.set(1, "02");
+            t1.set(2, 2);
+        }catch(Exception e){}
+        bag.add(t1);
     
-    Tuple t2 = new Tuple();
-    t2.appendField(new DataAtom("word"));
-    t2.appendField(new DataAtom("05"));
-    t2.appendField(new DataAtom(2));
-    bag.add(t2);
+        Tuple t2 = DefaultTupleFactory.getInstance().newTuple(3);
+        try{
+            t2.set(0, "word");
+            t2.set(1, "05");
+            t2.set(2, 2);
+        }catch(Exception e){}
+        bag.add(t2);
 
-    Tuple t3 = new Tuple();
-    t3.appendField(new DataAtom("word"));
-    t3.appendField(new DataAtom("04"));
-    t3.appendField(new DataAtom(3));
-    bag.add(t3);
+        Tuple t3 = DefaultTupleFactory.getInstance().newTuple(3);
+        try{
+            t3.set(0, "word");
+            t3.set(1, "04");
+            t3.set(2, 3);
+        }catch(Exception e){}
+        bag.add(t3);
 
-    Tuple t4 = new Tuple();
-    t4.appendField(new DataAtom("word"));
-    t4.appendField(new DataAtom("06"));
-    t4.appendField(new DataAtom(4));
-    bag.add(t4);
+        Tuple t4 = DefaultTupleFactory.getInstance().newTuple(3);
+        try{
+            t4.set(0, "word");
+            t4.set(1, "06");
+            t4.set(2, 4);
+        }catch(Exception e){}
+        bag.add(t4);
 
-    Tuple[] t = new Tuple[1];
-    t[0] = new Tuple();
-    t[0].appendField(bag);
+        Tuple[] t = new Tuple[1];
+        t[0] = DefaultTupleFactory.getInstance().newTuple(1);
+        try{
+            t[0].set(0, bag);
+        }catch(Exception e){}
 
-    ScoreGenerator eval4 = new ScoreGenerator();
-    testDataBagEvals(eval4, t);
-  }
+        ScoreGenerator eval4 = new ScoreGenerator();
+        testDataBagEvals(eval4, t);
+    }
 }

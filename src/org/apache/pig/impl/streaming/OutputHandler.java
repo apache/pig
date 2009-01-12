@@ -49,6 +49,9 @@ public abstract class OutputHandler {
      */
     public abstract OutputType getOutputType();
     
+    // flag to mark if close() has already been called
+    protected boolean alreadyClosed = false;
+    
     /**
      * Bind the <code>OutputHandler</code> to the <code>InputStream</code>
      * from which to read the output data of the managed process.
@@ -77,5 +80,5 @@ public abstract class OutputHandler {
      * Close the <code>OutputHandler</code>.
      * @throws IOException
      */
-    public void close() throws IOException {}
+    public synchronized void close() throws IOException {}
 }

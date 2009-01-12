@@ -18,6 +18,7 @@
 
 package org.apache.pig.impl.io;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -32,9 +33,13 @@ import org.apache.tools.bzip2r.CBZip2InputStream;
 public class BufferedPositionedInputStream extends InputStream {
     long pos;
     InputStream in;
+    final int bufSize = 1024;
     
     public BufferedPositionedInputStream(InputStream in, long pos) {
-        this.in = in;
+		// Don't buffer a bzip stream as it will cause problems for split
+		// records.
+		if (in instanceof CBZip2InputStream) this.in = in;
+		else this.in = new BufferedInputStream(in, bufSize);
         this.pos = pos;
     }
     
@@ -55,7 +60,7 @@ public class BufferedPositionedInputStream extends InputStream {
         pos += read;
         return read;
     }
-    
+
     @Override
     public long skip(long n) throws IOException {
         long rc = in.skip(n);

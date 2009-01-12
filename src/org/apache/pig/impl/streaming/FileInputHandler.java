@@ -28,8 +28,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link FileInputHandler} handles the input for the Pig-Streaming
- * executable in an {@link InputType#ASYNCHRONOUS} manner by feeding it input
+ * FileInputHandler handles the input for the Pig-Streaming
+ * executable in an asynchronous manner by feeding it input
  * via an external file specified by the user.  
  */
 public class FileInputHandler extends InputHandler {
@@ -59,11 +59,14 @@ public class FileInputHandler extends InputHandler {
         		                                "FileInputHandler");
     }
     
-    public void close() throws IOException {
-        super.close();
-        fileOutStream.flush();
-        fileOutStream.close();
-        fileOutStream = null;
+    public synchronized void close(Process process) throws IOException {
+        if(!alreadyClosed) {
+            super.close(process);
+            fileOutStream.flush();
+            fileOutStream.close();
+            fileOutStream = null;
+            alreadyClosed = true;
+        }
     }
 
 }

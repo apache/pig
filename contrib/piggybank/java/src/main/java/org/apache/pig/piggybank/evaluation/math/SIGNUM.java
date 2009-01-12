@@ -19,13 +19,17 @@
 package org.apache.pig.piggybank.evaluation.math;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.Datum;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.WrappedIOException;
+
 /**
  * math.SIGNUM implements a binding to the Java function
 * {@link java.lang.Math#signum(double) Math.signum(double)}. 
@@ -33,10 +37,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * 
 * <dl>
 * <dt><b>Parameters:</b></dt>
-* <dd><code>value</code> - <code>DataAtom [double]</code>.</dd>
+* <dd><code>value</code> - <code>Double</code>.</dd>
 * 
 * <dt><b>Return Value:</b></dt>
-* <dd><code>DataAtom [double]</code> </dd>
+* <dd><code>Double</code> </dd>
 * 
 * <dt><b>Return Schema:</b></dt>
 * <dd>SIGNUM_inputSchema</dd>
@@ -54,7 +58,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * @author ajay garg
 *
 */
-public class SIGNUM extends EvalFunc<DataAtom>{
+public class SIGNUM extends EvalFunc<Double>{
 	/**
 	 * java level API
 	 * @param input expects a single numeric DataAtom value
@@ -62,31 +66,37 @@ public class SIGNUM extends EvalFunc<DataAtom>{
 	 * signum function of the argument
 	 */
 	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(signum(input));
-	}
-	
-	protected double signum(Tuple input) throws IOException{
-		Datum temp = input.getField(0);
-		double retVal;
-		if(!(temp instanceof DataAtom)){
-			throw new IOException("invalid input format. ");
-		} 
-		else{
-			try{
-				retVal=((DataAtom)temp).numval();
-			}
-			catch(RuntimeException e){
-				throw new IOException((DataAtom)temp+" is not a valid number");
-			}
-		}
-		return Math.signum(retVal);
+	public Double exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+
+        try{
+		    Double d = DataType.toDouble(input.get(0));
+		    return Math.signum(d);
+		}catch (NumberFormatException nfe){
+            System.err.println("Failed to process input; error - " + nfe.getMessage());
+            return null;
+        }catch (Exception e){
+            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+        }
 		
 	}
 	
 	@Override
 	public Schema outputSchema(Schema input) {
-		return new AtomSchema("SIGNUM_"+input.toString()); 
+        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
 	}
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY))));
+        funcList.add(new FuncSpec(DoubleSignum.class.getName(),  new Schema(new Schema.FieldSchema(null, DataType.DOUBLE))));
+        funcList.add(new FuncSpec(FloatSignum.class.getName(),   new Schema(new Schema.FieldSchema(null, DataType.FLOAT))));
+        return funcList;
+    }
 
 }

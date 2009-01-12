@@ -18,11 +18,14 @@
 
 package org.apache.pig.backend.executionengine;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.Map;
 
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 
 /**
  * This is the main interface that various execution engines
@@ -83,36 +86,50 @@ public interface ExecutionEngine {
      * parallelism for this plan, which could be different from the "default"
      * one set at the execution engine level.
      * 
-     * @param logical plan
+     * @param plan logical plan to compile
      * @param properties
      * @return physical plan
      */
-    public ExecPhysicalPlan compile(ExecLogicalPlan plan,
-                                    Properties properties)
-        throws ExecException;
+    public PhysicalPlan compile(LogicalPlan plan,
+                                Properties properties) throws ExecException;
 
-    public ExecPhysicalPlan compile(ExecLogicalPlan[] plans,
-                                    Properties properties)
-        throws ExecException;
+    /*
+    public PhysicalPlan compile(LogicalPlan[] plans,
+                                Properties properties) throws ExecException;
+                                */
 
     /**
      * Execute the physical plan in blocking mode.
-     * 
-     * @throws
+     *
+     * @param plan PhysicalPlan to execute. 
+     * @param jobName Name of this plan, will be used to identify the plan
+     * @throws ExecException
      */
-    public ExecJob execute(ExecPhysicalPlan plan) throws ExecException;
+    public ExecJob execute(PhysicalPlan plan,
+                           String jobName) throws ExecException;
 
     /**
      * Execute the physical plan in non-blocking mode
      * 
+     * @param plan PhysicalPlan to submit. 
+     * @param jobName Name of this plan, will be used to identify the plan
      * @throws ExecException
      */
-    public ExecJob submit(ExecPhysicalPlan plan) throws ExecException;
+    public ExecJob submit(PhysicalPlan plan,
+                          String jobName) throws ExecException;
+
+    /**
+     * Explain executor specific information.
+     *
+     * @param plan PhysicalPlan to explain
+     * @param stream Stream to print output to
+     */
+    public void explain(PhysicalPlan plan, PrintStream stream);
 
     /**
      * Return currently running jobs (can be useful for admin purposes)
      * 
-     * @return
+     * @return All jobs that are currently active in hte execution engine.
      * @throws ExecException
      */
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException;
@@ -120,7 +137,8 @@ public interface ExecutionEngine {
     /**
      * List scopes that are active in the back-end
      * 
-     * @return
+     * @return All scopes that are currently active in the execution
+     * engine.
      * @throws ExecException
      */
     public Collection<String> activeScopes() throws ExecException;

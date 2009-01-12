@@ -17,59 +17,154 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import static java.util.regex.Matcher.quoteReplacement;
+import junit.framework.Assert;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
-import org.junit.Assert;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 public class Util {
+    private static BagFactory mBagFactory = BagFactory.getInstance();
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+
     // Helper Functions
     // =================
-    static public Tuple loadFlatTuple(Tuple t, int[] input) throws IOException {
+    static public Tuple loadFlatTuple(Tuple t, int[] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
-            t.setField(i, input[i]);
+            t.set(i, new Integer(input[i]));
         }
         return t;
     }
 
-    static public Tuple loadTuple(Tuple t, String[] input) throws IOException {
+    static public Tuple loadTuple(Tuple t, String[] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
-            t.setField(i, input[i]);
+            t.set(i, input[i]);
         }
         return t;
     }
 
-    static public Tuple loadNestTuple(Tuple t, int[] input) throws IOException {
+    static public Tuple loadTuple(Tuple t, DataByteArray[] input) throws ExecException {
+        for (int i = 0; i < input.length; i++) {
+            t.set(i, input[i]);
+        }
+        return t;
+    }
+
+    static public Tuple loadNestTuple(Tuple t, int[] input) throws ExecException {
         DataBag bag = BagFactory.getInstance().newDefaultBag();
         for(int i = 0; i < input.length; i++) {
-            Tuple f = new Tuple(1);
-            f.setField(0, input[i]);
+            Tuple f = TupleFactory.getInstance().newTuple(1);
+            f.set(0, input[i]);
             bag.add(f);
         }
-        t.setField(0, bag);
+        t.set(0, bag);
         return t;
     }
 
-    static public Tuple loadNestTuple(Tuple t, int[][] input) throws IOException {
+    static public Tuple loadNestTuple(Tuple t, long[] input) throws ExecException {
+        DataBag bag = BagFactory.getInstance().newDefaultBag();
+        for(int i = 0; i < input.length; i++) {
+            Tuple f = TupleFactory.getInstance().newTuple(1);
+            f.set(0, new Long(input[i]));
+            bag.add(f);
+        }
+        t.set(0, bag);
+        return t;
+    }
+
+    // this one should handle String, DataByteArray, Long, Integer etc..
+    static public <T> Tuple loadNestTuple(Tuple t, T[] input) throws ExecException {
+        DataBag bag = BagFactory.getInstance().newDefaultBag();
+        for(int i = 0; i < input.length; i++) {
+            Tuple f = TupleFactory.getInstance().newTuple(1);
+            f.set(0, input[i]);
+            bag.add(f);
+        }
+        t.set(0, bag);
+        return t;
+    }
+
+    static public <T>void addToTuple(Tuple t, T[] b)
+    {
+        for(int i = 0; i < b.length; i++)
+            t.append(b[i]);
+    }
+    
+    
+    
+    static public <T>Tuple createTuple(T[] s)
+    {
+        Tuple t = mTupleFactory.newTuple();
+        addToTuple(t, s);
+        return t;
+    }
+    
+    static public DataBag createBag(Tuple[] t)
+    {
+        DataBag b = mBagFactory.newDefaultBag();
+        for(int i = 0; i < t.length; i++)b.add(t[i]);
+        return b;
+    }
+    
+    static public<T> DataBag createBagOfOneColumn(T[] input) throws ExecException {
+        DataBag result = mBagFactory.newDefaultBag();
+        for (int i = 0; i < input.length; i++) {
+            Tuple t = mTupleFactory.newTuple(1);
+            t.set(0, input[i]);
+            result.add(t);
+        }
+        return result;
+    }
+    
+    static public Map<Object, Object> createMap(String[] contents)
+    {
+        Map<Object, Object> m = new HashMap<Object, Object>();
+        for(int i = 0; i < contents.length; ) {
+            m.put(contents[i], contents[i+1]);
+            i += 2;
+        }
+        return m;
+    }
+
+    static public<T> DataByteArray[] toDataByteArrays(T[] input) {
+        DataByteArray[] dbas = new DataByteArray[input.length];
+        for (int i = 0; i < input.length; i++) {
+            dbas[i] = (input[i] == null)?null:new DataByteArray(input[i].toString().getBytes());
+        }        
+        return dbas;
+    }
+    
+    static public Tuple loadNestTuple(Tuple t, int[][] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             DataBag bag = BagFactory.getInstance().newDefaultBag();
-            Tuple f = loadFlatTuple(new Tuple(input[i].length), input[i]);
+            Tuple f = loadFlatTuple(TupleFactory.getInstance().newTuple(input[i].length), input[i]);
             bag.add(f);
-            t.setField(i, bag);
+            t.set(i, bag);
         }
         return t;
     }
 
-    static public Tuple loadTuple(Tuple t, String[][] input) throws IOException {
+    static public Tuple loadTuple(Tuple t, String[][] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             DataBag bag = BagFactory.getInstance().newDefaultBag();
-            Tuple f = loadTuple(new Tuple(input[i].length), input[i]);
+            Tuple f = loadTuple(TupleFactory.getInstance().newTuple(input[i].length), input[i]);
             bag.add(f);
-            t.setField(i, bag);
+            t.set(i, bag);
         }
         return t;
     }
@@ -89,13 +184,52 @@ public class Util {
 			                           String[] inputData) 
 	throws IOException {
 		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
-		PrintWriter pw = new PrintWriter(f);
+        f.deleteOnExit();
+		PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"));
 		for (int i=0; i<inputData.length; i++){
 			pw.println(inputData[i]);
 		}
 		pw.close();
 		return f;
 	}
+	
+	/**
+     * Helper to create a dfs file on the Minicluster DFS with given
+     * input data for use in test cases.
+     * 
+     * @param miniCluster reference to the Minicluster where the file should be created
+     * @param fileName pathname of the file to be created
+     * @param inputData input for test cases, each string in inputData[] is written
+     *                  on one line
+     * @throws IOException
+     */
+    static public void createInputFile(MiniCluster miniCluster, String fileName, 
+                                       String[] inputData) 
+    throws IOException {
+        FileSystem fs = miniCluster.getFileSystem();
+        if(fs.exists(new Path(fileName))) {
+            throw new IOException("File " + fileName + " already exists on the minicluster");
+        }
+        FSDataOutputStream stream = fs.create(new Path(fileName));
+        PrintWriter pw = new PrintWriter(new OutputStreamWriter(stream, "UTF-8"));
+        for (int i=0; i<inputData.length; i++){
+            pw.println(inputData[i]);
+        }
+        pw.close();
+    }
+    
+    /**
+     * Helper to remove a dfs file from the minicluster DFS
+     * 
+     * @param miniCluster reference to the Minicluster where the file should be deleted
+     * @param fileName pathname of the file to be deleted
+     * @throws IOException
+     */
+    static public void deleteFile(MiniCluster miniCluster, String fileName) 
+    throws IOException {
+        FileSystem fs = miniCluster.getFileSystem();
+        fs.delete(new Path(fileName), true);
+    }
 
 	/**
 	 * Helper function to check if the result of a Pig Query is in line with 
@@ -141,5 +275,42 @@ public class Util {
 	    String regex = "\\\\";
 	    String replacement = quoteReplacement("\\\\");
 	    return str.replaceAll(regex, replacement);
-}
+	}
+	
+	   /**
+     * Helper method to construct URI for local file system. For unix, it will
+     * put "file:" in the front of the path; For Windows, it will put "file:/" in 
+     * front of the path, and also call encodeEscape to replace "\" with "\\"
+     * 
+     * @param str absolute path (under cygwin, should be a windows style path)
+     * @return The resulting string
+     */
+    public static String generateURI(String path)
+    {
+        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+            return "file:/"+encodeEscape(path);
+        return "file:"+path;
+    }
+
+    public static Schema getSchemaFromString(String schemaString) throws ParseException {
+        return Util.getSchemaFromString(schemaString, DataType.BYTEARRAY);
+    }
+
+    static Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
+        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
+        QueryParser queryParser = new QueryParser(stream) ;
+        Schema schema = queryParser.TupleSchema() ;
+        Schema.setSchemaDefaultType(schema, defaultType);
+        return schema;
+    }
+
+    public static File createFile(String[] data) throws Exception{
+        File f = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(f);
+        for (int i=0; i<data.length; i++){
+            pw.println(data[i]);
+        }
+        pw.close();
+        return f;
+    }
 }

@@ -23,32 +23,33 @@ import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigServer.ExecType;
-import org.apache.pig.builtin.DIFF;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.builtin.DIFF;
+import junit.framework.TestCase;
 
-public class TestCompressedFiles extends PigExecTestCase {
+public class TestCompressedFiles extends TestCase {
     
     private final Log log = LogFactory.getLog(getClass());
+    MiniCluster cluster = MiniCluster.buildCluster();
 
     File datFile;
     File gzFile;
     @Override
-	@Before
+    @Before
     protected void setUp() throws Exception {
-        super.setUp();
         datFile = File.createTempFile("compTest", ".dat");
         gzFile = File.createTempFile("compTest", ".gz");
         FileOutputStream dat = new FileOutputStream(datFile);
         GZIPOutputStream gz = new GZIPOutputStream(new FileOutputStream(gzFile));
         Random rand = new Random();
         for(int i = 0; i < 1024; i++) {
-            StringBuilder sb = new StringBuilder();
+            StringBuffer sb = new StringBuffer();
             int x = rand.nextInt();
             int y = rand.nextInt();
             sb.append(x);
@@ -64,20 +65,17 @@ public class TestCompressedFiles extends PigExecTestCase {
     }
 
     @Override
-	@After
+    @After
     protected void tearDown() throws Exception {
         datFile.delete();
         gzFile.delete();
-        super.tearDown();
     }
     
     @Test
     public void testCompressed1() throws Throwable {
-        // FIXME : this should be tested in all modes
-        if(execType == ExecType.LOCAL)
-            return;
-        pigServer.registerQuery("A = foreach (cogroup (load 'file:"+Util.encodeEscape(gzFile.toString())+"') by $1, (load 'file:"+Util.encodeEscape(datFile.toString()) + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
-        Iterator it = pigServer.openIterator("A");
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig.registerQuery("A = foreach (cogroup (load '"+Util.generateURI(gzFile.toString())+"') by $1, (load '"+Util.generateURI(datFile.toString()) + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
+        Iterator it = pig.openIterator("A");
         boolean success = true;
         while(it.hasNext()) {
             success = false;

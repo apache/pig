@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.pig.backend.local.datastorage;
 
 import java.io.File;
@@ -91,13 +90,8 @@ public class LocalFile extends LocalPath {
                                                 path.getName());
                 }
                 catch (DataStorageException e) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Unable to generate element name (src: ");
-                    sb.append(this);
-                    sb.append(", dst: ");
-                    sb.append(dstName);
-                    sb.append(")");
-                    throw WrappedIOException.wrap(sb.toString(), e);
+                    throw WrappedIOException.wrap("Unable to generate element name (src: " + 
+                                           this + ", dst: " + dstName + ")", e);
                 }
             }
         }

@@ -86,7 +86,7 @@ public class StreamingCommand implements Serializable, Cloneable {
     /**
      * Create a new <code>StreamingCommand</code> with the given command.
      * 
-     * @param command streaming command to be executed
+     * @param pigContext PigContext structure
      * @param argv parsed arguments of the <code>command</code>
      */
     public StreamingCommand(PigContext pigContext, String[] argv) {
@@ -170,7 +170,6 @@ public class StreamingCommand implements Serializable, Cloneable {
             throw new IOException("Invalid ship specification: '" + path + 
                                   "' is a directory and can't be shipped!");
         }
-        
         shipSpec.add(path);
     }
 

@@ -17,16 +17,17 @@
  */
 package org.apache.pig.impl.io;
 
-import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.Stack;
 import java.util.Properties ;
@@ -34,14 +35,14 @@ import java.util.Properties ;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigInputFormat;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.SliceWrapper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SliceWrapper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -50,6 +51,8 @@ public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
     
     static public final String LOCAL_PREFIX  = "file:";
+    static public final int STYLE_UNIX = 0;
+    static public final int STYLE_WINDOWS = 1;
 
     public static class DataStorageInputStreamIterator extends InputStream {
         InputStream current;
@@ -140,8 +143,10 @@ public class FileLocalizer {
     }
 
     /**
-     * This function is meant to be used if the mappers/reducers want to access
-     * any HDFS file
+     * This function is meant to be used if the mappers/reducers want to access any HDFS file
+     * @param fileName
+     * @return InputStream of the open file.
+     * @throws IOException
      */
     public static InputStream openDFSFile(String fileName) throws IOException {
         SliceWrapper wrapper = PigInputFormat.getActiveSplit();
@@ -151,7 +156,7 @@ public class FileLocalizer {
                     "can't open DFS file while executing locally");
         
         return openDFSFile(fileName, ConfigurationUtil.toProperties(wrapper.getJobConf()));
-        
+
     }
 
     public static InputStream openDFSFile(String fileName, Properties properties) throws IOException{
@@ -172,49 +177,126 @@ public class FileLocalizer {
                 }
             }
             catch (DataStorageException e) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("Failed to determine if elem=");
-                sb.append(elem);
-                sb.append(" is container");
-                throw WrappedIOException.wrap(sb.toString(), e);
+                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
             }
             
-            ArrayList<ElementDescriptor> arrayList = 
-                new ArrayList<ElementDescriptor>();
-            Iterator<ElementDescriptor> allElements = 
-                ((ContainerDescriptor)elem).iterator();
-            
-            while (allElements.hasNext()) {
-                ElementDescriptor nextElement = allElements.next();
-                if (!nextElement.systemElement())
-                    arrayList.add(nextElement);
-            }
-            
-            elements = new ElementDescriptor[ arrayList.size() ];
-            arrayList.toArray(elements);
-        
+            // elem is a directory - recursively get all files in it
+            elements = getFileElementDescriptors(elem);
         } else {
             // It might be a glob
             if (!globMatchesFiles(elem, elem.getDataStorage())) {
                 throw new IOException(elem.toString() + " does not exist");
+            } else {
+                elements = getFileElementDescriptors(elem); 
+                return new DataStorageInputStreamIterator(elements);
+                
             }
         }
         
         return new DataStorageInputStreamIterator(elements);
     }
     
+    /**
+     * recursively get all "File" element descriptors present in the input element descriptor
+     * @param elem input element descriptor
+     * @return an array of Element descriptors for files present (found by traversing all levels of dirs)
+     *  in the input element descriptor
+     * @throws DataStorageException
+     */
+    private static ElementDescriptor[] getFileElementDescriptors(ElementDescriptor elem) throws DataStorageException {
+        DataStorage store = elem.getDataStorage();
+        ElementDescriptor[] elems = store.asCollection(elem.toString());
+        // elems could have directories in it, if so
+        // get the files out so that it contains only files
+        List<ElementDescriptor> paths = new ArrayList<ElementDescriptor>();
+        List<ElementDescriptor> filePaths = new ArrayList<ElementDescriptor>();
+        for (int m = 0; m < elems.length; m++) {
+            paths.add(elems[m]);
+        }
+        for (int j = 0; j < paths.size(); j++) {
+            ElementDescriptor fullPath = store.asElement(store
+                    .getActiveContainer(), paths.get(j));
+            // Skip hadoop's private/meta files ...
+            if (fullPath.systemElement()) {
+                continue;
+            }
+            
+            if (fullPath instanceof ContainerDescriptor) {
+                for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
+                    paths.add(child);
+                }
+                continue;
+            } else {
+                // this is a file, add it to filePaths
+                filePaths.add(fullPath);
+            }
+        }
+        elems = new ElementDescriptor[filePaths.size()];
+        filePaths.toArray(elems);
+        return elems;
+    }
+    
+    private static InputStream openLFSFile(ElementDescriptor elem) throws IOException{
+        // IMPORTANT NOTE: Currently we use HXXX classes to represent
+        // files and dirs in local mode - so we can just delegate this
+        // call to openDFSFile(elem). When we have true local mode files
+        // and dirs THIS WILL NEED TO CHANGE
+        return openDFSFile(elem);
+    }
+    
+    /**
+     * This function returns an input stream to a local file system file or
+     * a file residing on Hadoop's DFS
+     * @param fileName The filename to open
+     * @param execType execType indicating whether executing in local mode or MapReduce mode (Hadoop)
+     * @param storage The DataStorage object used to open the fileSpec
+     * @return InputStream to the fileSpec
+     * @throws IOException
+     */
+    static public InputStream open(String fileName, ExecType execType, DataStorage storage) throws IOException {
+        fileName = checkDefaultPrefix(execType, fileName);
+        if (!fileName.startsWith(LOCAL_PREFIX)) {
+            ElementDescriptor elem = storage.asElement(fullPath(fileName, storage));
+            return openDFSFile(elem);
+        }
+        else {
+            fileName = fileName.substring(LOCAL_PREFIX.length());
+            ElementDescriptor elem = storage.asElement(fullPath(fileName, storage));
+            return openLFSFile(elem);
+        }
+    }
+    
+    private static String fullPath(String fileName, DataStorage storage) {
+        String fullPath;
+        try {
+            if (fileName.charAt(0) != '/') {
+                ElementDescriptor currentDir = storage.getActiveContainer();
+                ElementDescriptor elem = storage.asElement(currentDir.toString(), fileName);
+                
+                fullPath = elem.toString();
+            } else {
+                fullPath = fileName;
+            }
+        } catch (DataStorageException e) {
+            fullPath = fileName;
+        }
+        return fullPath;
+    }
+    
     static public InputStream open(String fileSpec, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
             init(pigContext);
-            ElementDescriptor elem = pigContext.getDfs().
-            asElement(fullPath(fileSpec, pigContext));
+            ElementDescriptor elem = pigContext.getDfs().asElement(fullPath(fileSpec, pigContext));
             return openDFSFile(elem);
         }
         else {
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
             //buffering because we only want buffered streams to be passed to load functions.
-            return new BufferedInputStream(new FileInputStream(fileSpec));
+            /*return new BufferedInputStream(new FileInputStream(fileSpec));*/
+            init(pigContext);
+            ElementDescriptor elem = pigContext.getLfs().asElement(fullPath(fileSpec, pigContext));
+            return openLFSFile(elem);
         }
     }
     
@@ -241,8 +323,33 @@ public class FileLocalizer {
             return new FileOutputStream(fileSpec,append);
         }
     }
+    
+    static public boolean delete(String fileSpec, PigContext pigContext) throws IOException{
+        fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
+        if (!fileSpec.startsWith(LOCAL_PREFIX)) {
+            init(pigContext);
+            ElementDescriptor elem = pigContext.getDfs().asElement(fileSpec);
+            elem.delete();
+            return true;
+        }
+        else {
+            fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
+            boolean ret = true;
+            // TODO probably this should be replaced with the local file system
+            File f = (new File(fileSpec));
+            // TODO this only deletes the file. Any dirs createdas a part of this
+            // are not removed.
+            if (f!=null){
+                ret = f.delete();
+            }
+            
+            return ret;
+        }
+    }
 
     static Stack<ElementDescriptor> toDelete    = 
+        new Stack<ElementDescriptor>();
+    static Stack<ElementDescriptor> deleteOnFail    = 
         new Stack<ElementDescriptor>();
     static Random      r           = new Random();
     static ContainerDescriptor relativeRoot;
@@ -338,7 +445,7 @@ public class FileLocalizer {
 
     public static boolean fileExists(String filename, PigContext context)
             throws IOException {
-        return fileExists(filename, context.getDfs());
+        return fileExists(filename, context.getFs());
     }
 
     public static boolean fileExists(String filename, DataStorage store)
@@ -393,4 +500,79 @@ public class FileLocalizer {
         }
     }
 
+    public static Random getR() {
+        return r;
+    }
+
+    public static void setR(Random r) {
+        FileLocalizer.r = r;
+    }
+    
+    public static void clearDeleteOnFail()
+    {
+    	deleteOnFail.clear();
+    }
+    public static void registerDeleteOnFail(String filename, PigContext pigContext) throws IOException
+    {
+    	try {
+    		ElementDescriptor elem = pigContext.getDfs().asElement(filename);
+    		if (!toDelete.contains(elem))
+    		    deleteOnFail.push(elem);
+    	}
+        catch (DataStorageException e) {
+            log.warn("Unable to register output file to delete on failure: " + filename);
+        }
+    }
+    public static void triggerDeleteOnFail()
+    {
+    	ElementDescriptor elem = null;
+    	while (!deleteOnFail.empty()) {
+            try {
+                elem = deleteOnFail.pop();
+                if (elem.exists())
+                	elem.delete();
+            } 
+            catch (IOException e) {
+                log.warn("Unable to delete output file on failure: " + elem.toString());
+            }
+    	}
+    }
+    /**
+     * Convert path from Windows convention to Unix convention. Invoked under
+     * cygwin.
+     * 
+     * @param path
+     *            path in Windows convention
+     * @return path in Unix convention, null if fail
+     */
+    static public String parseCygPath(String path, int style) {
+        String[] command; 
+        if (style==STYLE_WINDOWS)
+            command = new String[] { "cygpath", "-w", path };
+        else
+            command = new String[] { "cygpath", "-u", path };
+        Process p = null;
+        try {
+            p = Runtime.getRuntime().exec(command);
+        } catch (IOException e) {
+            return null;
+        }
+        int exitVal = 0;
+        try {
+            exitVal = p.waitFor();
+        } catch (InterruptedException e) {
+            return null;
+        }
+        if (exitVal != 0)
+            return null;
+        String line = null;
+        try {
+            InputStreamReader isr = new InputStreamReader(p.getInputStream());
+            BufferedReader br = new BufferedReader(isr);
+            line = br.readLine();
+        } catch (IOException e) {
+            return null;
+        }
+        return line;
+    }
 }

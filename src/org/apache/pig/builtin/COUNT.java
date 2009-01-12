@@ -19,15 +19,15 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataMap;
-import org.apache.pig.data.Datum;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -35,11 +35,17 @@ import org.apache.pig.impl.util.WrappedIOException;
  * Generates the count of the values of the first field of a tuple. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global functions
  */
-public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
+public class COUNT extends EvalFunc<Long> implements Algebraic{
+    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(count(input));
+    public Long exec(Tuple input) throws IOException {
+        try {
+            DataBag bag = (DataBag)input.get(0);
+            return bag.size();
+        } catch (ExecException ee) {
+            throw WrappedIOException.wrap("Caught exception in COUNT", ee);
+        }
     }
 
     public String getInitial() {
@@ -47,7 +53,7 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     }
 
     public String getIntermed() {
-        return Intermed.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -55,55 +61,57 @@ public class COUNT extends EvalFunc<DataAtom> implements Algebraic{
     }
 
     static public class Initial extends EvalFunc<Tuple> {
+
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(count(input)));
+        public Tuple exec(Tuple input) throws IOException {
+            // Since Initial is guaranteed to be called
+            // only in the map, it will be called with an
+            // input of a bag with a single tuple - the 
+            // count should always be 1.
+            return mTupleFactory.newTuple(new Long(1));
         }
     }
 
-    static public class Intermed extends EvalFunc<Tuple> {
+    static public class Intermediate extends EvalFunc<Tuple> {
+
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(sum(input)));
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return mTupleFactory.newTuple(sum(input));
+            } catch (ExecException ee) {
+                throw WrappedIOException.wrap(
+                    "Caught exception in COUNT.Intermed", ee);
+            }
         }
     }
 
-    static public class Final extends EvalFunc<DataAtom> {
+    static public class Final extends EvalFunc<Long> {
         @Override
-        public void exec(Tuple input, DataAtom output) throws IOException {
-            output.setValue(sum(input));
+        public Long exec(Tuple input) throws IOException {
+            try {
+                return sum(input);
+            } catch (Exception ee) {
+                throw WrappedIOException.wrap(
+                    "Caught exception in COUNT.Final", ee);
+            }
         }
     }
 
-    static protected long count(Tuple input) throws IOException {
-        Datum values = input.getField(0);        
-        if (values instanceof DataBag)
-            return ((DataBag)values).size();
-        else if (values instanceof DataMap)
-            return ((DataMap)values).cardinality();
-        else
-            throw new IOException("Cannot count a " + values.getClass().getSimpleName());
-    }
-
-    static protected long sum(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
+    static protected Long sum(Tuple input) throws ExecException, NumberFormatException {
+        DataBag values = (DataBag)input.get(0);
         long sum = 0;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
-            try {
-                sum += t.getAtomField(0).longVal();
-            } catch (NumberFormatException exp) {
-                throw WrappedIOException.wrap(exp.getClass().getName() + ":" + exp.getMessage(), exp);
-            }
+            // Have faith here.  Checking each value before the cast is
+            // just too much.
+            sum += (Long)t.get(0);
         }
         return sum;
     }
 
-@Override
+    @Override
     public Schema outputSchema(Schema input) {
-        return new AtomSchema("count" + count++);
+        return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
     }
-
-    private static int count = 1;
 
 }

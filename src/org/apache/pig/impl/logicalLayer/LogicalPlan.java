@@ -17,98 +17,119 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.Serializable;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.PlanException;
 
-import org.apache.pig.backend.executionengine.ExecLogicalPlan;
+public class LogicalPlan extends OperatorPlan<LogicalOperator> {
+    private static final long serialVersionUID = 2L;
 
-public class LogicalPlan implements Serializable, ExecLogicalPlan{
-    private static final long serialVersionUID = 1L;
-
-    protected OperatorKey root;
-    protected Map<OperatorKey, LogicalOperator> opTable;
-    protected PigContext pigContext = null;
-    
-    protected String alias = null;
-    
-    public OperatorKey getRoot() {
-        return root;
+    public LogicalPlan() {
+        super();
     }
-
-    public LogicalPlan(OperatorKey rootIn,
-                       Map<OperatorKey, LogicalOperator> opTable ,
-                       PigContext pigContext) {
-        this.pigContext = pigContext;
-        this.root = rootIn;
-        this.opTable = opTable;
-        alias = opTable.get(root).alias;
-    }
-    
-    public Map<OperatorKey, LogicalOperator> getOpTable() {
-        return this.opTable;
-    }
-    
-    public LogicalOperator getRootOperator() {
-    	return opTable.get(root);
-    }
-    
-    public void setRoot(OperatorKey newRoot) {
-        root = newRoot;
-    }
-
-    public PigContext getPigContext() {
-        return pigContext;
-    }
-
-    public String getAlias() {
-        return alias;
-    }
-
-    public void setAlias(String newAlias) {
-        alias = newAlias;
-    }
-
-    public List<String> getFuncs() {
-        if (root == null) return new LinkedList<String>();
-        else return opTable.get(root).getFuncs();
-    }
-    
-    // indentation for root is 0
-    @Override
-    public String toString() {        
-        StringBuilder sb = new StringBuilder();
-        sb.append(opTable.get(root).name() +"(" + opTable.get(root).arguments() +")\n");
-        sb.append(appendChildren(root, 1));
-        return sb.toString();
-    }
-    public String appendChildren(OperatorKey parent, int indentation) {
-        StringBuilder sb = new StringBuilder();
-        List<OperatorKey> children = opTable.get(parent).getInputs();
-        for(int i=0; i != children.size(); i++) {
-            for(int j=0; j != indentation; j++) {
-                sb.append("\t");
-            }
-            
-            sb.append(opTable.get(children.get(i)).name() + 
-                      "(" + opTable.get(children.get(i)).arguments()+ ")\n");
-            sb.append(appendChildren(children.get(i), indentation+1));
+    public LogicalOperator getSingleLeafPlanOutputOp()  {
+        List<LogicalOperator> list = this.getLeaves() ;
+        if (list.size() != 1) {
+            throw new AssertionError("The plan has more than one leaf node") ;
         }
-        return sb.toString();
+        return list.get(0) ;
+    }
+
+    public byte getSingleLeafPlanOutputType()  {
+        return getSingleLeafPlanOutputOp().getType() ;
+    }
+
+    public void explain(
+            OutputStream out,
+            PrintStream ps) throws VisitorException, IOException {
+        LOPrinter lpp = new LOPrinter(ps, this);
+
+        lpp.print(out);
     }
     
-    public int getOutputType(){
-        return opTable.get(root).getOutputType();
+//    public String toString() {
+//        if(mOps.size() == 0)
+//            return "Empty Plan!";
+//        else{
+//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//            PrintStream ps = new PrintStream(baos);
+//            try {
+//		explain(baos, ps);
+//	    } catch (VisitorException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	    } catch (IOException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	    }
+//            return baos.toString();
+//        }
+//    }
+
+    /**
+     * Do not use the clone method directly. Use {@link LogicalPlanCloner} instead.
+     */
+    @Override
+    public LogicalPlan clone() throws CloneNotSupportedException {
+        LogicalPlan clone = new LogicalPlan();
+
+        // Get all the nodes in this plan, and clone them.  As we make
+        // clones, create a map between clone and original.  Then walk the
+        // connections in this plan and create equivalent connections in the
+        // clone.
+        Map<LogicalOperator, LogicalOperator> matches = 
+            //new HashMap<LogicalOperator, LogicalOperator>(mOps.size());
+            LogicalPlanCloneHelper.mOpToCloneMap;
+        for (LogicalOperator op : mOps.keySet()) {
+            try {
+            LogicalOperator c = (LogicalOperator)op.clone();
+            clone.add(c);
+            matches.put(op, c);
+            } catch (CloneNotSupportedException cnse) {
+                cnse.printStackTrace();
+                throw cnse;
+            }
+        }
+
+        // Build the edges
+        for (LogicalOperator op : mToEdges.keySet()) {
+            LogicalOperator cloneTo = matches.get(op);
+            if (cloneTo == null) {
+                String msg = new String("Unable to find clone for op "
+                    + op.name());
+                log.error(msg);
+                throw new RuntimeException(msg);
+            }
+            Collection<LogicalOperator> fromOps = mToEdges.get(op);
+            for (LogicalOperator fromOp : fromOps) {
+                LogicalOperator cloneFrom = matches.get(fromOp);
+                if (cloneFrom == null) {
+                    String msg = new String("Unable to find clone for op "
+                        + fromOp.name());
+                    log.error(msg);
+                    throw new RuntimeException(msg);
+                }
+                try {
+                    clone.connect(cloneFrom, cloneTo);
+                } catch (PlanException pe) {
+                    throw new RuntimeException(pe);
+                }
+            }
+        }
+
+        return clone;
     }
     
-    public void explain(OutputStream out) {
-    	LOVisitor lprinter =  new LOTreePrinter(new PrintStream(out));   	
-        
-        opTable.get(root).visit(lprinter);
-    }
 }

@@ -36,27 +36,27 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
  * environment for Pig to run on top of the mini cluster.
  */
 public class MiniCluster {
-	private MiniDFSCluster m_dfs = null;
-	private MiniMRCluster m_mr = null;
-	private FileSystem m_fileSys = null;
-	private JobConf m_conf = null;
-	
-	private final static MiniCluster INSTANCE = new MiniCluster();
-	
-	private MiniCluster() {
-		setupMiniDfsAndMrClusters();
-	}
-	
-	private void setupMiniDfsAndMrClusters() {
-		try {
-			final int dataNodes = 4;     // There will be 4 data nodes
-			final int taskTrackers = 4;  // There will be 4 task tracker nodes
-			Configuration config = new Configuration();
-			
+    private MiniDFSCluster m_dfs = null;
+    private MiniMRCluster m_mr = null;
+    private FileSystem m_fileSys = null;
+    private JobConf m_conf = null;
+    
+    private final static MiniCluster INSTANCE = new MiniCluster();
+    
+    private MiniCluster() {
+        setupMiniDfsAndMrClusters();
+    }
+    
+    private void setupMiniDfsAndMrClusters() {
+        try {
+            final int dataNodes = 4;     // There will be 4 data nodes
+            final int taskTrackers = 4;  // There will be 4 task tracker nodes
+            Configuration config = new Configuration();
+            
             // Builds and starts the mini dfs and mapreduce clusters
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
-            m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getName(), 1);
+            m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getUri().toString(), 1);
             
             // Create the configuration hadoop-site.xml file
             File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");
@@ -77,32 +77,36 @@ public class MiniCluster {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-	}
-	
+    }
+    
     /**
      * Returns the single instance of class MiniClusterBuilder that
      * represents the resouces for a mini dfs cluster and a mini 
      * mapreduce cluster. 
      */
-	public static MiniCluster buildCluster() {
-		return INSTANCE;
-	}
-	
-	protected void finalize() {
-		shutdownMiniDfsAndMrClusters();
-	}
-	
-	private void shutdownMiniDfsAndMrClusters() {
-		try {
-			if (m_fileSys != null) { m_fileSys.close(); }
-		} catch (IOException e) {
-	    	e.printStackTrace();
-		}
-		if (m_dfs != null) { m_dfs.shutdown(); }
-		if (m_mr != null) { m_mr.shutdown(); }		
+    public static MiniCluster buildCluster() {
+        return INSTANCE;
+    }
+    
+    protected void finalize() {
+        shutdownMiniDfsAndMrClusters();
+    }
+    
+    private void shutdownMiniDfsAndMrClusters() {
+        try {
+            if (m_fileSys != null) { m_fileSys.close(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (m_dfs != null) { m_dfs.shutdown(); }
+        if (m_mr != null) { m_mr.shutdown(); }        
 	}
 
     public Properties getProperties() {
         return ConfigurationUtil.toProperties(m_conf);
+    }
+    
+    public FileSystem getFileSystem() {
+        return m_fileSys;
     }
 }

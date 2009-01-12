@@ -17,77 +17,111 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
-
+import java.util.Collection;
+import java.util.Iterator;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.data.DataType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOUnion extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
 
-    public LOUnion(Map<OperatorKey, LogicalOperator> opTable,
-                   String scope, 
-                   long id, 
-                   List<OperatorKey> inputsIn) {
-        super(opTable, scope, id, inputsIn);
+    private static final long serialVersionUID = 2L;
+    private static Log log = LogFactory.getLog(LOUnion.class);
+
+    /**
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
+     */
+    public LOUnion(LogicalPlan plan, OperatorKey k) {
+        super(plan, k);
+    }
+
+    public List<LogicalOperator> getInputs() {
+        return mPlan.getPredecessors(this);
     }
     
     @Override
-    public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Union ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
-    }
-
-    @Override
-    public TupleSchema outputSchema() {
-        if (schema == null) {
-            TupleSchema longest = opTable.get(getInputs().get(0)).outputSchema();
-            int current = 0;
-          for (OperatorKey opKey: getInputs()) {
-              LogicalOperator lo = opTable.get(opKey);
-              
-              if (lo != null && lo.outputSchema() != null && 
-                  lo.outputSchema().numFields() > current) {
-                  longest = lo.outputSchema();
-                  current = longest.numFields();
+    public Schema getSchema() throws FrontendException {
+        if (!mIsSchemaComputed) {
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            log.debug("Number of predecessors in the graph: " + s.size());
+            try {
+                Iterator<LogicalOperator> iter = s.iterator();
+                LogicalOperator op = iter.next();
+                if (null == op) {
+                    throw new FrontendException("Could not find operator in plan");
                 }
+                mSchema = op.getSchema();
+                while(iter.hasNext()) {
+                    op = iter.next();
+                    if(null != mSchema) {
+                        mSchema = mSchema.merge(op.getSchema(), false);
+                    } else {
+                        mSchema = op.getSchema();
+                    }
+                }
+                if(null != mSchema) {
+                    for(Schema.FieldSchema fs: mSchema.getFields()) {
+                        iter = s.iterator();
+                        while(iter.hasNext()) {
+                            op = iter.next();
+                            Schema opSchema = op.getSchema();
+                            if(null != s) {
+                                for(Schema.FieldSchema opFs: opSchema.getFields()) {
+                                    fs.setParent(opFs.canonicalName, op);
+                                }
+                            } else {
+                                fs.setParent(null, op);
+                            }
+                        }
+                    }
+                }
+                mIsSchemaComputed = true;
+            } catch (FrontendException fe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw fe;
             }
-            schema = longest.copy();
         }
-
-        schema.setAlias(alias);
-        return schema;
+        return mSchema;
     }
 
     @Override
-    public int getOutputType() {
-        int outputType = FIXED;
-        for (int i = 0; i < getInputs().size(); i++) {
-            switch (opTable.get(getInputs().get(i)).getOutputType()) {
-            case FIXED:
-                continue;
-            case MONOTONE:
-                if (outputType == FIXED)
-                    outputType = MONOTONE;
-                continue;
-            case AMENDABLE:
-                outputType = AMENDABLE;
-            default:
-                throw new
-                    RuntimeException
-                    ("Invalid input type to the UNION operator");
-            }
-        }
-        return outputType;
+    public String name() {
+        return "Union " + mKey.scope + "-" + mKey.id;
     }
 
-    public void visit(LOVisitor v) {
-        v.visitUnion(this);
+    @Override
+    public boolean supportsMultipleInputs() {
+        return true;
     }
+
+    @Override
+    public void visit(LOVisitor v) throws VisitorException {
+        v.visit(this);
+    }
+
+    public byte getType() {
+        return DataType.BAG;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOUnion unionClone = (LOUnion)super.clone();
+        return unionClone;
+    }
+
 }

@@ -27,15 +27,17 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
-import static org.apache.pig.PigServer.ExecType.LOCAL;
 
-public class TestOrderBy extends PigExecTestCase {
+public class TestOrderBy extends TestCase {
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
-
+    MiniCluster cluster = MiniCluster.buildCluster();
+    
+    private PigServer pig;
     private File tmpFile;
 
     public TestOrderBy() throws Throwable {
@@ -44,6 +46,7 @@ public class TestOrderBy extends PigExecTestCase {
             DATA[0][i] = myFormatter.format(i);
             DATA[1][i] = myFormatter.format(DATALEN - i - 1);
         }
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
     
     protected void setUp() throws Exception {
@@ -58,15 +61,14 @@ public class TestOrderBy extends PigExecTestCase {
     protected void tearDown() throws Exception {
         tmpFile.delete();
     }
-
+    
     private void verify(String query, boolean descending) throws Exception {
-        pigServer.registerQuery(query);
-        Iterator<Tuple> it = pigServer.openIterator("myid");
+        pig.registerQuery(query);
+        Iterator<Tuple> it = pig.openIterator("myid");
         int col = (descending ? 1 : 0);
         for(int i = 0; i < DATALEN; i++) {
             Tuple t = (Tuple)it.next();
-            int value = t.getAtomField(1).numval().intValue();
-//            log.info("" + i + "," + DATA[0][i] + "," + DATA[1][i] + "," + value);
+            int value = DataType.toInteger(t.get(1));
             assertEquals(Integer.parseInt(DATA[col][i]), value);
         }
         assertFalse(it.hasNext());
@@ -74,111 +76,111 @@ public class TestOrderBy extends PigExecTestCase {
 
     @Test
     public void testTopLevelOrderBy_Star_NoUsing() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "') BY *;", false);
+        verify("myid = order (load 'file:" + tmpFile + "') BY *;", false);
     }
 
     @Test
     public void testTopLevelOrderBy_Col1_NoUsing() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "') BY $1;", false);
+        verify("myid = order (load 'file:" + tmpFile + "') BY $1;", false);
     }
 
     @Test
     public void testTopLevelOrderBy_Col2_NoUsing() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "') BY $2;", true);
+        verify("myid = order (load 'file:" + tmpFile + "') BY $2;", true);
     }
 
     @Test
     public void testTopLevelOrderBy_Col21_NoUsing() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) + "') BY $2, $1;", true);
+        verify("myid = order (load 'file:" + tmpFile + "') BY $2, $1;", true);
     }
 
     @Test
     public void testTopLevelOrderBy_Star_Using() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY * USING org.apache.pig.test.OrdAsc;", false);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY * USING org.apache.pig.test.OrdDesc;", true);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY * USING org.apache.pig.test.OrdDescNumeric;", true);
     }
 
     @Test
     public void testTopLevelOrderBy_Col1_Using() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $1 USING org.apache.pig.test.OrdAsc;", false);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $1 USING org.apache.pig.test.OrdDesc;", true);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $1 USING org.apache.pig.test.OrdDescNumeric;", true);
     }
 
     @Test
     public void testTopLevelOrderBy_Col2_Using() throws Exception {
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $2 USING org.apache.pig.test.OrdAsc;", true);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $2 USING org.apache.pig.test.OrdDesc;", false);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $2 USING org.apache.pig.test.OrdDescNumeric;", false);
     }
 
     @Test
     public void testTopLevelOrderBy_Col21_Using() throws Exception {
         // col2/col1 ascending - 
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $2, $1 USING org.apache.pig.test.OrdAsc;", true);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $2, $1 USING org.apache.pig.test.OrdDesc;", false);
-        verify("myid = order (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = order (load 'file:" + tmpFile +
             "') BY $2, $1 USING org.apache.pig.test.OrdDescNumeric;", false);
     }
 
     @Test
     public void testNestedOrderBy_Star_NoUsing() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY *; generate flatten(D); };", false);
     }
 
     @Test
     public void testNestedOrderBy_Col1_NoUsing() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY $1; generate flatten(D); };", false);
     }
 
     @Test
     public void testNestedOrderBy_Col2_NoUsing() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY $2; generate flatten(D); };", true);
     }
 
     @Test
     public void testNestedOrderBy_Col21_NoUsing() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY $2, $1; generate flatten(D); };", true);
     }
 
     @Test
     public void testNestedOrderBy_Star_Using() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY * USING " + 
             "org.apache.pig.test.OrdAsc; generate flatten(D); };", false);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY * USING " + 
             "org.apache.pig.test.OrdDesc; generate flatten(D); };", true);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY * USING " + 
             "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };", true);
     }
 
     @Test
     public void testNestedOrderBy_Col1_Using() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY $1 USING " + 
             "org.apache.pig.test.OrdAsc; generate flatten(D); };", false);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
             "') by $0) { D = ORDER $1 BY $1 USING " + 
             "org.apache.pig.test.OrdDesc; generate flatten(D); };", true);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $1 USING " + 
                 "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };",
                 true);
@@ -186,13 +188,13 @@ public class TestOrderBy extends PigExecTestCase {
 
     @Test
     public void testNestedOrderBy_Col2_Using() throws Exception {
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2 USING " +
                 "org.apache.pig.test.OrdAsc; generate flatten(D); };", true);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2 USING " +
                 "org.apache.pig.test.OrdDesc; generate flatten(D); };", false);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2 USING " +
                 "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };",
                 false);
@@ -201,13 +203,13 @@ public class TestOrderBy extends PigExecTestCase {
     @Test
     public void testNestedOrderBy_Col21_Using() throws Exception {
         // col2/col1 ascending - 
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2, $1 USING " +
                 "org.apache.pig.test.OrdAsc; generate flatten(D); };", true);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2, $1 USING " +
                 "org.apache.pig.test.OrdDesc; generate flatten(D); };", false);
-        verify("myid = foreach (group (load 'file:" + Util.encodeEscape(tmpFile.toString()) +
+        verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2, $1 USING " +
                 "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };",
                 false);

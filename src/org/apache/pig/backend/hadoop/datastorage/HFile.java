@@ -75,6 +75,6 @@ public class HFile extends HPath {
     
     public SeekableInputStream sopen() throws IOException {
         return new HSeekableInputStream(fs.getHFS().open(path),
-                                        fs.getHFS(). getContentSummary(path).getLength());
+                                        fs.getHFS().getContentSummary(path).getLength());
     }
 }

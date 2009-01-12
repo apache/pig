@@ -18,54 +18,105 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.pig.impl.eval.cond.Cond;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.data.DataType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOSplit extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-      List<Cond> conditions = new ArrayList<Cond>();
+    private ArrayList<LogicalOperator> mOutputs;
+    private static Log log = LogFactory.getLog(LOSplit.class);
 
-    public LOSplit(Map<OperatorKey, LogicalOperator> opTable,
-                   String scope, 
-                   long id, 
-                   OperatorKey input) {
-        super(opTable, scope, id, input);
-    }
-    
-    public void addCond(Cond cond) {
-        conditions.add(cond);
-    }
-
-    @Override
-    public int getOutputType() {
-        return opTable.get(getInputs().get(0)).getOutputType();
-    }
-
-    public ArrayList<Cond> getConditions() {
-        return new ArrayList<Cond> (conditions);
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param outputs
+     *            list of aliases that are the output of the split
+     */
+    public LOSplit(LogicalPlan plan, OperatorKey key,
+            ArrayList<LogicalOperator> outputs) {
+        super(plan, key);
+        mOutputs = outputs;
     }
 
-    @Override
-    public TupleSchema outputSchema() {
-        return opTable.get(getInputs().get(0)).outputSchema().copy();
+    public List<LogicalOperator> getOutputs() {
+        return mOutputs;
+    }
+
+    public void setOutputs(ArrayList<LogicalOperator> outputs) {
+        mOutputs = outputs;
+    }
+
+    public void addOutput(LogicalOperator lOp) {
+        mOutputs.add(lOp);
     }
 
     @Override
     public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Split ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
-    }
-    
-    public void visit(LOVisitor v) {
-        v.visitSplit(this);
+        return "Split " + mKey.scope + "-" + mKey.id;
     }
 
+    @Override
+    public Schema getSchema() throws FrontendException {
+        if (!mIsSchemaComputed) {
+            // get our parent's schema
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            try {
+                LogicalOperator op = s.iterator().next();
+                if (null == op) {
+                    throw new FrontendException("Could not find operator in plan");
+                }
+                mSchema = s.iterator().next().getSchema();
+                mIsSchemaComputed = true;
+            } catch (FrontendException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
+        }
+        return mSchema;
+    }
+
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return true;
+    }
+
+    public void visit(LOVisitor v) throws VisitorException {
+        v.visit(this);
+    }
+
+    @Override
+    public byte getType() {
+        return DataType.BAG;
+    }
+    
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOSplit splitClone = (LOSplit)super.clone();
+        return splitClone;
+    }
 }

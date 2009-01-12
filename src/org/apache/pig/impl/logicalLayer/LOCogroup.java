@@ -18,172 +18,495 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Iterator;
 
-import org.apache.pig.data.Datum;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.eval.EvalSpec;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
-
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.util.MultiMap;
 
 public class LOCogroup extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    protected ArrayList<EvalSpec> specs;
+    /**
+     * Cogroup contains a list of logical operators corresponding to the
+     * relational operators and a list of generates for each relational
+     * operator. Each generate operator in turn contains a list of expressions
+     * for the columns that are projected
+     */
+    private boolean[] mIsInner;
+    private static Log log = LogFactory.getLog(LOCogroup.class);
+    private MultiMap<LogicalOperator, LogicalPlan> mGroupByPlans;
 
-    public LOCogroup(Map<OperatorKey, LogicalOperator> opTable,
-                     String scope,
-                     long id,
-                     List<OperatorKey> inputs,
-                     ArrayList<EvalSpec> specs) {
-        super(opTable, scope, id, inputs);
-        this.specs = specs;
-        getOutputType();
+    /**
+     * 
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param k
+     *            OperatorKey for this operator
+     * @param groupByPlans
+     *            the group by columns
+     * @param isInner
+     *            indicates whether the cogroup is inner for each relation
+     */
+    public LOCogroup(
+            LogicalPlan plan,
+            OperatorKey k,
+            MultiMap<LogicalOperator, LogicalPlan> groupByPlans,
+            boolean[] isInner) {
+        super(plan, k);
+        mGroupByPlans = groupByPlans;
+        mIsInner = isInner;
+    }
+
+    public List<LogicalOperator> getInputs() {
+        return mPlan.getPredecessors(this);
+    }
+
+    public MultiMap<LogicalOperator, LogicalPlan> getGroupByPlans() {
+        return mGroupByPlans;
+    }    
+
+    public void setGroupByPlans(MultiMap<LogicalOperator, LogicalPlan> groupByPlans) {
+        mGroupByPlans = groupByPlans;
+    }    
+
+    public boolean[] getInner() {
+        return mIsInner;
+    }
+
+    public void setInner(boolean[] inner) {
+        mIsInner = inner;
     }
 
     @Override
     public String name() {
-        StringBuilder sb = new StringBuilder();
-        if (inputs.size() == 1) {
-            sb.append("Group ");
-        } else {
-            sb.append("CoGroup ");
-        }
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
+        return "CoGroup " + mKey.scope + "-" + mKey.id;
     }
+
     @Override
-    public String arguments() {
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < specs.size(); i++) {
-            sb.append(specs.get(i));
-            if (i + 1 < specs.size())
-                sb.append(", ");
-        }
-
-        return sb.toString();
+    public boolean supportsMultipleInputs() {
+        return true;
     }
 
-    public static Datum[] getGroupAndTuple(Datum d) {
-        if (!(d instanceof Tuple)) {
-            throw new RuntimeException
-                ("Internal Error: Evaluation of group expression did not return a tuple");
-        }
-        Tuple output = (Tuple) d;
-        if (output.arity() < 2) {
-            throw new RuntimeException
-                ("Internal Error: Evaluation of group expression returned a tuple with <2 fields");
-        }
+    @Override
+    public Schema getSchema() throws FrontendException {
+        List<LogicalOperator> inputs = mPlan.getPredecessors(this);
+        /*
+         * Dumping my understanding of how the schema of a Group/CoGroup will
+         * look. The first field of the resulting tuple will have the alias
+         * 'group'. The schema for this field is a union of the group by columns
+         * for each input. The subsequent fields in the output tuple will have
+         * the alias of the input as the alias for a bag that contains the
+         * tuples from the input that match the grouping criterion
+         */
+        if (!mIsSchemaComputed) {
+            List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
+                    inputs.size() + 1);
+            // one more to account for the "group"
+            // the alias of the first field is group and hence the
+            // string "group"
 
-        Datum[]groupAndTuple = new Datum[2];
-        if (output.arity() == 2) {
-            groupAndTuple[0] = output.getField(0);
-            groupAndTuple[1] = output.getField(1);
-        } else {
-            Tuple group = new Tuple();
-            for (int j = 0; j < output.arity() - 1; j++) {
-                group.appendField(output.getField(j));
+            /*
+             * Here goes an attempt to describe how the schema for the first
+             * column - 'group' should look like. If the number of group by
+             * columns = 1 then the schema for 'group' is the
+             * schema(fieldschema(col)) If the number of group by columns > 1
+             * then find the set union of the group by columns and form the
+             * schema as schema(list<fieldschema of the cols>)
+             * The parser will ensure that the number of group by columns are
+             * the same across all inputs. The computation of the schema for group
+             * is as follows:
+             * For each input of cogroup, for each operator (projection ,udf, constant), etc.
+             * compute the multimaps <group_column_number, alias> and <group_column_number, operator>
+             * and <alias, expression_operator>
+             * Also set the lookup table for each alias to false
+             */
+
+            Schema groupBySchema = null;
+            List<Schema.FieldSchema> groupByFss = new ArrayList<Schema.FieldSchema>();
+            Map<String, Boolean> aliasLookup = new HashMap<String, Boolean>();
+            MultiMap<String, ExpressionOperator> aliasExop = new MultiMap<String, ExpressionOperator>();
+            MultiMap<Integer, String> positionAlias = new MultiMap<Integer, String>();
+            MultiMap<Integer, ExpressionOperator> positionOperators = new MultiMap<Integer, ExpressionOperator>();
+            
+            for (LogicalOperator op : inputs) {
+                int position = 0;
+                for(LogicalPlan plan: mGroupByPlans.get(op)) {
+                    for(LogicalOperator eOp: plan.getLeaves()) {
+                        Schema.FieldSchema fs = ((ExpressionOperator)eOp).getFieldSchema();
+                        if (null != fs) {
+                            String alias = fs.alias;
+                            if(null != alias) {
+                                aliasLookup.put(alias, false);
+                                aliasExop.put(alias, (ExpressionOperator)eOp);                            
+                                positionAlias.put(position, alias);
+                            }
+                            //store the operators for each position in the group
+                        } else {
+                            log.warn("Field Schema of an expression operator cannot be null"); 
+                        }
+                        positionOperators.put(position, (ExpressionOperator)eOp);
+                    }
+                    ++position;
+                }
             }
-            groupAndTuple[0] = group;
-            groupAndTuple[1] = output.getField(output.arity() - 1);
-        }
-        return groupAndTuple;
-    }
-
-    @Override
-    public TupleSchema outputSchema() {
-        if (schema == null) {
-            schema = new TupleSchema();
-
-
-            Schema groupElementSchema =
-                specs.get(0).getOutputSchemaForPipe(opTable.get(getInputs().get(0)).
-                                                    outputSchema());
-            if (groupElementSchema == null) {
-                groupElementSchema = new TupleSchema();
-                groupElementSchema.setAlias("group");
-            } else {
-
-                if (!(groupElementSchema instanceof TupleSchema))
-                    throw new RuntimeException
-                        ("Internal Error: Schema of group expression was atomic");
-                List<Schema> fields =
-                    ((TupleSchema) groupElementSchema).getFields();
-
-                if (fields.size() < 2)
-                    throw new RuntimeException
-                        ("Internal Error: Schema of group expression retured <2 fields");
-
-                if (fields.size() == 2) {
-                    groupElementSchema = fields.get(0);
-                    groupElementSchema.removeAllAliases();
-                    groupElementSchema.setAlias("group");
+            
+            /*
+             * Now that the multi maps and the look up table are computed, do the following:
+             * for each column in the group, in order check if the alias is alaready used or not
+             * If the alias is already used, check for the next unused alias.
+             * IF none of the aliases can be used then the alias of that column is null
+             * If an alias is found usable, then use that alias and the schema of the expression operator
+             * corresponding to that position. Note that the first operator for that position is
+             * picked. The type checker will ensure that the correct schema is merged
+             */
+            int arity = mGroupByPlans.get(inputs.get(0)).size();
+            for (int i = 0; i < arity; ++i) {
+                Schema.FieldSchema groupByFs;
+                Collection<String> cAliases = positionAlias.get(i);
+                if(null != cAliases) {
+                    Object[] aliases = cAliases.toArray();
+                    for(int j = 0; j < aliases.length; ++j) {
+                        String alias = (String) aliases[j];
+                        if(null != alias) {
+                            //Collection<ExpressionOperator> cEops = aliasExop.get(alias);
+                            Collection<ExpressionOperator> cEops = positionOperators.get(i);
+                            if(null != cEops) {
+                                ExpressionOperator eOp = (ExpressionOperator) (cEops.toArray())[0];
+                                if(null != eOp) {
+                                    if(!aliasLookup.get(alias)) {
+                                        Schema.FieldSchema fs = eOp.getFieldSchema();
+                                        if(null != fs) {
+                                            groupByFs = new Schema.FieldSchema(alias, fs.schema, fs.type);
+                                            groupByFss.add(groupByFs);
+                                            aliasLookup.put(alias, true);
+                                        } else {
+                                            groupByFs = new Schema.FieldSchema(alias, null, DataType.BYTEARRAY);
+                                            groupByFss.add(groupByFs);
+                                        }
+                                        setFieldSchemaParent(groupByFs, positionOperators, i);
+                                        break;
+                                    } else {
+                                        if((j + 1) < aliases.length) {
+                                            continue;
+                                        } else {
+                                            //we have seen this alias before
+                                            //just add the schema of the expression operator with the null alias
+                                            Schema.FieldSchema fs = eOp.getFieldSchema();
+                                            if(null != fs) {
+                                                groupByFs = new Schema.FieldSchema(null, fs.schema, fs.type);
+                                                groupByFss.add(groupByFs);
+                                                for(ExpressionOperator op: cEops) {
+                                                    Schema.FieldSchema opFs = op.getFieldSchema();
+                                                    if(null != opFs) {
+                                                        groupByFs.setParent(opFs.canonicalName, eOp);
+                                                    } else {
+                                                        groupByFs.setParent(null, eOp);
+                                                    }
+                                                }
+                                            } else {
+                                                groupByFs = new Schema.FieldSchema(null, null, DataType.BYTEARRAY);
+                                                groupByFss.add(groupByFs);
+                                            }
+                                            setFieldSchemaParent(groupByFs, positionOperators, i);
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    //should not be here
+                                    log.debug("Cannot be here: we cannot have a collection of null expression operators");
+                                }
+                            } else {
+                                //should not be here
+                                log.debug("Cannot be here: we should have an expression operator at each position");
+                            }
+                        } else {
+                            //should not be here
+                            log.debug("Cannot be here: we cannot have a collection of null aliases ");
+                        }
+                    }
                 } else {
-                    groupElementSchema = new TupleSchema();
-                    groupElementSchema.setAlias("group");
+                    //We do not have any alias for this position in the group by columns
+                    //We have positions $1, $2, etc.
+                    Collection<ExpressionOperator> cEops = positionOperators.get(i);
+                    if(null != cEops) {
+                        ExpressionOperator eOp = (ExpressionOperator) (cEops.toArray())[0];
+                        if(null != eOp) {
+                            Schema.FieldSchema fs = eOp.getFieldSchema();
+                            if(null != fs) {
+                                groupByFs = new Schema.FieldSchema(null, fs.schema, fs.type);
+                                groupByFss.add(groupByFs);
+                            } else {
+                                groupByFs = new Schema.FieldSchema(null, null, DataType.BYTEARRAY);
+                                groupByFss.add(groupByFs);
+                            }
+                        } else {
+                            groupByFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                            groupByFss.add(groupByFs);
+                        }
+                    } else {
+                        groupByFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                        groupByFss.add(groupByFs);
+                    }
+                    setFieldSchemaParent(groupByFs, positionOperators, i);
+                }
+            }            
 
-                    for (int i = 0; i < fields.size() - 1; i++) {
-                        ((TupleSchema) groupElementSchema).add(fields.get(i));
+            groupBySchema = new Schema(groupByFss);
+
+            if(1 == arity) {
+                byte groupByType = getAtomicGroupByType();
+                Schema groupSchema = groupByFss.get(0).schema;
+                Schema.FieldSchema groupByFs = new Schema.FieldSchema("group", groupSchema, groupByType);
+                setFieldSchemaParent(groupByFs, positionOperators, 0);
+                fss.add(groupByFs);
+            } else {
+                Schema mergedGroupSchema = getTupleGroupBySchema();
+                if(mergedGroupSchema.size() != groupBySchema.size()) {
+                    mSchema = null;
+                    mIsSchemaComputed = false;
+                    throw new FrontendException("Internal error. Mismatch in group by arities. Expected: " + mergedGroupSchema + ". Found: " + groupBySchema);
+                } else {
+                    for(int i = 0; i < mergedGroupSchema.size(); ++i) {
+                        try {
+                            Schema.FieldSchema mergedFs = mergedGroupSchema.getField(i);
+                            Schema.FieldSchema groupFs = groupBySchema.getField(i);
+                            mergedFs.alias = groupFs.alias;
+                            mergedGroupSchema.addAlias(mergedFs.alias, mergedFs);
+                        } catch (ParseException pe) {
+                            mSchema = null;
+                            mIsSchemaComputed = false;
+                            throw new FrontendException(pe.getMessage());
+                        }
                     }
                 }
-
+                
+                Schema.FieldSchema groupByFs = new Schema.FieldSchema("group", mergedGroupSchema);
+                fss.add(groupByFs);
+                for(int i = 0; i < arity; ++i) {
+                    setFieldSchemaParent(groupByFs, positionOperators, i);
+                }
             }
-
-            schema.add(groupElementSchema);
-
-          for (OperatorKey key: getInputs()) {
-              LogicalOperator lo = opTable.get(key);
-                TupleSchema inputSchema = lo.outputSchema();
-                if (inputSchema == null)
-                    inputSchema = new TupleSchema();
-                schema.add(inputSchema);
+            for (LogicalOperator op : inputs) {
+                try {
+                    Schema.FieldSchema bagFs = new Schema.FieldSchema(op.getAlias(),
+                            op.getSchema(), DataType.BAG);
+                    fss.add(bagFs);
+                    setFieldSchemaParent(bagFs, op);
+                } catch (FrontendException ioe) {
+                    mIsSchemaComputed = false;
+                    mSchema = null;
+                    throw ioe;
+                }
             }
+            mIsSchemaComputed = true;
+            mSchema = new Schema(fss);
+            mType = DataType.BAG;//mType is from the super class
         }
+        return mSchema;
+    }
 
-        schema.setAlias(alias);
-        return schema;
+    public boolean isTupleGroupCol() {
+        List<LogicalOperator> inputs = mPlan.getPredecessors(this);
+        if (inputs == null || inputs.size() == 0) {
+            throw new AssertionError("COGroup.isTupleGroupCol() can be called "
+                                     + "after it has an input only") ;
+        }
+        return mGroupByPlans.get(inputs.get(0)).size() > 1 ;
     }
 
     @Override
-    public int getOutputType() {
-        int outputType = FIXED;
-        for (int i = 0; i < getInputs().size(); i++) {
-            switch (opTable.get(getInputs().get(i)).getOutputType()) {
-            case FIXED:
-                continue;
-            case MONOTONE:
-                outputType = AMENDABLE;
-                break;
-            case AMENDABLE:
-            default:
-                throw new RuntimeException
-                    ("Can't feed a cogroup into another in the streaming case");
+    public void visit(LOVisitor v) throws VisitorException {
+        v.visit(this);
+    }
+
+    /***
+     *
+     * This does switch the mapping
+     *
+     * oldOp -> List of inner plans
+     *         to
+     * newOp -> List of inner plans
+     *
+     * which is useful when there is a structural change in LogicalPlan
+     *
+     * @param oldOp the old operator
+     * @param newOp the new operator
+     */
+    public void switchGroupByPlanOp(LogicalOperator oldOp,
+                                    LogicalOperator newOp) {
+        Collection<LogicalPlan> innerPlans = mGroupByPlans.removeKey(oldOp) ;
+        mGroupByPlans.put(newOp, innerPlans);
+    }
+
+    public void unsetSchema() throws VisitorException{
+        for(LogicalOperator input: getInputs()) {
+            for(LogicalPlan plan: mGroupByPlans.get(input)) {
+                SchemaRemover sr = new SchemaRemover(plan);
+                sr.visit();
             }
         }
-        return outputType;
+        super.unsetSchema();
     }
 
-    @Override
-    public List<String> getFuncs() {
-        List<String> funcs = super.getFuncs();
-      for (EvalSpec spec:specs) {
-            funcs.addAll(spec.getFuncs());
+    /**
+     * This can be used to get the merged type of output group col
+     * only when the group col is of atomic type
+     * TODO: This doesn't work with group by complex type
+     * @return The type of the group by
+     */
+    public byte getAtomicGroupByType() throws FrontendException {
+        if (isTupleGroupCol()) {
+            throw new FrontendException("getAtomicGroupByType is used only when"
+                                     + " dealing with atomic group col") ;
         }
-        return funcs;
+
+        byte groupType = DataType.BYTEARRAY ;
+        // merge all the inner plan outputs so we know what type
+        // our group column should be
+        for(int i=0;i < getInputs().size(); i++) {
+            LogicalOperator input = getInputs().get(i) ;
+            List<LogicalPlan> innerPlans
+                        = new ArrayList<LogicalPlan>(getGroupByPlans().get(input)) ;
+            if (innerPlans.size() != 1) {
+                throw new FrontendException("Each COGroup input has to have "
+                                         + "the same number of inner plans") ;
+            }
+            byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
+            groupType = DataType.mergeType(groupType, innerType) ;
+        }
+
+        return groupType ;
     }
 
-    public ArrayList<EvalSpec> getSpecs() {
-        return specs;
+    /*
+        This implementation is based on the assumption that all the
+        inputs have the same group col tuple arity.
+        TODO: This doesn't work with group by complex type
+     */
+    public Schema getTupleGroupBySchema() throws FrontendException {
+        if (!isTupleGroupCol()) {
+            throw new FrontendException("getTupleGroupBySchema is used only when"
+                                     + " dealing with tuple group col") ;
+        }
+
+        // this fsList represents all the columns in group tuple
+        List<Schema.FieldSchema> fsList = new ArrayList<Schema.FieldSchema>() ;
+
+        int outputSchemaSize = getGroupByPlans().get(getInputs().get(0)).size() ;
+
+        // by default, they are all bytearray
+        // for type checking, we don't care about aliases
+        for(int i=0; i<outputSchemaSize; i++) {
+            fsList.add(new Schema.FieldSchema(null, DataType.BYTEARRAY)) ;
+        }
+
+        // merge all the inner plan outputs so we know what type
+        // our group column should be
+        for(int i=0;i < getInputs().size(); i++) {
+            LogicalOperator input = getInputs().get(i) ;
+            List<LogicalPlan> innerPlans
+                        = new ArrayList<LogicalPlan>(getGroupByPlans().get(input)) ;
+
+            boolean seenProjectStar = false;
+            for(int j=0;j < innerPlans.size(); j++) {
+                byte innerType = innerPlans.get(j).getSingleLeafPlanOutputType() ;
+                ExpressionOperator eOp = (ExpressionOperator)innerPlans.get(j).getSingleLeafPlanOutputOp();
+
+                if(eOp instanceof LOProject) {
+                    if(((LOProject)eOp).isStar()) {
+                        seenProjectStar = true;
+                    }
+                }
+                        
+                Schema.FieldSchema groupFs = fsList.get(j);
+                groupFs.type = DataType.mergeType(groupFs.type, innerType) ;
+                Schema.FieldSchema fs = eOp.getFieldSchema();
+                if(null != fs) {
+                    groupFs.setParent(eOp.getFieldSchema().canonicalName, eOp);
+                } else {
+                    groupFs.setParent(null, eOp);
+                }
+            }
+
+            if(seenProjectStar) {
+                throw new FrontendException("Grouping attributes can either be star (*) or a list of expressions, but not both.");
+                
+            }
+
+        }
+
+        return new Schema(fsList) ;
     }
 
-    public void visit(LOVisitor v) {
-        v.visitCogroup(this);
+    private void setFieldSchemaParent(Schema.FieldSchema fs, MultiMap<Integer, ExpressionOperator> positionOperators, int position) throws FrontendException {
+        for(ExpressionOperator op: positionOperators.get(position)) {
+            Schema.FieldSchema opFs = op.getFieldSchema();
+            if(null != opFs) {
+                fs.setParent(opFs.canonicalName, op);
+            } else {
+                fs.setParent(null, op);
+            }
+        }
+    }
+
+    private void setFieldSchemaParent(Schema.FieldSchema fs, LogicalOperator op) throws FrontendException {
+        Schema s = op.getSchema();
+        if(null != s) {
+            for(Schema.FieldSchema inputFs: s.getFields()) {
+                if(null != inputFs) {
+                    fs.setParent(inputFs.canonicalName, op);
+                } else {
+                    fs.setParent(null, op);
+                }
+            }
+        } else {
+            fs.setParent(null, op);
+        }
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        
+        // first start with LogicalOperator clone
+        LOCogroup  cogroupClone = (LOCogroup)super.clone();
+        
+        // create deep copy of other cogroup specific members
+        cogroupClone.mIsInner = new boolean[mIsInner.length];
+        for (int i = 0; i < mIsInner.length; i++) {
+            cogroupClone.mIsInner[i] = mIsInner[i];
+        }
+        
+        cogroupClone.mGroupByPlans = new MultiMap<LogicalOperator, LogicalPlan>();
+        for (Iterator<LogicalOperator> it = mGroupByPlans.keySet().iterator(); it.hasNext();) {
+            LogicalOperator relOp = it.next();
+            Collection<LogicalPlan> values = mGroupByPlans.get(relOp);
+            for (Iterator<LogicalPlan> planIterator = values.iterator(); planIterator.hasNext();) {
+                LogicalPlanCloneHelper lpCloneHelper = new LogicalPlanCloneHelper(planIterator.next());
+                cogroupClone.mGroupByPlans.put(relOp, lpCloneHelper.getClonedPlan());
+            }
+        }
+        
+        return cogroupClone;
     }
 
 }

@@ -15,151 +15,276 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.impl.logicalLayer;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.io.IOException;
 
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.Operator;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-import org.apache.pig.backend.executionengine.ExecScopedLogicalOperator;
 
+/**
+ * Parent for all Logical operators.
+ */
+abstract public class LogicalOperator extends Operator<LOVisitor> {
+    private static final long serialVersionUID = 2L;
 
-abstract public class LogicalOperator implements Serializable, ExecScopedLogicalOperator {
-    public String alias = null;
+    /**
+     * Schema that defines the output of this operator.
+     */
+    protected Schema mSchema = null;
 
-    public static final int FIXED = 1;
-    public static final int MONOTONE = 2;
-    public static final int UPDATABLE = 3;      // Reserved for future use
-    public static final int AMENDABLE = 4;
+    /**
+     * A boolean variable to remember if the schema has been computed
+     */
+    protected boolean mIsSchemaComputed = false;
 
-    protected int requestedParallelism = -1;
-    protected TupleSchema schema = null;
-    protected List<OperatorKey> inputs;
+    /**
+     * Datatype of this output of this operator. Operators start out with data
+     * type set to UNKNOWN, and have it set for them by the type checker.
+     */
+    protected byte mType = DataType.UNKNOWN;
 
-    protected Map<OperatorKey, LogicalOperator> opTable;
+    /**
+     * Requested level of parallelism for this operation.
+     */
+    protected int mRequestedParallelism;
 
-    protected String scope;
-    protected long id;
+    /**
+     * Name of the record set that results from this operator.
+     */
+    protected String mAlias;
+
+    /**
+     * Logical plan that this operator is a part of.
+     */
+    protected LogicalPlan mPlan;
+
+    /**
+     * A boolean variable to remember if input has to be flattened Used only in
+     * the context of generate
+     */
+    //private boolean mIsFlatten = false;
     
-    protected LogicalOperator(Map<OperatorKey, LogicalOperator> opTable,
-                              String scope, 
-                              long id) {
-        this.inputs = new ArrayList<OperatorKey> ();
-        this.opTable = opTable;
-        this.scope = scope;
-        this.id = id;
+    private static Log log = LogFactory.getLog(LogicalOperator.class);
 
-        opTable.put(getOperatorKey(), this);
-    } 
-    
-    protected LogicalOperator(Map<OperatorKey, LogicalOperator> opTable, 
-                              String scope, 
-                              long id, 
-                              List<OperatorKey> inputs) {
-        this.opTable = opTable;
-        this.inputs = inputs;
-        this.scope = scope;
-        this.id = id;
-        
-        opTable.put(getOperatorKey(), this);
-    }
-
-    protected LogicalOperator(Map<OperatorKey, LogicalOperator> opTable,
-                              String scope, 
-                              long id, 
-                              OperatorKey input) {
-        this.opTable = opTable;
-        this.inputs = new ArrayList<OperatorKey> ();
-        inputs.add(input);
-        this.scope = scope;
-        this.id = id;
-
-        opTable.put(getOperatorKey(), this);
-    }
-    
-    public OperatorKey getOperatorKey() {
-        return new OperatorKey(scope, id);
-    }
-    
-    public String getScope() {
-        return this.scope;
-    }
-    
-    public long getId() {
-        return this.id;
-    }
-    
-    public String getAlias() {
-        return alias;
-    }
-
-    public void setAlias(String newAlias) {
-        alias = newAlias;
-    }
-
-    public int getRequestedParallelism() {
-        return requestedParallelism;
-    }
-
-    public void setRequestedParallelism(int newRequestedParallelism) {
-        requestedParallelism = newRequestedParallelism;
-    }
-
-    @Override public String toString() {
-        StringBuilder result = new StringBuilder(super.toString());
-        result.append(" (alias: ");
-        result.append(alias);
-        result.append(", requestedParallelism: ");
-        result.append(requestedParallelism);
-        result.append(')');
-        return result.toString();
-    }
-
-    public abstract TupleSchema outputSchema();
-
-    public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ROOT ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
-    }
-
-    public List<OperatorKey> getInputs() {
-        return inputs;
-    }
-
-    public Map<OperatorKey, LogicalOperator> getOpTable() {
-        return opTable;
-    }
-    
-    public String arguments() {
-        return "";
-    }
-
-    public List<String> getFuncs() {
-        List<String> funcs = new LinkedList<String>();
-        for (int i = 0; i < inputs.size(); i++) {
-            funcs.addAll(opTable.get(inputs.get(i)).getFuncs());
-        }
-        return funcs;
-    }
-
-    public abstract int getOutputType();
-
-    public void setSchema(TupleSchema schema) {
-        this.schema = schema;
+    /**
+     * Equivalent to LogicalOperator(k, 0).
+     * 
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k
+     *            Operator key to assign to this node.
+     */
+    public LogicalOperator(LogicalPlan plan, OperatorKey k) {
+        this(plan, k, -1);
     }
 
     /**
-     * Visit all of the logical operators in a tree, starting with this
-     * one.  
-     * @param v LOVisitor to visit this logical plan with.
+     * @param plan
+     *            Logical plan this operator is a part of.
+     * @param k Operator key to assign to this node.
+     * @param rp degree of requested parallelism with which to execute this
+     *            node.
      */
-    public abstract void visit(LOVisitor v);
+    public LogicalOperator(LogicalPlan plan, OperatorKey k, int rp) {
+        super(k);
+        mPlan = plan;
+        mRequestedParallelism = rp;
+    }
+
+    /**
+     * Get the operator key for this operator.
+     */
+    public OperatorKey getOperatorKey() {
+        return mKey;
+    }
+
+    /**
+     * Set the output schema for this operator. If a schema already exists, an
+     * attempt will be made to reconcile it with this new schema.
+     * 
+     * @param schema
+     *            Schema to set.
+     * @throws ParseException
+     *             if there is already a schema and the existing schema cannot
+     *             be reconciled with this new schema.
+     */
+    public void setSchema(Schema schema) throws ParseException {
+        // In general, operators don't generate their schema until they're
+        // asked, so ask them to do it.
+        try {
+            getSchema();
+        } catch (FrontendException ioe) {
+            // It's fine, it just means we don't have a schema yet.
+        }
+        if (mSchema == null) {
+            log.debug("Operator schema is null; Setting it to new schema");
+            mSchema = schema;
+        } else {
+            log.debug("Reconciling schema");
+            log.debug("mSchema: " + mSchema + " schema: " + schema);
+            mSchema.reconcile(schema);
+        }
+    }
+
+    /**
+     * Directly force the schema without reconcilation
+     * Please use with great care
+     * @param schema
+     */
+    public void forceSchema(Schema schema) {
+        this.mSchema = schema;
+    }
+
+    /**
+     * Unset the schema as if it had not been calculated.  This is used by
+     * anyone who reorganizes the tree and needs to have schemas recalculated.
+     */
+    public void unsetSchema() throws VisitorException {
+        mIsSchemaComputed = false;
+        mSchema = null;
+    }
+
+    public Schema regenerateSchema() throws FrontendException, VisitorException {
+        unsetSchema();
+        return getSchema();
+    }
+    
+    /**
+     * Calculate canonical names for all fields in the schema.  This should
+     * only be used for loads or other operators that create all new fields.
+     */
+    public void setCanonicalNames() {
+        for (Schema.FieldSchema fs : mSchema.getFields()) {
+            fs.canonicalName = CanonicalNamer.getNewName();
+        }
+    }
+
+
+    /**
+     * Get a copy of the schema for the output of this operator.
+     */
+    public abstract Schema getSchema() throws FrontendException;
+
+    /**
+     * Set the type of this operator. This should only be called by the type
+     * checking routines.
+     * 
+     * @param t 
+     *            Type to set this operator to.
+     */
+    final public void setType(byte t) {
+        mType = t;
+    }
+
+    /**
+     * Get the type of this operator.
+     */
+    public byte getType() {
+        return mType;
+    }
+
+    public String getAlias() {
+        return mAlias;
+    }
+
+    public void setAlias(String newAlias) {
+        mAlias = newAlias;
+    }
+
+    public int getRequestedParallelism() {
+        return mRequestedParallelism;
+    }
+
+    public void setRequestedParallelism(int newRequestedParallelism) {
+        mRequestedParallelism = newRequestedParallelism;
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer msg = new StringBuffer();
+
+        msg.append("(Name: " + name() + " Operator Key: " + mKey + ")");
+
+        return msg.toString();
+    }
+
+    /**
+     * Given a schema, reconcile it with our existing schema.
+     * 
+     * @param schema
+     *            Schema to reconcile with the existing.
+     * @throws ParseException
+     *             if the reconciliation is not possible.
+     */
+    protected void reconcileSchema(Schema schema) throws ParseException {
+        if (mSchema == null) {
+            mSchema = schema;
+            return;
+        }
+
+        // TODO
+    }
+
+    /**
+     * Visit this node with the provided visitor. This should only be called by
+     * the visitor class itself, never directly.
+     * 
+     * @param v
+     *            Visitor to visit with.
+     * @throws VisitException
+     *             if the visitor has a problem.
+     */
+    public abstract void visit(LOVisitor v) throws VisitorException;
+
+    public LogicalPlan getPlan() {
+        return mPlan ;
+    }
+
+    /**
+     * Change the reference to the plan for this operator.  Don't use this
+     * unless you're sure you know what you're doing.
+     */
+    public void setPlan(LogicalPlan plan) {
+        mPlan = plan;
+    }
+
+
+    /***
+     * IMPORTANT:
+     * This method is only used for unit testing purpose.
+     */
+    public void setSchemaComputed(boolean computed) {
+       mIsSchemaComputed = computed ;   
+    }
+
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return true;
+    }
+
+    /**
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LogicalOperator loClone = (LogicalOperator)super.clone();
+        if(mSchema != null)
+            loClone.mSchema = this.mSchema.clone();
+        return loClone;
+    }
+
 }

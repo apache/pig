@@ -50,7 +50,7 @@ public interface ExecJob {
      * true is the physical plan has executed successfully and results are ready
      * to be retrieved
      * 
-     * @return
+     * @return true if execution has completed, false otherwise.
      * @throws ExecException
      */
     public boolean hasCompleted() throws ExecException;
@@ -59,7 +59,7 @@ public interface ExecJob {
      * if query has executed successfully we want to retrieve the results
      * via iterating over them. 
      * 
-     * @return
+     * @return iterator for resulting tuples
      * @throws ExecException
      */
     public Iterator<Tuple> getResults() throws ExecException;
@@ -67,7 +67,7 @@ public interface ExecJob {
     /**
      * Get configuration information
      * 
-     * @return
+     * @return configuration information for the execution engine
      */    
     public Properties getContiguration();
 
@@ -76,7 +76,7 @@ public interface ExecJob {
      * has not been called yet; not running, e.g. execute has been issued, 
      * but job is waiting; running...; completed; aborted...; progress information
      * 
-     * @return
+     * @return statistics relevant to the execution engine
      */
     public Map<String, Object> getStatistics();
 

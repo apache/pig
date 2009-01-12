@@ -21,24 +21,31 @@ import java.io.IOException;
 import java.util.Random;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 
 public class GFCross extends EvalFunc<DataBag> {
     int numInputs, myNumber, numGroupsPerInput;
+    BagFactory mBagFactory = BagFactory.getInstance();
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
     
     public static int DEFAULT_PARALLELISM = 96;
 
     @Override
-    public void exec(Tuple input, DataBag output) throws IOException {;
-            numInputs = Integer.parseInt(input.getAtomField(0).strval());
-            myNumber = Integer.parseInt(input.getAtomField(1).strval());
+    public DataBag exec(Tuple input) throws IOException {
+        try{
+            numInputs = (Integer)input.get(0);
+            myNumber = (Integer)input.get(1);
         
-        
+            DataBag output = mBagFactory.newDefaultBag();
+            
             numGroupsPerInput = (int) Math.ceil(Math.pow(DEFAULT_PARALLELISM, 1.0/numInputs));
             int numGroupsGoingTo = (int) Math.pow(numGroupsPerInput,numInputs - 1);
-            
+                
             int[] digits = new int[numInputs];
             for (int i=0; i<numInputs; i++){
                 if (i == myNumber){
@@ -48,18 +55,24 @@ public class GFCross extends EvalFunc<DataBag> {
                     digits[i] = 0;
                 }
             }
-            
+                
             for (int i=0; i<numGroupsGoingTo; i++){
                 output.add(toTuple(digits));
                 next(digits);
             }            
-
+    
+            return output;
+        }catch(ExecException e){
+            IOException ioe = new IOException();
+            ioe.initCause(e);
+            throw ioe;
+        }
     }
     
-    private Tuple toTuple(int[] digits) throws IOException{
-        Tuple t = new Tuple(numInputs);
+    private Tuple toTuple(int[] digits) throws IOException, ExecException{
+        Tuple t = mTupleFactory.newTuple(numInputs);
         for (int i=0; i<numInputs; i++){
-            t.setField(i, digits[i]);
+            t.set(i, digits[i]);
         }
         return t;
     }

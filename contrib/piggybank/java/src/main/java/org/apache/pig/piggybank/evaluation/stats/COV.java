@@ -25,12 +25,13 @@ import java.util.Iterator;
 import java.util.Vector;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
 * Computes the covariance between sets of data.  The returned value 
@@ -85,49 +86,40 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
      * @param output output dataBag which contain covariance between each pair of data sets. 
      */
     @Override
-    public void exec(Tuple input, DataBag output) throws IOException {
-        for(int i=0;i<input.arity();i++){
-            for(int j=i+1;j<input.arity();j++){
-                Tuple temp = new Tuple(3);
-                if(flag){
-                    /*try{
-                        temp.setField(0, schemaName.elementAt(i));
+    public DataBag exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+        DataBag output = DefaultBagFactory.getInstance().newDefaultBag();
+
+        try{
+            for(int i=0;i<input.size();i++){
+                for(int j=i+1;j<input.size();j++){
+                    Tuple temp = DefaultTupleFactory.getInstance().newTuple(3);
+                    if(flag){
+                        temp.set(0, schemaName.elementAt(i));
+                        temp.set(1, schemaName.elementAt(j));
                     }
-                    catch(ArrayIndexOutOfBoundsException e){
-                        temp.setField(0, "var"+i);
+                    else{
+                        temp.set(0, "var"+i);
+                        temp.set(1, "var"+j);
                     }
-                    
-                    try{
-                        temp.setField(1, schemaName.elementAt(j));
-                    }
-                    catch(ArrayIndexOutOfBoundsException e){
-                        temp.setField(1, "var"+j);
-                    }*/
-                    try{
-                        temp.setField(0, schemaName.elementAt(i));
-                        temp.setField(1, schemaName.elementAt(j));
-                    }
-                    catch(ArrayIndexOutOfBoundsException e){
-                        throw new IOException("number of parameters in define are less ");
-                    }
+                
+                    Tuple tempResult = computeAll((DataBag)input.get(i), (DataBag)input.get(j));
+                    double size = ((DataBag)input.get(i)).size();
+                    double sum_x_y = (Double)tempResult.get(0);
+                    double sum_x = (Double)tempResult.get(1);
+                    double sum_y = (Double)tempResult.get(2);
+                    double result = (size*sum_x_y - sum_x*sum_y)/(size*size);
+                    temp.set(2, result);
+                    output.add(temp);
                 }
-                else{
-                    temp.setField(0, "var"+i);
-                    temp.setField(1, "var"+j);
-                }
-                
-                Tuple tempResult = computeAll(input.getBagField(i),input.getBagField(j));
-                double size = input.getBagField(i).size();
-                double sum_x_y = tempResult.getAtomField(0).numval();
-                double sum_x = tempResult.getAtomField(1).numval();
-                double sum_y = tempResult.getAtomField(2).numval();
-                double result = (size*sum_x_y - sum_x*sum_y)/(size*size);
-                temp.setField(2, result);
-                output.add(temp);
-                
-                
             }
+        }catch(Exception e){
+            System.err.println("Failed to process input; error - " + e.getMessage());
+            return null;
         }
+
+        return output;
     }
     
 
@@ -166,34 +158,40 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
         return Final.class.getName() + toString();
     }
 
-    
     static public class Initial extends EvalFunc<Tuple> implements Serializable{
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
+        public Tuple exec(Tuple input) throws IOException {
+            if (input == null || input.size() == 0)
+                return null;
+
+            Tuple output = DefaultTupleFactory.getInstance().newTuple();
             try {
-            for(int i=0;i<input.arity();i++){
-                for(int j=i+1;j<input.arity();j++){
-                    DataBag first = input.getBagField(i);
-                    DataBag second = input.getBagField(j);
-                    output.appendField(computeAll(first, second));
-                    output.appendField(new DataAtom(first.size()));
-                    
+                for(int i=0;i<input.size();i++){
+                    for(int j=i+1;j<input.size();j++){
+                        DataBag first = (DataBag)input.get(i);
+                        DataBag second = (DataBag)input.get(j);
+                        output.append(computeAll(first, second));
+                        output.append(first.size());
+                    }
                 }
+            } catch(Exception t) {
+                System.err.println("Failed to process input; error - " + t.getMessage());
+                return null;
             }
-            
-            } catch(RuntimeException t) {
-                throw new IOException(t.getMessage() + ": " + input, t);
-            }
-            
+
+            return output;
         }
     }
 
     static public class Intermed extends EvalFunc<Tuple> implements Serializable{
         
         @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            
-            combine(input.getBagField(0), output);
+        public Tuple exec(Tuple input) throws IOException {
+            try{
+                return combine((DataBag)input.get(0));
+            }catch(Exception e){
+                throw WrappedIOException.wrap("Caught exception in COV.Intermed", e);
+            }
         }
     }
 
@@ -210,69 +208,52 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
             }
         }
         
-
         @Override
-        public void exec(Tuple input, DataBag output) throws IOException {
-            Tuple combined = new Tuple();
-            if(input.getField(0) instanceof DataBag) {
-                combine(input.getBagField(0), combined);    
-            } else {
-                throw new IOException("Bag not found in: " + input);
-            }
+        public DataBag exec(Tuple input) throws IOException {
+            if (input == null || input.size() == 0)
+                return null;
             
+            DataBag output = DefaultBagFactory.getInstance().newDefaultBag();
             int count = 0;
             
             //for each pair of input schema combined contain 2 member. first member
             //is tuple containing sum_x,sum_y,sum_x_y and second is number of tuples 
             //from which it is calculated . So if arity of combined is n then total 
             //number of schemas would be root of x*x - x - n =0 
-            int totalSchemas=2;
-            while(totalSchemas*(totalSchemas-1)<combined.arity()){
-                totalSchemas++;
-            }
-            //int totalSchemas = Double.valueOf(((1+Math.sqrt(1+4*combined.arity()))/2)).intValue();
             
-            for(int i=0;i<totalSchemas;i++){
-                for(int j=i+1;j<totalSchemas;j++){
-                    Tuple result = new Tuple(3);
-                    if(flag){
-                        /*try{
-                            result.setField(0, schemaName.elementAt(i));
-                        }
-                        catch(ArrayIndexOutOfBoundsException e){
-                            result.setField(0, "var"+i);
-                        }
-                        
-                        try{
-                            result.setField(1, schemaName.elementAt(j));
-                        }
-                        catch(ArrayIndexOutOfBoundsException e){
-                            result.setField(1, "var"+j);
-                        }*/
-                        try{
-                            result.setField(0, schemaName.elementAt(i));
-                            result.setField(1, schemaName.elementAt(j));
-                        }
-                        catch(ArrayIndexOutOfBoundsException e){
-                            throw new IOException("number of parameters in define are less ");
-                        }
-                    }
-                    else{
-                        result.setField(0, "var"+i);
-                        result.setField(1, "var"+j);
-                    }
-                    Tuple tup = combined.getTupleField(count);
-                    double tempCount = combined.getAtomField(count+1).numval();
-                    double sum_x_y = tup.getAtomField(0).numval();
-                    double sum_x = tup.getAtomField(1).numval();
-                    double sum_y = tup.getAtomField(2).numval();
-                    double covar = (tempCount*sum_x_y - sum_x*sum_y)/(tempCount*tempCount);
-                    result.setField(2, covar);
-                    output.add(result);
-                    count+=2;
-                    
+            try{
+                Tuple combined = combine((DataBag)input.get(0));    
+                int totalSchemas=2;
+                while(totalSchemas*(totalSchemas-1)<combined.size()){
+                    totalSchemas++;
                 }
+                for(int i=0;i<totalSchemas;i++){
+                    for(int j=i+1;j<totalSchemas;j++){
+                        Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+                        if(flag){
+                            result.set(0, schemaName.elementAt(i));
+                            result.set(1, schemaName.elementAt(j));
+                        }
+                        else{
+                            result.set(0, "var"+i);
+                            result.set(1, "var"+j);
+                        }
+                        Tuple tup = (Tuple)combined.get(count);
+                        double tempCount = (Double)combined.get(count+1);
+                        double sum_x_y = (Double)tup.get(0);
+                        double sum_x = (Double)tup.get(1);
+                        double sum_y = (Double)tup.get(2);
+                        double covar = (tempCount*sum_x_y - sum_x*sum_y)/(tempCount*tempCount);
+                        result.set(2, covar);
+                        output.add(result);
+                        count+=2;
+                    }
+                }
+            }catch(Exception e){
+                throw WrappedIOException.wrap("Caught exception in COV.Intermed", e);
             }
+
+            return output;
         }
     }
 
@@ -282,37 +263,44 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
      * @param output Tuple containing combined data
      * @throws IOException
      */
-    static protected void combine(DataBag values, Tuple output) throws IOException {
-        Tuple tuple; // copy of DataBag values
-        tuple = new Tuple(Double.valueOf(values.size()).intValue());
+    static protected Tuple combine(DataBag values) throws IOException {
+        Tuple tuple = DefaultTupleFactory.getInstance().newTuple(Double.valueOf(values.size()).intValue());
+        Tuple output = DefaultTupleFactory.getInstance().newTuple();
+
         int ct=0;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();ct++) {
             Tuple t = it.next();
-            tuple.setField(ct, t);
+            try{ tuple.set(ct, t);}catch(Exception e){}
         }
         
-        int size = tuple.getTupleField(0).arity();
-        for(int i=0;i<size;i=i+2){
-            double count = 0;
-            double sum_x_y = 0.0;
-            double sum_x = 0.0;
-            double sum_y = 0.0;
-            for(int j=0;j<tuple.arity();j++){
-                Tuple tem = tuple.getTupleField(j).getTupleField(i);
-                count += tuple.getTupleField(j).getAtomField(i+1).numval();
-                sum_x_y+=tem.getAtomField(0).numval();
-                sum_x+=tem.getAtomField(1).numval();
-                sum_y+=tem.getAtomField(2).numval();
+        try{
+            Tuple temp = (Tuple)tuple.get(0);
+            int size = temp.size();
+            for(int i=0;i<size;i=i+2){
+                double count = 0;
+                double sum_x_y = 0.0;
+                double sum_x = 0.0;
+                double sum_y = 0.0;
+                for(int j=0;j<tuple.size();j++){
+                    Tuple t = (Tuple)tuple.get(j);
+                    Tuple tem = (Tuple)t.get(i);
+                    count += (Double)t.get(i+1);
+                    sum_x_y+=(Double)tem.get(0);
+                    sum_x+=(Double)tem.get(1);
+                    sum_y+=(Double)tem.get(2);
+                }
+                Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+                result.set(0, sum_x_y);
+                result.set(1, sum_x);
+                result.set(2, sum_y);
+                output.append(result);
+                output.append(count);
             }
-            Tuple result = new Tuple(3);
-            result.setField(0, sum_x_y);
-            result.setField(1, sum_x);
-            result.setField(2, sum_y);
-            output.appendField(result);
-            output.appendField(new DataAtom(count));
+        }catch(Exception e){
+            throw WrappedIOException.wrap("Caught exception processing input", e);
         }
-        
-        
+      
+        return output;
     }
 
     /**
@@ -321,31 +309,37 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
      * @param second DataBag containing second data set
      * @return tuple containing sum(XY), sum(X), sum(Y)
      */
-    protected static Tuple computeAll(DataBag first, DataBag second) {
+    protected static Tuple computeAll(DataBag first, DataBag second) throws IOException {
         double sum_x_y = 0.0;
         double sum_x = 0.0;
         double sum_y = 0.0;
         Iterator<Tuple> iterator_x = first.iterator();
         Iterator<Tuple> iterator_y = second.iterator();
-        while(iterator_x.hasNext()){
-            double x = iterator_x.next().getAtomField(0).numval();
-            double y = iterator_y.next().getAtomField(0).numval();
-            sum_x_y+=x*y;
-            sum_x+=x;
-            sum_y+=y;
+        try{
+            while(iterator_x.hasNext()){
+                double x = (Double)iterator_x.next().get(0);
+                double y = (Double)iterator_y.next().get(0);
+                sum_x_y+=x*y;
+                sum_x+=x;
+                sum_y+=y;
+            }
+        }catch (Exception e){
+            throw WrappedIOException.wrap("Caught exception processing input", e);
         }
         
-        Tuple result = new Tuple(3);
-        result.setField(0, sum_x_y);
-        result.setField(1, sum_x);
-        result.setField(2, sum_y);
+        Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+        try{
+            result.set(0, sum_x_y);
+            result.set(1, sum_x);
+            result.set(2, sum_y);
+        }catch(Exception e) {}
         return result;
         
     }
     
     @Override
     public Schema outputSchema(Schema input) {
-        return new AtomSchema("COVARIANCE");
+        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.BAG));
     }
 
 }

@@ -674,7 +674,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
             fail ("Should have thrown an exception");
         } catch (ParseException e) {
-            assertTrue(e.getMessage().startsWith("Encountered \"is\" at line 2, column 6."));
+            assertTrue(e.getMessage().startsWith("Encountered \" <IDENTIFIER> \"is \"\" at line 2, column 6."));
         } catch (RuntimeException e) {
             fail ("Got RuntimeException : " + e.getMessage());
         } catch (Error e) {
@@ -1197,10 +1197,9 @@ public class TestParamSubPreproc extends TestCase {
             pigOStream = new FileWriter(basedir + "/output1.pig");
 
             String[] arg = {"date=`perl -e 'print \"20080228\n20070101\"' | head -n 1`"};
-            String[] argFiles = null;
             if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
                 arg[0] = "date=`perl -e 'print \\\"20080228\n20070101\\\"' | head -n 1`";
-
+            String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");

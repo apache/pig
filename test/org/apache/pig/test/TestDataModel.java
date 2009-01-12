@@ -17,12 +17,19 @@
  */
 package org.apache.pig.test;
 
+import java.io.DataInput;
 import java.io.DataInputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
@@ -44,83 +51,56 @@ public class TestDataModel extends junit.framework.TestCase {
     }
 
     @Test
-    public void testDataAtom() throws Exception {
-        // Make sure a DataAtom is still a Datum
-        DataAtom da1 = new DataAtom("string");
-        assertTrue(da1 instanceof Datum);
-
-        // Test basic comparison functions
-        DataAtom da2 = new DataAtom("string");
-        assertTrue(da1.compareTo(da2) == 0);
-        assertTrue(da1.equals(da2));
-        assertTrue(da1.strval().equals(da2.toString()));
-
-        // Make sure that case sensitivity is maintained
-        da2 = new DataAtom("String");
-        assertFalse(da1.compareTo(da2) == 0);
-        assertFalse(da1.strval().equals(da2));
-        assertFalse(da1.strval().equals(da2.toString()));
-
-        // Test string/int/double comparison and storage
-        da1 = new DataAtom(1);
-        da2 = new DataAtom("1");
-        assertTrue(da1.equals(da2));
-        da2 = new DataAtom(1.0);
-        assertTrue(da1.numval().equals(da2.numval()));
-        da2 = new DataAtom("2");
-        assertTrue(da1.compareTo(da2) < 0);
-        assertFalse(da1.compareTo(da2) > 0);
-    }
-
-    @Test
     public void testTuple() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
         int arity = 5;
         int[] input1 = { 1, 2, 3, 4, 5 };
         String[] input2 = { "1", "2", "3", "4", "5" };
         String[] input3 = { "1", "2", "3", "4", "5", "6" };
 
         // validate construction and equality
-        Tuple f1 = Util.loadFlatTuple(new Tuple(arity), input1);
-        Tuple f2 = Util.loadFlatTuple(new Tuple(arity), input1);
-        Tuple f3 = new Tuple(arity);
-        assertTrue(f1.arity() == arity);
-        assertTrue(f1.equals(f2));
-
-        // validate string vs. int construction and equality
-        f2 = Util.loadTuple(new Tuple(arity), input2);
+        Tuple f1 = Util.loadFlatTuple(tf.newTuple(arity), input1);
+        Tuple f2 = Util.loadFlatTuple(tf.newTuple(arity), input1);
+        Tuple f3 = tf.newTuple(arity);
+        assertTrue(f1.size() == arity);
         assertTrue(f1.equals(f2));
 
         // invalid equality
-        f2 = Util.loadTuple(new Tuple(input3.length), input3);
+        f2 = Util.loadTuple(tf.newTuple(input3.length), input3);
         assertFalse(f1.equals(f2));
 
         // copy equality
+        /*
         f2.copyFrom(f1);
         assertTrue(f1.equals(f2));
+        */
 
         // append function and equality
         int[] input4 = { 1, 2, 3 };
         int[] input5 = { 4, 5 };
-        f1 = Util.loadFlatTuple(new Tuple(input4.length), input4);
-        f2 = Util.loadFlatTuple(new Tuple(input5.length), input5);
-        f3 = Util.loadFlatTuple(new Tuple(input1.length), input1);
+        /*
+        f1 = Util.loadFlatTuple(tf.newTuple(input4.length), input4);
+        f2 = Util.loadFlatTuple(tf.newTuple(input5.length), input5);
+        f3 = Util.loadFlatTuple(tf.newTuple(input1.length), input1);
         f1.appendTuple(f2);
         assertTrue(f3.equals(f1));
+        */
 
         // arity then value comparision behavior
-        f1 = Util.loadFlatTuple(new Tuple(input1.length), input1); // 1,2,3,4,5
-        f2 = Util.loadFlatTuple(new Tuple(input4.length), input4); // 1,2,3
-        assertTrue(f1.greaterThan(f2));
-        assertFalse(f1.lessThan(f2));
+        f1 = Util.loadFlatTuple(tf.newTuple(input1.length), input1); // 1,2,3,4,5
+        f2 = Util.loadFlatTuple(tf.newTuple(input4.length), input4); // 1,2,3
+        assertTrue(f1.compareTo(f2) > 0);
+        assertFalse(f1.compareTo(f2) < 0);
 
         int[] input6 = { 1, 2, 3, 4, 6 };
-        f2 = Util.loadFlatTuple(new Tuple(input6.length), input6);
-        assertTrue(f1.lessThan(f2));
-        assertFalse(f1.greaterThan(f2));
+        f2 = Util.loadFlatTuple(tf.newTuple(input6.length), input6);
+        assertTrue(f1.compareTo(f2) < 0);
+        assertFalse(f1.compareTo(f2) > 0);
 
         // delimited export
         String expected = "1:2:3:4:5";
-        f1 = Util.loadFlatTuple(new Tuple(input1.length), input1);
+        f1 = Util.loadFlatTuple(tf.newTuple(input1.length), input1);
         assertTrue(expected.equals(f1.toDelimitedString(":")));
 
         // value read / write & marshalling
@@ -138,159 +118,346 @@ public class TestDataModel extends junit.framework.TestCase {
 
     @Test
     public void testNestTuple() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
         int[][] input1 = { { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 },
                 { 1, 2, 3, 4, 5 } };
         int[][] input2 = { { 1, 2 }, { 1, 2 } };
 
-        Tuple n1 = Util.loadNestTuple(new Tuple(input1.length), input1);
-        Tuple n2 = new Tuple();
+        Tuple n1 = Util.loadNestTuple(tf.newTuple(input1.length), input1);
+        Tuple n2 = tf.newTuple();
 
-        // CompareTo is currently not implemented
-        n2.copyFrom(n1);
-        // assertTrue(n1.compareTo(n2) == 0);
-
-        n2 = Util.loadNestTuple(new Tuple(input2.length), input2);
-        // assertTrue(n1.compareTo(n2) == 1);
-
-        // basic append test ..
-        int n1Arity = n1.arity();
-        int n2Arity = n2.arity();
-        n1.appendTuple(n2);
-        assertTrue(n1.arity() == n1Arity + n2Arity);
+        n2 = Util.loadNestTuple(tf.newTuple(input2.length), input2);
     }
 
-    /*
     @Test
-    public void testDataBag() throws Exception {
-        int[] input1 = { 1, 2, 3, 4, 5 };
-        int[] input2 = { 0, 2, 3, 4, 5 };
+    public void testReadWrite() throws Exception {
+        // Create a tuple with every data type in it, and then read and
+        // write it, both via DataReaderWriter and Tuple.readFields
+        TupleFactory tf = TupleFactory.getInstance();
 
-        // Check empty bag errors
-        DataBag b = new DataBag();
-        boolean caught = false;
-        try {
-            b.getField(0).strval().equals("1");
-        } catch (IOException e) {
-            caught = true;
-        }
-        assertTrue(caught);
-        assertTrue(b.isEmpty());
+        Tuple t1 = giveMeOneOfEach();
 
-        // Check field get for indentical rows
-        Tuple f = Util.loadFlatTuple(new Tuple(input1.length), input1);
-        for (int i = 0; i < 10; i++) {
-            b.add(f);
-        }
-        assertTrue(b.getField(0).strval().equals("1"));
-        assertTrue(b.cardinality() == 10);
+        File file = File.createTempFile("Tuple", "put");
+        FileOutputStream fos = new FileOutputStream(file);
+        DataOutput out = new DataOutputStream(fos);
+        t1.write(out);
+        t1.write(out); // twice in a row on purpose
+        fos.close();
 
-        // Check field get for heterogenous rows
-        f = Util.loadFlatTuple(new Tuple(input2.length), input2);
-        b.add(f);
-        caught = false;
-        try {
-            b.getField(0).strval().equals("1");
-        } catch (IOException e) {
-            caught = true;
-        }   
-        assertTrue(caught);
+        FileInputStream fis = new FileInputStream(file);
+        DataInput in = new DataInputStream(fis);
+        for (int i = 0; i < 2; i++) {
+            Tuple after = tf.newTuple();
+            after.readFields(in);
 
-        // check that notifications are sent
-         b.clear();
-         DataBag.notifyInterval = 2;
-         Tuple g = Util.loadFlatTuple(new Tuple(input1.length), input1);
-         for (int i = 0; i < 10; i++) {
-             b.add(g);
+            Object o = after.get(0);
+            assertTrue("isa Tuple", o instanceof Tuple);
+            Tuple t3 = (Tuple)o;
+            o = t3.get(0);
+            assertTrue("isa Integer", o instanceof Integer);
+            assertEquals(new Integer(3), (Integer)o);
+            o = t3.get(1);
+            assertTrue("isa Float", o instanceof Float);
+            assertEquals(new Float(3.0), (Float)o);
+
+            o = after.get(1);
+            assertTrue("isa Bag", o instanceof DataBag);
+            DataBag b = (DataBag)o;
+            Iterator<Tuple> j = b.iterator();
+            Tuple[] ts = new Tuple[2];
+            assertTrue("first tuple in bag", j.hasNext());
+            ts[0] = j.next();
+            assertTrue("second tuple in bag", j.hasNext());
+            ts[1] = j.next();
+            o = ts[0].get(0);
+            assertTrue("isa Integer", o instanceof Integer);
+            assertEquals(new Integer(4), (Integer)o);
+            o = ts[1].get(0);
+            assertTrue("isa String", o instanceof String);
+            assertEquals("mary had a little lamb", (String)o);
+
+            o = after.get(2);
+            assertTrue("isa Map", o instanceof Map);
+            Map<Object, Object> m = (Map<Object, Object>)o;
+            assertEquals("world", (String)m.get("hello"));
+            assertEquals("all", (String)m.get("goodbye"));
+            assertNull(m.get("fred"));
+
+            o = after.get(3);
+            assertTrue("isa Integer", o instanceof Integer);
+            Integer ii = (Integer)o;
+            assertEquals(new Integer(42), ii);
+            
+            o = after.get(4);
+            assertTrue("isa Long", o instanceof Long);
+            Long l = (Long)o;
+            assertEquals(new Long(5000000000L), l);
+            
+            o = after.get(5);
+            assertTrue("isa Float", o instanceof Float);
+            Float f = (Float)o;
+            assertEquals(new Float(3.141592654), f);
+            
+            o = after.get(6);
+            assertTrue("isa Double", o instanceof Double);
+            Double d = (Double)o;
+            assertEquals(2.99792458e8, d);
+            
+            o = after.get(7);
+            assertTrue("isa Boolean", o instanceof Boolean);
+            Boolean bool = (Boolean)o;
+            assertTrue(bool);
+
+            o = after.get(8);
+            assertTrue("isa DataByteArray", o instanceof DataByteArray);
+            DataByteArray ba = (DataByteArray)o;
+            assertEquals(new DataByteArray("hello"), ba);
+
+            o = after.get(9);
+            assertTrue("isa String", o instanceof String);
+            String s = (String)o;
+            assertEquals("goodbye", s);
          }
 
-         Iterator it = b.content();
-         while (it.hasNext()) it.next();
-         assert(b.numNotifies == 5);
+        file.delete();
     }
 
     @Test
+    public void testTupleToString() throws Exception {
+        Tuple t = giveMeOneOfEach();
+
+        assertEquals("toString", "((3,3.0F),{(4),(mary had a little lamb)},[hello#world,goodbye#all],42,5000000000L,3.1415927F,2.99792458E8,true,hello,goodbye,)", t.toString());
+    }
+
+    @Test
+    public void testTupleHashCode() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple(2);
+        t1.set(0, new DataByteArray("hello world"));
+        t1.set(1, new Integer(1));
+
+        Tuple t2 = tf.newTuple(2);
+        t2.set(0, new DataByteArray("hello world"));
+        t2.set(1, new Integer(1));
+
+        assertEquals("same data", t1.hashCode(), t2.hashCode());
+
+        Tuple t3 = tf.newTuple(3);
+        t3.set(0, new DataByteArray("hello world"));
+        t3.set(1, new Integer(1));
+        t3.set(2, new Long(4));
+        assertFalse("different size", t1.hashCode() == t3.hashCode()); 
+
+        Tuple t4 = tf.newTuple(2);
+        t4.set(0, new DataByteArray("hello world"));
+        t4.set(1, new Integer(2));
+        assertFalse("same size, different data", t1.hashCode() == t4.hashCode()); 
+
+        // Make sure we can take the hash code of all the types.
+        Tuple t5 = giveMeOneOfEach();
+        t5.hashCode();
+    }
+
+    @Test
+    public void testTupleEquals() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple();
+        Tuple t2 = tf.newTuple();
     
-    public void testBigDataBagInMemory() throws Exception{
-    	testBigDataBag(5*1024*1024, 5000);
+        t1.append(new Integer(3));
+        t2.append(new Integer(3));
+
+        assertFalse("different object", t1.equals(new String()));
+
+        assertTrue("same data", t1.equals(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new Integer(4));
+        assertFalse("different data", t1.equals(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new Integer(3));
+        t2.append(new Integer(3));
+        assertFalse("different size", t1.equals(t2));
     }
 
-    public void testBigDataBagOnDisk() throws Exception{
-    	Runtime.getRuntime().gc();
-    	testBigDataBag(Runtime.getRuntime().maxMemory() - 1*1024*1024, 1000000);
+    @Test
+    public void testTupleCompareTo() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple();
+        Tuple t2 = tf.newTuple();
+
+        t1.append(new Integer(3));
+        t2.append(new Integer(3));
+
+        assertEquals("same data equal", 0,  t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new Integer(2));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new Integer(4));
+        assertEquals("less than tuple with greater value", -1, t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new Integer(3));
+        t2.append(new Integer(4));
+        assertEquals("less than bigger tuple", -1, t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        assertEquals("greater than smaller tuple", 1, t1.compareTo(t2));
     }
-    */
 
-    private enum TestType {
-    	PRE_SORT,
-    	POST_SORT,
-    	PRE_DISTINCT,
-    	POST_DISTINCT,
-    	NONE
+    @Test
+    public void testMultiFieldTupleCompareTo() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple();
+        Tuple t2 = tf.newTuple();
+
+        t1.append(new DataByteArray("bbb"));
+        t1.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("bbb"));
+
+        assertEquals("same data equal", 0,  t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("aaa"));
+        t2.append(new DataByteArray("aaa"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("ddd"));
+        t2.append(new DataByteArray("ddd"));
+        assertEquals("less than tuple with greater value", -1, t1.compareTo(t2));
+
+        // First column same, second lesser
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("aaa"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        // First column same, second greater
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("bbb"));
+        t2.append(new DataByteArray("ccc"));
+        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+
+        // First column less, second same
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("aaa"));
+        t2.append(new DataByteArray("bbb"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        // First column greater, second same
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("ccc"));
+        t2.append(new DataByteArray("bbb"));
+        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+
+        // First column less, second greater
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("aaa"));
+        t2.append(new DataByteArray("ccc"));
+        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+
+        // First column greater, second same
+        t2 = tf.newTuple();
+        t2.append(new DataByteArray("ccc"));
+        t2.append(new DataByteArray("aaa"));
+        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
     }
-       
-    
-    /*
-    private void testBigDataBag(long freeMemoryToMaintain, int numItems) throws Exception {
-    	BigDataBag.FREE_MEMORY_TO_MAINTAIN = freeMemoryToMaintain;
-        Random r = new Random();
-   
-    	for (TestType testType: TestType.values()){
-    		BigDataBag bag = BagFactory.getInstance().getNewBigBag();
 
-            assertTrue(bag.isEmpty());
+    @Test
+    public void testByteArrayToString() throws Exception {
+        DataByteArray ba = new DataByteArray("hello world");
 
-            if (testType == TestType.PRE_SORT)
-            	bag.sort();
-            else if (testType == TestType.PRE_DISTINCT)
-            	bag.distinct();
-            
-            //generate data and add it to the bag
-            for(int i = 0; i < numItems; i++) {
-                Tuple t = new Tuple(1);
-                t.setField(0, r.nextInt(numItems));
-                bag.add(t);
-            }
-
-            assertFalse(bag.isEmpty());
-
-            if (testType == TestType.POST_SORT)
-            	bag.sort();
-            else if (testType == TestType.POST_DISTINCT)
-            	bag.distinct();
-
-            
-            if (testType == TestType.NONE)
-            	assertTrue(bag.cardinality() == numItems);
-            checkContents(bag, numItems, testType);
-            checkContents(bag, numItems, testType);
-
-    	}
+        assertEquals("toString", "hello world", ba.toString());
     }
-     
-    
-    private void checkContents(DataBag bag, int numItems, TestType testType) throws Exception{
-        String last = "";
-        
-        DataBag.notifyInterval = 100;
-        
-        Iterator<Tuple> it = bag.content();
-        int count = 0;
-        while(it.hasNext()) {
-        	Tuple t = it.next();
-        	String next = t.getAtomField(0).strval();
-        	if (testType == TestType.POST_SORT || testType == TestType.PRE_SORT)
-                assertTrue(last.compareTo(next)<=0);
-        	else if (testType == TestType.POST_DISTINCT || testType == TestType.PRE_DISTINCT)
-                assertTrue(last.compareTo(next)<0);
-            last = next;
-        	count++;
-        }
-        
-        assertTrue(bag.cardinality() == count);
-        
-        if (testType != TestType.NONE)
-        	assertTrue(bag.numNotifies >= count/DataBag.notifyInterval);
-    }
-    */
 
+    @Test
+    public void testByteArrayHashCode() throws Exception {
+        DataByteArray ba1 = new DataByteArray("hello world");
+        DataByteArray ba2 = new DataByteArray("hello world");
+        DataByteArray ba3 = new DataByteArray("goodbye world");
+
+        assertEquals("same data", ba1.hashCode(), ba2.hashCode());
+
+        assertFalse("different data", ba1.hashCode() == ba3.hashCode()); 
+    }
+
+    @Test
+    public void testByteArrayEquals() throws Exception {
+        DataByteArray ba1 = new DataByteArray("hello world");
+        DataByteArray ba2 = new DataByteArray("hello world");
+        DataByteArray ba3 = new DataByteArray("goodbye world");
+
+        assertTrue("same data", ba1.equals(ba2));
+
+        assertFalse("different data", ba1.equals(ba3)); 
+    }
+
+    @Test
+    public void testByteArrayCompareTo() throws Exception {
+        DataByteArray ba1 = new DataByteArray("hello world");
+        DataByteArray ba2 = new DataByteArray("hello world");
+        DataByteArray ba3 = new DataByteArray("goodbye world");
+
+        assertTrue("same data", ba1.compareTo(ba2) == 0);
+
+        assertTrue("different length lexically lower value less than",
+            ba3.compareTo(ba1) < 0);
+        assertTrue("different length lexically higher value greater than",
+            ba1.compareTo(ba3) > 0);
+
+        ba2 = new DataByteArray("hello worlc");
+        assertTrue("same length lexically lower value less than",
+            ba2.compareTo(ba1) < 0);
+        assertTrue("same length lexically higher value greater than",
+            ba1.compareTo(ba2) > 0);
+
+        ba2 = new DataByteArray("hello worlds");
+        assertTrue("shorter lexically same value less than",
+            ba1.compareTo(ba2) < 0);
+        assertTrue("longer lexically same value greater than",
+            ba2.compareTo(ba1) > 0);
+
+    }
+
+    private Tuple giveMeOneOfEach() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple(11);
+        Tuple t2 = tf.newTuple(2);
+
+        t2.set(0, new Integer(3));
+        t2.set(1, new Float(3.0));
+
+        DataBag bag = BagFactory.getInstance().newDefaultBag();
+        bag.add(tf.newTuple(new Integer(4)));
+        bag.add(tf.newTuple(new String("mary had a little lamb")));
+
+        Map<Object, Object> map = new HashMap<Object, Object>(2);
+        map.put(new String("hello"), new String("world"));
+        map.put(new String("goodbye"), new String("all"));
+
+        t1.set(0, t2);
+        t1.set(1, bag);
+        t1.set(2, map);
+        t1.set(3, new Integer(42));
+        t1.set(4, new Long(5000000000L));
+        t1.set(5, new Float(3.141592654));
+        t1.set(6, new Double(2.99792458e8));
+        t1.set(7, new Boolean(true));
+        t1.set(8, new DataByteArray("hello"));
+        t1.set(9, new String("goodbye"));
+
+        return t1;
+    }
 }

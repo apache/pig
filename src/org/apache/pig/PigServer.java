@@ -18,6 +18,8 @@
 package org.apache.pig;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -27,8 +29,9 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties ;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,32 +40,36 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LODefine;
-import org.apache.pig.impl.logicalLayer.LOStore;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
-import org.apache.pig.impl.logicalLayer.optimizer.Optimizer;
-import org.apache.pig.impl.logicalLayer.optimizer.streaming.LoadOptimizer;
-import org.apache.pig.impl.logicalLayer.optimizer.streaming.StoreOptimizer;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
+import org.apache.pig.impl.logicalLayer.PlanSetter;
+import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.util.PropertiesUtil;
-import org.apache.pig.pen.DisplayExamples;
-import org.apache.pig.pen.ExGen;
-
+import org.apache.pig.impl.logicalLayer.LODefine;
+import org.apache.pig.impl.logicalLayer.LOStore;
+import org.apache.pig.pen.ExampleGenerator;
+import org.apache.pig.tools.grunt.GruntParser;
 
 /**
  * 
@@ -74,26 +81,6 @@ import org.apache.pig.pen.ExGen;
 public class PigServer {
     
     private final Log log = LogFactory.getLog(getClass());
-    
-    public String Result;
-    
-    /**
-     * The type of query execution
-     */
-    static public enum ExecType {
-        /**
-         * Run everything on the local machine
-         */
-        LOCAL,
-        /**
-         * Use the Hadoop Map/Reduce framework
-         */
-        MAPREDUCE,
-        /**
-         * Use the Experimental Hadoop framework; not available yet.
-         */
-        PIG
-    }
     
     public static ExecType parseExecType(String str) throws IOException {
         String normStr = str.toLowerCase();
@@ -108,12 +95,13 @@ public class PigServer {
     }
 
 
-    Map<String, LogicalPlan> aliases = new HashMap<String, LogicalPlan>();
+    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
-    
+    Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     PigContext pigContext;
     
     private String scope = constructScope();
+    private ArrayList<String> cachedScript = new ArrayList<String>();
     
     private String constructScope() {
         // scope servers for now as a session id
@@ -176,12 +164,26 @@ public class PigServer {
      * is useful for functions that require arguments to the 
      * constructor.
      * 
-     * @param aliases - the new function alias to define.
+     * @param function - the new function alias to define.
      * @param functionSpec - the name of the function and any arguments.
      * It should have the form: classname('arg1', 'arg2', ...)
      */
+    @Deprecated
     public void registerFunction(String function, String functionSpec) {
-        pigContext.registerFunction(function, functionSpec);
+        registerFunction(function, new FuncSpec(functionSpec));
+    }
+    
+    /**
+     * Defines an alias for the given function spec. This
+     * is useful for functions that require arguments to the 
+     * constructor.
+     * 
+     * @param function - the new function alias to define.
+     * @param funcSpec - the FuncSpec object representing the name of 
+     * the function class and any arguments to constructor.
+     */
+    public void registerFunction(String function, FuncSpec funcSpec) {
+        pigContext.registerFunction(function, funcSpec);
     }
     
     /**
@@ -193,7 +195,7 @@ public class PigServer {
     public void registerStreamingCommand(String commandAlias, StreamingCommand command) {
         pigContext.registerStreamCmd(commandAlias, command);
     }
-    
+
     private URL locateJarFromResources(String jarName) throws IOException {
         Enumeration<URL> urls = ClassLoader.getSystemResources(jarName);
         URL resourceLocation = null;
@@ -255,58 +257,134 @@ public class PigServer {
      * 
      * @param query
      *            a Pig Latin expression to be evaluated.
-     * @return a handle to the query.
+     * @param startLine
+     *            line number of the query within the whold script
      * @throws IOException
-     */
-    public void registerQuery(String query) throws IOException {
-        // Bugzilla Bug 1006706 -- ignore empty queries
-        //=============================================
-        if(query != null) {
-            query = query.trim();
-            if(query.length() == 0) return;
-        }else {
-            return;
-        }
+     */    
+    public void registerQuery(String query, int startLine) throws IOException {
             
-        // parse the query into a logical plan
-        LogicalPlan lp = null;
-        LogicalOperator op = null;
-        try {
-            lp = (new LogicalPlanBuilder(pigContext).parse(scope, query, aliases, opTable));
-            op = opTable.get(lp.getRoot());
-        } catch (ParseException e) {
-            throw (IOException) new IOException(e.getMessage()).initCause(e);
-        }
+        LogicalPlan lp = parseQuery(query, startLine, aliases, opTable, aliasOp);
+        // store away the query for use in cloning later
+        cachedScript .add(query);
         
-        if (lp.getAlias() != null) {
-            aliases.put(lp.getAlias(), lp);
-        }
-        
-        // No need to do anything about DEFINE 
-        if (op instanceof LODefine) {
-            return;
-        }
-        
-        // Check if we just processed a LOStore i.e. STORE
-        if (op instanceof LOStore) {
-            try {
-                optimizeAndRunQuery(lp);
+        if (lp.getLeaves().size() == 1)
+        {
+            LogicalOperator op = lp.getSingleLeafPlanOutputOp();
+            // No need to do anything about DEFINE 
+            if (op instanceof LODefine) {
+                return;
             }
-            catch (ExecException e) {
-                throw WrappedIOException.wrap("Unable to store alias " + 
-                        lp.getAlias(), e);
+        
+            // Check if we just processed a LOStore i.e. STORE
+            if (op instanceof LOStore) {
+                try{
+                    execute(null);
+                } catch (Exception e) {
+                    throw WrappedIOException.wrap("Unable to store for alias: " + op.getOperatorKey().getId(), e);
+                }
             }
         }
     }
-      
-    public void dumpSchema(String alias) throws IOException{
-    LogicalPlan lp = aliases.get(alias);
-    if (lp == null)
-        throw new IOException("Invalid alias - " + alias);
+    
+    private LogicalPlan parseQuery(String query, int startLine, Map<LogicalOperator, LogicalPlan> aliasesMap, 
+            Map<OperatorKey, LogicalOperator> opTableMap, Map<String, LogicalOperator> aliasOpMap) throws IOException {
+        if(query != null) {
+            query = query.trim();
+            if(query.length() == 0) return null;
+        }else {
+            return null;
+        }
+        try {
+            return new LogicalPlanBuilder(pigContext).parse(scope, query,
+                    aliasesMap, opTableMap, aliasOpMap, startLine);
+        } catch (ParseException e) {
+            throw (IOException) new IOException(e.getMessage()).initCause(e);
+        }
+    }
 
-    TupleSchema schema = lp.getOpTable().get(lp.getRoot()).outputSchema();
+    public LogicalPlan clonePlan(String alias) throws IOException {
+        // There are two choices on how we clone the logical plan
+        // 1 - we really clone each operator and connect up the cloned operators
+        // 2 - we cache away the script till the point we need to clone
+        // and then simply re-parse the script. 
+        // The latter approach is used here
+        // FIXME: There is one open issue with this now:
+        // Consider the following script:
+        // A = load 'file:/somefile';
+        // B = filter A by $0 > 10;
+        // store B into 'bla';
+        // rm 'file:/somefile';
+        // A = load 'file:/someotherfile'
+        // when we try to clone - we try to reparse
+        // from the beginning and currently the parser
+        // checks for file existence of files in the load
+        // in the case where the file is a local one -i.e. with file: prefix
+        // This will be a known issue now and we will need to revisit later
+        
+        // parse each line of the cached script and the
+        // final logical plan is the clone that we want
+        LogicalPlan lp = null;
+        int lineNumber = 1;
+        // create data structures needed for parsing
+        Map<LogicalOperator, LogicalPlan> cloneAliases = new HashMap<LogicalOperator, LogicalPlan>();
+        Map<OperatorKey, LogicalOperator> cloneOpTable = new HashMap<OperatorKey, LogicalOperator>();
+        Map<String, LogicalOperator> cloneAliasOp = new HashMap<String, LogicalOperator>();
+        for (Iterator<String> it = cachedScript.iterator(); it.hasNext(); lineNumber++) {
+            lp = parseQuery(it.next(), lineNumber, cloneAliases, cloneOpTable, cloneAliasOp);
+        }
+        
+        if(alias == null) {
+            // a store prompted the execution - so return
+            // the entire logical plan
+            return lp;
+        } else {
+            // return the logical plan corresponding to the 
+            // alias supplied
+            LogicalOperator op = cloneAliasOp.get(alias);
+            if(op == null) {
+                throw new IOException("Unable to find an operator for alias " + alias);
+            }
+            return cloneAliases.get(op);
+        }
+    }
+    
+    public void registerQuery(String query) throws IOException {
+        registerQuery(query, 1);
+    }
+    
+    public void registerScript(String fileName) throws IOException {
+        try {
+            GruntParser grunt = new GruntParser(new FileReader(new File(fileName)));
+            grunt.setInteractive(false);
+            grunt.setParams(this);
+            grunt.parseStopOnError();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new IOException(e.getCause());
+        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            throw new IOException(e.getCause());
+        }
+    }
 
-    System.out.println(schema.toString());    
+    public Schema dumpSchema(String alias) throws IOException{
+        try {
+            LogicalPlan lp = getPlanFromAlias(alias, "describe");
+            try {
+                lp = compileLp(alias, false);
+            } catch (ExecException e) {
+                throw new FrontendException(e.getMessage());
+            }
+            Schema schema = lp.getLeaves().get(0).getSchema();
+            if (schema != null) System.out.println(alias + ": " + schema.toString());    
+            else System.out.println("Schema for " + alias + " unknown.");
+            return schema;
+        } catch (FrontendException fe) {
+            throw WrappedIOException.wrap(
+                "Unable to describe schema for alias " + alias, fe);
+        }
     }
 
     public void setJobName(String name){
@@ -318,101 +396,88 @@ public class PigServer {
      * result
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
-        if (!aliases.containsKey(id))
-            throw new IOException("Invalid alias: " + id);
-
-        // TODO: front-end could actually remember what logical plans have been
-        // already submitted to the back-end for compilation and
-        // execution.
-        
-        LogicalPlan readFrom = aliases.get(id);
-        
-        // Run
         try {
-            ExecJob job = optimizeAndRunQuery(readFrom);
-
+            LogicalOperator op = aliasOp.get(id);
+            if(null == op) {
+                throw new IOException("Unable to find an operator for alias " + id);
+            }
+//            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
+            ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
             // invocation of "execute" is synchronous!
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
-                return job.getResults();
+                    return job.getResults();
+            } else {
+                throw new IOException("Job terminated with anomalous status "
+                    + job.getStatus().toString());
             }
-            else {
-                throw new IOException("Job terminated with anomalous status " + job.getStatus().toString());
-            }
-        }
-        catch (ExecException e) {
-            throw WrappedIOException.wrap("Unable to open iterator for alias: " + id, e);
+        } catch (Exception e) {
+            throw WrappedIOException.wrap(
+                "Unable to open iterator for alias: " + id, e);
         }
     }
     
     /**
      * Store an alias into a file
-     * @param id: The alias to store
-     * @param filename: The file to which to store to
+     * @param id The alias to store
+     * @param filename The file to which to store to
      * @throws IOException
      */
 
-    public void store(String id, String filename) throws IOException {
-        store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
+    public ExecJob store(String id, String filename) throws IOException {
+        return store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
     }
         
     /**
      *  forces execution of query (and all queries from which it reads), in order to store result in file
      */
-    public void store(String id, String filename, String func) throws IOException{
-        if (!aliases.containsKey(id))
+    public ExecJob store(
+            String id,
+            String filename,
+            String func) throws IOException{
+        if (!aliasOp.containsKey(id))
             throw new IOException("Invalid alias: " + id);
         
-        if (FileLocalizer.fileExists(filename, pigContext.getDfs())) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Output file ");
-            sb.append(filename);
-            sb.append(" already exists. Can't overwrite.");
-            throw new IOException(sb.toString());
-        }
-
-        LogicalPlan readFrom = aliases.get(id);
-        
-        store(readFrom,filename,func);
-    }
-        
-    public void store(LogicalPlan readFrom, String filename, String func) throws IOException {
-        LogicalPlan storePlan = QueryParser.generateStorePlan(readFrom.getOpTable(),
-                                                              scope,
-                                                              readFrom,
-                                                              filename,
-                                                              func,
-                                                              pigContext);
-
-        // Optimize 
-        Optimizer optimizer = new LoadOptimizer();
-        optimizer.optimize(readFrom);
-
-
         try {
-            optimizeAndRunQuery(storePlan);
-        }
-        catch (ExecException e) {
-            throw WrappedIOException.wrap("Unable to store alias " + 
-                    storePlan.getAlias(), e);
-
+            LogicalPlan readFrom = getPlanFromAlias(id, "store");
+            return store(id, readFrom, filename, func);
+        } catch (FrontendException fe) {
+            throw WrappedIOException.wrap("Unable to store alias " + id, fe);
         }
     }
+        
+    public ExecJob store(
+            String id,
+            LogicalPlan readFrom,
+            String filename,
+            String func) throws IOException {
+        try {
+            LogicalPlan lp = compileLp(id);
+            
+            // MRCompiler needs a store to be the leaf - hence
+            // add a store to the plan to explain
+            
+            // figure out the leaf to which the store needs to be added
+            List<LogicalOperator> leaves = lp.getLeaves();
+            LogicalOperator leaf = null;
+            if(leaves.size() == 1) {
+                leaf = leaves.get(0);
+            } else {
+                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
+                    LogicalOperator leafOp = it.next();
+                    if(leafOp.getAlias().equals(id))
+                        leaf = leafOp;
+                }
+            }
+            
+            LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf);
+            return executeCompiledLogicalPlan(storePlan);
+        } catch (Exception e) {
+            throw WrappedIOException.wrap("Unable to store for alias: " +
+                id, e);
+        }
 
-    private ExecJob optimizeAndRunQuery(LogicalPlan root) throws ExecException {
-        // Optimize the LogicalPlan
-        Optimizer loadOptimizer = new LoadOptimizer();
-        loadOptimizer.optimize(root);
-
-        Optimizer storeOptimizer = new StoreOptimizer();
-        storeOptimizer.optimize(root);
-
-        // Execute
-        ExecPhysicalPlan pp = 
-            pigContext.getExecutionEngine().compile(root, null);
-
-        return pigContext.getExecutionEngine().execute(pp);
     }
-    
+
     /**
      * Provide information on how a pig query will be executed.  For now
      * this information is very developer focussed, and probably not very
@@ -423,37 +488,41 @@ public class PigServer {
      */
     public void explain(String alias,
                         PrintStream stream) throws IOException {
-        stream.println("Logical Plan:");
-        LogicalPlan lp = aliases.get(alias);
-        if (lp == null) {
-            log.error("Invalid alias: " + alias);
-            stream.println("Invalid alias: " + alias);
-            throw new IOException("Invalid alias: " + alias);
-        }
-
-        lp.explain(stream);
-        
-        stream.println("-----------------------------------------------");
-        stream.println("Physical Plan:");
         try {
-            ExecPhysicalPlan pp = 
-                pigContext.getExecutionEngine().compile(lp, null);
-        
-            pp.explain(stream);
-        }
-        catch (ExecException e) {
-            StringBuilder sbException = new StringBuilder();
-            sbException.append("Failed to compile to phyiscal plan: ");
-            sbException.append(alias);
-            if (log.isErrorEnabled()) {
-                log.error(sbException.toString());
+            LogicalPlan lp = compileLp(alias);
+            
+            // MRCompiler needs a store to be the leaf - hence
+            // add a store to the plan to explain
+            
+            // figure out the leaf to which the store needs to be added
+            List<LogicalOperator> leaves = lp.getLeaves();
+            LogicalOperator leaf = null;
+            if(leaves.size() == 1) {
+                leaf = leaves.get(0);
+            } else {
+                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
+                    LogicalOperator leafOp = it.next();
+                    if(leafOp.getAlias().equals(alias))
+                        leaf = leafOp;
+                }
             }
-            StringBuilder sb = new StringBuilder();
-            sb.append("Failed to compile the logical plan for ");
-            sb.append(alias);
-            sb.append(" into a physical plan");
-            stream.println(sb.toString());
-            throw WrappedIOException.wrap(sbException.toString(), e);
+            
+            LogicalPlan storePlan = QueryParser.generateStorePlan(
+                scope, lp, "fakefile", PigStorage.class.getName(), leaf);
+            stream.println("Logical Plan:");
+            LOPrinter lv = new LOPrinter(stream, storePlan);
+            lv.visit();
+
+            PhysicalPlan pp = compilePp(storePlan);
+            stream.println("-----------------------------------------------");
+            stream.println("Physical Plan:");
+
+            stream.println("-----------------------------------------------");
+            pigContext.getExecutionEngine().explain(pp, stream);
+      
+        } catch (Exception e) {
+            throw WrappedIOException.wrap("Unable to explain alias " +
+                alias, e);
         }
     }
 
@@ -463,7 +532,7 @@ public class PigServer {
      * to file. Thus if you are using this to determine if you data set will fit
      * in the HDFS, you need to divide the result of this call by your specific replication
      * setting. 
-     * @return
+     * @return unused byte capacity of the file system.
      * @throws IOException
      */
     public long capacity() throws IOException {
@@ -492,6 +561,7 @@ public class PigServer {
     /**
      * Returns the length of a file in bytes which exists in the HDFS (accounts for replication).
      * @param filename
+     * @return length of the file in bytes
      * @throws IOException
      */
     public long fileSize(String filename) throws IOException {
@@ -541,11 +611,20 @@ public class PigServer {
     }
     
     public long totalHadoopTimeSpent() {
-        return MapReduceLauncher.totalHadoopTimeSpent;
+//      TODO FIX Need to uncomment this with the right logic
+//        return MapReduceLauncher.totalHadoopTimeSpent;
+        return 0L;
     }
   
     public Map<String, LogicalPlan> getAliases() {
-        return this.aliases;
+        Map<String, LogicalPlan> aliasPlans = new HashMap<String, LogicalPlan>();
+        for(LogicalOperator op: this.aliases.keySet()) {
+            String alias = op.getAlias();
+            if(null != alias) {
+                aliasPlans.put(alias, this.aliases.get(op));
+            }
+        }
+        return aliasPlans;
     }
     
     public void shutdown() {
@@ -556,18 +635,142 @@ public class PigServer {
         //
         // pigContext.getExecutionEngine().reclaimScope(this.scope);
     }
+
+    public Map<LogicalOperator, DataBag> getExamples(String alias) {
+        //LogicalPlan plan = aliases.get(aliasOp.get(alias));
+        LogicalPlan plan = null;
+        try {
+            plan = clonePlan(alias);
+        } catch (IOException e) {
+            //Since the original script is parsed anyway, there should not be an
+            //error in this parsing. The only reason there can be an error is when
+            //the files being loaded in load don't exist anymore.
+            e.printStackTrace();
+        }
+        ExampleGenerator exgen = new ExampleGenerator(plan, pigContext);
+        return exgen.getExamples();
+    }
     
-    public void showExamples(String id) throws IOException {
-		if(!aliases.containsKey(id))
-			throw new IOException("Invalid alias : " + id);
-		
-		LogicalPlan root = aliases.get(id);
-		showExamples(root);
-	}
-	
-	public void showExamples(LogicalPlan lp) throws IOException{
-		Map<LogicalOperator, DataBag> exampleData = ExGen.GenerateExamples(lp, pigContext);
-		this.Result = DisplayExamples.PrintTabular(lp, exampleData);
-		System.out.println(Result);
-	}
+    private ExecJob execute(String alias) throws FrontendException, ExecException {
+        ExecJob job = null;
+//        lp.explain(System.out, System.err);
+        LogicalPlan typeCheckedLp = compileLp(alias);
+        
+        return executeCompiledLogicalPlan(typeCheckedLp);
+//        typeCheckedLp.explain(System.out, System.err);
+        
+    }
+    
+    private ExecJob executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
+        PhysicalPlan pp = compilePp(compiledLp);
+        // execute using appropriate engine
+        FileLocalizer.clearDeleteOnFail();
+        ExecJob execJob = pigContext.getExecutionEngine().execute(pp, "execute");
+        if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED)
+            FileLocalizer.triggerDeleteOnFail();
+        return execJob;
+    }
+
+    private LogicalPlan compileLp(
+            String alias) throws ExecException, FrontendException {
+        return compileLp(alias, true);
+    }
+
+    private LogicalPlan compileLp(
+            String alias,
+            boolean optimize) throws ExecException, FrontendException {
+        
+        // create a clone of the logical plan and give it
+        // to the operations below
+        LogicalPlan lpClone;
+        try {
+             lpClone = clonePlan(alias);
+        } catch (IOException e) {
+            throw new FrontendException("Unable to clone plan before compiling", e);
+        }
+
+        
+        // Set the logical plan values correctly in all the operators
+        PlanSetter ps = new PlanSetter(lpClone);
+        ps.visit();
+        
+        //(new SplitIntroducer(lp)).introduceImplSplits();
+        
+        // run through validator
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        FrontendException caught = null;
+        try {
+            LogicalPlanValidationExecutor validator = 
+                new LogicalPlanValidationExecutor(lpClone, pigContext);
+            validator.validate(lpClone, collector);
+        } catch (FrontendException fe) {
+            // Need to go through and see what the collector has in it.  But
+            // remember what we've caught so we can wrap it into what we
+            // throw.
+            caught = fe;
+        }
+        // Check to see if we had any problems.
+        StringBuilder sb = new StringBuilder();
+        for (CompilationMessageCollector.Message msg : collector) {
+            switch (msg.getMessageType()) {
+            case Info:
+                log.info(msg.getMessage());
+                break;
+
+            case Warning:
+                log.warn(msg.getMessage());
+                break;
+
+            case Unknown:
+            case Error:
+                log.error(msg.getMessage());
+                sb.append(msg.getMessage());
+                break;
+
+            default:
+                throw new AssertionError("Unknown message type " +
+                    msg.getMessageType());
+
+            }
+        }
+
+        if (sb.length() > 0 || caught != null) {
+            throw new ExecException(sb.toString(), caught);
+        }
+
+        // optimize
+        if (optimize) {
+            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone);
+            optimizer.optimize();
+        }
+
+        return lpClone;
+    }
+
+    private PhysicalPlan compilePp(LogicalPlan lp) throws ExecException {
+        // translate lp to physical plan
+        PhysicalPlan pp = pigContext.getExecutionEngine().compile(lp, null);
+
+        // TODO optimize
+
+        return pp;
+    }
+
+    private LogicalPlan getPlanFromAlias(
+            String alias,
+            String operation) throws FrontendException {
+        LogicalOperator lo = aliasOp.get(alias);
+        if (lo == null) {
+            throw new FrontendException("No alias " + alias + " to " +
+                operation);
+        }
+        LogicalPlan lp = aliases.get(lo);
+        if (lp == null) {
+            throw new FrontendException("No plan for " + alias + " to " +
+                operation);
+        }        
+        return lp;
+    }
+
+
 }

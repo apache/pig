@@ -18,106 +18,98 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFunc; 
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOStore extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    protected FileSpec outputFileSpec;
+    private FileSpec mOutputFile;
+    transient private StoreFunc mStoreFunc;
+    private static Log log = LogFactory.getLog(LOStore.class);
 
-    protected boolean append;
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param outputFileSpec
+     *            the file to be stored
+     */
+    public LOStore(LogicalPlan plan, OperatorKey key,
+            FileSpec outputFileSpec) throws IOException {
+        super(plan, key);
 
+        mOutputFile = outputFileSpec;
 
-    public LOStore(Map<OperatorKey, LogicalOperator> opTable,
-                   String scope,
-                   long id,
-                   OperatorKey input,
-                   FileSpec fileSpec,
-                   boolean append) throws IOException {
-        super(opTable, scope, id, input);
-        this.outputFileSpec = fileSpec;
-        this.append = append;
+        // TODO
+        // The code below is commented out as PigContext pulls in
+        // HExecutionEngine which in turn is completely commented out
+        // Also remove the commented out import org.apache.pig.impl.PigContext
 
-        //See if the store function spec is valid
-        try {
-            StoreFunc StoreFunc =
-                (StoreFunc) PigContext.instantiateFuncFromSpec(
-                    fileSpec.getFuncSpec());
-        } catch(Exception e) {
-            IOException ioe = new IOException(e.getMessage());
+        try { 
+             mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+        } catch (Exception e) { 
+            IOException ioe = new IOException(e.getMessage()); 
             ioe.setStackTrace(e.getStackTrace());
-            throw ioe;
-        } getOutputType();
-    }
-
-
-    public FileSpec getOutputFileSpec() {
-        return outputFileSpec;
-    }
-
-    public void setOutputFileSpec(FileSpec spec) {
-        outputFileSpec = spec;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder(super.toString());
-        result.append(" (append: ");
-        result.append(append);
-        result.append(')');
-        return result.toString();
-    }
-
-
-    @Override
-    public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Store ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
-    }
-
-    @Override
-    public TupleSchema outputSchema() {
-        throw new
-            RuntimeException
-            ("Internal error: Asking for schema of a store operator.");
-    }
-
-    @Override
-    public int getOutputType() {
-        switch (opTable.get(getInputs().get(0)).getOutputType()) {
-        case FIXED:
-            return FIXED;
-        case MONOTONE:
-            return MONOTONE;
-        default:
-            throw new RuntimeException("Illegal input type for store operator");
+            throw ioe; 
         }
     }
 
+    public FileSpec getOutputFile() {
+        return mOutputFile;
+    }
+    
+    public void setOutputFile(FileSpec outputFileSpec) throws IOException {
+        try { 
+            mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+       } catch (Exception e) { 
+           IOException ioe = new IOException(e.getMessage()); 
+           ioe.setStackTrace(e.getStackTrace());
+           throw ioe; 
+       }
+       mOutputFile = outputFileSpec;
+    }
+
+    public StoreFunc getStoreFunc() {
+        return mStoreFunc;
+    }
+
     @Override
-    public List<String> getFuncs() {
-        List<String> funcs = super.getFuncs();
-        funcs.add(outputFileSpec.getFuncName());
-        return funcs;
+    public String name() {
+        return "Store " + mKey.scope + "-" + mKey.id;
     }
 
-
-    public boolean isAppend() {
-        return append;
+    @Override
+    public Schema getSchema() throws FrontendException {
+        //throw new RuntimeException("Internal error: Requested schema of a "
+         //       + "store operator.");
+        return mPlan.getPredecessors(this).get(0).getSchema();
     }
 
-    public void visit(LOVisitor v) {
-        v.visitStore(this);
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsMultipleOutputs() {
+        return false;
+    }
+
+    public void visit(LOVisitor v) throws VisitorException {
+        v.visit(this);
     }
 }
