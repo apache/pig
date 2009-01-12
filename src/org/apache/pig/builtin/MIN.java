@@ -18,14 +18,20 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
@@ -33,11 +39,17 @@ import org.apache.pig.impl.util.WrappedIOException;
 /**
  * Generates the min of the values of the first field of a tuple.
  */
-public class MIN extends EvalFunc<DataAtom> implements Algebraic {
+public class MIN extends EvalFunc<Double> implements Algebraic {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(min(input));
+    public Double exec(Tuple input) throws IOException {
+        try {
+            return min(input);
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            oughtToBeEE.initCause(ee);
+            throw oughtToBeEE;
+        }
     }
 
     public String getInitial() {
@@ -45,7 +57,7 @@ public class MIN extends EvalFunc<DataAtom> implements Algebraic {
     }
 
     public String getIntermed() {
-        return Initial.class.getName();
+        return Intermediate.class.getName();
     }
 
     public String getFinal() {
@@ -53,37 +65,145 @@ public class MIN extends EvalFunc<DataAtom> implements Algebraic {
     }
 
     static public class Initial extends EvalFunc<Tuple> {
-        @Override
-        public void exec(Tuple input, Tuple output) throws IOException {
-            output.appendField(new DataAtom(min(input)));
-        }
-    }
-    static public class Final extends EvalFunc<DataAtom> {
-        @Override
-        public void exec(Tuple input, DataAtom output) throws IOException {
-            output.setValue(min(input));
-        }
-    }
+        private static TupleFactory tfact = TupleFactory.getInstance();
 
-    static protected double min(Tuple input) throws IOException {
-        DataBag values = input.getBagField(0);
-
-        double curMin = Double.POSITIVE_INFINITY;
-        for (Iterator it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
             try {
-                curMin = java.lang.Math.min(curMin, t.getAtomField(0).numval());
-            } catch(RuntimeException exp) {
-                throw WrappedIOException.wrap("Error processing: " + t.toString() + exp.getMessage(), exp);
+                // input is a bag with one tuple containing
+                // the column we are trying to min on
+                DataBag bg = (DataBag) input.get(0);
+                Tuple tp = bg.iterator().next();
+                DataByteArray dba = (DataByteArray)tp.get(0); 
+                return tfact.newTuple(dba != null?
+                        Double.valueOf(dba.toString()) : null);
+            } catch (NumberFormatException e) {
+                // invalid input, send null
+                return tfact.newTuple(null);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
             }
         }
-        return curMin;
-    }
-    
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new AtomSchema("min" + count++);
     }
 
-    private static int count = 1;
+    static public class Intermediate extends EvalFunc<Tuple> {
+        private static TupleFactory tfact = TupleFactory.getInstance();
+
+        @Override
+        public Tuple exec(Tuple input) throws IOException {
+            try {
+                return tfact.newTuple(minDoubles(input));
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
+            }
+        }
+    }
+    static public class Final extends EvalFunc<Double> {
+        @Override
+        public Double exec(Tuple input) throws IOException {
+            try {
+                return minDoubles(input);
+            } catch (ExecException ee) {
+                IOException oughtToBeEE = new IOException();
+                oughtToBeEE.initCause(ee);
+                throw oughtToBeEE;
+            }
+        }
+    }
+
+    static protected Double min(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double curMin = Double.POSITIVE_INFINITY;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                DataByteArray dba = (DataByteArray)t.get(0);
+                Double d = dba != null ? Double.valueOf(dba.toString()): null;
+                if (d == null) continue;
+                sawNonNull = true;
+                curMin = java.lang.Math.min(curMin, d);
+            } catch (RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage());
+                newE.initCause(exp);
+                throw newE;
+            }
+        }
+    
+        if(sawNonNull) {
+            return new Double(curMin);
+        } else {
+            return null;
+        }
+    }
+    
+    // same as above function except all its inputs are 
+    // always Double - this should be used for better performance
+    // since we don't have to check the type of the object to
+    // decide it is a double. This should be used when the initial,
+    // intermediate and final versions are used.
+    static protected Double minDoubles(Tuple input) throws ExecException {
+        DataBag values = (DataBag)input.get(0);
+        
+        // if we were handed an empty bag, return NULL
+        // this is in compliance with SQL standard
+        if(values.size() == 0) {
+            return null;
+        }
+
+        double curMin = Double.POSITIVE_INFINITY;
+        boolean sawNonNull = false;
+        for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            try {
+                Double d = (Double)t.get(0);
+                if (d == null) continue;
+                sawNonNull = true;
+                curMin = java.lang.Math.min(curMin, d);
+            } catch (RuntimeException exp) {
+                ExecException newE =  new ExecException("Error processing: " +
+                    t.toString() + exp.getMessage());
+                newE.initCause(exp);
+                throw newE;
+            }
+        }
+    
+        if(sawNonNull) {
+            return new Double(curMin);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
+        funcList.add(new FuncSpec(DoubleMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+        funcList.add(new FuncSpec(FloatMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+        funcList.add(new FuncSpec(IntMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+        funcList.add(new FuncSpec(LongMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        funcList.add(new FuncSpec(StringMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
+        return funcList;
+    }    
 }

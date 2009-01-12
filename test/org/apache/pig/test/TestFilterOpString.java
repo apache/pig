@@ -17,7 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.PigServer.ExecType.MAPREDUCE;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -28,97 +27,137 @@ import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
 import junit.framework.TestCase;
 
-public class TestFilterOpString extends PigExecTestCase {
+public class TestFilterOpString extends TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
+    private static int LOOP_COUNT = 1024;    
+    private String initString = "mapreduce";
+    MiniCluster cluster = MiniCluster.buildCluster();
 
-    private static int LOOP_COUNT = 1024;
+    private PigServer pig;
+    
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+
 
     @Test
     public void testStringEq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("a:" + i);
+                // test with nulls
+                ps.println("a:");
+                ps.println(":a");
+                ps.println(":");
             } else {
                 ps.println("ab:ab");
+                expectedCount++;
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
+            count++;
             assertTrue(first.equals(second));
         }
+        assertEquals(expectedCount, count);
     }
     
     @Test
     public void testStringNeq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("ab:ab");
-            } else {
+            } else if (i % 3 == 0) {
                 ps.println("ab:abc");
+                expectedCount++;
+            } else {
+                // test with nulls
+                ps.println(":");
+                ps.println("ab:");
+                ps.println(":ab");                
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertFalse(first.equals(second));
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     @Test
     public void testStringGt() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                expectedCount++;
             } else {
                 ps.println("a:b");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
+                
             }
         }
         ps.close();
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) > 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     
@@ -127,88 +166,118 @@ public class TestFilterOpString extends PigExecTestCase {
     public void testStringGte() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                expectedCount++;
             }else if(i % 3 == 0) {
                 ps.println("b:b");
+                expectedCount++;
             } else {
                 ps.println("a:b");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
             }
         }
         ps.close();
         
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) >= 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     @Test
     public void testStringLt() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
             } else {
                 ps.println("a:b");
+                expectedCount++;
             }
         }
         ps.close();
         
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) < 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
     @Test
     public void testStringLte() throws Throwable {
+        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        int expectedCount = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             if(i % 5 == 0) {
                 ps.println("b:a");
+                // test with nulls
+                ps.println("a:");
+                ps.println(":b");
+                ps.println(":");
             }else if(i % 3 == 0) {
                 ps.println("b:b");
+                expectedCount++;
             } else {
                 ps.println("a:b");
+                expectedCount++;
             }
         }
         ps.close();
         
-        pigServer.registerQuery("A=load 'file:" + Util.encodeEscape(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 
         log.info(query);
-        pigServer.registerQuery(query);
-        Iterator it = pigServer.openIterator("A");
+        pig.registerQuery(query);
+        Iterator it = pig.openIterator("A");
         tmpFile.delete();
+        int count = 0;
         while(it.hasNext()) {
             Tuple t = (Tuple)it.next();
-            String first = t.getAtomField(0).strval();
-            String second = t.getAtomField(1).strval();
+            String first = t.get(0).toString();
+            String second = t.get(1).toString();
             assertTrue(first.compareTo(second) <= 0);
+            count++;
         }
+        assertEquals(expectedCount, count);
     }
 
 }

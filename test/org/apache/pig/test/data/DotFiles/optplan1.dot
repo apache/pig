@@ -1,0 +1,9 @@
+digraph graph1 {
+    graph [pigScript=" A = load 'myfile' as (p:int, q:long, r:float, s:double, t:map[], u:tuple (x:int, y:int), v:bag {tuple(int:z)}); B = group A by p; C = foreach B generate $0,  COUNT($1);" ] ;
+
+    load [key="0", type="LOLoad" , schema= "p: bytearray,q: bytearray,r: bytearray,s: bytearray,t: bytearray ,u: bytearray,v: bytearray"] ;
+    typecast [ key="23", type="LOForEach", schema= "p: int,q: long,r: float,s: double,t: map[] ,u: tuple(x: int,y: int),v: bag {x: tuple (z: int)}"] ;
+    order [key="2", type="LOSort", schema= "p: int,q: long,r: float,s: double,t: map[] ,u: tuple(x: int,y: int),v: bag {x: tuple (z: int)}"] ;
+
+    load -> typecast -> order ;
+}

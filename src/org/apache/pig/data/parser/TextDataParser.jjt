@@ -1,0 +1,208 @@
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * JavaCC file
+ * This file lists the grammar for PIG Latin.
+ * QueryParser program ouputs a ParseTree given a Valid Pig Latin Query
+ */
+options {
+  // Generate non-static functions
+  STATIC = false;
+  // Case is ignored in keywords
+  IGNORE_CASE = true;
+  USER_TOKEN_MANAGER = false;
+  USER_CHAR_STREAM = false;
+}
+
+PARSER_BEGIN(TextDataParser)
+package org.apache.pig.data.parser;
+import java.io.*;
+import java.util.*;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.*;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+
+
+public class TextDataParser {
+	private static Log log = LogFactory.getLog(TextDataParser.class);
+}
+
+	
+PARSER_END(TextDataParser)
+
+
+TOKEN :
+{
+ 	< #FLOATINGPOINT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
+|	<#DIGIT : ["0"-"9"] >
+| 	< #INTEGER: ( <DIGIT> )+ >
+| 	< SIGNEDINTEGER: (["-","+"])? <INTEGER> >
+| 	< LONGINTEGER: <SIGNEDINTEGER> (["l","L"])? >
+|   < DOUBLENUMBER: (["-","+"])? <FLOATINGPOINT> ( ["e","E"] ([ "-","+"])? <FLOATINGPOINT> )?>
+|   < FLOATNUMBER: <DOUBLENUMBER> (["f","F"])? >
+}
+
+TOKEN : { <NULL : "null" > }
+TOKEN : { <STRING : (~[",","(",")","{","}","[","]","#"])* > }
+
+Object Parse() : 
+{
+	Token t1; 
+	String s;
+	Object obj = null;
+	log.trace("Entering Parse");
+}
+{
+	(
+	LOOKAHEAD(AtomDatum()) obj = AtomDatum ()
+|	obj= Datum()
+	)
+	{
+		return obj;
+	}
+}
+
+DataBag Bag() :
+{
+	BagFactory bagFactory = BagFactory.getInstance();
+    DataBag bag = bagFactory.newDefaultBag();
+    Tuple t = null;
+    log.trace("Entering bag");
+}
+{
+ ("(" t = Tuple() {bag.add(t);} ")" ("," "(" t = Tuple() {bag.add(t);} ")" )* )
+ {
+    log.trace("Exiting bag with bag: " + bag);
+    return bag;
+ }
+}
+
+Tuple Tuple() : 
+{
+	Object obj = null;
+	TupleFactory tupleFactory = TupleFactory.getInstance();
+	ArrayList<Object> objList = new ArrayList<Object>(); 
+	log.trace("Entering Tuple");
+}
+{
+	(	
+	(	
+            (
+                obj = Datum() {objList.add(obj);} 
+		        ("," obj = Datum() {objList.add(obj);})* 
+            )
+            |		{}
+	)
+	)
+	{
+		Tuple tuple = tupleFactory.newTuple(objList);
+		log.trace("Exiting Tuple");
+		return tuple;
+	}
+}
+
+Map<Object, Object> Map() :
+{
+	Map<Object, Object> keyValues = new HashMap<Object, Object>();
+	log.trace("Entering Map");
+	
+}
+{
+	( KeyValuePair(keyValues) ("," KeyValuePair(keyValues))* )
+	{
+		log.trace("Exiting Map");
+		return keyValues;
+	}
+}
+
+void KeyValuePair(Map<Object, Object> keyValues) :
+{
+	Object key = null;
+	Object value = null;
+	log.trace("Entering KeyValuePair");
+}
+{
+	(key = AtomDatum() "#" value = Datum())
+	{
+		keyValues.put(key, value);
+		log.trace("Exiting KeyValuePair");
+	}
+	
+}
+
+Object AtomDatum():
+{
+    Object obj = null;
+	Token t;
+	log.trace("Entering AtomDatum");
+}
+{
+	(
+	t = <SIGNEDINTEGER> 
+    {
+        obj = new Integer(Integer.parseInt(t.image));
+    }
+|	t = <LONGINTEGER> 
+    {
+        obj = new Long(Long.parseLong(t.image.substring(0, t.image.length() - 1)));
+    }
+|	t = <FLOATNUMBER> 
+    {
+        obj = new Float(Float.parseFloat(t.image));
+    }
+|	t = <DOUBLENUMBER> 
+    {
+        obj = new Double(Double.parseDouble(t.image));
+    }
+|	t = <NULL> {}
+|	t = <STRING> 
+    {
+        obj = t.image;
+    }
+	)
+	{
+		log.trace("Exiting AtomDatum");
+		return obj;
+	}
+}
+
+Object Datum(): 
+{
+    Object obj = null;
+	log.trace("Entering Datum");
+}
+{
+	(
+	"[" obj = Map() "]"
+|	"{" obj = Bag() "}"
+|	"(" obj = Tuple() ")"
+|	obj = AtomDatum()
+	)
+	{
+		log.trace("Exiting Datum with obj: " + obj);
+		return obj;
+	}
+}

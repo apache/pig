@@ -23,9 +23,9 @@
 -- Register the tutorial JAR file so that the included UDFs can be called in the script.
 REGISTER ./tutorial.jar;
 
--- Use the PigStorage function to load the excite log file into the “raw” bag as an array of records.
+-- Use the PigStorage function to load the excite log file into the raw bag as an array of records.
 -- Input: (user,time,query) 
-raw = LOAD 'excite-small.log' USING PigStorage('\t') AS (user, time, query);
+raw = LOAD 'excite-small.log' USING PigStorage('\t') AS (user: chararray, time: chararray, query: chararray);
 
 -- Call the NonURLDetector UDF to remove records if the query field is empty or a URL.
 clean1 = FILTER raw BY org.apache.pig.tutorial.NonURLDetector(query);
@@ -53,17 +53,17 @@ hour_frequency2 = FOREACH hour_frequency1 GENERATE flatten($0), COUNT($1) as cou
 -- Use the FOREACH-GENERATE command to assign names to the fields. 
 hour_frequency3 = FOREACH hour_frequency2 GENERATE $0 as ngram, $1 as hour, $2 as count;
 
--- Use the FILTER command to get the n-grams for hour ‘00’ .
+-- Use the FILTER command to get the n-grams for hour 00 .
 hour00 = FILTER hour_frequency2 BY hour eq '00';
 
--- Use the FILTER command to get the n-grams for hour ‘12’
+-- Use the FILTER command to get the n-grams for hour 12
 hour12 = FILTER hour_frequency3 BY hour eq '12';
 
 -- Use the JOIN command to get the n-grams that appear in both hours.
 same = JOIN hour00 BY $0, hour12 BY $0;
 
 -- Use the FOREACH-GENERATE command to record their frequency.
-same1 = FOREACH same GENERATE hour_frequency2::hour00::group::ngram as ngram, $2 as count00, $5 as count12;
+same1 = FOREACH same GENERATE hour00::group::ngram as ngram, $2 as count00, $5 as count12;
 
 -- Use the PigStorage function to store the results. 
 -- Output: (n-gram, count_at_hour_00, count_at_hour_12)

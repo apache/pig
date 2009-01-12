@@ -36,7 +36,6 @@ public abstract class InputHandler {
      * 
      */
     public enum InputType {SYNCHRONOUS, ASYNCHRONOUS}
-    
     /*
      * The serializer to be used to send data to the managed process.
      * 
@@ -44,6 +43,9 @@ public abstract class InputHandler {
      * manage the serializer. 
      */  
     protected StoreFunc serializer;
+    
+    // flag to mark if close() has already been called
+    protected boolean alreadyClosed = false;
     
     /**
      * Get the handled <code>InputType</code>
@@ -64,11 +66,20 @@ public abstract class InputHandler {
     /**
      * Close the <code>InputHandler</code> since there is no more input
      * to be sent to the managed process.
+     * @param process the managed process - this could be null in some cases
+     * like when input is through files. In that case, the process would not
+     * have been exec'ed yet - if this method if overridden it is the responsibility
+     * of the implementer to check that the process is usable. The managed process
+     * object is supplied by the ExecutableManager to this call so that this method
+     * can check if the process is alive if it needs to know.
      * 
      * @throws IOException
      */
-    public void close() throws IOException {
-        serializer.finish();
+    public synchronized void close(Process process) throws IOException {
+        if(!alreadyClosed) {
+            serializer.finish();
+            alreadyClosed = true;
+        }
     }
     
     /**

@@ -18,16 +18,55 @@
 
 package org.apache.pig.test;
 
+
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.PigServer.ExecType;
+import junit.framework.TestCase;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataAtom;
 import org.apache.pig.data.Tuple;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class TestCustomSlicer extends PigExecTestCase {
+public class TestCustomSlicer extends TestCase {
+    
+protected final Log log = LogFactory.getLog(getClass());
+    
+    protected ExecType execType = ExecType.MAPREDUCE;
+    
+    private MiniCluster cluster;
+    protected PigServer pigServer;
+    
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        
+        /*
+        String execTypeString = System.getProperty("test.exectype");
+        if(execTypeString!=null && execTypeString.length()>0){
+            execType = PigServer.parseExecType(execTypeString);
+        }
+        */
+        if(execType == ExecType.MAPREDUCE) {
+            cluster = MiniCluster.buildCluster();
+            pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        } else {
+            pigServer = new PigServer(ExecType.LOCAL);
+        }
+    }
+
+    @After
+    @Override
+    protected void tearDown() throws Exception {
+        pigServer.shutdown();
+    }
+
     /**
      * Uses RangeSlicer in place of pig's default Slicer to generate a few
      * values and count them.
@@ -44,7 +83,7 @@ public class TestCustomSlicer extends PigExecTestCase {
         pigServer.registerQuery(query);
         Iterator<Tuple> it = pigServer.openIterator("vals");
         Tuple cur = it.next();
-        DataAtom val = cur.getAtomField(0);
-        assertEquals(numvals, (int) val.longVal());
+        Long val = (Long)cur.get(0);
+        assertEquals(new Long(numvals), val);
     }
 }

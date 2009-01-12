@@ -18,12 +18,51 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.ExecType.LOCAL;
+import static org.apache.pig.ExecType.MAPREDUCE;
+
 import java.io.IOException;
 
-import org.apache.pig.PigServer.ExecType;
-import org.apache.pig.backend.executionengine.ExecException;
+import junit.framework.TestCase;
 
-public class TestParser extends PigExecTestCase {
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigServer;
+import org.apache.pig.ExecType;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.junit.After;
+import org.junit.Before;
+
+public class TestParser extends TestCase {
+
+protected final Log log = LogFactory.getLog(getClass());
+    
+    protected ExecType execType = MAPREDUCE;
+    
+    private MiniCluster cluster;
+    protected PigServer pigServer;
+    
+    @Before
+    @Override
+    protected void setUp() throws Exception {
+        
+        String execTypeString = System.getProperty("test.exectype");
+        if(execTypeString!=null && execTypeString.length()>0){
+            execType = PigServer.parseExecType(execTypeString);
+        }
+        if(execType == MAPREDUCE) {
+            cluster = MiniCluster.buildCluster();
+            pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
+        } else {
+            pigServer = new PigServer(LOCAL);
+        }
+    }
+
+    @After
+    @Override
+    protected void tearDown() throws Exception {
+        pigServer.shutdown();
+    }
 
     public void testLoadingNonexistentFile() throws ExecException, IOException {
         try {
@@ -31,6 +70,7 @@ public class TestParser extends PigExecTestCase {
             if(execType == ExecType.LOCAL)
                 return;
             pigServer.registerQuery("vals = load 'nonexistentfile';");
+            pigServer.openIterator("vals");
             fail("Loading a  nonexistent file should throw an IOException at parse time");
         } catch (IOException io) {
         }

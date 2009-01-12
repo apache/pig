@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.pig.impl.util;
 
 import java.lang.management.ManagementFactory;
@@ -118,6 +117,7 @@ public class SpillableMemoryManager implements NotificationListener {
     public static void configure(Properties properties) {
         
         try {
+            
             spillFileSizeThreshold = Long.parseLong(
                         (String) properties.getProperty("pig.spill.size.threshold") ) ;
             
@@ -133,7 +133,6 @@ public class SpillableMemoryManager implements NotificationListener {
     public void handleNotification(Notification n, Object o) {
         CompositeData cd = (CompositeData) n.getUserData();
         MemoryNotificationInfo info = MemoryNotificationInfo.from(cd);
-        
         // free the amount exceeded over the threshold and then a further half
         // so if threshold = heapmax/2, we will be trying to free
         // used - heapmax/2 + heapmax/4
@@ -161,7 +160,7 @@ public class SpillableMemoryManager implements NotificationListener {
                 Spillable s = i.next().get();
                 if (s == null) {
                     i.remove();
-                }   
+                }
             }
             Collections.sort(spillables, new Comparator<WeakReference<Spillable>>() {
 
@@ -228,7 +227,7 @@ public class SpillableMemoryManager implements NotificationListener {
                     break;
                 }
             }
-            
+
             /* Poke the GC again to see if we successfully freed enough memory */
             if(invokeGC) {
                 System.gc();

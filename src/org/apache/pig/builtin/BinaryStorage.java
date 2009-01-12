@@ -20,12 +20,19 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * {@link BinaryStorage} is a simple, as-is, serializer/deserializer pair.
@@ -38,7 +45,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  * are to be sent in-whole for processing without any splitting and 
  * interpretation of their data.
  */
-public class BinaryStorage implements LoadFunc, StoreFunc {
+public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, StoreFunc {
     // LoadFunc
     private static final int DEFAULT_BUFFER_SIZE = 64*1024;
     protected int bufferSize = DEFAULT_BUFFER_SIZE;
@@ -99,7 +106,7 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
         // Create a new Tuple with one DataAtom field and return it, 
         // ensure that we return 'null' if we didn't get any data
         if (off > 0) {
-            return new Tuple(new DataAtom(buffer));
+            return DefaultTupleFactory.getInstance().newTuple(new DataByteArray(buffer));
         }
         
         return null;
@@ -114,10 +121,18 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
     public void putNext(Tuple f) throws IOException {
         // Pick up the first field of the Tuple, then it's 
         // raw-bytes and send it out
-        DataAtom dAtom = (DataAtom)(f.getAtomField(0));
-        byte[] data = dAtom.getValueBytes();
+        //DataAtom dAtom = (DataAtom)(f.getAtomField(0));
+        //byte[] data = dAtom.getValueBytes();
+        byte[] data;
+        try {
+            data = ((DataByteArray)f.get(0)).get();
+        } catch (ExecException e) {
+            IOException ioe = new IOException("Unable to get field out of tuple");
+            ioe.initCause(e);
+            throw ioe;
+        }
         if (data.length > 0) {
-            out.write(dAtom.getValueBytes());
+            out.write(data);
             out.flush();
         }
     }
@@ -128,5 +143,22 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
     
     public boolean equals(Object obj) {
         return true;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+     */
+    public Schema determineSchema(String fileName, ExecType execType,
+            DataStorage storage) throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
+     */
+    public void fieldsToRead(Schema schema) {
+        // TODO Auto-generated method stub
+        
     }
 }

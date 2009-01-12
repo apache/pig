@@ -18,14 +18,6 @@
 
 package org.apache.pig.piggybank.evaluation.math;
 
-import java.io.IOException;
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
-import org.apache.pig.data.Datum;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-
 /**
  * math.ACOS implements a binding to the Java function
 * {@link java.lang.Math#acos(double) Math.acos(double)} for computing the
@@ -34,10 +26,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * 
 * <dl>
 * <dt><b>Parameters:</b></dt>
-* <dd><code>value</code> - <code>DataAtom [double]</code>.</dd>
+* <dd><code>value</code> - <code>Double</code>.</dd>
 * 
 * <dt><b>Return Value:</b></dt>
-* <dd><code>DataAtom [double]</code> arc cosine of the value of input</dd>
+* <dd><code>Double</code> arc cosine of the value of input</dd>
 * 
 * <dt><b>Return Schema:</b></dt>
 * <dd>acos_inputSchema</dd>
@@ -55,38 +47,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * @author ajay garg
 *
 */
-public class ACOS extends EvalFunc<DataAtom>{
-	/**
-	 * java level API
-	 * @param input expects a single numeric DataAtom value
-	 * @param output returns a single numeric DataAtom value, arc cosine value of the argument
-	 */
-	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(acos(input));
-	}
+public class ACOS extends DoubleBase{
 	
-	protected double acos(Tuple input) throws IOException{
-		Datum temp = input.getField(0);
-		double retVal;
-		if(!(temp instanceof DataAtom)){
-			throw new IOException("invalid input format. ");
-		} 
-		else{
-			try{
-				retVal=((DataAtom)temp).numval();
-			}
-			catch(RuntimeException e){
-				throw new IOException((DataAtom)temp+" is not a valid number");
-			}
-		}
-		return Math.acos(retVal);
+	Double compute(Double input){
+		return Math.acos(input);
 		
 	}
-	
-	@Override
-	public Schema outputSchema(Schema input) {
-		return new AtomSchema("acos_"+input.toString()); 
-	}
-
 }

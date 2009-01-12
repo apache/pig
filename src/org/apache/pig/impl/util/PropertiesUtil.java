@@ -48,7 +48,7 @@ public class PropertiesUtil {
         } catch (Exception e) {
             log.error("unable to parse pig.properties :", e);
         }
-        
+
         Properties pigrcProps = new Properties() ;
         try {
             File pigrcFile = new File(System.getProperty("user.home") + "/.pigrc");
@@ -59,8 +59,8 @@ public class PropertiesUtil {
             }
         } catch (Exception e) {
             log.error("unable to parse .pigrc :", e);
-        }        
-		
+        }
+
 		// Now put all the entries from pigrcProps into properties, but
 		// only if they are not already set.  pig.properties takes
 		// precedence over .pigrc
@@ -70,7 +70,7 @@ public class PropertiesUtil {
 				properties.put(entry.getKey(), entry.getValue());
 			}
 		}
-		
+
         //Now set these as system properties only if they are not already defined.
         if (log.isDebugEnabled()) {
             for (Object o: properties.keySet()) {
@@ -83,11 +83,11 @@ public class PropertiesUtil {
                 log.debug(sb.toString()) ;
             }
         }
-		
+
 		// Add System properties which include command line overrides
-		// Any existing keys will be overridden 
+		// Any existing keys will be overridden
 		properties.putAll(System.getProperties());
-		
+
 		// For telling error fast when there are problems
 		ConfigurationValidator.validatePigProperties(properties) ;
     }
@@ -97,5 +97,5 @@ public class PropertiesUtil {
         loadPropertiesFromFile(properties);
         return properties;
     }
-    
+
 }

@@ -1,0 +1,25 @@
+Filter[bag] - Test-Plan-Builder-118
+|   |
+|   Greater Than[boolean] - Test-Plan-Builder-129
+|   |
+|   |---Add[bytearray] - Test-Plan-Builder-121
+|   |   |
+|   |   |---Project[bytearray][0] - Test-Plan-Builder-119
+|   |   |
+|   |   |---Project[bytearray][1] - Test-Plan-Builder-120
+|   |
+|   |---Multiply[chararray] - Test-Plan-Builder-128
+|       |
+|       |---Subtract[bytearray] - Test-Plan-Builder-124
+|       |   |
+|       |   |---Project[bytearray][0] - Test-Plan-Builder-122
+|       |   |
+|       |   |---Project[bytearray][1] - Test-Plan-Builder-123
+|       |
+|       |---Divide[chararray] - Test-Plan-Builder-127
+|           |
+|           |---Constant(4) - Test-Plan-Builder-125
+|           |
+|           |---Constant(2) - Test-Plan-Builder-126
+|
+|---Load(a:org.apache.pig.builtin.PigStorage(':')) - Test-Plan-Builder-117

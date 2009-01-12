@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.pig.backend.datastorage;
 
 public interface ContainerDescriptor 

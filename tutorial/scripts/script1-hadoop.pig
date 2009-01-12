@@ -67,7 +67,7 @@ uniq_frequency3 = FOREACH uniq_frequency2 GENERATE $1 as hour, $0 as ngram, $2 a
 filtered_uniq_frequency = FILTER uniq_frequency3 BY score > 2.0;
 
 -- Use the  ORDER command to sort the remaining records by hour and score. 
-ordered_uniq_frequency = ORDER filtered_uniq_frequency BY (hour, score);
+ordered_uniq_frequency = ORDER filtered_uniq_frequency BY hour, score;
 
 -- Use the  PigStorage function to store the results. 
 -- Output: (hour, n-gram, score, count, average_counts_among_all_hours)

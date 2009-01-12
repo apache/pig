@@ -18,107 +18,201 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.net.URL;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
-
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOLoad extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
-    
-    private final Log log = LogFactory.getLog(getClass());
-
-    protected FileSpec inputFileSpec;
-
-    protected int outputType = FIXED;
-    
+    private static final long serialVersionUID = 2L;
     protected boolean splittable = true;
 
-    public LOLoad(Map<OperatorKey, LogicalOperator> opTable, 
-                  String scope, 
-                  long id, 
-                  FileSpec inputFileSpec, boolean splittable) 
-    throws IOException, ParseException {
-        super(opTable, scope, id);
-        this.inputFileSpec = inputFileSpec;
-        this.splittable = splittable;
-        
-        // check if we can instantiate load func
-        PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
+    private FileSpec mInputFileSpec;
+    transient private LoadFunc mLoadFunc;
+    private String mSchemaFile;
+    private Schema mEnforcedSchema = null ;
+    transient private DataStorage mStorage;
+    private ExecType mExecType;
+    private static Log log = LogFactory.getLog(LOLoad.class);
+    private Schema mDeterminedSchema = null;
 
-        // TODO: Handle Schemas defined by Load Functions
-        schema = new TupleSchema();
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param inputFileSpec
+     *            the file to be loaded *
+     * @param schemaFile
+     *            the file with the schema for the data to be loaded
+     * 
+     */
+    public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
+            ExecType execType, DataStorage storage, boolean splittable) throws IOException {
+        super(plan, key);
+        mInputFileSpec = inputFileSpec;
+        //mSchemaFile = schemaFile;
+        // schemaFile is the input file since we are trying
+        // to deduce the schema by looking at the input file
+        mSchemaFile = inputFileSpec.getFileName();
+        mStorage = storage;
+        mExecType = execType;
+        this.splittable = splittable;
+
+         try { 
+             mLoadFunc = (LoadFunc)
+                  PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
+        }catch (ClassCastException cce) {
+            log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
+            throw WrappedIOException.wrap(cce);
+        }
+         catch (Exception e){ 
+             throw WrappedIOException.wrap(e);
+        }
+    }
+
+    public FileSpec getInputFile() {
+        return mInputFileSpec;
+    }
+    
+    
+    public void setInputFile(FileSpec inputFileSpec) throws IOException {
+       try { 
+            mLoadFunc = (LoadFunc)
+                 PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
+       }catch (ClassCastException cce) {
+           log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
+           IOException ioe = new IOException(cce.getMessage()); 
+           ioe.setStackTrace(cce.getStackTrace());
+           throw ioe;
+       }
+        catch (Exception e){ 
+           IOException ioe = new IOException(e.getMessage()); 
+           ioe.setStackTrace(e.getStackTrace());
+           throw ioe; 
+       }
+        mInputFileSpec = inputFileSpec;
+    }
+
+    public String getSchemaFile() {
+        return mSchemaFile;
+    }
+
+    public LoadFunc getLoadFunc() {
+        return mLoadFunc;
     }
 
     @Override
     public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Load ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
-    }
-
-    public FileSpec getInputFileSpec() {
-        return inputFileSpec;
-    }
-
-    public void setInputFileSpec(FileSpec spec) {
-        inputFileSpec = spec;
+        return "Load " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public String arguments() {
-        return inputFileSpec.toString();
-    }
+    public Schema getSchema() throws FrontendException {
+        if (!mIsSchemaComputed) {
+            // get the schema of the load function
+            try {
+                //DEBUG
+                //System.out.println("Schema file: " + mSchema);
+                
+                if (mEnforcedSchema != null) {
+                    mSchema = mEnforcedSchema ;
+                    return mSchema ;
+                }
 
-    @Override
-    public TupleSchema outputSchema() {
-        schema.setAlias(alias);
-        return this.schema;
-    }
-
-    @Override
-    public int getOutputType() {
-        return outputType;
-    }
-
-    public void setOutputType(int type) {
-        if (type < FIXED || type > AMENDABLE) {
-            throw new RuntimeException("Illegal output type");
+                if(null == mDeterminedSchema) {
+                    mSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
+                    mDeterminedSchema  = mSchema;
+                }
+                mIsSchemaComputed = true;
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                FrontendException fee = new FrontendException(ioe.getMessage());
+                fee.initCause(ioe);
+                mIsSchemaComputed = false;
+                mSchema = null;
+                throw fee;
+            }
         }
-        outputType = type;
+        return mSchema;
     }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#setSchema(org.apache.pig.impl.logicalLayer.schema.Schema)
+     */
+    @Override
+    public void setSchema(Schema schema) throws ParseException {
+        // In general, operators don't generate their schema until they're
+        // asked, so ask them to do it.
+        try {
+            getSchema();
+        } catch (FrontendException ioe) {
+            // It's fine, it just means we don't have a schema yet.
+        }
+        if (mSchema == null) {
+            log.debug("Operator schema is null; Setting it to new schema");
+            mSchema = schema;
+        } else {
+            log.debug("Reconciling schema");
+            log.debug("mSchema: " + mSchema + " schema: " + schema);
+            try {
+                mSchema = mSchema.mergePrefixSchema(schema, true, true);
+            } catch (SchemaMergeException e) {
+                ParseException pe = new ParseException("Unable to merge schemas");
+                pe.initCause(e);
+                throw pe;
+            }
+        }
+    }
+    
 
     @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder(super.toString());
-        result.append(" (outputType: ");
-        result.append(outputType);
-        result.append(')');
-        return result.toString();
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
-    @Override
-    public List<String> getFuncs() {
-        List<String> funcs = super.getFuncs();
-        funcs.add(inputFileSpec.getFuncName());
-        return funcs;
+    public void visit(LOVisitor v) throws VisitorException {
+        v.visit(this);
+    }
+
+    public Schema getEnforcedSchema() {
+        return mEnforcedSchema;
+    }
+
+    /***
+     * Set this when user enforces schema
+     * @param enforcedSchema
+     */
+    public void setEnforcedSchema(Schema enforcedSchema) {
+        this.mEnforcedSchema = enforcedSchema;
     }
 
     public boolean isSplittable() {
         return splittable;
     }
-    
-    public void visit(LOVisitor v) {
-        v.visitLoad(this);
+
+    @Override
+    public byte getType() {
+        return DataType.BAG ;
     }
+
+    /**
+     * @return the DeterminedSchema
+     */
+    public Schema getDeterminedSchema() {
+        return mDeterminedSchema;
+    }
+
 }

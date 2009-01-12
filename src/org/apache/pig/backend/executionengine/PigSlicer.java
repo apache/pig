@@ -22,12 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.Slice;
 import org.apache.pig.Slicer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Creates a slice per block size element in all files at location. If location
@@ -44,8 +46,8 @@ public class PigSlicer implements Slicer {
      *                the funcSpec for a LoadFunc that can process the data at
      *                location.
      */
-    public PigSlicer(String funcSpec) {
-        this.funcSpec = funcSpec;
+    public PigSlicer(FuncSpec funcSpec) {
+        this.funcSpec = funcSpec;        
     }
 
     public void setSplittable(boolean splittable) {
@@ -70,18 +72,27 @@ public class PigSlicer implements Slicer {
             if (fullPath.systemElement()) {
                 continue;
             }
-            if (fullPath instanceof ContainerDescriptor) {
-                for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
-                    paths.add(child);
+            try {
+                if (fullPath instanceof ContainerDescriptor) {
+                    for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
+                        paths.add(child);
+                    }
+                    continue;
                 }
-                continue;
+            } catch (Exception e) { 
+                throw WrappedIOException.wrap(e);
             }
             Map<String, Object> stats = fullPath.getStatistics();
             long bs = (Long) (stats.get(ElementDescriptor.BLOCK_SIZE_KEY));
             long size = (Long) (stats.get(ElementDescriptor.LENGTH_KEY));
+            // this hook is mainly for testing, but i'm sure someone can find
+            // something fun to do with it
+            String bsString = System.getProperty("pig.overrideBlockSize");
+            if (bsString != null) {
+                bs = Integer.parseInt(bsString);
+            }
             long pos = 0;
             String name = fullPath.toString();
-            // System.out.println(size + " " + name);
             if (name.endsWith(".gz") || !splittable) {
                 // Anything that ends with a ".gz" we must process as a complete
                 // file
@@ -105,7 +116,7 @@ public class PigSlicer implements Slicer {
         }
     }
 
-    private String funcSpec;
+    private FuncSpec funcSpec;
     
-    private boolean splittable;
+    private boolean splittable = true;
 }

@@ -1,0 +1,10 @@
+digraph graph1 {
+    graph [pigScript=" A = LOAD 'tmp' ; B = DISTINCT A ; "] ;
+
+    node [schema="field1: int, field2: float, field3: chararray"] ;
+
+    load [key="10", type="LOLoad"] ;
+    distinct [key="12", type="LODistinct"] ;
+
+    load -> distinct ;
+}

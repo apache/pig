@@ -20,19 +20,28 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.WrappedIOException;
 
-public class ARITY extends EvalFunc<DataAtom> {
+public class ARITY extends EvalFunc<Integer> {
 
     @Override
-    public void exec(Tuple input, DataAtom output) throws IOException {
-        output.setValue(input.arity());
+    public Integer exec(Tuple input) throws IOException {
+        if (input.size() == 0)
+            return null;
+        try{
+            Tuple t = (Tuple)input.get(0);
+            if (t == null) return null;
+            return new Integer(t.size());
+        }catch(Exception e){
+            throw WrappedIOException.wrap(e); 
+        }
     }
+
     @Override
     public Schema outputSchema(Schema input) {
-        return new AtomSchema("arity");
+        return new Schema(new Schema.FieldSchema(null, DataType.INTEGER)); 
     }
 }

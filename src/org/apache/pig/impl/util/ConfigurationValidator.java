@@ -32,8 +32,29 @@ public class ConfigurationValidator {
      */
     
     public static void validatePigProperties(Properties properties) {
-        ensureLongType(properties, "pig.spill.size.threshold", 0L) ;
-        ensureLongType(properties, "pig.spill.gc.activation.size", Long.MAX_VALUE) ;   
+        ensureLongType(properties, "pig.spill.size.threshold", 5000000L) ;
+        ensureLongType(properties, "pig.spill.gc.activation.size", 40000000L) ;   
+    }
+    
+    /**
+     * Validate properties which need to be validated and return *ONLY* those
+     * @param properties The Properties object containing all PIG properties
+     * @return The properties object containing *ONLY* properties which were validated
+     * (Typically these are user editable properties and should match the properties
+     * validated in ValidatePigProperties(Properties properties))
+     */
+    public static Properties getValidatedProperties(Properties properties) {
+        Properties result = new Properties();
+        String[] propertiesToValidate = { "pig.spill.size.threshold", "pig.spill.gc.activation.size" };
+        
+        // validate the incoming properties
+        validatePigProperties(properties);
+        
+        // return only properties that we validated
+        for (String p : propertiesToValidate) {
+            result.setProperty(p, properties.getProperty(p));
+        }        
+        return result;        
     }
     
     private static void ensureLongType(Properties properties,

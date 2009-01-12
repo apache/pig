@@ -56,7 +56,7 @@ public CmdLineParser(String[] args)
  * @param c Single character designator for this option.  It cannot be '-'.
  * @param s Full word designator for this option.  This can be null, in which case
  * no long designator will exist for this option.
- * @param valueExpected If REQUIRED, a value will be expected with this option.  If
+ * @param ve If REQUIRED, a value will be expected with this option.  If
  * OPTIONAL a value will be accepted if it is seen.
  * @throws AssertionError if there is no short option, or if this option has already been
  * used.
@@ -116,24 +116,18 @@ public char getNextOpt() throws ParseException
             cc = mLong.get(arg.substring(offset));
             if (cc == null) {
                 Integer ii = new Integer(mArgNum + 1);
-                StringBuilder errMsg = new StringBuilder();
-                errMsg.append("Found unknown option (");
-                errMsg.append(arg);
-                errMsg.append(") at position ");
-                errMsg.append(ii.toString());
-                throw new ParseException(errMsg.toString(), mArgNum);
+                String errMsg = "Found unknown option (" + arg + ") at position " +
+                    ii.toString();
+                throw new ParseException(errMsg, mArgNum);
             }
         }
 
         ValueExpected ve = mShort.get(cc);
         if (ve == null) {
             Integer ii = new Integer(mArgNum + 1);
-            StringBuilder errMsg = new StringBuilder();
-            errMsg.append("Found unknown option (");
-            errMsg.append(arg);
-            errMsg.append(") at position ");
-            errMsg.append(ii.toString());
-            throw new ParseException(errMsg.toString(), mArgNum);
+            String errMsg = "Found unknown option (" + arg + ") at position " +
+                ii.toString();
+            throw new ParseException(errMsg, mArgNum);
         }
 
         switch (ve) {

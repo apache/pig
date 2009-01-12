@@ -18,36 +18,115 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
 
 public class FindQuantiles extends EvalFunc<DataBag>{
+    BagFactory mBagFactory = BagFactory.getInstance();
+    boolean[] mAsc;
+    enum State { ALL_ASC, ALL_DESC, MIXED };
+    State mState;
     
+    private class SortComparator implements Comparator<Tuple> {
+        public int compare(Tuple t1, Tuple t2) {
+            switch (mState) {
+            case ALL_ASC:
+                return t1.compareTo(t2);
+
+            case ALL_DESC:
+                return t2.compareTo(t1);
+
+            case MIXED:
+                // Have to break the tuple down and compare it field to field.
+                int sz1 = t1.size();
+                int sz2 = t2.size();
+                if (sz2 < sz1) {
+                    return 1;
+                } else if (sz2 > sz1) {
+                    return -1;
+                } else {
+                    for (int i = 0; i < sz1; i++) {
+                        try {
+                            int c = DataType.compare(t1.get(i), t2.get(i));
+                            if (c != 0) {
+                                if (!mAsc[i]) c *= -1;
+                                return c;
+                            }
+                        } catch (ExecException e) {
+                            throw new RuntimeException("Unable to compare tuples", e);
+                        }
+                    }
+                    return 0;
+                }
+            }
+            return -1; // keep the compiler happy
+        }
+    }
+
+    private Comparator<Tuple> mComparator = new SortComparator();
+
+    public FindQuantiles() {
+        mState = State.ALL_ASC;
+    }
+
+    public FindQuantiles(String[] args) {
+        mAsc = new boolean[args.length];
+        boolean sawAsc = false;
+        boolean sawDesc = false;
+        for (int i = 0; i < args.length; i++) {
+            mAsc[i] = Boolean.parseBoolean(args[i]);
+            if (mAsc[i]) sawAsc = true;
+            else sawDesc = true;
+        }
+        if (sawAsc && sawDesc) mState = State.MIXED;
+        else if (sawDesc) mState = State.ALL_DESC;
+        else mState = State.ALL_ASC; // In cast they gave us no args this
+                                     // defaults to all ascending.
+    }
+
     /**
      * first field in the input tuple is the number of quantiles to generate
      * second field is the *sorted* bag of samples
      */
     
     @Override
-    public void exec(Tuple input, DataBag output) throws IOException {
-        int numQuantiles = input.getAtomField(0).numval().intValue();
-        DataBag samples = input.getBagField(1);
+    public DataBag exec(Tuple input) throws IOException {
+        Integer numQuantiles = null;
+        DataBag samples = null;
+        try{
+            numQuantiles = (Integer)input.get(0);
+            samples = (DataBag)input.get(1);
+        }catch(ExecException e){
+            IOException ioe = new IOException();
+            ioe.initCause(e);
+            throw ioe;
+        }
+        // TODO If user provided a comparator we should be using that.
+        DataBag output = mBagFactory.newSortedBag(mComparator);
         
         long numSamples = samples.size();
         
-        long i=0, written = 0;
+        long toSkip = numSamples / numQuantiles;
+        
+        long i=0, nextQuantile = 0;
         Iterator<Tuple> iter = samples.iterator();
         while (iter.hasNext()){
             Tuple t = iter.next();
-            if ((written + 1) * numSamples < i * (numQuantiles + 1)) {
+            if (i==nextQuantile){
                 output.add(t);
-                written++;
+                nextQuantile+=toSkip+1;
             }
             i++;
+            if (i % 1000 == 0) progress();
         }
+        return output;
     }
 }

@@ -17,390 +17,132 @@
  */
 package org.apache.pig.data;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.io.Serializable;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparable;
 
+import org.apache.pig.backend.executionengine.ExecException;
 
 /**
- * an ordered list of Datums
+ * An ordered list of Data.  A tuple has fields, numbered 0 through
+ * (number of fields - 1).  The entry in the field can be any datatype,
+ * or it can be null.
+ *
+ * Tuples are constructed only by a TupleFactory.  A DefaultTupleFactory
+ * is provided by the system.  If a user wishes to use their own type of
+ * Tuple, they should also provide an implementation of TupleFactory to
+ * construct their types of Tuples.
+ *
+ * Fields are numbered from 0.
  */
-public class Tuple extends Datum implements WritableComparable {
-    
-    private static final Log log = LogFactory.getLog(Tuple.class);
-    private static int numFields = 5;
-    
-    protected ArrayList<Datum> fields;
-    static String              defaultDelimiter = "[,\t]";
-    static String              NULL = "__PIG_NULL__";
-
-    public Tuple() {
-        this(0);
-    }
-
-    public Tuple(int numFields) {
-        fields = new ArrayList<Datum>(numFields);
-        for (int i = 0; i < numFields; i++) {
-            fields.add(null);
-        }
-    }
-
-    public Tuple(List<Datum> fieldsIn) {
-        fields = new ArrayList<Datum>(fieldsIn.size());
-        fields.addAll(fieldsIn);
-    }
+public interface Tuple extends WritableComparable, Serializable {
+       
+    /**
+     * Marker for indicating whether the value this object holds
+     * is a null
+     */
+    public static byte NULL = 0x00;
     
     /**
-     * shortcut, if tuple only has one field
+     * Marker for indicating whether the value this object holds
+     * is not a null
      */
-    public Tuple(Datum fieldIn) {
-        fields = new ArrayList<Datum>(1);
-        fields.add(fieldIn);
-    }
+    public static byte NOTNULL = 0x01;
+    
+    /**
+     * Make this tuple reference the contents of another.  This method does not copy
+     * the underlying data.   It maintains references to the data from the original
+     * tuple (and possibly even to the data structure holding the data).
+     * @param t Tuple to reference.
+     */
+    void reference(Tuple t);
 
     /**
-     * Creates a tuple from a delimited line of text
-     * 
-     * @param textLine
-     *            the line containing fields of data
-     * @param delimiter 
-     *              the delimiter (normal string, NO REGEX!!)
+     * Find the size of the tuple.  Used to be called arity().
+     * @return number of fields in the tuple.
      */
-    public Tuple(String textLine, String delimiter) {
-        if (delimiter == null) {
-            delimiter = defaultDelimiter;
-        }
-        
-        fields = new ArrayList<Datum>(numFields) ;
-        int delimSize = delimiter.length() ;
-        boolean done = false ;
-        
-        int lastIdx = 0 ;
-        
-        while (!done) {
-            int newIdx = textLine.indexOf(delimiter, lastIdx) ;
-            if (newIdx != (-1)) {
-                String token = textLine.substring(lastIdx, newIdx) ;
-                fields.add(new DataAtom(token));
-                lastIdx = newIdx + delimSize  ;
-            }
-            else {
-                String token = textLine.substring(lastIdx) ;
-                fields.add(new DataAtom(token));
-                done = true ;
-            }
-        }
-
-        numFields = fields.size();
-    }
+    int size();
 
     /**
-     * Creates a tuple from a delimited line of text. This will invoke Tuple(textLine, null)
-     * 
-     * @param textLine
-     *            the line containing fields of data
+     * Find out if a given field is null.
+     * @param fieldNum Number of field to check for null.
+     * @return true if the field is null, false otherwise.
+     * @throws ExecException if the field number given is greater
+     * than or equal to the number of fields in the tuple.
      */
-    public Tuple(String textLine) {
-        this(textLine, defaultDelimiter);
-    }
+    boolean isNull(int fieldNum) throws ExecException;
 
-    public Tuple(Tuple[] otherTs) {
-        fields = new ArrayList<Datum>(otherTs.length);
-        for (int i = 0; i < otherTs.length; i++) {
-                appendTuple(otherTs[i]);
-        }
-    }
+    /**
+     * Find the type of a given field.
+     * @param fieldNum Number of field to get the type for.
+     * @return type, encoded as a byte value.  The values are taken from
+     * the class DataType.  If the field is null, then DataType.UNKNOWN
+     * will be returned.
+     * @throws ExecException if the field number is greater than or equal to
+     * the number of fields in the tuple.
+     */
+    byte getType(int fieldNum) throws ExecException;
 
-    public void copyFrom(Tuple otherT) {
-        this.fields = otherT.fields;
-    }
+    /**
+     * Get the value in a given field.
+     * @param fieldNum Number of the field to get the value for.
+     * @return value, as an Object.
+     * @throws ExecException if the field number is greater than or equal to
+     * the number of fields in the tuple.
+     */
+    Object get(int fieldNum) throws ExecException;
 
-    public int arity() {
-        return fields.size();
-    }
+    /**
+     * Get all of the fields in the tuple as a list.
+     * @return List&lt;Object&gt; containing the fields of the tuple
+     * in order.
+     */
+    List<Object> getAll();
 
-    @Override
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append('(');
-        for (Iterator<Datum> it = fields.iterator(); it.hasNext();) {
-            Datum d = it.next();
-            if(d != null) {
-                sb.append(d.toString());
-            } else {
-                sb.append(NULL);
-            }
-            if (it.hasNext())
-                sb.append(", ");
-        }
-        sb.append(')');
-        String s = sb.toString();
-        return s;
-    }
+    /**
+     * Set the value in a given field.
+     * @param fieldNum Number of the field to set the value for.
+     * @param val Object to put in the indicated field.
+     * @throws ExecException if the field number is greater than or equal to
+     * the number of fields in the tuple.
+     */
+    void set(int fieldNum, Object val) throws ExecException;
 
-    public void setField(int i, Datum val) {
-        getField(i); // throws exception if field doesn't exist
+    /**
+     * Append a field to a tuple.  This method is not efficient as it may
+     * force copying of existing data in order to grow the data structure.
+     * Whenever possible you should construct your Tuple with the
+     * newTuple(int) method and then fill in the values with set(), rather
+     * than construct it with newTuple() and append values.
+     * @param val Object to append to the tuple.
+     */
+    void append(Object val);
 
-        fields.set(i, val);
-    }
+    /**
+     * Determine the size of tuple in memory.  This is used by data bags
+     * to determine their memory size.  This need not be exact, but it
+     * should be a decent estimation.
+     * @return estimated memory size.
+     */
+    long getMemorySize();
 
-    public void setField(int i, int val) {
-        setField(i, new DataAtom(val));
-    }
-
-    public void setField(int i, double val) {
-        setField(i, new DataAtom(val));
-    }
-
-    public void setField(int i, String val) {
-        setField(i, new DataAtom(val));
-    }
-
-    public Datum getField(int i) {
-        if (fields.size() >= i + 1) {
-            return fields.get(i);
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("Requested index ");
-        sb.append(i);
-        sb.append(" from tuple ");
-        sb.append(toString());
-        throw new IndexOutOfBoundsException(sb.toString());
-    }
-
-    // Get field i, if it is an Atom or can be coerced into an Atom
-    public DataAtom getAtomField(int i) {
-        Datum field = getField(i); // throws exception if field doesn't exist
-
-        if (field instanceof DataAtom) {
-            return (DataAtom) field;
-        } else if (field instanceof Tuple) {
-            Tuple t = (Tuple) field;
-            if (t.arity() == 1) {
-                log.warn("Requested for an atom field but found a tuple with one field.");
-                return t.getAtomField(0);
-            }
-        } else if (field instanceof DataBag) {
-            DataBag b = (DataBag) field;
-            if (b.size() == 1) {
-                Tuple t = b.iterator().next();
-                if (t.arity() == 1) {
-                    return t.getAtomField(0);
-                }
-            }
-        }
-
-        throw newTupleAccessException(field, "atom", i);
-    }
+    /** 
+     * Write a tuple of atomic values into a string.  All values in the
+     * tuple must be atomic (no bags, tuples, or maps).
+     * @param delim Delimiter to use in the string.
+     * @return A string containing the tuple.
+     * @throws ExecException if a non-atomic value is found.
+     */
+    String toDelimitedString(String delim) throws ExecException;
     
-    private RuntimeException newTupleAccessException(Datum field,
-            String requestedFieldType, int index) {
-        return new IllegalArgumentException("Requested " + requestedFieldType
-                + " field at index " + index + " but was '"
-                + field.getClass().getName() + "' in tuple: " + toString());
-    }
-
-    // Get field i, if it is a Tuple or can be coerced into a Tuple
-    public Tuple getTupleField(int i) {
-        Datum field = getField(i); // throws exception if field doesn't exist
-
-        if (field instanceof Tuple) {
-            return (Tuple) field;
-        } else if (field instanceof DataBag) {
-            DataBag b = (DataBag) field;
-            if (b.size() == 1) {
-                return b.iterator().next();
-            }
-        }
-
-        throw newTupleAccessException(field, "tuple", i);
-    }
-
-    // Get field i, if it is a Bag or can be coerced into a Bag
-    public DataBag getBagField(int i) {
-        Datum field = getField(i); // throws exception if field doesn't exist
-
-        if (field instanceof DataBag) {
-            return (DataBag) field;
-        }
-
-        throw newTupleAccessException(field, "bag", i);
-    }
-
-    public void appendTuple(Tuple other){
-        for (Iterator<Datum> it = other.fields.iterator(); it.hasNext();) {
-            this.fields.add(it.next());
-        }
-    }
-
-    public void appendField(Datum newField){
-        this.fields.add(newField);
-    }
-
-    public String toDelimitedString(String delim) throws IOException {
-        StringBuffer buf = new StringBuffer();
-        for (Iterator<Datum> it = fields.iterator(); it.hasNext();) {
-            Datum field = it.next();
-            if (!(field instanceof DataAtom)) {
-                throw new IOException("Unable to convert non-flat tuple to string.");
-            }
-
-            buf.append((DataAtom) field);
-            if (it.hasNext())
-                buf.append(delim);
-        }
-        return buf.toString();
-    }
-
-    public boolean lessThan(Tuple other) {
-        return (this.compareTo(other) < 0);
-    }
-
-    public boolean greaterThan(Tuple other) {
-        return (this.compareTo(other) > 0);
-    }
+    /**
+     * @return true if this Tuple is null
+     */
+    public boolean isNull();
     
-    @Override
-    public boolean equals(Object other){
-            return compareTo(other)==0;
-    }    
-    
-    public int compareTo(Tuple other) {
-        if (other.fields.size() != this.fields.size())
-            return other.fields.size() < this.fields.size() ? 1 : -1;
-
-        for (int i = 0; i < this.fields.size(); i++) {
-            int c = this.fields.get(i).compareTo(other.fields.get(i));
-            if (c != 0)
-                return c;
-        }
-        return 0;
-    }
-
-    public int compareTo(Object other) {
-        if (other instanceof DataAtom)
-            return +1;
-        else if (other instanceof DataBag)
-            return +1;
-        else if (other instanceof Tuple)
-            return compareTo((Tuple) other);
-        else
-            return -1;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 1;
-        for (Iterator<Datum> it = fields.iterator(); it.hasNext();) {
-            hash = 31 * hash + it.next().hashCode();
-        }
-        return hash;
-    }
-
-    // WritableComparable methods:
-   
-    @Override
-    public void write(DataOutput out) throws IOException {
-        out.write(TUPLE);
-        int n = arity();
-        encodeInt(out, n);
-        for (int i = 0; i < n; i++) {
-            Datum d = getField(i);
-            if (d!=null){
-                d.write(out);
-            }else{
-                throw new RuntimeException("Null field in tuple");
-            }
-        }
-    }
-
-    //This method is invoked when the beginning 'TUPLE' is still on the stream
-    public void readFields(DataInput in) throws IOException {
-        byte[] b = new byte[1];
-        in.readFully(b);
-        if (b[0]!=TUPLE)
-            throw new IOException("Unexpected data while reading tuple from binary file");
-        Tuple t = read(in);
-        fields = t.fields;
-    }
-    
-    //This method is invoked when the beginning 'TUPLE' has been read off the stream
-    public static Tuple read(DataInput in) throws IOException {
-        // nuke the old contents of the tuple
-        Tuple ret = new Tuple();
-        ret.fields = new ArrayList<Datum>();
-
-        int size = decodeInt(in);
-        
-        for (int i = 0; i < size; i++) {
-            ret.appendField(readDatum(in));
-        }
-        
-        return ret;
-
-    }
-    
-    public static Datum readDatum(DataInput in) throws IOException{
-        byte[] b = new byte[1];
-        in.readFully(b);
-        switch (b[0]) {
-            case TUPLE:
-                return Tuple.read(in);
-            case BAG:
-                return DataBag.read(in);
-            case MAP:
-                return DataMap.read(in);
-            case ATOM:
-                return DataAtom.read(in);
-            default:
-                throw new IOException("Invalid data while reading Datum from binary file");
-        }
-    }
-
-    //  Encode the integer so that the high bit is set on the last
-    // byte
-    static void encodeInt(DataOutput os, int i) throws IOException {
-        if (i >> 28 != 0)
-            os.write((i >> 28) & 0x7f);
-        if (i >> 21 != 0)
-            os.write((i >> 21) & 0x7f);
-        if (i >> 14 != 0)
-            os.write((i >> 14) & 0x7f);
-        if (i >> 7 != 0)
-            os.write((i >> 7) & 0x7f);
-        os.write((i & 0x7f) | (1 << 7));
-    }
-
-    static int decodeInt(DataInput is) throws IOException {
-        int i = 0;
-        int c;
-        while (true) {
-            c = is.readUnsignedByte();
-            if (c == -1)
-                break;
-            i <<= 7;
-            i += c & 0x7f;
-            if ((c & 0x80) != 0)
-                break;
-        }
-        return i;
-    }
-
-    @Override
-    public long getMemorySize() {
-        long used = 0;
-        int sz = fields.size();
-        for (int i = 0; i < sz; i++)
-            used += getField(i).getMemorySize();
-        used += 2 * OBJECT_SIZE + REF_SIZE;
-        return used;
-    }
+    /**
+     * @param isNull boolean indicating whether this tuple is null
+     */
+    public void setNull(boolean isNull);
 }

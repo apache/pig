@@ -115,7 +115,7 @@ public class PreprocessorContext {
      *
      * @param key - parameter name
      * @param val - value supplied for the key
-     * @param overwide - specifies whether the value should be replaced if it already exists
+     * @param overwrite - specifies whether the value should be replaced if it already exists
      */
     public  void processOrdLine(String key, String val, Boolean overwrite) {
 

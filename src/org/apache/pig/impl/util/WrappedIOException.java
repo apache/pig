@@ -31,7 +31,9 @@ public class WrappedIOException {
     }
     
     public static IOException wrap(final String message, final Throwable e) {
-        final IOException wrappedException = new IOException(message);
+        final IOException wrappedException = new IOException(message + " [" +
+            e.getMessage() + "]");
+        wrappedException.setStackTrace(e.getStackTrace());
         wrappedException.initCause(e);
         return wrappedException;
     }

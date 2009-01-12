@@ -28,6 +28,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,9 +40,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.Main;
-import org.apache.pig.PigServer.ExecType;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
@@ -49,10 +50,11 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
-import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.backend.local.executionengine.LocalExecutionEngine;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -62,7 +64,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 public class PigContext implements Serializable, FunctionInstantiator {
     private static final long serialVersionUID = 1L;
     
-    private transient final Log log = LogFactory.getLog(getClass());    
+    private transient final Log log = LogFactory.getLog(getClass());
     
     public static final String JOB_NAME = "jobName";
     public static final String JOB_NAME_PREFIX= "PigLatin";
@@ -96,25 +98,19 @@ public class PigContext implements Serializable, FunctionInstantiator {
    
     private String jobName = JOB_NAME_PREFIX;    // can be overwritten by users
   
-    // Pig Script Output
-    private String jobOutputFile = "";
-    
-    // JobConf of the currently executing Map-Reduce job
-    JobConf jobConf;
-    
     private Properties properties;
     
     /**
      * a table mapping function names to function specs.
      */
-    private Map<String, String> definedFunctions = new HashMap<String, String>();
+    private Map<String, FuncSpec> definedFunctions = new HashMap<String, FuncSpec>();
     
     /**
      * a table mapping names to streaming commands.
      */
     private Map<String, StreamingCommand> definedCommands = 
         new HashMap<String, StreamingCommand>();
-    
+
     private static ArrayList<String> packageImportList = new ArrayList<String>();
 
     public boolean debug = true;
@@ -129,7 +125,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public PigContext(ExecType execType, Properties properties){
         this.execType = execType;
         this.properties = properties;   
-        
+
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {
@@ -165,15 +161,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
                                        new Properties());
                 
                 dfs = lfs;
-                
                 executionEngine = new LocalExecutionEngine(this);
             }
             break;
-    
+
             case MAPREDUCE:
             {
                 executionEngine = new HExecutionEngine (this);
-    
+
                 executionEngine.init();
                 
                 dfs = executionEngine.getDataStorage();
@@ -222,28 +217,17 @@ public class PigContext implements Serializable, FunctionInstantiator {
             return;
         }
         
-        if (log.isInfoEnabled()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Renaming ");
-            sb.append(oldName);
-            sb.append(" to ");
-            sb.append(newName);
-            log.info(sb.toString());
-        }
+        System.out.println("Renaming " + oldName + " to " + newName);
 
         ElementDescriptor dst = null;
-        ElementDescriptor src = null;
+        ElementDescriptor src = null;            
 
         try {
             dst = dfs.asElement(newName);
-            src = dfs.asElement(oldName);
-        } catch (DataStorageException e) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Unable to rename ");
-            sb.append(oldName);
-            sb.append(" to ");
-            sb.append(newName);
-            throw WrappedIOException.wrap(sb.toString(), e);
+            src = dfs.asElement(oldName);            
+        }
+        catch (DataStorageException e) {
+            throw WrappedIOException.wrap("Unable to rename " + oldName + " to " + newName, e);
         }
 
         if (dst.exists()) {
@@ -269,13 +253,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Unable to copy ");
-            sb.append(src);
-            sb.append(" to ");
-            sb.append(dst);
-            sb.append((localDst ? "locally" : ""));
-            throw WrappedIOException.wrap(sb.toString(), e);
+            throw WrappedIOException.wrap("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""), e);
         }
         
         srcElement.copy(dstElement, this.properties, false);
@@ -293,6 +271,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return lfs;
     }
 
+    public DataStorage getFs() {
+        if(execType == ExecType.LOCAL) {
+            return lfs;
+        } else {
+            return dfs;
+        }
+    }
+    
     /**
      * Provides configuration information.
      * 
@@ -315,11 +301,12 @@ public class PigContext implements Serializable, FunctionInstantiator {
      * is useful for functions that require arguments to the 
      * constructor.
      * 
-     * @param aliases - the new function alias to define.
-     * @param functionSpec - the name of the function and any arguments.
-     * It should have the form: classname('arg1', 'arg2', ...)
+     * @param function - the new function alias to define.
+     * @param functionSpec - the FuncSpec object representing the name of 
+     * the function class and any arguments to constructor.
+     * 
      */
-    public void registerFunction(String function, String functionSpec) {
+    public void registerFunction(String function, FuncSpec functionSpec) {
         if (functionSpec == null) {
             definedFunctions.remove(function);
         } else {
@@ -346,7 +333,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     /**
      * Returns the type of execution currently in effect.
      * 
-     * @return
+     * @return current execution type
      */
     public ExecType getExecType() {
         return execType;
@@ -375,27 +362,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
         for (int i = 0; i < extraJars.size(); i++) {
             urls[i + passedJar] = extraJars.get(i);
         }
-        return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
+        //return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
+        return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
     
-    public static String getClassNameFromSpec(String funcSpec){
-        int paren = funcSpec.indexOf('(');
-        if (paren!=-1)
-            return funcSpec.substring(0, paren);
-        else
-            return funcSpec;
-    }
-
-    private static String getArgStringFromSpec(String funcSpec){
-        int paren = funcSpec.indexOf('(');
-        if (paren!=-1)
-            return funcSpec.substring(paren+1);
-        else
-            return "";
-    }
     
-
     public static Class resolveClassName(String name) throws IOException{
+
         for(String prefix: packageImportList) {
             Class c;
             try {
@@ -406,47 +379,23 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 // do nothing
             } 
             catch (UnsupportedClassVersionError e) {
-                throw new RuntimeException(e) ;
+                throw WrappedIOException.wrap(e) ;
             }
+            
         }
 
         // create ClassNotFoundException exception and attach to IOException
         // so that we don't need to buble interface changes throughout the code
-        StringBuilder sb = new StringBuilder();
-        sb.append("Could not resolve ");
-        sb.append(name);
-        sb.append(" using imports: ");
-        sb.append(packageImportList);
-        ClassNotFoundException e = new ClassNotFoundException(sb.toString());
+        ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
         throw WrappedIOException.wrap(e.getMessage(), e);
     }
     
-    private static List<String> parseArguments(String argString){
-        List<String> args = new ArrayList<String>();
-        
-        int startIndex = 0;
-        int endIndex;
-        while (startIndex < argString.length()) {
-            while (startIndex < argString.length() && argString.charAt(startIndex++) != '\'')
-                ;
-            endIndex = startIndex;
-            while (endIndex < argString.length() && argString.charAt(endIndex) != '\'') {
-                if (argString.charAt(endIndex) == '\\')
-                    endIndex++;
-                endIndex++;
-            }
-               if (endIndex < argString.length()) {
-                   args.add(argString.substring(startIndex, endIndex));
-            }
-            startIndex = endIndex + 1;
-        }
-        return args;
-    }
     
     @SuppressWarnings("unchecked")
-    private static Object instantiateFunc(String className, String argString)  {
+    public static Object instantiateFuncFromSpec(FuncSpec funcSpec)  {
         Object ret;
-        List<String> args = parseArguments(argString);
+        String className =funcSpec.getClassName(); 
+        String[] args = funcSpec.getCtorArgs();
         Class objClass = null ;
 
         try {
@@ -458,13 +407,13 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
         try {
             // Do normal instantiation
-            if (args != null && args.size() > 0) {
-                Class paramTypes[] = new Class[args.size()];
+            if (args != null && args.length > 0) {
+                Class paramTypes[] = new Class[args.length];
                 for (int i = 0; i < paramTypes.length; i++) {
                     paramTypes[i] = String.class;
                 }
                 Constructor c = objClass.getConstructor(paramTypes);
-                ret =  c.newInstance(args.toArray());
+                ret =  c.newInstance((Object[])args);
             } else {
                 ret = objClass.newInstance();
             }
@@ -473,9 +422,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
             // Second channce. Try with var arg constructor
             try {
                 Constructor c = objClass.getConstructor(String[].class);
-                String[] argArr = args.toArray(new String[0]) ;
                 Object[] wrappedArgs = new Object[1] ;
-                wrappedArgs[0] = argArr ;
+                wrappedArgs[0] = args ;
                 ret =  c.newInstance(wrappedArgs);
             }
             catch(Throwable e){
@@ -502,26 +450,27 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return ret;
     }
     
-    public static Object instantiateFuncFromSpec(String funcSpec) {
-        return instantiateFunc(getClassNameFromSpec(funcSpec), getArgStringFromSpec(funcSpec));
+    public static Object instantiateFuncFromSpec(String funcSpec)  {
+        return instantiateFuncFromSpec(new FuncSpec(funcSpec));
     }
     
     
     public Class getClassForAlias(String alias) throws IOException{
-        String className, funcSpec = null;
+        String className = null;
+        FuncSpec funcSpec = null;
         if (definedFunctions != null) {
             funcSpec = definedFunctions.get(alias);
         }
         if (funcSpec != null) {
-            className = getClassNameFromSpec(funcSpec);
+            className = funcSpec.getClassName();
         }else{
-            className = getClassNameFromSpec(alias);
+            className = FuncSpec.getClassNameFromSpec(alias);
         }
         return resolveClassName(className);
     }
   
     public Object instantiateFuncFromAlias(String alias) throws IOException {
-        String funcSpec;
+        FuncSpec funcSpec;
         if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
             return instantiateFuncFromSpec(funcSpec);
         else
@@ -571,42 +520,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
         return executableManager;
     }
 
-    /**
-     * Get the output file for the current Pig Script.
-     * 
-     * @return the output file for the current Pig Script
-     */
-    public String getJobOutputFile() {
-        return jobOutputFile;
+    public FuncSpec getFuncSpecFromAlias(String alias) {
+        FuncSpec funcSpec;
+        if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
+            return funcSpec;
+        else
+            return null;
     }
 
-    /**
-     * Set the output file for the current Pig Script.
-     * 
-     * @param jobOutputFile the output file for the current Pig Script
-     */
-    public void setJobOutputFile(String jobOutputFile) {
-        this.jobOutputFile = jobOutputFile;
-    }
-
-    /**
-     * Get the <code>JobConf</code> of the current Map-Reduce job.
-     * 
-     * @return the <code>JobConf</code> of the current Map-Reduce job
-     */
-    public JobConf getJobConf() {
-        return jobConf;
-    }
-
-    /**
-     * Set the <code>JobConf</code> of the current Map-Reduce job.
-     * 
-     * @param jobConf the <code>JobConf</code> of the current Map-Reduce job
-     */
-    public void setJobConf(JobConf jobConf) {
-        this.jobConf = jobConf;
-    }
-    
     /**
      * Add a path to be skipped while automatically shipping binaries for 
      * streaming.

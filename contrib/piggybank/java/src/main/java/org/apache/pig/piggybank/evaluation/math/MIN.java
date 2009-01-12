@@ -19,12 +19,18 @@
 package org.apache.pig.piggybank.evaluation.math;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.WrappedIOException;
+
 /**
  * math.MIN implements a binding to the Java function
 * {@link java.lang.Math#min(double,double) Math.min(double,double)}. 
@@ -33,10 +39,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * 
 * <dl>
 * <dt><b>Parameters:</b></dt>
-* <dd><code>value</code> - <code>Tuple containing two DataAtom [double]</code>.</dd>
+* <dd><code>value</code> - <code>Tuple containing two double</code>.</dd>
 * 
 * <dt><b>Return Value:</b></dt>
-* <dd><code>DataAtom [double]</code> </dd>
+* <dd><code>double</code> </dd>
 * 
 * <dt><b>Return Schema:</b></dt>
 * <dd>MIN_inputSchema</dd>
@@ -54,34 +60,49 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * @author ajay garg
 *
 */
-public class MIN extends EvalFunc<DataAtom>{
+public class MIN extends EvalFunc<Double>{
 	/**
 	 * java level API
 	 * @param input expects a tuple containing two numeric DataAtom value
-	 * @param output returns a single numeric DataAtom value, which is 
-	 * the data atom with the smaller value among the two.
+	 * @param output returns a single numeric value, which is 
+	 * the the smaller value among the two.
 	 */
 	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(min(input));
-	}
-	
-	protected double min(Tuple input) throws IOException{
+	public Double exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 2)
+            return null;
+
 		try{
-			double first = input.getAtomField(0).numval();
-			double second = input.getAtomField(1).numval();
+			Double first = DataType.toDouble(input.get(0));
+			Double second  = DataType.toDouble(input.get(1));
 			return Math.min(first, second);
-		}
-		catch(RuntimeException e){
-			throw new IOException("invalid input " + e.getMessage());
+		} catch (NumberFormatException nfe){
+            System.err.println("Failed to process input; error - " + nfe.getMessage());
+            return null;
+        } catch(Exception e){
+            throw WrappedIOException.wrap("Caught exception in MIN.Initial", e);
 		}
 		
 	}
-	
-	@Override
-	public Schema outputSchema(Schema input) {
-		return new AtomSchema("MIN_"+input.toString()); 
-	}
 
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
+    }
 
+     /* (non-Javadoc)
+      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+      */
+     @Override
+     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        Util.addToFunctionList(funcList, this.getClass().getName(), DataType.BYTEARRAY);
+        Util.addToFunctionList(funcList, DoubleMin.class.getName(), DataType.DOUBLE);
+        Util.addToFunctionList(funcList, FloatMin.class.getName(), DataType.FLOAT);
+        Util.addToFunctionList(funcList, IntMin.class.getName(), DataType.INTEGER);
+        Util.addToFunctionList(funcList, LongMin.class.getName(), DataType.LONG);
+
+        return funcList;
+    }
 }
+

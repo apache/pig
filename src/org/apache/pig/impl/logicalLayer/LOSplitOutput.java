@@ -18,62 +18,108 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 
 
 public class LOSplitOutput extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    protected int index;
+    protected int mIndex;
+    private LogicalPlan mCondPlan;
     
-    public LOSplitOutput(Map<OperatorKey, LogicalOperator> opTable,
-                         String scope,
-                         long id,
-                         OperatorKey splitOpInput,
-                         int index) {
-        super(opTable, scope, id, splitOpInput);
-        this.index = index;
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param index
+     *            index of this output in the split
+     * @param condPlan
+     *            logical plan containing the condition for this split output
+     */
+    public LOSplitOutput(
+            LogicalPlan plan,
+            OperatorKey key,
+            int index,
+            LogicalPlan condPlan) {
+        super(plan, key);
+        this.mIndex = index;
+        this.mCondPlan = condPlan;
+    }
+
+    public LogicalPlan getConditionPlan() {
+        return mCondPlan;
     }
     
-    @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder(super.toString());
-        result.append(" (index: ");
-        result.append(index);
-        result.append(')');
-        return result.toString();
-    }
-
-
     @Override
     public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SplitOutput ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
+        return "SplitOutput[" + getAlias() + "] " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public TupleSchema outputSchema() {
-        return opTable.get(getInputs().get(0)).outputSchema();
+    public Schema getSchema() throws FrontendException{
+        if (!mIsSchemaComputed) {
+            // get our parent's schema
+            try {
+                LogicalOperator input = mPlan.getPredecessors(this).get(0);
+                if (null == input) {
+                    throw new FrontendException("Could not find operator in plan");
+                }
+                mSchema = input.getSchema();
+                mIsSchemaComputed = true;
+            } catch (FrontendException fe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw fe;
+            }
+        }
+        return mSchema;
+    }
+
+    public void visit(LOVisitor v) throws VisitorException{
+        v.visit(this);
     }
 
     @Override
-    public int getOutputType() {
-        return opTable.get(getInputs().get(0)).getOutputType();
-    }
-
-    public void visit(LOVisitor v) {
-        v.visitSplitOutput(this);
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
     public int getReadFrom() {
-        return index;
+        return mIndex;
     }
+
+    public byte getType() {
+        return DataType.BAG ;
+    }
+
+    public void unsetSchema() throws VisitorException{
+        SchemaRemover sr = new SchemaRemover(mCondPlan);
+        sr.visit();
+        super.unsetSchema();
+    }
+
+    /**
+     * @see org.apache.pig.impl.plan.Operator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOSplitOutput splitOutputClone = (LOSplitOutput)super.clone();
+        LogicalPlanCloneHelper lpCloner = new LogicalPlanCloneHelper(mCondPlan);
+        splitOutputClone.mCondPlan = lpCloner.getClonedPlan();
+        return splitOutputClone;
+    }
+
 }

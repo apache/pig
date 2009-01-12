@@ -1,0 +1,25 @@
+New For Each(false,false,false)[bag] - Test-Plan-Builder-103
+|   |
+|   Add[chararray] - Test-Plan-Builder-96
+|   |
+|   |---Add[bytearray] - Test-Plan-Builder-94
+|   |   |
+|   |   |---Project[bytearray][0] - Test-Plan-Builder-92
+|   |   |
+|   |   |---Project[bytearray][1] - Test-Plan-Builder-93
+|   |
+|   |---Constant(5) - Test-Plan-Builder-95
+|   |
+|   Subtract[chararray] - Test-Plan-Builder-101
+|   |
+|   |---Subtract[chararray] - Test-Plan-Builder-99
+|   |   |
+|   |   |---Project[bytearray][0] - Test-Plan-Builder-97
+|   |   |
+|   |   |---Constant(5) - Test-Plan-Builder-98
+|   |
+|   |---Project[bytearray][1] - Test-Plan-Builder-100
+|   |
+|   Constant(hello) - Test-Plan-Builder-102
+|
+|---Load(A:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-91

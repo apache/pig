@@ -25,6 +25,7 @@ import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -46,23 +47,29 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobTracker;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.executionengine.ExecLogicalPlan;
 import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
-import org.apache.pig.backend.executionengine.ExecPhysicalPlan;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.MapReduceLauncher;
 import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.OperatorKey;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.shock.SSHSocketImplFactory;
 
 
@@ -74,6 +81,8 @@ public class HExecutionEngine implements ExecutionEngine {
     
     private final Log log = LogFactory.getLog(getClass());
     private static final String LOCAL = "local";
+    
+    private StringBuilder hodParams = null;
     
     protected PigContext pigContext;
     
@@ -210,98 +219,62 @@ public class HExecutionEngine implements ExecutionEngine {
         throw new UnsupportedOperationException();
     }
 
-    public ExecPhysicalPlan compile(ExecLogicalPlan plan,
-                                               Properties properties)
-            throws ExecException {
-        return compile(new ExecLogicalPlan[] { plan },
-                       properties);
-    }
-
-    public ExecPhysicalPlan compile(ExecLogicalPlan[] plans,
-                                               Properties properties)
-            throws ExecException {
-        if (plans == null) {
-            throw new ExecException("No Plans to compile");
-        }
-
-        OperatorKey physicalKey = null;
-        for (int i = 0; i < plans.length; ++i) {
-            ExecLogicalPlan curPlan = null;
-
-            curPlan = plans[ i ];
-     
-            OperatorKey logicalKey = curPlan.getRoot();
-            
-            physicalKey = logicalToPhysicalKeys.get(logicalKey);
-            
-            if (physicalKey == null) {
-                try {
-                physicalKey = new MapreducePlanCompiler(pigContext).
-                                        compile(curPlan.getRoot(),
-                                                curPlan.getOpTable(),
-                                                this);
-                }
-                catch (IOException e) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Failed to compile plan (");
-                    sb.append(i);
-                    sb.append(") ");
-                    sb.append(logicalKey);
-                    throw new ExecException(sb.toString(), e);
-                }
-                
-                logicalToPhysicalKeys.put(logicalKey, physicalKey);
-            }            
-        }
-        
-        return new MapRedPhysicalPlan(physicalKey, physicalOpTable);
-    }
-
-    public ExecJob execute(ExecPhysicalPlan plan) 
-            throws ExecException {
-
-        POMapreduce pom = (POMapreduce) physicalOpTable.get(plan.getRoot());
-
-        MapReduceLauncher.initQueryStatus(pom.numMRJobs());  // initialize status, for bookkeeping purposes.
-        MapReduceLauncher.setConf(ConfigurationUtil.toConfiguration(pigContext.getProperties()));
-        MapReduceLauncher.setExecEngine(this);
-        
-        // if the final operator is a MapReduce with no output file, then send to a temp
-        // file.
-        if (pom.outputFileSpec==null) {
-            try {
-                pom.outputFileSpec = new FileSpec(FileLocalizer.getTemporaryPath(null, pigContext).toString(),
-                                                  BinStorage.class.getName());
-            }
-            catch (IOException e) {
-                throw new ExecException("Failed to obtain temp file for " + plan.getRoot().toString(), e);
-            }
+    public PhysicalPlan compile(LogicalPlan plan,
+                                Properties properties) throws ExecException {
+        if (plan == null) {
+            throw new ExecException("No Plan to compile");
         }
 
         try {
-            pom.open();
-            
-            Tuple t;
-            while ((t = (Tuple) pom.getNext()) != null) {
-                ;
-            }
-            
-            pom.close();
-            
-            this.materializedResults.put(plan.getRoot(),
-                                         new MapRedResult(pom.outputFileSpec,
-                                                           pom.reduceParallelism));
+            LogToPhyTranslationVisitor translator = 
+                new LogToPhyTranslationVisitor(plan);
+            translator.setPigContext(pigContext);
+            translator.visit();
+            return translator.getPhysicalPlan();
+        } catch (VisitorException ve) {
+            throw new ExecException(ve);
         }
-        catch (IOException e) {
-            throw new ExecException(e);
+    }
+
+    public ExecJob execute(PhysicalPlan plan,
+                           String jobName) throws ExecException {
+        try {
+            FileSpec spec = ExecTools.checkLeafIsStore(plan, pigContext);
+
+            MapReduceLauncher launcher = new MapReduceLauncher();
+            boolean success = launcher.launchPig(plan, jobName, pigContext);
+            if(success)
+                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            else
+                return new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
+
+        } catch (Exception e) {
+            // There are a lot of exceptions thrown by the launcher.  If this
+            // is an ExecException, just let it through.  Else wrap it.
+            if (e instanceof ExecException) throw (ExecException)e;
+            else throw new ExecException(e.getMessage(), e);
         }
-        
-        return new HJob(JOB_STATUS.COMPLETED, pigContext, pom.outputFileSpec);
 
     }
 
-    public ExecJob submit(ExecPhysicalPlan plan) throws ExecException {
+    public ExecJob submit(PhysicalPlan plan,
+                          String jobName) throws ExecException {
         throw new UnsupportedOperationException();
+    }
+
+    public void explain(PhysicalPlan plan, PrintStream stream) {
+        try {
+            PlanPrinter printer = new PlanPrinter(plan, stream);
+            printer.visit();
+            stream.println();
+
+            ExecTools.checkLeafIsStore(plan, pigContext);
+
+            MapReduceLauncher launcher = new MapReduceLauncher();
+            launcher.explain(plan, pigContext, stream);
+        } catch (Exception ve) {
+            throw new RuntimeException(ve);
+        }
     }
 
     public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
@@ -354,19 +327,19 @@ public class HExecutionEngine implements ExecutionEngine {
             hodConfDir = createTempDir(server);
 			
             //jz: fallback to systemproperty cause this not handled in Main
-            StringBuilder hodParams = new StringBuilder(properties.getProperty(
+            hodParams = new StringBuilder(properties.getProperty(
                     "hod.param", System.getProperty("hod.param", "")));
             // get the number of nodes out of the command or use default
             int nodes = getNumNodes(hodParams);
 
             // command format: hod allocate - d <cluster_dir> -n <number_of_nodes> <other params>
-                       String[] fixedCmdArray = new String[] { "hod", "allocate", "-d",
+            String[] fixedCmdArray = new String[] { "hod", "allocate", "-d",
                                        hodConfDir, "-n", Integer.toString(nodes) };
-               String[] extraParams = hodParams.toString().split(" ");
+            String[] extraParams = hodParams.toString().split(" ");
     
-               String[] cmdarray = new String[fixedCmdArray.length + extraParams.length];
-               System.arraycopy(fixedCmdArray, 0, cmdarray, 0, fixedCmdArray.length);
-               System.arraycopy(extraParams, 0, cmdarray, fixedCmdArray.length, extraParams.length);
+            String[] cmdarray = new String[fixedCmdArray.length + extraParams.length];
+            System.arraycopy(fixedCmdArray, 0, cmdarray, 0, fixedCmdArray.length);
+            System.arraycopy(extraParams, 0, cmdarray, fixedCmdArray.length, extraParams.length);
 
             log.info("Connecting to HOD...");
             log.debug("sending HOD command " + cmdToString(cmdarray));
@@ -374,7 +347,7 @@ public class HExecutionEngine implements ExecutionEngine {
             // setup shutdown hook to make sure we tear down hod connection
             Runtime.getRuntime().addShutdownHook(new ShutdownThread());
 
-            hodProcess = runCommand(server, cmdarray);
+            runCommand(server, cmdarray, true);
 
             // print all the information provided by HOD
             try {
@@ -436,8 +409,12 @@ public class HExecutionEngine implements ExecutionEngine {
     }
 
     private synchronized void closeHod(String server){
-            if (hodProcess == null)
+            if (hodProcess == null){
+                // just cleanup the dir if it exists and return
+                if (hodConfDir != null)
+                    deleteDir(server, hodConfDir);
                 return;
+            }
 
             // hod deallocate format: hod deallocate -d <conf dir>
             String[] cmdarray = new String[4];
@@ -448,18 +425,22 @@ public class HExecutionEngine implements ExecutionEngine {
                 cmdarray[3] = remoteHodConfDir;
             else
                 cmdarray[3] = hodConfDir;
-
+            
             log.info("Disconnecting from HOD...");
             log.debug("Disconnect command: " + cmdToString(cmdarray));
 
             try {
-                Process p = runCommand(server, cmdarray);
+                runCommand(server, cmdarray, false);
            } catch (Exception e) {
                 log.warn("Failed to disconnect from HOD; error: " + e.getMessage());
+                hodProcess.destroy();
            } finally {
-               if (remoteHodConfDir != null)
+               if (remoteHodConfDir != null){
                    deleteDir(server, remoteHodConfDir);
-               deleteDir(LOCAL, hodConfDir);
+                   if (hodConfDir != null)
+                       deleteDir(LOCAL, hodConfDir);
+               }else
+                   deleteDir(server, hodConfDir);
            }
 
            hodProcess = null;
@@ -476,7 +457,7 @@ public class HExecutionEngine implements ExecutionEngine {
         cmdarray[0] = "cat";
         cmdarray[1] = remoteFile;
 
-        Process p = runCommand(server, cmdarray);
+        Process p = runCommand(server, cmdarray, false);
 
         BufferedWriter bw;
         try {
@@ -511,7 +492,7 @@ public class HExecutionEngine implements ExecutionEngine {
 
         return cmd.toString();
     }
-    private Process runCommand(String server, String[] cmdarray) throws ExecException {
+    private Process runCommand(String server, String[] cmdarray, boolean connect) throws ExecException {
         Process p;
         try {
             if (server.equals(LOCAL)) {
@@ -521,6 +502,9 @@ public class HExecutionEngine implements ExecutionEngine {
                 SSHSocketImplFactory fac = SSHSocketImplFactory.getFactory(server);
                 p = fac.ssh(cmdToString(cmdarray));
             }
+
+            if (connect)
+                hodProcess = p;
 
             //this should return as soon as connection is shutdown
             int rc = p.waitFor();
@@ -548,6 +532,31 @@ public class HExecutionEngine implements ExecutionEngine {
         return p;
     }
 
+    /*
+    private FileSpec checkLeafIsStore(PhysicalPlan plan) throws ExecException {
+        try {
+            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
+            FileSpec spec = null;
+            if(!(leaf instanceof POStore)){
+                String scope = leaf.getOperatorKey().getScope();
+                POStore str = new POStore(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+                str.setPc(pigContext);
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                    pigContext).toString(),
+                    new FuncSpec(BinStorage.class.getName()));
+                str.setSFile(spec);
+                plan.addAsLeaf(str);
+            } else{
+                spec = ((POStore)leaf).getSFile();
+            }
+            return spec;
+        } catch (Exception e) {
+            throw new ExecException(e);
+        }
+    }
+    */
+
     private void deleteDir(String server, String dir) {
         if (server.equals(LOCAL)){
             File path = new File(dir);
@@ -561,7 +570,7 @@ public class HExecutionEngine implements ExecutionEngine {
             cmdarray[2] = dir;
 
             try{
-                Process p = runCommand(server, cmdarray);
+                runCommand(server, cmdarray, false);
             }catch(Exception e){
                     log.warn("Failed to remove HOD configuration directory - " + dir);
             }
@@ -656,7 +665,7 @@ public class HExecutionEngine implements ExecutionEngine {
             cmdarray[1] = dir;
 
             try{
-                Process p = runCommand(server, cmdarray);
+                runCommand(server, cmdarray, false);
             }
             catch(ExecException e){
                     log.warn("Failed to create HOD configuration directory - " + dir + "Retrying...");

@@ -38,8 +38,9 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
-import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
 public class JarManager {
@@ -90,15 +91,10 @@ public class JarManager {
      * @param funcs
      *            the functions that will be used in a job and whose jar files need to be included
      *            in the final merged jar file.
-     * @param files files which will be used in the job and need to be shipped           
-     * @return the temporary path to the merged jar file.
      * @throws ClassNotFoundException
      * @throws IOException
      */
-    public static void createJar(OutputStream os, 
-                                 List<String> funcs, List<String> files,
-                                 PigContext pigContext) 
-    throws ClassNotFoundException, IOException {
+    public static void createJar(OutputStream os, List<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
         for(String toSend: pigPackagesToSend) {
             addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
@@ -130,13 +126,6 @@ public class JarManager {
             jarFile.putNextEntry(new ZipEntry("pigContext"));
             new ObjectOutputStream(jarFile).writeObject(pigContext);
         }
-        
-        if (files != null) {
-            for (String file : files) {
-                addStream(jarFile, file, new FileInputStream(file), contents);
-            }
-        }
-        
         jarFile.close();
     }
 
@@ -258,7 +247,6 @@ public class JarManager {
      * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
      * that is not the first thing on the class path that has a class with the same name.
      * 
-     * @author Owen O'Malley (Copied from JobConf)
      * @param my_class
      *            the class to find
      * @return a jar file that contains the class, or null

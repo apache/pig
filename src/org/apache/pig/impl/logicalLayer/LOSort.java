@@ -17,75 +17,188 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Iterator;
 
-import org.apache.pig.impl.eval.EvalSpec;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
-
+import org.apache.pig.FuncSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.data.DataType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class LOSort extends LogicalOperator {
-    private static final long serialVersionUID = 1L;
-    private EvalSpec sortSpec;
+    private static final long serialVersionUID = 2L;
 
+    private List<Boolean> mAscCols;
+    private FuncSpec mSortFunc;
+    private boolean mIsStar = false;
+    private long limit;
+    private List<LogicalPlan> mSortColPlans;
+    private static Log log = LogFactory.getLog(LOSort.class);
 
-    protected EvalSpec spec;
+    /**
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param key
+     *            OperatorKey for this operator
+     * @param sortColPlans
+     *            Array of column numbers that will be used for sorting data.
+     * @param ascCols
+     *            Array of booleans. Should be same size as sortCols. True
+     *            indicates sort ascending (default), false sort descending. If
+     *            this array is null, then all columns will be sorted ascending.
+     * @param sortFunc
+     *            the user defined sorting function
+     */
+    public LOSort(
+            LogicalPlan plan,
+            OperatorKey key,
+            List<LogicalPlan> sortColPlans,
+            List<Boolean> ascCols,
+            FuncSpec sortFunc) {
+        super(plan, key);
+        mSortColPlans = sortColPlans;
+        mAscCols = ascCols;
+        mSortFunc = sortFunc;
+        limit = -1;
+    }
 
-    public EvalSpec getSpec() {
-        return spec;
+    public LogicalOperator getInput() {
+        return mPlan.getPredecessors(this).get(0);
     }
     
-    public LOSort(Map<OperatorKey, LogicalOperator> opTable,
-                  String scope, 
-                  long id, 
-                  OperatorKey input, 
-                  EvalSpec sortSpec) {
-        super(opTable, scope, id, input);
-        this.sortSpec = sortSpec;
-        getOutputType();
+    public List<LogicalPlan> getSortColPlans() {
+        return mSortColPlans;
+    }
+
+    public void setSortColPlans(List<LogicalPlan> sortPlans) {
+        mSortColPlans = sortPlans;
+    }
+
+    public List<Boolean> getAscendingCols() {
+        return mAscCols;
+    }
+
+    public void setAscendingCols(List<Boolean> ascCols) {
+        mAscCols = ascCols;
+    }
+
+    public FuncSpec getUserFunc() {
+        return mSortFunc;
+    }
+
+    public void setUserFunc(FuncSpec func) {
+        mSortFunc = func;
+    }
+
+    public boolean isStar() {
+        return mIsStar;
+    }
+
+    public void setStar(boolean b) {
+        mIsStar = b;
+    }
+
+    public void setLimit(long l)
+    {
+    	limit = l;
+    }
+    
+    public long getLimit()
+    {
+    	return limit;
+    }
+    
+    public boolean isLimited()
+    {
+    	return (limit!=-1);
     }
 
     @Override
     public String name() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SORT ");
-        sb.append(scope);
-        sb.append("-");
-        sb.append(id);
-        return sb.toString();
+        return "SORT " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
-    public String arguments() {
-        return sortSpec.toString();
-    }
-
-    @Override
-    public int getOutputType() {
-        switch (opTable.get(getInputs().get(0)).getOutputType()) {
-        case FIXED:
-            return FIXED;
-        default:
-            throw new RuntimeException
-                ("Blocking operator such as sort cannot handle streaming input");
+    public Schema getSchema() throws FrontendException {
+        if (!mIsSchemaComputed) {
+            // get our parent's schema
+            Collection<LogicalOperator> s = mPlan.getPredecessors(this);
+            ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
+            try {
+                LogicalOperator op = s.iterator().next();
+                if (null == op) {
+                    throw new FrontendException("Could not find operator in plan");
+                }
+                if(op instanceof ExpressionOperator) {
+                    Schema.FieldSchema fs = new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema());
+                    if(DataType.isSchemaType(fs.type)) {
+                        mSchema = fs.schema;
+                    } else {
+                        fss.add(fs);
+                        mSchema = new Schema(fss);
+                    }
+                } else {
+                    mSchema = op.getSchema();
+                }
+                mIsSchemaComputed = true;
+            } catch (FrontendException ioe) {
+                mSchema = null;
+                mIsSchemaComputed = false;
+                throw ioe;
+            }
         }
+        return mSchema;
     }
 
     @Override
-    public TupleSchema outputSchema() {
-        if (schema == null)
-            schema = opTable.get(getInputs().get(0)).outputSchema().copy();
-
-        schema.setAlias(alias);
-        return schema;
-
+    public boolean supportsMultipleInputs() {
+        return false;
     }
 
-    public EvalSpec getSortSpec() {
-        return sortSpec;
+    public void visit(LOVisitor v) throws VisitorException {
+        v.visit(this);
     }
 
-    public void visit(LOVisitor v) {
-        v.visitSort(this);
+    public byte getType() {
+        return DataType.BAG ;
+    }
+
+    /**
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
+     * Do not use the clone method directly. Operators are cloned when logical plans
+     * are cloned using {@link LogicalPlanCloner}
+     */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        LOSort clone = (LOSort) super.clone();
+        
+        // deep copy sort related attributes
+        if(mAscCols != null) {
+            clone.mAscCols = new ArrayList<Boolean>();
+            for (Iterator<Boolean> it = mAscCols.iterator(); it.hasNext();) {
+                clone.mAscCols.add(new Boolean(it.next()));
+            }
+        }
+        
+        if(mSortFunc != null)
+            clone.mSortFunc = mSortFunc.clone();
+        
+        if(mSortColPlans != null) {
+            clone.mSortColPlans = new ArrayList<LogicalPlan>();
+            for (Iterator<LogicalPlan> it = mSortColPlans.iterator(); it.hasNext();) {
+                LogicalPlanCloneHelper lpCloneHelper = new LogicalPlanCloneHelper(it.next());
+                clone.mSortColPlans.add(lpCloneHelper.getClonedPlan());            
+            }
+        }
+        return clone;
     }
 
 }

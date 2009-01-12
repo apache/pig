@@ -21,28 +21,44 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
 
 
 public class TOKENIZE extends EvalFunc<DataBag> {
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
+    BagFactory mBagFactory = BagFactory.getInstance();
 
     @Override
-    public void exec(Tuple input, DataBag output) throws IOException {
-        String str = input.getAtomField(0).strval();
-        StringTokenizer tok = new StringTokenizer(str, " \",()*", false);
-        while (tok.hasMoreTokens()) {
-            output.add(new Tuple(tok.nextToken()));
+    public DataBag exec(Tuple input) throws IOException {
+        try {
+            DataBag output = mBagFactory.newDefaultBag();
+            Object o = input.get(0);
+            if (!(o instanceof String)) {
+                throw new IOException("Expected input to be chararray, but" +
+                    " got " + o.getClass().getName());
+            }
+            StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
+            while (tok.hasMoreTokens()) {
+                output.add(mTupleFactory.newTuple(tok.nextToken()));
+            }
+            return output;
+        } catch (ExecException ee) {
+            IOException oughtToBeEE = new IOException();
+            oughtToBeEE.initCause(ee);
+            throw oughtToBeEE;
         }
     }
 
     @Override
     public Schema outputSchema(Schema input) {
-        TupleSchema schema = new TupleSchema();
-        schema.add(new AtomSchema("token"));
+        Schema schema = new Schema(new Schema.FieldSchema("token",
+            DataType.CHARARRAY));
         return schema;
     }
 }

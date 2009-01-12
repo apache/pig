@@ -154,6 +154,7 @@ public class HDirectory extends HPath
             }
         }
         catch (IOException e) {
+            throw new RuntimeException(e.getMessage());
         }
 
 /*        

@@ -19,24 +19,29 @@
 package org.apache.pig.piggybank.evaluation.math;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataAtom;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.AtomSchema;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.WrappedIOException;
+
 /**
  * math.MAX implements a binding to the Java function
 * {@link java.lang.Math#max(double,double) Math.max(double,double)}. 
-* Given a tuple with two data atom it Returns the data 
-* atom with greater value.
+* Given a tuple with two numeric values it returns the
+* large value.
 * 
 * <dl>
 * <dt><b>Parameters:</b></dt>
-* <dd><code>value</code> - <code>Tuple containing two DataAtom [double]</code>.</dd>
+* <dd><code>value</code> - <code>Tuple containing two double</code>.</dd>
 * 
 * <dt><b>Return Value:</b></dt>
-* <dd><code>DataAtom [double]</code> </dd>
+* <dd><code>double</code> </dd>
 * 
 * <dt><b>Return Schema:</b></dt>
 * <dd>MAX_inputSchema</dd>
@@ -54,34 +59,49 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * @author ajay garg
 *
 */
-public class MAX extends EvalFunc<DataAtom>{
+public class MAX extends EvalFunc<Double>{
 	/**
 	 * java level API
 	 * @param input expects a tuple containing two numeric DataAtom value
-	 * @param output returns a single numeric DataAtom value, which is 
-	 * the data atom with the greater value among the two.
+	 * @param output returns a single numeric value, which is 
+	 * the the larger value among the two.
 	 */
 	@Override
-	public void exec(Tuple input, DataAtom output) throws IOException {
-		output.setValue(max(input));
-	}
-	
-	protected double max(Tuple input) throws IOException{
+	public Double exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 2)
+            return null;
+
 		try{
-			double first = input.getAtomField(0).numval();
-			double second = input.getAtomField(1).numval();
+			Double first = DataType.toDouble(input.get(0));
+			Double second  = DataType.toDouble(input.get(1));
 			return Math.max(first, second);
-		}
-		catch(RuntimeException e){
-			throw new IOException("invalid input " + e.getMessage());
+		} catch (NumberFormatException nfe){
+            System.err.println("Failed to process input; error - " + nfe.getMessage());
+            return null;
+        } catch(Exception e){
+            throw WrappedIOException.wrap("Caught exception in MAX.Initial", e);
 		}
 		
 	}
-	
-	@Override
-	public Schema outputSchema(Schema input) {
-		return new AtomSchema("MAX_"+input.toString()); 
-	}
 
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
+    }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        Util.addToFunctionList(funcList, this.getClass().getName(), DataType.BYTEARRAY);
+        Util.addToFunctionList(funcList, DoubleMax.class.getName(), DataType.DOUBLE);
+        Util.addToFunctionList(funcList, FloatMax.class.getName(), DataType.FLOAT);
+        Util.addToFunctionList(funcList, IntMax.class.getName(), DataType.INTEGER);
+        Util.addToFunctionList(funcList, LongMax.class.getName(), DataType.LONG);
+
+        return funcList;
+   }
 }
+

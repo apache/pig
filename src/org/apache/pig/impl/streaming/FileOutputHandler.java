@@ -28,8 +28,8 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link FileOutputHandler} handles the output from the Pig-Streaming
- * executable in an {@link OutputType#ASYNCHRONOUS} manner by reading it from
+ * FileOutputHandler handles the output from the Pig-Streaming
+ * executable in an asynchronous manner by reading it from
  * an external file specified by the user.  
  */
 public class FileOutputHandler extends OutputHandler {
@@ -58,10 +58,13 @@ public class FileOutputHandler extends OutputHandler {
         super.bindTo(this.fileName, this.fileInStream, 0, file.length());
     }
     
-    public void close() throws IOException {
-        super.close();
-        fileInStream.close();
-        fileInStream = null;
+    public synchronized void close() throws IOException {
+        if(!alreadyClosed) {
+            super.close();
+            fileInStream.close();
+            fileInStream = null;
+            alreadyClosed = true;
+        }
     }
 
 }

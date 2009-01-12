@@ -16,27 +16,28 @@
  * limitations under the License.
  */
 package org.apache.pig.impl.logicalLayer;
-
-import java.util.Map;
-
-import org.apache.pig.impl.logicalLayer.schema.TupleSchema;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 public class LODefine extends LogicalOperator {
     private static final long serialVersionUID = 1L;
 
-    public LODefine(Map<OperatorKey, LogicalOperator> opTable,
-                    String scope, 
-                    long id) {
-        super(opTable, scope, id);
-    }
-    
-    public int getOutputType() {
-        return 0;
+    public LODefine(LogicalPlan plan, OperatorKey key){
+        super(plan, key);
     }
 
-    public TupleSchema outputSchema() {
+    public Schema getSchema() throws FrontendException {
         return null;
     }
-
+    
     public void visit(LOVisitor v) {}
+
+    public String name() {
+        return "Define " + mKey.scope + "-" + mKey.id;
+    }
+
+    public boolean supportsMultipleInputs(){
+        return false;
+    }
+
 }

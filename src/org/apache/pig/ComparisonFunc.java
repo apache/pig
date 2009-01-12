@@ -22,15 +22,24 @@ import java.io.IOException;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
+import org.apache.pig.impl.io.NullableTuple;
 
 
 public abstract class ComparisonFunc extends WritableComparator {
+    // If the comparison is a time consuming process
+    // this reporter must be used to report progress
+    protected PigProgressable reporter;
+    
     public ComparisonFunc() {
-        super(Tuple.class, true);
+        super(NullableTuple.class, true);
     }
 
     public int compare(WritableComparable a, WritableComparable b) {
-        return compare((Tuple)a, (Tuple)b);
+        // The incoming key will be in a NullableTuple.  But the comparison
+        // function needs a tuple, so pull the tuple out.
+        return compare((Tuple)((NullableTuple)a).getValueAsPigType(), (Tuple)((NullableTuple)b).getValueAsPigType());
     }
 
     /**
@@ -47,4 +56,8 @@ public abstract class ComparisonFunc extends WritableComparator {
      * @see java.util.Comparator
      */
     abstract public int compare(Tuple t1, Tuple t2);
+
+    public void setReporter(PigProgressable reporter) {
+        this.reporter = reporter;
+    }
 }

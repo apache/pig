@@ -26,8 +26,8 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
- * {@link FileOutputHandler} handles the output from the Pig-Streaming
- * executable in an {@link OutputType#SYNCHRONOUS} manner by reading its output
+ * FileOutputHandler handles the output from the Pig-Streaming
+ * executable in an synchronous manner by reading its output
  * via its <code>stdout</code>.
  */
 public class DefaultOutputHandler extends OutputHandler {
@@ -51,9 +51,12 @@ public class DefaultOutputHandler extends OutputHandler {
         super.bindTo(fileName, stdout, offset, end);
     }
 
-    public void close() throws IOException {
-        super.close();
-        stdout.close();
-        stdout = null;
+    public synchronized void close() throws IOException {
+        if(!alreadyClosed) {
+            super.close();
+            stdout.close();
+            stdout = null;
+            alreadyClosed = true;
+        }
     }
 }

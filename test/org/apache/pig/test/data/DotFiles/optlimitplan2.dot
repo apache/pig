@@ -1,0 +1,4 @@
+digraph graph1 {
+    LOLoad22 -> LOLimit23;
+    LOLimit23 [limit="10"];
+}

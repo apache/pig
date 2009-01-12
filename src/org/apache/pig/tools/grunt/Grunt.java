@@ -18,8 +18,8 @@
 package org.apache.pig.tools.grunt;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+
+import jline.ConsoleReader;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,26 +49,25 @@ public class Grunt
         }
     }
 
+    public void setConsoleReader(ConsoleReader c)
+    {
+        parser.setConsoleReader(c);
+    }
     public void run() {
-    parser.setInteractive(true);
-    parser.parseContOnError();
+        parser.setInteractive(true);
+        parser.parseContOnError();
     }
 
-    public void exec() {
+    public void exec() throws Throwable {
         try {
-        parser.setInteractive(false);
-        parser.parseStopOnError();
+            parser.setInteractive(false);
+            parser.parseStopOnError();
         } catch (Exception e) {
             Exception pe = Utils.getPermissionException(e);
             if (pe != null)
                 log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
-            else {
-                ByteArrayOutputStream bs = new ByteArrayOutputStream();
-                e.printStackTrace(new PrintStream(bs));
-                log.error(bs.toString());
-                log.error(e.getMessage());
-           }
-    }
     
+            throw (e);
+        } 
     }
 }

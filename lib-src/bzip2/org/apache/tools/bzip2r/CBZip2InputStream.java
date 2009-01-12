@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /*
  * The Apache Software License, Version 1.1
  *
@@ -158,14 +157,14 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     private SeekableInputStream innerBsStream;
     long readLimit = Long.MAX_VALUE;
     public long getReadLimit() {
-    	return readLimit;
+        return readLimit;
     }
     public void setReadLimit(long readLimit) {
-    	this.readLimit = readLimit;
+        this.readLimit = readLimit;
     }
     long readCount;
     public long getReadCount() {
-    	return readCount;
+        return readCount;
     }
 
     private boolean streamEnd = false;
@@ -193,10 +192,13 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     int j2;
     char z;
     
-    private long retPos, oldPos;
+    // The positioning is a bit tricky. we set newPos when we start reading a new block
+    // and we set retPos to newPos once we have read a character from that block.
+    // see getPos() for more detail
+    private long retPos, newPos = -1;
 
     public CBZip2InputStream(SeekableInputStream zStream, int blockSize) throws IOException {
-        retPos = oldPos = zStream.tell();
+        retPos = newPos = zStream.tell();
     	ll8 = null;
         tt = null;
         checkComputedCombinedCRC = blockSize == -1;
@@ -214,6 +216,11 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         if (streamEnd) {
             return -1;
         } else {
+            if (retPos < newPos) {
+                retPos = newPos;
+            } else {
+                retPos = newPos+1;
+            }
             int retChar = currentChar;
             switch(currentState) {
             case START_BLOCK_STATE:
@@ -241,85 +248,90 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         }
     }
 
+    /**
+     * This is supposed to approximate the position in the underlying stream. However,
+     * with compression, the underlying stream position is very vague. One position may
+     * have multiple positions and visa versa. So we do something very subtle:
+     * The position of the first byte of a compressed block will have the position of
+     * the block header at the start of the block. Every byte after the first byte will
+     * be one plus the position of the block header.
+     */
     public long getPos() throws IOException{
-    	if (innerBsStream == null)
-    		return retPos;
-    	long newPos = innerBsStream.tell();
-	
-		if (newPos != oldPos){
-			retPos = oldPos;
-			oldPos = newPos;
-		}
-    	return retPos;
+        return retPos;
     }
     
     private void initialize(int blockSize) throws IOException {
-    	if (blockSize == -1) {
-    		char magic1, magic2;
-    		char magic3, magic4;
-    		magic1 = bsGetUChar();
-    		magic2 = bsGetUChar();
-    		magic3 = bsGetUChar();
-    		magic4 = bsGetUChar();
-    		if (magic1 != 'B' || magic2 != 'Z' || 
-    				magic3 != 'h' || magic4 < '1' || magic4 > '9') {
-    			bsFinishedWithStream();
-    			streamEnd = true;
-    			return;
-    		}
-    		blockSize = magic4 - '0';
-    	}
+        if (blockSize == -1) {
+            char magic1, magic2;
+            char magic3, magic4;
+            magic1 = bsGetUChar();
+            magic2 = bsGetUChar();
+            magic3 = bsGetUChar();
+            magic4 = bsGetUChar();
+            if (magic1 != 'B' || magic2 != 'Z' || 
+                    magic3 != 'h' || magic4 < '1' || magic4 > '9') {
+                bsFinishedWithStream();
+                streamEnd = true;
+                return;
+            }
+            blockSize = magic4 - '0';
+        }
 
         setDecompressStructureSizes(blockSize);
         computedCombinedCRC = 0;
     }
 
-    private final static long mask = 0x1ffffffffffL;
+    private final static long mask = 0xffffffffffffL;
     private final static long eob = 0x314159265359L & mask;
     private final static long eos = 0x177245385090L & mask;
     
     private void initBlock(boolean searchForMagic) throws IOException {
-    	if (readCount >= readLimit) {
-        	bsFinishedWithStream();
-        	streamEnd = true;
-        	return;
+        if (readCount >= readLimit) {
+            bsFinishedWithStream();
+            streamEnd = true;
+            return;
         }
 
-    	if (!searchForMagic) {
-    		char magic1, magic2, magic3, magic4;
-    		char magic5, magic6;
-    		magic1 = bsGetUChar();
-    		magic2 = bsGetUChar();
-    		magic3 = bsGetUChar();
-    		magic4 = bsGetUChar();
-    		magic5 = bsGetUChar();
-    		magic6 = bsGetUChar();
-    		if (magic1 == 0x17 && magic2 == 0x72 && magic3 == 0x45
-    				&& magic4 == 0x38 && magic5 == 0x50 && magic6 == 0x90) {
-    			complete();
-    			return;
-    		}
+        newPos = innerBsStream.tell();
+        if (!searchForMagic) {
+            char magic1, magic2, magic3, magic4;
+            char magic5, magic6;
+            magic1 = bsGetUChar();
+            magic2 = bsGetUChar();
+            magic3 = bsGetUChar();
+            magic4 = bsGetUChar();
+            magic5 = bsGetUChar();
+            magic6 = bsGetUChar();
+            if (magic1 == 0x17 && magic2 == 0x72 && magic3 == 0x45
+                    && magic4 == 0x38 && magic5 == 0x50 && magic6 == 0x90) {
+                complete();
+                return;
+            }
 
-    		if (magic1 != 0x31 || magic2 != 0x41 || magic3 != 0x59
-    				|| magic4 != 0x26 || magic5 != 0x53 || magic6 != 0x59) {
-    			badBlockHeader();
-    			streamEnd = true;
-    			return;
-    		}
-    	} else {
-    		long magic = bsR(41);
-    		while(magic != eos && magic != eob) {
-    			magic <<= 1;
-    			magic &= mask;
-    			magic |= bsR(1);
-    		}
-    		if (magic == eos) {
-    			complete();
-    			return;
-    		}
-    	}
+            if (magic1 != 0x31 || magic2 != 0x41 || magic3 != 0x59
+                    || magic4 != 0x26 || magic5 != 0x53 || magic6 != 0x59) {
+                badBlockHeader();
+                streamEnd = true;
+                return;
+            }
+        } else {
+            long magic = 0;
+            for(int i = 0; i < 6; i++) {
+                magic <<= 8;
+                magic |= bsGetUChar();
+            }
+            while(magic != eos && magic != eob) {
+                magic <<= 1;
+                magic &= mask;
+                magic |= bsR(1);
+            }
+            if (magic == eos) {
+                complete();
+                return;
+            }
+        }
         
-    	storedBlockCRC = bsGetInt32();
+        storedBlockCRC = bsGetInt32();
 
         if (bsR(1) == 1) {
             blockRandomised = true;
@@ -349,7 +361,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     private void complete() throws IOException {
         storedCombinedCRC = bsGetInt32();
         if (checkComputedCombinedCRC && 
-        		storedCombinedCRC != computedCombinedCRC) {
+                storedCombinedCRC != computedCombinedCRC) {
             crcError();
         }
 
@@ -384,8 +396,8 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     }
 
     final private int readBs() throws IOException {
-    	readCount++;
-    	return innerBsStream.read();
+        readCount++;
+        return innerBsStream.read();
     }
     private int bsR(int n) throws IOException {
         int v;

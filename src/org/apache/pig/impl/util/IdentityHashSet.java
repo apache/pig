@@ -19,6 +19,7 @@
 package org.apache.pig.impl.util;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 public class IdentityHashSet<E> implements Set<E> {
     
@@ -121,6 +122,23 @@ public class IdentityHashSet<E> implements Set<E> {
         throw new UnsupportedOperationException("Unsupported operation on IdentityHashSet.");
     }
 
-    
+    public String toString() {
+	StringBuffer buf = new StringBuffer();
+	buf.append("{");
+
+	Iterator<Entry<E, Object>> i = map.entrySet().iterator();
+	boolean hasNext = i.hasNext();
+	while (hasNext) {
+	    Entry<E, Object> e = i.next();
+	    E key = e.getKey();
+	    buf.append(key);
+	    hasNext = i.hasNext();
+	    if (hasNext)
+		buf.append(", ");
+	}
+
+	buf.append("}");
+	return buf.toString();
+    }
     
 }

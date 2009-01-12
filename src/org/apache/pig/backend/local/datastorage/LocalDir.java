@@ -139,12 +139,7 @@ public class LocalDir extends LocalPath
             }
         }
         catch (DataStorageException e) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Failed to copy ");
-            sb.append(this);
-            sb.append(" to ");
-            sb.append(dstName);
-            throw WrappedIOException.wrap(sb.toString(), e);
+            throw WrappedIOException.wrap("Failed to copy " + this + " to " + dstName, e);
         }
 
         if (removeSrc) {
