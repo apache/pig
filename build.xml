@@ -401,8 +401,8 @@
 
         <copy file="${output.jarfile.core}" todir="${dist.dir}" />
 
-        <copy todir="${dist.dir}/scripts">
-            <fileset dir="scripts" />
+        <copy todir="${dist.dir}/bin">
+            <fileset dir="bin" />
         </copy>
 
         <copy todir="${dist.dir}/docs">
@@ -423,7 +423,7 @@
         </copy>
 
         <chmod perm="ugo+x" type="file">
-            <fileset dir="${dist.dir}/scripts" />
+            <fileset dir="${dist.dir}/bin" />
         </chmod>
 
     </target>
@@ -433,12 +433,12 @@
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Create release tarball">
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
-            <tarfileset dir="${dist.dir}" mode="664">
-                <exclude name="scripts/*" />
-                <include name="**" />
+            <tarfileset dir="${build.dir}" mode="664">
+                <exclude name="${final.name}/bin/*" />
+                <include name="${final.name}/**" />
             </tarfileset>
-            <tarfileset dir="${dist.dir}" mode="755">
-                <include name="scripts/*" />
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${final.name}/bin/*" />
             </tarfileset>
         </tar>
     </target>

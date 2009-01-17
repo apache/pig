@@ -363,3 +363,5 @@ Trunk (unreleased changes)
     PIG-597: Fix for how * is treated by UDFs (shravanmn via olgan)
 
     PIG-623: Fix spelling errors in output messages (tomwhite via sms)
+
+    PIG-622: Include pig executable in distribution (tomwhite via sms)
