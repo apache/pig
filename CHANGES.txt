@@ -361,3 +361,5 @@ Trunk (unreleased changes)
 	PIG-599: Added buffering to BufferedPositionedInputStream (gates)
 
     PIG-597: Fix for how * is treated by UDFs (shravanmn via olgan)
+
+    PIG-623: Fix spelling errors in output messages (tomwhite via sms)

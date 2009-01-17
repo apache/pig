@@ -459,7 +459,7 @@ public class Schema implements Serializable, Cloneable {
         *   1) if either one has a type null or unknown and other has a type OTHER THAN
         *   null or unknown, the result type will be the latter non null/unknown type
         *   2) If either type is bytearray, then result type will be the other (possibly non BYTEARRAY) type
-        *   3) If current type can be casted to the other type, then the result type will be the
+        *   3) If current type can be cast to the other type, then the result type will be the
         *   other type 
         * @return the prefix merged field schema this can be null. 
         *
@@ -1434,7 +1434,7 @@ public class Schema implements Serializable, Cloneable {
      *   1) if either one has a type null or unknown and other has a type OTHER THAN
      *   null or unknown, the result type will be the latter non null/unknown type
      *   2) If either type is bytearray, then result type will be the other (possibly  non BYTEARRAY) type
-     *   3) If current type can be casted to the other type, then the result type will be the
+     *   3) If current type can be cast to the other type, then the result type will be the
      *   other type 
      * @return the prefix merged schema this can be null if one schema is null and
      *         allowIncompatibleTypes is true

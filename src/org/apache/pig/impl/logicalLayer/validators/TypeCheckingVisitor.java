@@ -1390,7 +1390,7 @@ public class TypeCheckingVisitor extends LOVisitor {
      * one of the funcSpecs and the input schema s. Here first exact match
      * for all non byte array fields is first attempted and if there is
      * exactly one candidate, it is chosen (since the bytearray(s) can
-     * just be casted to corresponding type(s) in the candidate)
+     * just be cast to corresponding type(s) in the candidate)
      * @param funcSpecs - mappings provided by udf
      * @param s - input schema
      * @param func - LOUserfunc for which matching is requested
@@ -3081,7 +3081,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         String originalTypeName = DataType.findTypeName(originalType) ;
         String toTypeName = DataType.findTypeName(toType) ;
         String opName = op.getClass().getSimpleName() ;
-        msgCollector.collect(originalTypeName + " is implicitly casted to "
+        msgCollector.collect(originalTypeName + " is implicitly cast to "
                              + toTypeName +" under " + opName + " Operator",
                              MessageType.Warning) ;
     }
