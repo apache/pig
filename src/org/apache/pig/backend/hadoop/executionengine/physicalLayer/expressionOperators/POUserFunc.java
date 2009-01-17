@@ -159,7 +159,8 @@ public class POUserFunc extends ExpressionOperator {
                 if(temp.returnStatus!=POStatus.STATUS_OK)
                     return temp;
                 
-                if(op instanceof POProject &&
+                /* Refer Pig-597 */
+                /* if(op instanceof POProject &&
                         op.getResultType() == DataType.TUPLE){
                     POProject projOp = (POProject)op;
                     if(projOp.isStar()){
@@ -169,7 +170,7 @@ public class POUserFunc extends ExpressionOperator {
                             rslt.append(trslt.get(i));
                         continue;
                     }
-                }
+                }*/
                 ((Tuple)res.result).append(temp.result);
 			}
 			res.returnStatus = temp.returnStatus;

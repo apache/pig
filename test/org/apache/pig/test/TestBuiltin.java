@@ -1031,7 +1031,7 @@ public class TestBuiltin extends TestCase {
         // It is depricated but we still need to make sure it works
         ARITY arrity = new ARITY();
         msg = "[Testing ARRITY on input type: Tuple]";
-        //assertTrue(msg, expected.equals(arrity.exec(t5)));
+        assertTrue(msg, expected.equals(new Long(arrity.exec(t5))));
     }
 
     // Builtin APPLY Functions

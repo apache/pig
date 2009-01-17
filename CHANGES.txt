@@ -359,3 +359,5 @@ Trunk (unreleased changes)
     PIG-570:  problems with handling bzip data (breed via olgan)
 
 	PIG-599: Added buffering to BufferedPositionedInputStream (gates)
+
+    PIG-597: Fix for how * is treated by UDFs (shravanmn via olgan)

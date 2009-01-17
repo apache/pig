@@ -98,10 +98,14 @@ public class FindQuantiles extends EvalFunc<DataBag>{
      */
     
     @Override
-    public DataBag exec(Tuple input) throws IOException {
+    public DataBag exec(Tuple in) throws IOException {
+        if(in==null || in.size()==0)
+            return null;
         Integer numQuantiles = null;
         DataBag samples = null;
+        
         try{
+            Tuple input = (Tuple) in.get(0);
             numQuantiles = (Integer)input.get(0);
             samples = (DataBag)input.get(1);
         }catch(ExecException e){
