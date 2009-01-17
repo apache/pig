@@ -231,7 +231,7 @@ public static void main(String args[])
             substFile = file + ".substituted";
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
             if (dryrun){
-                log.info("Dry run completed. Substitued pig script is at " + substFile);
+                log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return;
             }
 
@@ -295,7 +295,7 @@ public static void main(String args[])
             substFile = remainders[0] + ".substituted";
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
             if (dryrun){
-                log.info("Dry run completed. Substitued pig script is at " + substFile);
+                log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return;
             }
 
