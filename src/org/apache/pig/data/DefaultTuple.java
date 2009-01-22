@@ -284,20 +284,10 @@ public class DefaultTuple implements Tuple {
 
     public void write(DataOutput out) throws IOException {
         out.writeByte(DataType.TUPLE);
-        if(isNull == true) {
-            out.writeByte(NULL);            
-        } else {
-            out.writeByte(NOTNULL);
-            int sz = size();
-            out.writeInt(sz);
-            for (int i = 0; i < sz; i++) {
-                try {
-                    Object d = get(i);
-                } catch (ExecException ee) {
-                    throw new RuntimeException(ee);
-                }
-                DataReaderWriter.writeDatum(out, mFields.get(i));
-            }
+        int sz = size();
+        out.writeInt(sz);
+        for (int i = 0; i < sz; i++) {
+            DataReaderWriter.writeDatum(out, mFields.get(i));
         }
     }
 
@@ -311,20 +301,13 @@ public class DefaultTuple implements Tuple {
             throw new IOException("Unexpected data while reading tuple " +
                 "from binary file");
         }
-        byte nullMarker = in.readByte();
-        if(nullMarker == NULL) {
-            isNull = true;
-            return;
-        } else {
-            isNull = false;
-            // Read the number of fields
-            int sz = in.readInt();
-            for (int i = 0; i < sz; i++) {
-                try {
-                    append(DataReaderWriter.readDatum(in));
-                } catch (ExecException ee) {
-                    throw new RuntimeException(ee);
-                }
+        // Read the number of fields
+        int sz = in.readInt();
+        for (int i = 0; i < sz; i++) {
+            try {
+                append(DataReaderWriter.readDatum(in));
+            } catch (ExecException ee) {
+                throw new RuntimeException(ee);
             }
         }
     }

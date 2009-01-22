@@ -154,6 +154,8 @@ public class PigMapReduce {
 
         protected boolean errorInReduce = false;
         
+        PhysicalOperator[] roots;
+        private PhysicalOperator leaf;
         /**
          * Configures the Reduce plan, the POPackage operator
          * and the reporter thread
@@ -180,6 +182,10 @@ public class PigMapReduce {
                 long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
 
                 pigReporter = new ProgressableReporter();
+                if(!(rp.isEmpty())) {
+                    roots = rp.getRoots().toArray(new PhysicalOperator[1]);
+                    leaf = rp.getLeaves().get(0);
+                }
             } catch (IOException e) {
                 log.error(e.getMessage() + "was caused by:");
                 log.error(e.getCause().getMessage());
@@ -238,12 +244,9 @@ public class PigMapReduce {
                         oc.collect(null, packRes);
                         return false;
                     }
-                    
-                    rp.attachInput(packRes);
-
-                    List<PhysicalOperator> leaves = rp.getLeaves();
-                    
-                    PhysicalOperator leaf = leaves.get(0);
+                    for (int i = 0; i < roots.length; i++) {
+                        roots[i].attachInput(packRes);
+                    }
                     runPipeline(leaf);
                     
                 }
@@ -336,8 +339,6 @@ public class PigMapReduce {
                 // This will result in nothing happening in the case
                 // where there is no stream in the pipeline
                 rp.endOfAllInput = true;
-                List<PhysicalOperator> leaves = rp.getLeaves();
-                PhysicalOperator leaf = leaves.get(0);
                 try {
                     runPipeline(leaf);
                 } catch (ExecException e) {

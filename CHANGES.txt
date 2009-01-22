@@ -370,3 +370,5 @@ Trunk (unreleased changes)
     PIG-623: Fix spelling errors in output messages (tomwhite via sms)
 
     PIG-622: Include pig executable in distribution (tomwhite via sms)
+
+    PIG-628: misc performance improvements (pradeepk via olgan)

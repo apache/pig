@@ -104,6 +104,8 @@ public class POLocalRearrange extends PhysicalOperator {
     private ArrayList<Integer> minValuePositions;
     private int minValuePositionsSize = 0;
 
+    private Tuple lrOutput;
+    
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
     }
@@ -121,6 +123,7 @@ public class POLocalRearrange extends PhysicalOperator {
         index = -1;
         leafOps = new ArrayList<ExpressionOperator>();
         mProjectedColsMap = new HashMap<Integer, Integer>();
+        lrOutput = mTupleFactory.newTuple(3);
     }
 
     @Override
@@ -149,13 +152,14 @@ public class POLocalRearrange extends PhysicalOperator {
         return index;
     }
 
-    public void setIndex(int index) {
+    public void setIndex(int index) throws ExecException {
         if (index > 0x40) {
             throw new RuntimeException("Cogroups with more than 127 inputs "
                 + " not supported.");
         } else {
             this.index = (byte)index;
         }
+        lrOutput.set(0, new Byte(this.index));
     }
 
     public boolean isDistinct() { 
@@ -258,31 +262,27 @@ public class POLocalRearrange extends PhysicalOperator {
             key = resLst.get(0).result;
         }
         
-        Tuple output = mTupleFactory.newTuple(3);
         if (mIsDistinct) {
 
             //Put the key and the indexed tuple
             //in a tuple and return
-            output.set(0, new Byte((byte)0));
-            output.set(1, key);
-            output.set(2, mFakeTuple);
-            return output;
+            lrOutput.set(1, key);
+            lrOutput.set(2, mFakeTuple);
+            return lrOutput;
         } else if(isCross){
         
             for(int i=0;i<plans.size();i++)
                 value.getAll().remove(0);
             //Put the index, key, and value
             //in a tuple and return
-            output.set(0, new Byte(index));
-            output.set(1, key);
-            output.set(2, value);
-            return output;
+            lrOutput.set(1, key);
+            lrOutput.set(2, value);
+            return lrOutput;
         } else {
 
             //Put the index, key, and value
             //in a tuple and return
-            output.set(0, new Byte(index));
-            output.set(1, key);
+            lrOutput.set(1, key);
             
             // strip off the columns in the "value" which 
             // are present in the "key"
@@ -321,17 +321,17 @@ public class POLocalRearrange extends PhysicalOperator {
                     minimalValue = mTupleFactory.newTuple();
     
                 }
-                output.set(2, minimalValue);
+                lrOutput.set(2, minimalValue);
             
             } else {
             
                 // there were no columns in the "key"
                 // which we can strip off from the "value"
                 // so just send the value we got
-                output.set(2, value);
+                lrOutput.set(2, value);
                 
             }
-            return output;
+            return lrOutput;
         }
     }
 
@@ -417,6 +417,13 @@ public class POLocalRearrange extends PhysicalOperator {
         clone.setPlans(clonePlans);
         clone.keyType = keyType;
         clone.index = index;
+        try {
+            clone.lrOutput.set(0, index);
+        } catch (ExecException e) {
+            CloneNotSupportedException cnse = new CloneNotSupportedException();
+            cnse.initCause(e);
+            throw cnse;
+        }
         // Needs to be called as setDistinct so that the fake index tuple gets
         // created.
         clone.setDistinct(mIsDistinct);

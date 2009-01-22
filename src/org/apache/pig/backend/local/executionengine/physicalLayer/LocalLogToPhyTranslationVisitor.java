@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -90,7 +91,11 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             }
             currentPlan = currentPlans.pop();
             physOp.setPlans(exprPlans);
-            physOp.setIndex(count++);
+            try {
+                physOp.setIndex(count++);
+            } catch (ExecException e1) {
+                throw new VisitorException(e1);
+            }
             if (plans.size() > 1) {
                 type = DataType.TUPLE;
                 physOp.setKeyType(type);
