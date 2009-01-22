@@ -92,23 +92,23 @@ public class POFRJoin extends PhysicalOperator {
     private transient BagFactory mBagFactory;
     private boolean setUp;
     
-    public POFRJoin(OperatorKey k) throws PlanException {
+    public POFRJoin(OperatorKey k) throws PlanException, ExecException {
         this(k,-1,null, null, null, null, -1);
     }
 
-    public POFRJoin(OperatorKey k, int rp) throws PlanException {
+    public POFRJoin(OperatorKey k, int rp) throws PlanException, ExecException {
         this(k, rp, null, null, null, null, -1);
     }
 
-    public POFRJoin(OperatorKey k, List<PhysicalOperator> inp) throws PlanException {
+    public POFRJoin(OperatorKey k, List<PhysicalOperator> inp) throws PlanException, ExecException {
         this(k, -1, inp, null, null, null, -1);
     }
 
-    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp) throws PlanException {
+    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp) throws PlanException, ExecException {
         this(k,rp,inp,null, null, null, -1);
     }
     
-    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, List<List<PhysicalPlan>> ppLists, List<Byte> keyTypes, FileSpec[] replFiles, int fragment){
+    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, List<List<PhysicalPlan>> ppLists, List<Byte> keyTypes, FileSpec[] replFiles, int fragment) throws ExecException{
         super(k,rp,inp);
         
         phyPlanLists = ppLists;
@@ -135,8 +135,9 @@ public class POFRJoin extends PhysicalOperator {
     /**
      * Configures the Local Rearrange operators & the foreach operator
      * @param old
+     * @throws ExecException 
      */
-    private void createJoinPlans(OperatorKey old){
+    private void createJoinPlans(OperatorKey old) throws ExecException{
         List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
         List<Boolean> flatList = new ArrayList<Boolean>();
         

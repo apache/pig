@@ -38,6 +38,7 @@ import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
@@ -652,7 +653,11 @@ public class MRCompiler extends PhyPlanVisitor {
         eps.add(ep);
         
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        lr.setIndex(0);
+        try {
+            lr.setIndex(0);
+        } catch (ExecException e) {
+            throw new PlanException("Unable to set index on the newly created POLocalRearrange.", e);
+        }
         lr.setKeyType(DataType.TUPLE);
         lr.setPlans(eps);
         lr.setResultType(DataType.TUPLE);
@@ -1019,7 +1024,11 @@ public class MRCompiler extends PhyPlanVisitor {
         }
         
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        lr.setIndex(0);
+        try {
+            lr.setIndex(0);
+        } catch (ExecException e) {
+            throw new PlanException("Unable to set index on newly create POLocalRearrange.", e);
+        }
         lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
             keyType);
         lr.setPlans(eps1);
@@ -1060,7 +1069,11 @@ public class MRCompiler extends PhyPlanVisitor {
             eps_c2.addAll(sort.getSortPlans());
         
 	        POLocalRearrange lr_c2 = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
-	        lr_c2.setIndex(0);
+	        try {
+                lr_c2.setIndex(0);
+            } catch (ExecException e) {
+                throw new PlanException("Unable to set index on newly created POLocalRearrange.", e);
+            }
 	        lr_c2.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
 	        lr_c2.setPlans(eps_c2);
 	        lr_c2.setResultType(DataType.TUPLE);
@@ -1149,7 +1162,11 @@ public class MRCompiler extends PhyPlanVisitor {
         eps.add(ep1);
         
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        lr.setIndex(0);
+        try {
+            lr.setIndex(0);
+        } catch (ExecException e) {
+            throw new PlanException("Unable to set index on newly created POLocalRearrange.", e);
+        }
         lr.setKeyType(DataType.CHARARRAY);
         lr.setPlans(eps);
         lr.setResultType(DataType.TUPLE);

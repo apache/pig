@@ -75,6 +75,9 @@ public class PigCombiner {
         
         ProgressableReporter pigReporter;
         
+        PhysicalOperator[] roots;
+        PhysicalOperator leaf;
+        
         /**
          * Configures the Reduce plan, the POPackage operator
          * and the reporter thread
@@ -102,6 +105,10 @@ public class PigCombiner {
                 long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
 
                 pigReporter = new ProgressableReporter();
+                if(!(cp.isEmpty())) {
+                    roots = cp.getRoots().toArray(new PhysicalOperator[1]);
+                    leaf = cp.getLeaves().get(0);
+                }
             } catch (IOException e) {
                 log.error(e.getMessage() + "was caused by:");
                 log.error(e.getCause().getMessage());
@@ -157,11 +164,9 @@ public class PigCombiner {
                         return false;
                     }
                     
-                    cp.attachInput(packRes);
-
-                    List<PhysicalOperator> leaves = cp.getLeaves();
-
-                    PhysicalOperator leaf = leaves.get(0);
+                    for (int i = 0; i < roots.length; i++) {
+                        roots[i].attachInput(packRes);
+                    }
                     while(true){
                         Result redRes = leaf.getNext(DUMMYTUPLE);
                         

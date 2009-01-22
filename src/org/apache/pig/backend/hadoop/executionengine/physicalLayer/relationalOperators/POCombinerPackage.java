@@ -57,6 +57,8 @@ public class POCombinerPackage extends POPackage {
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private boolean[] mBags; // For each field, indicates whether or not it
+
+    private Map<Integer, Integer> keyLookup;
                              // needs to be put in a bag.
 
     /**
@@ -84,6 +86,22 @@ public class POCombinerPackage extends POPackage {
     public String name() {
         return "PostCombinerPackage" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
     }
+    
+    /**
+     * @param keyInfo the keyInfo to set
+     */
+    public void setKeyInfo(Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo) {
+        this.keyInfo = keyInfo;
+        // TODO: IMPORTANT ASSUMPTION: Currently we only combine in the
+        // group case and not in cogroups. So there should only
+        // be one LocalRearrange from which we get the keyInfo for
+        // which field in the value is in the key. This LocalRearrange
+        // has an index of 0. When we do support combiner in Cogroups
+        // THIS WILL NEED TO BE REVISITED.
+        Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
+            keyInfo.get(0); // assumption: only group are "combinable", hence index 0
+        keyLookup = lrKeyInfo.second;
+    }
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
@@ -100,15 +118,7 @@ public class POCombinerPackage extends POPackage {
         while (tupIter.hasNext()) {
             NullableTuple ntup = tupIter.next();
             Tuple tup = (Tuple)ntup.getValueAsPigType();
-            // TODO: IMPORTANT ASSUMPTION: Currently we only combine in the
-            // group case and not in cogroups. So there should only
-            // be one LocalRearrange from which we get the keyInfo for
-            // which field in the value is in the key. This LocalRearrange
-            // has an index of -1. When we do support combiner in Cogroups
-            // THIS WILL NEED TO BE REVISITED.
-            Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
-                keyInfo.get(0); // assumption: only group are "combinable", hence index 0
-            Map<Integer, Integer> keyLookup = lrKeyInfo.second;
+            
             int tupIndex = 0; // an index for accessing elements from 
                               // the value (tup) that we have currently
             for(int i = 0; i < mBags.length; i++) {

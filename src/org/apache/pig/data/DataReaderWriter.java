@@ -42,11 +42,6 @@ public class DataReaderWriter {
         switch (b) {
             case DataType.TUPLE: {
                 
-                // check if it is a null tuple
-                byte nullMarker = in.readByte();
-                if(nullMarker == Tuple.NULL) {
-                    return null;
-                }
                 // Don't use Tuple.readFields, because it requires you to
                 // create a tuple with no size and then append fields.
                 // That's less efficient than allocating the tuple size up

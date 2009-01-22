@@ -594,6 +594,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             log.error("Invalid physical operators in the physical plan"
                     + e1.getMessage());
             throw new VisitorException(e1);
+        } catch (ExecException e) {
+            throw new VisitorException(e);
         }
         
         poPackage.setKeyType(DataType.TUPLE);
@@ -674,7 +676,11 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             }
             currentPlan = currentPlans.pop();
             physOp.setPlans(exprPlans);
-            physOp.setIndex(count++);
+            try {
+                physOp.setIndex(count++);
+            } catch (ExecException e1) {
+                throw new VisitorException(e1);
+            }
             if (plans.size() > 1) {
                 type = DataType.TUPLE;
                 physOp.setKeyType(type);
@@ -743,8 +749,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 keyTypes.add(exprPlans.get(0).getLeaves().get(0).getResultType());
             }
         }
-        POFRJoin pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),frj.getRequestedParallelism(),
-                                    inp, ppLists, keyTypes, null, fragment);
+        POFRJoin pfrj;
+        try {
+            pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),frj.getRequestedParallelism(),
+                                        inp, ppLists, keyTypes, null, fragment);
+        } catch (ExecException e1) {
+            throw new VisitorException(e1);
+        }
         pfrj.setResultType(DataType.TUPLE);
         currentPlan.add(pfrj);
         for (LogicalOperator op : inputs) {
