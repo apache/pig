@@ -47,8 +47,10 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * Wraps a {@link Slice} in an {@link InputSplit} so it's usable by hadoop.
@@ -113,7 +115,7 @@ public class SliceWrapper implements InputSplit {
         return lastConf;
     }
 
-    public RecordReader<Text, TargetedTuple> makeReader(JobConf job) throws IOException {
+    public RecordReader<Text, Tuple> makeReader(JobConf job) throws IOException {
         lastConf = job;        
         DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
         // if the execution is against Mapred DFS, set
@@ -122,6 +124,7 @@ public class SliceWrapper implements InputSplit {
             store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
         wrapped.init(store);
         
+        job.set("map.target.ops", ObjectSerializer.serialize(targetOps));
         // Mimic org.apache.hadoop.mapred.FileSplit if feasible...
         String[] locations = wrapped.getLocations();
         if (locations.length > 0) {
@@ -130,18 +133,19 @@ public class SliceWrapper implements InputSplit {
             job.setLong("map.input.length", wrapped.getLength());
         }
         
-        return new RecordReader<Text, TargetedTuple>() {
+        return new RecordReader<Text, Tuple>() {
 
+            TupleFactory tupFac = TupleFactory.getInstance();
             public void close() throws IOException {
                 wrapped.close();
             }
 
             public Text createKey() {
-                return new Text();
+                return null; // we never use the key!
             }
 
-            public TargetedTuple createValue() {
-                return new TargetedTuple();
+            public Tuple createValue() {
+                return tupFac.newTuple();
             }
 
             public long getPos() throws IOException {
@@ -152,9 +156,8 @@ public class SliceWrapper implements InputSplit {
                 return wrapped.getProgress();
             }
 
-            public boolean next(Text key, TargetedTuple value) throws IOException {
-                value.setTargetOps(targetOps);
-                return wrapped.next((Tuple)value);
+            public boolean next(Text key, Tuple value) throws IOException {
+                return wrapped.next(value);
             }
         };
     }
