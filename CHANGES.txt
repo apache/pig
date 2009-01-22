@@ -8,6 +8,8 @@ Trunk (unreleased changes)
 
     PIG-554 Added fragment replicate map side join (shravanmn via pkamath and gates)
 
+	PIG-620: Added MaxTupleBy1stField UDF to piggybank (vzaliva via gates)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -365,3 +367,4 @@ Trunk (unreleased changes)
     PIG-623: Fix spelling errors in output messages (tomwhite via sms)
 
     PIG-622: Include pig executable in distribution (tomwhite via sms)
+
