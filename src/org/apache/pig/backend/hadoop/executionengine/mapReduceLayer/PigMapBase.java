@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -44,6 +45,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
 public abstract class PigMapBase extends MapReduceBase{
+    private static final Tuple DUMMYTUPLE = null;
+
     private final Log log = LogFactory.getLog(getClass());
     
     protected byte keyType;
@@ -59,8 +62,13 @@ public abstract class PigMapBase extends MapReduceBase{
     // to transmit heartbeat
     ProgressableReporter pigReporter;
 
-    private boolean errorInMap = false;
+    protected boolean errorInMap = false;
     
+    PhysicalOperator[] roots;
+
+    private PhysicalOperator leaf;
+
+    private boolean initialized = false;
     
     /**
      * Will be called when all the tuples in the input
@@ -83,8 +91,6 @@ public abstract class PigMapBase extends MapReduceBase{
             // This will result in nothing happening in the case
             // where there is no stream in the pipeline
             mp.endOfAllInput = true;
-            List<PhysicalOperator> leaves = mp.getLeaves();
-            PhysicalOperator leaf = leaves.get(0);
             try {
                 runPipeline(leaf);
             } catch (ExecException e) {
@@ -124,6 +130,16 @@ public abstract class PigMapBase extends MapReduceBase{
             long sleepTime = job.getLong("pig.reporter.sleep.time", 10000);
             
             pigReporter = new ProgressableReporter();
+            if(!(mp.isEmpty())) {
+                List<OperatorKey> targetOpKeys = 
+                    (ArrayList<OperatorKey>)ObjectSerializer.deserialize(job.get("map.target.ops"));
+                ArrayList<PhysicalOperator> targetOpsAsList = new ArrayList<PhysicalOperator>();
+                for (OperatorKey targetKey : targetOpKeys) {                    
+                    targetOpsAsList.add(mp.getOperator(targetKey));
+                }
+                roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
+                leaf = mp.getLeaves().get(0);
+            }
         } catch (IOException e) {
             log.error(e.getMessage() + "was caused by:");
             log.error(e.getCause().getMessage());
@@ -139,19 +155,22 @@ public abstract class PigMapBase extends MapReduceBase{
      * the tuple as-is whereas map-reduce collects it after extracting
      * the key and indexed tuple.
      */
-    public void map(Text key, TargetedTuple inpTuple,
+    public void map(Text key, Tuple inpTuple,
             OutputCollector<PigNullableWritable, Writable> oc,
             Reporter reporter) throws IOException {
         
-        // cache the collector for use in runPipeline() which
-        // can be called from close()
-        this.outputCollector = oc;
-        pigReporter.setRep(reporter);
-        PhysicalOperator.setReporter(pigReporter);
+        if(!initialized) {
+            initialized  = true;
+            // cache the collector for use in runPipeline() which
+            // can be called from close()
+            this.outputCollector = oc;
+            pigReporter.setRep(reporter);
+            PhysicalOperator.setReporter(pigReporter);
+        }
         
         if(mp.isEmpty()){
             try{
-                collect(oc,inpTuple.toTuple());
+                collect(oc,inpTuple);
             } catch (ExecException e) {
                 IOException ioe = new IOException(e.getMessage());
                 ioe.initCause(e.getCause());
@@ -160,17 +179,9 @@ public abstract class PigMapBase extends MapReduceBase{
             return;
         }
         
-        for (OperatorKey targetKey : inpTuple.targetOps) {
-            
-            PhysicalOperator target = mp.getOperator(targetKey);
-            Tuple t = inpTuple.toTuple();
-            target.attachInput(t);
+        for (PhysicalOperator root : roots) {
+            root.attachInput(inpTuple);
         }
-        List<PhysicalOperator> leaves = mp.getLeaves();
-        
-        PhysicalOperator leaf = leaves.get(0);
-        
-        
         try {
             runPipeline(leaf);
             
@@ -182,9 +193,8 @@ public abstract class PigMapBase extends MapReduceBase{
     }
 
     private void runPipeline(PhysicalOperator leaf) throws IOException, ExecException {
-        Tuple dummyTuple = null;
         while(true){
-            Result res = leaf.getNext(dummyTuple);
+            Result res = leaf.getNext(DUMMYTUPLE);
             if(res.returnStatus==POStatus.STATUS_OK){
                 collect(outputCollector,(Tuple)res.result);
                 continue;

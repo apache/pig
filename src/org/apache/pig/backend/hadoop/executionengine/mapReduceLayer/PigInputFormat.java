@@ -54,7 +54,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 
-public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
+public class PigInputFormat implements InputFormat<Text, Tuple>,
         JobConfigurable {
 
     public static final Log LOG = LogFactory
@@ -211,7 +211,7 @@ public class PigInputFormat implements InputFormat<Text, TargetedTuple>,
         return splits.toArray(new SliceWrapper[splits.size()]);
     }
 
-    public RecordReader<Text, TargetedTuple> getRecordReader(InputSplit split,
+    public RecordReader<Text, Tuple> getRecordReader(InputSplit split,
             JobConf job, Reporter reporter) throws IOException {
         PigInputFormat.sJob = job;
         activeSplit = (SliceWrapper) split;

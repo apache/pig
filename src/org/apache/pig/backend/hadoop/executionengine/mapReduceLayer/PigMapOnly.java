@@ -63,7 +63,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public class PigMapOnly {
 
     public static class Map extends PigMapBase implements
-            Mapper<Text, TargetedTuple, PigNullableWritable, Writable> {
+            Mapper<Text, Tuple, PigNullableWritable, Writable> {
 
         @Override
         public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {
