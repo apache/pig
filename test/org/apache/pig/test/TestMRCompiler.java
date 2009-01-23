@@ -37,11 +37,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.GFCross;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
@@ -52,6 +53,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.TestPOSort.WeirdComparator;
 import org.apache.pig.test.utils.GenPhyOp;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +78,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         }
         r = new Random(SEED);
     }
+    
+    LogicalPlanTester planTester = new LogicalPlanTester() ;
 
     @Before
     public void setUp() throws ExecException {
@@ -791,6 +795,38 @@ public class TestMRCompiler extends junit.framework.TestCase {
         POStore st = GenPhyOp.topStoreOp();
         php.addAsLeaf(st);
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC17.gld");
+    }
+    
+    @Test
+    public void testMRCompilerErr() throws Exception {
+    	planTester.buildPlan("a = load 'input';");
+    	LogicalPlan lp = planTester.buildPlan("b = filter a by $0 > 5;");
+    	
+    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	pp.remove(pp.getRoots().get(0));
+    	try {
+    		Util.buildMRPlan(new PhysicalPlan(), pc);
+    		fail("Expected failure.");
+    	} catch (MRCompilerException mrce) {
+    		assertTrue(mrce.getErrorCode() == 2053);
+    	}
+    }
+
+    @Test
+    public void testMRCompilerErr1() throws Exception {   	
+        PhysicalPlan pp = new PhysicalPlan();
+        PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
+        pp.merge(ldFil1);
+        
+        POSplit op = GenPhyOp.topSplitOp();
+        pp.addAsLeaf(op);
+
+    	try {
+    		Util.buildMRPlan(pp, pc);
+    		fail("Expected failure.");
+    	} catch (MRCompilerException mrce) {
+    		assertTrue(mrce.getErrorCode() == 2025);
+    	}
     }
     
     public static class WeirdComparator extends ComparisonFunc {

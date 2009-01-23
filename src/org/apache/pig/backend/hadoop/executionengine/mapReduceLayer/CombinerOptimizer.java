@@ -18,25 +18,21 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.pig.PigException;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
@@ -52,7 +48,6 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.Pair;
 
 /**
  * Optimize map reduce plans to use the combiner where possible.
@@ -281,7 +276,9 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     // there should be only one successor to package
                     sucs.get(0).setInputs(packList);
                 } catch (Exception e) {
-                    throw new VisitorException(e);
+                    int errCode = 2018;
+                    String msg = "Internal error. Unable to introduce the combiner for optimization.";
+                    throw new VisitorException(msg, errCode, PigException.BUG, e);
                 }
             }
         }
@@ -517,7 +514,9 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         for (int i = 0; i < plans.size(); i++) {
                 List<PhysicalOperator> leaves = plans.get(i).getLeaves();
                 if (leaves == null || leaves.size() != 1) {
-                    throw new RuntimeException("Expected to find plan with single leaf!");
+                    int errCode = 2019;
+                    String msg = "Expected to find plan with single leaf. Found " + leaves.size() + " leaves.";
+                    throw new PlanException(msg, errCode, PigException.BUG);
                 }
                 PhysicalOperator leaf = leaves.get(0);
                 // the combine plan could have an extra foreach inner plan
@@ -593,21 +592,25 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         fe.addInputPlan(newForEachInnerPlan, false);
     }
 
-    private void changeFunc(POForEach fe, PhysicalPlan plan, byte type) {
+    private void changeFunc(POForEach fe, PhysicalPlan plan, byte type) throws PlanException {
         List<PhysicalOperator> leaves = plan.getLeaves();
         if (leaves == null || leaves.size() != 1) {
-            throw new RuntimeException("Expected to find plan with single leaf!");
+            int errCode = 2019;
+            String msg = "Expected to find plan with single leaf. Found " + leaves.size() + " leaves.";
+            throw new PlanException(msg, errCode, PigException.BUG);
         }
 
         PhysicalOperator leaf = leaves.get(0);
         if (!(leaf instanceof POUserFunc)) {
-            throw new RuntimeException("Expected to find plan with UDF leaf!");
+            int errCode = 2020;
+            String msg = "Expected to find plan with UDF leaf. Found " + leaf.getClass().getSimpleName();
+            throw new PlanException(msg, errCode, PigException.BUG);
         }
         POUserFunc func = (POUserFunc)leaf;
         func.setAlgebraicFunction(type);
     }
 
-    private void fixUpRearrange(POLocalRearrange rearrange) throws ExecException {
+    private void fixUpRearrange(POLocalRearrange rearrange) throws PlanException {
         // Set the projection to be the key
         PhysicalPlan newPlan = new PhysicalPlan();
         String scope = rearrange.getOperatorKey().scope;

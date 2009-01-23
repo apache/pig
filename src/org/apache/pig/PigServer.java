@@ -60,16 +60,15 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.streaming.StreamingCommand;
-import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
+import org.apache.pig.tools.grunt.Utils;
 import org.apache.pig.tools.grunt.GruntParser;
+
 
 /**
  * 
@@ -91,7 +90,9 @@ public class PigServer {
         if (normStr.equals("pig")) return ExecType.PIG;
         if (normStr.equals("pigbody")) return ExecType.PIG;
    
-        throw new IOException("Unrecognized exec type: " + str);
+        int errCode = 2040;
+        String msg = "Unknown exec type: " + str;
+        throw new PigException(msg, errCode, PigException.BUG);
     }
 
 
@@ -241,7 +242,9 @@ public class PigServer {
                 File f = new File(name);
                 
                 if (!f.canRead()) {
-                    throw new IOException("Can't read jar file: " + name);
+                    int errCode = 4002;
+                    String msg = "Can't read jar file: " + name;
+                    throw new FrontendException(msg, errCode, PigException.USER_ENVIRONMENT);
                 }
                 
                 resource = f.toURI().toURL();
@@ -280,7 +283,9 @@ public class PigServer {
                 try{
                     execute(null);
                 } catch (Exception e) {
-                    throw WrappedIOException.wrap("Unable to store for alias: " + op.getOperatorKey().getId(), e);
+                    int errCode = 1002;
+                    String msg = "Unable to store alias " + op.getOperatorKey().getId();
+                    throw new FrontendException(msg, errCode, PigException.INPUT, e);
                 }
             }
         }
@@ -298,7 +303,11 @@ public class PigServer {
             return new LogicalPlanBuilder(pigContext).parse(scope, query,
                     aliasesMap, opTableMap, aliasOpMap, startLine);
         } catch (ParseException e) {
-            throw (IOException) new IOException(e.getMessage()).initCause(e);
+            //throw (IOException) new IOException(e.getMessage()).initCause(e);
+            PigException pe = Utils.getPigException(e);
+            int errCode = 1000;
+            String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
         }
     }
 
@@ -342,7 +351,9 @@ public class PigServer {
             // alias supplied
             LogicalOperator op = cloneAliasOp.get(alias);
             if(op == null) {
-                throw new IOException("Unable to find an operator for alias " + alias);
+                int errCode = 1003;
+                String msg = "Unable to find an operator for alias " + alias;
+                throw new FrontendException(msg, errCode, PigException.INPUT);
             }
             return cloneAliases.get(op);
         }
@@ -372,18 +383,15 @@ public class PigServer {
     public Schema dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
-            try {
-                lp = compileLp(alias, false);
-            } catch (ExecException e) {
-                throw new FrontendException(e.getMessage());
-            }
+            lp = compileLp(alias, false);
             Schema schema = lp.getLeaves().get(0).getSchema();
             if (schema != null) System.out.println(alias + ": " + schema.toString());    
             else System.out.println("Schema for " + alias + " unknown.");
             return schema;
-        } catch (FrontendException fe) {
-            throw WrappedIOException.wrap(
-                "Unable to describe schema for alias " + alias, fe);
+        } catch (FrontendException fee) {
+            int errCode = 1001;
+            String msg = "Unable to describe schema for alias " + alias; 
+            throw new FrontendException (msg, errCode, PigException.INPUT, false, null, fee);
         }
     }
 
@@ -399,7 +407,9 @@ public class PigServer {
         try {
             LogicalOperator op = aliasOp.get(id);
             if(null == op) {
-                throw new IOException("Unable to find an operator for alias " + id);
+                int errCode = 1003;
+                String msg = "Unable to find an operator for alias " + id;
+                throw new FrontendException(msg, errCode, PigException.INPUT);
             }
 //            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
@@ -411,8 +421,9 @@ public class PigServer {
                     + job.getStatus().toString());
             }
         } catch (Exception e) {
-            throw WrappedIOException.wrap(
-                "Unable to open iterator for alias: " + id, e);
+            int errCode = 1066;
+            String msg = "Unable to open iterator for alias " + id; 
+            throw new FrontendException(msg, errCode, PigException.INPUT, e);
         }
     }
     
@@ -441,7 +452,9 @@ public class PigServer {
             LogicalPlan readFrom = getPlanFromAlias(id, "store");
             return store(id, readFrom, filename, func);
         } catch (FrontendException fe) {
-            throw WrappedIOException.wrap("Unable to store alias " + id, fe);
+            int errCode = 1002;
+            String msg = "Unable to store alias " + id;
+            throw new FrontendException(msg, errCode, PigException.INPUT, fe);
         }
     }
         
@@ -472,8 +485,9 @@ public class PigServer {
             LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf);
             return executeCompiledLogicalPlan(storePlan);
         } catch (Exception e) {
-            throw WrappedIOException.wrap("Unable to store for alias: " +
-                id, e);
+            int errCode = 1002;
+            String msg = "Unable to store alias " + id;
+            throw new FrontendException(msg, errCode, PigException.INPUT, e);
         }
 
     }
@@ -521,8 +535,9 @@ public class PigServer {
             pigContext.getExecutionEngine().explain(pp, stream);
       
         } catch (Exception e) {
-            throw WrappedIOException.wrap("Unable to explain alias " +
-                alias, e);
+            int errCode = 1067;
+            String msg = "Unable to explain alias " + alias;
+            throw new FrontendException(msg, errCode, PigException.INPUT, e);
         }
     }
 
@@ -672,13 +687,13 @@ public class PigServer {
     }
 
     private LogicalPlan compileLp(
-            String alias) throws ExecException, FrontendException {
+            String alias) throws FrontendException {
         return compileLp(alias, true);
     }
 
     private LogicalPlan compileLp(
             String alias,
-            boolean optimize) throws ExecException, FrontendException {
+            boolean optimize) throws FrontendException {
         
         // create a clone of the logical plan and give it
         // to the operations below
@@ -686,7 +701,9 @@ public class PigServer {
         try {
              lpClone = clonePlan(alias);
         } catch (IOException e) {
-            throw new FrontendException("Unable to clone plan before compiling", e);
+            int errCode = 2001;
+            String msg = "Unable to clone plan before compiling";
+            throw new FrontendException(msg, errCode, PigException.BUG, e);
         }
 
         
@@ -707,7 +724,7 @@ public class PigServer {
             // Need to go through and see what the collector has in it.  But
             // remember what we've caught so we can wrap it into what we
             // throw.
-            caught = fe;
+            caught = fe;            
         }
         // Check to see if we had any problems.
         StringBuilder sb = new StringBuilder();
@@ -723,8 +740,7 @@ public class PigServer {
 
             case Unknown:
             case Error:
-                log.error(msg.getMessage());
-                sb.append(msg.getMessage());
+                //Error messages are displayed separately and are not bundled here
                 break;
 
             default:
@@ -735,7 +751,9 @@ public class PigServer {
         }
 
         if (sb.length() > 0 || caught != null) {
-            throw new ExecException(sb.toString(), caught);
+            //int errCode = 1003;
+            //throw new FrontendException(sb.toString(), errCode, PigException.INPUT, false, null, caught);
+            throw caught;
         }
 
         // optimize
@@ -761,13 +779,15 @@ public class PigServer {
             String operation) throws FrontendException {
         LogicalOperator lo = aliasOp.get(alias);
         if (lo == null) {
-            throw new FrontendException("No alias " + alias + " to " +
-                operation);
+            int errCode = 1004;
+            String msg = "No alias " + alias + " to " + operation;
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
         LogicalPlan lp = aliases.get(lo);
         if (lp == null) {
-            throw new FrontendException("No plan for " + alias + " to " +
-                operation);
+            int errCode = 1005;
+            String msg = "No plan for " + alias + " to " + operation;
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }        
         return lp;
     }

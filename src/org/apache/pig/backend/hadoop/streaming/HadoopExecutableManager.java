@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
@@ -80,7 +81,9 @@ public class HadoopExecutableManager extends ExecutableManager {
             try {
                 FileUtil.chmod(executable.toString(), "a+x");
             } catch (InterruptedException ie) {
-                throw new ExecException(ie);
+                int errCode = 6013;
+                String msg = "Unable to chmod " + executable + " . Thread interrupted.";
+                throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, ie);
             }
         }
         

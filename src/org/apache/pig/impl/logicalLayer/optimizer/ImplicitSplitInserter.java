@@ -21,9 +21,9 @@ package org.apache.pig.impl.logicalLayer.optimizer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.LOConst;
-import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -31,7 +31,6 @@ import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 
 public class ImplicitSplitInserter extends LogicalTransformer {
@@ -44,24 +43,40 @@ public class ImplicitSplitInserter extends LogicalTransformer {
     public boolean check(List<LogicalOperator> nodes) throws OptimizerException {
         // Look to see if this is a non-split node with two outputs.  If so
         // it matches.
-        LogicalOperator op = nodes.get(0);
-        List<LogicalOperator> succs = mPlan.getSuccessors(op);
-        if (succs == null || succs.size() < 2) return false;
-        if (op instanceof LOSplit) return false;
-        return true;
+        if((nodes == null) || (nodes.size() <= 0)) {
+            int errCode = 2052;
+            String msg = "Internal error. Cannot retrieve operator from null or empty list.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
+        try {
+            LogicalOperator op = nodes.get(0);
+            List<LogicalOperator> succs = mPlan.getSuccessors(op);
+            if (succs == null || succs.size() < 2) return false;
+            if (op instanceof LOSplit) return false;
+            return true;
+        } catch (Exception e) {
+            int errCode = 2048;
+            String msg = "Error while performing checks to introduce split operators.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override
     public void transform(List<LogicalOperator> nodes)
             throws OptimizerException {
-        // Insert a split and its corresponding SplitOutput nodes into the plan
-        // between node 0 and 1 / 2.
-        String scope = nodes.get(0).getOperatorKey().scope;
-        NodeIdGenerator idGen = NodeIdGenerator.getGenerator();
-        LOSplit splitOp = new LOSplit(mPlan, new OperatorKey(scope, 
-                idGen.getNextNodeId(scope)), new ArrayList<LogicalOperator>());
-        splitOp.setAlias(nodes.get(0).getAlias());
+        if((nodes == null) || (nodes.size() <= 0)) {
+            int errCode = 2052;
+            String msg = "Internal error. Cannot retrieve operator from null or empty list.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
         try {
+            // Insert a split and its corresponding SplitOutput nodes into the plan
+            // between node 0 and 1 / 2.
+            String scope = nodes.get(0).getOperatorKey().scope;
+            NodeIdGenerator idGen = NodeIdGenerator.getGenerator();
+            LOSplit splitOp = new LOSplit(mPlan, new OperatorKey(scope, 
+                    idGen.getNextNodeId(scope)), new ArrayList<LogicalOperator>());
+            splitOp.setAlias(nodes.get(0).getAlias());
             mPlan.add(splitOp);
             
             // Find all the successors and connect appropriately with split
@@ -143,7 +158,9 @@ public class ImplicitSplitInserter extends LogicalTransformer {
             }
             
         } catch (Exception e) {
-            throw new OptimizerException(e);
+            int errCode = 2047;
+            String msg = "Internal error. Unable to introduce split operators.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
     }
 }

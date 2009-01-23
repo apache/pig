@@ -19,6 +19,7 @@
 package org.apache.pig.backend.executionengine.util;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -57,7 +58,9 @@ public class ExecTools {
             }
             return spec;
         } catch (Exception e) {
-            throw new ExecException(e);
+            int errCode = 2045;
+            String msg = "Internal error. Not able to check if the leaf node is a store operator.";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
 

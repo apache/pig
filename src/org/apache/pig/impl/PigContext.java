@@ -43,6 +43,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.Main;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
@@ -180,7 +181,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
             
             default:
             {
-                throw new ExecException("Unkown execType: " + execType);
+                int errCode = 2040;
+                String msg = "Unkown exec type: " + execType;
+                throw new ExecException(msg, errCode, PigException.BUG);
             }
         }
 
@@ -227,7 +230,21 @@ public class PigContext implements Serializable, FunctionInstantiator {
             src = dfs.asElement(oldName);            
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Unable to rename " + oldName + " to " + newName, e);
+            byte errSrc = getErrorSource();            
+            int errCode = 0;
+            switch(errSrc) {
+            case PigException.REMOTE_ENVIRONMENT:
+                errCode = 6005;
+                break;
+            case PigException.USER_ENVIRONMENT:
+                errCode = 4005;
+                break;
+            default:
+                errCode = 2038;
+                    break;
+            }
+            String msg = "Unable to rename " + oldName + " to " + newName;            
+            throw new PigException(msg, errCode, errSrc, e);
         }
 
         if (dst.exists()) {
@@ -253,7 +270,21 @@ public class PigContext implements Serializable, FunctionInstantiator {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Unable to copy " + src + " to " + dst + (localDst ? "locally" : ""), e);
+            byte errSrc = getErrorSource();            
+            int errCode = 0;
+            switch(errSrc) {
+            case PigException.REMOTE_ENVIRONMENT:
+                errCode = 6006;
+                break;
+            case PigException.USER_ENVIRONMENT:
+                errCode = 4006;
+                break;
+            default:
+                errCode = 2039;
+                    break;
+            }
+            String msg = "Unable to copy " + src + " to " + dst;            
+            throw new PigException(msg, errCode, errSrc, e);
         }
         
         srcElement.copy(dstElement, this.properties, false);
@@ -379,15 +410,18 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 // do nothing
             } 
             catch (UnsupportedClassVersionError e) {
-                throw WrappedIOException.wrap(e) ;
+                int errCode = 1069;
+                String msg = "Problem resolving class version numbers for class " + name;
+                throw new PigException(msg, errCode, PigException.INPUT, e) ;
             }
             
         }
 
         // create ClassNotFoundException exception and attach to IOException
         // so that we don't need to buble interface changes throughout the code
-        ClassNotFoundException e = new ClassNotFoundException("Could not resolve " + name + " using imports: " + packageImportList);
-        throw WrappedIOException.wrap(e.getMessage(), e);
+        int errCode = 1070;
+        String msg = "Could not resolve " + name + " using imports: " + packageImportList;
+        throw new PigException(msg, errCode, PigException.INPUT);
     }
     
     
@@ -419,7 +453,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             }
         }
         catch(NoSuchMethodException nme) {
-            // Second channce. Try with var arg constructor
+            // Second chance. Try with var arg constructor
             try {
                 Constructor c = objClass.getConstructor(String[].class);
                 Object[] wrappedArgs = new Object[1] ;
@@ -513,7 +547,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
             break;
             default:
             {
-                throw new ExecException("Unkown execType: " + execType);
+                int errCode = 2040;
+                String msg = "Unkown exec type: " + execType;
+                throw new ExecException(msg, errCode, PigException.BUG);
             }
         }
         
@@ -547,5 +583,20 @@ public class PigContext implements Serializable, FunctionInstantiator {
      */
     public List<String> getPathsToSkip() {
         return skippedShipPaths;
+    }
+    
+    /**
+     * Check the execution mode and return the appropriate error source
+     * 
+     * @return error source
+     */
+    public byte getErrorSource() {
+        if(execType == ExecType.LOCAL) {
+            return PigException.USER_ENVIRONMENT;
+        } else if (execType == ExecType.MAPREDUCE) {
+            return PigException.REMOTE_ENVIRONMENT;
+        } else {
+            return PigException.BUG;
+        }        
     }
 }

@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer.validators;
 import java.io.IOException;
 
 import org.apache.pig.ExecType; 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext ;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LOLoad;
@@ -33,6 +34,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.impl.plan.PlanValidationException;
 
 /***
  * Visitor for checking input/output files
@@ -60,21 +62,52 @@ public class InputOutputFileVisitor extends LOVisitor {
      * The logic here is just to check that the file(s) do not exist
      */
     @Override
-    protected void visit(LOStore store) {
+    protected void visit(LOStore store) throws PlanValidationException{
         // make sure that the file doesn't exist
         String filename = store.getOutputFile().getFileName() ;
         
         try {
             if (checkFileExists(filename)) {
-                msgCollector.collect("The output file(s): " + filename 
-                                     + " already exists", 
-                                     MessageType.Error) ;
+                byte errSrc = pigCtx.getErrorSource();
+                int errCode = 0;
+                switch(errSrc) {
+                case PigException.BUG:
+                    errCode = 2002;
+                    break;
+                case PigException.REMOTE_ENVIRONMENT:
+                    errCode = 6000;
+                    break;
+                case PigException.USER_ENVIRONMENT:
+                    errCode = 4000;
+                    break;
+                }
+                String msg = "The output file(s): " + filename 
+                + " already exists";
+                msgCollector.collect(msg, MessageType.Error) ;
+                throw new PlanValidationException(msg, errCode, errSrc);                
             }
-        } 
+        } catch (PlanValidationException pve) {
+            throw pve;
+        }
         catch (IOException ioe) {
-            msgCollector.collect("Cannot read from the storage where the output " 
-                    + filename + " will be stored ",
-                    MessageType.Error) ;
+            byte errSrc = pigCtx.getErrorSource();
+            int errCode = 0;
+            switch(errSrc) {
+            case PigException.BUG:
+                errCode = 2003;
+                break;
+            case PigException.REMOTE_ENVIRONMENT:
+                errCode = 6001;
+                break;
+            case PigException.USER_ENVIRONMENT:
+                errCode = 4001;
+                break;
+            }
+
+            String msg = "Cannot read from the storage where the output " 
+                    + filename + " will be stored ";
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new PlanValidationException(msg, errCode, errSrc, ioe);
         }
     }
 
@@ -99,5 +132,5 @@ public class InputOutputFileVisitor extends LOVisitor {
             throw new RuntimeException("Undefined state in " + this.getClass()) ;
         }
     }
-    
+
 }

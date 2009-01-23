@@ -23,7 +23,8 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+
+import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
@@ -211,16 +212,20 @@ public class LOForEach extends LogicalOperator {
 					            // check that indeed we only have one field schema
 					            // which is that of a tuple
 					            if(s.getFields().size() != 1) {
-					                throw new FrontendException("Expected a bag schema with a single " +
-					                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
-					                        " but got a bag schema with multiple elements.");
+					                int errCode = 1008;
+					                String msg = "Expected a bag schema with a single " +
+                                    "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                                    " but got a bag schema with multiple elements.";
+					                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
 					            }
 					            Schema.FieldSchema tupleFS = s.getField(0);
 					            if(tupleFS.type != DataType.TUPLE) {
-					                throw new FrontendException("Expected a bag schema with a single " +
-					                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
-					                        " but got an element of type " +
-					                        DataType.findTypeName(tupleFS.type));
+					                int errCode = 1009;
+					                String msg = "Expected a bag schema with a single " +
+                                    "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                                    " but got an element of type " +
+                                    DataType.findTypeName(tupleFS.type);
+					                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
 					            }
 					            s = tupleFS.schema;
 							    
@@ -228,12 +233,8 @@ public class LOForEach extends LogicalOperator {
 							if(null != s) {
 								for(int i = 0; i < s.size(); ++i) {
                                     Schema.FieldSchema fs;
-                                    try {
-                                        fs = new Schema.FieldSchema(s.getField(i));
-                                        fs.setParent(s.getField(i).canonicalName, op);
-                                    } catch (ParseException pe) {
-                                        throw new FrontendException(pe.getMessage());
-                                    }
+                                    fs = new Schema.FieldSchema(s.getField(i));
+                                    fs.setParent(s.getField(i).canonicalName, op);
 									log.debug("fs: " + fs);
                                     if(null != userDefinedSchema) {
                                         Schema.FieldSchema userDefinedFieldSchema;
@@ -242,10 +243,10 @@ public class LOForEach extends LogicalOperator {
                                                 userDefinedFieldSchema = userDefinedSchema.getField(i);
                                                 fs = fs.mergePrefixFieldSchema(userDefinedFieldSchema);
                                             }
-                                        } catch (ParseException pe) {
-                                            throw new FrontendException(pe.getMessage());
                                         } catch (SchemaMergeException sme) {
-                                            throw new FrontendException(sme.getMessage());
+                                            int errCode = 1016;
+                                            String msg = "Problems in merging user defined schema";
+                                            throw new FrontendException(msg, errCode, PigException.INPUT, false, null, sme);
                                         }
                                         outerCanonicalAlias = null;
                                     }
@@ -254,11 +255,7 @@ public class LOForEach extends LogicalOperator {
 									if((null != outerCanonicalAlias) && (null != innerCanonicalAlias)) {
 										String disambiguatorAlias = outerCanonicalAlias + "::" + innerCanonicalAlias;
 										newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
-                                        try {
-                                            newFs.setParent(s.getField(i).canonicalName, op);
-										} catch (ParseException pe) {
-                                            throw new FrontendException(pe.getMessage());
-                                        }
+                                        newFs.setParent(s.getField(i).canonicalName, op);
                                         fss.add(newFs);
                                         updateAliasCount(aliases, disambiguatorAlias);
 										//it's fine if there are duplicates
@@ -266,11 +263,7 @@ public class LOForEach extends LogicalOperator {
 										//flattening
 									} else {
 										newFs = new Schema.FieldSchema(fs);
-                                        try {
-                                            newFs.setParent(s.getField(i).canonicalName, op);
-										} catch (ParseException pe) {
-                                            throw new FrontendException(pe.getMessage());
-                                        }
+                                        newFs.setParent(s.getField(i).canonicalName, op);
 										fss.add(newFs);
 									}
                                     updateAliasCount(aliases, innerCanonicalAlias);
@@ -282,15 +275,17 @@ public class LOForEach extends LogicalOperator {
                                 if(null != userDefinedSchema) {
                                     if(!DataType.isSchemaType(planFs.type)) {
                                         if(userDefinedSchema.size() > 1) {
-                                            throw new FrontendException("Schema mismatch. A basic type on flattening cannot have more than one column. User defined schema: " + userDefinedSchema);
+                                            int errCode = 1017;
+                                            String msg = "Schema mismatch. A basic type on flattening cannot have more than one column. User defined schema: " + userDefinedSchema;
+                                            throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                                         }
 								        newFs = new Schema.FieldSchema(null, planFs.type);
                                         try {
                                             newFs = newFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));
                                         } catch (SchemaMergeException sme) {
-                                            throw new FrontendException(sme.getMessage());
-                                        } catch (ParseException pe) {
-                                            throw new FrontendException(pe.getMessage());
+                                            int errCode = 1016;
+                                            String msg = "Problems in merging user defined schema";
+                                            throw new FrontendException(msg, errCode, PigException.INPUT, false, null, sme);
                                         }
                                         updateAliasCount(aliases, newFs.alias);
                                         fss.add(newFs);
@@ -324,9 +319,9 @@ public class LOForEach extends LogicalOperator {
                                     newFs = newFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));
                                     updateAliasCount(aliases, newFs.alias);
                                 } catch (SchemaMergeException sme) {
-                                    throw new FrontendException(sme.getMessage());
-                                } catch (ParseException pe) {
-                                    throw new FrontendException(pe.getMessage());
+                                    int errCode = 1016;
+                                    String msg = "Problems in merging user defined schema";
+                                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null, sme);
                                 }
                             }
                             newFs.setParent(planFs.canonicalName, op);
@@ -336,14 +331,10 @@ public class LOForEach extends LogicalOperator {
 						//did not get a valid list of field schemas
                         String outerCanonicalAlias = null;
                         if(null != userDefinedSchema) {
-                            try {
-                                Schema.FieldSchema userDefinedFieldSchema = new Schema.FieldSchema(userDefinedSchema.getField(0));
-                                fss.add(userDefinedFieldSchema);
-                                userDefinedFieldSchema.setParent(null, op);
-                                updateAliasCount(aliases, userDefinedFieldSchema.alias);
-                            } catch (ParseException pe) {
-                                throw new FrontendException(pe.getMessage());
-                            }
+                            Schema.FieldSchema userDefinedFieldSchema = new Schema.FieldSchema(userDefinedSchema.getField(0));
+                            fss.add(userDefinedFieldSchema);
+                            userDefinedFieldSchema.setParent(null, op);
+                            updateAliasCount(aliases, userDefinedFieldSchema.alias);
                         } else {
                             mSchema = null;
                             mIsSchemaComputed = true;
@@ -354,8 +345,6 @@ public class LOForEach extends LogicalOperator {
                     mSchema = null;
                     mIsSchemaComputed = false;
                     throw fee;
-                } catch (ParseException e) {
-                    throw new FrontendException(e);
                 }
             }
 			//check for duplicate column names and throw an error if there are duplicates
@@ -381,7 +370,7 @@ public class LOForEach extends LogicalOperator {
 				}
 			}
 			if(duplicates) {
-				String errMessage = "Found duplicates in schema! ";
+				String errMessage = "Found duplicates in schema. ";
 				if(duplicateAliases.size() > 0) {
 					Set<String> duplicateCols = duplicateAliases.keySet();
 					Iterator<String> iter = duplicateCols.iterator();
@@ -394,7 +383,8 @@ public class LOForEach extends LogicalOperator {
 				}
 				errMessage += ". Please alias the columns with unique names.";
 				log.debug(errMessage);
-				throw new FrontendException(errMessage);
+				int errCode = 1007;
+				throw new FrontendException(errMessage, errCode, PigException.INPUT, false, null);
 			}
             mSchema = new Schema(fss);
 			//add the aliases that are unique after flattening

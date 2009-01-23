@@ -22,6 +22,7 @@ import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -89,10 +90,11 @@ public class LOUserFunc extends ExpressionOperator {
             Schema inputSchema = new Schema();
             for(ExpressionOperator op: mArgs) {
                 if (!DataType.isUsableType(op.getType())) {
-                    String msg = "Problem with input: " + op + " of User-defined function: " + this ;
                     mFieldSchema = null;
                     mIsFieldSchemaComputed = false;
-                    throw new FrontendException(msg) ;
+                    int errCode = 1014;
+                    String msg = "Problem with input: " + op + " of User-defined function: " + this ;
+                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
                 }
                 inputSchema.add(op.getFieldSchema());    
             }
@@ -103,7 +105,7 @@ public class LOUserFunc extends ExpressionOperator {
 
             if (null != udfSchema) {
                 Schema.FieldSchema fs;
-                try {
+//                try {
                     if(udfSchema.size() == 0) {
                         fs = new Schema.FieldSchema(null, null, returnType);
                     } else if(udfSchema.size() == 1) {
@@ -111,9 +113,9 @@ public class LOUserFunc extends ExpressionOperator {
                     } else {
                         fs = new Schema.FieldSchema(null, udfSchema, DataType.TUPLE);
                     }
-                } catch (ParseException pe) {
-                    throw new FrontendException(pe.getMessage());
-                }
+//                } catch (ParseException pe) {
+//                    throw new FrontendException(pe.getMessage());
+//                }
                 setType(fs.type);
                 mFieldSchema = fs;
                 mIsFieldSchemaComputed = true;

@@ -32,10 +32,11 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * A class of static final values used to encode data type and a number of
@@ -378,43 +379,57 @@ public class DataType {
      * @throws ExecException if the type can't be forced to an Integer.
      */
     public static Integer toInteger(Object o) throws ExecException {
-        switch (findType(o)) {
-        case BOOLEAN:
-            if (((Boolean)o) == true) return new Integer(1);
-            else return new Integer(0);
+        try {
+			switch (findType(o)) {
+			case BOOLEAN:
+			    if (((Boolean)o) == true) return new Integer(1);
+			    else return new Integer(0);
 
-        case BYTE:
-            return new Integer(((Byte)o).intValue());
+			case BYTE:
+			    return new Integer(((Byte)o).intValue());
 
-        case INTEGER:
-            return (Integer)o;
+			case INTEGER:
+			    return (Integer)o;
 
-        case LONG:
-            return new Integer(((Long)o).intValue());
+			case LONG:
+			    return new Integer(((Long)o).intValue());
 
-        case FLOAT:
-            return new Integer(((Float)o).intValue());
+			case FLOAT:
+			    return new Integer(((Float)o).intValue());
 
-        case DOUBLE:
-            return new Integer(((Double)o).intValue());
+			case DOUBLE:
+			    return new Integer(((Double)o).intValue());
 
-        case BYTEARRAY:
-            return Integer.valueOf(((DataByteArray)o).toString());
+			case BYTEARRAY:
+			    return Integer.valueOf(((DataByteArray)o).toString());
 
-        case CHARARRAY:
-            return Integer.valueOf((String)o);
+			case CHARARRAY:
+			    return Integer.valueOf((String)o);
 
-        case NULL:
-            return null;
+			case NULL:
+			    return null;
 
-        case MAP:
-        case TUPLE:
-        case BAG:
-        case UNKNOWN:
-        default:
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to an Integer");
-        }
+			case MAP:
+			case TUPLE:
+			case BAG:
+			case UNKNOWN:
+			default:
+			    int errCode = 1071;
+			    String msg = "Cannot convert a " + findTypeName(o) +
+			    " to an Integer";
+			    throw new ExecException(msg, errCode, PigException.INPUT);
+			}
+		} catch (ExecException ee) {
+			throw ee;
+		} catch (NumberFormatException nfe) {
+			int errCode = 1074;
+			String msg = "Problem with formatting. Could not convert " + o + " to Integer.";
+			throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+		} catch (Exception e) {
+			int errCode = 2054;
+			String msg = "Internal error. Could not convert " + o + " to Integer.";
+			throw new ExecException(msg, errCode, PigException.BUG);
+		}
     }
 
     /**
@@ -428,43 +443,58 @@ public class DataType {
      * @throws ExecException if the type can't be forced to a Long.
      */
     public static Long toLong(Object o) throws ExecException {
-        switch (findType(o)) {
-        case BOOLEAN:
-            if (((Boolean)o) == true) return new Long(1);
-            else return new Long(0);
+        try {
+			switch (findType(o)) {
+			case BOOLEAN:
+			    if (((Boolean)o) == true) return new Long(1);
+			    else return new Long(0);
 
-        case BYTE:
-            return new Long(((Byte)o).longValue());
+			case BYTE:
+			    return new Long(((Byte)o).longValue());
 
-        case INTEGER:
-            return new Long(((Integer)o).longValue());
+			case INTEGER:
+			    return new Long(((Integer)o).longValue());
 
-        case LONG:
-            return (Long)o;
+			case LONG:
+			    return (Long)o;
 
-        case FLOAT:
-            return new Long(((Float)o).longValue());
+			case FLOAT:
+			    return new Long(((Float)o).longValue());
 
-        case DOUBLE:
-            return new Long(((Double)o).longValue());
+			case DOUBLE:
+			    return new Long(((Double)o).longValue());
 
-        case BYTEARRAY:
-            return Long.valueOf(((DataByteArray)o).toString());
+			case BYTEARRAY:
+			    return Long.valueOf(((DataByteArray)o).toString());
 
-        case CHARARRAY:
-            return Long.valueOf((String)o);
+			case CHARARRAY:
+			    return Long.valueOf((String)o);
 
-        case NULL:
-            return null;
+			case NULL:
+			    return null;
 
-        case MAP:
-        case TUPLE:
-        case BAG:
-        case UNKNOWN:
-        default:
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to a Long");
-        }
+			case MAP:
+			case TUPLE:
+			case BAG:
+			case UNKNOWN:
+			default:
+			    int errCode = 1071;
+			    String msg = "Cannot convert a " + findTypeName(o) +
+			    " to a Long";
+			    throw new ExecException(msg, errCode, PigException.INPUT);
+			}
+		} catch (ExecException ee) {
+			throw ee;
+		} catch (NumberFormatException nfe) {
+			int errCode = 1074;
+			String msg = "Problem with formatting. Could not convert " + o + " to Long.";
+			throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+		} catch (Exception e) {
+			int errCode = 2054;
+			String msg = "Internal error. Could not convert " + o + " to Long.";
+			throw new ExecException(msg, errCode, PigException.BUG);
+		}
+
     }
 
     /**
@@ -478,38 +508,52 @@ public class DataType {
      * @throws ExecException if the type can't be forced to a Float.
      */
     public static Float toFloat(Object o) throws ExecException {
-        switch (findType(o)) {
-        case INTEGER:
-            return new Float(((Integer)o).floatValue());
+        try {
+			switch (findType(o)) {
+			case INTEGER:
+			    return new Float(((Integer)o).floatValue());
 
-        case LONG:
-            return new Float(((Long)o).floatValue());
+			case LONG:
+			    return new Float(((Long)o).floatValue());
 
-        case FLOAT:
-            return (Float)o;
+			case FLOAT:
+			    return (Float)o;
 
-        case DOUBLE:
-            return new Float(((Double)o).floatValue());
+			case DOUBLE:
+			    return new Float(((Double)o).floatValue());
 
-        case BYTEARRAY:
-            return Float.valueOf(((DataByteArray)o).toString());
+			case BYTEARRAY:
+			    return Float.valueOf(((DataByteArray)o).toString());
 
-        case CHARARRAY:
-            return Float.valueOf((String)o);
+			case CHARARRAY:
+			    return Float.valueOf((String)o);
 
-        case NULL:
-            return null;
+			case NULL:
+			    return null;
 
-        case BOOLEAN:
-        case BYTE:
-        case MAP:
-        case TUPLE:
-        case BAG:
-        case UNKNOWN:
-        default:
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to a Float");
-        }
+			case BOOLEAN:
+			case BYTE:
+			case MAP:
+			case TUPLE:
+			case BAG:
+			case UNKNOWN:
+			default:
+			    int errCode = 1071;
+			    String msg = "Cannot convert a " + findTypeName(o) +
+			    " to a Float";
+			    throw new ExecException(msg, errCode, PigException.INPUT);
+			}
+		} catch (ExecException ee) {
+			throw ee;
+		} catch (NumberFormatException nfe) {
+			int errCode = 1074;
+			String msg = "Problem with formatting. Could not convert " + o + " to Float.";
+			throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+		} catch (Exception e) {
+			int errCode = 2054;
+			String msg = "Internal error. Could not convert " + o + " to Float.";
+			throw new ExecException(msg, errCode, PigException.BUG);
+		}
     }
 
     /**
@@ -523,38 +567,52 @@ public class DataType {
      * @throws ExecException if the type can't be forced to a Double.
      */
     public static Double toDouble(Object o) throws ExecException {
-        switch (findType(o)) {
-        case INTEGER:
-            return new Double(((Integer)o).doubleValue());
+        try {
+			switch (findType(o)) {
+			case INTEGER:
+			    return new Double(((Integer)o).doubleValue());
 
-        case LONG:
-            return new Double(((Long)o).doubleValue());
+			case LONG:
+			    return new Double(((Long)o).doubleValue());
 
-        case FLOAT:
-            return new Double(((Float)o).doubleValue());
+			case FLOAT:
+			    return new Double(((Float)o).doubleValue());
 
-        case DOUBLE:
-            return (Double)o;
+			case DOUBLE:
+			    return (Double)o;
 
-        case BYTEARRAY:
-            return Double.valueOf(((DataByteArray)o).toString());
+			case BYTEARRAY:
+			    return Double.valueOf(((DataByteArray)o).toString());
 
-        case CHARARRAY:
-            return Double.valueOf((String)o);
+			case CHARARRAY:
+			    return Double.valueOf((String)o);
 
-        case NULL:
-            return null;
+			case NULL:
+			    return null;
 
-        case BOOLEAN:
-        case BYTE:
-        case MAP:
-        case TUPLE:
-        case BAG:
-        case UNKNOWN:
-        default:
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to a Double");
-        }
+			case BOOLEAN:
+			case BYTE:
+			case MAP:
+			case TUPLE:
+			case BAG:
+			case UNKNOWN:
+			default:
+			    int errCode = 1071;
+			    String msg = "Cannot convert a " + findTypeName(o) +
+			    " to a Double";
+			    throw new ExecException(msg, errCode, PigException.INPUT);
+			}
+		} catch (ExecException ee) {
+			throw ee;
+		} catch (NumberFormatException nfe) {
+			int errCode = 1074;
+			String msg = "Problem with formatting. Could not convert " + o + " to Double.";
+			throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+		} catch (Exception e) {
+			int errCode = 2054;
+			String msg = "Internal error. Could not convert " + o + " to Double.";
+			throw new ExecException(msg, errCode, PigException.BUG);
+		}
     }
 
     /**
@@ -569,10 +627,18 @@ public class DataType {
         if (o == null) return null;
 
         if (o instanceof Map) {
-            return (Map<Object, Object>)o;
+            try {
+				return (Map<Object, Object>)o;
+    		} catch (Exception e) {
+    			int errCode = 2054;
+    			String msg = "Internal error. Could not convert " + o + " to Map.";
+    			throw new ExecException(msg, errCode, PigException.BUG);
+    		}
         } else {
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to a Map");
+            int errCode = 1071;
+            String msg = "Cannot convert a " + findTypeName(o) +
+            " to a Map";
+            throw new ExecException(msg, errCode, PigException.INPUT);
         }
     }
 
@@ -588,10 +654,18 @@ public class DataType {
         if (o == null) return null;
 
         if (o instanceof Tuple) {
-            return (Tuple)o;
+            try {
+				return (Tuple)o;
+    		} catch (Exception e) {
+    			int errCode = 2054;
+    			String msg = "Internal error. Could not convert " + o + " to Tuple.";
+    			throw new ExecException(msg, errCode, PigException.BUG);
+    		}
         } else {
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to a Tuple");
+            int errCode = 1071;
+            String msg = "Cannot convert a " + findTypeName(o) +
+            " to a Tuple";
+            throw new ExecException(msg, errCode, PigException.INPUT);
         }
     }
 
@@ -607,10 +681,18 @@ public class DataType {
         if (o == null) return null;
 
         if (o instanceof DataBag) {
-            return (DataBag)o;
+            try {
+				return (DataBag)o;
+    		} catch (Exception e) {
+    			int errCode = 2054;
+    			String msg = "Internal error. Could not convert " + o + " to Bag.";
+    			throw new ExecException(msg, errCode, PigException.BUG);
+    		}
         } else {
-            throw new ExecException("Cannot convert a " + findTypeName(o) +
-                " to a DataBag");
+            int errCode = 1071;
+            String msg = "Cannot convert a " + findTypeName(o) +
+            " to a DataBag";
+            throw new ExecException(msg, errCode, PigException.INPUT);
         }
     }
 
@@ -802,7 +884,9 @@ public class DataType {
                 return new Schema.FieldSchema(null, bagSchema, BAG);
             }
         default: {
-                throw new ExecException("Cannot determine field schema for " + o);
+                int errCode = 1073;
+                String msg = "Cannot determine field schema for " + o;
+                throw new ExecException(msg, errCode, PigException.INPUT);
             }
         }
     }

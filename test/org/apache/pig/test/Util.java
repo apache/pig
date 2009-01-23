@@ -33,10 +33,17 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.*;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.VisitorException;
 
 public class Util {
     private static BagFactory mBagFactory = BagFactory.getInstance();
@@ -312,5 +319,18 @@ public class Util {
         }
         pw.close();
         return f;
+    }
+    
+    public static PhysicalPlan buildPhysicalPlan(LogicalPlan lp, PigContext pc) throws Exception {
+    	LogToPhyTranslationVisitor visitor = new LogToPhyTranslationVisitor(lp);
+    	visitor.setPigContext(pc);
+    	visitor.visit();
+    	return visitor.getPhysicalPlan();
+    }
+    
+    public static MROperPlan buildMRPlan(PhysicalPlan pp, PigContext pc) throws Exception{
+        MRCompiler comp = new MRCompiler(pp, pc);
+        comp.compile();
+        return comp.getMRPlan();	
     }
 }

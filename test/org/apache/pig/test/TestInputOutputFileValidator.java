@@ -76,10 +76,17 @@ public class TestInputOutputFileValidator extends TestCase {
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
         LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
-        executor.validate(plan, collector) ;
+        try {
+            executor.validate(plan, collector) ;
+            fail("Expected to fail.");
+        } catch (Exception pve) {
+            //good
+        }
         
-        assertEquals(collector.size(), 1) ;
-        assertEquals(collector.get(0).getMessageType(), MessageType.Error) ;
+        assertEquals(collector.size(), 3) ;
+        for(int i = 0; i < collector.size(); ++i) {
+            assertEquals(collector.get(i).getMessageType(), MessageType.Error) ;
+        }        
 
     }
     
@@ -117,10 +124,17 @@ public class TestInputOutputFileValidator extends TestCase {
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
         LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
-        executor.validate(plan, collector) ;
-            
-        assertEquals(collector.size(), 1) ;
-        assertEquals(collector.get(0).getMessageType(), MessageType.Error) ;
+        try {
+            executor.validate(plan, collector) ;
+            fail("Excepted to fail.");
+        } catch(Exception e) {
+            //good
+        }
+        
+        assertEquals(collector.size(), 3) ;
+        for(int i = 0; i < collector.size(); ++i) {
+            assertEquals(collector.get(i).getMessageType(), MessageType.Error) ;
+        }       
 
     }
     

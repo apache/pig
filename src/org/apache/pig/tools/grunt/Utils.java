@@ -17,7 +17,9 @@
  */
 package org.apache.pig.tools.grunt;
 
-class Utils {
+import org.apache.pig.PigException;
+
+public class Utils {
     static Exception getPermissionException(Exception top){
         Throwable current = top;
 
@@ -26,5 +28,20 @@ class Utils {
         }
         return (Exception)current;
     }
+    
+    public static PigException getPigException(Throwable top) {
+        Throwable current = top;
+        Throwable pigException = top;
+
+        while (current != null && current.getCause() != null){
+            current = current.getCause();
+            if(current instanceof PigException) {
+                pigException = current;
+            }
+        }
+        return (pigException instanceof PigException? (PigException)pigException : null);
+        
+    }
+
 }
 

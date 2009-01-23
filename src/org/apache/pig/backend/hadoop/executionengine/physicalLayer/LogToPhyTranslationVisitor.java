@@ -32,18 +32,15 @@ import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -117,9 +114,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 // currentExprPlan.connect(from, exprOp);
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -147,9 +144,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -176,9 +173,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -205,9 +202,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -234,9 +231,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -263,9 +260,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -291,9 +288,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -319,9 +316,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -347,9 +344,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -375,9 +372,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -403,9 +400,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -431,9 +428,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -456,8 +453,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan" + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -480,8 +478,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan" + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -502,8 +501,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try {
             currentPlan.connect(from, exprOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operators in the physical plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -591,11 +591,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 currentPlan.connect(physOp, poGlobal);
             }
         } catch (PlanException e1) {
-            log.error("Invalid physical operators in the physical plan"
-                    + e1.getMessage());
-            throw new VisitorException(e1);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
         } catch (ExecException e) {
-            throw new VisitorException(e);
+        	int errCode = 2058;
+        	String msg = "Unable to set index on newly create POLocalRearrange.";
+            throw new VisitorException(msg, errCode, PigException.BUG, e);
         }
         
         poPackage.setKeyType(DataType.TUPLE);
@@ -624,9 +626,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try{
             currentPlan.connect(poPackage, fe);
         }catch (PlanException e1) {
-            log.error("Invalid physical operators in the physical plan"
-                    + e1.getMessage());
-            throw new VisitorException(e1);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
         }
         LogToPhyMap.put(cs, fe);
     }
@@ -649,9 +651,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try {
             currentPlan.connect(poGlobal, poPackage);
         } catch (PlanException e1) {
-            log.error("Invalid physical operators in the physical plan"
-                    + e1.getMessage());
-            throw new VisitorException(e1);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
         }
 
         int count = 0;
@@ -679,7 +681,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 physOp.setIndex(count++);
             } catch (ExecException e1) {
-                throw new VisitorException(e1);
+            	int errCode = 2058;
+            	String msg = "Unable to set index on newly create POLocalRearrange.";
+                throw new VisitorException(msg, errCode, PigException.BUG, e1);
             }
             if (plans.size() > 1) {
                 type = DataType.TUPLE;
@@ -696,9 +700,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 currentPlan.connect(LogToPhyMap.get(op), physOp);
                 currentPlan.connect(physOp, poGlobal);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
 
         }
@@ -754,7 +758,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),frj.getRequestedParallelism(),
                                         inp, ppLists, keyTypes, null, fragment);
         } catch (ExecException e1) {
-            throw new VisitorException(e1);
+        	int errCode = 2058;
+        	String msg = "Unable to set index on newly create POLocalRearrange.";
+            throw new VisitorException(msg, errCode, PigException.BUG, e1);
         }
         pfrj.setResultType(DataType.TUPLE);
         currentPlan.add(pfrj);
@@ -762,9 +768,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(LogToPhyMap.get(op), pfrj);
             } catch (PlanException e) {
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
         LogToPhyMap.put(frj, pfrj);
@@ -802,13 +808,21 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
         List<LogicalOperator> op = filter.getPlan().getPredecessors(filter);
 
-        PhysicalOperator from = LogToPhyMap.get(op.get(0));
+        PhysicalOperator from;
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Filter." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
+        
         try {
             currentPlan.connect(from, poFilter);
         } catch (PlanException e) {
-            log.error("Invalid physical operators in the physical plan"
-                    + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -823,13 +837,21 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         
         List<LogicalOperator> op = stream.getPlan().getPredecessors(stream);
 
-        PhysicalOperator from = LogToPhyMap.get(op.get(0));
+        PhysicalOperator from;
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+        } else {                
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Stream." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
+        
         try {
             currentPlan.connect(from, poStream);
         } catch (PlanException e) {
-            log.error("Invalid physical operators in the physical plan"
-                    + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -857,10 +879,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {
-
-                log.error("Invalid physical operators in the physical plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -904,9 +925,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try {
             currentPlan.connect(from, poFE);
         } catch (PlanException e) {
-            log.error("Invalid physical operators in the physical plan"
-                    + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
     }
@@ -948,13 +969,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         // sort.setRequestedParallelism(s.getType());
         LogToPhyMap.put(s, sort);
         currentPlan.add(sort);
-        PhysicalOperator from =
-            LogToPhyMap.get(s.getPlan().getPredecessors(s).get(0));
+        List<LogicalOperator> op = s.getPlan().getPredecessors(s); 
+        PhysicalOperator from;
+        
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Sort." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }
+        
         try {
             currentPlan.connect(from, sort);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
         sort.setResultType(s.getType());
@@ -973,13 +1004,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         LogToPhyMap.put(op, physOp);
         currentPlan.add(physOp);
         // Distinct will only have a single input
-        PhysicalOperator from = LogToPhyMap.get(op.getPlan().getPredecessors(op)
-                .get(0));
+        List<LogicalOperator> inputs = op.getPlan().getPredecessors(op);
+        PhysicalOperator from; 
+        
+        if(inputs != null) {
+            from = LogToPhyMap.get(inputs.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Distinct." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }
+
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -992,20 +1033,45 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try {
             splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),new FuncSpec(BinStorage.class.getName()));
         } catch (IOException e1) {
-            log.error("Unable to obtain a temporary path because " + e1.getMessage());
-            throw new VisitorException(e1);
+            byte errSrc = pc.getErrorSource();
+            int errCode = 0;
+            switch(errSrc) {
+            case PigException.BUG:
+                errCode = 2016;
+                break;
+            case PigException.REMOTE_ENVIRONMENT:
+                errCode = 6002;
+                break;
+            case PigException.USER_ENVIRONMENT:
+                errCode = 4003;
+                break;
+            }
+            String msg = "Unable to obtain a temporary path." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, errSrc, e1);
+
         }
         ((POSplit)physOp).setSplitStore(splStrFile);
         LogToPhyMap.put(split, physOp);
 
         currentPlan.add(physOp);
-        PhysicalOperator from = LogToPhyMap.get(split.getPlan()
-                .getPredecessors(split).get(0));
+
+        List<LogicalOperator> op = split.getPlan().getPredecessors(split); 
+        PhysicalOperator from;
+        
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Split." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }        
+
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -1028,13 +1094,24 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         ((POFilter) physOp).setPlan((PhysicalPlan) currentPlan);
         currentPlan = currentPlans.pop();
         currentPlan.add(physOp);
-        PhysicalOperator from = LogToPhyMap.get(split.getPlan()
-                .getPredecessors(split).get(0));
+
+        List<LogicalOperator> op = split.getPlan().getPredecessors(split); 
+        PhysicalOperator from;
+        
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Split Output." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }        
+        
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -1061,9 +1138,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 try {
                     currentPlan.connect(from, p);
                 } catch (PlanException e) {
-                    log.error("Invalid physical operator in the plan"
-                            + e.getMessage());
-                    throw new VisitorException(e);
+                    int errCode = 2015;
+                    String msg = "Invalid physical operators in the physical plan" ;
+                    throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
                 }
             }
         }
@@ -1094,13 +1171,24 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         store.setSFile(loStore.getOutputFile());
         store.setPc(pc);
         currentPlan.add(store);
-        PhysicalOperator from = LogToPhyMap.get(loStore
-                .getPlan().getPredecessors(loStore).get(0));
+        
+        List<LogicalOperator> op = loStore.getPlan().getPredecessors(loStore); 
+        PhysicalOperator from;
+        
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Store." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }        
+
         try {
             currentPlan.connect(from, store);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
         LogToPhyMap.put(loStore, store);
     }
@@ -1143,9 +1231,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, physOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operator in the plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
 
@@ -1160,15 +1248,26 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         currentPlan.add(physOp);
 
         LogToPhyMap.put(op, physOp);
-        ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op
-                .getPlan().getPredecessors(op).get(0));
+
+        List<LogicalOperator> inputs = op.getPlan().getPredecessors(op); 
+        ExpressionOperator from;
+        
+        if(inputs != null) {
+            from = (ExpressionOperator)LogToPhyMap.get(inputs.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Negative." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }
+   
         ((PONegative) physOp).setExpr(from);
         ((PONegative) physOp).setResultType(op.getType());
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
     }
@@ -1182,14 +1281,25 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         currentPlan.add(physOp);
 
         LogToPhyMap.put(op, physOp);
-        ExpressionOperator from = (ExpressionOperator) LogToPhyMap.get(op
-                .getPlan().getPredecessors(op).get(0));
+
+        List<LogicalOperator> inputs = op.getPlan().getPredecessors(op); 
+        ExpressionOperator from;
+        
+        if(inputs != null) {
+            from = (ExpressionOperator)LogToPhyMap.get(inputs.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Null." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }
+
         ((POIsNull) physOp).setExpr(from);
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
     }
@@ -1210,8 +1320,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
     }
@@ -1234,8 +1345,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         try {
             currentPlan.connect(from, physOp);
         } catch (PlanException e) {
-            log.error("Invalid physical operator in the plan" + e.getMessage());
-            throw new VisitorException(e);
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
     }
@@ -1251,11 +1363,20 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
             List<LogicalOperator> op = limit.getPlan().getPredecessors(limit);
 
-            PhysicalOperator from = LogToPhyMap.get(op.get(0));
+            PhysicalOperator from;
+            if(op != null) {
+                from = LogToPhyMap.get(op.get(0));
+            } else {
+                int errCode = 2051;
+                String msg = "Did not find a predecessor for Limit." ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);                
+            }
             try {
                     currentPlan.connect(from, poLimit);
             } catch (PlanException e) {
-                    log.error("Invalid physical operators in the physical plan" + e.getMessage());
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
     }
 
@@ -1274,9 +1395,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 currentPlan.connect(from, physOp);
             } catch (PlanException e) {
-                log.error("Invalid physical operator in the plan"
-                        + e.getMessage());
-                throw new VisitorException(e);
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
     }

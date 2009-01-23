@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import org.junit.Test;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
@@ -32,7 +33,7 @@ import junit.framework.TestCase;
 public class TestSchemaParser extends TestCase {
 
     @Test
-    public void test1() throws ParseException {
+    public void test1() throws ParseException, FrontendException {
         String test = "fieldA: int, fieldB:double,fieldC:bYteaRRay, fieldD:charARRAY";
         Schema schema = parseSchema(test) ;
         assertEquals(schema.size(), 4) ;
@@ -42,7 +43,7 @@ public class TestSchemaParser extends TestCase {
     }
 
     @Test
-    public void test2() throws ParseException {
+    public void test2() throws ParseException, FrontendException {
         String test = "fieldA: bag {tuple1:tuple(a:int,b:long,c:float,d:double)}";
         Schema schema = parseSchema(test) ;
 
@@ -59,7 +60,7 @@ public class TestSchemaParser extends TestCase {
     }
 
    @Test
-    public void test3() throws ParseException {
+    public void test3() throws ParseException, FrontendException {
         String test = "tuple1: tuple(a:chararray,b:long),"
                     +" tuple2: tuple(c:int,d:float) ";
         Schema schema = parseSchema(test) ;
@@ -81,7 +82,7 @@ public class TestSchemaParser extends TestCase {
     }
 
     @Test
-    public void test4() throws ParseException {
+    public void test4() throws ParseException, FrontendException {
         String test = "garage: bag{tuple1: tuple(num_tools: int)}, links: int";
         Schema schema = parseSchema(test) ;
 
@@ -104,14 +105,14 @@ public class TestSchemaParser extends TestCase {
     }
 
     private void assertAliases(Schema schema, String... aliases)
-                                            throws ParseException {
+                                            throws FrontendException {
         for(int i=0; i < aliases.length;i++) {
             assertEquals(schema.getField(i).alias, aliases[i]);
         }
     }
 
     private void assertTypes(Schema schema, byte... types)
-                                            throws ParseException {
+                                            throws FrontendException {
         for(int i=0; i < types.length;i++) {
             assertEquals(schema.getField(i).type, types[i]);
         }

@@ -27,13 +27,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
 
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+//import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.CanonicalNamer;
 
 /**
@@ -169,8 +170,9 @@ public class Schema implements Serializable, Cloneable {
             schema = s;
             log.debug("t: " + t + " Bag: " + DataType.BAG + " tuple: " + DataType.TUPLE);
             if ((null != s) && !(DataType.isSchemaType(t))) {
+                int errCode = 1020;
                 throw new FrontendException("Only a BAG or TUPLE can have schemas. Got "
-                        + DataType.findTypeName(t));
+                        + DataType.findTypeName(t), errCode, PigException.INPUT);
             }
             type = t;
             canonicalName = canonicalNamer.getNewName();
@@ -478,7 +480,9 @@ public class Schema implements Serializable, Cloneable {
             }
 
             if(isNullOrUnknownType(myFs) && isNullOrUnknownType(otherFs)) {
-                throw new SchemaMergeException("Type mismatch. No useful type for merging. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+                int errCode = 1021;
+                String msg = "Type mismatch. No useful type for merging. Field Schema: " + myFs + ". Other Field Schema: " + otherFs;
+                throw new SchemaMergeException(msg, errCode, PigException.INPUT);
             } else if(myFs.type == otherFs.type) {
                 mergedType = myFs.type;
             } else if (!isNullOrUnknownType(myFs) && isNullOrUnknownType(otherFs)) {
@@ -494,11 +498,15 @@ public class Schema implements Serializable, Cloneable {
                         if(castable(otherFs, myFs)) {
                             mergedType = otherFs.type;
                         } else {
-                            throw new SchemaMergeException("Type mismatch. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+                            int errCode = 1022;
+                            String msg = "Type mismatch for merging schema prefix. Field Schema: " + myFs + ". Other Field Schema: " + otherFs;
+                            throw new SchemaMergeException(msg, errCode, PigException.INPUT);
                         }
                     }
                 } else {
-                    throw new SchemaMergeException("Type mismatch. Field Schema: " + myFs + ". Other Field Schema: " + otherFs);
+                    int errCode = 1022;
+                    String msg = "Type mismatch merging schema prefix. Field Schema: " + myFs + ". Other Field Schema: " + otherFs;
+                    throw new SchemaMergeException(msg, errCode, PigException.INPUT);
                 }
             }
     
@@ -524,7 +532,9 @@ public class Schema implements Serializable, Cloneable {
                 try {
                     mergedFs = new FieldSchema(mergedAlias, mergedSubSchema, mergedType) ;
                 } catch (FrontendException fee) {
-                    throw new SchemaMergeException(fee.getMessage());
+                    int errCode = 1023;
+                    String msg = "Unable to create field schema.";
+                    throw new SchemaMergeException(msg, errCode, PigException.BUG, fee);
                 }
             }
             return mergedFs;
@@ -641,7 +651,7 @@ public class Schema implements Serializable, Cloneable {
                         }
                     }
                 }
-            } catch (ParseException pe) {
+            } catch (FrontendException pe) {
                 mFields = new ArrayList<FieldSchema>();
                 mAliases = new HashMap<String, FieldSchema>();
                 mFieldSchemas = new MultiMap<String, String>();
@@ -686,7 +696,8 @@ public class Schema implements Serializable, Cloneable {
                 Object[] keys = aliasMatches.keySet().toArray();
                 String key = (String)keys[0];
                 if(aliasMatches.get(key) > 1) {
-                    throw new FrontendException("Found duplicate aliases: " + key);
+                    int errCode = 1024;
+                    throw new FrontendException("Found duplicate aliases: " + key, errCode, PigException.INPUT);
                 }
                 return mAliases.get(key);
             } else {
@@ -711,7 +722,8 @@ public class Schema implements Serializable, Cloneable {
                     }
                     sb.append(key);
                 }
-                throw new FrontendException(sb.toString());
+                int errCode = 1025;
+                throw new FrontendException(sb.toString(), errCode, PigException.INPUT);
             }
         } else {
             return fs;
@@ -728,10 +740,12 @@ public class Schema implements Serializable, Cloneable {
      *             if the field number exceeds the number of fields in the
      *             tuple.
      */
-    public FieldSchema getField(int fieldNum) throws ParseException {
+    public FieldSchema getField(int fieldNum) throws FrontendException {
         if (fieldNum >= mFields.size()) {
-            throw new ParseException("Attempt to fetch field " + fieldNum
-                    + " from tuple of size " + mFields.size());
+            int errCode = 1026;
+        	String detailedMsg = "Attempt to access field: " + fieldNum + " from schema: " + this;
+        	String msg = "Attempt to fetch field " + fieldNum + " from schema of size " + mFields.size();
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, detailedMsg);
         }
 
         return mFields.get(fieldNum);
@@ -756,14 +770,17 @@ public class Schema implements Serializable, Cloneable {
      * @param other Schema to reconcile with.
      * @throws ParseException if this cannot be reconciled.
      */
-    public void reconcile(Schema other) throws ParseException {
+    public void reconcile(Schema other) throws FrontendException {
 
         if (other != null) {
         
             if (other.size() != size()) {
-                throw new ParseException("Cannot reconcile schemas with different "
+                int errCode = 1027;
+            	String msg = "Cannot reconcile schemas with different "
                     + "sizes.  This schema has size " + size() + " other has size "
-                    + "of " + other.size());
+                    + "of " + other.size();
+            	String detailedMsg = "Schema size mismatch. This schema: " + this + " other schema: " + other;
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, detailedMsg);
             }
 
             Iterator<FieldSchema> i = other.mFields.iterator();
@@ -890,7 +907,7 @@ public class Schema implements Serializable, Cloneable {
         try {
             stringifySchema(sb, this, DataType.BAG) ;
         }
-        catch (ParseException pe) {
+        catch (FrontendException fee) {
             throw new RuntimeException("PROBLEM PRINTING SCHEMA")  ;
         }
         return sb.toString();
@@ -902,7 +919,7 @@ public class Schema implements Serializable, Cloneable {
     public static void stringifySchema(StringBuilder sb,
                                        Schema schema,
                                        byte type)
-                                            throws ParseException{
+                                            throws FrontendException{
 
         if (type == DataType.TUPLE) {
             sb.append("(") ;
@@ -995,16 +1012,20 @@ public class Schema implements Serializable, Cloneable {
             // check that indeed we only have one field schema
             // which is that of a tuple
             if(mFields.size() != 1) {
-                throw new FrontendException("Expected a bag schema with a single " +
-                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
-                        " but got a bag schema with multiple elements.");
+                int errCode = 1008;
+            	String msg = "Expected a bag schema with a single " +
+                "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                " but got a bag schema with multiple elements.";
+                throw new FrontendException(msg, errCode, PigException.INPUT);
             }
             Schema.FieldSchema tupleFS = mFields.get(0);
             if(tupleFS.type != DataType.TUPLE) {
-                throw new FrontendException("Expected a bag schema with a single " +
-                		"element of type "+ DataType.findTypeName(DataType.TUPLE) +
-                		" but got an element of type " +
-                		DataType.findTypeName(tupleFS.type));
+                int errCode = 1009;
+            	String msg = "Expected a bag schema with a single " +
+        		"element of type "+ DataType.findTypeName(DataType.TUPLE) +
+        		" but got an element of type " +
+        		DataType.findTypeName(tupleFS.type);
+                throw new FrontendException(msg, errCode, PigException.INPUT);
             }
             
             // check if the alias supplied is that of the tuple 
@@ -1012,9 +1033,11 @@ public class Schema implements Serializable, Cloneable {
             // to the tuple itself - we only allow access to the fields
             // in the tuple
             if(alias.equals(tupleFS.alias)) {
-                throw new FrontendException("Access to the tuple ("+ alias + ") of " +
-                		"the bag is disallowed. Only access to the elements of " +
-                		"the tuple in the bag is allowed.");
+                int errCode = 1028;
+            	String msg = "Access to the tuple ("+ alias + ") of " +
+        		"the bag is disallowed. Only access to the elements of " +
+        		"the tuple in the bag is allowed.";
+                throw new FrontendException(msg, errCode, PigException.INPUT);
             }
             
             // all is good - get the position from the tuple's schema
@@ -1242,7 +1265,9 @@ public class Schema implements Serializable, Cloneable {
                 return null ;
             }
             else {
-                throw new SchemaMergeException("One schema is null") ;
+                int errCode = 1029;
+                String msg = "One of the schemas is null for merging schemas. Schema: " + schema + " Other schema: " + other;
+                throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
             }
         }
 
@@ -1251,13 +1276,17 @@ public class Schema implements Serializable, Cloneable {
                 return null ;
             }
             else {
-                throw new SchemaMergeException("One schema is null") ;
+                int errCode = 1029;
+                String msg = "One of the schemas is null for merging schemas. Schema: " + schema + " Other schema: " + other;
+                throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
             }
         }
 
         if ( (schema.size() != other.size()) &&
              (!allowDifferentSizeMerge) ) {
-            throw new SchemaMergeException("Different schema size") ;
+            int errCode = 1030;
+            String msg = "Different schema sizes for merging schemas. Schema size: " + schema.size() + " Other schema size: " + other.size();
+            throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
         }
 
         List<FieldSchema> outputList = new ArrayList<FieldSchema>() ;
@@ -1287,7 +1316,11 @@ public class Schema implements Serializable, Cloneable {
                 }
                 // otherwise the schemas cannot be merged
                 else {
-                    throw new SchemaMergeException("Incompatible types") ;
+                    int errCode = 1031;
+                    String msg = "Incompatible types for merging schemas. Field schema type: "
+                        + DataType.findTypeName(myFs.type) + " Other field schema type: "
+                        + DataType.findTypeName(otherFs.type);
+                    throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
                 }
             }
 
@@ -1311,7 +1344,10 @@ public class Schema implements Serializable, Cloneable {
                 // types, just return null meaning cannot merge
                 if ( (mergedSubSchema == null) &&
                      (!allowIncompatibleTypes) ) {
-                    throw new SchemaMergeException("Incompatible inner schemas") ;
+                    int errCode = 1032;
+                    String msg = "Incompatible inner schemas for merging schemas. "
+                        + " Field schema: " + myFs.schema + " Other field schema: " + otherFs.schema;
+                    throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
                 }
 
                 // create the merged field
@@ -1452,7 +1488,9 @@ public class Schema implements Serializable, Cloneable {
         }
 
         if (schema.size() < other.size()) {
-            throw new SchemaMergeException("Schema size mismatch. Other schema size greater than schema size. Schema: " + this + ". Other schema: " + other);
+            int errCode = 1033;
+            String msg = "Schema size mismatch for merging schemas. Other schema size greater than schema size. Schema: " + this + ". Other schema: " + other;
+            throw new SchemaMergeException(msg, errCode, PigException.INPUT);
         }
 
         List<FieldSchema> outputList = new ArrayList<FieldSchema>() ;
@@ -1488,7 +1526,9 @@ public class Schema implements Serializable, Cloneable {
                     FieldSchema tmp = new FieldSchema(fs.alias, fs.schema, fs.type) ;
                     outputList.add(tmp) ;
                 } catch (FrontendException fee) {
-                    throw new SchemaMergeException(fee.getMessage());
+                    int errCode = 1023;
+                    String msg = "Unable to create field schema.";
+                    throw new SchemaMergeException(msg, errCode, PigException.INPUT, fee);
                 }
             }
         }

@@ -48,6 +48,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobTracker;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -198,7 +199,9 @@ public class HExecutionEngine implements ExecutionEngine {
             jobClient = new JobClient(new JobConf(configuration));
         }
         catch (IOException e) {
-            throw new ExecException("Failed to create job client", e);
+            int errCode = 6009;
+            String msg = "Failed to create job client";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -222,7 +225,9 @@ public class HExecutionEngine implements ExecutionEngine {
     public PhysicalPlan compile(LogicalPlan plan,
                                 Properties properties) throws ExecException {
         if (plan == null) {
-            throw new ExecException("No Plan to compile");
+            int errCode = 2041;
+            String msg = "No Plan to compile";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
 
         try {
@@ -232,7 +237,9 @@ public class HExecutionEngine implements ExecutionEngine {
             translator.visit();
             return translator.getPhysicalPlan();
         } catch (VisitorException ve) {
-            throw new ExecException(ve);
+            int errCode = 2042;
+            String msg = "Internal error. Unable to translate logical plan to physical plan.";
+            throw new ExecException(msg, errCode, PigException.BUG, ve);
         }
     }
 
@@ -252,7 +259,11 @@ public class HExecutionEngine implements ExecutionEngine {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
             if (e instanceof ExecException) throw (ExecException)e;
-            else throw new ExecException(e.getMessage(), e);
+            else {
+                int errCode = 2043;
+                String msg = "Error during execution.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
+            }
         }
 
     }
@@ -383,13 +394,19 @@ public class HExecutionEngine implements ExecutionEngine {
         	}
 
             hdfs = properties.getProperty(FILE_SYSTEM_LOCATION);
-            if (hdfs == null)
-                throw new ExecException("Missing fs.default.name from hadoop configuration");
+            if (hdfs == null) {
+                int errCode = 4007;
+                String msg = "Missing fs.default.name from hadoop configuration.";
+                throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
+            }
             log.info("HDFS: " + hdfs);
 
             mapred = properties.getProperty(JOB_TRACKER_LOCATION);
-            if (mapred == null)
-                throw new ExecException("Missing mapred.job.tracker from hadoop configuration");
+            if (mapred == null) {
+                int errCode = 4007;
+                String msg = "Missing mapred.job.tracker from hadoop configuration";
+                throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
+            }
             log.info("JobTracker: " + mapred);
 
             // this is not longer needed as hadoop-site.xml given to us by HOD
@@ -402,9 +419,9 @@ public class HExecutionEngine implements ExecutionEngine {
             return new String[] {hdfs, mapred};
         } 
         catch (Exception e) {
-            ExecException ee = new ExecException("Could not connect to HOD");
-            ee.initCause(e);
-            throw ee;
+            int errCode = 6010;
+            String msg = "Could not connect to HOD";
+            throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
         }
     }
 
@@ -463,7 +480,9 @@ public class HExecutionEngine implements ExecutionEngine {
         try {
             bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(localFile)));
         } catch (Exception e){
-            throw new ExecException("Failed to create local hadoop file " + localFile, e);
+            int errCode = 4008;
+            String msg = "Failed to create local hadoop file " + localFile;
+            throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT, e);
         }
 
         try {
@@ -476,7 +495,9 @@ public class HExecutionEngine implements ExecutionEngine {
             br.close();
             bw.close();
         } catch (Exception e){
-            throw new ExecException("Failed to copy data to local hadoop file " + localFile, e);
+            int errCode = 4009;
+            String msg = "Failed to copy data to local hadoop file " + localFile;
+            throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT, e);
         }
 
         return localDir;
@@ -515,6 +536,7 @@ public class HExecutionEngine implements ExecutionEngine {
                     errMsg = br.readLine();
                     br.close();
                 } catch (IOException ioe) {}
+                int errCode = 6011;
                 StringBuilder msg = new StringBuilder("Failed to run command ");
                 msg.append(cmdToString(cmdarray));
                 msg.append(" on server ");
@@ -523,10 +545,13 @@ public class HExecutionEngine implements ExecutionEngine {
                 msg.append(rc);
                 msg.append("; error: ");
                 msg.append(errMsg);
-                throw new ExecException(msg.toString());
+                throw new ExecException(msg.toString(), errCode, PigException.REMOTE_ENVIRONMENT);
             }
         } catch (Exception e){
-            throw new ExecException(e);
+            if(e instanceof ExecException) throw (ExecException)e;
+            int errCode = 6012;
+            String msg = "Unable to run command: " + cmdToString(cmdarray) + " on server " + server;
+            throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
         }
 
         return p;

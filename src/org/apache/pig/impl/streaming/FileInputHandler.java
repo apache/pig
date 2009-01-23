@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.pig.PigException;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
@@ -46,7 +47,9 @@ public class FileInputHandler extends InputHandler {
             fileOutStream = new FileOutputStream(new File(fileName)); 
             super.bindTo(fileOutStream);
         } catch (IOException fnfe) {
-            throw new ExecException(fnfe);
+            int errCode = 2046;
+            String msg = "Unable to create FileInputHandler.";
+            throw new ExecException(msg, errCode, PigException.BUG, fnfe);
         }
     }
 

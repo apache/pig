@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.*;
 import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
 
 import org.junit.Test;
 import org.junit.Before;
@@ -152,5 +153,53 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         optimizePlan(plan);
         compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan7.dot");
     }
+
+    @Test
+    //Test to ensure that the right exception is thrown
+    public void testErrImplicitSplitInserter() throws Exception {
+        LogicalPlan lp = new LogicalPlan();
+        ImplicitSplitInserter isi = new ImplicitSplitInserter(lp);
+        try {
+            isi.transform(lp.getRoots());
+        } catch(Exception e) {
+            assertTrue(((OptimizerException)e).getErrorCode() == 2052);
+        }
+    }
+    
+    @Test
+    //Test to ensure that the right exception is thrown
+    public void testErrTypeCastInserter() throws Exception {
+        LogicalPlan lp = new LogicalPlan();
+        TypeCastInserter tci = new TypeCastInserter(lp, "hello");
+        try {
+            tci.transform(lp.getRoots());
+        } catch(Exception e) {
+            assertTrue(((OptimizerException)e).getErrorCode() == 2052);
+        }
+    }
+    
+    @Test
+    //Test to ensure that the right exception is thrown
+    public void testErrStreamOptimizer() throws Exception {
+        LogicalPlan lp = new LogicalPlan();
+        StreamOptimizer so = new StreamOptimizer(lp, "hello");
+        try {
+            so.transform(lp.getRoots());
+        } catch(Exception e) {
+            assertTrue(((OptimizerException)e).getErrorCode() == 2052);
+        }
+    }
+    
+    @Test
+    //Test to ensure that the right exception is thrown
+    public void testErrOpLimitOptimizer() throws Exception {
+        LogicalPlan lp = new LogicalPlan();
+        OpLimitOptimizer olo = new OpLimitOptimizer(lp);
+        try {
+            olo.transform(lp.getRoots());
+        } catch(Exception e) {
+            assertTrue(((OptimizerException)e).getErrorCode() == 2052);
+        }
+    }    
 }
 

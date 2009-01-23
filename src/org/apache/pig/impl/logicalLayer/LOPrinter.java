@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalker;

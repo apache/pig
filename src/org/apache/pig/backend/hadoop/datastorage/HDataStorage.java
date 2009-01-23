@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.dfs.DistributedFileSystem;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
@@ -204,7 +205,9 @@ public class HDataStorage implements DataStorage {
             }
         }
         catch (IOException e) {
-            throw new DataStorageException("Unable to check name " + name, e);
+            int errCode = 6007;
+            String msg = "Unable to check name " + name;
+            throw new DataStorageException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
         }
         
         return isContainer;
@@ -228,8 +231,9 @@ public class HDataStorage implements DataStorage {
 
             return hpaths.toArray(new HPath[hpaths.size()]);
         } catch (IOException e) {
-            throw new DataStorageException("Failed to obtain glob for "
-                    + pattern, e);
+            int errCode = 6008;
+            String msg = "Failed to obtain glob for " + pattern;
+            throw new DataStorageException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
         }
     }
     

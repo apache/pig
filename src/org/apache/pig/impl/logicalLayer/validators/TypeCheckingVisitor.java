@@ -36,6 +36,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Algebraic;
+import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -209,11 +210,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             pj.getFieldSchema() ;
         }
         catch (FrontendException fe) {
+            int errCode = 1035;
             String msg = "Error getting LOProject's input schema" ;
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
 
         }
 
@@ -339,9 +341,10 @@ public class TypeCheckingVisitor extends LOVisitor {
     public void visit(LOMapLookup map)
                         throws VisitorException {
         if(!DataType.isAtomic(DataType.findType(map.getLookUpKey()))) {
+            int errCode = 1036;
             String msg = "Map key should be a basic type" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         map.setType(map.getValueType());
@@ -366,9 +369,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         // Other than that if it's not CharArray just say goodbye
         if (rg.getOperand().getType() != DataType.CHARARRAY)
         {
+            int errCode = 1037;
             String msg = "Operand of Regex can be CharArray only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
     }
 
@@ -404,9 +408,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
+            int errCode = 1038;
             String msg = "Operands of AND/OR can be boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -438,9 +443,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
+            int errCode = 1038;
             String msg = "Operands of AND/OR can be boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -482,21 +488,23 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
+            int errCode = 1039;
             String msg = "Incompatible types in Multiplication Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOMultiply field schema";
+            int errCode = 1040;
+            String msg = "Could not set Multiply field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
 
@@ -537,21 +545,23 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
+            int errCode = 1039;
             String msg = "Incompatible types in Division Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LODivide field schema";
+            int errCode = 1040;
+            String msg = "Could not set Divide field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
 
@@ -592,20 +602,22 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
+            int errCode = 1039;
             String msg = "Incompatible types in Add Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOAdd field schema";
+            int errCode = 1040;
+            String msg = "Could not set Add field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
 
@@ -646,20 +658,22 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, DataType.DOUBLE) ;
         }
         else {
+            int errCode = 1039;
             String msg = "Incompatible types in Subtract Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOSubtract field schema";
+            int errCode = 1040;
+            String msg = "Could not set Subtract field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
 
@@ -707,11 +721,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Incompatible types in GreaterThan comparision operator"
+            int errCode = 1039;
+            String msg = "Incompatible types in GreaterThan operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -758,11 +773,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Incompatible types in GreaterThanEqualTo comparison operator"
+            int errCode = 1039;
+            String msg = "Incompatible types in GreaterThanEqualTo operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -808,11 +824,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Incompatible types in LesserThan comparison operator"
+            int errCode = 1039;
+            String msg = "Incompatible types in LesserThan operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -859,11 +876,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType) ;
         }
         else {
-            String msg = "Incompatible types in LesserThanEqualTo comparison operator"
+            int errCode = 1039;
+            String msg = "Incompatible types in LesserThanEqualTo operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -929,11 +947,12 @@ public class TypeCheckingVisitor extends LOVisitor {
                 && ((LOConst) binOp.getRhsOperand()).getValue() == null) {
             insertRightCastForBinaryOp(binOp, lhsType);
         } else {
-            String msg = "Incompatible types in EqualTo Comparison Operator"
+            int errCode = 1039;
+            String msg = "Incompatible types in EqualTo Operator"
                     + " LHS:" + DataType.findTypeName(lhsType) + " RHS:"
                     + DataType.findTypeName(rhsType);
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -998,11 +1017,12 @@ public class TypeCheckingVisitor extends LOVisitor {
                 && ((LOConst) binOp.getRhsOperand()).getValue() == null) {
             insertRightCastForBinaryOp(binOp, lhsType);
         } else {
-            String msg = "Incompatible types in NotEqual Comparison Operator"
+            int errCode = 1039;
+            String msg = "Incompatible types in NotEqual Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -1040,20 +1060,22 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertLeftCastForBinaryOp(binOp, rhsType) ;
         }
         else {
+            int errCode = 1039;
             String msg = "Incompatible types in Mod Operator"
                             + " LHS:" + DataType.findTypeName(lhsType)
                             + " RHS:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
         try {
             binOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOMod field schema";
+            int errCode = 1040;
+            String msg = "Could not set Mod field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
 
@@ -1070,19 +1092,21 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertCastForUniOp(uniOp, DataType.DOUBLE) ;
         }
         else {
+            int errCode = 1041;
             String msg = "NEG can be used with numbers or Bytearray only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         try {
             uniOp.regenerateFieldSchema();
         } catch (FrontendException fe) {
-            String msg = "Could not set LOSubtract field schema";
+            int errCode = 1040;
+            String msg = "Could not set Negative field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
     
@@ -1094,9 +1118,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         byte type = uniOp.getOperand().getType();
         if (type != DataType.BOOLEAN) {
+            int errCode = 1042;
             String msg = "NOT can be used with boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -1170,9 +1195,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                 uniOp.setType(DataType.DOUBLE) ;
             }
             else {
+                int errCode = 1041;
                 String msg = "NEG can be used with numbers or Bytearray only" ;
                 msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             }
         }
         else if (uniOp instanceof LONot) {
@@ -1180,9 +1206,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                 uniOp.setType(DataType.BOOLEAN) ;
             }
             else {
+                int errCode = 1042;
                 String msg = "NOT can be used with boolean only" ;
                 msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             }
         }
         else {
@@ -1235,14 +1262,17 @@ public class TypeCheckingVisitor extends LOVisitor {
         Schema s = new Schema();
         for(ExpressionOperator op: list) {
             if (!DataType.isUsableType(op.getType())) {
-                String msg = "Problem with input of User-defined function" ;
+                int errCode = 1014;
+                String msg = "Problem with input " + op + " of User-defined function: " + func;
                 msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg) ;
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             }
             try {
                 s.add(op.getFieldSchema());    
             } catch (FrontendException e) {
-                throw new VisitorException(e);
+                int errCode = 1043;
+                String msg = "Unable to retrieve field schema.";
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
             }
             
         }
@@ -1268,7 +1298,9 @@ public class TypeCheckingVisitor extends LOVisitor {
                     tmpField = new FieldSchema(null, s, DataType.BAG) ;
                 }
                 catch (FrontendException e) {
-                    throw new VisitorException(e) ;
+                    int errCode = 1023;
+                    String msg = "Unable to create new field schema.";
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT, e) ;
                 }
     
                 s = new Schema(tmpField) ;
@@ -1280,7 +1312,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             funcSpecs = ef.getArgToFuncMapping();    
         } catch (Exception e) {
-            throw new VisitorException(e);
+            int errCode = 1044;
+            String msg = "Unable to get list of overloaded methods.";
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
         }
         
         /**
@@ -1335,11 +1369,12 @@ public class TypeCheckingVisitor extends LOVisitor {
                     if((matchingSpec = exactMatchWithByteArrays(funcSpecs, s, func))==null){
                         // "exact" match with byte arrays did not work - try best fit match
                         if((matchingSpec = bestFitMatchWithByteArrays(funcSpecs, s, func)) == null) {
+                            int errCode = 1045;
                             String msg = "Could not infer the matching function for "
                                 + func.getFuncSpec()
                                 + " as multiple or none of them fit. Please use an explicit cast.";
                             msgCollector.collect(msg, MessageType.Error);
-                            throw new VisitorException(msg);
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
                         }
                     }
                 } else if ((matchingSpec = bestFitMatch(funcSpecs, s)) == null) {
@@ -1348,11 +1383,12 @@ public class TypeCheckingVisitor extends LOVisitor {
                     // However, we could not find a match as there were either
                     // none fitting the input schema or it was ambiguous.
                     // Throw exception that we can't infer a fit.
+                    int errCode = 1045;
                     String msg = "Could not infer the matching function for "
                             + func.getFuncSpec()
                             + " as multiple or none of them fit. Please use an explicit cast.";
                     msgCollector.collect(msg, MessageType.Error);
-                    throw new VisitorException(msg);
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT);
                 }
             }
         }
@@ -1377,11 +1413,12 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             func.regenerateFieldSchema();
         } catch (FrontendException fee) {
-            String msg = "Could not set LOUserFunc field schema";
+            int errCode = 1040;
+            String msg = "Could not set UserFunc field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fee) ;
-            throw new VisitorException(msg) ;
+            throw vse ;
         }
     }
     
@@ -1501,12 +1538,13 @@ public class TypeCheckingVisitor extends LOVisitor {
             // if there are two (or more) candidates with the same *lowest* score
             // we cannot choose one of them - notify the user
             if (scoreFuncSpecList.get(0).first == scoreFuncSpecList.get(1).first) {
+                int errCode = 1046;
                 String msg = "Multiple matching functions for "
                         + func.getFuncSpec() + " with input schemas: " + "("
                         + scoreFuncSpecList.get(0).second.getInputArgsSchema() + ", " 
                         + scoreFuncSpecList.get(1).second.getInputArgsSchema() + "). Please use an explicit cast.";
                 msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg);
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT);
             }
         
             // now consider the bytearray fields
@@ -1530,17 +1568,20 @@ public class TypeCheckingVisitor extends LOVisitor {
                             // matches
                             Pair<FuncSpec, Byte> existingPair = castToMap.get(i);
                             if (sch.getField(i).type != existingPair.second) {
+                                int errCode = 1046;
                                 String msg = "Multiple matching functions for "
                                         + func.getFuncSpec() + " with input schema: " 
                                         + "(" + existingPair.first.getInputArgsSchema() 
                                         + ", " + funcSpec.getInputArgsSchema() 
                                         + "). Please use an explicit cast.";
                                 msgCollector.collect(msg, MessageType.Error);
-                                throw new VisitorException(msg);
+                                throw new TypeCheckerException(msg, errCode, PigException.INPUT);
                             }
                         }
-                    } catch (ParseException e) {
-                        new VisitorException(e);
+                    } catch (FrontendException fee) {
+                        int errCode = 1043;
+                        String msg = "Unalbe to retrieve field schema.";
+                        throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee);
                     }
                 }
             }
@@ -1566,8 +1607,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                 if(fs.type==DataType.BYTEARRAY){
                     return true;
                 }
-            } catch (ParseException e) {
-                throw new VisitorException(e);
+            } catch (FrontendException fee) {
+                int errCode = 1043;
+                String msg = "Unable to retrieve field schema.";
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee);
             }
         }
         return false;
@@ -1589,9 +1632,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                 if (fs.type == DataType.BYTEARRAY) {
                     result.add(i);
                 }
-            } catch (ParseException e) {
-                throw new VisitorException(e);
-            }
+            } catch (FrontendException fee) {
+                int errCode = 1043;
+                String msg = "Unable to retrieve field schema.";
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee);            }
         }
         return result;
     }
@@ -1618,13 +1662,14 @@ public class TypeCheckingVisitor extends LOVisitor {
             return null;
         
         if(matchingSpecs.size() > 1) {
+            int errCode = 1046;
             String msg = "Multiple matching functions for "
                                         + func.getFuncSpec() + " with input schema: " 
                                         + "(" + matchingSpecs.get(0).getInputArgsSchema() 
                                         + ", " + matchingSpecs.get(1).getInputArgsSchema() 
                                         + "). Please use an explicit cast.";
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg);
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
         
         // exactly one matching spec - return it
@@ -1806,9 +1851,10 @@ public class TypeCheckingVisitor extends LOVisitor {
              
         // high-level type checking
         if (binCond.getCond().getType() != DataType.BOOLEAN) {
+            int errCode = 1047;
             String msg = "Condition in BinCond must be boolean" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }       
         
         byte lhsType = binCond.getLhsOp().getType() ;
@@ -1851,18 +1897,20 @@ public class TypeCheckingVisitor extends LOVisitor {
             if (DataType.isSchemaType(lhsType)) {            
                 try {
                     if (!Schema.equals(binCond.getLhsOp().getSchema(), binCond.getRhsOp().getSchema(), false, true)) {
+                        int errCode = 1048;
                         String msg = "Two inputs of BinCond must have compatible schemas" ;
                         msgCollector.collect(msg, MessageType.Error) ;
-                        throw new VisitorException(msg) ;
+                        throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                     }
                     // TODO: We may have to merge the schema here
                     //       if the previous check is not exact match
                     //       Is Schema.reconcile good enough?
                 } 
                 catch (FrontendException ioe) {
-                    String msg = "Problem during evaluating BinCond output type" ;
+                    int errCode = 1049;
+                    String msg = "Problem during evaluaton of BinCond output type" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    VisitorException vse = new VisitorException(msg) ;
+                    TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                     vse.initCause(ioe) ;
                     throw vse ;
                 }
@@ -1872,19 +1920,21 @@ public class TypeCheckingVisitor extends LOVisitor {
             binCond.setType(lhsType);
         }
         else {
+            int errCode = 1050;
             String msg = "Unsupported input type for BinCond: lhs = " + DataType.findTypeName(lhsType) + "; rhs = " + DataType.findTypeName(rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         try {
             binCond.regenerateFieldSchema();
         } catch (FrontendException fee) {
-            String msg = "Could not set LOBinCond field schema";
+            int errCode = 1040;
+            String msg = "Could not set BinCond field schema";
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg) ;
             vse.initCause(fee) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -1905,7 +1955,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             try {
                     cast.setFieldSchema(binCond.getRhsOp().getFieldSchema());
             } catch (FrontendException e) {
-                throw new VisitorException(e);
+                int errCode = 1043;
+                String msg = "Unable to retrieve field schema of operator";
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
             }
         }
         currentPlan.add(cast) ;
@@ -1938,7 +1990,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             try {
                 cast.setFieldSchema(binCond.getLhsOp().getFieldSchema());
             } catch (FrontendException e) {
-                throw new VisitorException(e);
+                int errCode = 1043;
+                String msg = "Unable to retrieve field schema of operator";
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
             }
         }
         currentPlan.add(cast) ;
@@ -1972,9 +2026,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
 
         if(expectedType == DataType.BYTEARRAY) {
+            int errCode = 1051;
             String msg = "Cannot cast to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ; 
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ; 
         }
         
         Schema.FieldSchema castFs;
@@ -1983,10 +2038,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             castFs = cast.getFieldSchema();
             inputFs = cast.getExpression().getFieldSchema();
         } catch(FrontendException fee) {
-            throw new VisitorException(fee.getMessage());
+            throw new TypeCheckerException(fee.getMessage());
         }
         boolean castable = Schema.FieldSchema.castable(castFs, inputFs);
         if(!castable) {
+            int errCode = 1052;
             String msg = "Cannot cast "
                            + DataType.findTypeName(inputType)
                            + ((DataType.isSchemaType(inputType))? " with schema " + inputFs : "")
@@ -1994,7 +2050,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                            + DataType.findTypeName(expectedType)
                            + ((DataType.isSchemaType(expectedType))? " with schema " + castFs : "");
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ; 
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ; 
         }
         
         // cast.getType() already returns the correct type so don't have to 
@@ -2006,11 +2062,12 @@ public class TypeCheckingVisitor extends LOVisitor {
                 FuncSpec loadFuncSpec = getLoadFuncSpec(cast.getExpression());
                 cast.setLoadFuncSpec(loadFuncSpec);
             } catch (FrontendException fee) {
+                int errCode = 1053;
                 String msg = "Cannot resolve load function to use for casting from " + 
                             DataType.findTypeName(inputType) + " to " +
-                            DataType.findTypeName(expectedType) + ". " + fee.getMessage();
+                            DataType.findTypeName(expectedType) + ". ";
                 msgCollector.collect(msg, MessageType.Error);
-                throw new VisitorException(msg, fee); 
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee); 
             }
         }
     }
@@ -2063,9 +2120,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
                     // if they cannot be merged, we just give up
                     if (tmpSchema == null) {
-                        String msg = "cannot merge schemas from inputs of UNION" ;
+                        int errCode = 1054;
+                        String msg = "Cannot merge schemas from inputs of UNION" ;
                         msgCollector.collect(msg, MessageType.Error) ;
-                        throw new VisitorException(msg) ;
+                        throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                     }
                 }
             }
@@ -2075,9 +2133,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         }
         catch (FrontendException fee) {
-            String msg = "Problem while reading schemas from inputs of UNION" ;
+            int errCode = 1055;
+            String msg = "Problem while reading schemas from inputs of Union" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fee) ;
             throw vse ;
         }
@@ -2099,10 +2158,11 @@ public class TypeCheckingVisitor extends LOVisitor {
                         this.visit(insertedOp);
                     }
                     catch (FrontendException fee) {
-                        String msg = "Problem while casting inputs of UNION" ;
+                        int errCode = 1056;
+                        String msg = "Problem while casting inputs of Union" ;
                         msgCollector.collect(msg, MessageType.Error) ;
-                        VisitorException vse = new VisitorException(msg) ;
-                        //vse.initCause(fee) ;
+                        TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                        vse.initCause(fee) ;
                         throw vse ;
                     }
                 }
@@ -2126,18 +2186,20 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         // Check that the inner plan has only 1 output port
         if (!condPlan.isSingleLeafPlan()) {
-            String msg = "Split's cond plan can only have one output (leaf)" ;
+            int errCode = 1057;
+            String msg = "Split's inner plan can only have one output (leaf)" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
             
         checkInnerPlan(condPlan) ;
                  
         byte innerCondType = condPlan.getLeaves().get(0).getType() ;
         if (innerCondType != DataType.BOOLEAN) {
-            String msg = "Split's condition must evaluate to boolean" ;
+            int errCode = 1058;
+            String msg = "Split's condition must evaluate to boolean. Found: " + DataType.findTypeName(innerCondType) ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         try {
@@ -2145,10 +2207,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             op.getSchema() ;
         }
         catch (FrontendException fe) {
+            int errCode = 1055;
             String msg = "Problem while reading"
-                         + " schemas from inputs of LOSplitOutput" ;
+                         + " schemas from inputs of SplitOutput" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
             throw vse ;
         }
@@ -2172,10 +2235,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             op.getSchema() ;
         }
         catch (FrontendException fe) {
+            int errCode = 1055;
             String msg = "Problem while reading"
-                         + " schemas from inputs of LODistinct" ;
+                         + " schemas from inputs of Distinct" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
             throw vse ;
         }
@@ -2188,10 +2252,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             op.regenerateSchema() ;
         }
         catch (FrontendException fe) {
+            int errCode = 1055;
             String msg = "Problem while reading"
-                         + " schemas from inputs of LODistinct" ;
+                         + " schemas from inputs of Limit" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
             throw vse ;
         }
@@ -2214,10 +2279,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             cs.getSchema() ;
         }
         catch (FrontendException fe) {
+            int errCode = 1055;
             String msg = "Problem while reading"
-                        + " schemas from inputs of CROSS" ;
+                        + " schemas from inputs of Cross" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
             throw vse ;
         }
@@ -2239,9 +2305,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
             // Check that the inner plan has only 1 output port
             if (!sortColPlan.isSingleLeafPlan()) {
-                String msg = "LOSort's sort plan can only have one output (leaf)" ;
+                int errCode = 1057;
+                String msg = "Sort's inner plan can only have one output (leaf)" ;
                 msgCollector.collect(msg, MessageType.Error) ;
-                throw new VisitorException(msg) ;
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             }
 
             checkInnerPlan(sortColPlan) ;
@@ -2255,11 +2322,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             // Compute the schema
             s.getSchema() ;
         }
-        catch (FrontendException ioe) {
-            String msg = "Problem while reconciling output schema of LOSort" ;
+        catch (FrontendException fee) {
+            int errCode = 1059;
+            String msg = "Problem while reconciling output schema of Sort" ;
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
-            vse.initCause(ioe) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            vse.initCause(fee) ;
             throw vse ;
         }
     }
@@ -2277,18 +2345,20 @@ public class TypeCheckingVisitor extends LOVisitor {
         
         // Check that the inner plan has only 1 output port
         if (!comparisonPlan.isSingleLeafPlan()) {
+            int errCode = 1057;
             String msg = "Filter's cond plan can only have one output (leaf)" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
         checkInnerPlan(comparisonPlan) ;
               
         byte innerCondType = comparisonPlan.getLeaves().get(0).getType() ;
         if (innerCondType != DataType.BOOLEAN) {
+            int errCode = 1058;
             String msg = "Filter's condition must evaluate to boolean. Found: " + DataType.findTypeName(innerCondType);
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new VisitorException(msg) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }       
 
 
@@ -2297,9 +2367,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             filter.getSchema() ;
         } 
         catch (FrontendException ioe) {
-            String msg = "Problem while reconciling output schema of LOFilter" ;
+            int errCode = 1059;
+            String msg = "Problem while reconciling output schema of Filter" ;
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(ioe) ;
             throw vse ;
         }
@@ -2324,9 +2395,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             split.regenerateSchema() ;
         }
         catch (FrontendException ioe) {
-            String msg = "Problem while reconciling output schema of LOSplit" ;
+            int errCode = 1059;
+            String msg = "Problem while reconciling output schema of Split" ;
             msgCollector.collect(msg, MessageType.Error);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(ioe) ;
             throw vse ;
         }
@@ -2339,10 +2411,12 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             frj.regenerateSchema();
         } catch (FrontendException fe) {
-            String msg = "Cannot resolve COGroup output schema" ;
+            int errCode = 1060;
+            String msg = "Cannot resolve Fragment Replicate Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg, fe) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
             throw vse ;
+
         }
         MultiMap<LogicalOperator, LogicalPlan> joinColPlans
                                                     = frj.getJoinColPlans() ;
@@ -2360,10 +2434,12 @@ public class TypeCheckingVisitor extends LOVisitor {
                 
                 // Check that the inner plan has only 1 output port
                 if (!innerPlan.isSingleLeafPlan()) {
-                    String msg = "COGroup's inner plans can only"
+                    int errCode = 1057;
+                    String msg = "Fragment Replicate Join's inner plans can only"
                                  + "have one output (leaf)" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new VisitorException(msg) ;
+                    TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                    throw vse ;
                 }
 
                 checkInnerPlan(innerPlans.get(j)) ;
@@ -2411,21 +2487,21 @@ public class TypeCheckingVisitor extends LOVisitor {
                         byte expectedType = DataType.BYTEARRAY ;
 
                         if (!DataType.isAtomic(innerType) && (DataType.TUPLE != innerType)) {
-                            String msg = "Sorry, group by complex types"
-                                       + " will be supported soon" ;
+                            int errCode = 1057;
+                            String msg = "Fragment Replicate Join's inner plans can only"
+                                         + "have one output (leaf)" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            VisitorException vse = new VisitorException(msg) ;
-                            throw vse ;
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                         }
 
                         try {
                             expectedType = groupBySchema.getField(j).type ;
                         }
-                        catch(ParseException pe) {
-                            String msg = "Cannot resolve COGroup output schema" ;
+                        catch(FrontendException fee) {
+                            int errCode = 1060;
+                            String msg = "Cannot resolve Fragment Replicate Join output schema" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            VisitorException vse = new VisitorException(msg) ;
-                            vse.initCause(pe) ;
+                            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
                             throw vse ;
                         }
 
@@ -2439,9 +2515,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
         }
         catch (FrontendException fe) {
-            String msg = "Cannot resolve COGroup output schema" ;
+            int errCode = 1060;
+            String msg = "Cannot resolve Fragment Replicate Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg, fe) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
             throw vse ;
         }
 
@@ -2453,10 +2530,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             Schema outputSchema = frj.regenerateSchema() ;
         }
         catch (FrontendException fe) {
-            String msg = "Cannot resolve COGroup output schema" ;
+            int errCode = 1060;
+            String msg = "Cannot resolve Fragment Replicate Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
-            vse.initCause(fe) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
             throw vse ;
         }
     }
@@ -2470,9 +2547,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             cg.regenerateSchema();
         } catch (FrontendException fe) {
+            int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg, fe) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
             throw vse ;
         }
         MultiMap<LogicalOperator, LogicalPlan> groupByPlans
@@ -2491,10 +2569,11 @@ public class TypeCheckingVisitor extends LOVisitor {
                 
                 // Check that the inner plan has only 1 output port
                 if (!innerPlan.isSingleLeafPlan()) {
+                    int errCode = 1057;
                     String msg = "COGroup's inner plans can only"
                                  + "have one output (leaf)" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new VisitorException(msg) ;
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                 }
 
                 checkInnerPlan(innerPlans.get(j)) ;
@@ -2543,21 +2622,22 @@ public class TypeCheckingVisitor extends LOVisitor {
                         byte expectedType = DataType.BYTEARRAY ;
 
                         if (!DataType.isAtomic(innerType) && (DataType.TUPLE != innerType)) {
+                            int errCode = 1061;
                             String msg = "Sorry, group by complex types"
                                        + " will be supported soon" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            VisitorException vse = new VisitorException(msg) ;
+                            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                             throw vse ;
                         }
 
                         try {
                             expectedType = groupBySchema.getField(j).type ;
                         }
-                        catch(ParseException pe) {
+                        catch(FrontendException fee) {
+                            int errCode = 1060;
                             String msg = "Cannot resolve COGroup output schema" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            VisitorException vse = new VisitorException(msg) ;
-                            vse.initCause(pe) ;
+                            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
                             throw vse ;
                         }
 
@@ -2571,9 +2651,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
         }
         catch (FrontendException fe) {
+            int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg, fe) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
             throw vse ;
         }
 
@@ -2585,9 +2666,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             Schema outputSchema = cg.regenerateSchema() ;
         }
         catch (FrontendException fe) {
+            int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             vse.initCause(fe) ;
             throw vse ;
         }
@@ -2685,9 +2767,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                 }
                 // We just die if in strict mode
                 else {
+                    int errCode = 1062;
                     String msg = "COGroup by incompatible types" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new VisitorException(msg) ;
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                 }
             }
 
@@ -2740,9 +2823,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                     }
                     // We just die if in strict mode
                     else {
+                        int errCode = 1062;
                         String msg = "COGroup by incompatible types" ;
                         msgCollector.collect(msg, MessageType.Error) ;
-                        throw new VisitorException(msg) ;
+                        throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                     }
                 }
             }
@@ -2774,10 +2858,11 @@ public class TypeCheckingVisitor extends LOVisitor {
 
                 // Check that the inner plan has only 1 output port
                 if (!plan.isSingleLeafPlan()) {
+                    int errCode = 1057;
                     String msg = "Generate's expression plan can "
                                  + " only have one output (leaf)" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new VisitorException(msg) ;
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                 }
 
                 List<LogicalOperator> rootList = plan.getRoots() ;
@@ -2805,11 +2890,10 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         }
         catch (FrontendException pe) {
-            String msg = "Problem resolving LOForEach schema " 
-                         + pe.getMessage() ;
+            int errCode = 1060;
+            String msg = "Cannot resolve ForEach output schema.";
             msgCollector.collect(msg, MessageType.Error) ;
-            log.debug(pe);
-            VisitorException vse = new VisitorException(msg) ;
+            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, pe) ;
             throw vse ;
         }
     }
@@ -2991,13 +3075,13 @@ public class TypeCheckingVisitor extends LOVisitor {
             try {
                 fs = fromSchema.getField(i) ;
             }
-            catch(ParseException pe) {
+            catch(FrontendException fee) {
+                int errCode = 1063;
                 String msg = "Problem while reading"
                                 + " field schema from input while"
-                                + " insert casting " ;
+                                + " inserting cast " ;
                 msgCollector.collect(msg, MessageType.Error) ;
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(pe) ;
+                TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
                 throw vse ;
             }
 
@@ -3008,8 +3092,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             try {
                 inputFieldType = targetSchema.getField(i).type ;
             }
-            catch (ParseException e) {
-                throw new AssertionError("Cannot get field type") ;
+            catch (FrontendException fee) {
+                int errCode = 1064;
+                String msg = "Problem reading column " + i + " from schema: " + targetSchema;
+                TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
+                throw vse ;                
             }
 
             if (inputFieldType != fs.type) {
@@ -3126,7 +3213,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             return loadFuncSpecMap.get(lfString).iterator().next();
         }
 
-        throw new FrontendException("Found more than one load function to use: " + loadFuncSpecMap.keySet());
+        {
+            int errCode = 1065;
+            String msg = "Found more than one load function to use: " + loadFuncSpecMap.keySet();
+            throw new FrontendException(msg, errCode, PigException.INPUT);
+        }
     }
 
     private FuncSpec getLoadFuncSpec(LogicalOperator op, String parentCanonicalName) throws FrontendException {
@@ -3205,7 +3296,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             return loadFuncSpecMap.get(lfString).iterator().next();
         }
     
-        throw new FrontendException("Found more than one load function to use: " + loadFuncSpecMap.keySet());
+        {
+            int errCode = 1065;
+            String msg = "Found more than one load function to use: " + loadFuncSpecMap.keySet();
+            throw new FrontendException(msg, errCode, PigException.INPUT);
+        }
     }
 
     private FuncSpec getLoadFuncSpec(Schema.FieldSchema fs, String parentCanonicalName) throws FrontendException {
@@ -3241,7 +3336,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             return loadFuncSpecMap.get(lfString).iterator().next();
         }
 
-        throw new FrontendException("Found more than one load function to use: " + loadFuncSpecMap.keySet());
+        {
+            int errCode = 1065;
+            String msg = "Found more than one load function to use: " + loadFuncSpecMap.keySet();
+            throw new FrontendException(msg, errCode, PigException.INPUT);
+        }
     }
 
 

@@ -79,8 +79,6 @@ public class StandAloneParser {
             }
         } catch (IOException e) {
             log.error(e);
-        } catch (FrontendException fe) {
-            log.error(fe);
         }
     }
 }

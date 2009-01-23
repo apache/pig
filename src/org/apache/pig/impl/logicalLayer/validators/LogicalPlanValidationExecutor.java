@@ -79,10 +79,10 @@ public class LogicalPlanValidationExecutor
                 validator.validate(plan, msgCollector) ;
             }
         } 
-        catch(PlanValidationException pve) {
+        catch(PlanValidationException pve) {            
             msgCollector.collect("Severe problem found during validation "
                                  + pve.toString(),
-                                 MessageType.Error) ;
+                                 MessageType.Error) ;            
             throw pve;
         }     
     }

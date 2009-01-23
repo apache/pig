@@ -23,7 +23,6 @@ import java.util.List;
 import java.io.IOException;
 
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
@@ -120,7 +119,7 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      *             if there is already a schema and the existing schema cannot
      *             be reconciled with this new schema.
      */
-    public void setSchema(Schema schema) throws ParseException {
+    public void setSchema(Schema schema) throws FrontendException {
         // In general, operators don't generate their schema until they're
         // asked, so ask them to do it.
         try {

@@ -279,9 +279,6 @@ public class TypeGraphPrinter extends LOVisitor {
             catch (FrontendException fe) {
                 throw new RuntimeException("PROBLEM PRINTING SCHEMA") ;
             }
-            catch (ParseException pe) {
-                throw new RuntimeException("PROBLEM PRINTING SCHEMA") ;
-            }
         }
 
         sb.append("==>") ;

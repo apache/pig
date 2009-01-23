@@ -17,21 +17,141 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-public class FrontendException extends Exception {
+import org.apache.pig.PigException;
 
-    public FrontendException (String message, Throwable cause) {
+public class FrontendException extends PigException {
+
+    /**
+     * Create a new FrontendException with null as the error message.
+     */
+    public FrontendException() {
+        super();
+    }
+    
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     */
+    public FrontendException(String message) {
+        super(message);
+    }
+    
+    /**
+     * Create a new FrontendException with the specified cause.
+     *
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
+     */
+    public FrontendException(Throwable cause) {
+        super(cause);
+    }
+
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
+     */
+    public FrontendException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public FrontendException() {
-        this(null, null);
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     */
+    public FrontendException(String message, int errCode) {
+        super(message, errCode);
     }
+
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     */
+    public FrontendException(String message, int errCode, Throwable cause) {
+        super(message, errCode, cause);
+    }
+
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     */
+    public FrontendException(String message, int errCode, byte errSrc) {
+        super(message, errCode, errSrc);
+    }   
+
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     */
+    public FrontendException(String message, int errCode, byte errSrc,
+            Throwable cause) {
+        super(message, errCode, errSrc, cause);
+    }
+
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param retry - If the exception is retriable or not
+     */ 
+    public FrontendException(String message, int errCode, boolean retry) {
+        super(message, errCode, retry);
+    }
+
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     * @param retry - If the exception is retriable or not
+     */
+    public FrontendException(String message, int errCode, byte errSrc,
+            boolean retry) {
+        super(message, errCode, errSrc, retry);
+    }    
+
+	/**
+     * Create a new FrontendException with the specified message, error code, error source, retriable or not, detalied message for the developer and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     * @param retry - If the exception is retriable or not
+     * @param detailedMsg - The detailed message shown to the developer 
+     */
+	public FrontendException(String message, int errCode, byte errSrc,
+			boolean retry, String detailedMsg) {
+		super(message, errCode, errSrc, retry, detailedMsg);
+	}
     
-    public FrontendException(String message) {
-        this(message, null);
+    /**
+     * Create a new FrontendException with the specified message, error code, error source, retriable or not, detalied message for the developer and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     * @param retry - If the exception is retriable or not
+     * @param detailedMsg - The detailed message shown to the developer 
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
+     */
+    public FrontendException(String message, int errCode, byte errSrc,
+            boolean retry, String detailedMsg, Throwable cause) {
+        super(message, errCode, errSrc, retry, detailedMsg, cause);
     }
-    
-    public FrontendException(Throwable cause) {
-        this(null, cause);
-    }
+
 }

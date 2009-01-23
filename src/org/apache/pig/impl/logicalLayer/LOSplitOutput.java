@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -73,7 +74,9 @@ public class LOSplitOutput extends LogicalOperator {
             try {
                 LogicalOperator input = mPlan.getPredecessors(this).get(0);
                 if (null == input) {
-                    throw new FrontendException("Could not find operator in plan");
+                    int errCode = 1006;
+                    String msg = "Could not find operator in plan";
+                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
                 mSchema = input.getSchema();
                 mIsSchemaComputed = true;

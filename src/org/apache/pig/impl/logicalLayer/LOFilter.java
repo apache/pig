@@ -19,7 +19,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
 import java.util.ArrayList;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
