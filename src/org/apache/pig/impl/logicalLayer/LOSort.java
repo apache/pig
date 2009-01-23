@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Iterator;
 
 import org.apache.pig.FuncSpec;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -135,7 +135,9 @@ public class LOSort extends LogicalOperator {
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {
-                    throw new FrontendException("Could not find operator in plan");
+                    int errCode = 1006;
+                    String msg = "Could not find operator in plan";                    
+                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
                 if(op instanceof ExpressionOperator) {
                     Schema.FieldSchema fs = new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema());

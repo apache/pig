@@ -22,6 +22,7 @@ import java.net.URL;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -138,9 +139,9 @@ public class LOLoad extends LogicalOperator {
                 }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
-                ioe.printStackTrace();
-                FrontendException fee = new FrontendException(ioe.getMessage());
-                fee.initCause(ioe);
+                int errCode = 1018;
+                String msg = "Problem determining schema during load";
+                FrontendException fee = new FrontendException(msg, errCode, PigException.INPUT, false, null, ioe);
                 mIsSchemaComputed = false;
                 mSchema = null;
                 throw fee;
@@ -153,7 +154,7 @@ public class LOLoad extends LogicalOperator {
      * @see org.apache.pig.impl.logicalLayer.LogicalOperator#setSchema(org.apache.pig.impl.logicalLayer.schema.Schema)
      */
     @Override
-    public void setSchema(Schema schema) throws ParseException {
+    public void setSchema(Schema schema) throws FrontendException {
         // In general, operators don't generate their schema until they're
         // asked, so ask them to do it.
         try {
@@ -170,9 +171,9 @@ public class LOLoad extends LogicalOperator {
             try {
                 mSchema = mSchema.mergePrefixSchema(schema, true, true);
             } catch (SchemaMergeException e) {
-                ParseException pe = new ParseException("Unable to merge schemas");
-                pe.initCause(e);
-                throw pe;
+                int errCode = 1019;
+                String msg = "Unable to merge schemas";
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
             }
         }
     }

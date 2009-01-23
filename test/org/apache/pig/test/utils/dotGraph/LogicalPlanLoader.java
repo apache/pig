@@ -23,6 +23,7 @@ import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
+import org.apache.pig.impl.logicalLayer.FrontendException ;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
@@ -220,7 +221,7 @@ public class LogicalPlanLoader
                         }
                     }
 
-                } catch (ParseException e) {
+                } catch (FrontendException e) {
                     throw new AssertionError("Cannot access schema internals") ;
                 }
             }

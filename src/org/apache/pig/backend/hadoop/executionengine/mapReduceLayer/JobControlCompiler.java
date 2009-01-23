@@ -45,20 +45,16 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.DoubleWritable;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -70,9 +66,7 @@ import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
@@ -189,9 +183,12 @@ public class JobControlCompiler{
             //Create a new Job with the obtained JobConf
             //and the compiled inputs as dependent jobs
             return new Job(currJC,(ArrayList<Job>)compiledInputs);
-        }catch(Exception e){
-            JobCreationException jce = new JobCreationException(e);
-            throw jce;
+        } catch (JobCreationException jce) {
+        	throw jce;
+        } catch(Exception e) {
+            int errCode = 2017;
+            String msg = "Internal error creating job configuration.";
+            throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -392,9 +389,12 @@ public class JobControlCompiler{
                 }
             }
             return jobConf;
-        }catch(Exception e){
-            JobCreationException jce = new JobCreationException(e);
-            throw jce;
+        } catch (JobCreationException jce) {
+        	throw jce;
+        } catch(Exception e) {
+            int errCode = 2017;
+            String msg = "Internal error creating job configuration.";
+            throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -514,16 +514,18 @@ public class JobControlCompiler{
                 break;
 
             case DataType.MAP:
-                log.error("Using Map as key not supported.");
-                throw new JobCreationException("Using Map as key not supported");
+                int errCode = 1068;
+                String msg = "Using Map as key not supported.";
+                throw new JobCreationException(msg, errCode, PigException.INPUT);
 
             case DataType.TUPLE:
                 jobConf.setOutputKeyComparatorClass(PigTupleRawComparator.class);
                 break;
 
             case DataType.BAG:
-                log.error("Using Bag as key not supported.");
-                throw new JobCreationException("Using Bag as key not supported");
+                errCode = 1068;
+                msg = "Using Bag as key not supported.";
+                throw new JobCreationException(msg, errCode, PigException.INPUT);
 
             default:
                 break;
@@ -557,20 +559,23 @@ public class JobControlCompiler{
             break;
 
         case DataType.MAP:
-            log.error("Using Map as key not supported.");
-            throw new JobCreationException("Using Map as key not supported");
+            int errCode = 1068;
+            String msg = "Using Map as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
 
         case DataType.TUPLE:
             jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
             break;
 
         case DataType.BAG:
-            log.error("Using Bag as key not supported.");
-            throw new JobCreationException("Using Bag as key not supported");
+            errCode = 1068;
+            msg = "Using Bag as key not supported.";
+            throw new JobCreationException(msg, errCode, PigException.INPUT);
 
         default:
-            throw new RuntimeException("Forgot case for type " +
-                DataType.findTypeName(keyType));
+            errCode = 2036;
+            msg = "Unhandled key type " + DataType.findTypeName(keyType);
+            throw new JobCreationException(msg, errCode, PigException.BUG);
         }
     }
 
@@ -597,8 +602,10 @@ public class JobControlCompiler{
                     try {
                         srcURI = new URI(src.toString());
                     } catch (URISyntaxException ue) {
-                        throw new IOException("Invalid cache specification, " +
-                        		              "file doesn't exist: " + src);
+                        int errCode = 6003;
+                        String msg = "Invalid cache specification. " +
+                        "File doesn't exist: " + src;
+                        throw new PigException(msg, errCode, PigException.USER_ENVIRONMENT);
                     }
                     
                     // Ship it to the cluster if necessary and add to the
@@ -614,8 +621,22 @@ public class JobControlCompiler{
                         try {
                             dstURI = new URI(dst.toString() + "#" + src.getName());
                         } catch (URISyntaxException ue) {
-                            throw new IOException("Invalid ship specification, " +
-                                                  "file doesn't exist: " + dst);
+                            byte errSrc = pigContext.getErrorSource();
+                            int errCode = 0;
+                            switch(errSrc) {
+                            case PigException.REMOTE_ENVIRONMENT:
+                                errCode = 6004;
+                                break;
+                            case PigException.USER_ENVIRONMENT:
+                                errCode = 4004;
+                                break;
+                            default:
+                                errCode = 2037;
+                                break;
+                            }
+                            String msg = "Invalid ship specification. " +
+                            "File doesn't exist: " + dst;
+                            throw new PigException(msg, errCode, errSrc);
                         }
                         DistributedCache.addCacheFile(dstURI, conf);
                     } else {

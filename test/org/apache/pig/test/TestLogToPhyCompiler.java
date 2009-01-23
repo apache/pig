@@ -38,6 +38,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -525,6 +526,60 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
+    }
+
+    @Test
+    public void testErrLimit() throws VisitorException, IOException {
+        String query = "limit (load 'a') 5;";
+        LogicalPlan plan = buildPlan(query);
+        plan.remove(plan.getRoots().get(0));
+        try {
+            buildPhysicalPlan(plan);
+            fail("Expected error.");
+        } catch(VisitorException ve) {
+            assertTrue(ve.getErrorCode() == 2051);
+        }
+    }
+
+    @Test
+    public void testErrFilter() throws VisitorException, IOException {
+        String query = "filter (load 'a') by $0 > 5;";
+        LogicalPlan plan = buildPlan(query);
+        plan.remove(plan.getRoots().get(0));
+        try {
+            buildPhysicalPlan(plan);
+            fail("Expected error.");
+        } catch(VisitorException ve) {
+            assertTrue(ve.getErrorCode() == 2051);
+        }
+    }
+
+    @Test
+    public void testErrSort() throws VisitorException, IOException {
+        String query = "order (load 'a') by $0 desc;";
+        LogicalPlan plan = buildPlan(query);
+        plan.remove(plan.getRoots().get(0));
+        try {
+            buildPhysicalPlan(plan);
+            fail("Expected error.");
+        } catch(VisitorException ve) {
+            assertTrue(ve.getErrorCode() == 2051);
+        }
+    }
+
+    @Test
+    public void testErrNull() throws VisitorException, IOException {
+        String query = "filter (load 'a') by $0 is null;";
+        LogicalPlan plan = buildPlan(query);
+        LOFilter filter = (LOFilter)plan.getLeaves().get(0);
+        LogicalPlan innerPlan = filter.getComparisonPlan();
+        innerPlan.remove(innerPlan.getRoots().get(0));
+        try {
+            buildPhysicalPlan(plan);
+            fail("Expected error.");
+        } catch(VisitorException ve) {
+            assertTrue(ve.getErrorCode() == 2051);
+        }
     }
 
     

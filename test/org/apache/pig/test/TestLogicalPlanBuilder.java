@@ -53,6 +53,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.test.utils.Identity;
+import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.PigException;
 
 
 public class TestLogicalPlanBuilder extends junit.framework.TestCase {
@@ -1938,12 +1940,14 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             // log.error(e);
             //System.err.println("IOException Stack trace for query: " + query);
             //e.printStackTrace();
-            fail("IOException: " + e.getMessage());
+            PigException pe = Utils.getPigException(e);
+            fail("IOException: " + (pe == null? e.getMessage(): pe.getMessage()));
         } catch (Exception e) {
             log.error(e);
             //System.err.println("Exception Stack trace for query: " + query);
             //e.printStackTrace();
-            fail(e.getClass().getName() + ": " + e.getMessage() + " -- " + query);
+            PigException pe = Utils.getPigException(e);
+            fail(e.getClass().getName() + ": " + (pe == null? e.getMessage(): pe.getMessage()) + " -- " + query);
         }
         return null;
     }

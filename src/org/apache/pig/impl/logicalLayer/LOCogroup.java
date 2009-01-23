@@ -26,10 +26,10 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
@@ -279,19 +279,15 @@ public class LOCogroup extends LogicalOperator {
                 if(mergedGroupSchema.size() != groupBySchema.size()) {
                     mSchema = null;
                     mIsSchemaComputed = false;
-                    throw new FrontendException("Internal error. Mismatch in group by arities. Expected: " + mergedGroupSchema + ". Found: " + groupBySchema);
+                    int errCode = 2000;
+                    String msg = "Internal error. Mismatch in group by arities. Expected: " + mergedGroupSchema + ". Found: " + groupBySchema;
+                    throw new FrontendException(msg, errCode, PigException.BUG, false, null);
                 } else {
                     for(int i = 0; i < mergedGroupSchema.size(); ++i) {
-                        try {
-                            Schema.FieldSchema mergedFs = mergedGroupSchema.getField(i);
-                            Schema.FieldSchema groupFs = groupBySchema.getField(i);
-                            mergedFs.alias = groupFs.alias;
-                            mergedGroupSchema.addAlias(mergedFs.alias, mergedFs);
-                        } catch (ParseException pe) {
-                            mSchema = null;
-                            mIsSchemaComputed = false;
-                            throw new FrontendException(pe.getMessage());
-                        }
+                        Schema.FieldSchema mergedFs = mergedGroupSchema.getField(i);
+                        Schema.FieldSchema groupFs = groupBySchema.getField(i);
+                        mergedFs.alias = groupFs.alias;
+                        mergedGroupSchema.addAlias(mergedFs.alias, mergedFs);
                     }
                 }
                 
@@ -371,8 +367,10 @@ public class LOCogroup extends LogicalOperator {
      */
     public byte getAtomicGroupByType() throws FrontendException {
         if (isTupleGroupCol()) {
-            throw new FrontendException("getAtomicGroupByType is used only when"
-                                     + " dealing with atomic group col") ;
+            int errCode = 1010;
+            String msg = "getAtomicGroupByType is used only when"
+                + " dealing with atomic group col";
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
         }
 
         byte groupType = DataType.BYTEARRAY ;
@@ -383,8 +381,10 @@ public class LOCogroup extends LogicalOperator {
             List<LogicalPlan> innerPlans
                         = new ArrayList<LogicalPlan>(getGroupByPlans().get(input)) ;
             if (innerPlans.size() != 1) {
-                throw new FrontendException("Each COGroup input has to have "
-                                         + "the same number of inner plans") ;
+                int errCode = 1012;
+                String msg = "Each COGroup input has to have "
+                + "the same number of inner plans";
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
             }
             byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
             groupType = DataType.mergeType(groupType, innerType) ;
@@ -400,8 +400,10 @@ public class LOCogroup extends LogicalOperator {
      */
     public Schema getTupleGroupBySchema() throws FrontendException {
         if (!isTupleGroupCol()) {
-            throw new FrontendException("getTupleGroupBySchema is used only when"
-                                     + " dealing with tuple group col") ;
+            int errCode = 1011;
+            String msg = "getTupleGroupBySchema is used only when"
+                + " dealing with tuple group col";
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
         }
 
         // this fsList represents all the columns in group tuple
@@ -444,8 +446,9 @@ public class LOCogroup extends LogicalOperator {
             }
 
             if(seenProjectStar) {
-                throw new FrontendException("Grouping attributes can either be star (*) or a list of expressions, but not both.");
-                
+                int errCode = 1013;
+                String msg = "Grouping attributes can either be star (*) or a list of expressions, but not both.";
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);                
             }
 
         }

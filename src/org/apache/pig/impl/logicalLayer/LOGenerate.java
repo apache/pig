@@ -25,8 +25,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Collection;
+
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
@@ -128,7 +129,9 @@ public class LOGenerate extends LogicalOperator {
             try {
                 LogicalOperator op = s.iterator().next();
                 if (null == op) {
-                    throw new FrontendException("Could not find operator in plan");
+                    int errCode = 1006;
+                    String msg = "Could not find operator in plan";
+                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
                 if(op instanceof ExpressionOperator) {
                     fss.add(new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema()));

@@ -18,7 +18,6 @@
 package org.apache.pig;
 
 import java.io.*;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.jar.*;
 import java.text.ParseException;
@@ -30,14 +29,9 @@ import jline.History;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
 import org.apache.log4j.Level;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.PatternLayout;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.ExecType;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
@@ -101,6 +95,7 @@ public static void main(String args[])
         opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+        opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -114,6 +109,8 @@ public static void main(String args[])
         if(clusterConfigured != null && clusterConfigured.length() > 0){
             cluster = clusterConfigured;
         }
+        
+        String logFileName = validateLogFile(null, null);       
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
@@ -166,6 +163,18 @@ public static void main(String args[])
                 }
                 break;
 
+            case 'l':
+                //call to method that validates the path to the log file 
+                //and sets up the file to store the client side log file                
+                String logFileParameter = opts.getValStr();
+                if (logFileParameter != null && logFileParameter.length() > 0) {
+                    logFileName = validateLogFile(logFileParameter, null);
+                } else {
+                    logFileName = validateLogFile(logFileName, null);
+                }
+                properties.setProperty("pig.logfile", logFileName);
+                break;
+
             case 'm':
                 paramFiles.add(opts.getValStr());
                 break;
@@ -186,7 +195,7 @@ public static void main(String args[])
                 break;
                             
             case 'r': 
-                // currently only used for parameter substitition
+                // currently only used for parameter substitution
                 // will be extended in the future
                 dryrun = true;
                 break;
@@ -215,10 +224,11 @@ public static void main(String args[])
         configureLog4J(properties);
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
+        pigContext.getProperties().setProperty("pig.logfile", logFileName);
 
         LogicalPlanBuilder.classloader = pigContext.createCl(null);
 
-        // construct the parameter subsitution preprocessor
+        // construct the parameter substitution preprocessor
         Grunt grunt = null;
         BufferedReader in;
         String substFile = null;
@@ -227,7 +237,7 @@ public static void main(String args[])
             // Run, using the provided file as a pig file
             in = new BufferedReader(new FileReader(file));
 
-            // run parameter substition preoprocessor first
+            // run parameter substitution preprocessor first
             substFile = file + ".substituted";
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
             if (dryrun){
@@ -235,11 +245,15 @@ public static void main(String args[])
                 return;
             }
 
+            logFileName = validateLogFile(logFileName, file);
+            pigContext.getProperties().setProperty("pig.logfile", logFileName);
+            
             if (!debug)
                 new File(substFile).deleteOnExit();
             
             grunt = new Grunt(pin, pigContext);
             grunt.exec();
+            rc = 0;
             return;
 
         case STRING: {
@@ -291,13 +305,16 @@ public static void main(String args[])
             mode = ExecMode.FILE;
             in = new BufferedReader(new FileReader(remainders[0]));
 
-            // run parameter substition preoprocessor first
+            // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
             if (dryrun){
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return;
             }
+            
+            logFileName = validateLogFile(logFileName, remainders[0]);
+            pigContext.getProperties().setProperty("pig.logfile", logFileName);
 
             if (!debug)
                 new File(substFile).deleteOnExit();
@@ -311,14 +328,18 @@ public static void main(String args[])
         // Per Utkarsh and Chris invocation of jar file via pig depricated.
     } catch (ParseException e) {
         usage();
-        rc = 1;
+        rc = 2;
     } catch (NumberFormatException e) {
         usage();
-        rc = 1;
+        rc = 2;
+    } catch (PigException pe) {
+        if(pe.retriable()) {
+            rc = 1; 
+        } else {
+            rc = 2;
+        }
     } catch (Throwable e) {
-        //log.error(e);
-        // this is a hack to see full error till we resolve commons logging config
-        e.printStackTrace();
+        rc = 2;
     } finally {
         // clear temp files
         FileLocalizer.deleteTempFiles();
@@ -336,7 +357,6 @@ private static void configureLog4J(Properties properties) {
     String log4jconf = properties.getProperty(LOG4J_CONF);
     String trueString = "true";
     boolean brief = trueString.equalsIgnoreCase(properties.getProperty(BRIEF));
-    boolean verbose = trueString.equalsIgnoreCase(properties.getProperty(VERBOSE));
     Level logLevel = Level.INFO;
 
     String logLevelString = properties.getProperty(DEBUG);
@@ -356,9 +376,9 @@ private static void configureLog4J(Properties properties) {
                            "org.apache.log4j.PatternLayout");
          props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
                            "%d [%t] %-5p %c - %m%n");
+         props.setProperty("log4j.appender.PIGCONSOLE.target",
+         "System.err");
          PropertyConfigurator.configure(props);
-         // Set the log level/threshold
-         Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
      } else {
          // brief logging - no timestamps
          Properties props = new Properties();
@@ -369,13 +389,13 @@ private static void configureLog4J(Properties properties) {
                            "org.apache.log4j.PatternLayout");
          props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
                            "%m%n");
+         props.setProperty("log4j.appender.PIGCONSOLE.target",
+         "System.err");
          PropertyConfigurator.configure(props);
-         // Set the log level/threshold
-         Logger.getRootLogger().setLevel(verbose ? Level.ALL : logLevel);
      }
 }
  
-// retruns the stream of final pig script to be passed to Grunt
+// returns the stream of final pig script to be passed to Grunt
 private static BufferedReader runParamPreprocessor(BufferedReader origPigScript, ArrayList<String> params,
                                             ArrayList<String> paramFiles, String scriptFile, boolean createFile) 
                                 throws org.apache.pig.tools.parameters.ParseException, IOException{
@@ -431,8 +451,97 @@ public static void usage()
     System.out.println("    -h, -help display this message");
     System.out.println("    -j, -jar jarfile load jarfile"); 
     System.out.println("    -o, -hod read hod server from system property ssh.gateway");
-    System.out.println("    -v, -verbose print all log messages to screen (default to print only INFO and above to screen)");
+    System.out.println("    -v, -verbose print all error messages to screen");
     System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
     System.out.println("    -i, -version display version information");
+    System.out.println("    -l, -logfile path to client side log file; current working directory is default");
 }
+
+private static String validateLogFile(String logFileName, String scriptName) {
+    String strippedDownScriptName = null;
+    
+    if(scriptName != null) {
+        File scriptFile = new File(scriptName);
+        if(!scriptFile.isDirectory()) {
+            String scriptFileAbsPath;
+            try {
+                scriptFileAbsPath = scriptFile.getCanonicalPath();
+            } catch (IOException ioe) {
+                throw new AssertionError("Could not compute canonical path to the script file " + ioe.getMessage());      
+            }            
+            strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
+        }
+    }
+    
+    String defaultLogFileName = (strippedDownScriptName == null ? "pig_" : strippedDownScriptName) + new Date().getTime() + ".log";
+    File logFile;    
+    
+    if(logFileName != null) {
+        logFile = new File(logFileName);
+    
+        //Check if the file name is a directory 
+        //append the default file name to the file
+        if(logFile.isDirectory()) {            
+            if(logFile.canWrite()) {
+                try {
+                    logFileName += logFile.getCanonicalPath() + File.separator + defaultLogFileName;
+                } catch (IOException ioe) {
+                    throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());       
+                }
+                return logFileName;
+            } else {
+                throw new AssertionError("Need write permission in the directory: " + logFileName + " to create log file.");
+            }
+        } else {
+            //we have a relative path or an absolute path to the log file
+            //check if we can write to the directory where this file is/will be stored
+            
+            if (logFile.exists()) {
+                if(logFile.canWrite()) {
+                    try {
+                        logFileName = new File(logFileName).getCanonicalPath();
+                    } catch (IOException ioe) {
+                        throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());
+                    }
+                    return logFileName;
+                } else {
+                    //do not have write permissions for the log file
+                    //bail out with an error message
+                    throw new AssertionError("Cannot write to file: " + logFileName + ". Need write permission.");
+                }
+            } else {
+                logFile = logFile.getParentFile();
+                
+                if(logFile != null) {
+                    //if the directory is writable we are good to go
+                    if(logFile.canWrite()) {
+                        try {
+                            logFileName = new File(logFileName).getCanonicalPath();
+                        } catch (IOException ioe) {
+                            throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());
+                        }
+                        return logFileName;
+                    } else {
+                        throw new AssertionError("Need write permission in the directory: " + logFile + " to create log file.");
+                    }
+                }//end if logFile != null else is the default in fall through                
+            }//end else part of logFile.exists()
+        }//end else part of logFile.isDirectory()
+    }//end if logFileName != null
+    
+    //file name is null or its in the current working directory 
+    //revert to the current working directory
+    String currDir = System.getProperty("user.dir");
+    logFile = new File(currDir);
+    if(logFile.canWrite()) {
+        logFileName = currDir + File.separator + (logFileName == null? defaultLogFileName : logFileName);
+        return logFileName;
+    }    
+    throw new RuntimeException("Cannot write to log file: " + logFileName);
+}
+
+private static String getFileFromCanonicalPath(String canonicalPath) {
+    return canonicalPath.substring(canonicalPath.lastIndexOf(File.separator));
+}
+
 }

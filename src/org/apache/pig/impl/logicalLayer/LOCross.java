@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.io.IOException;
 
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -135,7 +136,7 @@ public class LOCross extends LogicalOperator {
                 }
             }
             if(duplicates) {
-                String errMessage = "Found duplicates in schema ";
+                String errMessage = "Found duplicates in schema. ";
                 if(duplicateAliases.size() > 0) {
                     Iterator<String> iter = duplicateAliases.iterator();
                     errMessage += ": " + iter.next();
@@ -143,7 +144,9 @@ public class LOCross extends LogicalOperator {
                         errMessage += ", " + iter.next();
                     }
                 }
-                throw new FrontendException(errMessage);
+                errMessage += ". Please alias the columns with unique names.";
+                int errCode = 1007;
+                throw new FrontendException(errMessage, errCode, PigException.INPUT, false, null);
             }
             mSchema = new Schema(fss);
             //add the aliases that are unique after flattening

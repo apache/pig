@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -141,22 +142,28 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private UDFFinder udfFinder;
     
-    public MRCompiler(PhysicalPlan plan) {
+    public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
     }
     
     public MRCompiler(PhysicalPlan plan,
-            PigContext pigContext) {
+            PigContext pigContext) throws MRCompilerException {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         this.plan = plan;
         this.pigContext = pigContext;
         splitsSeen = new HashMap<OperatorKey, MapReduceOper>();
         MRPlan = new MROperPlan();
         nig = NodeIdGenerator.getGenerator();
-        scope = plan.getRoots().get(0).getOperatorKey().getScope();
         r = new Random(1331);
         FileLocalizer.setR(r);
         udfFinder = new UDFFinder();
+        List<PhysicalOperator> roots = plan.getRoots();
+        if((roots == null) || (roots.size() <= 0)) {
+        	int errCode = 2053;
+        	String msg = "Internal error. Did not find roots in the physical plan.";
+        	throw new MRCompilerException(msg, errCode, PigException.BUG);
+        }
+        scope = roots.get(0).getOperatorKey().getScope();
     }
     
     public void randomizeFileLocalizer(){
@@ -190,6 +197,12 @@ public class MRCompiler extends PhyPlanVisitor {
      */
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
+        if(!(leaves.get(0) instanceof POStore)) {
+            int errCode = 2025;
+            String msg = "Expected leaf of reduce plan to " +
+                "always be POStore. Found " + leaves.get(0).getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG);
+        }
         POStore store = (POStore)leaves.get(0);
         FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
         compile(store);
@@ -305,7 +318,6 @@ public class MRCompiler extends PhyPlanVisitor {
      * connect the MROpers according to the dependencies.
      * @param op
      * @throws PlanException
-     * @throws IOException 
      * @throws IOException
      */
     private void nonBlocking(PhysicalOperator op) throws PlanException, IOException{
@@ -318,8 +330,9 @@ public class MRCompiler extends PhyPlanVisitor {
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
                 mro.reducePlan.addAsLeaf(op);
             } else {
-                log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
-                throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
+                int errCode = 2022;
+                String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";                
+                throw new PlanException(msg, errCode, PigException.BUG);
             }
             curMROp = mro;
         } else {
@@ -406,7 +419,7 @@ public class MRCompiler extends PhyPlanVisitor {
      * by adding appropriate loads
      * @param mergedPlans - The list of reduce MROpers
      * @param mro - The map MROper
-     * @throws IOException 
+     * @throws PlanException 
      * @throws IOException
      */
     private void connRedOper(List<MapReduceOper> mergedPlans, MapReduceOper mro) throws PlanException, IOException{
@@ -433,8 +446,9 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private MapReduceOper endSingleInputPlanWithStr(FileSpec fSpec) throws PlanException{
         if(compiledInputs.length>1) {
-            log.error("Received a multi input plan when expecting only a single input one.");
-            throw new PlanException("Received a multi input plan when expecting only a single input one.");
+            int errCode = 2023;
+            String msg = "Received a multi input plan when expecting only a single input one.";
+            throw new PlanException(msg, errCode, PigException.BUG);
         }
         MapReduceOper mro = compiledInputs[0];
         POStore str = getStore();
@@ -446,8 +460,9 @@ public class MRCompiler extends PhyPlanVisitor {
             mro.reducePlan.addAsLeaf(str);
             mro.setReduceDone(true);
         } else {
-            log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
-            throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
+            int errCode = 2022;
+            String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+            throw new PlanException(msg, errCode, PigException.BUG);
         }
         return mro;
     }
@@ -523,10 +538,9 @@ public class MRCompiler extends PhyPlanVisitor {
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
                 ret.add(mro);
             } else {
-                log.error(
-                        "Both map and reduce phases have been done. This is unexpected for a merge!");
-                throw new PlanException(
-                        "Both map and reduce phases have been done. This is unexpected for a merge!");
+                int errCode = 2027;
+                String msg = "Both map and reduce phases have been done. This is unexpected for a merge."; 
+                throw new PlanException(msg, errCode, PigException.BUG);
             }
         }
         merge(ret.get(0).mapPlan, mpLst);
@@ -594,9 +608,9 @@ public class MRCompiler extends PhyPlanVisitor {
             splitsSeen.put(op.getOperatorKey(), mro);
             curMROp = startNew(fSpec, mro);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -604,9 +618,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -614,9 +628,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -625,9 +639,9 @@ public class MRCompiler extends PhyPlanVisitor {
             nonBlocking(op);
             addUDFs(op.getPlan());
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -635,9 +649,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -656,7 +670,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try {
             lr.setIndex(0);
         } catch (ExecException e) {
-            throw new PlanException("Unable to set index on the newly created POLocalRearrange.", e);
+        	int errCode = 2058;
+        	String msg = "Unable to set index on the newly created POLocalRearrange.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
         }
         lr.setKeyType(DataType.TUPLE);
         lr.setPlans(eps);
@@ -719,9 +735,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");
             }
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -733,9 +749,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 for(PhysicalPlan ep : plans)
                     addUDFs(ep);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -748,9 +764,9 @@ public class MRCompiler extends PhyPlanVisitor {
                     addUDFs(plan);
                 }
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -758,9 +774,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             blocking(op);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -768,9 +784,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -778,9 +794,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -824,8 +840,9 @@ public class MRCompiler extends PhyPlanVisitor {
                     mro.reducePlan.addAsLeaf(str);
                     mro.setReduceDone(true);
                 } else {
-                    log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
-                    throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
+                	int errCode = 2022;
+                    String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+                    throw new PlanException(msg, errCode, PigException.BUG);
                 }
             }
             for(int i=0;i<compiledInputs.length;i++){
@@ -838,8 +855,9 @@ public class MRCompiler extends PhyPlanVisitor {
             } else if (curMROp.isMapDone() && !curMROp.isReduceDone()) {
                 curMROp.reducePlan.addAsLeaf(op);
             } else {
-                log.error("Both map and reduce phases have been done. This is unexpected while compiling!");
-                throw new PlanException("Both map and reduce phases have been done. This is unexpected while compiling!");
+            	int errCode = 2022;
+                String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+                throw new PlanException(msg, errCode, PigException.BUG);
             }
             List<List<PhysicalPlan>> joinPlans = op.getJoinPlans();
             if(joinPlans!=null)
@@ -913,9 +931,9 @@ public class MRCompiler extends PhyPlanVisitor {
             curMROp.reducePlan.addAsLeaf(nfe1);
             curMROp.setNeedsDistinctCombiner(true);
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -934,8 +952,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 curMROp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
             }
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage(), e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
     
@@ -950,8 +969,9 @@ public class MRCompiler extends PhyPlanVisitor {
             }
             return ret;
         }
-        log.error("No expression plan found in POSort");
-        throw new PlanException("No Expression Plan found in POSort");
+        int errCode = 2026;
+        String msg = "No expression plan found in POSort.";
+        throw new PlanException(msg, errCode, PigException.BUG);
     }
     
     public MapReduceOper getSortJob(
@@ -1019,7 +1039,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 fktv.visit();
                 keyType = fktv.keyType;
             } catch (VisitorException ve) {
-                throw new PlanException(ve);
+                int errCode = 2035;
+                String msg = "Internal error. Could not compute key type of sort operator.";
+                throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
         }
         
@@ -1027,7 +1049,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try {
             lr.setIndex(0);
         } catch (ExecException e) {
-            throw new PlanException("Unable to set index on newly create POLocalRearrange.", e);
+        	int errCode = 2058;
+        	String msg = "Unable to set index on newly created POLocalRearrange.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
         }
         lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
             keyType);
@@ -1072,7 +1096,9 @@ public class MRCompiler extends PhyPlanVisitor {
 	        try {
                 lr_c2.setIndex(0);
             } catch (ExecException e) {
-                throw new PlanException("Unable to set index on newly created POLocalRearrange.", e);
+            	int errCode = 2058;
+            	String msg = "Unable to set index on newly created POLocalRearrange.";            	
+                throw new PlanException(msg, errCode, PigException.BUG, e);
             }
 	        lr_c2.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
 	        lr_c2.setPlans(eps_c2);
@@ -1165,7 +1191,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try {
             lr.setIndex(0);
         } catch (ExecException e) {
-            throw new PlanException("Unable to set index on newly created POLocalRearrange.", e);
+        	int errCode = 2058;
+        	String msg = "Unable to set index on newly created POLocalRearrange.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
         }
         lr.setKeyType(DataType.CHARARRAY);
         lr.setPlans(eps);
@@ -1426,10 +1454,9 @@ public class MRCompiler extends PhyPlanVisitor {
             {
                 if (succs.size()!=1)
                 {
-                    String msg = new String("forEach can only have one successor");
-                    LogFactory.
-                        getLog(LastInputStreamingOptimizer.class).error(msg);
-                    throw new VisitorException(msg);
+                    int errCode = 2028;
+                    String msg = "ForEach can only have one successor. Found " + succs.size() + " successors.";
+                    throw new MRCompilerException(msg, errCode, PigException.BUG);
                 }
             }
             plan.remove(pack);
@@ -1437,10 +1464,9 @@ public class MRCompiler extends PhyPlanVisitor {
             try {
                 plan.replace(forEach, joinPackage);
             } catch (PlanException e) {
-                String msg = new String("Error rewrite POJoinPackage");
-                LogFactory.
-                getLog(LastInputStreamingOptimizer.class).error(msg);
-                throw new VisitorException(msg, e);
+                int errCode = 2029;
+                String msg = "Error rewriting POJoinPackage.";
+                throw new MRCompilerException(msg, errCode, PigException.BUG, e);
             }
             
             LogFactory.
@@ -1465,24 +1491,24 @@ public class MRCompiler extends PhyPlanVisitor {
             if (mr.reducePlan.isEmpty()) return;
             List<PhysicalOperator> mpLeaves = mr.reducePlan.getLeaves();
             if (mpLeaves.size() != 1) {
-                String msg = new String("Expected reduce to have single leaf");
-                log.error(msg);
-                throw new VisitorException(msg);
+                int errCode = 2024; 
+                String msg = "Expected reduce to have single leaf. Found " + mpLeaves.size() + " leaves.";
+                throw new MRCompilerException(msg, errCode, PigException.BUG);
             }
             PhysicalOperator mpLeaf = mpLeaves.get(0);
             if (!(mpLeaf instanceof POStore)) {
-                String msg = new String("Expected leaf of reduce plan to " +
-                    "always be POStore!");
-                log.error(msg);
-                throw new VisitorException(msg);
+                int errCode = 2025;
+                String msg = "Expected leaf of reduce plan to " +
+                    "always be POStore. Found " + mpLeaf.getClass().getSimpleName();
+                throw new MRCompilerException(msg, errCode, PigException.BUG);
             }
             List<PhysicalOperator> preds =
                 mr.reducePlan.getPredecessors(mpLeaf);
             if (preds == null) return;
             if (preds.size() > 1) {
-                String msg = new String("Expected mr to have single predecessor");
-                log.error(msg);
-                throw new VisitorException(msg);
+                int errCode = 2030;
+                String msg ="Expected reduce plan leaf to have a single predecessor. Found " + preds.size() + " predecessors.";
+                throw new MRCompilerException(msg, errCode, PigException.BUG);
             }
             PhysicalOperator pred = preds.get(0);
             if (!(pred instanceof POLocalRearrange)) return;
@@ -1490,15 +1516,15 @@ public class MRCompiler extends PhyPlanVisitor {
             // Next question, does the next MROper have an empty map?
             List<MapReduceOper> succs = mPlan.getSuccessors(mr);
             if (succs == null) {
-                String msg = new String("Found mro with POLocalRearrange as"
-                    + " last oper but with no succesor!");
-                log.error(msg);
-                throw new VisitorException(msg);
+                int errCode = 2031;
+                String msg = "Found map reduce operator with POLocalRearrange as"
+                    + " last oper but with no succesor.";
+                throw new MRCompilerException(msg, errCode, PigException.BUG);
             }
             if (succs.size() > 1) {
-                String msg = new String("Expected mr to have single successor");
-                log.error(msg);
-                throw new VisitorException(msg);
+                int errCode = 2032;
+                String msg = "Expected map reduce operator to have a single successor. Found " + succs.size() + " successors.";
+                throw new MRCompilerException(msg, errCode, PigException.BUG);
             }
             MapReduceOper succ = succs.get(0);
             List<PhysicalOperator> succMpLeaves = succ.mapPlan.getLeaves();
@@ -1517,7 +1543,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 succ.mapPlan.add(pred);
                 succ.mapPlan.connect(load, pred);
             } catch (PlanException pe) {
-                throw new VisitorException(pe);
+                int errCode = 2033;
+                String msg = "Problems in rearranging map reduce operators in plan.";
+                throw new MRCompilerException(msg, errCode, PigException.BUG, pe);
             }
         }
     }
@@ -1547,16 +1575,16 @@ public class MRCompiler extends PhyPlanVisitor {
                 if (mr.reducePlan.isEmpty()) return;
                 List<PhysicalOperator> mpLeaves = mr.reducePlan.getLeaves();
                 if (mpLeaves.size() != 1) {
-                    String msg = new String("Expected reduce to have single leaf");
-                    log.error(msg);
-                    throw new IOException(msg);
+                    int errCode = 2024; 
+                    String msg = "Expected reduce to have single leaf. Found " + mpLeaves.size() + " leaves.";
+                    throw new PigException(msg, errCode, PigException.BUG);
                 }
                 PhysicalOperator mpLeaf = mpLeaves.get(0);
                 if (!(mpLeaf instanceof POStore)) {
-                    String msg = new String("Expected leaf of reduce plan to " +
-                        "always be POStore!");
-                    log.error(msg);
-                    throw new IOException(msg);
+                    int errCode = 2025;
+                    String msg = "Expected leaf of reduce plan to " +
+                        "always be POStore. Found " + mpLeaf.getClass().getSimpleName();
+                    throw new PigException(msg, errCode, PigException.BUG);
                 }
                 FileSpec oldSpec = ((POStore)mpLeaf).getSFile();
                 

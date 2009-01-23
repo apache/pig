@@ -102,10 +102,12 @@ public class GruntParser extends PigScriptParser {
                     ByteArrayOutputStream bs = new ByteArrayOutputStream();
                     e.printStackTrace(new PrintStream(bs));
                     log.error(bs.toString());
-                    log.error(e.getMessage());
-                    log.error(e);
+                    //log.error(e.getMessage());
+                    //log.error(e);
                }
 
+            } catch (Error e) {
+                log.error(e);
             }
     }
 

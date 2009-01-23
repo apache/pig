@@ -24,9 +24,11 @@ import junit.framework.AssertionFailedError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.grunt.Utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
@@ -102,7 +104,9 @@ public class TestGrunt extends TestCase {
         try {
             grunt.exec();
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("Encountered \" \";\""));
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
+            assertTrue(msg.contains("Encountered \" \";"));
         }
     }
 

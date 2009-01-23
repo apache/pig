@@ -18,6 +18,7 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -68,9 +69,9 @@ public class LOConst extends ExpressionOperator {
             } catch (Exception e) {
                 mFieldSchema = null;
                 mIsFieldSchemaComputed = false;
-                System.err.println("LOConst: " + e.getMessage());
-                e.printStackTrace();
-                throw new FrontendException(e.getMessage());
+                int errCode = 1015;
+                String msg = "Error determining fieldschema of constant: " + this;
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
             }
         }
         return mFieldSchema;

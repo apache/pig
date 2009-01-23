@@ -32,16 +32,13 @@ import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.PigException;
 import org.apache.pig.impl.streaming.StreamingCommand;
-import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
@@ -91,31 +88,44 @@ public class TypeCastInserter extends LogicalTransformer {
 
             // If all we've found are byte arrays, we don't need a projection.
             return sawOne;
+        } catch(OptimizerException oe) {
+            throw oe;
         } catch (Exception e) {
-            throw new OptimizerException("Caught exception while trying to " +
-                " check if type casts are needed", e);
+            int errCode = 2004;
+            String msg = "Internal error while trying to check if type casts are needed";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
     }
     
     private LogicalOperator getOperator(List<LogicalOperator> nodes) throws FrontendException {
+        if((nodes == null) || (nodes.size() <= 0)) {
+            int errCode = 2052;
+            String msg = "Internal error. Cannot retrieve operator from null or empty list.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
+        
         LogicalOperator lo = nodes.get(0);
         if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
             if (lo == null || !(lo instanceof LOLoad)) {
-                throw new RuntimeException("Expected load, got " +
-                    lo.getClass().getName());
+                int errCode = 2005;
+                String msg = "Expected " + LOLoad.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+                throw new OptimizerException(msg, errCode, PigException.BUG);
             }
     
             return lo;
         } else if(operatorClassName == LogicalOptimizer.LOSTREAM_CLASSNAME){
             if (lo == null || !(lo instanceof LOStream)) {
-                throw new RuntimeException("Expected stream, got " +
-                    lo.getClass().getName());
+                int errCode = 2005;
+                String msg = "Expected " + LOStream.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+                throw new OptimizerException(msg, errCode, PigException.BUG);
             }
     
             return lo;
         } else {
             // we should never be called with any other operator class name
-            throw new FrontendException("TypeCastInserter invoked with an invalid operator class name:" + operatorClassName);
+            int errCode = 1034;
+            String msg = "TypeCastInserter invoked with an invalid operator class name:" + operatorClassName;
+            throw new OptimizerException(msg, errCode, PigException.INPUT);
         }
    
     }
@@ -169,7 +179,9 @@ public class TypeCastInserter extends LogicalTransformer {
                                 HandleSpec streamOutputSpec = command.getOutputSpec(); 
                                 loadFuncSpec = new FuncSpec(streamOutputSpec.getSpec());
                             } else {
-                                throw new OptimizerException("TypeCastInserter invoked with an invalid operator class name:" + lo.getClass().getSimpleName());
+                                int errCode = 2006;
+                                String msg = "TypeCastInserter invoked with an invalid operator class name: " + lo.getClass().getSimpleName();
+                                throw new OptimizerException(msg, errCode, PigException.BUG);
                             }
                             cast.setLoadFuncSpec(loadFuncSpec);
                             typeChanges.put(fs.canonicalName, fs.type);
@@ -195,9 +207,12 @@ public class TypeCastInserter extends LogicalTransformer {
 
             rebuildSchemas();
 
+        } catch (OptimizerException oe) {
+            throw oe;
         } catch (Exception e) {
-            throw new OptimizerException(
-                "Unable to insert type casts into plan", e);
+            int errCode = 2007;
+            String msg = "Unable to insert type casts into plan"; 
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
     }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.BinaryStorage;
@@ -65,10 +66,17 @@ public class StreamOptimizer extends LogicalTransformer {
     public boolean check(List<LogicalOperator> nodes) throws OptimizerException {
         mOptimizeLoad = false;
         mOptimizeStore = false;
+        if((nodes == null) || (nodes.size() <= 0)) {
+            int errCode = 2052;
+            String msg = "Internal error. Cannot retrieve operator from null or empty list.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
+
         LogicalOperator lo = nodes.get(0);
         if (lo == null || !(lo instanceof LOStream)) {
-            throw new RuntimeException("Expected stream, got " +
-                lo.getClass().getName());
+            int errCode = 2005;
+            String msg = "Expected " + LOStream.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+            throw new OptimizerException(msg, errCode, PigException.BUG);            
         }
         LOStream stream = (LOStream)lo;
         
@@ -82,7 +90,11 @@ public class StreamOptimizer extends LogicalTransformer {
     }
     
     private void checkLoadOptimizable(LOStream stream) {
-        LogicalOperator predecessor = mPlan.getPredecessors(stream).get(0);
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(stream);
+        if((predecessors == null) || (predecessors.size() <= 0)) {
+            return;
+        }
+        LogicalOperator predecessor = predecessors.get(0);
         if(predecessor instanceof LOLoad) {
             LOLoad load = (LOLoad)predecessor;
             if(!load.isSplittable()) {
@@ -186,6 +198,12 @@ public class StreamOptimizer extends LogicalTransformer {
     
     @Override
     public void transform(List<LogicalOperator> nodes) throws OptimizerException {
+        if((nodes == null) || (nodes.size() <= 0)) {
+            int errCode = 2052;
+            String msg = "Internal error. Cannot retrieve operator from null or empty list.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
+        
         try {
             LogicalOperator lo = nodes.get(0);
             if (lo == null || !(lo instanceof LOStream)) {
@@ -208,8 +226,9 @@ public class StreamOptimizer extends LogicalTransformer {
                 stream.setOptimizedSpec(Handle.OUTPUT, BinaryStorage.class.getName());
             }
         } catch (Exception e) {
-            throw new OptimizerException(
-                "Unable to optimize load-stream-store optimization", e);
+            int errCode = 2014;
+            String msg = "Unable to optimize load-stream-store optimization"; 
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
     }
 }

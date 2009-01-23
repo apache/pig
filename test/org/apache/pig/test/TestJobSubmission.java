@@ -38,6 +38,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.builtin.BinStorage;
@@ -50,10 +51,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -66,9 +70,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ComparisonOperator;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
@@ -116,7 +122,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
     public void tearDown() throws Exception {
     }
     
-    private void generateInput(int numTuples) throws ExecException{
+/*    private void generateInput(int numTuples) throws ExecException{
         
         DataBag inpDb = GenRandomData.genRandSmallTupDataBag(r, numTuples, 1000);
         
@@ -437,6 +443,37 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         assertEquals(true, TestHelper.areFilesSame(fSpecExp, fSpecAct, pc));
         
+    }*/
+    
+    @Test
+    public void testJobControlCompilerErr() throws Exception {
+    	LogicalPlanTester planTester = new LogicalPlanTester() ;
+    	planTester.buildPlan("a = load 'input';");
+    	LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
+    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	POStore store = GenPhyOp.topStoreOp();
+    	pp.addAsLeaf(store);
+    	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+    	
+    	for(MapReduceOper mro: mrPlan.getLeaves()) {
+    		if(mro.reducePlan != null) {
+    			PhysicalOperator po = mro.reducePlan.getRoots().get(0);
+    			if(po instanceof POPackage) {
+    				((POPackage)po).setKeyType(DataType.BAG);
+    				mro.setGlobalSort(true);
+    			}
+    		}
+    	}
+    	
+        ExecutionEngine exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        JobControlCompiler jcc = new JobControlCompiler();
+        try {
+        	jcc.compile(mrPlan, "Test", conf, pc);
+        } catch (JobCreationException jce) {
+        	assertTrue(jce.getErrorCode() == 1068);
+        }
     }
     
     private void submit() throws Exception{

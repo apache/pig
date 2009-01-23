@@ -24,6 +24,7 @@ import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
@@ -222,7 +223,7 @@ public class LOProject extends ExpressionOperator {
             } else {
                 //its n list of columns to project including a single column
                 List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(mProjection.size());
-                try {
+                //try {
                     if (null != expressionOperator) {
                         log.debug("expressionOperator is not null");
                         if(mProjection.size() == 1) {
@@ -248,16 +249,20 @@ public class LOProject extends ExpressionOperator {
                                             // check that indeed we only have one field schema
                                             // which is that of a tuple
                                             if(s.getFields().size() != 1) {
-                                                throw new FrontendException("Expected a bag schema with a single " +
-                                                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
-                                                        " but got a bag schema with multiple elements.");
+                                                int errCode = 1008;
+                                                String msg = "Expected a bag schema with a single " +
+                                                "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                                                " but got a bag schema with multiple elements.";
+                                                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                                             }
                                             Schema.FieldSchema tupleFS = s.getField(0);
                                             if(tupleFS.type != DataType.TUPLE) {
-                                                throw new FrontendException("Expected a bag schema with a single " +
-                                                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
-                                                        " but got an element of type " +
-                                                        DataType.findTypeName(tupleFS.type));
+                                                int errCode = 1009;
+                                                String msg = "Expected a bag schema with a single " +
+                                                "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                                                " but got an element of type " +
+                                                DataType.findTypeName(tupleFS.type);
+                                                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                                             }
                                             fs = tupleFS.schema.getField(mProjection.get(0));
                                         } else {
@@ -342,11 +347,11 @@ public class LOProject extends ExpressionOperator {
                         log.warn("The input for a projection operator cannot be null");
                         //fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
                     }
-                } catch(ParseException pe) {
-                    mFieldSchema = null;
-                    mIsFieldSchemaComputed = false;
-                    throw new FrontendException(pe.getMessage());
-                }
+                //} catch(ParseException pe) {
+                //    mFieldSchema = null;
+                //    mIsFieldSchemaComputed = false;
+                //    throw new FrontendException(pe.getMessage());
+                //}
                 mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), new Schema(fss));
                 mFieldSchema.setParent(null, expressionOperator);
                 mIsFieldSchemaComputed = true;

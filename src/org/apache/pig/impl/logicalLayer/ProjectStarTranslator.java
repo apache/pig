@@ -140,8 +140,8 @@ public class ProjectStarTranslator extends
                             } else {
                                 newUserDefinedSchemaList.add(null);
                             }
-                        } catch (ParseException pe) {
-                            throw new VisitorException(pe.getMessage(), pe);
+                        } catch (FrontendException fee) {
+                            throw new VisitorException(fee.getMessage(), fee);
                         }
                     } else {
                         newUserDefinedSchemaList.add(null);

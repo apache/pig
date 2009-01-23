@@ -24,7 +24,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.parser.ParseException ;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import java.util.Iterator;
 
@@ -106,7 +106,7 @@ public class LogicalPlanComparer
                 try {
                     Schema.stringifySchema(schemaStr1 ,schema1, DataType.BAG) ;
                     Schema.stringifySchema(schemaStr2 ,schema2, DataType.BAG) ;
-                } catch (ParseException pe) {
+                } catch (FrontendException fee) {
                     throw new RuntimeException("Cannot stringify schema") ;
                 }
                 messages.append(":") ;

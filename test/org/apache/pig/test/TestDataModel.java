@@ -27,13 +27,16 @@ import java.io.PipedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
 
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.*;
 
 /**
@@ -428,6 +431,82 @@ public class TestDataModel extends junit.framework.TestCase {
         assertTrue("longer lexically same value greater than",
             ba2.compareTo(ba1) > 0);
 
+    }
+    
+    @Test
+    public void testIntegerConversionErr() throws Exception {
+    	List list = new ArrayList();
+    	try {
+    		DataType.toInteger(list);
+    		fail("Error expected.");
+    	} catch (ExecException ee) {
+    		assertTrue(ee.getErrorCode() == 1071);
+    	}
+    }
+
+    @Test
+    public void testIntegerConversionErr1() throws Exception {
+    	DataByteArray ba = new DataByteArray("hello world");
+    	try {
+    		DataType.toInteger(ba);
+    		fail("Error expected.");
+    	} catch (ExecException ee) {
+    		assertTrue(ee.getErrorCode() == 1074);
+    	}
+    }
+
+    @Test
+    public void testTupleConversionErr() throws Exception {
+    	List list = new ArrayList();
+    	try {
+    		DataType.toTuple(list);
+    		fail("Error expected.");
+    	} catch (ExecException ee) {
+    		assertTrue(ee.getErrorCode() == 1071);
+    	}
+    }
+
+    @Test
+    public void testTupleConversionErr1() throws Exception {
+    	DataByteArray ba = new DataByteArray("hello world");
+    	try {
+    		DataType.toTuple(ba);
+    		fail("Error expected.");
+    	} catch (ExecException ee) {
+    		assertTrue(ee.getErrorCode() == 1071);
+    	}
+    }
+
+    @Test
+    public void testMapConversionErr() throws Exception {
+    	List list = new ArrayList();
+    	try {
+    		DataType.toMap(list);
+    		fail("Error expected.");
+    	} catch (ExecException ee) {
+    		assertTrue(ee.getErrorCode() == 1071);
+    	}
+    }
+
+    @Test
+    public void testMapConversion() throws Exception {
+    	Map<Integer, Float> map = new HashMap<Integer, Float>();
+    	try {
+    		DataType.toMap(map);
+    	} catch (ExecException ee) {
+    		fail("Exception not expected.");
+    	}
+    }
+
+    @Test
+    public void testDetermineFieldSchemaErr() throws Exception {
+    	List list = new ArrayList();
+    	try {
+    		DataType.determineFieldSchema(list);
+    		fail("Error expected.");
+    	} catch (ExecException ee) {
+    		assertTrue(ee.getErrorCode() == 1073);
+    	}
     }
 
     private Tuple giveMeOneOfEach() throws Exception {

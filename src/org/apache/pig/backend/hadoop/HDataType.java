@@ -27,6 +27,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.DoubleWritable;
 import org.apache.pig.data.BagFactory;
@@ -140,9 +141,12 @@ public class HDataType {
             break;
         default:
             if (typeToName == null) typeToName = DataType.genTypeToNameMap();
-            throw new ExecException("The type "
-                    + typeToName.get(type)
-                    + " cannot be collected as a Key type");
+            int errCode = 2044;
+            String msg = "The type "
+                + typeToName.get(type)
+                + " cannot be collected as a Key type";
+            throw new ExecException(msg, errCode, PigException.BUG);
+
         }
         // should never come here
         return null;
@@ -182,9 +186,11 @@ public class HDataType {
             throw new RuntimeException("Map not supported as a key type!");
         default:
             if (typeToName == null) typeToName = DataType.genTypeToNameMap();
-            throw new ExecException("The type "
-                    + typeToName.get(type)
-                    + " cannot be collected as a Key type");
+            int errCode = 2044;
+            String msg = "The type "
+                + typeToName.get(type)
+                + " cannot be collected as a Key type";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         return wcKey;
     }

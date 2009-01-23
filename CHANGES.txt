@@ -372,3 +372,5 @@ Trunk (unreleased changes)
     PIG-622: Include pig executable in distribution (tomwhite via sms)
 
     PIG-628: misc performance improvements (pradeepk via olgan)
+    
+    PIG-589: error handling, phase 1-2 (sms via olgan):wq

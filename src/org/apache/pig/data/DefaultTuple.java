@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.WritableComparable;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
@@ -372,8 +373,10 @@ public class DefaultTuple implements Tuple {
 
     private void checkBounds(int fieldNum) throws ExecException {
         if (fieldNum >= mFields.size()) {
-            throw new ExecException("Out of bounds access: Request for field number " + fieldNum +
-                " exceeds tuple size of " + mFields.size());
+            int errCode = 1072;
+            String msg = "Out of bounds access: Request for field number " + fieldNum +
+            " exceeds tuple size of " + mFields.size();
+            throw new ExecException(msg, errCode, PigException.INPUT);
         }
     }
     

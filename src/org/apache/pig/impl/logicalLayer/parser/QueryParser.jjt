@@ -59,6 +59,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.PigException;
 
 
 public class QueryParser {
@@ -137,7 +138,7 @@ public class QueryParser {
 							   new OperatorKey(scope, storeNodeId),
                                new FileSpec(fileName, new FuncSpec(func)));
         } catch (IOException ioe) {
-            throw new FrontendException(ioe.getMessage());
+            throw new FrontendException(ioe.getMessage(), ioe);
         }
         
         try {
@@ -146,7 +147,7 @@ public class QueryParser {
 	        storePlan.connect(input, store);
 	        attachPlan(storePlan, input, readFrom, new HashMap<LogicalOperator, Boolean>());
         } catch (ParseException pe) {
-            throw new FrontendException(pe.getMessage());
+            throw new FrontendException(pe.getMessage(), pe);
         }
 	    
         if (storePlan.getRoots().size() == 0) throw new RuntimeException("Store plan has no roots!");
@@ -421,7 +422,9 @@ public class QueryParser {
      		try {
      		    command.addPathToShip(argPath);
      		} catch(IOException e) {
-                throw new ParseException(e.getMessage());
+                ParseException pe = new ParseException(e.getMessage());
+                pe.initCause(e);
+                throw pe;
             }
      	}
      	 
@@ -578,7 +581,9 @@ public class QueryParser {
                 lp.connect(rootPred, root);
                 log.debug("Connected operator " + rootPred + " to " + root + " in the logical plan " + lp);
             } catch (FrontendException fee) {
-                throw new ParseException(fee.getMessage());
+                ParseException pe = new ParseException(fee.getMessage());
+                pe.initCause(fee); 
+                throw pe;
             }
         }
         log.trace("Exiting attachPlan");
@@ -842,7 +847,9 @@ LogicalPlan Parse() :
             try {
 			    log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
             } catch(FrontendException fee) {
-                throw new ParseException(fee.getMessage());
+            	ParseException pe = new ParseException(fee.getMessage());
+            	pe.initCause(fee);  
+                throw pe;
             }
 		}
 
@@ -1609,7 +1616,9 @@ int ColNameOrNum(Schema over) :
 			    throw new ParseException("Invalid alias: " + t.image + " in " + over);
 		    } 
         } catch (FrontendException fee) {
-            throw new ParseException(fee.getMessage());
+        	ParseException pe = new ParseException(fee.getMessage());
+        	pe.initCause(fee);
+            throw pe;
         }
 		
 		log.trace("Exiting ColNameOrNum");
@@ -1770,8 +1779,6 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
             try {
                 generatePlanClone = lpCloner.getClonedPlan();
             } catch (CloneNotSupportedException cnse) {
-                log.error(cnse.getMessage());
-                cnse.printStackTrace();
                 ParseException pe = new ParseException("Not able to clone foreach plan");
                 pe.initCause(cnse);
                 throw pe;
@@ -1780,7 +1787,9 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
             try {
                 removeOperators.visit();
             } catch (VisitorException ve) {
-                throw new ParseException("Could not remove redundant operators in foreach plan.").initCause(ve);
+            	ParseException pe = new ParseException("Could not remove redundant operators in foreach plan.");
+                pe.initCause(ve);
+                throw pe;
             }
             foreachPlans.add(generatePlanClone);
         }
@@ -1794,8 +1803,9 @@ LogicalOperator ForEachClause(LogicalPlan lp) :
 			lp.connect(input, foreach);
 			log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " object " + input + " to operator " + foreach.getClass().getName() + " in the logical plan");
 		} catch (PlanException planException) {
-			ParseException parseException = new ParseException(planException.getMessage());
-			throw parseException;
+			ParseException pe = new ParseException(planException.getMessage());
+			pe.initCause(planException);
+			throw pe;
 		}
 		
 		log.trace("Exiting ForEachClause");
@@ -1866,7 +1876,9 @@ LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token cmd; String funct
                     	try {
                             command.addPathToShip(path);
                         } catch(IOException e) {
-                            throw new ParseException(e.getMessage());
+                        	ParseException pe = new ParseException(e.getMessage());
+                        	pe.initCause(e); 
+                            throw pe;
                         }
                     }
                 }
@@ -1878,7 +1890,9 @@ LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token cmd; String funct
                     try {
                         command.addPathToCache(path);
                     } catch(IOException e) {
-                        throw new ParseException(e.getMessage());
+                    	ParseException pe = new ParseException(e.getMessage());
+                    	pe.initCause(e); 
+                        throw pe;
                     }
                 }
             }
@@ -2088,7 +2102,9 @@ LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, L
 				    throw new ParseException("Invalid alias: " + t.image + " in " + over);
 			    }
             } catch (FrontendException fee) {
-                throw new ParseException(fee.getMessage());
+            	ParseException pe = new ParseException(fee.getMessage());
+            	pe.initCause(fee); 
+                throw pe;
             }
             foreachInput = new LOProject(lp, new OperatorKey(scope, getNextId()), input, i);
         }
@@ -2100,8 +2116,9 @@ LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, L
                 lp.connect(input, foreachInput);
             }
         } catch (Exception planException) {
-            ParseException parseException = new ParseException(planException.getMessage());
-            throw parseException;
+        	ParseException pe = new ParseException(planException.getMessage());
+            pe.initCause(planException);
+            throw pe;
         }
     }
 |   t = <DOLLARVAR>
@@ -2236,8 +2253,9 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 			lp.connect(eOp, sort);
 			log.debug("Connected alias " + eOp.getAlias() + " operator " + eOp.getClass().getName() + " to operator " + sort.getClass().getName() + " the logical plan");
 		} catch (PlanException planException) {
-			ParseException parseException = new ParseException(planException.getMessage());
-			throw parseException;
+			ParseException pe = new ParseException(planException.getMessage());
+			pe.initCause(planException); 
+			throw pe;
 		}
 		
 		log.trace("Exiting NestedSortOrArrange");
@@ -2629,7 +2647,9 @@ ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs,
 		try{
             FunctionType.tryCasting(func, funcType);
 		} catch (Exception e){
-			throw new ParseException(e.getMessage());
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e); 
+			throw pe;
 		}
     }
     )
@@ -2688,7 +2708,9 @@ FuncSpec NonEvalFuncSpec(byte funcType) :
 		try{
             FunctionType.tryCasting(func, funcType);
 		} catch (Exception e){
-			throw new ParseException(e.getMessage());
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e);
+			throw pe;
 		}
     }
     )
@@ -2711,12 +2733,13 @@ FuncSpec NonEvalFuncSpec(byte funcType) :
             case FunctionType.COMPARISONFUNC:
             case FunctionType.LOADFUNC:
             case FunctionType.STOREFUNC:
-                //funcSpec = new FuncSpec(func.getClass().getName() + (functionArgs == null? "(" + ")" : "(" + functionArgs + ")"));
                 func = pigContext.instantiateFuncFromSpec(funcSpec);
 		        try{
                     FunctionType.tryCasting(func, funcType);
 		        } catch (Exception e){
-			        throw new ParseException(e.getMessage());
+		        	ParseException pe = new ParseException(e.getMessage());
+		        	pe.initCause(e); 
+			        throw pe;
 		        }
                 break;
             default:
@@ -2975,7 +2998,12 @@ Schema.FieldSchema TypeAtomSchema() :
 	(  ( type = BasicType() )
 		{ 
             if(type == DataType.BYTEARRAY) {
-                throw new ParseException("Cannot cast to bytearray");
+            	int errCode = 1051;
+            	String msg = "Cannot cast to bytearray";
+                FrontendException fee = new FrontendException(msg, errCode, PigException.INPUT);
+                ParseException pe = new ParseException(msg);
+                pe.initCause(fee);
+                throw pe;
             }
 			fs = new Schema.FieldSchema(null, type); 
 			
@@ -3082,7 +3110,9 @@ Object  EvalFunction(byte funcType) :
 		try{
             FunctionType.tryCasting(func, funcType);
 		}catch (Exception e){
-			throw new ParseException(e.getMessage());
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e);
+			throw pe;
 		}
 		log.trace("Exiting EvalFunction");
 		
@@ -3334,8 +3364,9 @@ ExpressionOperator DollarVar(Schema over, Map<String, LogicalOperator> specs, Lo
 			    lp.connect(eOp, project);
             }
 		} catch (Exception planException) {
-			ParseException parseException = new ParseException(planException.getMessage());
-			throw parseException;
+			ParseException pe = new ParseException(planException.getMessage());
+			pe.initCause(planException); 
+			throw pe;
 		}
 		log.trace("Exiting DollarVar");
 		return project;
@@ -3382,8 +3413,9 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 					    lp.connect(op, item);
                     }
 				} catch (Exception planException) {
-					ParseException parseException = new ParseException(planException.getMessage());
-					throw parseException;
+					ParseException pe = new ParseException(planException.getMessage());
+					pe.initCause(planException);
+					throw pe;
 				}
 			}
 		}
@@ -3401,7 +3433,9 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
 				    throw new ParseException("Invalid alias: " + t1.image + " in " + over);
 			    }
             } catch (FrontendException fee) {
-                throw new ParseException(fee.getMessage());
+            	ParseException pe = new ParseException(fee.getMessage());
+            	pe.initCause(fee);
+                throw pe;
             }
 			log.debug("Position of " + t1.image + " = " + i);
 			if(null != over) {
@@ -3419,6 +3453,7 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
                 }
 			} catch (Exception planException) {
 				ParseException parseException = new ParseException(planException.getMessage());
+				parseException.initCause(planException);
 				throw parseException;
 			}
 		}

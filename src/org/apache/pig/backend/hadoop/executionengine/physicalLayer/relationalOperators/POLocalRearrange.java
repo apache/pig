@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -38,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.PlanException;
 
 /**
  * The local rearrange operator is a part of the co-group
@@ -463,7 +465,7 @@ public class POLocalRearrange extends PhysicalOperator {
      * @param plans2
      * @throws ExecException 
      */
-    public void setPlansFromCombiner(List<PhysicalPlan> plans) throws ExecException {
+    public void setPlansFromCombiner(List<PhysicalPlan> plans) throws PlanException {
         this.plans = plans;
         leafOps.clear();
         mProjectedColsMap.clear();
@@ -485,9 +487,9 @@ public class POLocalRearrange extends PhysicalOperator {
                 if(leaf instanceof POProject) {
                     POProject project = (POProject) leaf;
                     if(project.isStar()) {
-                        log.error("Unexpected data during optimization");
-                        throw new ExecException("Unexpected data during optimization (Local rearrange" +
-                                " in combiner has a project *" );
+                        int errCode = 2021;
+                        String msg = "Internal error. Unexpected operator project(*) in local rearrange inner plan.";
+                        throw new PlanException(msg, errCode, PigException.BUG);
                     } else {
                         mProjectedColsMap.put(project.getColumn(), keyIndex);
                     }

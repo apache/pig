@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
@@ -37,6 +38,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.tools.grunt.Utils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -220,7 +222,8 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         } catch(Exception e) {
             exceptionCaused = true;
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("{float,double}, {float,long}"));
         }
@@ -304,7 +307,8 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
         }
@@ -324,7 +328,8 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
         }
@@ -344,7 +349,8 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Could not infer the matching function"));
         }
         assertTrue(exceptionCaused);
@@ -455,7 +461,8 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double}"));
         }
@@ -630,7 +637,8 @@ public class TestBestFitCast extends TestCase {
         try{
             pigServer.openIterator("B");
         }catch (Exception e) {
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertEquals(true,msg.contains("as multiple or none of them fit"));
         }
         
@@ -683,7 +691,8 @@ public class TestBestFitCast extends TestCase {
         try{
             pigServer.openIterator("B");
         }catch (Exception e) {
-            String msg = e.getMessage();
+            PigException pe = Utils.getPigException(e);
+            String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertEquals(true,msg.contains("Multiple matching functions"));
         }
         
