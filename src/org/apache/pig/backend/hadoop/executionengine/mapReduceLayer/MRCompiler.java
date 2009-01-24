@@ -1562,7 +1562,7 @@ public class MRCompiler extends PhyPlanVisitor {
             // Look for map reduce operators which contains limit operator.
             // If so and the requestedParallelism > 1, add one additional map-reduce
             // operator with 1 reducer into the original plan
-            if (mr.limit!=-1 && mr.requestedParallelism>1)
+            if (mr.limit!=-1 && mr.requestedParallelism!=1)
             {
                 opsToAdjust.add(mr);
             }

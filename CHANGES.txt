@@ -373,4 +373,6 @@ Trunk (unreleased changes)
 
     PIG-628: misc performance improvements (pradeepk via olgan)
     
-    PIG-589: error handling, phase 1-2 (sms via olgan):wq
+    PIG-589: error handling, phase 1-2 (sms via olgan)
+
+    PIG-615: Wrong number of jobs with limit (shravanmn via sms)
