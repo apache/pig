@@ -41,6 +41,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -828,7 +829,54 @@ public class TestMRCompiler extends junit.framework.TestCase {
     		assertTrue(mrce.getErrorCode() == 2025);
     	}
     }
+
+    /**
+     * Test to ensure that the order by without parallel followed by a limit, i.e., top k
+     * always produces the correct number of map reduce jobs
+     */
+    @Test
+    public void testNumReducersInLimit() throws Exception {
+    	planTester.buildPlan("a = load 'input';");
+    	planTester.buildPlan("b = order a by $0;");
+    	planTester.buildPlan("c = limit b 10;");
+    	LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+    	
+    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+    	MapReduceOper mrOper = mrPlan.getRoots().get(0);
+    	int count = 1;
+    	
+    	while(mrPlan.getSuccessors(mrOper) != null) {
+    		mrOper = mrPlan.getSuccessors(mrOper).get(0);
+    		++count;
+    	}        
+    	assertTrue(count == 4);
+    }
     
+    /**
+     * Test to ensure that the order by with parallel followed by a limit, i.e., top k
+     * always produces the correct number of map reduce jobs
+     */
+    @Test
+    public void testNumReducersInLimitWithParallel() throws Exception {
+    	planTester.buildPlan("a = load 'input';");
+    	planTester.buildPlan("b = order a by $0 parallel 2;");
+    	planTester.buildPlan("c = limit b 10;");
+    	LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+    	
+    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+    	MapReduceOper mrOper = mrPlan.getRoots().get(0);
+    	int count = 1;
+    	
+    	while(mrPlan.getSuccessors(mrOper) != null) {
+    		mrOper = mrPlan.getSuccessors(mrOper).get(0);
+    		++count;
+    	}        
+    	assertTrue(count == 4);
+    }
+
+
     public static class WeirdComparator extends ComparisonFunc {
 
         @Override
