@@ -378,3 +378,6 @@ Trunk (unreleased changes)
     PIG-615: Wrong number of jobs with limit (shravanmn via sms)
 
     PIG-635: POCast.java has incorrect formatting (sms)
+
+    PIG-634: When POUnion is one of the roots of a map plan, POUnion.getNext()
+    gives a null pointer exception (pradeepk)
