@@ -124,7 +124,29 @@ public class POUnion extends PhysicalOperator {
 
         // Case 1 : Normal connected plan
         if (!isInputAttached()) {
-
+            
+            if (inputs == null || inputs.size()==0) {
+                // Neither does this Union have predecessors nor
+                // was any input attached! This can happen when we have
+                // a plan like below
+                // POUnion
+                // |
+                // |--POLocalRearrange
+                // |    |
+                // |    |-POUnion (root 2)--> This union's getNext() can lead the code here
+                // |
+                // |--POLocalRearrange (root 1)
+                
+                // The inner POUnion above is a root in the plan which has 2 roots.
+                // So these 2 roots would have input coming from different input
+                // sources (dfs files). So certain maps would be working on input only
+                // meant for "root 1" above and some maps would work on input
+                // meant only for "root 2". In the former case, "root 2" would
+                // neither get input attached to it nor does it have predecessors
+                // which is the case which can lead us here.
+                return eopResult;
+            }
+          
             while(true){
                 if (done.nextClearBit(0) >= inputs.size()) {
                     clearDone();

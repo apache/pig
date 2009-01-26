@@ -21,8 +21,11 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -167,4 +170,50 @@ public class TestUnion extends junit.framework.TestCase {
         assertEquals(true, TestHelper.compareBags(expBag, outBag));
     }
 
+    // Test the case when POUnion is one of the roots in a map reduce
+    // plan and the input to it can be null
+    // This can happen when we have
+    // a plan like below
+    // POUnion
+    // |
+    // |--POLocalRearrange
+    // |    |
+    // |    |-POUnion (root 2)--> This union's getNext() can lead the code here
+    // |
+    // |--POLocalRearrange (root 1)
+    
+    // The inner POUnion above is a root in the plan which has 2 roots.
+    // So these 2 roots would have input coming from different input
+    // sources (dfs files). So certain maps would be working on input only
+    // meant for "root 1" above and some maps would work on input
+    // meant only for "root 2". In the former case, "root 2" would
+    // neither get input attached to it nor does it have predecessors
+    @Test
+    public void testGetNextNullInput() throws Exception {
+        Util.createInputFile(cluster, "a.txt", new String[] {"1\t2\t3", "4\t5\t6"});
+        Util.createInputFile(cluster, "b.txt", new String[] {"7\t8\t9", "1\t200\t300"});
+        Util.createInputFile(cluster, "c.txt", new String[] {"1\t20\t30"});
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig.registerQuery("a = load 'a.txt' ;");
+        pig.registerQuery("b = load 'b.txt';");
+        pig.registerQuery("c = union a, b;");
+        pig.registerQuery("d = load 'c.txt' ;");
+        pig.registerQuery("e = cogroup c by $0 inner, d by $0 inner;");
+        pig.explain("e", System.err);
+        // output should be 
+        // (1,{(1,2,3),(1,200,300)},{(1,20,30)})
+        Tuple expectedResult = new DefaultTuple();
+        expectedResult.append(new DataByteArray("1"));
+        Tuple[] secondFieldContents = new DefaultTuple[2];
+        secondFieldContents[0] = Util.createTuple(Util.toDataByteArrays(new String[] {"1", "2", "3"}));
+        secondFieldContents[1] = Util.createTuple(Util.toDataByteArrays(new String[] {"1", "200", "300"}));
+        DataBag secondField = Util.createBag(secondFieldContents);
+        expectedResult.append(secondField);
+        DataBag thirdField = Util.createBag(new Tuple[]{Util.createTuple(Util.toDataByteArrays(new String[]{"1", "20", "30"}))});
+        expectedResult.append(thirdField);
+        Iterator<Tuple> it = pig.openIterator("e");
+        assertEquals(expectedResult, it.next());
+        assertFalse(it.hasNext());
+    }
+    
 }
