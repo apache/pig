@@ -26,6 +26,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -54,6 +55,8 @@ public class POProject extends ExpressionOperator {
 
 	private static TupleFactory tupleFactory = TupleFactory.getInstance();
 
+	private boolean resultSingleTupleBag = false;
+	
     //The column to project
     ArrayList<Integer> columns;
     
@@ -168,6 +171,7 @@ public class POProject extends ExpressionOperator {
 
     @Override
     public Result getNext(DataBag db) throws ExecException {
+        
         Result res = processInputBag();
         if(res.returnStatus!=POStatus.STATUS_OK)
             return res;
@@ -179,12 +183,25 @@ public class POProject extends ExpressionOperator {
             detachInput();
             return res;
         }
-        DataBag outBag = BagFactory.getInstance().newDefaultBag();
-        for (Tuple tuple : inpBag) {
+        
+        DataBag outBag;
+        if(resultSingleTupleBag) {
+            // we have only one tuple in a bag - so create
+            // A SingleTupleBag for the result and fill it
+            // appropriately from the input bag
+            Tuple tuple = inpBag.iterator().next();
             Tuple tmpTuple = tupleFactory.newTuple(columns.size());
             for (int i = 0; i < columns.size(); i++)
                 tmpTuple.set(i, tuple.get(columns.get(i)));
-            outBag.add(tmpTuple);
+            outBag = new SingleTupleBag(tmpTuple);
+        } else {
+            outBag = BagFactory.getInstance().newDefaultBag();
+            for (Tuple tuple : inpBag) {
+                Tuple tmpTuple = tupleFactory.newTuple(columns.size());
+                for (int i = 0; i < columns.size(); i++)
+                    tmpTuple.set(i, tuple.get(columns.get(i)));
+                outBag.add(tmpTuple);
+            }
         }
         res.result = outBag;
         res.returnStatus = POStatus.STATUS_OK;
@@ -369,6 +386,10 @@ public class POProject extends ExpressionOperator {
             res.returnStatus = POStatus.STATUS_OK;
             return res;
         }
+    }
+
+    public void setResultSingleTupleBag(boolean resultSingleTupleBag) {
+        this.resultSingleTupleBag = resultSingleTupleBag;
     }
 
 }

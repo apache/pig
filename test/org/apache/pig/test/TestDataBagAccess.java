@@ -17,6 +17,9 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultTuple;
+import org.apache.pig.data.NonSpillableDataBag;
+import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.MultiMap;
 import org.junit.Before;
@@ -36,6 +39,35 @@ public class TestDataBagAccess extends TestCase {
     @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+    
+    @Test
+    public void testSingleTupleBagAcess() throws Exception {
+        Tuple inputTuple = new DefaultTuple();
+        inputTuple.append("a");
+        inputTuple.append("b");
+        
+        SingleTupleBag bg = new SingleTupleBag(inputTuple);
+        Iterator<Tuple> it = bg.iterator();
+        assertEquals(inputTuple, it.next());
+        assertFalse(it.hasNext());
+    }
+    
+    @Test
+    public void testNonSpillableDataBag() throws Exception {
+        String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
+        NonSpillableDataBag bg = new NonSpillableDataBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg.add(Util.createTuple(tupleContents[i]));
+        }
+        Iterator<Tuple> it = bg.iterator();
+        int j = 0;
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            assertEquals(Util.createTuple(tupleContents[j]), t);
+            j++;
+        }
+        assertEquals(tupleContents.length, j);
     }
     
     @Test

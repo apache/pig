@@ -193,17 +193,17 @@ Trunk (unreleased changes)
 
     PIG-422: cross is broken (shravanmn via olgan)
 
-    PIG-407: need to clone operators (pradeepk via olgan)
+    PIG-407: need to clone operators (pradeepkth via olgan)
 
     PIG-428: TypeCastInserter does not replace projects in inner plans
-    correctly (pradeepk vi olgan)
+    correctly (pradeepkth vi olgan)
 
     PIG-421: error with complex nested plan (sms via olgan)
     
     PIG-429: Self join wth implicit split has the join output in wrong order
-    (pradeepk via olgan)
+    (pradeepkth via olgan)
 
-    PIG-434: short-circuit AND and OR (pradeepk viia olgan)
+    PIG-434: short-circuit AND and OR (pradeepkth viia olgan)
 
     PIG-333: allowing no parethesis with single column alias with flatten (sms
     via olgan)
@@ -212,15 +212,15 @@ Trunk (unreleased changes)
 
     PIG-426: Adding result of two UDFs gives a syntax error (sms via olgan)
 
-    PIG-436: alias is lost when single column is flattened (pradeepk via
+    PIG-436: alias is lost when single column is flattened (pradeepkth via
     olgan)
 
     PIG-364: Limit return incorrect records when we use multiple reducer
     (daijy via olgan)
 
-    PIG-439: disallow alias renaming (pardeepk via olgan)
+    PIG-439: disallow alias renaming (pradeepkth via olgan)
 
-    PIG-440: Exceptions from UDFs inside a foreach are not captured (pradeepk
+    PIG-440: Exceptions from UDFs inside a foreach are not captured (pradeepkth
     via olgan)
 
     PIG-442: Disambiguated alias after a foreach flatten is not accessible a
@@ -238,18 +238,18 @@ Trunk (unreleased changes)
     PIG-445: Null Pointer Exceptions in the mappers leading to lot of retries
     (shravanmn via olgan)
 
-    PIG-444: job.jar is left behined (pradeepk via olgan)
+    PIG-444: job.jar is left behined (pradeepkth via olgan)
 
-    PIG-447: improved error messages (pradeepk via olgan)
+    PIG-447: improved error messages (pradeepkth via olgan)
 
-    PIG-448: explain broken after load with types (pradeepk via olgan)
+    PIG-448: explain broken after load with types (pradeepkth via olgan)
 
     PIG-380: invalid schema for databag constant (sms via olgan)
 
     PIG-451: If an field is part of group followed by flatten, then referring
-    to it causes a parse error (pradeepk via olgan)
+    to it causes a parse error (pradeepkth via olgan)
 
-    PIG-455: "group" alias is lost after a flatten(group) (pradeepk vi olgan)
+    PIG-455: "group" alias is lost after a flatten(group) (pradeepkth vi olgan)
 
     PIG-458: integration with Hadoop 18 (olgan)
 
@@ -262,34 +262,34 @@ Trunk (unreleased changes)
     
     PIG-376: set job name (olgan)
 
-    PIG-463: POCast changes (pradeepk via olgan)
+    PIG-463: POCast changes (pradeepkth via olgan)
 
     PIG-427: casting input to UDFs
      
     PIG-437: as in alias names causing problems (sms via olgan)
 
-    PIG-54: MIN/MAX don't deal with invalid data (pradeepk via olgan)
+    PIG-54: MIN/MAX don't deal with invalid data (pradeepkth via olgan)
 
     PIG-470: TextLoader should produce bytearrays (sms via olgan)
 
     PIG-335: lineage (sms vi olgan)
 
-    PIG-464: bag schema definition (pradeepk via olgan)
+    PIG-464: bag schema definition (pradeepkth via olgan)
 
     PIG-457: report 100% on successful jobs only (shravanmn via olgan)
 
-    PIG-471: ignoring status errors from hadoop (pradeepk via olgan)
+    PIG-471: ignoring status errors from hadoop (pradeepkth via olgan)
 
-    PIG-465: performance improvement - removing keys from the value (pradeepk
+    PIG-465: performance improvement - removing keys from the value (pradeepkth
     via olgan)
     
     PIG-489: (*) processing (sms via olgan)
 
     PIG-475: missing heartbeats (shravanmn via olgan)
 
-    PIG-468: make determine Schema work for BinStorage (pradeepk via olgan)
+    PIG-468: make determine Schema work for BinStorage (pradeepkth via olgan)
 
-    PIG-494: invalid handling of UTF-8 data in PigStorage (pradeepk via olgan)
+    PIG-494: invalid handling of UTF-8 data in PigStorage (pradeepkth via olgan)
 
     PIG-501: Make branches/types work under cygwin (daijy via olgan)
 
@@ -304,15 +304,15 @@ Trunk (unreleased changes)
 
     PIG-499: parser issue with as (sms via olgan)
 
-    PIG-507: permission error not reported (pradeepk via olgan)
+    PIG-507: permission error not reported (pradeepkth via olgan)
 
-    PIG-508: problem with double joins (pradeepk via olgan)
+    PIG-508: problem with double joins (pradeepkth via olgan)
 
-    PIG-497: problems with UTF8 handling in BinStorage (pradeepk via olgan)
+    PIG-497: problems with UTF8 handling in BinStorage (pradeepkth via olgan)
 
     PIG-505: working with map elements (sms via olgan)
 
-    PIG-517: load functiin with parameters does not work with cast (pradeepk
+    PIG-517: load functiin with parameters does not work with cast (pradeepkth
     via olgan)
 
     PIG-525: make sure cast for udf parameters works (olgan)
@@ -324,16 +324,16 @@ Trunk (unreleased changes)
     PIG-527: allow PigStorage to write out complex output (sms via olgan)
 
     PIG-537: Failure in Hadoop map collect stage due to type mismatch in the
-    keys used in cogroup (pradeepk vi olgan)
+    keys used in cogroup (pradeepkth vi olgan)
 
-    PIG-538: support for null constants (pradeepk via olgan)
+    PIG-538: support for null constants (pradeepkth via olgan)
 
-    PIG-385: more null handling (pradeepk via olgan)
+    PIG-385: more null handling (pradeepkth via olgan)
 
     PIG-546: FilterFunc calls empty constructor when it should be calling
     parameterized constructor (sms via olgan)
 
-    PIG-449: Schemas for bags should contain tuples all the time (pradeepk via
+    PIG-449: Schemas for bags should contain tuples all the time (pradeepkth via
     olgan)
 
     PIG-501: make unit tests run under windows (daijy via olgan)
@@ -346,14 +346,14 @@ Trunk (unreleased changes)
 
 	PIG-6: Add load support from hbase (hustlmsp via gates).
 
-    PIG-522: make negation work (pradeepk via olgan)
+    PIG-522: make negation work (pradeepkth via olgan)
 
-    PIG-563: support for multiple combiner invocations (pradeepk via olgan)
+    PIG-563: support for multiple combiner invocations (pradeepkth via olgan)
 
-    PIG-580: using combiner to compute distinct aggs (pradeepk via olgan)
+    PIG-580: using combiner to compute distinct aggs (pradeepkth via olgan)
 
     PIG-558: Distinct followed by a Join results in Invalid size 0 for a tuple
-    error (pradeepk via olgan)
+    error (pradeepkth via olgan)
 
 	PIG-572 A PigServer.registerScript() method, which lets a client
 	programmatically register a Pig Script.  (shubhamc via gates)
@@ -364,14 +364,14 @@ Trunk (unreleased changes)
 
     PIG-597: Fix for how * is treated by UDFs (shravanmn via olgan)
 
-    PIG-629: performance improvement: getting rid of targeted tuple (pradeepk
+    PIG-629: performance improvement: getting rid of targeted tuple (pradeepkth
     via olgan)
 
     PIG-623: Fix spelling errors in output messages (tomwhite via sms)
 
     PIG-622: Include pig executable in distribution (tomwhite via sms)
 
-    PIG-628: misc performance improvements (pradeepk via olgan)
+    PIG-628: misc performance improvements (pradeepkth via olgan)
     
     PIG-589: error handling, phase 1-2 (sms via olgan)
 
@@ -380,6 +380,9 @@ Trunk (unreleased changes)
     PIG-635: POCast.java has incorrect formatting (sms)
 
     PIG-634: When POUnion is one of the roots of a map plan, POUnion.getNext()
-    gives a null pointer exception (pradeepk)
+    gives a null pointer exception (pradeepkth)
 
     PIG-632: Improved error message for binary operators (sms)
+
+    PIG-636: Performance improvement: Use lightweight bag implementations which do not
+    register with SpillableMemoryManager with Combiner (pradeepkth)

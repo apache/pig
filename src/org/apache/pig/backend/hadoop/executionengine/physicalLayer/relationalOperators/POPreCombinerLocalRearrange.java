@@ -25,6 +25,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -165,7 +166,6 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
                 resLst.add(res);
             }
             res.result = constructLROutput(resLst,(Tuple)inp.result);
-            
             return res;
         }
         return inp;
@@ -190,8 +190,7 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
         // put the value in a bag so that the initial
         // version of the Algebraics will get a bag as
         // they would expect.
-        DataBag bg = mBagFactory.newDefaultBag();
-        bg.add(value);
+        DataBag bg = new SingleTupleBag(value);
         output.set(1, bg);
         return output;
     }
