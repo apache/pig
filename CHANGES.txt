@@ -381,3 +381,5 @@ Trunk (unreleased changes)
 
     PIG-634: When POUnion is one of the roots of a map plan, POUnion.getNext()
     gives a null pointer exception (pradeepk)
+
+    PIG-632: Improved error message for binary operators (sms)

@@ -155,7 +155,8 @@ public class PigException extends IOException {
      * @param errSrc - The error source 
      */
     public PigException (String message, int errCode, byte errSrc) {
-        this(message, errCode, errSrc, false, null);
+        this(message, errCode);
+        errorSource = errSrc;
     }
 
     /**
@@ -178,8 +179,7 @@ public class PigException extends IOException {
      * @param retry - If the exception is retriable or not
      */
     public PigException (String message, int errCode, boolean retry) {
-        this(message);
-        errorCode = errCode;
+        this(message, errCode);
         retriable = retry;
     }
 
@@ -192,7 +192,8 @@ public class PigException extends IOException {
      * @param retry - If the exception is retriable or not
      */
     public PigException (String message, int errCode, byte errSrc, boolean retry) {
-        this(message, errCode, errSrc, retry, null);
+        this(message, errCode, errSrc);
+        retriable = retry;
     }
 
     /**
@@ -205,10 +206,7 @@ public class PigException extends IOException {
      * @param detailedMsg - The detailed message shown to the developer 
      */
     public PigException (String message, int errCode, byte errSrc, boolean retry, String detailedMsg) {
-        super(message);
-        errorCode = errCode;
-        errorSource = errSrc;
-        retriable = retry;
+        this(message, errCode, errSrc, retry);
         detailedMessage = detailedMsg;
     }
 

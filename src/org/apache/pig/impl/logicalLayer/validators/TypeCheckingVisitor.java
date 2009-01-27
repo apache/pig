@@ -213,10 +213,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1035;
             String msg = "Error getting LOProject's input schema" ;
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
-
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
 
         /*
@@ -387,10 +384,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             currentPlan.connect(rg.getOperand(), cast) ;
             currentPlan.connect(cast, rg) ;
         }
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for regular expression in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
         rg.setOperand(cast) ;
         this.visit(cast);
@@ -490,8 +487,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in Multiplication Operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -502,9 +499,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set Multiply field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -547,8 +542,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in Division Operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -559,9 +554,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set Divide field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -604,8 +597,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in Add Operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -615,9 +608,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set Add field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -660,8 +651,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in Subtract Operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -671,9 +662,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set Subtract field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -723,8 +712,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in GreaterThan operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -775,8 +764,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in GreaterThanEqualTo operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -826,8 +815,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in LesserThan operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -878,8 +867,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in LesserThanEqualTo operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -949,7 +938,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         } else {
             int errCode = 1039;
             String msg = "Incompatible types in EqualTo Operator"
-                    + " LHS:" + DataType.findTypeName(lhsType) + " RHS:"
+                    + " left hand side:" + DataType.findTypeName(lhsType) + " right hand side:"
                     + DataType.findTypeName(rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
@@ -1019,8 +1008,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         } else {
             int errCode = 1039;
             String msg = "Incompatible types in NotEqual Operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -1062,8 +1051,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         else {
             int errCode = 1039;
             String msg = "Incompatible types in Mod Operator"
-                            + " LHS:" + DataType.findTypeName(lhsType)
-                            + " RHS:" + DataType.findTypeName(rhsType) ;
+                            + " left hand side:" + DataType.findTypeName(lhsType)
+                            + " right hand side:" + DataType.findTypeName(rhsType) ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -1073,9 +1062,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set Mod field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -1104,9 +1091,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set Negative field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
@@ -1145,10 +1130,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             currentPlan.connect(cast, binOp) ;
             binOp.setLhsOperand(cast);
         }
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for binary conditional in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
         binOp.setLhsOperand(cast) ;
         this.visit(cast);
@@ -1169,10 +1154,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             currentPlan.connect(cast, binOp) ;
             binOp.setRhsOperand(cast);
         }
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for binary conditional in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
         binOp.setRhsOperand(cast) ;
         this.visit(cast);
@@ -1214,7 +1199,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             // undefined for this unknown unary operator
-            throw new AssertionError(" Undefined type checking logic for " + uniOp.getClass()) ;
+            int errCode = 1079;
+            String msg = "Undefined type checking logic for unary operator: " + uniOp.getClass().getSimpleName();
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -1226,7 +1213,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
         List<LogicalOperator> list = currentPlan.getPredecessors(uniOp) ;
         if (list==null) {
-            throw new AssertionError("No input for " + uniOp.getClass()) ;
+            int errCode = 1080;
+            String msg = "Did not find inputs for operator: " + uniOp.getClass().getSimpleName();
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
         // All uniOps at the moment only work with Expression input
         ExpressionOperator input = (ExpressionOperator) list.get(0) ;                
@@ -1239,10 +1228,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             currentPlan.connect(input, cast) ;
             currentPlan.connect(cast, uniOp) ;
         } 
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for unary operator in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
 
         uniOp.setOperand(cast);
@@ -1416,9 +1405,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set UserFunc field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fee) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
         }
     }
     
@@ -1797,7 +1784,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         return score * castCnt;
     }
     
-    private void insertCastsForUDF(LOUserFunc udf, Schema fromSch, Schema toSch) {
+    private void insertCastsForUDF(LOUserFunc udf, Schema fromSch, Schema toSch) throws VisitorException {
         List<FieldSchema> fsLst = fromSch.getFields();
         List<FieldSchema> tsLst = toSch.getFields();
         List<ExpressionOperator> args = udf.getArguments();
@@ -1826,16 +1813,12 @@ public class TypeCheckingVisitor extends LOVisitor {
             try {
                 currentPlan.insertBetween(input, cast, udf);
                 this.visit(cast);
-            } catch (PlanException ioe) {
-                AssertionError err = new AssertionError(
-                        "Explicit casting insertion");
-                err.initCause(ioe);
-                throw err;
+            } catch (PlanException pe) {
+                int errCode = 2059;
+                String msg = "Problem with inserting cast operator for user defined function in plan.";
+                throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
             } catch (VisitorException ve) {
-                AssertionError err = new AssertionError(
-                        "Explicit casting insertion");
-                err.initCause(ve);
-                throw err;
+                throw ve;
             }
         }
         udf.setMArgs(newArgs);
@@ -1906,13 +1889,11 @@ public class TypeCheckingVisitor extends LOVisitor {
                     //       if the previous check is not exact match
                     //       Is Schema.reconcile good enough?
                 } 
-                catch (FrontendException ioe) {
+                catch (FrontendException fe) {
                     int errCode = 1049;
                     String msg = "Problem during evaluaton of BinCond output type" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-                    vse.initCause(ioe) ;
-                    throw vse ;
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
                 }
                 binCond.setType(DataType.TUPLE) ;
             }
@@ -1921,7 +1902,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1050;
-            String msg = "Unsupported input type for BinCond: lhs = " + DataType.findTypeName(lhsType) + "; rhs = " + DataType.findTypeName(rhsType);
+            String msg = "Unsupported input type for BinCond: left hand side: " + DataType.findTypeName(lhsType) + "; right hand side: " + DataType.findTypeName(rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -1932,9 +1913,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1040;
             String msg = "Could not set BinCond field schema";
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg) ;
-            vse.initCause(fee) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
         }
 
     }
@@ -1964,10 +1943,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             currentPlan.insertBetween(binCond.getLhsOp(), cast, binCond);
         } 
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for binary conditional in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         } 
         binCond.setLhsOp(cast) ;
         this.visit(cast);
@@ -1999,10 +1978,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             currentPlan.insertBetween(binCond.getRhsOp(), cast, binCond) ;
         } 
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for binary conditional in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }               
         binCond.setRhsOp(cast) ;
         this.visit(cast);
@@ -2038,7 +2017,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             castFs = cast.getFieldSchema();
             inputFs = cast.getExpression().getFieldSchema();
         } catch(FrontendException fee) {
-            throw new TypeCheckerException(fee.getMessage());
+            int errCode = 1076;
+            String msg = "Problem while reading field schema of cast operator.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, fee);
         }
         boolean castable = Schema.FieldSchema.castable(castFs, inputFs);
         if(!castable) {
@@ -2136,9 +2117,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1055;
             String msg = "Problem while reading schemas from inputs of Union" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fee) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
         }
 
         // Do cast insertion only if we are typed
@@ -2161,9 +2140,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                         int errCode = 1056;
                         String msg = "Problem while casting inputs of Union" ;
                         msgCollector.collect(msg, MessageType.Error) ;
-                        TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-                        vse.initCause(fee) ;
-                        throw vse ;
+                        throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
                     }
                 }
             }
@@ -2178,7 +2155,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         // LOSplitOutput can only have 1 input
         List<LogicalOperator> list = currentPlan.getPredecessors(op) ;
         if (list.size() != 1) {
-            throw new AssertionError("LOSplitOutput can only have 1 input") ;
+            int errCode = 2008;
+            String msg = "LOSplitOutput cannot have more than one input. Found: " + list.size() + " input(s).";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
 
         LogicalOperator input = list.get(0);
@@ -2211,9 +2190,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             String msg = "Problem while reading"
                          + " schemas from inputs of SplitOutput" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -2239,9 +2216,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             String msg = "Problem while reading"
                          + " schemas from inputs of Distinct" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -2256,9 +2231,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             String msg = "Problem while reading"
                          + " schemas from inputs of Limit" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -2283,9 +2256,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             String msg = "Problem while reading"
                         + " schemas from inputs of Cross" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
@@ -2326,9 +2297,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Sort" ;
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fee) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
         }
     }
 
@@ -2366,13 +2335,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             // Compute the schema
             filter.getSchema() ;
         } 
-        catch (FrontendException ioe) {
+        catch (FrontendException fe) {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Filter" ;
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(ioe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -2384,8 +2351,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         // TODO: Why doesn't LOSplit have getInput() ???
         List<LogicalOperator> inputList = mPlan.getPredecessors(split) ;
         
-        if (inputList.size() != 1) {
-            throw new AssertionError("LOSplit cannot have more than one input") ;
+        if (inputList.size() != 1) {            
+            int errCode = 2008;
+            String msg = "LOSplit cannot have more than one input. Found: " + inputList.size() + " input(s).";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
         
         LogicalOperator input = inputList.get(0) ;
@@ -2394,13 +2363,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             // Compute the schema
             split.regenerateSchema() ;
         }
-        catch (FrontendException ioe) {
+        catch (FrontendException fe) {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Split" ;
             msgCollector.collect(msg, MessageType.Error);
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(ioe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
@@ -2414,10 +2381,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve Fragment Replicate Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
-            throw vse ;
-
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
+        
         MultiMap<LogicalOperator, LogicalPlan> joinColPlans
                                                     = frj.getJoinColPlans() ;
         List<LogicalOperator> inputs = frj.getInputs() ;
@@ -2438,8 +2404,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     String msg = "Fragment Replicate Join's inner plans can only"
                                  + "have one output (leaf)" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-                    throw vse ;
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                 }
 
                 checkInnerPlan(innerPlans.get(j)) ;
@@ -2501,8 +2466,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                             int errCode = 1060;
                             String msg = "Cannot resolve Fragment Replicate Join output schema" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
-                            throw vse ;
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
                         }
 
                         if (innerType != expectedType) {
@@ -2518,13 +2482,8 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve Fragment Replicate Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
-
-        // TODO: Don't recompute schema here. Remove all from here!
-        // Generate output schema based on the schema generated from
-        // COGroup itself
 
         try {
             Schema outputSchema = frj.regenerateSchema() ;
@@ -2533,8 +2492,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve Fragment Replicate Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -2550,9 +2508,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
+        
         MultiMap<LogicalOperator, LogicalPlan> groupByPlans
                                                     = cg.getGroupByPlans() ;
         List<LogicalOperator> inputs = cg.getInputs() ;
@@ -2626,8 +2584,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                             String msg = "Sorry, group by complex types"
                                        + " will be supported soon" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-                            throw vse ;
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                         }
 
                         try {
@@ -2637,8 +2594,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                             int errCode = 1060;
                             String msg = "Cannot resolve COGroup output schema" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
-                            throw vse ;
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
                         }
 
                         if (innerType != expectedType) {
@@ -2654,8 +2610,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
 
         // TODO: Don't recompute schema here. Remove all from here!
@@ -2669,24 +2624,24 @@ public class TypeCheckingVisitor extends LOVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-            vse.initCause(fe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
     private void insertAtomicCastForFRJInnerPlan(LogicalPlan innerPlan,
             LOFRJoin frj, byte toType) throws VisitorException {
         if (!DataType.isUsableType(toType)) {
-            throw new AssertionError("Cannot cast to type "
-                    + DataType.findTypeName(toType));
+            int errCode = 1051;
+            String msg = "Cannot cast to "
+                + DataType.findTypeName(toType);
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
 
         List<LogicalOperator> leaves = innerPlan.getLeaves();
         if (leaves.size() > 1) {
-            throw new AssertionError(
-                    "insertAtomicForCOGroupInnerPlan cannot be"
-                            + " used when there is more than 1 output port");
+            int errCode = 2060;
+            String msg = "Expected one leaf. Found " + leaves.size() + " leaves.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG);
         }
         ExpressionOperator currentOutput = (ExpressionOperator) leaves.get(0);
         collectCastWarning(frj, currentOutput.getType(), toType);
@@ -2695,11 +2650,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         innerPlan.add(cast);
         try {
             innerPlan.connect(currentOutput, cast);
-        } catch (PlanException ioe) {
-            AssertionError err = new AssertionError(
-                    "Explicit casting insertion");
-            err.initCause(ioe);
-            throw err;
+        } catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for fragment replicate join in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
         this.visit(cast);
     }
@@ -2710,13 +2664,17 @@ public class TypeCheckingVisitor extends LOVisitor {
                                                      LOCogroup cg,
                                                      byte toType) throws VisitorException {
         if(!DataType.isUsableType(toType)) {
-            throw new AssertionError("Cannot cast to type " + DataType.findTypeName(toType));
+            int errCode = 1051;
+            String msg = "Cannot cast to "
+                + DataType.findTypeName(toType);
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
         
         List<LogicalOperator> leaves = innerPlan.getLeaves() ;
         if (leaves.size() > 1) {
-            throw new AssertionError("insertAtomicForCOGroupInnerPlan cannot be"
-                                + " used when there is more than 1 output port") ;
+            int errCode = 2060;
+            String msg = "Expected one leaf. Found " + leaves.size() + " leaves.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG);
         }
         ExpressionOperator currentOutput = (ExpressionOperator) leaves.get(0) ;
         collectCastWarning(cg, currentOutput.getType(), toType) ;
@@ -2726,10 +2684,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         try {
             innerPlan.connect(currentOutput, cast) ;
         }
-        catch (PlanException ioe) {
-            AssertionError err =  new AssertionError("Explicit casting insertion") ;
-            err.initCause(ioe) ;
-            throw err ;
+        catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for cogroup in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
         this.visit(cast);
     }
@@ -2742,8 +2700,9 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
     public byte getAtomicGroupByType(LOCogroup cg) throws VisitorException {
         if (cg.isTupleGroupCol()) {
-            throw new AssertionError("getAtomicGroupByType is used only when"
-                                     + " dealing with atomic group col") ;
+            int errCode = 2061;
+            String msg = "Expected single group by element but found multiple elements.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG);
         }
         byte groupType = DataType.BYTEARRAY ;
         // merge all the inner plan outputs so we know what type
@@ -2753,8 +2712,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             List<LogicalPlan> innerPlans
                         = new ArrayList<LogicalPlan>(cg.getGroupByPlans().get(input)) ;
             if (innerPlans.size() != 1) {
-                throw new AssertionError("Each COGroup input has to have "
-                                         + "the same number of inner plans") ;
+                int errCode = 2062;
+                String msg = "Each COGroup input has to have "
+                    + "the same number of inner plans.";
+                throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
             }
             byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
             groupType = DataType.mergeType(groupType, innerType) ;
@@ -2788,8 +2749,9 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
     public Schema getTupleGroupBySchema(LOCogroup cg) throws VisitorException {
         if (!cg.isTupleGroupCol()) {
-            throw new AssertionError("getTupleGroupBySchema is used only when"
-                                     + " dealing with tuple group col") ;
+            int errCode = 2063;
+            String msg = "Expected multiple group by element but found single element.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG);
         }
 
         // this fsList represents all the columns in group tuple
@@ -2877,8 +2839,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                         // the right type information
                     }
                     else {
-                        throw new AssertionError("Unsupported root type in "
-                            +"LOForEach:" + innerRoot.getClass().getSimpleName()) ;
+                        int errCode = 2064;
+                        String msg = "Unsupported root type in "
+                            +"LOForEach: " + innerRoot.getClass().getSimpleName();
+                        throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
                     }
                 }
 
@@ -2888,13 +2852,13 @@ public class TypeCheckingVisitor extends LOVisitor {
 
             f.getSchema();
 
-        }
-        catch (FrontendException pe) {
+        } catch (VisitorException ve) {
+            throw ve;
+        } catch (FrontendException fe) {
             int errCode = 1060;
             String msg = "Cannot resolve ForEach output schema.";
             msgCollector.collect(msg, MessageType.Error) ;
-            TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, pe) ;
-            throw vse ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
@@ -2915,7 +2879,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         int errorCount = 0 ;     
         List<LogicalOperator> rootList = innerPlan.getRoots() ;
         if (rootList.size() < 1) {
-            throw new AssertionError("Inner plan is poorly constructed") ;
+            int errCode = 2065;
+            String msg = "Did not find roots of the inner plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
 
         /*
@@ -2953,9 +2919,10 @@ public class TypeCheckingVisitor extends LOVisitor {
                 visit((LOUserFunc)op);
             }
             else {
+                int errCode = 2066;                
                 String msg = "Unsupported root operator in inner plan:"
                              + op.getClass().getSimpleName() ;
-                throw new AssertionError(msg) ;
+                throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
             }
         }
         
@@ -3029,7 +2996,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
 
         if (!found) {
-            throw new AssertionError("Two operators are not adjacent") ;
+            int errCode = 1077;
+            String msg = "Two operators that require a cast in between are not adjacent.";
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
 
         // retrieve input schema to be casted
@@ -3039,16 +3008,17 @@ public class TypeCheckingVisitor extends LOVisitor {
             fromSchema = fromOp.getSchema() ;
         }
         catch(FrontendException fe) {
-            AssertionError err =  new AssertionError("Cannot get schema from"
-                                                     + " input operator") ;
-            err.initCause(fe) ;
-            throw err ;
+            int errCode = 1055;
+            String msg = "Problem while reading schema from input of " + fromOp.getClass().getSimpleName();
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, fe);
         }
 
         // make sure the supplied targetSchema has the same number of members
         // as number of output fields from "fromOp"
         if (fromSchema.size() != targetSchema.size()) {
-            throw new AssertionError("Invalid input parameters in cast insert") ;
+            int errCode = 1078;
+            String msg = "Schema size mismatch for casting. Input schema size: " + fromSchema.size() + ". Target schema size: " + targetSchema.size();
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
 
         // Compose the new inner plan to be used in ForEach
@@ -3081,8 +3051,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                                 + " field schema from input while"
                                 + " inserting cast " ;
                 msgCollector.collect(msg, MessageType.Error) ;
-                TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
-                throw vse ;
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
             }
 
             // This only does "shallow checking"
@@ -3095,8 +3064,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             catch (FrontendException fee) {
                 int errCode = 1064;
                 String msg = "Problem reading column " + i + " from schema: " + targetSchema;
-                TypeCheckerException vse = new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
-                throw vse ;                
+                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;                
             }
 
             if (inputFieldType != fs.type) {
@@ -3111,7 +3079,9 @@ public class TypeCheckingVisitor extends LOVisitor {
                 }
                 catch (PlanException pe) {
                     // This should never happen
-                    throw new AssertionError("unpected plan exception while insert casting") ;
+                    int errCode = 2059;
+                    String msg = "Problem with inserting cast operator for project in plan.";
+                    throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
                 }
             }
 
@@ -3140,9 +3110,9 @@ public class TypeCheckingVisitor extends LOVisitor {
                 currentPlan.connect(foreach, toOp);
             }
             catch (PlanException pe) {
-                AssertionError err = new AssertionError("Problem wiring the plan while insert casting") ;
-                err.initCause(pe) ;
-                throw err ;
+                int errCode = 2059;
+                String msg = "Problem with inserting foeach operator for " + toOp.getClass().getSimpleName() + " in plan.";
+                throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
             }
 
             return foreach;
