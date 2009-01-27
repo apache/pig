@@ -466,6 +466,18 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 
             }
         }
+        
+        // since we will only be creating SingleTupleBag as input to
+        // the map foreach, we should flag the POProjects in the map
+        // foreach inner plans to also use SingleTupleBag
+        for (PhysicalPlan mpl : mPlans) {
+            try {
+                new fixMapProjects(mpl).visit();
+            } catch (VisitorException e) {
+                throw new PlanException(e);
+            }
+        }
+
 
         // Set flattens for map and combiner ForEach to false
         List<Boolean> feFlattens = new ArrayList<Boolean>(cPlans.size());
@@ -823,7 +835,47 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         }
 
     }
+    
+    private class fixMapProjects extends PhyPlanVisitor {
 
+        public fixMapProjects(PhysicalPlan plan) {
+            this(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+        }
+
+        /**
+         * @param plan
+         * @param walker
+         */
+        public fixMapProjects(PhysicalPlan plan,
+                PlanWalker<PhysicalOperator, PhysicalPlan> walker) {
+            super(plan, walker);
+        }
+
+        /*
+         * (non-Javadoc)
+         * 
+         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitProject(org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject)
+         */
+        @Override
+        public void visitProject(POProject proj) throws VisitorException {
+            if (proj.getResultType() == DataType.BAG) {
+
+                // IMPORTANT ASSUMPTION:
+                // we should be calling this visitor only for
+                // fixing up the projects in the map's foreach
+                // inner plan. In the map side, we are dealing
+                // with single tuple bags - so set the flag in
+                // the project to use single tuple bags. If in
+                // future we don't have single tuple bags in the
+                // input to map's foreach, we should NOT be doing
+                // this!
+                proj.setResultSingleTupleBag(true);
+
+            }
+        }
+
+    }
 
     // Reset any member variables since we may have already visited one
     // combine.

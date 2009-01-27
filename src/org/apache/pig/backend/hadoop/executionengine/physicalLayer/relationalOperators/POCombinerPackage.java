@@ -31,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
@@ -109,7 +110,7 @@ public class POCombinerPackage extends POPackage {
         //Create numInputs bags
         Object[] fields = new Object[mBags.length];
         for (int i = 0; i < mBags.length; i++) {
-            if (mBags[i]) fields[i] = mBagFactory.newDefaultBag();
+            if (mBags[i]) fields[i] = new NonSpillableDataBag();
         }
         
         // For each indexed tup in the inp, split them up and place their
