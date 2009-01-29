@@ -386,3 +386,5 @@ Trunk (unreleased changes)
 
     PIG-636: Performance improvement: Use lightweight bag implementations which do not
     register with SpillableMemoryManager with Combiner (pradeepkth)
+
+    PIG-631: 4 Unit test failures on Windows (daijy)
