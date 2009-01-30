@@ -390,3 +390,5 @@ Trunk (unreleased changes)
     PIG-631: 4 Unit test failures on Windows (daijy)
 
     PIG-645:  Streaming is broken with the latest trunk (pradeepkth)
+
+    PIG-646: Distinct UDF should report progress (sms)

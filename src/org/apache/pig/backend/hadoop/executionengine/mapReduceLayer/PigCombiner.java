@@ -127,6 +127,7 @@ public class PigCombiner {
                 Reporter reporter) throws IOException {
             
             pigReporter.setRep(reporter);
+            PhysicalOperator.setReporter(pigReporter);
             
             // In the case we optimize, we combine
             // POPackage and POForeach - so we could get many

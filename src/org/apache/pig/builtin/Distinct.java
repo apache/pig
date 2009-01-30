@@ -99,7 +99,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
          */
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            return tupleFactory.newTuple(getDistinctFromNestedBags(input));
+            return tupleFactory.newTuple(getDistinctFromNestedBags(input, this));
         }
     }
 
@@ -110,12 +110,13 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
          */
         @Override
         public DataBag exec(Tuple input) throws IOException {
-            return getDistinctFromNestedBags(input);
+            return getDistinctFromNestedBags(input, this);
         }
     }
     
-    static private DataBag getDistinctFromNestedBags(Tuple input) throws IOException {
+    static private DataBag getDistinctFromNestedBags(Tuple input, EvalFunc evalFunc) throws IOException {
         DataBag result = bagFactory.newDistinctBag();
+        long progressCounter = 0;
         try {
             DataBag bg = (DataBag)input.get(0);
             for (Tuple tuple : bg) {
@@ -124,6 +125,10 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
                 // and distinct over all tuples
                 for (Tuple t : (DataBag)tuple.get(0)) {
                     result.add(t);
+                    ++progressCounter;
+                    if((progressCounter % 1000) == 0){                      
+                        evalFunc.progress();
+                    }
                 }
             }
         } catch (ExecException e) {
@@ -132,12 +137,17 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
         return result;
     }
     
-    static protected DataBag getDistinct(Tuple input) throws IOException {
+    protected DataBag getDistinct(Tuple input) throws IOException {
         try {
             DataBag inputBg = (DataBag)input.get(0);
             DataBag result = bagFactory.newDistinctBag();
+            long progressCounter = 0;
             for (Tuple tuple : inputBg) {
                 result.add(tuple);
+                ++progressCounter;
+                if ((progressCounter % 1000) == 0) {
+                    progress();
+                }
             }
             return result;
         } catch (ExecException e) {

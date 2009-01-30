@@ -940,6 +940,33 @@ public class TestBuiltin extends TestCase {
         DataBag expectedBag = Util.createBagOfOneColumn(exp);
         assertEquals(expectedBag, result);
         
+    }    
+
+    @Test
+    public void testDistinctProgressNonAlgebraic() throws Exception {
+
+        //This test is for the exec method in Distinct which is not
+        //called currently.
+
+        int inputSize = 2002;
+        Integer[] inp = new Integer[inputSize];
+        for(int i = 0; i < inputSize; i+=2) {
+            inp[i] = i/2;
+            inp[i+1] = i/2;
+        }
+
+        DataBag inputBag = Util.createBagOfOneColumn(inp);
+        EvalFunc<DataBag> distinct = new Distinct();
+        DataBag result = distinct.exec(tupleFactory.newTuple(inputBag));
+        
+        Integer[] exp = new Integer[inputSize/2];
+        for(int j = 0; j < inputSize/2; ++j) {
+            exp[j] = j;
+        }
+
+        DataBag expectedBag = Util.createBagOfOneColumn(exp);
+        assertEquals(expectedBag, result);
+        
     }
     
     @Test
