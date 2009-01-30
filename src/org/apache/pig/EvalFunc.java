@@ -116,7 +116,7 @@ public abstract class EvalFunc<T>  {
     }
         
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
-    protected void progress() { 
+    public final void progress() {
         if (reporter != null) reporter.progress();
         else log.warn("No reporter object provided to UDF " + this.getClass().getName());
     }

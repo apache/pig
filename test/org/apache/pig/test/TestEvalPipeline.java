@@ -42,6 +42,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.builtin.Distinct;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.TextLoader;
 import org.apache.pig.data.*;
@@ -327,13 +328,13 @@ public class TestEvalPipeline extends TestCase {
     
 
     
-    /*
+    /*    
     @Test
     public void testSort() throws Exception{
         testSortDistinct(false, false);
-    }
-    */
-    
+    }    
+    */    
+
     @Test
     public void testSortWithUDF() throws Exception{
         testSortDistinct(false, true);
@@ -1043,6 +1044,49 @@ public class TestEvalPipeline extends TestCase {
         Util.deleteFile(cluster, "table1");
         Util.deleteFile(cluster, "table2");
     }
+
+    @Test
+    public void testAlgebraicDistinctProgress() throws Exception {
     
+        //creating a test input of larger than 1000 to make
+        //sure that progress kicks in. The only way to test this 
+        //is to add a log statement to the getDistinct
+        //method in Distinct.java. There is no automated mechanism
+        //to check this from pig
+        int inputSize = 4004;
+        Integer[] inp = new Integer[inputSize];
+        String[] inpString = new String[inputSize];
+        for(int i = 0; i < inputSize; i+=2) {
+            inp[i] = i/2;
+            inp[i+1] = i/2;
+            inpString[i] = new Integer(i/2).toString();
+            inpString[i+1] = new Integer(i/2).toString();
+        }
+        
+       
+        DataBag inputBag = Util.createBagOfOneColumn(inp);
+        Util.createInputFile(cluster, "table", inpString);
+
+        pigServer.registerQuery("a = LOAD 'table' AS (i:int);");
+        pigServer.registerQuery("b = group a ALL;");
+        pigServer.registerQuery("c = foreach b {aa = DISTINCT a; generate COUNT(aa);};");
+        Iterator<Tuple> it = pigServer.openIterator("c");
+     
+        Integer[] exp = new Integer[inputSize/2];
+        for(int j = 0; j < inputSize/2; ++j) {
+            exp[j] = j;
+        }
+
+        DataBag expectedBag = Util.createBagOfOneColumn(exp);
+        
+        while(it.hasNext()) {
+            Tuple tup = it.next();
+            Long resultBagSize = (Long)tup.get(0);
+            assertTrue(DataType.compare(expectedBag.size(), resultBagSize) == 0);
+        }
+        
+        Util.deleteFile(cluster, "table");        
+    }
+
 
 }
