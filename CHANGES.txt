@@ -388,3 +388,5 @@ Trunk (unreleased changes)
     register with SpillableMemoryManager with Combiner (pradeepkth)
 
     PIG-631: 4 Unit test failures on Windows (daijy)
+
+    PIG-645:  Streaming is broken with the latest trunk (pradeepkth)

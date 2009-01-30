@@ -180,7 +180,7 @@ public abstract class PigMapBase extends MapReduceBase{
         }
         
         for (PhysicalOperator root : roots) {
-            root.attachInput(inpTuple);
+            root.attachInput(tf.newTupleNoCopy(inpTuple.getAll()));
         }
         try {
             runPipeline(leaf);
