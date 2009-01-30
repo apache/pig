@@ -383,14 +383,33 @@ public class HExecutionEngine implements ExecutionEngine {
             jobConf.addResource("pig-cluster-hadoop-site.xml");
 
 			// We need to load the properties from the hadoop configuration
-			// file we just found in the hod dir.  We want these to override
-			// any existing properties we have.
+			// file we just found in the hod dir.  We want to override
+			// these with any existing properties we have.
         	if (jobConf != null) {
+        	    Properties hodProperties = new Properties();
             	Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
             	while (iter.hasNext()) {
                 	Map.Entry<String, String> entry = iter.next();
-                	properties.put(entry.getKey(), entry.getValue());
+                	hodProperties.put(entry.getKey(), entry.getValue());
             	}
+
+            	//override hod properties with user defined properties
+            	Enumeration<Object> propertiesIter = properties.keys();
+                while (propertiesIter.hasMoreElements()) {
+                    String key = (String) propertiesIter.nextElement();
+                    String val = properties.getProperty(key);
+                    hodProperties.put(key, val);
+                }
+                
+                //clear user defined properties and re-populate
+                properties.clear();
+                Enumeration<Object> hodPropertiesIter = hodProperties.keys();
+                while (hodPropertiesIter.hasMoreElements()) {
+                    String key = (String) hodPropertiesIter.nextElement();
+                    String val = hodProperties.getProperty(key);
+                    properties.put(key, val);
+                }
+
         	}
 
             hdfs = properties.getProperty(FILE_SYSTEM_LOCATION);
