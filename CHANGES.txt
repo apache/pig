@@ -395,3 +395,6 @@ Trunk (unreleased changes)
 
     PIG-647: memory sized passed on pig command line does not get propagated
     to JobConf (sms)
+
+    PIG-648: BinStorage fails when it finds markers unexpectedly in the data
+    (pradeepkth)
