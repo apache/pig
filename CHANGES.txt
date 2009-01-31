@@ -398,3 +398,6 @@ Trunk (unreleased changes)
 
     PIG-648: BinStorage fails when it finds markers unexpectedly in the data
     (pradeepkth)
+
+    PIG-649: RandomSampleLoader does not handle skipping correctly in
+    getNext() (pradeepkth)
