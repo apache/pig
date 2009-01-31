@@ -45,8 +45,23 @@ public class RandomSampleLoader extends BinStorage {
         long finalPos = in.getPosition();
         
         long toSkip = skipInterval - (finalPos - initialPos);
-        if (toSkip > 0)
-            in.skip(toSkip);
+        if (toSkip > 0) {
+            long rc = in.skip(toSkip);
+            
+            // if we did not skip enough
+            // in the first attempt, call
+            // in.skip() repeatedly till we
+            // skip enough
+            long remainingSkip = toSkip - rc;
+            while(remainingSkip > 0) {
+                rc = in.skip(remainingSkip);
+                if(rc == 0) {
+                    // underlying stream saw EOF
+                    break;
+                }
+                remainingSkip -= rc;
+            }
+        }
         return t;
     }
     
