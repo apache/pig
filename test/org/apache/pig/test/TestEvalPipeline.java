@@ -51,6 +51,7 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.Identity;
 
 import junit.framework.TestCase;
@@ -1088,5 +1089,45 @@ public class TestEvalPipeline extends TestCase {
         Util.deleteFile(cluster, "table");        
     }
 
+    @Test
+    public void testBinStorageWithLargeStrings() throws Exception {
+        // Create input file with large strings
+    	int testSize = 100;
+    	String[] stringArray = new String[testSize];
+    	Random random = new Random();
+    	stringArray[0] = GenRandomData.genRandLargeString(random, 65534);
+    	for(int i = 1; i < stringArray.length; ++i) {
+    		//generate a few large strings every 25th record
+    		if((i % 25) == 0) {
+    			stringArray[i] = GenRandomData.genRandLargeString(random, 65535 + i);    			
+    		} else {
+    			stringArray[i] = GenRandomData.genRandString(random);
+    		}
+    	}
+        
+    	Util.createInputFile(cluster, "table", stringArray);
+        
+    	//test with BinStorage
+        pigServer.registerQuery("a = load 'table' using PigStorage() " +
+                "as (c: chararray);");
+        String output = "/pig/out/TestEvalPipeline-testBinStorageLargeStrings";
+        pigServer.deleteFile(output);
+        pigServer.store("a", output, BinStorage.class.getName());
+        
+        pigServer.registerQuery("b = load '" + output +"' using BinStorage() " +
+        "as (c:chararray);");
+        pigServer.registerQuery("c = foreach b generate c;");
+        
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        int counter = 0;
+        while(it.hasNext()) {
+            Tuple tup = it.next();
+            String resultString = (String)tup.get(0);
+            String expectedString = stringArray[counter];
+          	assertTrue(expectedString.equals(resultString));
+            ++counter;
+        }
+        Util.deleteFile(cluster, "table");
+    }
 
 }

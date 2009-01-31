@@ -61,6 +61,16 @@ public class GenRandomData {
             chars[i] = (char)(r.nextInt(26)+65);
         }
         return new String(chars);
+    }    
+
+    public static String genRandLargeString(Random r, int size){
+        if(r==null) return "RANDOM";
+        if(size <= 10) return genRandString(r);
+        char[] chars = new char[size];
+        for(int i=0;i<size;i++){
+            chars[i] = (char)(r.nextInt(26)+65);
+        }
+        return new String(chars);
     }
     
     public static DataByteArray genRandDBA(Random r){
