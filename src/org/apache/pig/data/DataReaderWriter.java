@@ -35,6 +35,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 public class DataReaderWriter {
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
+    static final int UNSIGNED_SHORT_MAX = 65535;
+    static final String UTF8 = "UTF-8";
 
     public static Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
@@ -102,8 +104,20 @@ public class DataReaderWriter {
                 return new DataByteArray(ba);
                                      }
 
-            case DataType.CHARARRAY:
-                return in.readUTF();
+            case DataType.BIGCHARARRAY: {
+                int size = in.readInt();
+                byte[] ba = new byte[size];
+                in.readFully(ba);
+            	return new String(ba, DataReaderWriter.UTF8);
+            }
+
+            case DataType.CHARARRAY: {
+                int size = in.readUnsignedShort();
+                byte[] ba = new byte[size];
+                in.readFully(ba);
+            	return new String(ba, DataReaderWriter.UTF8);
+            }
+
 
             case DataType.NULL:
                 return null;
@@ -186,8 +200,19 @@ public class DataReaderWriter {
                                      }
 
             case DataType.CHARARRAY: {
-                out.writeByte(DataType.CHARARRAY);
-                out.writeUTF((String)val);
+                String s = (String)val;
+                byte[] utfBytes = s.getBytes(DataReaderWriter.UTF8);
+                int length = utfBytes.length;
+                
+                if(length < DataReaderWriter.UNSIGNED_SHORT_MAX) {
+                    out.writeByte(DataType.CHARARRAY);
+                    out.writeShort(length);
+                    out.write(utfBytes);
+                } else {
+                	out.writeByte(DataType.BIGCHARARRAY);
+                	out.writeInt(length);
+                	out.write(utfBytes);
+                }
                 break;
                                      }
 

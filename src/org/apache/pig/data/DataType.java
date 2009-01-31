@@ -62,6 +62,7 @@ public class DataType {
     public static final byte DOUBLE    =  25;
     public static final byte BYTEARRAY =  50;
     public static final byte CHARARRAY =  55;
+    public static final byte BIGCHARARRAY =  60; //internal use only; for storing/loading chararray bigger than 64K characters in BinStorage
     public static final byte MAP       = 100;
     public static final byte TUPLE     = 110;
     public static final byte BAG       = 120;
@@ -143,13 +144,13 @@ public class DataType {
         return types.length;
     }
     public static byte[] genAllTypes(){
-        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, DataType.CHARARRAY, 
+        byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, DataType.CHARARRAY, 
                 DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.MAP, DataType.TUPLE};
         return types;
     }
     
     private static String[] genAllTypeNames(){
-        String[] names = { "BAG", "BOOLEAN", "BYTE", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER", "LONG", 
+        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER", "LONG", 
                 "MAP", "TUPLE" };
         return names;
     }
@@ -198,6 +199,7 @@ public class DataType {
         case FLOAT:     return "float";
         case DOUBLE:    return "double";
         case BYTEARRAY: return "bytearray";
+        case BIGCHARARRAY: return "bigchararray";
         case CHARARRAY: return "chararray";
         case MAP:       return "map";
         case TUPLE:     return "tuple";
@@ -228,12 +230,13 @@ public class DataType {
     /**
      * Determine whether the this data type is atomic.
      * @param dataType Data type code to test.
-     * @return true if dataType is bytearray, chararray, integer, long,
+     * @return true if dataType is bytearray, bigchararray, chararray, integer, long,
      * float, or boolean.
      */
     public static boolean isAtomic(byte dataType) {
         return ((dataType == BYTEARRAY) ||
                 (dataType == CHARARRAY) ||
+                (dataType == BIGCHARARRAY) ||
                 (dataType == INTEGER) ||
                 (dataType == LONG) ||
                 (dataType == FLOAT) ||

@@ -125,6 +125,14 @@ public class TestPackage extends junit.framework.TestCase {
         case DataType.BYTEARRAY:
             runTest(GenRandomData.genRandDBA(r),inner);
             break;
+        case DataType.BIGCHARARRAY: {
+			String s = GenRandomData.genRandString(r);			
+			for(;s.length() < 65535;) {
+				s += GenRandomData.genRandString(r);
+			}
+			runTest(s,inner);
+        	break;
+        }        	
         case DataType.CHARARRAY:
             runTest(GenRandomData.genRandString(r),inner);
             break;
