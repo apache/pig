@@ -46,9 +46,9 @@ import org.apache.pig.impl.util.WrappedIOException;
 
 
 public class BinStorage implements ReversibleLoadStoreFunc {
-    public static final byte RECORD_1 = 0x21;
-    public static final byte RECORD_2 = 0x31;
-    public static final byte RECORD_3 = 0x41;
+    public static final byte RECORD_1 = 0x01;
+    public static final byte RECORD_2 = 0x02;
+    public static final byte RECORD_3 = 0x03;
 
     Iterator<Tuple>     i              = null;
     protected BufferedPositionedInputStream in = null;
