@@ -758,7 +758,8 @@ public class PigServer {
 
         // optimize
         if (optimize) {
-            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone);
+            //LogicalOptimizer optimizer = new LogicalOptimizer(lpClone);
+            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone, pigContext.getExecType());
             optimizer.optimize();
         }
 
