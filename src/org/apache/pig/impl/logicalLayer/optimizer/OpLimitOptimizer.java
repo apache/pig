@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOCross;
@@ -53,9 +54,15 @@ import org.apache.pig.impl.plan.optimizer.OptimizerException;
 public class OpLimitOptimizer extends LogicalTransformer {
 
     private static final Log log = LogFactory.getLog(OpLimitOptimizer.class);
+    private ExecType mode = ExecType.MAPREDUCE;
 
     public OpLimitOptimizer(LogicalPlan plan) {
         super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+    }
+
+    public OpLimitOptimizer(LogicalPlan plan, ExecType mode) {
+        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        this.mode = mode;
     }
 
     @Override
@@ -193,18 +200,23 @@ public class OpLimitOptimizer extends LogicalTransformer {
             // Limit can be merged into LOSort, result a "limited sort"
             else if (predecessor instanceof LOSort)
             {
-            	LOSort sort = (LOSort)predecessor;
-            	if (sort.getLimit()==-1)
-            		sort.setLimit(limit.getLimit());
-            	else
-            	    sort.setLimit(sort.getLimit()<limit.getLimit()?sort.getLimit():limit.getLimit());
-            	try {
-            		removeFromChain(limit, null);
-            	} catch (Exception e) {
-            	    int errCode = 2012;
-            	    String msg = "Can not remove LOLimit after LOSort";
-            		throw new OptimizerException(msg, errCode, PigException.BUG, e);
-            	}
+                if(mode == ExecType.LOCAL) {
+                    //We don't need this optimisation to happen in the local mode.
+                    //so we do nothing here.
+                } else {
+                    LOSort sort = (LOSort)predecessor;
+                    if (sort.getLimit()==-1)
+                        sort.setLimit(limit.getLimit());
+                    else
+                        sort.setLimit(sort.getLimit()<limit.getLimit()?sort.getLimit():limit.getLimit());
+                    try {
+                        removeFromChain(limit, null);
+                    } catch (Exception e) {
+                        int errCode = 2012;
+                        String msg = "Can not remove LOLimit after LOSort";
+                        throw new OptimizerException(msg, errCode, PigException.BUG, e);
+                    }
+                }
             }
             // Limit is merged into another LOLimit
             else if (predecessor instanceof LOLimit)

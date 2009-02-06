@@ -17,8 +17,11 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.PrintWriter;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.*;
 import org.apache.pig.test.utils.LogicalPlanTester;
@@ -55,6 +58,11 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
     public static void optimizePlan(LogicalPlan plan) throws Exception
     {
         LogicalOptimizer optimizer = new LogicalOptimizer(plan);
+        optimizer.optimize();
+    }
+    
+    public static void optimizePlan(LogicalPlan plan, ExecType mode) throws OptimizerException {
+        LogicalOptimizer optimizer = new LogicalOptimizer(plan, mode);
         optimizer.optimize();
     }
     
@@ -152,6 +160,28 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         LogicalPlan plan = planTester.buildPlan("C = limit B 100;");
         optimizePlan(plan);
         compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan7.dot");
+    }
+    
+    @Test
+    //Limit in the local mode, need to make sure limit stays after a sort
+    public void testOPLimit8Optimizer() throws Exception {
+        planTester.buildPlan("A = load 'myfile';");
+        planTester.buildPlan("B = order A by $0;");
+        LogicalPlan plan = planTester.buildPlan("C = limit B 10;");
+        optimizePlan(plan, ExecType.LOCAL);
+        compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan8.dot");
+        
+    }
+    
+    @Test
+    //Limit in the local mode, need to make sure limit stays after a sort
+    public void testOPLimit9Optimizer() throws Exception {
+        planTester.buildPlan("A = load 'myfile';");
+        planTester.buildPlan("B = order A by $0;");
+        LogicalPlan plan = planTester.buildPlan("C = limit B 10;");
+        optimizePlan(plan);
+        compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan9.dot");
+        
     }
 
     @Test
