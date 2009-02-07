@@ -409,3 +409,5 @@ Trunk (unreleased changes)
 
     PIG-637: Limit broken after order by in the local mode (shubhamc via
     olgan)
+
+    PIG-553: EvalFunc.finish() not getting called (shravanmn via sms)

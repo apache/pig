@@ -35,7 +35,9 @@ import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -99,6 +101,15 @@ public abstract class PigMapBase extends MapReduceBase{
                  throw ioe;
             }
         }
+        
+        //Calling EvalFunc.finish()
+        UDFFinishVisitor finisher = new UDFFinishVisitor(mp, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(mp));
+        try {
+            finisher.visit();
+        } catch (VisitorException e) {
+            throw new IOException("Error trying to finish UDFs",e);
+        }
+        
         mp = null;
         
     }
