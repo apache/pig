@@ -47,6 +47,8 @@ import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.WrappedIOException;
@@ -346,6 +348,14 @@ public class PigMapReduce {
                      ioe.initCause(e);
                      throw ioe;
                 }
+            }
+            
+            //Calling EvalFunc.finish()
+            UDFFinishVisitor finisher = new UDFFinishVisitor(rp, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(rp));
+            try {
+                finisher.visit();
+            } catch (VisitorException e) {
+                throw new IOException("Error trying to finish UDFs",e);
             }
         }
     }
