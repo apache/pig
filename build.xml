@@ -171,8 +171,8 @@
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/PigFileParser.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/ParamLoader.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
-        <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/Dot.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
-        <javacc target="${src.gen.dot.parser.dir}/Dot.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/DOTParser.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <jjtree target="${src.dir}/org/apache/pig/data/parser/TextDataParser.jjt" outputdirectory="${src.gen.textdata.parser.dir}/" javacchome="${javacc.home}" />
         <javacc target="${src.gen.textdata.parser.dir}/TextDataParser.jj" outputdirectory="${src.gen.textdata.parser.dir}" javacchome="${javacc.home}" />
     </target>

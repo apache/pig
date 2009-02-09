@@ -411,3 +411,5 @@ Trunk (unreleased changes)
     olgan)
 
     PIG-553: EvalFunc.finish() not getting called (shravanmn via sms)
+
+    PIG-654: Optimize build.xml (daijy)
