@@ -85,7 +85,12 @@ public class POCombinerPackage extends POPackage {
 
     @Override
     public String name() {
-        return "PostCombinerPackage" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
+        return "POCombinerPackage" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
+    }
+    
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitCombinerPackage(this);
     }
     
     /**
