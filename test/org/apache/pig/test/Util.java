@@ -32,6 +32,7 @@ import junit.framework.Assert;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -332,5 +333,12 @@ public class Util {
         MRCompiler comp = new MRCompiler(pp, pc);
         comp.compile();
         return comp.getMRPlan();	
+    }
+    
+    public static void registerQuery(PigServer pigServer, String query) throws IOException {
+        String[] queryLines = query.split(";");
+        for (String line : queryLines) {
+            pigServer.registerQuery(line + ";");
+        }
     }
 }

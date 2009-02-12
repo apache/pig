@@ -416,3 +416,6 @@ Trunk (unreleased changes)
 
     PIG-574: allowing to run scripts from within grunt shell (hagleitn via
     olgan)
+
+    PIG-665: Map key type not correctly set (for use when key is null) when
+    map plan does not have localrearrange (pradeepkth)
