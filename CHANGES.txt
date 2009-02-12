@@ -413,3 +413,6 @@ Trunk (unreleased changes)
     PIG-553: EvalFunc.finish() not getting called (shravanmn via sms)
 
     PIG-654: Optimize build.xml (daijy)
+
+    PIG-574: allowing to run scripts from within grunt shell (hagleitn via
+    olgan)
