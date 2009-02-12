@@ -21,13 +21,26 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.OutputStreamWriter;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.InputStreamReader;
+import java.io.FileNotFoundException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.PrintStream;
 
 import jline.ConsoleReader;
+import jline.ConsoleReaderInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,6 +60,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 public class GruntParser extends PigScriptParser {
 
@@ -80,15 +94,16 @@ public class GruntParser extends PigScriptParser {
     {
         prompt();
         mDone = false;
-        while(!mDone)
+        while(!mDone) {
             parse();
+        }
     }
 
     public void parseContOnError()
     {
         prompt();
         mDone = false;
-        while(!mDone)
+        while(!mDone) {
             try
             {
                 parse();
@@ -109,6 +124,7 @@ public class GruntParser extends PigScriptParser {
             } catch (Error e) {
                 log.error(e);
             }
+        }
     }
 
     public void setParams(PigServer pigServer)
@@ -159,6 +175,69 @@ public class GruntParser extends PigScriptParser {
     
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
+    }
+
+    private String runPreprocessor(String script, ArrayList<String> params, 
+                                   ArrayList<String> files) 
+        throws IOException, ParseException {
+
+        ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
+        StringWriter writer = new StringWriter();
+
+        try{
+            psp.genSubstitutedFile(new BufferedReader(new FileReader(script)), 
+                                   writer,  
+                                   params.size() > 0 ? params.toArray(new String[0]) : null, 
+                                   files.size() > 0 ? files.toArray(new String[0]) : null);
+        } catch (org.apache.pig.tools.parameters.ParseException pex) {
+            throw new ParseException(pex.getMessage());
+        }
+
+        return writer.toString();
+    }
+
+    protected void processScript(String script, boolean batch, 
+                                 ArrayList<String> params, ArrayList<String> files) 
+        throws IOException, ParseException {
+        
+        Reader inputReader;
+        ConsoleReader reader;
+        boolean interactive;
+         
+        try {
+            String cmds = runPreprocessor(script, params, files);
+
+            if (mInteractive && !batch) { // Write prompt and echo commands
+                reader = new ConsoleReader(new ByteArrayInputStream(cmds.getBytes()),
+                                           new OutputStreamWriter(System.out));
+                reader.setHistory(mConsoleReader.getHistory());
+                InputStream in = new ConsoleReaderInputStream(reader);
+                inputReader = new BufferedReader(new InputStreamReader(in));
+                interactive = true;
+            } else { // Quietly parse the statements
+                inputReader = new StringReader(cmds);
+                reader = null;
+                interactive = false;
+            }
+        } catch (FileNotFoundException fnfe) {
+            throw new ParseException("File not found: " + script);
+        } catch (SecurityException se) {
+            throw new ParseException("Cannot access file: " + script);
+        }
+
+        // In batch mode: Use a new server to avoid side-effects (handles, etc)
+        PigServer pigServer = batch ? 
+            new PigServer(mPigServer.getPigContext(), false) : mPigServer;
+            
+        GruntParser parser = new GruntParser(inputReader);
+        parser.setParams(pigServer);
+        parser.setConsoleReader(reader);
+        parser.setInteractive(interactive);
+        
+        parser.parseStopOnError();
+        if (interactive) {
+            System.out.println("");
+        }
     }
 
     protected void processSet(String key, String value) throws IOException, ParseException {

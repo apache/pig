@@ -123,19 +123,21 @@ public class PigServer {
     }
 
     public PigServer(ExecType execType, Properties properties) throws ExecException {
-        this.pigContext = new PigContext(execType, properties);
-        if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
-            setJobName("DefaultJobName") ;
-        }
-        pigContext.connect();
+        this(new PigContext(execType, properties), true);
+    }
+  
+    public PigServer(PigContext context) throws ExecException {
+        this(context, true);
     }
     
-    public PigServer(PigContext context) throws ExecException {
+    public PigServer(PigContext context, boolean connect) throws ExecException {
         this.pigContext = context;
         if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
             setJobName("DefaultJobName") ;
         }
-        pigContext.connect();
+        if (connect) {
+            pigContext.connect();
+        }
     }
 
     public PigContext getPigContext(){
