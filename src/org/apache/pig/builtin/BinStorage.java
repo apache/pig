@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -89,9 +90,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Tuple)DataReaderWriter.readDatum(inData);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -124,9 +123,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (DataBag)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }        
     }
 
@@ -135,9 +132,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (String)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -146,9 +141,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Double)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -157,9 +150,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Float)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -168,9 +159,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Integer)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -179,9 +168,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Long)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -190,9 +177,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Map<Object, Object>)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -201,9 +186,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Tuple)DataReaderWriter.readDatum(dis);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -229,7 +212,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
             try {
                 s.add(DataType.determineFieldSchema(t.get(i)));
             } catch (Exception e) {
-                throw WrappedIOException.wrap(e);
+                int errCode = 2104;
+                String msg = "Error while determining schema of BinStorage data.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             } 
         }
         return s;
@@ -246,9 +231,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, bag);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting bag to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -259,9 +244,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, s);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting chararray to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -272,9 +257,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, d);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting double to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -285,9 +270,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, f);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting float to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -298,9 +283,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, i);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting int to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -311,9 +296,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, l);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting long to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -324,9 +309,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, m);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting map to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -337,9 +322,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, t);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting tuple to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }

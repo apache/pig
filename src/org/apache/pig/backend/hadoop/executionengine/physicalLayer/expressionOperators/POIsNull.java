@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.util.Map;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -165,9 +166,13 @@ public class POIsNull extends UnaryComparisonOperator {
                 }
             }
             return res;        
-        default:
-            throw new RuntimeException("'is null' to doesn't know how to " +
-                "handle type " + DataType.findTypeName(operandType));
+        default: {
+            int errCode = 2067;
+            String msg = this.getClass().getSimpleName() + " does not know how to " +
+            "handle type: " + DataType.findTypeName(operandType);
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+        
         }
     }
 

@@ -20,6 +20,8 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -35,8 +37,10 @@ public class ARITY extends EvalFunc<Integer> {
             Tuple t = (Tuple)input.get(0);
             if (t == null) return null;
             return new Integer(t.size());
-        }catch(Exception e){
-            throw WrappedIOException.wrap(e); 
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing arity in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 

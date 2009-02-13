@@ -33,6 +33,7 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -188,9 +189,9 @@ public class PigMapReduce {
                     roots = rp.getRoots().toArray(new PhysicalOperator[1]);
                     leaf = rp.getLeaves().get(0);
                 }
-            } catch (IOException e) {
-                log.error(e.getMessage() + "was caused by:");
-                log.error(e.getCause().getMessage());
+            } catch (IOException ioe) {
+                String msg = "Problem while configuring reduce plan.";
+                throw new RuntimeException(msg, ioe);
             }
         }
         
@@ -258,8 +259,9 @@ public class PigMapReduce {
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
-                    IOException ioe = new IOException("Packaging error while processing group");
-                    throw ioe;
+                    int errCode = 2093;
+                    String msg = "Encountered error in package operator while processing group.";
+                    throw new ExecException(msg, errCode, PigException.BUG);
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_EOP) {
@@ -268,9 +270,7 @@ public class PigMapReduce {
                     
                 return false;
             } catch (ExecException e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.initCause(e.getCause());
-                throw ioe;
+                throw e;
             }
         }
         
@@ -300,17 +300,16 @@ public class PigMapReduce {
                     // close() we can do the right thing
                     errorInReduce   = true;
                     // if there is an errmessage use it
-                    String errMsg;
+                    String msg;
                     if(redRes.result != null) {
-                        errMsg = "Received Error while " +
+                        msg = "Received Error while " +
                         "processing the reduce plan: " + redRes.result;
                     } else {
-                        errMsg = "Received Error while " +
+                        msg = "Received Error while " +
                         "processing the reduce plan.";
                     }
-                    
-                    IOException ioe = new IOException(errMsg);
-                    throw ioe;
+                    int errCode = 2090;
+                    throw new ExecException(msg, errCode, PigException.BUG);
                 }
             }
 
@@ -344,9 +343,7 @@ public class PigMapReduce {
                 try {
                     runPipeline(leaf);
                 } catch (ExecException e) {
-                     IOException ioe = new IOException("Error running pipeline in close() of reduce");
-                     ioe.initCause(e);
-                     throw ioe;
+                     throw e;
                 }
             }
             
@@ -410,7 +407,7 @@ public class PigMapReduce {
                 try {
                     key = HDataType.getWritableComparableTypes(t.get(0), keyType);
                 } catch (ExecException e) {
-                    throw WrappedIOException.wrap(e);
+                    throw e;
                 }
             }
             
@@ -440,15 +437,14 @@ public class PigMapReduce {
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
-                    IOException ioe = new IOException("Packaging error while processing group");
-                    throw ioe;
+                    int errCode = 2093;
+                    String msg = "Encountered error in package operator while processing group.";
+                    throw new ExecException(msg, errCode, PigException.BUG);
                 }
                     
                 
             } catch (ExecException e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.initCause(e.getCause());
-                throw ioe;
+                throw e;
             }
         }
 

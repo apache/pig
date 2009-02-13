@@ -142,10 +142,10 @@ public class HadoopExecutableManager extends ExecutableManager {
                                                      getOutputName(partition))
                                             );
                     } catch (IOException ioe) {
-                        System.err.println("Failed to save secondary output '" + 
-                                           fileName + "' of task: " + taskId +
-                                           " with " + ioe);
-                        throw ioe;
+                        int errCode = 6014; 
+                        String msg = "Failed to save secondary output '" + 
+                        fileName + "' of task: " + taskId;
+                        throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, ioe);
                     }
                 }
         }

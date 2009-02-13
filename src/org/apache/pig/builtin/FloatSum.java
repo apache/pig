@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -41,7 +42,11 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
         try {
             return sum(input);
         } catch (ExecException ee) {
-            throw WrappedIOException.wrap("Caught exception in FloatSum", ee);
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 
@@ -75,7 +80,11 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
                 return tfact.newTuple(f != null ? 
                         new Double(f) : null);
             } catch (ExecException e) {
-                throw WrappedIOException.wrap("Caught exception in FloatSum.Initial", e);
+                throw e;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -87,7 +96,11 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
             try {
                 return tfact.newTuple(sumDoubles(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in FloatSum.Intermediate", ee);
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -97,7 +110,11 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
             try {
                 return sumDoubles(input);                
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in FloatSum.Final", ee);
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -157,9 +174,9 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
                 sawNonNull = true;
                 sum += f;
             }catch(RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage(), exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing sum of floats.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
 

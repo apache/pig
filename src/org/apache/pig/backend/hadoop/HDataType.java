@@ -94,8 +94,11 @@ public class HDataType {
         case DataType.TUPLE:
             return new NullableTuple((Tuple)o);
          
-        case DataType.MAP:
-            throw new RuntimeException("Map not supported as a key type!");
+        case DataType.MAP: {
+            int errCode = 1068;
+            String msg = "Using Map as key not supported.";
+            throw new ExecException(msg, errCode, PigException.INPUT);
+        }
 
         case DataType.NULL:
             switch (keyType) {
@@ -135,8 +138,12 @@ public class HDataType {
                 NullableTuple ntuple = new NullableTuple();
                 ntuple.setNull(true);
                 return ntuple;
-            case DataType.MAP:
-                throw new RuntimeException("Map not supported as a key type!");
+            case DataType.MAP: {
+                int errCode = 1068;
+                String msg = "Using Map as key not supported.";
+                throw new ExecException(msg, errCode, PigException.INPUT);
+            }
+            
             }
             break;
         default:
@@ -182,8 +189,11 @@ public class HDataType {
         case DataType.TUPLE:
             wcKey = defTup;
             break;
-        case DataType.MAP:
-            throw new RuntimeException("Map not supported as a key type!");
+        case DataType.MAP: {
+            int errCode = 1068;
+            String msg = "Using Map as key not supported.";
+            throw new ExecException(msg, errCode, PigException.INPUT);
+        }
         default:
             if (typeToName == null) typeToName = DataType.genTypeToNameMap();
             int errCode = 2044;

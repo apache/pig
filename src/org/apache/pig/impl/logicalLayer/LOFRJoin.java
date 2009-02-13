@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -183,8 +184,10 @@ public class LOFRJoin extends LogicalOperator {
     }
     public byte getAtomicJoinColType() throws FrontendException {
         if (isTupleJoinCol()) {
-            throw new FrontendException("getAtomicjoinByType is used only when"
-                                     + " dealing with atomic join col") ;
+            int errCode = 1010;
+            String msg = "getAtomicGroupByType is used only when"
+                + " dealing with atomic join col";
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
         }
 
         byte joinColType = DataType.BYTEARRAY ;
@@ -195,8 +198,10 @@ public class LOFRJoin extends LogicalOperator {
             List<LogicalPlan> innerPlans
                         = new ArrayList<LogicalPlan>(getJoinColPlans().get(input)) ;
             if (innerPlans.size() != 1) {
-                throw new FrontendException("Each join input has to have "
-                                         + "the same number of inner plans") ;
+                int errCode = 1012;
+                String msg = "Each join input has to have "
+                + "the same number of inner plans";
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
             }
             byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
             joinColType = DataType.mergeType(joinColType, innerType) ;
@@ -207,8 +212,10 @@ public class LOFRJoin extends LogicalOperator {
 
     public Schema getTupleJoinColSchema() throws FrontendException {
         if (!isTupleJoinCol()) {
-            throw new FrontendException("getTupleJoinColSchema is used only when"
-                                     + " dealing with tuple join col") ;
+            int errCode = 1011;
+            String msg = "getTupleGroupBySchema is used only when"
+                + " dealing with tuple join col";
+            throw new FrontendException(msg, errCode, PigException.INPUT, false, null) ;
         }
 
         // this fsList represents all the columns in join tuple
@@ -250,8 +257,10 @@ public class LOFRJoin extends LogicalOperator {
                 }
             }
 
-            if(seenProjectStar && innerPlans.size() > 1) {
-                throw new FrontendException("joining attributes can either be star (*) or a list of expressions, but not both.");
+            if(seenProjectStar && innerPlans.size() > 1) {                
+                int errCode = 1013;
+                String msg = "Join attributes can either be star (*) or a list of expressions, but not both.";
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 
             }
 

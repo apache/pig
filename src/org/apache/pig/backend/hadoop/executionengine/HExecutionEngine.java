@@ -261,7 +261,7 @@ public class HExecutionEngine implements ExecutionEngine {
             if (e instanceof ExecException) throw (ExecException)e;
             else {
                 int errCode = 2043;
-                String msg = "Error during execution.";
+                String msg = "Unexpected error during execution.";
                 throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }

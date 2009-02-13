@@ -30,6 +30,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
@@ -96,9 +97,7 @@ public abstract class PigMapBase extends MapReduceBase{
             try {
                 runPipeline(leaf);
             } catch (ExecException e) {
-                 IOException ioe = new IOException("Error running pipeline in close() of map");
-                 ioe.initCause(e);
-                 throw ioe;
+            	throw e;
             }
         }
         
@@ -151,9 +150,9 @@ public abstract class PigMapBase extends MapReduceBase{
                 roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
                 leaf = mp.getLeaves().get(0);
             }
-        } catch (IOException e) {
-            log.error(e.getMessage() + "was caused by:");
-            log.error(e.getCause().getMessage());
+        } catch (IOException ioe) {
+            String msg = "Problem while configuring map plan.";
+            throw new RuntimeException(msg, ioe);
         }
     }
     
@@ -183,9 +182,7 @@ public abstract class PigMapBase extends MapReduceBase{
             try{
                 collect(oc,inpTuple);
             } catch (ExecException e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.initCause(e.getCause());
-                throw ioe;
+                throw e;
             }
             return;
         }
@@ -197,9 +194,7 @@ public abstract class PigMapBase extends MapReduceBase{
             runPipeline(leaf);
             
         } catch (ExecException e) {
-            IOException ioe = new IOException(e.getMessage());
-            ioe.initCause(e.getCause());
-            throw ioe;
+        	throw e;
         }
     }
 
@@ -232,8 +227,9 @@ public abstract class PigMapBase extends MapReduceBase{
                     "processing the map plan.";
                 }
                     
-                IOException ioe = new IOException(errMsg);
-                throw ioe;
+                int errCode = 2055;
+                ExecException ee = new ExecException(errMsg, errCode, PigException.BUG);
+                throw ee;
             }
         }
         

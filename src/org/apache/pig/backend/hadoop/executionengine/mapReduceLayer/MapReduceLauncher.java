@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -49,6 +51,10 @@ import org.apache.pig.impl.util.ConfigurationValidator;
  */
 public class MapReduceLauncher extends Launcher{
     private static final Log log = LogFactory.getLog(MapReduceLauncher.class);
+ 
+    //used to track the exception thrown by the job control which is run in a separate thread
+    private Exception jobControlException = null;
+    
     @Override
     public boolean launchPig(PhysicalPlan php,
                              String grpName,
@@ -56,7 +62,8 @@ public class MapReduceLauncher extends Launcher{
                                                    VisitorException,
                                                    IOException,
                                                    ExecException,
-                                                   JobCreationException {
+                                                   JobCreationException,
+                                                   Exception {
         long sleepTime = 5000;
         MROperPlan mrp = compile(php, pc);
         
@@ -71,7 +78,12 @@ public class MapReduceLauncher extends Launcher{
         
         int numMRJobs = jc.getWaitingJobs().size();
         
-        new Thread(jc).start();
+        //create the exception handler for the job control thread
+        //and register the handler with the job control thread
+        JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
+        Thread jcThread = new Thread(jc);
+        jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
+        jcThread.start();
 
         double lastProg = -1;
         int perCom = 0;
@@ -87,13 +99,26 @@ public class MapReduceLauncher extends Launcher{
             }
             lastProg = prog;
         }
+        
+        //check for the jobControlException first
+        //if the job controller fails before launching the jobs then there are
+        //no jobs to check for failure
+        if(jobControlException != null) {
+        	if(jobControlException instanceof PigException) {
+        		throw jobControlException;
+        	} else {
+	        	int errCode = 2117;
+	        	String msg = "Unexpected error when launching map reduce job.";        	
+	    		throw new ExecException(msg, errCode, PigException.BUG, jobControlException);
+        	}
+        }
+        
         // Look to see if any jobs failed.  If so, we need to report that.
         List<Job> failedJobs = jc.getFailedJobs();
         if (failedJobs != null && failedJobs.size() > 0) {
             log.error("Map reduce job failed");
             for (Job fj : failedJobs) {
-                log.error(fj.getMessage());
-                getStats(fj, jobClient, true);
+                getStats(fj, jobClient, true, pc);
             }
             jc.stop(); 
             return false;
@@ -102,7 +127,7 @@ public class MapReduceLauncher extends Launcher{
         List<Job> succJobs = jc.getSuccessfulJobs();
         if(succJobs!=null)
             for(Job job : succJobs){
-                getStats(job,jobClient, false);
+                getStats(job,jobClient, false, pc);
             }
 
         jc.stop(); 
@@ -159,6 +184,28 @@ public class MapReduceLauncher extends Launcher{
         KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
         kdv.visit();
         return plan;
+    }
+    
+    /**
+     * An exception handler class to handle exceptions thrown by the job controller thread
+     * Its a local class. This is the only mechanism to catch unhandled thread exceptions
+     * Unhandled exceptions in threads are handled by the VM if the handler is not registered
+     * explicitly or if the default handler is null
+     */
+    class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
+    	
+    	public void uncaughtException(Thread thread, Throwable throwable) {
+    		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    		PrintStream ps = new PrintStream(baos);
+    		throwable.printStackTrace(ps);
+    		String exceptionString = baos.toString();    		
+    		try {	
+    			jobControlException = getExceptionFromString(exceptionString);
+    		} catch (Exception e) {
+    			String errMsg = "Could not resolve error that occured when launching map reduce job.";
+    			jobControlException = new RuntimeException(errMsg, e);
+    		}
+    	}
     }
  
 }

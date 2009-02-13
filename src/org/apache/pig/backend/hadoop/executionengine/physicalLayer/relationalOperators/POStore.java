@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -125,10 +126,10 @@ public class POStore extends PhysicalOperator {
     public Result store() throws ExecException{
         try{
             setUp();
-        }catch (IOException e) {
-            ExecException ee = new ExecException("Unable to setup the storer because of the exception: " + e.getMessage());
-            ee.initCause(e);
-            throw ee;
+        }catch (IOException ioe) {
+            int errCode = 2081;
+            String msg = "Unable to setup the store function.";            
+            throw new ExecException(msg, errCode, PigException.BUG, ioe);
         }
         try{
             Result res;

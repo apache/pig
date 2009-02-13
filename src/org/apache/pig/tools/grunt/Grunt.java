@@ -72,7 +72,8 @@ public class Grunt
                 parser.parseStopOnError();
                 break;                            
             } catch(Throwable t) {
-                writeLog(t, verbose, append);
+                //writeLog(t, verbose, append);
+                Utils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
                 append = true;
                 parser.ReInit(in);
             }
@@ -86,12 +87,13 @@ public class Grunt
             parser.setInteractive(false);
             parser.parseStopOnError();
         } catch (Throwable t) {
-            writeLog(t, verbose, false);
+            //writeLog(t, verbose, false);
+            Utils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
             throw (t);
         }
     }
     
-    private void writeLog(Throwable t, boolean verbose, boolean append) {
+/*    private void writeLog(Throwable t, boolean verbose, boolean append) {
         
     	String message = null;
     	
@@ -154,5 +156,5 @@ public class Grunt
             log.warn("Could not write to log file: " + logFileName + " :" + ioe.getMessage());
             log.error(bs.toString());
         }
-    }    
+    }*/    
 }

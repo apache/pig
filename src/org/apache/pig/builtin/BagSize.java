@@ -19,6 +19,7 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -37,11 +38,11 @@ public class BagSize extends EvalFunc<Long> {
             DataBag bag = (DataBag)(input.get(0));
             return bag == null ? null : new Long(bag.size());
         } catch (ExecException exp) {
-            IOException oughtToBeEE = 
-                new IOException("Error processing: " +
-                input.toString() + exp.getMessage());
-            oughtToBeEE.initCause(exp);
-            throw oughtToBeEE;
+            throw exp;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing size in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);            
         }
     }
 

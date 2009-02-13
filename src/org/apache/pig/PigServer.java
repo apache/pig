@@ -416,6 +416,7 @@ public class PigServer {
 //            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
             // invocation of "execute" is synchronous!
+
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
                     return job.getResults();
             } else {

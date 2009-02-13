@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -36,10 +37,11 @@ public class ConstantSize extends EvalFunc<Long> {
         try {
            return input.get(0) == null ? null : new Long(1);
         } catch (ExecException exp) {
-            IOException oughtToBeEE = new IOException("Error processing: " +
-                input.toString() + exp.getMessage());
-            oughtToBeEE.initCause(exp);
-            throw oughtToBeEE;
+            throw exp;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing size in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
     

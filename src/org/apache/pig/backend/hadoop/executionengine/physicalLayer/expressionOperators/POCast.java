@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -138,7 +139,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to int. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -146,13 +149,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToInteger(dba.get());
                     } else {
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int."
-                                + " castToType: "
-                                + castToType
-                                + " name: "
-                                + DataType.findTypeName(castToType);
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        int errCode = 1075;
+                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int.";
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -280,7 +279,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to long. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -288,9 +289,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToLong(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to long.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -413,7 +414,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to double. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -421,9 +424,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToDouble(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to double.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -545,7 +548,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to float. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -553,9 +558,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToFloat(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to float.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -679,7 +684,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to chararray. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -687,9 +694,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToCharArray(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to string.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -802,7 +809,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to tuple. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -810,9 +819,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToTuple(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -888,7 +897,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to bag. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -896,9 +907,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToBag(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;
@@ -974,7 +985,9 @@ public class POCast extends ExpressionOperator {
                     } else {
                         // the input is a differen type
                         // rethrow the exception
-                        throw e;
+                        int errCode = 1081;
+                        String msg = "Cannot cast to map. Expected bytearray but received: " + DataType.findTypeName(res.result);
+                        throw new ExecException(msg, errCode, PigException.INPUT, e);
                     }
 
                 }
@@ -982,9 +995,9 @@ public class POCast extends ExpressionOperator {
                     if (null != load) {
                         res.result = load.bytesToMap(dba.get());
                     } else {
+                        int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";
-                        log.error(msg);
-                        throw new ExecException(msg);
+                        throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
                     throw ee;

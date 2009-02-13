@@ -176,7 +176,7 @@ public class NonSpillableDataBag implements DataBag {
                 Object o = DataReaderWriter.readDatum(in);
                 add((Tuple)o);
             } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+                throw ee;
             }
         }
     }

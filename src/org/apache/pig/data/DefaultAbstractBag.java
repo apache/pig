@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.ArrayList;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.util.Spillable;
@@ -243,7 +244,7 @@ public abstract class DefaultAbstractBag implements DataBag {
                 Object o = DataReaderWriter.readDatum(in);
                 add((Tuple)o);
             } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+                throw ee;
             }
         }
     }
@@ -327,8 +328,9 @@ public abstract class DefaultAbstractBag implements DataBag {
               if (tmpDir.exists()) {
                 log.info("Temporary directory already exists: " + tmpDir.getAbsolutePath());
               } else {
-                log.error("Unable to create temporary directory: " + tmpDir.getAbsolutePath());
-                throw new IOException("Unable to create temporary directory: " + tmpDir.getAbsolutePath() );                  
+                int errCode = 2111;
+                String msg = "Unable to create temporary directory: " + tmpDir.getAbsolutePath();
+                throw new ExecException(msg, errCode, PigException.BUG);                  
               }
           }
         }

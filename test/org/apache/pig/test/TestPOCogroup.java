@@ -39,6 +39,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 
 public class TestPOCogroup extends TestCase {
     Random r = new Random();
@@ -146,7 +147,7 @@ public class TestPOCogroup extends TestCase {
         assertEquals(expected.size(), obtained.size());
     }
 
-    public void testCogroup1Input() throws ExecException {
+    public void testCogroup1Input() throws ExecException, PlanException {
         DataBag input = BagFactory.getInstance().newDefaultBag();
         Tuple t = TupleFactory.getInstance().newTuple();
         t.append(1);

@@ -155,9 +155,11 @@ public class POLocalRearrange extends PhysicalOperator {
     }
 
     public void setIndex(int index) throws ExecException {
-        if (index > 0x40) {
-            throw new RuntimeException("Cogroups with more than 127 inputs "
-                + " not supported.");
+        if (index > 0x7F) {
+            int errCode = 1082;
+            String msg = "Cogroups with more than 127 inputs "
+                + " not supported.";
+            throw new ExecException(msg, errCode, PigException.INPUT);
         } else {
             this.index = (byte)index;
         }
@@ -349,7 +351,7 @@ public class POLocalRearrange extends PhysicalOperator {
         return plans;
     }
 
-    public void setPlans(List<PhysicalPlan> plans) {
+    public void setPlans(List<PhysicalPlan> plans) throws PlanException {
         this.plans = plans;
         leafOps.clear();
         int keyIndex = 0; // zero based index for fields in the key
@@ -383,7 +385,13 @@ public class POLocalRearrange extends PhysicalOperator {
                             log.debug("Project * in group by not being optimized in key-value transfer");
                         }
                     } else {
-                        mProjectedColsMap.put(project.getColumn(), keyIndex);
+                        try {
+                            mProjectedColsMap.put(project.getColumn(), keyIndex);
+                        } catch (ExecException e) {
+                            int errCode = 2070;
+                            String msg = "Problem in accessing column from project operator.";
+                            throw new PlanException(msg, errCode, PigException.BUG);
+                        }
                     }
                     if(project.getResultType() == DataType.TUPLE)
                         isKeyTuple = true;
@@ -416,13 +424,19 @@ public class POLocalRearrange extends PhysicalOperator {
             mKey.scope, 
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism);
-        clone.setPlans(clonePlans);
+        try {
+            clone.setPlans(clonePlans);
+        } catch (PlanException pe) {
+            CloneNotSupportedException cnse = new CloneNotSupportedException("Problem with setting plans of " + this.getClass().getSimpleName());
+            cnse.initCause(pe);
+            throw cnse;
+        }
         clone.keyType = keyType;
         clone.index = index;
         try {
             clone.lrOutput.set(0, index);
         } catch (ExecException e) {
-            CloneNotSupportedException cnse = new CloneNotSupportedException();
+            CloneNotSupportedException cnse = new CloneNotSupportedException("Problem with setting index of output.");
             cnse.initCause(e);
             throw cnse;
         }
@@ -491,7 +505,13 @@ public class POLocalRearrange extends PhysicalOperator {
                         String msg = "Internal error. Unexpected operator project(*) in local rearrange inner plan.";
                         throw new PlanException(msg, errCode, PigException.BUG);
                     } else {
-                        mProjectedColsMap.put(project.getColumn(), keyIndex);
+                        try {
+                            mProjectedColsMap.put(project.getColumn(), keyIndex);
+                        } catch (ExecException e) {
+                            int errCode = 2070;
+                            String msg = "Problem in accessing column from project operator.";
+                            throw new PlanException(msg, errCode, PigException.BUG);
+                        }
                     }
                     if(project.getResultType() == DataType.TUPLE)
                         isKeyTuple = true;

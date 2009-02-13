@@ -30,7 +30,9 @@ import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Progressable;
+import org.apache.pig.PigException;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -63,11 +65,9 @@ public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> 
                 store = (StoreFunc) PigContext
                         .instantiateFuncFromSpec(storeFunc);
             } catch (Exception e) {
-                RuntimeException re = new RuntimeException(e.getClass()
-                        .getName()
-                        + ": " + e.getMessage());
-                re.setStackTrace(e.getStackTrace());
-                throw re;
+                int errCode = 2081;
+                String msg = "Unable to setup the store function.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
 

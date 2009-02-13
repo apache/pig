@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -192,15 +193,14 @@ public class POUserFunc extends ExpressionOperator {
 				return result;
 			}
 			return result;
-			
-		} catch (IOException e1) {
-		    errMsg = "Caught error from UDF " + funcSpec.getClassName() + 
-            "[" + e1.getMessage() + "]";
-			log.error(errMsg);
+		} catch (ExecException ee) {
+		    throw ee;
+		} catch (IOException ioe) {
+		    int errCode = 2078;
+		    String msg = "Caught error from UDF: " + funcSpec.getClassName() + 
+            "[" + ioe.getMessage() + "]";
+			throw new ExecException(msg, errCode, PigException.BUG, ioe);
 		}
-		result.result = errMsg;
-		result.returnStatus = POStatus.STATUS_ERR;
-		return result;
 	}
 
 	@Override
@@ -260,7 +260,7 @@ public class POUserFunc extends ExpressionOperator {
 		return getNext();
 	}
 
-	public void setAlgebraicFunction(byte Function) {
+	public void setAlgebraicFunction(byte Function) throws ExecException {
 		// This will only be used by the optimizer for putting correct functions
 		// in the mapper,
 		// combiner and reduce. This helps in maintaining the physical plan as
@@ -285,39 +285,39 @@ public class POUserFunc extends ExpressionOperator {
         setResultType(DataType.findType(((EvalFunc<?>) func).getReturnType()));
 	}
 
-	public String getInitial() {
+	public String getInitial() throws ExecException {
 	    instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getInitial();
 		} else {
-			String msg = new String("Attempt to run a non-algebraic function"
-                + " as an algebraic function");
-            log.error(msg);
-            throw new RuntimeException(msg);
+		    int errCode = 2072;
+			String msg = "Attempt to run a non-algebraic function"
+                + " as an algebraic function";
+            throw new ExecException(msg, errCode, PigException.BUG);
 		}
 	}
 
-	public String getIntermed() {
+	public String getIntermed() throws ExecException {
         instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getIntermed();
 		} else {
-			String msg = new String("Attempt to run a non-algebraic function"
-                + " as an algebraic function");
-            log.error(msg);
-            throw new RuntimeException(msg);
+            int errCode = 2072;
+            String msg = "Attempt to run a non-algebraic function"
+                + " as an algebraic function";
+            throw new ExecException(msg, errCode, PigException.BUG);
 		}
 	}
 
-	public String getFinal() {
+	public String getFinal() throws ExecException {
         instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getFinal();
 		} else {
-			String msg = new String("Attempt to run a non-algebraic function"
-                + " as an algebraic function");
-            log.error(msg);
-            throw new RuntimeException(msg);
+            int errCode = 2072;
+            String msg = "Attempt to run a non-algebraic function"
+                + " as an algebraic function";
+            throw new ExecException(msg, errCode, PigException.BUG);
 		}
 	}
 

@@ -451,7 +451,6 @@ public class FileLocalizer {
     public static boolean fileExists(String filename, DataStorage store)
             throws IOException {
         ElementDescriptor elem = store.asElement(filename);
-
         return elem.exists() || globMatchesFiles(elem, store);
     }
 
@@ -496,7 +495,8 @@ public class FileLocalizer {
             }
         }
         catch (DataStorageException e) {
-            throw WrappedIOException.wrap("Unable to get collect for pattern " + elem.toString(), e);
+            //throw WrappedIOException.wrap("Unable to get collect for pattern " + elem.toString(), e);
+            throw e;
         }
     }
 
