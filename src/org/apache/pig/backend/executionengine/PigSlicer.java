@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.Slice;
 import org.apache.pig.Slicer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -79,8 +80,10 @@ public class PigSlicer implements Slicer {
                     }
                     continue;
                 }
-            } catch (Exception e) { 
-                throw WrappedIOException.wrap(e);
+            } catch (Exception e) {
+                int errCode = 2099;
+                String msg = "Problem in constructing slices.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
             Map<String, Object> stats = fullPath.getStatistics();
             long bs = (Long) (stats.get(ElementDescriptor.BLOCK_SIZE_KEY));
@@ -112,7 +115,9 @@ public class PigSlicer implements Slicer {
 
     public void validate(DataStorage store, String location) throws IOException {
         if (!FileLocalizer.fileExists(location, store)) {
-            throw new IOException(store.asElement(location) + " does not exist");
+            int errCode = 2100;
+            String msg = store.asElement(location) + " does not exist.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
     }
 

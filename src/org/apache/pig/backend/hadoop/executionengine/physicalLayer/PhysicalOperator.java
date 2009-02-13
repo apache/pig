@@ -297,7 +297,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public PhysicalOperator clone() throws CloneNotSupportedException {
         String s = new String("This physical operator does not " +
             "implement clone.");
-        log.error(s);
         throw new CloneNotSupportedException(s);
     }
 

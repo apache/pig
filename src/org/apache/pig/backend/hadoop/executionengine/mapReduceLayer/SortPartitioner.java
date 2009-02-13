@@ -27,6 +27,7 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Partitioner;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -95,7 +96,7 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
     private void addToQuantiles(
             JobConf job,
             ArrayList<PigNullableWritable> q,
-            Tuple t) {
+            Tuple t) throws ExecException {
         try {
             if ("true".equals(job.get("pig.usercomparator")) || t.size() > 1) {
                 q.add(new NullableTuple(t));
@@ -103,8 +104,10 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
                 Object o = t.get(0);
                 String kts = job.get("pig.reduce.key.type");
                 if (kts == null) {
-                    throw new RuntimeException("Didn't get reduce key type "
-                        + "from config file.");
+                    int errCode = 2095;
+                    String msg = "Did not get reduce key type "
+                        + "from job configuration.";
+                    throw new ExecException(msg, errCode, PigException.BUG);
                 }
                 q.add(HDataType.getWritableComparableTypes(o,
                     Byte.valueOf(kts)));
@@ -116,7 +119,7 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
 
     private void convertToArray(
             JobConf job,
-            ArrayList<PigNullableWritable> q) {
+            ArrayList<PigNullableWritable> q) throws ExecException {
         if ("true".equals(job.get("pig.usercomparator")) ||
                 q.get(0).getClass().equals(NullableTuple.class)) {
             quantiles = q.toArray(new NullableTuple[0]);
@@ -133,7 +136,9 @@ public class SortPartitioner implements Partitioner<PigNullableWritable, Writabl
         } else if (q.get(0).getClass().equals(NullableText.class)) {
             quantiles = q.toArray(new NullableText[0]);
         } else {
-            throw new RuntimeException("Unexpected class in SortPartitioner");
+            int errCode = 2096;
+            String msg = "Unexpected class in SortPartitioner: " + q.get(0).getClass().getName();
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
     }
 

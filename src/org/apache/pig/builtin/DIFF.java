@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -48,8 +49,9 @@ public class DIFF extends EvalFunc<DataBag> {
     @Override
     public DataBag exec(Tuple input) throws IOException {
         if (input.size() != 2) {
-            throw new IOException("DIFF must compare two fields not " +
-                input.size());
+            int errCode = 2107;
+            String msg = "DIFF expected two inputs but received " + input.size() + " inputs.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         try {
             DataBag output = mBagFactory.newDefaultBag();
@@ -68,9 +70,7 @@ public class DIFF extends EvalFunc<DataBag> {
             }
             return output;
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 

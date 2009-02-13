@@ -89,7 +89,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
             }  catch (IOException ioe) {
                 // Do not remove last file from spilled array. It was not
                 // added as File.createTmpFile threw an IOException
-                log.error(
+                log.warn(
                     "Unable to create tmp file to spill to disk", ioe);
                 return 0;
             }
@@ -106,7 +106,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
-                log.error(
+                log.warn(
                     "Unable to spill contents to disk", ioe);
                 return 0;
             } finally {
@@ -114,7 +114,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
                     try {
                         out.close();
                     } catch (IOException e) {
-                        log.error("Error closing spill", e);
+                        log.warn("Error closing spill", e);
                     }
                 }
             }
@@ -193,9 +193,9 @@ public class DefaultDataBag extends DefaultAbstractBag {
                 } catch (FileNotFoundException fnfe) {
                     // We can't find our own spill file?  That should never
                     // happen.
-                    log.fatal(
-                        "Unable to find our spill file", fnfe);
-                    throw new RuntimeException(fnfe);
+                    String msg = "Unable to find our spill file."; 
+                    log.fatal(msg, fnfe);
+                    throw new RuntimeException(msg, fnfe);
                 }
                 Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
@@ -204,13 +204,13 @@ public class DefaultDataBag extends DefaultAbstractBag {
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
-                        log.fatal(
-                            "Ran out of tuples too soon.", eof);
-                        throw new RuntimeException("Ran out of tuples to read prematurely.", eof);
+                        String msg = "Ran out of tuples to read prematurely.";
+                        log.fatal(msg, eof);
+                        throw new RuntimeException(msg, eof);
                     } catch (IOException ioe) {
-                        log.fatal(
-                            "Unable to read our spill file", ioe);
-                        throw new RuntimeException(ioe);
+                        String msg = "Unable to read our spill file."; 
+                        log.fatal(msg, ioe);
+                        throw new RuntimeException(msg, ioe);
                     }
                 }
                 mMemoryPtr = 0;
@@ -238,9 +238,9 @@ public class DefaultDataBag extends DefaultAbstractBag {
                     // Fall through to the next case where we find the
                     // next file, or go to memory
                 } catch (IOException ioe) {
-                    log.fatal(
-                        "Unable to read our spill file", ioe);
-                    throw new RuntimeException(ioe);
+                    String msg = "Unable to read our spill file."; 
+                    log.fatal(msg, ioe);
+                    throw new RuntimeException(msg, ioe);
                 }
             }
 
@@ -267,9 +267,9 @@ public class DefaultDataBag extends DefaultAbstractBag {
             } catch (FileNotFoundException fnfe) {
                 // We can't find our own spill file?  That should never
                 // happen.
-                log.fatal("Unable to find our spill file",
-                    fnfe);
-                throw new RuntimeException(fnfe);
+                String msg = "Unable to find our spill file.";
+                log.fatal(msg, fnfe);
+                throw new RuntimeException(msg, fnfe);
             }
             return readFromFile();
         }

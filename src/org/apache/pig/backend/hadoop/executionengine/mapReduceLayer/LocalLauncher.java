@@ -56,7 +56,7 @@ public class LocalLauncher extends Launcher{
             String grpName,
             PigContext pc) throws PlanException, VisitorException,
                                   IOException, ExecException,
-                                  JobCreationException {
+                                  JobCreationException, Exception {
         long sleepTime = 500;
         MROperPlan mrp = compile(php, pc);
         
@@ -95,7 +95,7 @@ public class LocalLauncher extends Launcher{
             log.error("Map reduce job failed");
             for (Job fj : failedJobs) {
                 log.error(fj.getMessage());
-                getStats(fj, jobClient, true);
+                getStats(fj, jobClient, true, pc);
             }
             jc.stop(); 
             return false;
@@ -104,7 +104,7 @@ public class LocalLauncher extends Launcher{
         List<Job> succJobs = jc.getSuccessfulJobs();
         if(succJobs!=null)
             for(Job job : succJobs){
-                getStats(job,jobClient, false);
+                getStats(job,jobClient, false, pc);
             }
 
         jc.stop(); 
@@ -166,7 +166,7 @@ public class LocalLauncher extends Launcher{
     //A purely testing method. Not to be used elsewhere
     public boolean launchPigWithCombinePlan(PhysicalPlan php,
             String grpName, PigContext pc, PhysicalPlan combinePlan) throws PlanException,
-            VisitorException, IOException, ExecException, JobCreationException {
+            VisitorException, IOException, ExecException, JobCreationException, Exception {
         long sleepTime = 500;
         MRCompiler comp = new MRCompiler(php, pc);
         comp.compile();
@@ -212,13 +212,13 @@ public class LocalLauncher extends Launcher{
                 throw new ExecException(
                         "Something terribly wrong with Job Control.");
             for (Job job : failedJobs) {
-                getStats(job, jobClient, true);
+                getStats(job, jobClient, true, pc);
             }
         }
         List<Job> succJobs = jc.getSuccessfulJobs();
         if (succJobs != null)
             for (Job job : succJobs) {
-                getStats(job, jobClient, false);
+                getStats(job, jobClient, false, pc);
             }
 
         jc.stop();

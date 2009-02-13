@@ -419,3 +419,6 @@ Trunk (unreleased changes)
 
     PIG-665: Map key type not correctly set (for use when key is null) when
     map plan does not have localrearrange (pradeepkth)
+
+    PIG-590: error handling on the backend (sms via olgan)
+

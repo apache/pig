@@ -135,7 +135,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
             }  catch (IOException ioe) {
                 // Do not remove last file from spilled array. It was not
                 // added as File.createTmpFile threw an IOException
-                log.error(
+                log.warn(
                     "Unable to create tmp file to spill to disk", ioe);
                 return 0;
             }
@@ -167,7 +167,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
-                log.error(
+                log.warn(
                     "Unable to spill contents to disk", ioe);
                 return 0;
             } finally {
@@ -175,7 +175,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     try {
                         out.close();
                     } catch (IOException e) {
-                        log.error("Error closing spill", e);
+                        log.warn("Error closing spill", e);
                     }
                 }
             }
@@ -283,9 +283,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 } catch (FileNotFoundException fnfe) {
                     // We can't find our own spill file?  That should never
                     // happen.
-                    log.fatal(
-                        "Unable to find our spill file", fnfe);
-                    throw new RuntimeException(fnfe);
+                    String msg = "Unable to find our spill file."; 
+                    log.fatal(msg, fnfe);
+                    throw new RuntimeException(msg, fnfe);
                 }
 
                 // Fast foward past the tuples we've already put in the
@@ -299,9 +299,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
                         // didn't dump all of our tuples to disk.
                         throw new RuntimeException("Ran out of tuples to read prematurely.", eof);
                     } catch (IOException ioe) {
-                        log.fatal(
-                            "Unable to read our spill file", ioe);
-                        throw new RuntimeException(ioe);
+                        String msg = "Unable to find our spill file.";
+                        log.fatal(msg, ioe);
+                        throw new RuntimeException(msg, ioe);
                     }
                 }
                 mMemoryPtr = 0;
@@ -344,9 +344,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     } catch (FileNotFoundException fnfe) {
                         // We can't find our own spill file?  That should
                         // never happen.
-                        log.fatal(
-                            "Unable to find out spill file.", fnfe);
-                        throw new RuntimeException(fnfe);
+                        String msg = "Unable to find our spill file.";
+                        log.fatal(msg, fnfe);
+                        throw new RuntimeException(msg, fnfe);
                     }
                 }
 
@@ -419,9 +419,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
                         mStreams.set(fileNum, null);
                         return;
                     } catch (IOException ioe) {
-                        log.fatal(
-                            "Unable to read our spill file", ioe);
-                        throw new RuntimeException(ioe);
+                        String msg = "Unable to find our spill file.";
+                        log.fatal(msg, ioe);
+                        throw new RuntimeException(msg, ioe);
                     }
                 } while (true);
             }
@@ -486,9 +486,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
                         } catch (FileNotFoundException fnfe) {
                             // We can't find our own spill file?  That should
                             // neer happen.
-                            log.fatal(
-                                "Unable to find out spill file.", fnfe);
-                            throw new RuntimeException(fnfe);
+                            String msg = "Unable to find our spill file.";
+                            log.fatal(msg, fnfe);
+                            throw new RuntimeException(msg, fnfe);
                         }
                     }
 
@@ -505,9 +505,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
                         }
                         out.flush();
                     } catch (IOException ioe) {
-                        log.fatal(
-                            "Unable to read our spill file", ioe);
-                        throw new RuntimeException(ioe);
+                        String msg = "Unable to find our spill file.";
+                        log.fatal(msg, ioe);
+                        throw new RuntimeException(msg, ioe);
                     }
                 }
 

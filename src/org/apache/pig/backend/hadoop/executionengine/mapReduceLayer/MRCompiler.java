@@ -871,9 +871,9 @@ public class MRCompiler extends PhyPlanVisitor {
             curMROp.setFragment(op.getFragment());
             curMROp.setReplFiles(op.getReplFiles());
         }catch(Exception e){
-            VisitorException pe = new VisitorException(e.getMessage());
-            pe.initCause(e);
-            throw pe;
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -958,7 +958,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
-    private int[] getSortCols(POSort sort) throws PlanException {
+    private int[] getSortCols(POSort sort) throws PlanException, ExecException {
         List<PhysicalPlan> plans = sort.getSortPlans();
         if(plans!=null){
             int[] ret = new int[plans.size()]; 
@@ -1384,29 +1384,35 @@ public class MRCompiler extends PhyPlanVisitor {
                         break;
                     }
                     
-                    // if input to project is the last input
-                    if (proj.getColumn() == pack.getNumInps())
-                    {
-                        // if we had already seen another project
-                        // which was also for the last input, then
-                        // we might be trying to flatten twice on the
-                        // last input in which case we can't optimize by
-                        // just streaming the tuple to those projects
-                        // IMPORTANT NOTE: THIS WILL NEED TO CHANGE WHEN WE
-                        // OPTIMIZE BUILTINS LIKE SUM() AND COUNT() TO
-                        // TAKE IN STREAMING INPUT
-                        if(projOfLastInput != null) {
-                            allSimple = false;
-                            break;
-                        }
-                        projOfLastInput = proj;
-                        // make sure the project is on a bag which needs to be
-                        // flattened
-                        if (!flatten.get(i) || proj.getResultType() != DataType.BAG)
+                    try {
+                        // if input to project is the last input
+                        if (proj.getColumn() == pack.getNumInps())
                         {
-                            lastInputFlattened = false;
-                            break;
+                            // if we had already seen another project
+                            // which was also for the last input, then
+                            // we might be trying to flatten twice on the
+                            // last input in which case we can't optimize by
+                            // just streaming the tuple to those projects
+                            // IMPORTANT NOTE: THIS WILL NEED TO CHANGE WHEN WE
+                            // OPTIMIZE BUILTINS LIKE SUM() AND COUNT() TO
+                            // TAKE IN STREAMING INPUT
+                            if(projOfLastInput != null) {
+                                allSimple = false;
+                                break;
+                            }
+                            projOfLastInput = proj;
+                            // make sure the project is on a bag which needs to be
+                            // flattened
+                            if (!flatten.get(i) || proj.getResultType() != DataType.BAG)
+                            {
+                                lastInputFlattened = false;
+                                break;
+                            }
                         }
+                    } catch (ExecException e) {
+                        int errCode = 2069;
+                        String msg = "Error during map reduce compilation. Problem in accessing column from project operator.";
+                        throw new MRCompilerException(msg, errCode, PigException.BUG, e);
                     }
                     
                     // if all deeper operators are all project
@@ -1577,14 +1583,14 @@ public class MRCompiler extends PhyPlanVisitor {
                 if (mpLeaves.size() != 1) {
                     int errCode = 2024; 
                     String msg = "Expected reduce to have single leaf. Found " + mpLeaves.size() + " leaves.";
-                    throw new PigException(msg, errCode, PigException.BUG);
+                    throw new MRCompilerException(msg, errCode, PigException.BUG);
                 }
                 PhysicalOperator mpLeaf = mpLeaves.get(0);
                 if (!(mpLeaf instanceof POStore)) {
                     int errCode = 2025;
                     String msg = "Expected leaf of reduce plan to " +
                         "always be POStore. Found " + mpLeaf.getClass().getSimpleName();
-                    throw new PigException(msg, errCode, PigException.BUG);
+                    throw new MRCompilerException(msg, errCode, PigException.BUG);
                 }
                 FileSpec oldSpec = ((POStore)mpLeaf).getSFile();
                 

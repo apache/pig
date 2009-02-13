@@ -39,6 +39,7 @@ public class PigException extends IOException {
     public static final byte BUG = 4;
     public static final byte USER_ENVIRONMENT = 8;
     public static final byte REMOTE_ENVIRONMENT = 16;
+    public static final byte ERROR = -1;
 
     /**
      * A static method to query if an error source is due to
@@ -82,6 +83,25 @@ public class PigException extends IOException {
      */
     public static boolean isRemoteEnvironment(byte errSource) {
         return ((errSource & REMOTE_ENVIRONMENT) == 0 ? false : true);
+    }
+    
+    /**
+     * A static method to determine the error source given the error code
+     * 
+     *  @param errCode - integer error code
+     *  @return byte that indicates the error source
+     */
+    public static byte determineErrorSource(int errCode) {
+    	if(errCode >= 100 && errCode <= 1999) {
+    		return PigException.INPUT;
+    	} else if (errCode >= 2000 && errCode <= 2999) {
+    		return PigException.BUG;
+    	} else if (errCode >= 3000 && errCode <= 4999) {
+    		return PigException.USER_ENVIRONMENT;
+    	} else if (errCode >= 5000 && errCode <= 6999) {
+    		return PigException.REMOTE_ENVIRONMENT;
+    	}
+    	return PigException.ERROR;
     }
     
     protected int errorCode = 0;
@@ -292,4 +312,27 @@ public class PigException extends IOException {
         detailedMessage = detailMsg;
     }
 
+    /**
+     * Returns a short description of this throwable.
+     * The result is the concatenation of:
+     * <ul>
+     * <li> the {@linkplain Class#getName() name} of the class of this object
+     * <li> ": " (a colon and a space)
+     * <li> "ERROR " (the string ERROR followed by a a space)
+     * <li> the result of invoking this object's {@link #getErrorCode} method
+     * <li> ": " (a colon and a space)
+     * <li> the result of invoking {@link Throwable#getLocalizedMessage() getLocalizedMessage}
+     *      method
+     * </ul>
+     * If <tt>getLocalizedMessage</tt> returns <tt>null</tt>, then just
+     * the class name is returned.
+     *
+     * @return a string representation of this throwable.
+     */
+    @Override
+    public String toString() {
+        String s = getClass().getName();
+        String message = getLocalizedMessage();
+        return (message != null) ? (s + ": " + "ERROR " + getErrorCode() + ": " + message) : s;
+    }
 }

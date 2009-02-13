@@ -109,9 +109,7 @@ public class FindQuantiles extends EvalFunc<DataBag>{
             numQuantiles = (Integer)input.get(0);
             samples = (DataBag)input.get(1);
         }catch(ExecException e){
-            IOException ioe = new IOException();
-            ioe.initCause(e);
-            throw ioe;
+            throw e;
         }
         // TODO If user provided a comparator we should be using that.
         DataBag output = mBagFactory.newSortedBag(mComparator);

@@ -54,9 +54,8 @@ public class PigTextRawComparator extends WritableComparator implements Configur
             mAsc = (boolean[])ObjectSerializer.deserialize(jconf.get(
                 "pig.sortOrder"));
         } catch (IOException ioe) {
-            mLog.error("Unable to deserialize pig.sortOrder " +
-                ioe.getMessage());
-            throw new RuntimeException(ioe);
+            String msg = "Unable to deserialize pig.sortOrder";
+            throw new RuntimeException(msg, ioe);
         }
         if (mAsc == null) {
             mAsc = new boolean[1];

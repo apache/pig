@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -40,8 +41,10 @@ public class TOKENIZE extends EvalFunc<DataBag> {
             DataBag output = mBagFactory.newDefaultBag();
             Object o = input.get(0);
             if (!(o instanceof String)) {
-                throw new IOException("Expected input to be chararray, but" +
-                    " got " + o.getClass().getName());
+            	int errCode = 2114;
+            	String msg = "Expected input to be chararray, but" +
+                " got " + o.getClass().getName();
+                throw new ExecException(msg, errCode, PigException.BUG);
             }
             StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
             while (tok.hasMoreTokens()) {
@@ -49,9 +52,7 @@ public class TOKENIZE extends EvalFunc<DataBag> {
             }
             return output;
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 

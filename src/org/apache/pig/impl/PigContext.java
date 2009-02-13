@@ -244,7 +244,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                     break;
             }
             String msg = "Unable to rename " + oldName + " to " + newName;            
-            throw new PigException(msg, errCode, errSrc, e);
+            throw new ExecException(msg, errCode, errSrc, e);
         }
 
         if (dst.exists()) {
@@ -284,7 +284,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                     break;
             }
             String msg = "Unable to copy " + src + " to " + dst;            
-            throw new PigException(msg, errCode, errSrc, e);
+            throw new ExecException(msg, errCode, errSrc, e);
         }
         
         srcElement.copy(dstElement, this.properties, false);
@@ -412,7 +412,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             catch (UnsupportedClassVersionError e) {
                 int errCode = 1069;
                 String msg = "Problem resolving class version numbers for class " + name;
-                throw new PigException(msg, errCode, PigException.INPUT, e) ;
+                throw new ExecException(msg, errCode, PigException.INPUT, e) ;
             }
             
         }
@@ -421,7 +421,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
         // so that we don't need to buble interface changes throughout the code
         int errCode = 1070;
         String msg = "Could not resolve " + name + " using imports: " + packageImportList;
-        throw new PigException(msg, errCode, PigException.INPUT);
+        throw new ExecException(msg, errCode, PigException.INPUT);
     }
     
     

@@ -677,7 +677,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
             }
             currentPlan = currentPlans.pop();
-            physOp.setPlans(exprPlans);
+            try {
+                physOp.setPlans(exprPlans);
+            } catch (PlanException pe) {
+                int errCode = 2071;
+                String msg = "Problem with setting up local rearrange's plans.";
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+            }
             try {
                 physOp.setIndex(count++);
             } catch (ExecException e1) {

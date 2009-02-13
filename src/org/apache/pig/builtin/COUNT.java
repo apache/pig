@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -44,7 +45,11 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             DataBag bag = (DataBag)input.get(0);
             return bag.size();
         } catch (ExecException ee) {
-            throw WrappedIOException.wrap("Caught exception in COUNT", ee);
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;                
+            String msg = "Error while computing count in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
 
@@ -79,8 +84,11 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             try {
                 return mTupleFactory.newTuple(sum(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap(
-                    "Caught exception in COUNT.Intermed", ee);
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;                
+                String msg = "Error while computing count in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -91,8 +99,9 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             try {
                 return sum(input);
             } catch (Exception ee) {
-                throw WrappedIOException.wrap(
-                    "Caught exception in COUNT.Final", ee);
+                int errCode = 2106;
+                String msg = "Error while computing count in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, ee);
             }
         }
     }

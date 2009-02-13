@@ -29,6 +29,7 @@ import java.io.Serializable;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.Slice;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -75,7 +76,9 @@ public class PigSlice implements Slice {
             try {
                 loader = (LoadFunc) PigContext.instantiateFuncFromSpec(parser);
             } catch (Exception exp) {
-                throw new RuntimeException("can't instantiate " + parser);
+                int errCode = 2081;
+                String msg = "Unable to set up the load function.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
         fsis = base.asElement(base.getActiveContainer(), file).sopen();
@@ -152,9 +155,9 @@ public class PigSlice implements Slice {
         try {
             return ois.readObject();
         } catch (ClassNotFoundException cnfe) {
-            IOException newE = new IOException(cnfe.getMessage());
-            newE.initCause(cnfe);
-            throw newE;
+            int errCode = 2094;
+            String msg = "Unable to deserialize object.";
+            throw new ExecException(msg, errCode, PigException.BUG, cnfe);
         }
     }
 

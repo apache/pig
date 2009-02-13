@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -224,7 +225,9 @@ public class POStream extends PhysicalOperator {
             }
             
         } catch(Exception e) {
-            throw new ExecException("Error while trying to get next result in POStream", e);
+            int errCode = 2083;
+            String msg = "Error while trying to get next result in POStream.";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
             
         
@@ -267,8 +270,10 @@ public class POStream extends PhysicalOperator {
                                 try {
                                     executableManager.configure(this);
                                     executableManager.run();
-                                } catch (IOException e) {
-                                    throw new ExecException("Error while running streaming binary", e);
+                                } catch (IOException ioe) {
+                                    int errCode = 2084;
+                                    String msg = "Error while running streaming binary.";
+                                    throw new ExecException(msg, errCode, PigException.BUG, ioe);
                                 }            
                                 initialized = true;
                             }
@@ -289,7 +294,9 @@ public class POStream extends PhysicalOperator {
                 }
             }
         } catch (Exception e) {
-            throw new ExecException("Error while trying to get next result in POStream", e);
+            int errCode = 2083;
+            String msg = "Error while trying to get next result in POStream.";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
     

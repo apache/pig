@@ -127,9 +127,7 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
         try {
             data = ((DataByteArray)f.get(0)).get();
         } catch (ExecException e) {
-            IOException ioe = new IOException("Unable to get field out of tuple");
-            ioe.initCause(e);
-            throw ioe;
+            throw e;
         }
         if (data.length > 0) {
             out.write(data);

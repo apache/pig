@@ -18,8 +18,9 @@
 package org.apache.pig.impl.plan.optimizer;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 
-public class OptimizerException extends FrontendException {
+public class OptimizerException extends VisitorException {
 
     /**
      * Create a new OptimizerException with null as the error message.

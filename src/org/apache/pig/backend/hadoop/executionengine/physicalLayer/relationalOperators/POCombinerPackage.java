@@ -43,7 +43,7 @@ import org.apache.pig.impl.util.Pair;
  * The package operator that packages the globally rearranged tuples into
  * output format after the combiner stage.  It differs from POPackage in that
  * it does not use the index in the NullableTuple to find the bag to put a
- * tuple in.  Intead, the inputs are put in a bag corresponding to their 
+ * tuple in.  Instead, the inputs are put in a bag corresponding to their 
  * offset in the tuple.
  */
 public class POCombinerPackage extends POPackage {

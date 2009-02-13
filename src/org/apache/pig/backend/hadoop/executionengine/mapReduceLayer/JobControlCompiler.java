@@ -46,6 +46,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -605,7 +606,7 @@ public class JobControlCompiler{
                         int errCode = 6003;
                         String msg = "Invalid cache specification. " +
                         "File doesn't exist: " + src;
-                        throw new PigException(msg, errCode, PigException.USER_ENVIRONMENT);
+                        throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
                     }
                     
                     // Ship it to the cluster if necessary and add to the
@@ -636,7 +637,7 @@ public class JobControlCompiler{
                             }
                             String msg = "Invalid ship specification. " +
                             "File doesn't exist: " + dst;
-                            throw new PigException(msg, errCode, errSrc);
+                            throw new ExecException(msg, errCode, errSrc);
                         }
                         DistributedCache.addCacheFile(dstURI, conf);
                     } else {

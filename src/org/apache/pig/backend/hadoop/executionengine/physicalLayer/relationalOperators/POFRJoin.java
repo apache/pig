@@ -28,6 +28,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -148,7 +149,13 @@ public class POFRJoin extends PhysicalOperator {
             lr.setIndex(i);
             lr.setResultType(DataType.TUPLE);
             lr.setKeyType(keyTypes.get(i));
-            lr.setPlans(ppLst);
+            try {
+                lr.setPlans(ppLst);
+            } catch (PlanException pe) {
+                int errCode = 2071;
+                String msg = "Problem with setting up local rearrange's plans.";
+                throw new ExecException(msg, errCode, PigException.BUG, pe);
+            }
             LRs[i]= lr;
             ConstantExpression ce = new ConstantExpression(genKey(old));
             ce.setResultType((i==fragment)?DataType.TUPLE:DataType.BAG);

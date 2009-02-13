@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.ArrayList;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -313,11 +314,12 @@ public class POProject extends ExpressionOperator {
         return columns;
     }
 
-    public int getColumn() {
+    public int getColumn() throws ExecException {
         if(columns.size() != 1) {
-            throw new RuntimeException(
-            "Internal error: improper use of getColumn in "
-            + POProject.class.getName());
+            int errCode = 2068;
+            String msg = "Internal error. Improper use of method getColumn() in "
+                + POProject.class.getSimpleName(); 
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         return columns.get(0);
     }

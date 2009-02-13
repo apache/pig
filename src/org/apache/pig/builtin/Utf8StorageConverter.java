@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 import org.apache.hadoop.io.DataOutputBuffer;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -77,7 +78,9 @@ abstract public class Utf8StorageConverter {
         try {
             o = parseFromBytes(b);
         } catch (ParseException pe) {
-            throw new IOException(pe.getMessage());
+            int errCode = 2110;
+            String msg = "Could not convert bytearray to bag.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         return (DataBag)o;
     }
@@ -177,7 +180,9 @@ abstract public class Utf8StorageConverter {
         try {
             o = parseFromBytes(b);
         } catch (ParseException pe) {
-            throw new IOException(pe.getMessage());
+            int errCode = 2110;
+            String msg = "Could not convert bytearray to map.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         return (Map<Object, Object>)o;
     }
@@ -189,7 +194,9 @@ abstract public class Utf8StorageConverter {
         try {
             o = parseFromBytes(b);
         } catch (ParseException pe) {
-            throw new IOException(pe.getMessage());
+            int errCode = 2110;
+            String msg = "Could not convert bytearray to tuple.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         return (Tuple)o;
     }

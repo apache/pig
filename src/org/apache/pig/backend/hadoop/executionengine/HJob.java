@@ -32,6 +32,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
@@ -71,7 +72,9 @@ public class HJob implements ExecJob {
              p.bindTo(outFileSpec.getFileName(), new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
 
         }catch (Exception e){
-            throw new ExecException("Unable to get results for " + outFileSpec, e);
+            int errCode = 2088;
+            String msg = "Unable to get results for: " + outFileSpec;
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
         
         return new Iterator<Tuple>() {

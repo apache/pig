@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -100,9 +101,13 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
                             }
 
 
-        default:
-            throw new RuntimeException("Not equal to doesn't know how to " +
-                "handle type " + DataType.findTypeName(operandType));
+        default: {
+            int errCode = 2067;
+            String msg = this.getClass().getSimpleName() + " does not know how to " +
+            "handle type: " + DataType.findTypeName(operandType);
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+        
         }
     }
 

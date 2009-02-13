@@ -8,6 +8,9 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
+
 /**
  * A simple performant implementation of the DataBag
  * interface which only holds a single tuple. This will
@@ -110,8 +113,9 @@ public class SingleTupleBag implements DataBag {
     @Override
     public void readFields(DataInput in) throws IOException {
         // TODO Auto-generated method stub
-        throw new IOException("SingleTupleBag should never be serialized or serialized");
-
+        int errCode = 2113;
+        String msg = "SingleTupleBag should never be serialized or serialized.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /* (non-Javadoc)
@@ -120,7 +124,9 @@ public class SingleTupleBag implements DataBag {
     @Override
     public void write(DataOutput out) throws IOException {
         // TODO Auto-generated method stub
-        throw new IOException("SingleTupleBag should never be serialized or deserialized");
+        int errCode = 2113;
+        String msg = "SingleTupleBag should never be serialized or serialized.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /* (non-Javadoc)
