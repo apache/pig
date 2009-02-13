@@ -422,3 +422,5 @@ Trunk (unreleased changes)
 
     PIG-590: error handling on the backend (sms via olgan)
 
+    PIG-590: error handling on the backend (sms)
+

@@ -44,7 +44,7 @@ public class Utils {
 
         while (current != null && current.getCause() != null){
             current = current.getCause();
-            if(current instanceof PigException) {
+            if((current instanceof PigException) && (((PigException)current).getErrorCode() != 0)) {
                 pigException = current;
             }
         }
