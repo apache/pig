@@ -251,6 +251,7 @@ public abstract class Launcher {
         return totalHadoopTimeSpent;
     }
 
+
     /**
      * 
      * @param stackTraceLine The string representation of {@link Throwable#printStackTrace() printStackTrace}
@@ -343,8 +344,10 @@ public abstract class Launcher {
                 String stackElementRegex = "\\s+at\\s+(\\w+(\\$\\w+)?\\.)+(\\<)?\\w+(\\>)?";
                 Pattern stackElementPattern = Pattern.compile(stackElementRegex);
                 String pigExceptionRegex = "org\\.apache\\.pig\\.";
-                Pattern pigExceptionPattern = Pattern.compile(pigExceptionRegex);                
-
+                Pattern pigExceptionPattern = Pattern.compile(pigExceptionRegex);              
+                String moreElementRegex = "\\s+\\.\\.\\.\\s+\\d+\\s+more";
+                Pattern moreElementPattern = Pattern.compile(moreElementRegex);
+                
                 
                 String pigPackageRegex = "org.apache.pig";
                 
@@ -361,6 +364,10 @@ public abstract class Launcher {
                             pigException = true;
                         }                       
                     } else {
+                        Matcher moreElementMatcher = moreElementPattern.matcher(stackTraceLines[lineNum]);
+                        if(moreElementMatcher.find()) {
+                            ++lineNum;
+                        }
                         break;
                     }
                 }
@@ -515,6 +522,6 @@ public abstract class Launcher {
             lineNumber = Integer.parseInt(items[1]);
         }
         return new StackTraceElement(declaringClass, methodName, fileName, lineNumber);
-    }    
+    }  
 
 }

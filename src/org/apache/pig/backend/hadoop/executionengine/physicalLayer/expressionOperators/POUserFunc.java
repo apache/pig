@@ -197,8 +197,21 @@ public class POUserFunc extends ExpressionOperator {
 		    throw ee;
 		} catch (IOException ioe) {
 		    int errCode = 2078;
-		    String msg = "Caught error from UDF: " + funcSpec.getClassName() + 
-            "[" + ioe.getMessage() + "]";
+		    String msg = "Caught error from UDF: " + funcSpec.getClassName(); 
+            String footer = " [" + ioe.getMessage() + "]";
+		    
+		    if(ioe instanceof PigException) {
+		        int udfErrorCode = ((PigException)ioe).getErrorCode();
+		        if(udfErrorCode != 0) {
+		            errCode = udfErrorCode;
+		            msg = ((PigException)ioe).getMessage();
+		        } else {
+		            msg += " [" + ((PigException)ioe).getMessage() + " ]";
+		        }
+		    } else {
+		        msg += footer;
+		    }
+		    
 			throw new ExecException(msg, errCode, PigException.BUG, ioe);
 		}
 	}
