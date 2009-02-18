@@ -376,10 +376,7 @@ public class TestEvalPipeline extends TestCase {
                 pigServer.registerQuery("B = ORDER A BY $0 using " + TupComp.class.getName() + ";");
             }
         }
-        pigServer.store("B", tmpOutputFile);
-        
-        pigServer.registerQuery("A = load '" + tmpOutputFile + "';");
-        Iterator<Tuple> iter = pigServer.openIterator("A");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
         String last = "";
         HashSet<Integer> seen = new HashSet<Integer>();
         if(!iter.hasNext()) fail("No Results obtained");

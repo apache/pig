@@ -129,6 +129,13 @@ public abstract class PigNullableWritable implements WritableComparable {
         else return mValue.hashCode();
     }
 
+    
+    
+    @Override
+    public boolean equals(Object arg0) {
+        return compareTo(arg0)==0;
+    }
+
     @Override
     public String toString() {
         return new String("Null: " + mNull + " index: " + mIndex + " " +
