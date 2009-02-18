@@ -1,4 +1,4 @@
-MapReduce(1,GFCross) - -156:
+MapReduce(1,GFCross) - -153:
 |   Store(DummyFil:DummyLdr) - --5683415113785058706
 |   |
 |   |---New For Each(false)[tuple] - --8002381389674382470
@@ -10,10 +10,10 @@ MapReduce(1,GFCross) - -156:
 |       |---Package[tuple]{Unknown} - --885269774183211482
 |   Local Rearrange[tuple]{Unknown}(false) - --776319888013965510
 |   |
-|   |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -155
+|   |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -152
 |
-|---MapReduce(1,AVG) - -153:
-    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -154
+|---MapReduce(1,AVG) - -150:
+    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -151
     |   |
     |   |---New For Each(false)[tuple] - -7965768498188214494
     |       |   |
@@ -24,14 +24,14 @@ MapReduce(1,GFCross) - -156:
     |       |---Package[tuple]{Unknown} - --7335024873119453444
     |   Local Rearrange[tuple]{Unknown}(false) - -4589138876054328603
     |   |
-    |   |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -152
+    |   |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -149
     |
-    |---MapReduce(20,TestMRCompiler$WeirdComparator,FindQuantiles,SUM) - -145:
-        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -151
+    |---MapReduce(20,TestMRCompiler$WeirdComparator,COUNT,SUM) - -142:
+        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -148
         |   |
         |   |---New For Each(false,false)[tuple] - --4248200967728536480
         |       |   |
-        |       |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - -8767305735755351861
+        |       |   POUserFunc(org.apache.pig.builtin.COUNT)[tuple] - -8767305735755351861
         |       |   |
         |       |   |---Project[tuple][*] - --5908426805312852480
         |       |   |
@@ -39,37 +39,31 @@ MapReduce(1,GFCross) - -156:
         |       |   |
         |       |   |---Project[tuple][*] - --1848504978980807369
         |       |
-        |       |---New For Each(true)[tuple] - -150
+        |       |---New For Each(true)[tuple] - -147
         |           |   |
-        |           |   Project[bag][1] - -149
+        |           |   Project[bag][1] - -146
         |           |
-        |           |---Package[tuple]{tuple} - -148
-        |   Local Rearrange[tuple]{tuple}(false) - -147
+        |           |---Package[tuple]{tuple} - -145
+        |   Local Rearrange[tuple]{tuple}(false) - -144
         |   |   |
-        |   |   Project[tuple][*] - -146
+        |   |   Project[tuple][*] - -143
         |   |
-        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -144
+        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -141
         |
-        |---MapReduce(1,FindQuantiles,TestMRCompiler$WeirdComparator) - -130:
-            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -143
+        |---MapReduce(1,TestMRCompiler$WeirdComparator) - -130:
+            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -140
             |   |
-            |   |---New For Each(false)[tuple] - -142
+            |   |---New For Each(false,false)[tuple] - -139
             |       |   |
-            |       |   POUserFunc(org.apache.pig.impl.builtin.FindQuantiles)[tuple] - -141
+            |       |   Constant(20) - -138
             |       |   |
-            |       |   |---Project[tuple][*] - -140
+            |       |   POSort[bag](org.apache.pig.test.TestMRCompiler$WeirdComparator) - --8479692259657755370
+            |       |   |   |
+            |       |   |   Project[tuple][*] - -137
+            |       |   |
+            |       |   |---Project[tuple][1] - -136
             |       |
-            |       |---New For Each(false,false)[tuple] - -139
-            |           |   |
-            |           |   Constant(20) - -138
-            |           |   |
-            |           |   POSort[bag](org.apache.pig.test.TestMRCompiler$WeirdComparator) - --8479692259657755370
-            |           |   |   |
-            |           |   |   Project[tuple][*] - -137
-            |           |   |
-            |           |   |---Project[tuple][1] - -136
-            |           |
-            |           |---Package[tuple]{chararray} - -135
+            |       |---Package[tuple]{chararray} - -135
             |   Local Rearrange[tuple]{chararray}(false) - -134
             |   |   |
             |   |   Constant(all) - -133

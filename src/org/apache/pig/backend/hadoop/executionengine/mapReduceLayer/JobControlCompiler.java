@@ -48,6 +48,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -371,7 +372,7 @@ public class JobControlCompiler{
                 // global sort, not for limit after sort.
                 if (mro.isGlobalSort()) {
                     jobConf.set("pig.quantilesFile", mro.getQuantFile());
-                    jobConf.setPartitionerClass(SortPartitioner.class);
+                    jobConf.setPartitionerClass(WeightedRangePartitioner.class);
                 }
                 if(mro.UDFs.size()==1){
                     String compFuncSpec = mro.UDFs.get(0);
