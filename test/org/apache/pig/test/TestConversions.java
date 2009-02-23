@@ -70,8 +70,12 @@ public class TestConversions extends TestCase {
     public  void testBytesToFloat() throws IOException
     {
         // valid floats
-        String[] a = {"1", "-2.345",  "12.12334567", "1.02e-2",".23344", "23.1234567897", ""};
-        Float[] f = {1f, -2.345f,  12.12334567f, 1.02e-2f,.23344f, 23.1234567f}; // last case is a truncation case
+        String[] a = {"1", "-2.345",  "12.12334567", "1.02e-2",".23344",
+		      "23.1234567897", "12312.33f", "002312.33F", "1.02e-2f", ""};
+
+        Float[] f = {1f, -2.345f,  12.12334567f, 1.02e-2f,.23344f, 23.1234567f, // 23.1234567f is a truncation case
+		     12312.33f, 2312.33f, 1.02e-2f }; 
+
         for (int j = 0; j < f.length; j++) {
             byte[] b = a[j].getBytes();            
             assertEquals(f[j], ps.bytesToFloat(b));
@@ -112,8 +116,10 @@ public class TestConversions extends TestCase {
     public  void testBytesToLong() throws IOException
     {
         // valid Longs
-        String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45", ""};
-        Long[] la = {1L, -2345L, 123456789012345678L, 1L, -23L};
+        String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45",
+		      "21345345l", "3422342L", ""};
+        Long[] la = {1L, -2345L, 123456789012345678L, 1L, -23L, 
+		     21345345L, 3422342L};
         
         for (int i = 0; i < la.length; i++) {
             byte[] b = a[i].getBytes();

@@ -426,3 +426,7 @@ Trunk (unreleased changes)
 
     PIG-545: PERFORMANCE: Sampler for order bys does not produce a good
     distribution (pradeepkth)
+
+    PIG-658: Data type long : When 'L' or 'l' is included with data 
+    (123L or 123l) load produces null value. Also the case with Float (thejas
+    via sms)
