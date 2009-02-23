@@ -107,8 +107,17 @@ abstract public class Utf8StorageConverter {
     public Float bytesToFloat(byte[] b) throws IOException {
         if(b == null)
             return null;
+        String s;
+        if(b.length > 0 && 
+           (b[b.length - 1] == 'F' || b[b.length - 1] == 'f') ){
+            s = new String(b, 0, b.length - 1);
+        } 
+        else {
+            s = new String(b);
+        }
+        
         try {
-            return Float.valueOf(new String(b));
+            return Float.valueOf(s);
         } catch (NumberFormatException nfe) {
             mLog.warn("Unable to interpret value " + b + " in field being " +
                     "converted to float, caught NumberFormatException <" +
@@ -148,7 +157,16 @@ abstract public class Utf8StorageConverter {
     public Long bytesToLong(byte[] b) throws IOException {
         if(b == null)
             return null;
-        String s = new String(b);
+
+        String s;
+        if(b.length > 0  &&  
+           (b[b.length - 1] == 'L' || b[b.length - 1] == 'l') ){
+            s = new String(b, 0, b.length - 1);
+        } 
+        else {
+            s = new String(b);
+        }
+
         try {
             return Long.valueOf(s);
         } catch (NumberFormatException nfe) {
