@@ -36,8 +36,14 @@ import java.io.BufferedReader;
 
 public class TestGrunt extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
+    private String basedir;
 
     private final Log log = LogFactory.getLog(getClass());
+
+    public TestGrunt(String name) {
+        super(name);
+        basedir = "test/org/apache/pig/test/data";
+    }
     
 /*    @Test 
     public void testCopyFromLocal() throws Throwable {
@@ -297,6 +303,166 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, cease:chararray, degenerate: double)}, SUM(a.fast) as fast, a.regenerate as degenerated;\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testRunStatment() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
+                        " run -param LIMIT=5 -param_file " + basedir +
+                        "/test_broken.ppf " + basedir + "/testsub.pig; explain bar";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testExecStatment() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        boolean caught = false;
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
+                        " exec -param LIMIT=5 -param FUNCTION=COUNT " +
+                        "-param FILE=foo " + basedir + "/testsub.pig; explain bar";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+        
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            caught = true;
+            assertTrue(e.getMessage().contains("alias bar"));
+        }
+        assertTrue(caught);
+    }
+
+    @Test
+    public void testRunStatmentNested() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); run "
+            +basedir+"/testsubnested_run.pig; explain bar";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testExecStatmentNested() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        boolean caught = false;
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); exec "
+            +basedir+"/testsubnested_exec.pig; explain bar";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+        
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            caught = true;
+            assertTrue(e.getMessage().contains("alias bar"));
+        }
+        assertTrue(caught);
+    }
+    
+    @Test
+    public void testExplainEmpty() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); run "
+            +basedir+"/testsubnested_run.pig; explain";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testExplainScript() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -script "
+            +basedir+"/testsubnested_run.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testExplainBrief() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -brief -script "
+            +basedir+"/testsubnested_run.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testExplainDot() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -dot -script "
+            +basedir+"/testsubnested_run.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testExplainOut() throws Throwable {
+        PigServer server = new PigServer("MAPREDUCE");
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -out /tmp -script "
+            +basedir+"/testsubnested_run.pig;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);

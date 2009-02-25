@@ -197,15 +197,21 @@ public class MRCompiler extends PhyPlanVisitor {
      */
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
-        if(!(leaves.get(0) instanceof POStore)) {
-            int errCode = 2025;
-            String msg = "Expected leaf of reduce plan to " +
-                "always be POStore. Found " + leaves.get(0).getClass().getSimpleName();
-            throw new MRCompilerException(msg, errCode, PigException.BUG);
+
+        for (PhysicalOperator op : leaves) {
+            if (!(op instanceof POStore)) {
+                int errCode = 2025;
+                String msg = "Expected leaf of reduce plan to " +
+                    "always be POStore. Found " + op.getClass().getSimpleName();
+                throw new MRCompilerException(msg, errCode, PigException.BUG);
+            }
         }
-        POStore store = (POStore)leaves.get(0);
-        FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
-        compile(store);
+
+        for (PhysicalOperator op : leaves) {
+            POStore store = (POStore)op;
+            FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
+            compile(store);
+        }
 
         // I'm quite certain this is not the best way to do this.  The issue
         // is that for jobs that take multiple map reduce passes, for

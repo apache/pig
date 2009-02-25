@@ -31,6 +31,8 @@ package org.apache.pig.tools.pigscript.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Stack;
+import java.util.List;
+import java.util.ArrayList;
 
 import jline.ConsoleReader;
 
@@ -62,7 +64,7 @@ public abstract class PigScriptParser
 	
 	abstract protected void processDescribe(String alias) throws IOException;
 
-    abstract protected void processExplain(String alias) throws IOException;
+	abstract protected void processExplain(String alias, String script, boolean isVerbose, String format, String target, List<String> params, List<String> files) throws IOException, ParseException;
 	
 	abstract protected void processRegister(String jar) throws IOException;
 
@@ -98,7 +100,9 @@ public abstract class PigScriptParser
 	
 	abstract protected void processIllustrate(String alias) throws IOException;
 
-	 static String unquote(String s)
+	abstract protected void processScript(String script, boolean batch, List<String> params, List<String> files) throws IOException, ParseException;
+
+	static String unquote(String s)
 	{
 		if (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'')
 			return s.substring(1, s.length()-1);
@@ -142,6 +146,14 @@ TOKEN: {<REMOVE: "rm">}
 TOKEN: {<REMOVEFORCE: "rmf">}
 TOKEN: {<SET: "set">}
 TOKEN: {<ILLUSTRATE: "illustrate">}
+TOKEN: {<RUN: "run">}
+TOKEN: {<EXEC: "exec">}
+TOKEN: {<PARAM: "-param">}
+TOKEN: {<PARAM_FILE: "-param_file">}
+TOKEN: {<SCRIPT: "-script">}
+TOKEN: {<DOT: "-dot">}
+TOKEN: {<OUT: "-out">}
+TOKEN: {<BRIEF: "-brief">}
 
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
@@ -320,8 +332,8 @@ TOKEN:
 |	<#DIGIT : ["0"-"9"] >
 |	<#SPECIALCHAR : ["_"] >
 |	<#FSSPECIALCHAR: ["/"]>
-|       <#FLOAT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
-|       <#INTEGER: ( <DIGIT> )+ >
+|	<#FLOAT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
+|	<#INTEGER: ( <DIGIT> )+ >
 |	<#NUMBER: <INTEGER> | <FLOAT> | <FLOAT> ( ["e","E"] ([ "-","+"])? <FLOAT> )?>
 }
 
@@ -392,9 +404,7 @@ void parse() throws IOException:
 	t1 = <IDENTIFIER>
 	{processDescribe(t1.image);}
 	|
-    <EXPLAIN>
-	t1 = <IDENTIFIER>
-	{processExplain(t1.image);}
+	Explain()
 	|
 	<HELP>
 	{printHelp();}
@@ -433,6 +443,8 @@ void parse() throws IOException:
 	t1 = GetPath()
 	{processRegister(t1.image);}
 	|
+	Script()
+	|
 	<REMOVE>
 	(
 		t1 = GetPath()
@@ -467,6 +479,88 @@ void parse() throws IOException:
 	)
 }
 
+void Explain() throws IOException:
+{
+	Token t;
+	String alias = null;
+        String script = null;
+	String format="text";
+	String target=null;
+	boolean isVerbose = true;
+	ArrayList<String> params;
+	ArrayList<String> files;
+
+}
+{
+	<EXPLAIN>
+	{
+		params = new ArrayList<String>(); 
+		files = new ArrayList<String>();
+	}
+	(
+		<BRIEF>
+		{isVerbose = false;}
+         	|
+         	<DOT>
+        	{format = "dot";}
+         	|
+		<OUT>
+		t = GetPath()
+		{target = t.image;}
+		|
+		<SCRIPT>
+		t = GetPath()
+		{script = t.image;}
+		|
+		<PARAM>
+		t = GetPath()
+		{params.add(t.image);}
+		|
+		<PARAM_FILE>
+		t = GetPath()
+		{files.add(t.image);}
+	)*
+	(
+		t = <IDENTIFIER>
+		{alias = t.image;}
+	)?
+	{processExplain(alias, script, isVerbose, format, target, params, files);}
+}
+
+void Script() throws IOException:
+{
+    Token t;
+    String script;
+    boolean batch = false;
+    ArrayList<String> params;
+    ArrayList<String> files;
+}
+{
+	(
+ 		<RUN>
+		{batch = false;}
+	|
+		<EXEC>
+		{batch = true;}
+	)
+    	{
+		params = new ArrayList<String>(); 
+		files = new ArrayList<String>();
+	}
+	(
+		<PARAM>
+		t = GetPath()
+		{params.add(t.image);}
+	|
+		<PARAM_FILE>
+		t = GetPath()
+		{files.add(t.image);}
+	)*
+	t = GetPath()
+	{script = t.image;}
+	{processScript(script, batch, params, files);}
+}
+
 Token GetPath() :
 {
 	Token t;
@@ -475,7 +569,7 @@ Token GetPath() :
 	(
 	t = <IDENTIFIER>
 	|
-        t = <PATH>
+	t = <PATH>
 	|
 	t = GetReserved()
 	)
@@ -548,6 +642,22 @@ Token GetReserved () :
 	t = <SET>
 	|
 	t = <SCRIPT_DONE>
+	|
+	t = <RUN>
+	|
+	t = <EXEC>
+	|
+	t = <OUT>
+	|
+	t = <SCRIPT>
+	|
+	t = <DOT>
+	|
+	t = <BRIEF>
+	|
+	t = <PARAM>
+	|
+	t = <PARAM_FILE>
 	)
 
 	{return t;}

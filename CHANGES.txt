@@ -406,3 +406,5 @@ Trunk (unreleased changes)
     storing strings > 65536 bytes (in UTF8 form) using BinStorage() (sms)
 
     PIG-642: Limit after FRJ causes problems (daijy)
+
+    PIG-627: multiquery support M1 (hagleitn via olgan)

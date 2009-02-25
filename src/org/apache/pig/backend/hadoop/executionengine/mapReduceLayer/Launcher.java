@@ -88,13 +88,17 @@ public abstract class Launcher {
      * @param pp PhysicalPlan to explain
      * @param pc PigContext to use for configuration
      * @param ps PrintStream to write output on.
+     * @param format Format to write in
+     * @param verbose Amount of information to print
      * @throws VisitorException
      * @throws IOException
      */
     public abstract void explain(
             PhysicalPlan pp,
             PigContext pc,
-            PrintStream ps) throws PlanException,
+            PrintStream ps,
+            String format,
+            boolean verbose) throws PlanException,
                                    VisitorException,
                                    IOException;
     

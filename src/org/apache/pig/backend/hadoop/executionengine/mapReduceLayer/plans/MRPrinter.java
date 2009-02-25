@@ -34,6 +34,7 @@ public class MRPrinter extends MROpPlanVisitor {
 
     private PrintStream mStream = null;
     private int mIndent = 0;
+    private boolean isVerbose = true;
 
     /**
      * @param ps PrintStream to output plan information to
@@ -47,24 +48,31 @@ public class MRPrinter extends MROpPlanVisitor {
         mStream.println("--------------------------------------------------");
     }
 
+    public void setVerbose(boolean verbose) {
+        isVerbose = verbose;
+    }
+
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
         mStream.println("MapReduce node " + mr.getOperatorKey().toString());
         if (mr.mapPlan != null && mr.mapPlan.size() > 0) {
             mStream.println("Map Plan");
             PlanPrinter printer = new PlanPrinter(mr.mapPlan, mStream);
+            printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println("--------");
         }
         if (mr.combinePlan != null && mr.combinePlan.size() > 0) {
             mStream.println("Combine Plan");
             PlanPrinter printer = new PlanPrinter(mr.combinePlan, mStream);
+            printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println("--------");
         }
         if (mr.reducePlan != null && mr.reducePlan.size() > 0) {
             mStream.println("Reduce Plan");
             PlanPrinter printer = new PlanPrinter(mr.reducePlan, mStream);
+            printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println("--------");
         }

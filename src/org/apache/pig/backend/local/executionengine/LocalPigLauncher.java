@@ -41,10 +41,10 @@ public class LocalPigLauncher extends Launcher {
     Log log = LogFactory.getLog(getClass());
 
     @Override
-    public void explain(PhysicalPlan pp, PigContext pc, PrintStream ps)
-            throws PlanException, VisitorException, IOException {
-        // TODO Auto-generated method stub
-        pp.explain(ps);
+    public void explain(PhysicalPlan pp, PigContext pc, PrintStream ps,
+                        String format, boolean isVerbose)
+        throws PlanException, VisitorException, IOException {
+        pp.explain(ps, format, isVerbose);
         ps.append('\n');
     }
 

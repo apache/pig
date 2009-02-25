@@ -184,17 +184,15 @@ public class LocalExecutionEngine implements ExecutionEngine {
         throw new UnsupportedOperationException();
     }
 
-    public void explain(PhysicalPlan plan, PrintStream stream) {
+    public void explain(PhysicalPlan plan, PrintStream stream, 
+                        String format, boolean isVerbose) {
         try {
-            PlanPrinter printer = new PlanPrinter(plan, stream);
-            printer.visit();
-            stream.println();
-
             ExecTools.checkLeafIsStore(plan, pigContext);
 
             // LocalLauncher launcher = new LocalLauncher();
             LocalPigLauncher launcher = new LocalPigLauncher();
-            launcher.explain(plan, pigContext, stream);
+            launcher.explain(plan, pigContext, stream, 
+                             format, isVerbose);
         } catch (Exception ve) {
             throw new RuntimeException(ve);
         }

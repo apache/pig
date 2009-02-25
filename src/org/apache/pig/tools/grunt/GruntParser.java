@@ -21,13 +21,28 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.OutputStreamWriter;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.FileNotFoundException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.PrintStream;
 
 import jline.ConsoleReader;
+import jline.ConsoleReaderInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,6 +62,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 public class GruntParser extends PigScriptParser {
 
@@ -73,42 +89,47 @@ public class GruntParser extends PigScriptParser {
     }
 
     private void init() {
-        // nothing, for now.
+        mDone = false;
     }
     
+    /** 
+     * Parses Pig commands in either interactive mode or batch mode. 
+     * In interactive mode, executes the plan right away whenever a 
+     * STORE command is encountered.
+     *
+     * @throws IOException, ParseException
+     */
     public void parseStopOnError() throws IOException, ParseException
     {
-        prompt();
-        mDone = false;
-        while(!mDone)
-            parse();
-    }
+        if (mPigServer == null) {
+            throw new IllegalStateException();
+        }
 
-    public void parseContOnError()
-    {
-        prompt();
-        mDone = false;
-        while(!mDone)
-            try
-            {
+        if (!mInteractive) {
+            mPigServer.setBatchOn();
+        }
+
+        try {
+            prompt();
+            mDone = false;
+            while(!mDone) {
                 parse();
             }
-            catch(Exception e)
-            {
-                Exception pe = Utils.getPermissionException(e);
-                if (pe != null)
-                    log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
-                else {
-                    ByteArrayOutputStream bs = new ByteArrayOutputStream();
-                    e.printStackTrace(new PrintStream(bs));
-                    log.error(bs.toString());
-                    //log.error(e.getMessage());
-                    //log.error(e);
-               }
-
-            } catch (Error e) {
-                log.error(e);
+        } catch(IOException e) {
+            if (!mInteractive) {
+                mPigServer.discardBatch();
             }
+            throw e;
+        } catch (ParseException e) {
+            if (!mInteractive) {
+                mPigServer.discardBatch();
+            }
+            throw e;
+        }
+
+        if (!mInteractive) {
+            mPigServer.executeBatch();
+        }
     }
 
     public void setParams(PigServer pigServer)
@@ -136,10 +157,7 @@ public class GruntParser extends PigScriptParser {
 
     public void prompt()
     {
-        if (mInteractive)
-        {
-            /*System.err.print("grunt> ");
-            System.err.flush();*/
+        if (mInteractive) {
             mConsoleReader.setDefaultPrompt("grunt> ");
         }
     }
@@ -148,17 +166,148 @@ public class GruntParser extends PigScriptParser {
     {
         mDone = true;
     }
+
+    public boolean isDone() {
+        return mDone;
+    }
     
     protected void processDescribe(String alias) throws IOException {
         mPigServer.dumpSchema(alias);
     }
 
-    protected void processExplain(String alias) throws IOException {
-        mPigServer.explain(alias, System.out);
+    protected void processExplain(String alias, String script, boolean isVerbose, 
+                                  String format, String target, 
+                                  List<String> params, List<String> files) 
+        throws IOException, ParseException {
+
+        PrintStream out = System.out;
+
+        if (script != null) {
+            mPigServer.setBatchOn();
+            try {
+                loadScript(script, true, params, files);
+            } catch(IOException e) {
+                mPigServer.discardBatch();
+                throw e;
+            } catch (ParseException e) {
+                mPigServer.discardBatch();
+                throw e;
+            }
+        }
+        
+        if (target != null) {
+            File file = new File(target);
+
+            if (file.isDirectory()) {
+                mPigServer.explain(alias, format, isVerbose, target);
+                return;
+            }
+            else {
+                try {
+                    out = new PrintStream(new FileOutputStream(target));
+                }
+                catch (FileNotFoundException fnfe) {
+                    throw new ParseException("File not found: " + target);
+                } catch (SecurityException se) {
+                    throw new ParseException("Cannot access file: " + target);
+                }
+            }
+        }
+        mPigServer.explain(alias, format, isVerbose, out, out, out);
+        if (script != null) {
+            mPigServer.discardBatch();
+        }
     }
     
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
+    }
+
+    private String runPreprocessor(String script, List<String> params, 
+                                   List<String> files) 
+        throws IOException, ParseException {
+
+        ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
+        StringWriter writer = new StringWriter();
+
+        try{
+            psp.genSubstitutedFile(new BufferedReader(new FileReader(script)), 
+                                   writer,  
+                                   params.size() > 0 ? params.toArray(new String[0]) : null, 
+                                   files.size() > 0 ? files.toArray(new String[0]) : null);
+        } catch (org.apache.pig.tools.parameters.ParseException pex) {
+            throw new ParseException(pex.getMessage());
+        }
+
+        return writer.toString();
+    }
+
+    protected void processScript(String script, boolean batch, 
+                                 List<String> params, List<String> files) 
+        throws IOException, ParseException {
+        
+        if (batch) {
+            mPigServer.setBatchOn();
+            try {
+                loadScript(script, true, params, files);
+            } catch (IOException e) {
+                mPigServer.discardBatch();
+                throw e;
+            } catch (ParseException e) {
+                mPigServer.discardBatch();
+                throw e;
+            }
+            mPigServer.executeBatch();
+        } else {
+            loadScript(script, false, params, files);
+        }
+    }
+
+    private void loadScript(String script, boolean batch, 
+                                 List<String> params, List<String> files) 
+        throws IOException, ParseException {
+        
+        Reader inputReader;
+        ConsoleReader reader;
+        boolean interactive;
+         
+        try {
+            String cmds = runPreprocessor(script, params, files);
+
+            if (mInteractive && !batch) { // Write prompt and echo commands
+                // Console reader treats tabs in a special way
+                cmds = cmds.replaceAll("\t","    ");
+
+                reader = new ConsoleReader(new ByteArrayInputStream(cmds.getBytes()),
+                                           new OutputStreamWriter(System.out));
+                reader.setHistory(mConsoleReader.getHistory());
+                InputStream in = new ConsoleReaderInputStream(reader);
+                inputReader = new BufferedReader(new InputStreamReader(in));
+                interactive = true;
+            } else { // Quietly parse the statements
+                inputReader = new StringReader(cmds);
+                reader = null;
+                interactive = false;
+            }
+        } catch (FileNotFoundException fnfe) {
+            throw new ParseException("File not found: " + script);
+        } catch (SecurityException se) {
+            throw new ParseException("Cannot access file: " + script);
+        }
+
+        GruntParser parser = new GruntParser(inputReader);
+        parser.setParams(mPigServer);
+        parser.setConsoleReader(reader);
+        parser.setInteractive(interactive);
+        
+        parser.prompt();
+        while(!parser.isDone()) {
+            parser.parse();
+        }
+
+        if (interactive) {
+            System.out.println("");
+        }
     }
 
     protected void processSet(String key, String value) throws IOException, ParseException {
@@ -173,7 +322,6 @@ public class GruntParser extends PigScriptParser {
         }
         else if (key.equals("job.name"))
         {
-            //mPigServer.setJobName(unquote(value));
             mPigServer.setJobName(value);
         }
         else if (key.equals("stream.skippath")) {
@@ -268,10 +416,10 @@ public class GruntParser extends PigScriptParser {
 
     protected void processDump(String alias) throws IOException
     {
-        Iterator result = mPigServer.openIterator(alias);
+        Iterator<Tuple> result = mPigServer.openIterator(alias);
         while (result.hasNext())
         {
-            Tuple t = (Tuple) result.next();
+            Tuple t = result.next();
             System.out.println(t);
         }
     }
@@ -433,12 +581,16 @@ public class GruntParser extends PigScriptParser {
     protected void processPig(String cmd) throws IOException
     {
         int start = 1;
-        if (!mInteractive)
+        if (!mInteractive) {
             start = getLineNumber();
-        if (cmd.charAt(cmd.length() - 1) != ';')
-            mPigServer.registerQuery(cmd + ";", start); 
-        else 
+        }
+        
+        if (cmd.charAt(cmd.length() - 1) != ';') {
+            mPigServer.registerQuery(cmd + ";", start);
+        }
+        else { 
             mPigServer.registerQuery(cmd, start);
+        }
     }
 
     protected void processRemove(String path, String options ) throws IOException

@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.DotMRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -117,13 +118,22 @@ public class LocalLauncher extends Launcher{
     public void explain(
             PhysicalPlan php,
             PigContext pc,
-            PrintStream ps) throws PlanException, VisitorException,
-                                   IOException {
+            PrintStream ps,
+            String format,
+            boolean verbose) throws PlanException, VisitorException,
+                                    IOException {
         log.trace("Entering LocalLauncher.explain");
         MROperPlan mrp = compile(php, pc);
 
-        MRPrinter printer = new MRPrinter(ps, mrp);
-        printer.visit();
+        if (format.equals("text")) {
+            MRPrinter printer = new MRPrinter(ps, mrp);
+            printer.setVerbose(verbose);
+            printer.visit();
+        } else {
+            DotMRPrinter printer =new DotMRPrinter(mrp, ps);
+            printer.setVerbose(verbose);
+            printer.dump();
+        }
     }
  
     private MROperPlan compile(

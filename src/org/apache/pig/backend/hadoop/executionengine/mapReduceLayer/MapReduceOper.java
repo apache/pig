@@ -323,4 +323,8 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     public void setReplFiles(FileSpec[] replFiles) {
         this.replFiles = replFiles;
     }
+
+    public int getRequestedParallelism() {
+        return requestedParallelism;
+    }
 }

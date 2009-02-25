@@ -273,16 +273,13 @@ public class HExecutionEngine implements ExecutionEngine {
         throw new UnsupportedOperationException();
     }
 
-    public void explain(PhysicalPlan plan, PrintStream stream) {
+    public void explain(PhysicalPlan plan, PrintStream stream, String format, boolean verbose) {
         try {
-            PlanPrinter printer = new PlanPrinter(plan, stream);
-            printer.visit();
-            stream.println();
-
             ExecTools.checkLeafIsStore(plan, pigContext);
 
             MapReduceLauncher launcher = new MapReduceLauncher();
-            launcher.explain(plan, pigContext, stream);
+            launcher.explain(plan, pigContext, stream, format, verbose);
+
         } catch (Exception ve) {
             throw new RuntimeException(ve);
         }

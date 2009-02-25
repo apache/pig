@@ -46,6 +46,7 @@ public class LOPrinter extends LOVisitor {
     private String USep = "|   |\n|   ";
     private int levelCntr = -1;
     private OutputStream printer;
+    private boolean isVerbose = true;
 
     /**
      * @param ps PrintStream to output plan information to
@@ -64,6 +65,10 @@ public class LOPrinter extends LOVisitor {
         } catch (IOException e) {
             throw new VisitorException(e);
         }
+    }
+
+    public void setVerbose(boolean verbose) {
+        isVerbose = verbose;
     }
 
     public void print(OutputStream printer) throws VisitorException, IOException {
@@ -114,55 +119,58 @@ public class LOPrinter extends LOVisitor {
             try {
                 sb.append(((ExpressionOperator)node).getFieldSchema());
             } catch (Exception e) {
-                //sb.append("Caught Exception: " + e.getMessage());
+                sb.append("Caught Exception: " + e.getMessage());
             }
         } else {
             sb.append(" Schema: ");
             try {
                 sb.append(node.getSchema());
             } catch (Exception e) {
-                //sb.append("Caught exception: " + e.getMessage());
+                sb.append("Caught exception: " + e.getMessage());
             }
         }
         sb.append(" Type: " + DataType.findTypeName(node.getType()));
         sb.append("\n");
-        if(node instanceof LOFilter){
-            sb.append(planString(((LOFilter)node).getComparisonPlan()));
-        }
-        else if(node instanceof LOForEach){
-            sb.append(planString(((LOForEach)node).getForEachPlans()));        
-        }
-        else if(node instanceof LOGenerate){
-            sb.append(planString(((LOGenerate)node).getGeneratePlans())); 
-            
-        }
-        else if(node instanceof LOCogroup){
-            MultiMap<LogicalOperator, LogicalPlan> plans = ((LOCogroup)node).getGroupByPlans();
-            for (LogicalOperator lo : plans.keySet()) {
-                // Visit the associated plans
-                for (LogicalPlan plan : plans.get(lo)) {
-                    sb.append(planString(plan));
+
+        if (isVerbose) {
+            if(node instanceof LOFilter){
+                sb.append(planString(((LOFilter)node).getComparisonPlan()));
+            }
+            else if(node instanceof LOForEach){
+                sb.append(planString(((LOForEach)node).getForEachPlans()));        
+            }
+            else if(node instanceof LOGenerate){
+                sb.append(planString(((LOGenerate)node).getGeneratePlans())); 
+                
+            }
+            else if(node instanceof LOCogroup){
+                MultiMap<LogicalOperator, LogicalPlan> plans = ((LOCogroup)node).getGroupByPlans();
+                for (LogicalOperator lo : plans.keySet()) {
+                    // Visit the associated plans
+                    for (LogicalPlan plan : plans.get(lo)) {
+                        sb.append(planString(plan));
+                    }
                 }
             }
-        }
-        else if(node instanceof LOFRJoin){
-            MultiMap<LogicalOperator, LogicalPlan> plans = ((LOFRJoin)node).getJoinColPlans();
-            for (LogicalOperator lo : plans.keySet()) {
-                // Visit the associated plans
-                for (LogicalPlan plan : plans.get(lo)) {
-                    sb.append(planString(plan));
+            else if(node instanceof LOFRJoin){
+                MultiMap<LogicalOperator, LogicalPlan> plans = ((LOFRJoin)node).getJoinColPlans();
+                for (LogicalOperator lo : plans.keySet()) {
+                    // Visit the associated plans
+                    for (LogicalPlan plan : plans.get(lo)) {
+                        sb.append(planString(plan));
+                    }
                 }
             }
-        }
-        else if(node instanceof LOSort){
-            sb.append(planString(((LOSort)node).getSortColPlans())); 
-        }
-        else if(node instanceof LOSplitOutput){
-            sb.append(planString(((LOSplitOutput)node).getConditionPlan()));
-        }
-        else if (node instanceof LOProject) {
-            sb.append("Input: ");
-            sb.append(((LOProject)node).getExpression().name());
+            else if(node instanceof LOSort){
+                sb.append(planString(((LOSort)node).getSortColPlans())); 
+            }
+            else if(node instanceof LOSplitOutput){
+                sb.append(planString(((LOSplitOutput)node).getConditionPlan()));
+            }
+            else if (node instanceof LOProject) {
+                sb.append("Input: ");
+                sb.append(((LOProject)node).getExpression().name());
+            }
         }
         
         List<LogicalOperator> originalPredecessors =  mPlan.getPredecessors(node);
