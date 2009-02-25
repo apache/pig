@@ -34,7 +34,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -99,7 +98,7 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            try {
+        	try {
                 return tfact.newTuple(sumDoubles(input));
             } catch (ExecException ee) {
                 throw ee;

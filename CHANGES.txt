@@ -430,3 +430,5 @@ Trunk (unreleased changes)
     PIG-658: Data type long : When 'L' or 'l' is included with data 
     (123L or 123l) load produces null value. Also the case with Float (thejas
     via sms)
+
+    PIG-591: Error handling phase four (sms via pradeepkth)

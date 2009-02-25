@@ -39,6 +39,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -61,6 +63,7 @@ public class POUserFunc extends ExpressionOperator {
 	public static final byte INITIAL = 0;
 	public static final byte INTERMEDIATE = 1;
 	public static final byte FINAL = 2;
+	private boolean initialized = false;
 
 	public POUserFunc(OperatorKey k, int rp, List<PhysicalOperator> inp) {
 		super(k, rp);
@@ -92,7 +95,15 @@ public class POUserFunc extends ExpressionOperator {
 
 	private void instantiateFunc(FuncSpec fSpec) {
 		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
+		//the next couple of initializations do not work as intended for the following reasons
+		//the reporter and pigLogger are member variables of PhysicalOperator
+		//when instanitateFunc is invoked at deserialization time, both
+		//reporter and pigLogger are null. They are set during map and reduce calls,
+		//making the initializations here basically useless. Look at the processInput
+		//method where these variables are re-initialized. At that point, the PhysicalOperator
+		//is set up correctly with the reporter and pigLogger references
         this.func.setReporter(reporter);
+        this.func.setPigLogger(pigLogger);
 	}
 	
 	public Result processInput() throws ExecException {
@@ -101,7 +112,11 @@ public class POUserFunc extends ExpressionOperator {
         // across in the serialization (don't know why).  I suspect it's as
         // cheap to call the setReporter call everytime as to check whether I
         // have (hopefully java will inline it).
-        func.setReporter(reporter);
+        if(!initialized) {
+        	func.setReporter(reporter);
+        	func.setPigLogger(pigLogger);
+        	initialized = true;
+        }
 
 		Result res = new Result();
 		Tuple inpValue = null;

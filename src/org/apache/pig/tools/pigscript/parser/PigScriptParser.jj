@@ -608,15 +608,5 @@ Token GetReserved () :
 JAVACODE 
 void handle_invalid_command(int kind) 
 {
-	ParseException e = generateParseException();  // generate the exception object.
-	
-	if (mInteractive) {
-		System.out.println(e.toString());  // print the error message
-		Token t = getNextToken();
-
-		while (t.kind != kind)
-			t = getNextToken();
-	} else {
-		throw e;
-	}
+	throw generateParseException();  // throw the exception object.
 }

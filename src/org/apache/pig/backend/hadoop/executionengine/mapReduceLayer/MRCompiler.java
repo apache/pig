@@ -32,6 +32,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -65,6 +66,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
@@ -72,6 +74,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.Pair;
 
 /**
@@ -144,6 +147,8 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private UDFFinder udfFinder;
     
+    private CompilationMessageCollector messageCollector = null;
+    
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
     }
@@ -166,6 +171,7 @@ public class MRCompiler extends PhyPlanVisitor {
         	throw new MRCompilerException(msg, errCode, PigException.BUG);
         }
         scope = roots.get(0).getOperatorKey().getScope();
+        messageCollector = new CompilationMessageCollector() ;
     }
     
     public void randomizeFileLocalizer(){
@@ -186,6 +192,10 @@ public class MRCompiler extends PhyPlanVisitor {
      */
     public PhysicalPlan getPlan() {
         return plan;
+    }
+    
+    public CompilationMessageCollector getMessageCollector() {
+    	return messageCollector;
     }
     
     /**
@@ -728,13 +738,15 @@ public class MRCompiler extends PhyPlanVisitor {
                 }
                 else
                 {
-                    log.warn("Something in the reduce plan while map plan is not done. Something wrong!");
+                    messageCollector.collect("Something in the reduce plan while map plan is not done. Something wrong!", 
+                    		MessageType.Warning, PigWarning.REDUCE_PLAN_NOT_EMPTY_WHILE_MAP_PLAN_UNDER_PROCESS);
                 }
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
             	// limit should add into reduce plan
                 mro.reducePlan.addAsLeaf(op);
             } else {
-                log.warn("Both map and reduce phases have been done. This is unexpected while compiling!");
+            	messageCollector.collect("Both map and reduce phases have been done. This is unexpected while compiling!",
+            			MessageType.Warning, PigWarning.UNREACHABLE_CODE_BOTH_MAP_AND_REDUCE_PLANS_PROCESSED);
             }
         }catch(Exception e){
             int errCode = 2034;
@@ -1553,8 +1565,9 @@ public class MRCompiler extends PhyPlanVisitor {
             if (succMpLeaves == null || succMpLeaves.size() > 1 ||
                     succMpRoots == null || succMpRoots.size() > 1 ||
                     succMpLeaves.get(0) != succMpRoots.get(0)) {
-                log.warn("Expected to find subsequent map " +
-                    "with just a load, but didn't");
+            		messageCollector.collect("Expected to find subsequent map " +
+                    "with just a load, but didn't",
+                    MessageType.Warning, PigWarning.DID_NOT_FIND_LOAD_ONLY_MAP_PLAN);
                 return;
             }
             PhysicalOperator load = succMpRoots.get(0);

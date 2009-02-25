@@ -61,6 +61,7 @@ import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -103,6 +104,7 @@ public class PigServer {
     
     private String scope = constructScope();
     private ArrayList<String> cachedScript = new ArrayList<String>();
+    private boolean aggregateWarning = true;
     
     private String constructScope() {
         // scope servers for now as a session id
@@ -135,6 +137,9 @@ public class PigServer {
         if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
             setJobName("DefaultJobName") ;
         }
+        
+        aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+        
         if (connect) {
             pigContext.connect();
         }
@@ -729,33 +734,16 @@ public class PigServer {
             // throw.
             caught = fe;            
         }
-        // Check to see if we had any problems.
-        StringBuilder sb = new StringBuilder();
-        for (CompilationMessageCollector.Message msg : collector) {
-            switch (msg.getMessageType()) {
-            case Info:
-                log.info(msg.getMessage());
-                break;
-
-            case Warning:
-                log.warn(msg.getMessage());
-                break;
-
-            case Unknown:
-            case Error:
-                //Error messages are displayed separately and are not bundled here
-                break;
-
-            default:
-                throw new AssertionError("Unknown message type " +
-                    msg.getMessageType());
-
-            }
+        
+        if(aggregateWarning) {
+        	CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
+        } else {
+        	for(Enum type: MessageType.values()) {
+        		CompilationMessageCollector.logAllMessages(collector, log);
+        	}
         }
-
-        if (sb.length() > 0 || caught != null) {
-            //int errCode = 1003;
-            //throw new FrontendException(sb.toString(), errCode, PigException.INPUT, false, null, caught);
+        
+        if (caught != null) {
             throw caught;
         }
 

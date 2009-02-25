@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.apache.pig.PigException;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -42,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -49,6 +51,7 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 
 /**
@@ -106,10 +109,24 @@ public class CombinerOptimizer extends MROpPlanVisitor {
     private byte mKeyType = 0;
     
     private String chunkSize;
+    
+    private CompilationMessageCollector messageCollector = null;
 
     public CombinerOptimizer(MROperPlan plan, String chunkSize) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
         this.chunkSize = chunkSize;
+        messageCollector = new CompilationMessageCollector() ; 
+    }
+
+    public CombinerOptimizer(MROperPlan plan, String chunkSize, 
+    		CompilationMessageCollector messageCollector) {
+        super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+        this.chunkSize = chunkSize;
+        this.messageCollector = messageCollector ; 
+    }
+    
+    public CompilationMessageCollector getMessageCollector() {
+    	return messageCollector;
     }
 
     @Override
@@ -121,7 +138,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         // Find the POLocalRearrange in the map.  I'll need it later.
         List<PhysicalOperator> mapLeaves = mr.mapPlan.getLeaves();
         if (mapLeaves == null || mapLeaves.size() != 1) {
-            log.warn("Expected map to have single leaf!");
+            messageCollector.collect("Expected map to have single leaf!", MessageType.Warning, PigWarning.MULTI_LEAF_MAP);
             return;
         }
         PhysicalOperator mapLeaf = mapLeaves.get(0);
@@ -132,7 +149,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
         List<PhysicalOperator> reduceRoots = mr.reducePlan.getRoots();
         if (reduceRoots.size() != 1) {
-            log.warn("Expected reduce to have single leaf");
+        	messageCollector.collect("Expected reduce to have single leaf", MessageType.Warning, PigWarning.MULTI_LEAF_REDUCE);
             return;
         }
 
@@ -140,7 +157,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         // not, I don't know what's going on, so I'm out of here.
         PhysicalOperator root = reduceRoots.get(0);
         if (!(root instanceof POPackage)) {
-            log.warn("Expected reduce root to be a POPackage");
+        	messageCollector.collect("Expected reduce root to be a POPackage", MessageType.Warning, PigWarning.NON_PACKAGE_REDUCE_PLAN_ROOT);
             return;
         }
         POPackage pack = (POPackage)root;
@@ -197,8 +214,8 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 				// udf will be a POProject which will project the column
 				// corresponding to the position of the udf in the foreach
                 if (mr.combinePlan.getRoots().size() != 0) {
-                    log.warn("Wasn't expecting to find anything already "
-                        + "in the combiner!");
+                	messageCollector.collect("Wasn't expecting to find anything already "
+                        + "in the combiner!", MessageType.Warning, PigWarning.NON_EMPTY_COMBINE_PLAN);
                     return;
                 }
                 mr.combinePlan = new PhysicalPlan();

@@ -20,15 +20,22 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobID;
+import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -41,8 +48,11 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStre
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 
 /**
@@ -54,6 +64,7 @@ public class MapReduceLauncher extends Launcher{
  
     //used to track the exception thrown by the job control which is run in a separate thread
     private Exception jobControlException = null;
+    private boolean aggregateWarning = false;
     
     @Override
     public boolean launchPig(PhysicalPlan php,
@@ -65,6 +76,7 @@ public class MapReduceLauncher extends Launcher{
                                                    JobCreationException,
                                                    Exception {
         long sleepTime = 5000;
+        aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
         
         ExecutionEngine exe = pc.getExecutionEngine();
@@ -124,13 +136,23 @@ public class MapReduceLauncher extends Launcher{
             return false;
         }
 
+        Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
+                
         List<Job> succJobs = jc.getSuccessfulJobs();
         if(succJobs!=null)
             for(Job job : succJobs){
                 getStats(job,jobClient, false, pc);
+                if(aggregateWarning) {
+                	computeWarningAggregate(job, jobClient, warningAggMap);
+                }
             }
 
-        jc.stop(); 
+        jc.stop();
+        
+        if(aggregateWarning) {
+        	CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
+        }
+
         log.info( "100% complete");
         log.info("Success!");
         return true;
@@ -156,6 +178,10 @@ public class MapReduceLauncher extends Launcher{
         comp.randomizeFileLocalizer();
         comp.compile();
         MROperPlan plan = comp.getMRPlan();
+        
+        //display the warning message(s) from the MRCompiler
+        comp.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
+        
         String lastInputChunkSize = 
             pc.getProperties().getProperty(
                     "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
@@ -163,6 +189,8 @@ public class MapReduceLauncher extends Launcher{
         if (!("true".equals(prop)))  {
             CombinerOptimizer co = new CombinerOptimizer(plan, lastInputChunkSize);
             co.visit();
+            //display the warning message(s) from the CombinerOptimizer
+            co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
         }
         
         // optimize key - value handling in package
@@ -207,5 +235,23 @@ public class MapReduceLauncher extends Launcher{
     		}
     	}
     }
- 
+    
+    void computeWarningAggregate(Job job, JobClient jobClient, Map<Enum, Long> aggMap) {
+    	JobID mapRedJobID = job.getAssignedJobID();
+    	RunningJob runningJob = null;
+    	try {
+    		runningJob = jobClient.getJob(mapRedJobID);
+    		Counters counters = runningJob.getCounters();
+    		for(Enum e : PigWarning.values()) {
+    			Long currentCount = aggMap.get(e);
+    			currentCount = (currentCount == null? 0 : currentCount);
+    			currentCount += counters.getCounter(e);
+    			aggMap.put(e, currentCount);
+    		}
+    	} catch (IOException ioe) {
+    		String msg = "Unable to retrieve job to compute warning aggregation.";
+    		log.warn(msg);
+    	}    	
+    }
+
 }

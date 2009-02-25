@@ -200,7 +200,7 @@ public class HExecutionEngine implements ExecutionEngine {
         }
         catch (IOException e) {
             int errCode = 6009;
-            String msg = "Failed to create job client";
+            String msg = "Failed to create job client:" + e.getMessage();
             throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
@@ -549,10 +549,19 @@ public class HExecutionEngine implements ExecutionEngine {
             //this should return as soon as connection is shutdown
             int rc = p.waitFor();
             if (rc != 0) {
-                String errMsg = new String();
+                StringBuilder errMsg = new StringBuilder();
                 try {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-                    errMsg = br.readLine();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String line = null;
+                    while((line = br.readLine()) != null) {
+                        errMsg.append(line);
+                    }
+                    br.close();
+                    br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+                    line = null;
+                    while((line = br.readLine()) != null) {
+                        errMsg.append(line);
+                    }
                     br.close();
                 } catch (IOException ioe) {}
                 int errCode = 6011;
@@ -563,7 +572,7 @@ public class HExecutionEngine implements ExecutionEngine {
                 msg.append("; return code: ");
                 msg.append(rc);
                 msg.append("; error: ");
-                msg.append(errMsg);
+                msg.append(errMsg.toString());
                 throw new ExecException(msg.toString(), errCode, PigException.REMOTE_ENVIRONMENT);
             }
         } catch (Exception e){

@@ -46,6 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
@@ -159,6 +160,10 @@ public class PigMapReduce {
         
         PhysicalOperator[] roots;
         private PhysicalOperator leaf;
+        
+        PigContext pigContext = null;
+        protected volatile boolean initialized = false;
+        
         /**
          * Configures the Reduce plan, the POPackage operator
          * and the reporter thread
@@ -189,6 +194,9 @@ public class PigMapReduce {
                     roots = rp.getRoots().toArray(new PhysicalOperator[1]);
                     leaf = rp.getLeaves().get(0);
                 }
+                
+                pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
+                
             } catch (IOException ioe) {
                 String msg = "Problem while configuring reduce plan.";
                 throw new RuntimeException(msg, ioe);
@@ -204,13 +212,23 @@ public class PigMapReduce {
         public void reduce(PigNullableWritable key,
                 Iterator<NullableTuple> tupIter,
                 OutputCollector<PigNullableWritable, Writable> oc,
-                Reporter reporter) throws IOException {
-            
-            // cache the collector for use in runPipeline()
-            // which could additionally be called from close()
-            this.outputCollector = oc;
-            pigReporter.setRep(reporter);
-            PhysicalOperator.setReporter(pigReporter);
+                Reporter reporter) throws IOException {            
+
+            if(!initialized) {
+                initialized  = true;
+                // cache the collector for use in runPipeline() which
+                // can be called from close()
+                this.outputCollector = oc;
+	            pigReporter.setRep(reporter);
+	            PhysicalOperator.setReporter(pigReporter);
+	            
+	            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+	            
+	            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+	            pigHadoopLogger.setAggregate(aggregateWarning);
+	            pigHadoopLogger.setReporter(reporter);
+	            PhysicalOperator.setPigLogger(pigHadoopLogger);
+            }
 
             // In the case we optimize the join, we combine
             // POPackage and POForeach - so we could get many
@@ -391,11 +409,21 @@ public class PigMapReduce {
                 OutputCollector<PigNullableWritable, Writable> oc,
                 Reporter reporter) throws IOException {
             
-            // cache the collector for use in runPipeline()
-            // which could additionally be called from close()
-            this.outputCollector = oc;
-            pigReporter.setRep(reporter);
-            PhysicalOperator.setReporter(pigReporter);
+            if(!initialized) {
+                initialized  = true;
+	            // cache the collector for use in runPipeline()
+	            // which could additionally be called from close()
+	            this.outputCollector = oc;
+	            pigReporter.setRep(reporter);	            
+	            PhysicalOperator.setReporter(pigReporter);
+	            
+	            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+
+	            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+	            pigHadoopLogger.setAggregate(aggregateWarning);
+	            pigHadoopLogger.setReporter(reporter);
+	            PhysicalOperator.setPigLogger(pigHadoopLogger);
+            }
             
             // If the keyType is not a tuple, the MapWithComparator.collect()
             // would have wrapped the key into a tuple so that the 

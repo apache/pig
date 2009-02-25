@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -70,8 +71,12 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Double) res.result;
         
-        if (right == 0)
+        if (right == 0) {
+        	if(pigLogger != null) {
+        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+        	}
             res.result = null;
+        }
         else
             res.result = new Double(left / right);
         return res;
@@ -96,8 +101,12 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Float) res.result;
         
-        if (right == 0)
+        if (right == 0) {
+        	if(pigLogger != null) {
+        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+        	}
             res.result = null;
+        }
         else
             res.result = new Float(left / right);
         return res;
@@ -122,8 +131,12 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Integer) res.result;
         
-        if (right == 0)
-            res.result = null;
+        if (right == 0) {
+        	if(pigLogger != null) {
+        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+        	}
+        	res.result = null;
+        }
         else
             res.result = new Integer(left / right);
         return res;
@@ -148,8 +161,12 @@ public class Divide extends BinaryExpressionOperator {
         }
         right = (Long) res.result;
         
-        if (right == 0)
+        if (right == 0) {
+        	if(pigLogger != null) {
+        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+        	}
             res.result = null;
+        }
         else
             res.result = new Long(left / right);
         return res;
