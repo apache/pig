@@ -37,6 +37,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Algebraic;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -215,113 +216,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
-
-        /*
-        if (!pj.getSentinel()) {
-
-            LogicalOperator op = pj.getExpression() ;
-
-            if (!(op instanceof LOProject)) {
-                throw new AssertionError("LOProject.getExpression() has to be "
-                                         + "LOProject if it's not a sentinel") ;
-            }
-
-            // else
-            LOProject innerProject = (LOProject) op ;
-            resolveLOProjectType(innerProject) ;
-
-            if ( (innerProject.getType() != DataType.BAG) &&
-                 (innerProject.getType() != DataType.TUPLE) ) {
-                throw new AssertionError("Nested LOProject is for extracting "
-                                         + " from TUPLE/BAG only") ;
-            }
-
-            // set type of this project
-            pj.setType(innerProject.getType());
-            Schema inputSchema = null ;
-
-            try {
-                inputSchema = innerProject.getSchema() ;
-            }
-            catch (FrontendException fe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(fe) ;
-                throw new VisitorException(msg) ;
-            }
-
-            // extracting schema from projection
-            List<FieldSchema> fsList = new ArrayList<FieldSchema>() ;
-            try {
-                for(int index: pj.getProjection()) {
-                    FieldSchema fs = null ;
-                    // typed input
-                    if (inputSchema != null) {
-                        fs = inputSchema.getField(index) ;
-                        FieldSchema newFs = new FieldSchema(fs.alias, fs.schema, fs.type) ;
-                        fsList.add(newFs) ;
-                    }
-                    // non-typed input
-                    else {
-                        FieldSchema newFs = new FieldSchema(null, DataType.BYTEARRAY) ;
-                        fsList.add(newFs) ;
-                    }
-                }
-                pj.setFieldSchema(new FieldSchema(null, new Schema(fsList), innerProject.getType()));
-            }
-            catch (FrontendException fe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(fe) ;
-                throw new VisitorException(msg) ;
-            }
-            catch (ParseException pe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(pe) ;
-                throw new VisitorException(msg) ;
-            }
-        }
-        // if it's a sentinel, we just get the projected input type to it
-        else {
-            if (pj.getProjection().size() != 1) {
-                throw new AssertionError("Sentinel LOProject can have only "
-                                         + "1 projection") ;
-            }
-            LogicalOperator input = pj.getExpression() ;
-            int projectedField = pj.getProjection().get(0) ;
-            try {
-                Schema schema = input.getSchema() ;
-
-                if (schema != null) {
-                    FieldSchema fs = schema.getField(projectedField) ;
-                    pj.setFieldSchema(fs);
-                }
-                else {
-                    FieldSchema fs = new FieldSchema(null, DataType.BYTEARRAY) ;
-                    pj.setFieldSchema(fs);
-                }
-            }
-            catch (FrontendException fe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(fe) ;
-                throw new VisitorException(msg) ;
-            }
-            catch (ParseException pe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(pe) ;
-                throw new VisitorException(msg) ;
-            }
-        }
-        */
-        
     }
 
     /**
@@ -1391,7 +1285,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                              " will be called with following argument types: " +
                              matchingSpec.getInputArgsSchema() + ". If you want to use " +
                              "different input argument types, please use explicit casts.";
-                msgCollector.collect(msg, MessageType.Warning);
+                msgCollector.collect(msg, MessageType.Warning, PigWarning.USING_OVERLOADED_FUNCTION);
             }
             func.setFuncSpec(matchingSpec);
             insertCastsForUDF(func, s, matchingSpec.getInputArgsSchema());
@@ -2723,7 +2617,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                 // We just warn about mismatch type in non-strict mode
                 if (!strictMode) {
                     String msg = "COGroup by incompatible types results in ByteArray" ;
-                    msgCollector.collect(msg, MessageType.Warning) ;
+                    msgCollector.collect(msg, MessageType.Warning, PigWarning.GROUP_BY_INCOMPATIBLE_TYPES) ;
                     groupType = DataType.BYTEARRAY ;
                 }
                 // We just die if in strict mode
@@ -2780,7 +2674,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     // We just warn about mismatch type in non-strict mode
                     if (!strictMode) {
                         String msg = "COGroup by incompatible types results in ByteArray" ;
-                        msgCollector.collect(msg, MessageType.Warning) ;
+                        msgCollector.collect(msg, MessageType.Warning, PigWarning.GROUP_BY_INCOMPATIBLE_TYPES) ;
                         fsList.get(j).type = DataType.BYTEARRAY ;
                     }
                     // We just die if in strict mode
@@ -3138,9 +3032,36 @@ public class TypeCheckingVisitor extends LOVisitor {
         String originalTypeName = DataType.findTypeName(originalType) ;
         String toTypeName = DataType.findTypeName(toType) ;
         String opName = op.getClass().getSimpleName() ;
+        Enum kind = null;
+        switch(toType) {
+        case DataType.BAG:
+        	kind = PigWarning.IMPLICIT_CAST_TO_BAG;
+        	break;
+        case DataType.CHARARRAY:
+        	kind = PigWarning.IMPLICIT_CAST_TO_CHARARRAY;
+        	break;
+        case DataType.DOUBLE:
+        	kind = PigWarning.IMPLICIT_CAST_TO_DOUBLE;
+        	break;
+        case DataType.FLOAT:
+        	kind = PigWarning.IMPLICIT_CAST_TO_FLOAT;
+        	break;
+        case DataType.INTEGER:
+        	kind = PigWarning.IMPLICIT_CAST_TO_INT;
+        	break;
+        case DataType.LONG:
+        	kind = PigWarning.IMPLICIT_CAST_TO_LONG;
+        	break;
+        case DataType.MAP:
+        	kind = PigWarning.IMPLICIT_CAST_TO_MAP;
+        	break;
+        case DataType.TUPLE:
+        	kind = PigWarning.IMPLICIT_CAST_TO_TUPLE;
+        	break;
+        }
         msgCollector.collect(originalTypeName + " is implicitly cast to "
                              + toTypeName +" under " + opName + " Operator",
-                             MessageType.Warning) ;
+                             MessageType.Warning, kind) ;
     }
 
     /***

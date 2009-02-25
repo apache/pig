@@ -17,25 +17,19 @@
  */
 package org.apache.pig.builtin;
 
-import java.awt.image.VolatileImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.io.ByteArrayInputStream;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
-import org.apache.hadoop.io.DataOutputBuffer;
 
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -57,6 +51,8 @@ abstract public class Utf8StorageConverter {
     private Integer mMaxInt = new Integer(Integer.MAX_VALUE);
     private Long mMaxLong = new Long(Long.MAX_VALUE);
     private TextDataParser dataParser = null;
+    
+    private PigLogger pigLogger = PhysicalOperator.getPigLogger();
         
     public Utf8StorageConverter() {
     }
@@ -97,9 +93,9 @@ abstract public class Utf8StorageConverter {
         try {
             return Double.valueOf(new String(b));
         } catch (NumberFormatException nfe) {
-            mLog.warn("Unable to interpret value " + b + " in field being " +
+            warn("Unable to interpret value " + b + " in field being " +
                     "converted to double, caught NumberFormatException <" +
-                    nfe.getMessage() + "> field discarded");
+                    nfe.getMessage() + "> field discarded", PigWarning.FIELD_DISCARDED);
             return null;
         }
     }
@@ -119,9 +115,9 @@ abstract public class Utf8StorageConverter {
         try {
             return Float.valueOf(s);
         } catch (NumberFormatException nfe) {
-            mLog.warn("Unable to interpret value " + b + " in field being " +
+            warn("Unable to interpret value " + b + " in field being " +
                     "converted to float, caught NumberFormatException <" +
-                    nfe.getMessage() + "> field discarded");
+                    nfe.getMessage() + "> field discarded", PigWarning.FIELD_DISCARDED);
             return null;
         }
     }
@@ -141,14 +137,14 @@ abstract public class Utf8StorageConverter {
                 Double d = Double.valueOf(s);
                 // Need to check for an overflow error
                 if (d.doubleValue() > mMaxInt.doubleValue() + 1.0) {
-                    mLog.warn("Value " + d + " too large for integer");
+                    warn("Value " + d + " too large for integer", PigWarning.TOO_LARGE_FOR_INT);
                     return null;
                 }
                 return new Integer(d.intValue());
             } catch (NumberFormatException nfe2) {
-                mLog.warn("Unable to interpret value " + b + " in field being " +
+                warn("Unable to interpret value " + b + " in field being " +
                         "converted to int, caught NumberFormatException <" +
-                        nfe.getMessage() + "> field discarded");
+                        nfe.getMessage() + "> field discarded", PigWarning.FIELD_DISCARDED);
                 return null;
             }
         }
@@ -178,14 +174,14 @@ abstract public class Utf8StorageConverter {
                 Double d = Double.valueOf(s);
                 // Need to check for an overflow error
                 if (d.doubleValue() > mMaxLong.doubleValue() + 1.0) {
-                    mLog.warn("Value " + d + " too large for integer");
+                	warn("Value " + d + " too large for integer", PigWarning.TOO_LARGE_FOR_INT);
                     return null;
                 }
                 return new Long(d.longValue());
             } catch (NumberFormatException nfe2) {
-                mLog.warn("Unable to interpret value " + b + " in field being " +
+                warn("Unable to interpret value " + b + " in field being " +
                         "converted to long, caught NumberFormatException <" +
-                        nfe.getMessage() + "> field discarded");
+                        nfe.getMessage() + "> field discarded", PigWarning.FIELD_DISCARDED);
                 return null;
             }
         }
@@ -252,5 +248,13 @@ abstract public class Utf8StorageConverter {
         return t.toString().getBytes();
     }
     
+    protected void warn(String msg, Enum warningEnum) {
+    	pigLogger = PhysicalOperator.getPigLogger();
+    	if(pigLogger != null) {
+    		pigLogger.warn(this, msg, warningEnum);
+    	} else {
+    		mLog.warn(msg);
+    	}    	
+    }
 
 }

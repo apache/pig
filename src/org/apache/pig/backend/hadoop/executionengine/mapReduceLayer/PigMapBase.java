@@ -34,6 +34,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
@@ -71,7 +72,8 @@ public abstract class PigMapBase extends MapReduceBase{
 
     private PhysicalOperator leaf;
 
-    private boolean initialized = false;
+    PigContext pigContext = null;
+    private volatile boolean initialized = false;
     
     /**
      * Will be called when all the tuples in the input
@@ -106,7 +108,9 @@ public abstract class PigMapBase extends MapReduceBase{
         try {
             finisher.visit();
         } catch (VisitorException e) {
-            throw new IOException("Error trying to finish UDFs",e);
+        	int errCode = 2121;
+        	String msg = "Error while calling finish method on UDFs.";
+            throw new VisitorException(msg, errCode, PigException.BUG, e);
         }
         
         mp = null;
@@ -150,6 +154,9 @@ public abstract class PigMapBase extends MapReduceBase{
                 roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
                 leaf = mp.getLeaves().get(0);
             }
+            
+            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+            
         } catch (IOException ioe) {
             String msg = "Problem while configuring map plan.";
             throw new RuntimeException(msg, ioe);
@@ -176,6 +183,13 @@ public abstract class PigMapBase extends MapReduceBase{
             this.outputCollector = oc;
             pigReporter.setRep(reporter);
             PhysicalOperator.setReporter(pigReporter);
+            
+            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+
+            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+            pigHadoopLogger.setAggregate(aggregateWarning);
+            pigHadoopLogger.setReporter(reporter);
+            PhysicalOperator.setPigLogger(pigHadoopLogger);
         }
         
         if(mp.isEmpty()){

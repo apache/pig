@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigWarning;
 
 
 /**
@@ -47,7 +48,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
 
     private static final Log log = LogFactory.getLog(DefaultDataBag.class);
- 
+    
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
     }
@@ -90,8 +91,8 @@ public class DefaultDataBag extends DefaultAbstractBag {
             }  catch (IOException ioe) {
                 // Do not remove last file from spilled array. It was not
                 // added as File.createTmpFile threw an IOException
-                log.warn(
-                    "Unable to create tmp file to spill to disk", ioe);
+                warn(
+                    "Unable to create tmp file to spill to disk", PigWarning.UNABLE_TO_CREATE_FILE_TO_SPILL, ioe);
                 return 0;
             }
             try {
@@ -107,15 +108,15 @@ public class DefaultDataBag extends DefaultAbstractBag {
                 // Remove the last file from the spilled array, since we failed to
                 // write to it.
                 mSpillFiles.remove(mSpillFiles.size() - 1);
-                log.warn(
-                    "Unable to spill contents to disk", ioe);
+                warn(
+                    "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, ioe);
                 return 0;
             } finally {
                 if (out != null) {
                     try {
                         out.close();
                     } catch (IOException e) {
-                        log.warn("Error closing spill", e);
+                        warn("Error closing spill", PigWarning.UNABLE_TO_CLOSE_SPILL_FILE, e);
                     }
                 }
             }

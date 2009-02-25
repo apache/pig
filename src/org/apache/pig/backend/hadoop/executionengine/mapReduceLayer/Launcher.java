@@ -327,12 +327,16 @@ public abstract class Launcher {
             	 * the regex matcher ends at one position beyond the match
             	 * in this case it will end at colon (:)
             	 * the exception message will have a preceding space (after the colon (:)) 
-            	 */            	
-            	exceptionMessage = stackTraceLines[startingLineNum].substring(exceptionNameMatcher.end() + 2);
-            	++startingLineNum;
+            	 */ 
             	if (exceptionName.contains(OOM_ERR)) {
             	    outOfMemory = true;
             	}
+            	
+            	if(stackTraceLines[startingLineNum].length() > exceptionNameMatcher.end()) {
+	            	exceptionMessage = stackTraceLines[startingLineNum].substring(exceptionNameMatcher.end() + 2);
+            	}
+            	
+            	++startingLineNum;
             }
         	
             //the exceptionName should not be null

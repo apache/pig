@@ -17,9 +17,13 @@
  */
 package org.apache.pig.impl.plan ;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList ;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
 /***
  * This class is used for collecting all messages (error + warning) in 
  * compilation process. These messages are reported back to users 
@@ -40,10 +44,16 @@ public class CompilationMessageCollector implements Iterable<CompilationMessageC
     public static class Message {
         private String msg = null ;
         private MessageType msgType = MessageType.Unknown ;
+        private Enum kind = null;
         
         public Message(String message, MessageType messageType) {
             msg = message ;
             msgType = messageType ;
+        }
+        
+        public Message(String message, MessageType messageType, Enum kind) {
+        	this(message, messageType);
+        	this.kind = kind;
         }
         
         public String getMessage() {
@@ -52,6 +62,10 @@ public class CompilationMessageCollector implements Iterable<CompilationMessageC
         
         public MessageType getMessageType() {
             return msgType ;
+        }
+        
+        public Enum getKind() {
+        	return kind;
         }
     }
     
@@ -65,14 +79,22 @@ public class CompilationMessageCollector implements Iterable<CompilationMessageC
         messageList.add(new Message(message, messageType)) ;
     }
     
-    public boolean hasError() {
+    public void collect(String message, MessageType messageType, Enum kind) {
+        messageList.add(new Message(message, messageType, kind)) ;
+    }
+    
+    protected boolean hasMessageType(MessageType messageType) {
         Iterator<Message> iter = iterator() ;
         while(iter.hasNext()) {
-            if (iter.next().getMessageType() == MessageType.Error) {
+            if (iter.next().getMessageType() == messageType) {
                 return true ;
             }
         }
         return false ;
+    }
+    
+    public boolean hasError() {
+    	return hasMessageType(MessageType.Error);
     }
 
     public Iterator<Message> iterator() {
@@ -89,6 +111,78 @@ public class CompilationMessageCollector implements Iterable<CompilationMessageC
     
     public Message get(int i) {
         return messageList.get(i) ;
+    }
+    
+    public Map<Enum, Long> getKindAggregate(MessageType messageType) {
+    	Map<Enum, Long> aggMap = new HashMap<Enum, Long>();
+        Iterator<Message> iter = iterator() ;
+        while(iter.hasNext()) {
+        	Message message = iter.next(); 
+            if (message.getMessageType() == messageType) {
+            	Enum kind = message.getKind();
+            	if(kind != null) {
+            		Long count = aggMap.get(kind);
+            		count = (count == null? 1 : ++count);
+            		aggMap.put(kind, count);
+            	}
+            }
+    	}
+    	return aggMap;
+    }
+    
+    public static void logAggregate(Map<Enum, Long> aggMap, MessageType messageType, Log log) {
+    	for(Enum e: aggMap.keySet()) {
+    		Long count = aggMap.get(e);
+    		if(count != null && count > 0) {
+    			String message = "Encountered " + messageType + " " + e.toString() + " " + count + " time(s).";
+    			logMessage(message, messageType, log);
+    		}
+    	}	
+    }
+    
+    public static void logMessages(CompilationMessageCollector messageCollector, 
+    		MessageType messageType, boolean aggregate, Log log) {
+    	if(aggregate) {
+    		Map<Enum, Long> aggMap = messageCollector.getKindAggregate(messageType);
+    		logAggregate(aggMap, messageType, log);
+    	} else {
+    		Iterator<Message> messageIter = messageCollector.iterator();
+    		while(messageIter.hasNext()) {
+    			Message message = messageIter.next();
+    			if(message.getMessageType() == messageType) {
+    				logMessage(message.getMessage(), messageType, log);
+    			}
+    		}
+    	}
+    }
+    
+    public void logMessages(MessageType messageType, boolean aggregate, Log log) {
+    	logMessages(this, messageType, aggregate, log);
+    }
+    
+    public static void logAllMessages(CompilationMessageCollector messageCollector, Log log) {
+    	Iterator<Message> messageIter = messageCollector.iterator();
+		while(messageIter.hasNext()) {
+			Message message = messageIter.next();
+			logMessage(message.getMessage(), message.getMessageType(), log);
+		}
+    }
+    
+    public void logAllMessages(Log log) {
+    	logAllMessages(this, log);
+    }
+
+    private static void logMessage(String messageString, MessageType messageType, Log log) {
+		switch(messageType) {
+		case Info:
+			log.info(messageString);
+			break;
+		case Warning:
+			log.warn(messageString);
+			break;
+		case Error:
+			log.error(messageString);
+		}
     }
     
 }
