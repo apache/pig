@@ -33,12 +33,9 @@ public class TupleSize extends EvalFunc<Long> {
 
     @Override
     public Long exec(Tuple input) throws IOException {
-        if (input.size() == 0)
-            return null;
         try{
-            Tuple t = (Tuple)input.get(0);
-            if (t == null) return null;
-            return new Long(t.size());
+            if (input == null) return null;
+            return new Long(input.size());
         }catch(Exception e){
             int errCode = 2106;
             String msg = "Error while computing size in " + this.getClass().getSimpleName();

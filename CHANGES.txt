@@ -432,3 +432,5 @@ Trunk (unreleased changes)
     via sms)
 
     PIG-591: Error handling phase four (sms via pradeepkth)
+
+    PIG-664: Semantics of * is not consistent (sms)
