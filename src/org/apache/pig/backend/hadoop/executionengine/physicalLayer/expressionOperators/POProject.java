@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.ArrayList;
 
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -147,8 +148,10 @@ public class POProject extends ExpressionOperator {
             try {
                 ret = inpValue.get(columns.get(0));
             } catch (ExecException ee) {
-                log.warn("Attempt to access field " + 
-                    " which was not found in the input");
+                if(pigLogger != null) {
+                    pigLogger.warn(this,"Attempt to access field " + 
+                            "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                }
                 res.returnStatus = POStatus.STATUS_OK;
                 ret = null;
             }
@@ -159,8 +162,10 @@ public class POProject extends ExpressionOperator {
                 try { 
                     objList.add(inpValue.get(i)); 
                 } catch (ExecException ee) {
-                    log.warn("Attempt to access field " + i +
-                        " which was not found in the input");
+                    if(pigLogger != null) {
+                        pigLogger.warn(this,"Attempt to access field " + i +
+                                " which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                    }
                     objList.add(null);
                 }
             }
