@@ -1879,6 +1879,31 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(query);
     }
 
+
+    @Test
+    public void testTokenizeSchema()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one' as (f1: chararray);");
+        lp = buildPlan("b = foreach a generate TOKENIZE(f1);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema.FieldSchema tokenFs = new Schema.FieldSchema("token", 
+                DataType.CHARARRAY); 
+        Schema tupleSchema = new Schema(tokenFs);
+
+        Schema.FieldSchema tupleFs;
+        tupleFs = new Schema.FieldSchema("tuple_of_tokens", tupleSchema,
+                DataType.TUPLE);
+
+        Schema bagSchema = new Schema(tupleFs);
+        Schema.FieldSchema bagFs = new Schema.FieldSchema(
+                    "bag_of_tokenTuples",bagSchema, DataType.BAG);
+        
+        assertTrue(Schema.equals(foreach.getSchema(), new Schema(bagFs), false, true));
+    }
+    
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

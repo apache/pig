@@ -434,3 +434,5 @@ Trunk (unreleased changes)
     PIG-591: Error handling phase four (sms via pradeepkth)
 
     PIG-664: Semantics of * is not consistent (sms)
+
+    PIG-684: outputSchema method in TOKENIZE is broken (thejas via sms)
