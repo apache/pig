@@ -28,6 +28,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
@@ -58,8 +59,32 @@ public class TOKENIZE extends EvalFunc<DataBag> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        Schema schema = new Schema(new Schema.FieldSchema("token",
-            DataType.CHARARRAY));
-        return schema;
+        
+        try {
+            Schema.FieldSchema tokenFs = new Schema.FieldSchema("token", 
+                    DataType.CHARARRAY); 
+            Schema tupleSchema = new Schema(tokenFs);
+
+            Schema.FieldSchema tupleFs;
+            tupleFs = new Schema.FieldSchema("tuple_of_tokens", tupleSchema,
+                    DataType.TUPLE);
+
+            Schema bagSchema = new Schema(tupleFs);
+            bagSchema.setTwoLevelAccessRequired(true);
+            Schema.FieldSchema bagFs = new Schema.FieldSchema(
+                        "bag_of_tokenTuples",bagSchema, DataType.BAG);
+            
+            return new Schema(bagFs); 
+            
+            
+            
+        } catch (FrontendException e) {
+            // throwing RTE because
+            //above schema creation is not expected to throw an exception
+            // and also because superclass does not throw exception
+            throw new RuntimeException("Unable to compute TOKENIZE schema.");
+        }   
     }
-}
+
+    
+};
