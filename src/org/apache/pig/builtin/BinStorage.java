@@ -70,11 +70,18 @@ public class BinStorage implements ReversibleLoadStoreFunc {
             if (in == null || in.getPosition() >=end) {
                 return null;
             }
-            b = (byte) in.read();
-            if(b != RECORD_1 && b != -1) {
-                continue;
+            // check if we saw RECORD_1 in our last attempt
+            // this can happen if we have the following 
+            // sequence RECORD_1-RECORD_1-RECORD_2-RECORD_3
+            // After reading the second RECORD_1 in the above
+            // sequence, we should not look for RECORD_1 again
+            if(b != RECORD_1) {
+                b = (byte) in.read();
+                if(b != RECORD_1 && b != -1) {
+                    continue;
+                }
+                if(b == -1) return null;
             }
-            if(b == -1) return null;
             b = (byte) in.read();
             if(b != RECORD_2 && b != -1) {
                 continue;
