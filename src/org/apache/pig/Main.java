@@ -75,7 +75,7 @@ public static void main(String args[])
     
     boolean verbose = false;
     boolean gruntCalled = false;
-    String logFileName = validateLogFile(null, null);
+    String logFileName = null;
 
     try {
         BufferedReader pin = null;
@@ -236,6 +236,11 @@ public static void main(String args[])
         configureLog4J(properties);
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
+        
+        if(logFileName == null) {
+            logFileName = validateLogFile(null, null);
+        }
+        
         pigContext.getProperties().setProperty("pig.logfile", logFileName);
 
         LogicalPlanBuilder.classloader = pigContext.createCl(null);
@@ -507,7 +512,7 @@ private static String validateLogFile(String logFileName, String scriptName) {
         if(logFile.isDirectory()) {            
             if(logFile.canWrite()) {
                 try {
-                    logFileName += logFile.getCanonicalPath() + File.separator + defaultLogFileName;
+                    logFileName = logFile.getCanonicalPath() + File.separator + defaultLogFileName;
                 } catch (IOException ioe) {
                     throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());       
                 }
@@ -556,8 +561,8 @@ private static String validateLogFile(String logFileName, String scriptName) {
     //revert to the current working directory
     String currDir = System.getProperty("user.dir");
     logFile = new File(currDir);
-    if(logFile.canWrite()) {
-        logFileName = currDir + File.separator + (logFileName == null? defaultLogFileName : logFileName);
+    logFileName = currDir + File.separator + (logFileName == null? defaultLogFileName : logFileName);
+    if(logFile.canWrite()) {        
         return logFileName;
     }    
     throw new RuntimeException("Cannot write to log file: " + logFileName);
