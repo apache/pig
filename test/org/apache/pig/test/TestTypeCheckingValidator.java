@@ -25,6 +25,7 @@ import java.util.ArrayList;
 
 import junit.framework.TestCase;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.validators.*;
 import org.apache.pig.impl.logicalLayer.* ;
@@ -5556,7 +5557,79 @@ public class TestTypeCheckingValidator extends TestCase {
         assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
+    
+    @Test
+    public void testBincond() throws Throwable {
+        planTester.buildPlan("a = load 'a' as (name: chararray, age: int, gpa: float);") ;
+        planTester.buildPlan("b = group a by name;") ;
+        LogicalPlan plan = planTester.buildPlan("c = foreach b generate (IsEmpty(a) ? " + TestBinCondFieldSchema.class.getName() + "(*): a) ;") ;
 
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Did not expect an error") ;
+        }
+
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        
+        Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
+        Schema.FieldSchema intFs = new FieldSchema(null, DataType.INTEGER);
+        Schema.FieldSchema floatFs = new FieldSchema(null, DataType.FLOAT);
+        Schema bagSchema = new Schema();
+        bagSchema.add(charFs);
+        bagSchema.add(intFs);
+        bagSchema.add(floatFs);
+        Schema.FieldSchema bagFs = null;
+        try {
+            bagFs = new Schema.FieldSchema(null, bagSchema, DataType.BAG);
+        } catch (FrontendException fee) {
+            fail("Did not expect an error");
+        }
+        
+        Schema expectedSchema = new Schema(bagFs);
+        
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+
+    }
+
+    /*
+     * A test UDF that does not data processing but implements the getOutputSchema for
+     * checking the type checker
+     */
+    public static class TestBinCondFieldSchema extends EvalFunc<DataBag> {
+        //no-op exec method
+        public DataBag exec(Tuple input) {
+            return null;
+        }
+        
+        @Override
+        public Schema outputSchema(Schema input) {
+            Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
+            Schema.FieldSchema intFs = new FieldSchema(null, DataType.INTEGER);
+            Schema.FieldSchema floatFs = new FieldSchema(null, DataType.FLOAT);
+            Schema bagSchema = new Schema();
+            bagSchema.add(charFs);
+            bagSchema.add(intFs);
+            bagSchema.add(floatFs);
+            Schema.FieldSchema bagFs;
+            try {
+                bagFs = new Schema.FieldSchema(null, bagSchema, DataType.BAG);
+            } catch (FrontendException fee) {
+                return null;
+            }
+            return new Schema(bagFs);
+        }
+    }
+    
     ////////////////////////// Helper //////////////////////////////////
     private void checkForEachCasting(LOForEach foreach, int idx, boolean isCast, byte toType) {
         LogicalPlan plan = foreach.getForEachPlans().get(idx) ;
