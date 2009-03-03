@@ -440,3 +440,5 @@ Trunk (unreleased changes)
     PIG-655: Comparison of schemas of bincond operands is flawed (sms via
     pradeepkth)
 
+    PIG-691: BinStorage skips tuples when ^A is present in data (pradeepkth
+    via sms)
