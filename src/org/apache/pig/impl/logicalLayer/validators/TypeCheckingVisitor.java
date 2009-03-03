@@ -1773,9 +1773,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             // Matching schemas if we're working with tuples
             if (DataType.isSchemaType(lhsType)) {            
                 try {
-                    if (!Schema.equals(binCond.getLhsOp().getSchema(), binCond.getRhsOp().getSchema(), false, true)) {
+                    if (!Schema.FieldSchema.equals(binCond.getLhsOp().getFieldSchema(), binCond.getRhsOp().getFieldSchema(), false, true)) {
                         int errCode = 1048;
-                        String msg = "Two inputs of BinCond must have compatible schemas" ;
+                        String msg = "Two inputs of BinCond must have compatible schemas." 
+                            + " left hand side: " + binCond.getLhsOp().getFieldSchema() 
+                            + " right hand side: " + binCond.getRhsOp().getFieldSchema();
                         msgCollector.collect(msg, MessageType.Error) ;
                         throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                     }
