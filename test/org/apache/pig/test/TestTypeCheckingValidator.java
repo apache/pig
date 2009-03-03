@@ -5557,28 +5557,28 @@ public class TestTypeCheckingValidator extends TestCase {
         assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
 
     }
-    
+
     @Test
     public void testBincond() throws Throwable {
         planTester.buildPlan("a = load 'a' as (name: chararray, age: int, gpa: float);") ;
         planTester.buildPlan("b = group a by name;") ;
         LogicalPlan plan = planTester.buildPlan("c = foreach b generate (IsEmpty(a) ? " + TestBinCondFieldSchema.class.getName() + "(*): a) ;") ;
-
+    
         // validate
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         
         typeValidator.validate(plan, collector) ;
-
+    
         printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-
+    
         if (collector.hasError()) {
             throw new AssertionError("Did not expect an error") ;
         }
-
-
+    
+    
         LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
         
         Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
@@ -5598,7 +5598,35 @@ public class TestTypeCheckingValidator extends TestCase {
         Schema expectedSchema = new Schema(bagFs);
         
         assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    
+    }
 
+    @Test
+    public void testBinCondForOuterJoin() throws Throwable {
+        planTester.buildPlan("a = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);");
+        planTester.buildPlan("b = LOAD 'voter_data' AS (name: chararray, age: int, registration: chararray, contributions: float);");
+        planTester.buildPlan("c = COGROUP a BY name, b BY name;");
+        LogicalPlan plan = planTester.buildPlan("d = FOREACH c GENERATE group, flatten((not IsEmpty(a) ? a : (bag{tuple(chararray, int, float)}){(null, null, null)})), flatten((not IsEmpty(b) ? b : (bag{tuple(chararray, int, chararray, float)}){(null,null,null, null)}));");
+    
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+    
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+    
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+    
+    
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        String expectedSchemaString = "mygroup: chararray,A::name: chararray,A::age: int,A::gpa: float,B::name: chararray,B::age: int,B::registration: chararray,B::contributions: float";
+        Schema expectedSchema = Util.getSchemaFromString(expectedSchemaString);
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    
     }
 
     /*

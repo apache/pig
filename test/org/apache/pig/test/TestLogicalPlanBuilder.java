@@ -1898,6 +1898,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
                 DataType.TUPLE);
 
         Schema bagSchema = new Schema(tupleFs);
+        bagSchema.setTwoLevelAccessRequired(true);
         Schema.FieldSchema bagFs = new Schema.FieldSchema(
                     "bag_of_tokenTuples",bagSchema, DataType.BAG);
         

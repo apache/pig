@@ -873,6 +873,7 @@ public class DataType {
                         if((null == currSchema) || (currSchema.size() != schemaSize)) {
                             Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
                             Schema bagSchema = new Schema(tupleFs);
+                            bagSchema.setTwoLevelAccessRequired(true);
                             return new Schema.FieldSchema(null, bagSchema, BAG);
                         }
                         schema = Schema.mergeSchema(schema, currSchema, false, false, false); 

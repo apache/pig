@@ -442,3 +442,5 @@ Trunk (unreleased changes)
 
     PIG-691: BinStorage skips tuples when ^A is present in data (pradeepkth
     via sms)
+
+    PIG-577: outer join query looses name information (sms via pradeepkth)

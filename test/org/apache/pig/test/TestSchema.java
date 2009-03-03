@@ -77,9 +77,9 @@ public class TestSchema extends TestCase {
         Schema schema2 = new Schema(list2) ;
         
         Assert.assertTrue(Schema.equals(schema1, schema2, false, false)) ;
-        
+
         innerList2.get(1).alias = "pi" ;
-        
+
         Assert.assertFalse(Schema.equals(schema1, schema2, false, false)) ;
         Assert.assertTrue(Schema.equals(schema1, schema2, false, true)) ;
         
@@ -566,6 +566,64 @@ public class TestSchema extends TestCase {
 
         // Compare
         Assert.assertTrue(Schema.equals(mergedSchema, expected, false, false)) ;
+    }
+    
+    @Test
+    public void testSchemaEqualTwoLevelAccess() throws Exception {
+        
+        List<FieldSchema> innerList1 = new ArrayList<FieldSchema>() ;
+        innerList1.add(new FieldSchema("11a", DataType.INTEGER)) ;
+        innerList1.add(new FieldSchema("11b", DataType.LONG)) ;
+        
+        List<FieldSchema> innerList2 = new ArrayList<FieldSchema>() ;
+        innerList2.add(new FieldSchema("11a", DataType.INTEGER)) ;
+        innerList2.add(new FieldSchema("11b", DataType.LONG)) ;
+        
+        Schema innerSchema1 = new Schema(innerList1) ;
+        Schema innerSchema2 = new Schema(innerList2) ;
+                
+        List<FieldSchema> list1 = new ArrayList<FieldSchema>() ;
+        list1.add(new FieldSchema("1a", DataType.BYTEARRAY)) ;
+        list1.add(new FieldSchema("1b", innerSchema1)) ;
+        list1.add(new FieldSchema("1c", DataType.INTEGER)) ;
+        
+        List<FieldSchema> list2 = new ArrayList<FieldSchema>() ;
+        list2.add(new FieldSchema("1a", DataType.BYTEARRAY)) ;
+        list2.add(new FieldSchema("1b", innerSchema2)) ;
+        list2.add(new FieldSchema("1c", DataType.INTEGER)) ;
+        
+        Schema schema1 = new Schema(list1) ;
+        Schema schema2 = new Schema(list2) ;        
+      
+        Schema.FieldSchema bagFs1 = new Schema.FieldSchema("b", schema1, DataType.BAG);
+        Schema bagSchema1 = new Schema(bagFs1);
+        
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema("t", schema2, DataType.TUPLE);
+        Schema bagSchema = new Schema(tupleFs);
+        bagSchema.setTwoLevelAccessRequired(true);
+        Schema.FieldSchema bagFs2 = new Schema.FieldSchema("b", bagSchema, DataType.BAG);
+        Schema bagSchema2 = new Schema(bagFs2);
+
+        
+        Assert.assertTrue(Schema.equals(bagSchema1, bagSchema2, false, false)) ;
+
+        innerList2.get(1).alias = "pi" ;
+
+        Assert.assertFalse(Schema.equals(bagSchema1, bagSchema2, false, false)) ;
+        Assert.assertTrue(Schema.equals(bagSchema1, bagSchema2, false, true)) ;
+        
+        innerList2.get(1).alias = "11b" ;
+        innerList2.get(1).type = DataType.BYTEARRAY ;
+        
+        Assert.assertFalse(Schema.equals(bagSchema1, bagSchema2, false, false)) ;
+        Assert.assertTrue(Schema.equals(bagSchema1, bagSchema2, true, false)) ;
+        
+        innerList2.get(1).type = DataType.LONG ;
+        
+        Assert.assertTrue(Schema.equals(bagSchema1, bagSchema2, false, false)) ;
+        
+        list2.get(0).type = DataType.CHARARRAY ;
+        Assert.assertFalse(Schema.equals(bagSchema1, bagSchema2, false, false)) ;
     }
 
 }
