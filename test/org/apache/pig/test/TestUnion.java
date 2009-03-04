@@ -216,4 +216,38 @@ public class TestUnion extends junit.framework.TestCase {
         assertFalse(it.hasNext());
     }
     
+    // Test schema merge in union when one of the fields is a bag
+    @Test
+    public void testSchemaMergeWithBag() throws Exception {
+        Util.createInputFile(cluster, "input1.txt", new String[] {"dummy"});
+        Util.createInputFile(cluster, "input2.txt", new String[] {"dummy"});
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        Util.registerQuery(pig, "a = load 'input1.txt' ;" +
+        		"b = load 'input2.txt';" +
+        		"c = foreach a generate 1, {(1, 'str1')};" +
+        		"d = foreach b generate 2, {(2, 'str2')};" +
+        		"e = union c,d");
+        Iterator<Tuple> it = pig.openIterator("e");
+        Object[] expected = new Object[] { Util.getPigConstant("(1, {(1, 'str1')})"),
+                Util.getPigConstant("(2, {(2, 'str2')})")};
+        Object[] results = new Object[2];
+        int i = 0;
+        while(it.hasNext()) {
+            if(i == 2) {
+                fail("Got more tuples than expected!");
+            }
+            Tuple t = it.next();
+            if(t.get(0).equals(1)) {
+                // this is the first tuple
+                results[0] = t;
+            } else {
+                results[1] = t;
+            }
+            i++;
+        }
+        for (int j = 0; j < expected.length; j++) {
+            assertTrue(expected[j].equals(results[j]));
+        }
+    }
+    
 }
