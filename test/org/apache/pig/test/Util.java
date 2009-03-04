@@ -311,6 +311,12 @@ public class Util {
         Schema.setSchemaDefaultType(schema, defaultType);
         return schema;
     }
+    
+    static Object getPigConstant(String pigConstantAsString) throws ParseException {
+        ByteArrayInputStream stream = new ByteArrayInputStream(pigConstantAsString.getBytes()) ;
+        QueryParser queryParser = new QueryParser(stream) ;
+        return queryParser.Datum();
+    }
 
     public static File createFile(String[] data) throws Exception{
         File f = File.createTempFile("tmp", "");

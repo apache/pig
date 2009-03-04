@@ -1378,7 +1378,13 @@ public class Schema implements Serializable, Cloneable {
 
                 // create the merged field
                 // the mergedSubSchema can be true if allowIncompatibleTypes
-                mergedFs = new FieldSchema(mergedAlias, mergedSubSchema) ;
+                try {
+                    mergedFs = new FieldSchema(mergedAlias, mergedSubSchema, mergedType) ;
+                } catch (FrontendException e) {
+                    int errCode = 2124;
+                    String errMsg = "Internal Error: Unexpected error creating field schema";
+                    throw new SchemaMergeException(errMsg, errCode, PigException.BUG, e);
+                }
 
             }
             outputList.add(mergedFs) ;
