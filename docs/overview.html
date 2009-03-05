@@ -1,0 +1,45 @@
+<HTML>
+<BODY>
+Pig is a platform for a data flow programming on large data sets in a parallel
+environment.  It consists of a language to specify these programs, 
+<a href="http://wiki.apache.org/pig/PigLatin">Pig Latin</a>,
+a compiler for this language, and an execution engine to execute the programs.
+<p>
+Pig currently runs on the <a href="http://hadoop.apache.org/core/">hadoop</a>
+platform, reading data from and writing data to hdfs, and doing processing via
+one or more map-reduce jobs.
+
+<h2> Design </h2>
+This section gives a very high overview of the design of the Pig system.  
+Throughout the documents you can see design for that package or class by 
+looking for the Design heading in the documentation.
+
+<h3> Overview </h3>
+<p>
+Pig's design is guided by our <a href="http://incubator.apache.org/pig/philosophy.html">
+pig philosophy</a> and by our experience with similar data processing 
+systems.
+<p>
+Pig shares many similarities with a traditional RDBMS design.  It has a parser,
+type checker, optimizer, and operators that perform the data processing.  However,
+there are some 
+significant differences.  Pig does not have a data catalog, there are no
+transactions, pig does not directly manage data storage, nor does it implement the 
+execution framework.
+<p>
+<h3> High Level Architecture </h3>
+Pig is split between the front and back ends of the engine.  The front end handles
+parsing, checking, and doing initial optimization on a Pig Latin script.  The
+result is a {@link org.apache.pig.impl.logicalLayer.LogicalPlan} that defines how
+the script will be executed.
+<p>
+Once a LogicalPlan has been generated, the backend of Pig handles executing the
+script.  Pig supports multiple different
+backend implementations, in order to allow Pig to run on different systems.  
+Currently pig comes with two backends, Map-Reduce and local.  For a given run,
+pig selects the backend to use via configuration.
+
+
+</BODY>
+</HTML>
+

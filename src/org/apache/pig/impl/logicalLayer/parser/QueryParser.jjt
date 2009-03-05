@@ -1,0 +1,3468 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * JavaCC file
+ * This file lists the grammar for PIG Latin.
+ * QueryParser program ouputs a ParseTree given a Valid Pig Latin Query
+ */
+options {
+  // Generate non-static functions
+  STATIC = false;
+  // Case is ignored in keywords
+  IGNORE_CASE = true;
+}
+
+PARSER_BEGIN(QueryParser)
+package org.apache.pig.impl.logicalLayer.parser;
+import java.io.*;
+import java.util.*;
+import java.lang.reflect.Type;
+import org.apache.pig.impl.logicalLayer.*;
+import org.apache.pig.impl.logicalLayer.schema.*;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.ExecType;
+import org.apache.pig.impl.io.*;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.builtin.GFAny;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.ComparisonFunc;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.StoreFunc;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.PigException;
+
+
+public class QueryParser {
+	private PigContext pigContext;
+	private Map<LogicalOperator, LogicalPlan> aliases;
+	private Map<OperatorKey, LogicalOperator> opTable;
+	private String scope;
+	private NodeIdGenerator nodeIdGen;
+	//a map of alias to logical operator for a quick lookup
+	private Map<String, LogicalOperator> mapAliasOp;
+	private static Log log = LogFactory.getLog(QueryParser.class);
+	private boolean bracketed = false;
+	
+	private long getNextId() {
+		return nodeIdGen.getNextNodeId(scope);
+	}
+
+	public QueryParser(InputStream in,
+					   PigContext pigContext, 
+					   String scope, 
+					   Map<LogicalOperator, LogicalPlan> aliases,
+					   Map<OperatorKey, LogicalOperator> opTable,
+					   Map<String, LogicalOperator> aliasOp) {
+		this(in);
+		this.pigContext = pigContext;
+		this.aliases = aliases;
+		this.opTable = opTable;
+		this.scope = scope;
+		this.nodeIdGen = NodeIdGenerator.getGenerator();
+		this.mapAliasOp = aliasOp;
+	}
+	
+    public QueryParser(InputStream in,
+            PigContext pigContext, 
+            String scope, 
+            Map<LogicalOperator, LogicalPlan> aliases,
+            Map<OperatorKey, LogicalOperator> opTable,
+            Map<String, LogicalOperator> aliasOp,
+            int start) {
+        this(in, pigContext, scope, aliases, opTable, aliasOp);
+        token_source.input_stream.line = start;
+    }
+
+	public class CogroupInput {
+		public LogicalOperator op;
+		public ArrayList<LogicalPlan> plans;
+		public boolean isInner;
+	}
+	    
+    private static String removeQuotes(String str) {
+        if (str.startsWith("\'") && str.endsWith("\'"))
+            return str.substring(1, str.length() - 1);
+        else
+            return str;
+    }
+
+    public static LogicalPlan generateStorePlan(String scope,
+                                                LogicalPlan readFrom,
+                                                String fileName,
+                                                String func,
+                                                LogicalOperator input) throws FrontendException {
+
+        if (func == null) {
+            func = PigStorage.class.getName();
+        }
+
+        fileName = removeQuotes(fileName);
+
+        long storeNodeId = NodeIdGenerator.getGenerator().getNextNodeId(scope);
+
+        LogicalPlan storePlan = new LogicalPlan();
+
+        LogicalOperator store;
+        try {
+		store = new LOStore(storePlan,
+							   new OperatorKey(scope, storeNodeId),
+                               new FileSpec(fileName, new FuncSpec(func)));
+        } catch (IOException ioe) {
+            throw new FrontendException(ioe.getMessage(), ioe);
+        }
+        
+        try {
+	        storePlan.add(store);
+	        storePlan.add(input);
+	        storePlan.connect(input, store);
+	        attachPlan(storePlan, input, readFrom, new HashMap<LogicalOperator, Boolean>());
+        } catch (ParseException pe) {
+            throw new FrontendException(pe.getMessage(), pe);
+        }
+	    
+        if (storePlan.getRoots().size() == 0) throw new RuntimeException("Store plan has no roots!");
+        return storePlan;
+    }
+
+    static String unquote(String s) {
+		return StringUtils.unescapeInputString(s.substring(1, s.length()-1)) ;
+	}
+	
+	static int undollar(String s) {
+		return Integer.parseInt(s.substring(1, s.length()));	
+	}
+	
+
+	String massageFilename(String filename, PigContext pigContext) throws IOException, ParseException {
+		if (pigContext.getExecType() != ExecType.LOCAL) {
+			if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+					filename = FileLocalizer.hadoopify(filename, pigContext);
+			} 
+			// Removed check for file existence, that will be handled later by InputOutputFileValidator
+		}
+		return filename;
+	}
+	
+	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
+		
+		log.trace("Entering parseCogroup");
+		log.debug("LogicalPlan: " + lp);
+		
+		int n = gis.size();
+		log.debug("Number of cogroup inputs = " + n);
+		
+		ArrayList<LogicalOperator> los = new ArrayList<LogicalOperator>();
+		ArrayList<ArrayList<LogicalPlan>> plans = new ArrayList<ArrayList<LogicalPlan>>();
+		MultiMap<LogicalOperator, LogicalPlan> groupByPlans = new MultiMap<LogicalOperator, LogicalPlan>();
+		//Map<LogicalOperator, LogicalPlan> groupByPlans = new HashMap<LogicalOperator, LogicalPlan>();
+		boolean[] isInner = new boolean[n];
+		
+		int arity = gis.get(0).plans.size();
+		
+		for (int i = 0; i < n ; i++){
+			
+			CogroupInput gi = gis.get(i);
+			los.add(gi.op);
+			ArrayList<LogicalPlan> planList = gi.plans;
+			plans.add(gi.plans);
+			int numGrpByOps = planList.size();
+			log.debug("Number of group by operators = " + numGrpByOps);
+
+			if(arity != numGrpByOps) {
+				throw new ParseException("The arity of the group by columns do not match.");
+			}
+			for(int j = 0; j < numGrpByOps; ++j) {
+			    groupByPlans.put(gi.op, planList.get(j));
+				for(LogicalOperator root: planList.get(j).getRoots()) {
+					log.debug("Cogroup input plan root: " + root);
+				}
+			}
+			isInner[i] = gi.isInner;
+		}
+		
+		LogicalOperator cogroup = new LOCogroup(lp, new OperatorKey(scope, getNextId()), groupByPlans, isInner);
+		lp.add(cogroup);
+		log.debug("Added operator " + cogroup.getClass().getName() + " object " + cogroup + " to the logical plan " + lp);
+		
+		for(LogicalOperator op: los) {
+			lp.connect(op, cogroup);
+			log.debug("Connected operator " + op.getClass().getName() + " to " + cogroup.getClass().getName() + " in the logical plan");
+		}
+
+		log.trace("Exiting parseCogroup");
+		return cogroup;
+	}
+	
+	/**
+	 * Mimicing parseCogroup as the parsing logic for FRJoin remains exactly the same.
+	 */
+	LogicalOperator parseFRJoin(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
+		
+		log.trace("Entering parseCogroup");
+		log.debug("LogicalPlan: " + lp);
+		
+		int n = gis.size();
+		log.debug("Number of cogroup inputs = " + n);
+		
+		ArrayList<LogicalOperator> los = new ArrayList<LogicalOperator>();
+		ArrayList<ArrayList<LogicalPlan>> plans = new ArrayList<ArrayList<LogicalPlan>>();
+		MultiMap<LogicalOperator, LogicalPlan> groupByPlans = new MultiMap<LogicalOperator, LogicalPlan>();
+		//Map<LogicalOperator, LogicalPlan> groupByPlans = new HashMap<LogicalOperator, LogicalPlan>();
+		boolean[] isInner = new boolean[n];
+		
+		int arity = gis.get(0).plans.size();
+		
+		for (int i = 0; i < n ; i++){
+			
+			CogroupInput gi = gis.get(i);
+			los.add(gi.op);
+			ArrayList<LogicalPlan> planList = gi.plans;
+			plans.add(gi.plans);
+			int numGrpByOps = planList.size();
+			log.debug("Number of group by operators = " + numGrpByOps);
+
+			if(arity != numGrpByOps) {
+				throw new ParseException("The arity of the group by columns do not match.");
+			}
+			for(int j = 0; j < numGrpByOps; ++j) {
+			    groupByPlans.put(gi.op, planList.get(j));
+				for(LogicalOperator root: planList.get(j).getRoots()) {
+					log.debug("Cogroup input plan root: " + root);
+				}
+			}
+			isInner[i] = gi.isInner;
+		}
+		
+		LogicalOperator frj = new LOFRJoin(lp, new OperatorKey(scope, getNextId()), groupByPlans, isInner, gis.get(0).op);
+		lp.add(frj);
+		log.debug("Added operator " + frj.getClass().getName() + " object " + frj + " to the logical plan " + lp);
+		
+		for(LogicalOperator op: los) {
+			lp.connect(op, frj);
+			log.debug("Connected operator " + op.getClass().getName() + " to " + frj.getClass().getName() + " in the logical plan");
+		}
+
+		log.trace("Exiting parseFRJoin");
+		return frj;
+	}
+			
+	/**
+	 * The join operator is translated to foreach 
+	 */
+	LogicalOperator rewriteJoin(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
+		
+		log.trace("Entering rewriteJoin");
+		log.debug("LogicalPlan: " + lp);
+		int n = gis.size();
+		ArrayList<ExpressionOperator> flattenedColumns = new ArrayList<ExpressionOperator>();
+		ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>();
+		ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+		
+		/*
+		 * Construct the projection operators required for the generate
+		 * Make sure that the operators are flattened
+		 */
+
+
+	
+		//Construct the cogroup operator and add it to the logical plan
+        // for join, inner is true for all the inputs involved in the join
+        for (int i = 0; i < n; i++) {
+			(gis.get(i)).isInner = true;
+        }
+		LogicalOperator cogroup = parseCogroup(gis, lp);
+		lp.add(cogroup);
+		log.debug("Added operator " + cogroup.getClass().getName() + " to the logical plan");
+		
+		for (int i = 0; i < n; i++) {
+			LogicalPlan projectPlan = new LogicalPlan(); 
+			LogicalOperator projectInput = cogroup;
+			ExpressionOperator column = new LOProject(projectPlan, new OperatorKey(scope, getNextId()), projectInput, i+1);
+			flattenList.add(true);
+			flattenedColumns.add(column);
+			projectPlan.add(column);
+            if(projectInput instanceof ExpressionOperator) {
+			    projectPlan.add(projectInput);
+			    projectPlan.connect(projectInput, column);
+            }
+			log.debug("parseCogroup: Added operator " + column.getClass().getName() + " " + column + " to logical plan " + projectPlan);
+			generatePlans.add(projectPlan);
+		}
+
+		
+		
+		/*
+		 * Construct the foreach operator from the foreach logical plan
+		 * Add the foreach operator to the top level logical plan
+		 */
+		LogicalOperator foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList);
+		lp.add(foreach);
+		log.debug("Added operator " + foreach.getClass().getName() + " to the logical plan");
+		lp.connect(cogroup, foreach);
+		log.debug("Connected operator " + cogroup.getClass().getName() + " to opeator " + foreach.getClass().getName() + " in the logical plan " + lp);
+		
+		log.trace("Exiting rewriteJoin");
+		return foreach;
+	}
+
+	void assertAtomic(LogicalOperator spec, boolean desiredAtomic) throws ParseException{
+		Boolean isAtomic = null;
+		if ( spec instanceof LOConst || 
+			(spec instanceof LOUserFunc &&
+                DataType.isAtomic(((LOUserFunc)spec).getType())))
+			isAtomic = true;
+		else if (spec instanceof LOUserFunc)
+			isAtomic = false;
+		
+		if (isAtomic != null && isAtomic != desiredAtomic){
+			if (desiredAtomic)
+				throw new ParseException("Atomic field expected but found non-atomic field");
+			else
+				throw new ParseException("Non-atomic field expected but found atomic field");
+		}
+	}					
+
+	 void addSplitOutput(LogicalPlan lp, LOSplit splitOp, String alias, LogicalPlan condPlan, int index) throws PlanException{
+		LogicalOperator splitOutput = new LOSplitOutput(lp, new OperatorKey(scope, getNextId()), index, condPlan);
+		splitOp.addOutput(splitOutput);
+		addAlias(alias, splitOutput);
+        splitOutput.setAlias(alias);
+        addLogicalPlan(splitOutput, lp);
+		
+		lp.add(splitOutput);
+		log.debug("Added alias: " + splitOutput.getAlias() + " class: " 
+			+ splitOutput.getClass().getName() + " to the logical plan");
+			
+		lp.connect(splitOp, splitOutput);
+		log.debug("Connected " + splitOp.getClass().getName() + " to class: "
+			+ splitOutput.getClass().getName() + " in the logical plan");
+		
+	 }
+	 
+	 void addAlias(String alias, LogicalOperator lOp) {
+	 	mapAliasOp.put(alias, lOp);
+	 }
+	 
+	 LogicalOperator getOp(String alias) {
+	 	return mapAliasOp.get(alias);
+	 }
+
+     // Check and set files to be automatically shipped for the given StreamingCommand
+     // Auto-shipping rules:
+     // 1. If the command begins with either perl or python assume that the 
+     //    binary is the first non-quoted string it encounters that does not 
+     //    start with dash - subject to restrictions in (2).
+     // 2. Otherwise, attempt to ship the first string from the command line as 
+     //    long as it does not come from /bin, /user/bin, /user/local/bin. 
+     //    It will determine that by scanning the path if an absolute path is 
+     //    provided or by executing "which". The paths can be made configurable 
+     //    via "set stream.skippath <paths>" option.
+     private static final String PERL = "perl";
+     private static final String PYTHON = "python";
+     private void checkAutoShipSpecs(StreamingCommand command, String[] argv) 
+     throws ParseException {
+     	// Candidate for auto-ship
+     	String arg0 = argv[0];
+     	
+     	// Check if command is perl or python ... if so use the first non-option
+     	// and non-quoted string as the candidate
+        if (arg0.equalsIgnoreCase(PERL) || arg0.equalsIgnoreCase(PYTHON)) {
+            for (int i=1; i < argv.length; ++i) {
+            	if (!argv[i].startsWith("-") && !isQuotedString(argv[i])) {
+            		checkAndShip(command, argv[i]);
+            		break;
+            	}
+            }
+        } else {
+        	// Ship the first argument if it can be ...
+        	checkAndShip(command, arg0);
+        }
+     }
+     
+     private void checkAndShip(StreamingCommand command, String arg) 
+     throws ParseException {
+     	// Don't auto-ship if it is an absolute path...
+     	if (arg.startsWith("/")) {
+     		return;
+     	}
+     	
+     	// $ which arg
+     	String argPath = which(arg);
+     	if (argPath != null && !inSkipPaths(argPath)) {
+     		try {
+     		    command.addPathToShip(argPath);
+     		} catch(IOException e) {
+                ParseException pe = new ParseException(e.getMessage());
+                pe.initCause(e);
+                throw pe;
+            }
+     	}
+     	 
+     }
+
+     private boolean isQuotedString(String s) {
+     	return (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'');
+     }
+     
+     // Check if file is in the list paths to be skipped 
+     private boolean inSkipPaths(String file) {
+     	for (String skipPath : pigContext.getPathsToSkip()) {
+     		if (file.startsWith(skipPath)) {
+     			return true;
+     		}
+     	}
+        return false;
+     }
+
+
+     private static String which(String file) {
+        try {
+        	ProcessBuilder processBuilder = 
+        	    new ProcessBuilder(new String[] {"which", file});
+            Process process = processBuilder.start();
+    
+            BufferedReader stdout = 
+                new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String fullPath = stdout.readLine();
+
+            return (process.waitFor() == 0) ? fullPath : null;
+        } catch (Exception e) {}
+        return null;
+     }
+               
+     private static final char SINGLE_QUOTE = '\'';
+     private static final char DOUBLE_QUOTE = '"';
+     private static String[] splitArgs(String command) throws ParseException {
+        List<String> argv = new ArrayList<String>();
+
+        int beginIndex = 0;
+        
+        while (beginIndex < command.length()) {
+            // Skip spaces
+            while (Character.isWhitespace(command.charAt(beginIndex))) {
+                ++beginIndex;
+            }
+            
+            char delim = ' ';
+            char charAtIndex = command.charAt(beginIndex);
+            if (charAtIndex == SINGLE_QUOTE || charAtIndex == DOUBLE_QUOTE) {
+                delim = charAtIndex;
+            }
+            
+            int endIndex = command.indexOf(delim, beginIndex+1);
+            if (endIndex == -1) {
+                if (Character.isWhitespace(delim)) {
+                    // Reached end of command-line
+                    argv.add(command.substring(beginIndex));
+                    break;
+                } else {
+                    // Didn't find the ending quote/double-quote
+                    throw new ParseException("Illegal command: " + command);
+                }
+            }
+            
+            if (Character.isWhitespace(delim)) {
+                // Do not consume the space
+                argv.add(command.substring(beginIndex, endIndex));
+            } else {
+                argv.add(command.substring(beginIndex, endIndex+1));
+            }
+           
+            beginIndex = endIndex + 1;
+        }
+        
+        return argv.toArray(new String[argv.size()]);
+    }
+	 
+	 //BEGIN
+	 //I am maintaining state about the operators that should
+	 //serve as the inputs to generate in the foreach logical
+	 //plan. I did not want to pass this structure around for
+	 //the entire parse tree
+
+	 private boolean insideGenerate = false; //to check if we are parsing inside a generate statement
+	 private List<LogicalOperator> generateInputs = new ArrayList<LogicalOperator>();
+
+	boolean insideGenerate() {
+		return insideGenerate;
+	}
+
+	void setInsideGenerate(boolean b) {
+		insideGenerate = b;
+	}
+
+	List<LogicalOperator> getGenerateInputs() {
+	 	return generateInputs;
+	}
+
+	void resetGenerateInputs() {
+		generateInputs.clear();
+	}
+
+	void addGenerateInput(LogicalOperator op) {
+		generateInputs.add(op);
+	}
+
+	void resetGenerateState() {
+		insideGenerate = false;
+		resetGenerateInputs();
+	}
+
+    boolean checkGenerateInput(LogicalOperator in) {
+        if(null == generateInputs) return false;
+        for(LogicalOperator op: generateInputs) {
+            if(op == in) return true;
+        }
+        return false;
+    }
+
+	 //END
+	
+	private static Map<String, Byte> nameToTypeMap = DataType.genNameToTypeMap();
+
+    public void addLogicalPlan(LogicalOperator op, LogicalPlan plan) {
+        aliases.put(op, plan);
+    }
+
+    public LogicalPlan getLogicalPlan(LogicalOperator op) {
+        return aliases.get(op);
+    }
+
+    public static void attachPlan(LogicalPlan lp, LogicalOperator root, LogicalPlan rootPlan, Map<LogicalOperator, Boolean> rootProcessed) throws ParseException {
+        log.trace("Entering attachPlan");
+        if(null == rootProcessed) {
+            rootProcessed = new HashMap<LogicalOperator, Boolean>();
+        }
+        if((rootProcessed.get(root) != null) && (rootProcessed.get(root))) {
+            log.trace("Root has been processed");
+            log.trace("Exiting attachPlan");
+            return;
+        }
+        lp.add(root);
+        log.debug("Added operator " + root + " to the logical plan " + lp);
+        if(null == rootPlan.getPredecessors(root)) {
+            log.trace("Exiting attachPlan");
+            return;
+        }
+        for(LogicalOperator rootPred: rootPlan.getPredecessors(root)) {
+            attachPlan(lp, rootPred, rootPlan, rootProcessed);
+            rootProcessed.put(rootPred, true);
+            try {
+                lp.connect(rootPred, root);
+                log.debug("Connected operator " + rootPred + " to " + root + " in the logical plan " + lp);
+            } catch (FrontendException fee) {
+                ParseException pe = new ParseException(fee.getMessage());
+                pe.initCause(fee); 
+                throw pe;
+            }
+        }
+        log.trace("Exiting attachPlan");
+    }
+	
+}
+
+
+class StringUtils {
+    
+       public static String unescapeInputString(String input)  {
+
+            if (input == null) {
+                return new String() ;
+            }
+            
+            // Needed variables
+            // preset the size so our StringBuilders don't have to grow
+            int inputlength = input.length();       
+            StringBuilder unicode = new StringBuilder(4);
+            StringBuilder output = new StringBuilder(inputlength) ;
+            boolean hadSlash = false;
+            boolean inUnicode = false;
+            
+            // The main loop
+            for (int i = 0; i < inputlength; i++) {
+                char ch = input.charAt(i);
+                // currently doing unicode mode
+                if (inUnicode) {
+                    unicode.append(ch);
+                    if (unicode.length() == 4) {
+                        // unicode now contains the four hex digits
+                        try {
+                            int value = Integer.parseInt(unicode.toString(), 0x10);
+                            output.append((char) value) ;
+                            // reuse the StringBuilder
+                            unicode.setLength(0);
+                            inUnicode = false;
+                            hadSlash = false;
+                        } catch (NumberFormatException nfe) {
+                            throw new RuntimeException("Unable to parse unicode value: " + unicode, nfe);
+                        }
+                    }
+                    continue;
+                }
+                if (hadSlash) {
+                    // handle an escaped value
+                    hadSlash = false;
+                    switch (ch) {
+                        case '\\':
+                            output.append('\\');
+                            break;
+                        case '\'':
+                            output.append('\'');
+                            break;
+                        case 'r':
+                            output.append('\r');
+                            break;
+                        case 'f':
+                            output.append('\f');
+                            break;
+                        case 't':
+                            output.append('\t');
+                            break;
+                        case 'n':
+                            output.append('\n');
+                            break;
+                        case 'b':
+                            output.append('\b');
+                            break;
+                        case 'u':
+                            {
+                                // switch to unicode mode
+                                inUnicode = true;
+                                break;
+                            }
+                        default :
+                            output.append(ch);
+                            break;
+                    }
+                    continue;
+                } else if (ch == '\\') {
+                    hadSlash = true;
+                    continue;
+                }
+                output.append(ch);
+            }
+            
+            return output.toString() ;
+        }
+}
+
+class FunctionType {
+    public static final byte UNKNOWNFUNC = 0;
+    public static final byte EVALFUNC = 2;
+    public static final byte COMPARISONFUNC = 4;
+    public static final byte LOADFUNC = 8; 
+    public static final byte STOREFUNC = 16;
+
+    public static void tryCasting(Object func, byte funcType) throws Exception {
+        switch(funcType) {
+        case FunctionType.EVALFUNC:
+			EvalFunc evalFunc = (EvalFunc) func;
+            break;
+        case FunctionType.COMPARISONFUNC:
+			ComparisonFunc comparisonFunc = (ComparisonFunc) func;
+            break;
+        case FunctionType.LOADFUNC:
+			LoadFunc loadFunc = (LoadFunc) func;
+            break;
+        case FunctionType.STOREFUNC:
+			StoreFunc storeFunc = (StoreFunc) func;
+            break;
+        default:
+            throw new Exception("Received an unknown function type: " + funcType);
+        }
+    }
+}
+
+PARSER_END(QueryParser)
+
+// Skip all the new lines, tabs and spaces
+SKIP : { " " |	"\r" |	"\t" |	"\n" }
+
+// Skip comments(single line and multiline)
+SKIP : {
+   <"--"(~["\r","\n"])*>
+|  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+// Comparison operators that can be used in a filter:
+TOKEN : { <#STRFILTEROP : "eq" | "gt" | "lt" | "gte" | "lte" | "neq" > }
+TOKEN : { <#NUMFILTEROP : "==" | "<" | "<=" | ">" | ">=" | "!=" > }
+TOKEN : { <FILTEROP : <STRFILTEROP> | <NUMFILTEROP>  > }
+
+// List all the keywords in the language
+TOKEN : { <DEFINE : "define"> }
+TOKEN : { <LOAD : "load"> }
+TOKEN : { <FILTER : "filter"> }
+TOKEN : { <FOREACH : "foreach"> }
+TOKEN : { <MATCHES : "matches"> }
+TOKEN : { <ORDER : "order"> }
+TOKEN : { <ARRANGE : "arrange"> }
+TOKEN : { <DISTINCT : "distinct"> }
+TOKEN : { <COGROUP : "cogroup"> }
+TOKEN : { <JOIN : "join"> }
+TOKEN : { <CROSS : "cross"> }
+TOKEN : { <UNION : "union"> }
+TOKEN : { <SPLIT : "split"> }
+TOKEN : { <INTO : "into"> }
+TOKEN : { <IF : "if"> }
+TOKEN : { <ALL : "all"> }
+TOKEN : { <ANY : "any"> }
+TOKEN : { <AS : "as">	}
+TOKEN : { <BY : "by">	}
+TOKEN : { <USING : "using"> }
+TOKEN : { <INNER : "inner"> }
+TOKEN : { <OUTER : "outer"> }
+TOKEN : { <STAR : "*"> 		}
+TOKEN : { <PARALLEL : "parallel"> }
+TOKEN : { <GROUP : "group"> }
+TOKEN : { <AND : "and"> }
+TOKEN : { <OR : "or"> }
+TOKEN : { <NOT : "not"> }
+TOKEN : { <GENERATE : "generate"> }
+TOKEN : { <FLATTEN : "flatten"> }
+TOKEN : { <EVAL : "eval"> }
+TOKEN : { <ASC : "asc"> }
+TOKEN : { <DESC : "desc"> }
+TOKEN : { <INT : "int"> }
+TOKEN : { <LONG : "long"> }
+TOKEN : { <FLOAT : "float"> }
+TOKEN : { <DOUBLE : "double"> }
+TOKEN : { <CHARARRAY : "chararray"> }
+TOKEN : { <BYTEARRAY : "bytearray"> }
+TOKEN : { <BAG : "bag"> }
+TOKEN : { <TUPLE : "tuple"> }
+TOKEN : { <MAP : "map"> }
+TOKEN : { <IS : "is"> }
+TOKEN : { <NULL : "null"> }
+TOKEN : { <STREAM : "stream"> }
+TOKEN : { <THROUGH : "through"> }
+TOKEN : { <STORE : "store"> }
+TOKEN : { <SHIP: "ship"> }
+TOKEN : { <CACHE: "cache"> }
+TOKEN : { <INPUT: "input"> }
+TOKEN : { <OUTPUT: "output"> }
+TOKEN : { <ERROR: "stderr"> }
+TOKEN : { <STDIN: "stdin"> }
+TOKEN : { <STDOUT: "stdout"> }
+TOKEN : { <LIMIT: "limit"> }
+
+TOKEN:
+{
+ 	<#LETTER : ["a"-"z", "A"-"Z"] >
+|	<#DIGIT : ["0"-"9"] >
+|   <#SPECIALCHAR : ["_"] >
+|   <#FSSPECIALCHAR: ["-", ":", "/"]>
+|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> | "::")* >
+}
+// Define Numeric Constants
+TOKEN :
+{
+//	< NUMBER: <INTEGER> | <LONGINTEGER> | <DOUBLENUMBER> | <FLOATNUMBER> >
+ 	< #FLOATINGPOINT: <INTEGER> ( "." <INTEGER> )? | "." <INTEGER> >
+| 	< INTEGER: ( <DIGIT> )+ >
+| 	< LONGINTEGER: <INTEGER> (["l","L"])? >
+|   < DOUBLENUMBER: <FLOATINGPOINT> ( ["e","E"] ([ "-","+"])? <FLOATINGPOINT> )?>
+|   < FLOATNUMBER: <DOUBLENUMBER> (["f","F"])? >
+}
+
+TOKEN : { <QUOTEDSTRING :  "'"
+(   (~["'","\\","\n","\r"])
+  | ("\\"
+      ( ["n","t","b","r","f","\\","'"] )
+    )
+  | ("\\u"
+        ["0"-"9","A"-"F","a"-"f"]
+        ["0"-"9","A"-"F","a"-"f"]
+        ["0"-"9","A"-"F","a"-"f"]
+        ["0"-"9","A"-"F","a"-"f"]
+    )
+)*
+"'"> }
+
+TOKEN : { <EXECCOMMAND : "`" (~["`"])* "`"> }
+// Pig has special variables starting with $
+TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
+
+// Parse is the Starting function.
+LogicalPlan Parse() : 
+{
+	LogicalOperator root = null; 
+	Token t1;
+	Token t2; 
+	LogicalPlan lp = new LogicalPlan();
+	log.trace("Entering Parse");
+}
+{
+	(
+	LOOKAHEAD(3)
+	// For now don't allow A = B; kind of statements - this should
+	// be fixed and allowed in the future
+	(t1 = <IDENTIFIER> "=" t2 = <IDENTIFIER> [ <AS> "(" TupleSchema() ")" ] ";" { 
+			throw new ParseException(
+			"Currently PIG does not support assigning an existing relation (" + t1.image + ") to another alias (" + t2.image + ")");})
+|	LOOKAHEAD(2) 
+	(t1 = <IDENTIFIER> "=" root = Expr(lp) ";" {root.setAlias(t1.image); addAlias(t1.image, root);})
+|	(root = Expr(lp) ";")
+|	(<SPLIT> root = SplitClause(lp) ";")
+	)
+	{ 
+		if(null != root) {
+            log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
+
+            //Translate all the project(*) leaves in the plan to a sequence of projections
+            ProjectStarTranslator translate = new ProjectStarTranslator(lp);
+            translate.visit();
+
+            addLogicalPlan(root, lp);
+
+            try {
+			    log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
+            } catch(FrontendException fee) {
+            	ParseException pe = new ParseException(fee.getMessage());
+            	pe.initCause(fee);  
+                throw pe;
+            }
+		}
+
+        ArrayList<LogicalOperator> roots = new ArrayList<LogicalOperator>(lp.getRoots().size());
+        for(LogicalOperator op: lp.getRoots()) {
+            roots.add(op);
+        }
+        
+        Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
+        for(LogicalOperator op: roots) {
+            //At this point we have a logical plan for the pig statement
+            //In order to construct the entire logical plan we need to traverse
+            //each root and get the logical plan it belongs to. From each of those
+            //plans we need the predecessors of the root of the current logical plan
+            //and so on. This is a computationally intensive operatton but should
+            //be fine as its restricted to the parser
+
+            LogicalPlan rootPlan = aliases.get(op);
+            if(null != rootPlan) {
+                attachPlan(lp, op, rootPlan, rootProcessed);
+                rootProcessed.put(op, true);
+            }
+        }
+		
+		log.trace("Exiting Parse");
+		return lp; 
+	}
+}
+
+LogicalOperator SplitClause(LogicalPlan lp):
+{
+	LogicalOperator input; 
+	ExpressionOperator cond; 
+	Token alias; 
+	LOSplit splitOp; 
+	int index = 0; 
+	LogicalPlan condPlan; 
+	log.trace("Entering SplitClause");
+}
+{
+	(
+	input = NestedExpr(lp) <INTO> 
+	{
+		splitOp = new LOSplit(lp, input.getOperatorKey(), new ArrayList<LogicalOperator>());
+		lp.add(splitOp);
+		log.debug("Adding operator " + splitOp.getClass().getName() + " to the logical plan");		
+        lp.connect(input, splitOp);
+		log.debug("Connected alias: " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + splitOp.getClass().getName());
+	}
+	alias = <IDENTIFIER> <IF> cond = PCond(input.getSchema(), null, condPlan = new LogicalPlan(), input) 
+	{
+		addSplitOutput(lp, splitOp, alias.image, condPlan, index);
+		++index;
+		log.debug("Added splitoutput");
+	}
+	(
+	"," alias = <IDENTIFIER> <IF> cond = PCond(input.getSchema(), null, condPlan = new LogicalPlan(), input)
+	{
+		addSplitOutput(lp, splitOp, alias.image, condPlan, index);
+		++index;
+		log.debug("Added splitoutput");
+	}
+	)+
+	)
+	{log.trace("Exiting SplitClause"); return splitOp;}
+} 
+
+
+LogicalOperator Expr(LogicalPlan lp) : 
+{
+	LogicalOperator op; 
+	Schema schema = null; 
+	log.trace("Entering Expr");
+}
+{
+	(
+	( op = NestedExpr(lp) [ <AS> "(" schema = TupleSchema() ")" {Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); op.setSchema(schema);} ] )
+|	op = BaseExpr(lp)
+	)
+	{log.trace("Exiting Expr"); return op;}
+}	
+
+LogicalOperator NestedExpr(LogicalPlan lp) : 
+{
+	LogicalOperator op; 
+	ExpressionOperator eOp;
+	Map<String, LogicalOperator> specs = null; 
+	log.trace("Entering NestedExpr");
+}
+{
+	(
+	(op = Alias(lp))
+|	LOOKAHEAD(2) ( "(" op = NestedExpr(lp) ")" )
+|	( "(" op = BaseExpr(lp) ")" )
+	)
+	{log.trace("Exiting NestedExpr"); return op;}
+}
+
+// A reference to an alias
+LogicalOperator Alias(LogicalPlan lp) : 
+{
+	Token t1; 
+	LogicalOperator op; 
+	log.trace("Entering Alias");
+}
+{
+	t1 = <IDENTIFIER> 
+	{
+		LogicalOperator aliasOp;
+		String alias = t1.image;
+		
+		aliasOp = getOp(alias);
+		if (aliasOp == null) {
+			throw new ParseException("Unrecognized alias " + alias);
+		}
+		addAlias(alias, aliasOp);
+		log.debug("Added " + alias + " to aliasOp");
+		
+		lp.add(aliasOp);
+		log.debug("Added operator: " + aliasOp.getClass().getName() + " to the logical plan " + lp);
+		log.trace("Exiting Alias");
+		return aliasOp;
+	}
+}
+
+LogicalOperator BaseExpr(LogicalPlan lp) : 
+{
+	LogicalOperator op; 
+	Schema schema; 
+	Token t1, t2; 
+	Schema.FieldSchema fs; 
+	log.trace("Entering BaseExpr");
+}
+{
+	(
+	(
+    (<DEFINE> op = DefineClause(lp))
+|	(<LOAD> op = LoadClause(lp) 
+        [ <AS> 
+        (
+            LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
+            {
+                Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                op.setSchema(schema); 
+                log.debug("Load as schema" + schema);
+            } 
+        |   fs = AtomSchema() 
+            {
+                schema = new Schema(fs); 
+                op.setSchema(schema); 
+                log.debug("Load as atomschema" + schema);
+            }
+        ) 
+        ]
+    )
+|	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
+|	(<FILTER> op = FilterClause(lp))
+|   (<LIMIT> op = LimitClause(lp))
+|   (<ORDER> op = OrderClause(lp))
+|	(<DISTINCT> op = NestedExpr(lp) 
+	{
+		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId())); 
+		lp.add(distinct);
+		log.debug("Added operator: " + distinct.getClass().getName() + " to the logical plan"); 
+		lp.connect(op, distinct);
+		log.debug("Connected alias: " + op.getAlias() + " operator " + op.getClass().getName() + " to operator " + distinct.getClass().getName());
+        op = distinct;
+	})
+|	(<CROSS> op = CrossClause(lp))
+|   (<JOIN> op = JoinClause(lp))
+|	(<UNION> op = UnionClause(lp))
+|	(<FOREACH> op = ForEachClause(lp))
+|   (<STREAM> op = StreamClause(lp) 
+        [ <AS> 
+        (
+            LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
+            {
+                Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                op.setSchema(schema); 
+                log.debug("Stream as schema()"+ schema);
+            } 
+        | fs = AtomSchema() 
+            {
+                schema = new Schema(fs);
+                op.setSchema(schema);
+                log.debug("Stream as atomschema()" + schema);
+            }
+        ) 
+        ]
+    )
+|   (<STORE> op = StoreClause(lp))
+	)
+    [<PARALLEL> t2=<INTEGER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
+	)	
+	{log.trace("Exiting BaseExpr"); return op;}
+}
+
+LogicalOperator LoadClause(LogicalPlan lp) : 
+{
+	Token t1, t2, t3; 
+	String filename; 
+	String funcName,funcArgs =null;
+	FuncSpec funcSpec = null;
+	String funcSpecAsString = null; 
+	LOLoad lo=null; 
+    String splitBy;
+    boolean splittable = true;
+	log.trace("Entering LoadClause");
+}
+{
+	(	filename = FileName()
+		(
+        <USING>  funcSpec = NonEvalFuncSpec(FunctionType.LOADFUNC)
+		)?
+		(
+		<SPLIT> <BY> t3 = <QUOTEDSTRING>
+		{
+			splitBy = unquote(t3.image);
+			if (splitBy.equalsIgnoreCase("file")) {
+				splittable = false;
+			}
+		}
+		)?
+	)
+	{
+		if (funcSpec == null){
+			funcSpecAsString = PigStorage.class.getName();
+			funcSpec = new FuncSpec(funcSpecAsString);
+			log.debug("LoadClause: funcSpec = " + funcSpec);
+		}
+
+        try {
+		    lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext), funcSpec),
+		              pigContext.getExecType(), pigContext.getFs(), splittable);
+        } catch (IOException ioe) {
+            // The autogenerated parser code only catches RuntimeException and
+            // ParseException as special Exceptions. All others are caught as
+            // Throwable and then re-thrown by casting to ERROR - this can result
+            // in ClassCastException if it is due to the IOException here - so
+            // wrap the IOException in an "Error" object and throw the Error here
+            Error e = new Error(ioe);
+            throw e;
+        }
+		lp.add(lo);
+		log.debug("Added operator " + lo.getClass().getName() + " to the logical plan");	
+		
+		log.trace("Exiting LoadClause");
+		return lo;
+	} 
+}    
+
+String StringList() : 
+{
+	StringBuilder sb = new StringBuilder(); 
+	Token t;
+}
+{
+	(
+	(
+	t = <QUOTEDSTRING> {sb.append(t.image);}
+	( "," t = <QUOTEDSTRING> {sb.append(",");sb.append(t.image);} )*
+	)
+	| {}
+	)
+	{log.debug("StringList: " + sb.toString()); return sb.toString();}
+}
+
+String FileName(): 
+{
+	Token t;
+}
+{
+	t = <QUOTEDSTRING> 
+	{log.debug("FileName: " + unquote(t.image)); return unquote(t.image);}
+}
+
+LogicalOperator FilterClause(LogicalPlan lp):
+{
+	ExpressionOperator cond; LogicalOperator input; 
+	LogicalPlan conditionPlan = new LogicalPlan();
+	log.trace("Entering FilterClause");
+}
+{
+	(
+	input = NestedExpr(lp) {log.debug("Filter input: " + input);}	
+	 <BY> cond = PCond(input.getSchema(),null,conditionPlan,input)
+	 )
+	{
+		//LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan, input);
+		LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan);
+		addAlias(input.getAlias(), input);
+		lp.add(filter);
+		log.debug("Added operator " + filter.getClass().getName() + " to the logical plan");
+		
+		lp.connect(input, filter);
+		log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + filter.getClass().getName() +" in the logical plan");
+
+		log.trace("Exiting FilterClause");
+		return filter;
+	}
+}
+
+LogicalOperator LimitClause(LogicalPlan lp):
+{
+        LogicalOperator input;
+        Token t;
+        log.trace("Entering LimitClause");
+}
+{
+        (
+        input = NestedExpr(lp) {log.debug("Filter input: " + input);}
+         t = <INTEGER>
+         )
+        {
+                long l = Integer.parseInt(t.image);
+                LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l);
+                addAlias(input.getAlias(), input);
+                lp.add(limit);
+                log.debug("Added operator " + limit.getClass().getName() + " to the logical plan");
+
+                lp.connect(input, limit);
+                log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + limit.getClass().getName() +" in the logical plan");
+
+                log.trace("Exiting LimitClause");
+                return limit;
+        }
+}
+
+ExpressionOperator PCond(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator cond = null; 
+	log.trace("Entering PCond"); 
+	log.debug("PCond Input: " + input);
+}
+{
+	cond = POrCond(over,specs,lp, input)
+	{log.trace("Exiting PCond"); return cond;}
+}
+
+ExpressionOperator POrCond(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator lhsCond, rhsCond; 
+	log.trace("Entering POrCond"); 
+	log.debug("POrCond Input: " + input);
+}
+{
+	(
+	lhsCond = PAndCond(over,specs,lp,input)
+	(
+		<OR> rhsCond = PAndCond(over,specs,lp,input)
+		{
+			ExpressionOperator exprOp = new LOOr(lp, new OperatorKey(scope, getNextId()), lhsCond, rhsCond);
+			lp.add(exprOp);
+			log.debug("POrCond: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
+			lp.connect(lhsCond, exprOp);
+			log.debug("POrCond: Connected operator " + lhsCond.getClass().getName() + " " + lhsCond + " to " + exprOp + " logical plan " + lp);
+			lp.connect(rhsCond, exprOp);
+			log.debug("POrCond: Connected operator " + rhsCond.getClass().getName() + " " + rhsCond + " to " + exprOp + " logical plan " + lp);
+			lhsCond = exprOp;
+		}
+	)* 
+	)
+	{
+			log.trace("Exiting POrCond");
+			return lhsCond;
+	}
+}
+	
+ExpressionOperator PAndCond(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator lhsCond, rhsCond; 
+	log.trace("Entering PAndCond"); 
+	log.debug("PAndCond Input: " + input);
+}
+{
+	(
+	lhsCond = PUnaryCond(over,specs,lp,input) 
+	(
+		<AND> rhsCond = PUnaryCond(over,specs,lp,input)
+		{
+			ExpressionOperator exprOp = new LOAnd(lp, new OperatorKey(scope, getNextId()), lhsCond, rhsCond);
+			lp.add(exprOp);
+			log.debug("PAndCond: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
+			lp.connect(lhsCond, exprOp);
+			log.debug("PAndCond: Connected operator " + lhsCond.getClass().getName() + " " + lhsCond + " to " + exprOp + " logical plan " + lp);
+			lp.connect(rhsCond, exprOp);
+			log.debug("PAndCond: Connected operator " + rhsCond.getClass().getName() + " " + rhsCond + " to " + exprOp + " logical plan " + lp);
+			lhsCond = exprOp;
+		}
+	)*
+	)
+	{
+			log.trace("Exiting PAndCond");
+			return lhsCond;
+	}	
+}
+
+ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator cond = null; 
+	ExpressionOperator lhs, rhs; 
+	Token t1; 
+	List<ExpressionOperator> args;
+    EvalFunc evalFunc = null;
+	log.trace("Entering PUnaryCond");
+}
+{
+	(
+	LOOKAHEAD("(" PCond(over,specs,lp,input) ")")
+	("(" cond = PCond(over,specs,lp,input) ")")
+|	LOOKAHEAD(InfixExpr(over,specs,lp,input) <FILTEROP>) 
+	(lhs=InfixExpr(over,specs,lp,input) t1=<FILTEROP> rhs=InfixExpr(over,specs,lp,input) 
+	{
+		//the long switch case to instantiate the right operator
+		//I have the long switch case from CompCond
+		String op = t1.image;
+		op = op.toLowerCase();
+		
+		char op1 = op.charAt(0);
+        char op2 = op.length() >= 2 ? op.charAt(1) : '0';
+        char op3 = op.length() == 3 ? op.charAt(2) : '0';
+        
+        switch (op1) {
+            // numeric ops first
+        case '=':
+            if (op2 == '=') {
+                cond = new LOEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                throw new ParseException("Internal error: Invalid filter operator: " + op);
+            }
+            break;
+        case '<':
+            if (op2 == '=') {
+                cond = new LOLesserThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                cond = new LOLesserThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            }
+            break;
+        case '>':
+            if (op2 == '=') {
+                cond = new LOGreaterThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                cond = new LOGreaterThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            }
+            break;
+        case '!':
+            if (op2 == '=') {
+                cond = new LONotEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                throw new ParseException("Internal error: Invalid filter operator: " + op);
+            }
+            break;
+            // now string ops
+        case 'e':
+            if (op2 == 'q') {
+                cond = new LOEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                throw new ParseException("Internal error: Invalid filter operator: " + op);
+            }
+            break;
+        case 'l':
+            if (op2 == 't' && op3 == 'e') {
+                cond = new LOLesserThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                cond = new LOLesserThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            }
+            break;
+        case 'g':
+            if (op2 == 't' && op3 == 'e') {
+                cond = new LOGreaterThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                cond = new LOGreaterThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            }
+            break;
+        case 'n':
+            if (op2 == 'e' && op3 == 'q') {
+                cond = new LONotEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+            } else {
+                throw new ParseException("Internal error: Invalid filter operator: " + op);
+            }
+            break;
+        default:
+            throw new ParseException("Internal error: Invalid filter operator: " + op);
+        }
+        
+        lp.add(cond);
+		log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
+		lp.connect(lhs, cond);
+		log.debug("PUnaryCond: Connected operator " + lhs.getClass().getName() + " " + lhs+ " to " + cond + " logical plan " + lp);
+		lp.connect(rhs, cond);
+		log.debug("PUnaryCond: Connected operator " + rhs.getClass().getName() + " " + rhs+ " to " + cond + " logical plan " + lp);
+	}
+	)
+|	LOOKAHEAD(InfixExpr(over,specs,lp,input) <MATCHES>) 
+		(lhs=InfixExpr(over,specs,lp,input) <MATCHES> t1=<QUOTEDSTRING> 
+			{
+                LOConst rconst = new LOConst(lp, new OperatorKey(scope, getNextId()), unquote(t1.image));
+                rconst.setType(DataType.CHARARRAY);
+				cond = new LORegexp(lp, new OperatorKey(scope, getNextId()), lhs, rconst); 
+				lp.add(rconst); 
+				lp.add(cond); 
+				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
+				lp.connect(lhs, cond);
+				lp.connect(rconst, cond);
+				log.debug("PUnaryCond: Connected operator " + cond.getClass().getName() + " " + cond + " to " + lhs + " logical plan " + lp);
+			}
+		)
+|	LOOKAHEAD(EvalFuncSpec(over, specs, lp, input)) cond = EvalFuncSpec(over,specs,lp, input, FunctionType.EVALFUNC)
+|	cond = PNullCond(over,specs,lp,input)
+|	cond = PNotCond(over,specs,lp,input)
+
+	)
+	{log.trace("Exiting PUnaryCond"); return cond;}
+}
+
+ExpressionOperator PNotCond(Schema over, Map<String, LogicalOperator> specs,LogicalPlan lp,LogicalOperator input) : 
+{
+	ExpressionOperator c1;
+	log.trace("Entering PNotCond");
+}
+{
+	<NOT> c1=PUnaryCond(over,specs,lp,input)
+	{
+		ExpressionOperator eOp = new LONot(lp, new OperatorKey(scope, getNextId()), c1);
+		lp.add(eOp);
+		log.debug("PNotCond: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
+		lp.connect(c1, eOp);
+		log.debug("PNotCond: Connected operator " + eOp.getClass().getName() + " " + eOp + " to " + c1 + " logical plan " + lp);
+		log.trace("Exiting PNotCond");
+		return eOp;
+	}
+}
+
+ExpressionOperator PNullCond(Schema over, Map<String, LogicalOperator> specs,LogicalPlan lp,LogicalOperator input) : 
+{
+	ExpressionOperator c1;
+    boolean not = false;
+	log.trace("Entering PNullCond");
+}
+{
+	c1=InfixExpr(over,specs,lp,input) <IS> [<NOT> {not = true;}] <NULL>
+	{
+		ExpressionOperator eOp = new LOIsNull(lp, new OperatorKey(scope, getNextId()), c1);
+		lp.add(eOp);
+		log.debug("PNullCond: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
+		lp.connect(c1, eOp);
+		log.debug("PNullCond: Connected operator " + eOp.getClass().getName() + " " + eOp + " to " + c1 + " logical plan " + lp);
+        ExpressionOperator notNull = null;
+        if (not) {
+            notNull = new LONot(lp, new OperatorKey(scope, getNextId()), eOp); 
+            lp.add(notNull);
+		    log.debug("PNullCond: Added operator " + notNull.getClass().getName() + " " + notNull + " to logical plan " + lp);
+            lp.connect(eOp, notNull);
+		    log.debug("PNullCond: Connected operator " + notNull.getClass().getName() + " " + notNull + " to " + eOp + " logical plan " + lp);
+            eOp = notNull;
+        }
+		log.trace("Exiting PNullCond");
+		return eOp;
+	}
+}
+
+LogicalOperator CogroupClause(LogicalPlan lp) : 
+{
+	CogroupInput gi; 
+	ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
+	LogicalOperator cogroup; 
+	log.trace("Entering CoGroupClause");
+}
+{
+
+	(gi = GroupItem(lp) { gis.add(gi); }
+	("," gi = GroupItem(lp) { gis.add(gi); })*)
+	{
+		cogroup = parseCogroup(gis, lp);
+		log.trace("Exiting CoGroupClause");
+		return cogroup;		
+	}
+
+}
+
+CogroupInput GroupItem(LogicalPlan lp) : 
+{
+	ExpressionOperator es; 
+	LogicalOperator cgOp; 
+	boolean isInner = false; 
+	ArrayList<LogicalPlan> listPlans = new ArrayList<LogicalPlan>(); 
+	LogicalPlan groupByPlan;
+	ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+	ArrayList<Schema> userDefinedSchemaList = new ArrayList<Schema>();
+	log.trace("Entering GroupItem");
+	log.debug("LogicalPlan: " + lp);
+}
+{
+	(
+		cgOp = NestedExpr(lp)
+		(
+			( <BY> 
+				( 
+					LOOKAHEAD ( "(" FlattenedGenerateItemList(cgOp.getSchema(), null, groupByPlan, cgOp) ")" )
+					( "(" es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
+						{listPlans.add(groupByPlan);}
+						(
+							"," es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
+							{listPlans.add(groupByPlan);}
+						)*
+						")" 
+					)
+				|	(
+						es = FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
+						{listPlans.add(groupByPlan);}
+					)
+				)
+			)	
+		|	<ALL> {
+					es = new LOConst(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), "all"); 
+                    es.setType(DataType.CHARARRAY);
+					groupByPlan.add(es);
+					log.debug("GroupItem: Added operator " + es.getClass().getName() + " " + es + " to logical plan " + groupByPlan);
+					listPlans.add(groupByPlan);
+			}
+		|	<ANY> {
+					es = new LOUserFunc(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), new FuncSpec(GFAny.class.getName()), null, DataType.INTEGER); 
+					groupByPlan.add(es);
+					log.debug("GroupItem: Added operator " + es.getClass().getName() + " " + es + " to logical plan " + groupByPlan);
+					listPlans.add(groupByPlan);
+			}
+		)
+		[<INNER> {isInner = true;} | <OUTER>]
+	)
+	{
+		CogroupInput cogroupInput = new CogroupInput(); 
+
+		cogroupInput.plans = listPlans;
+		cogroupInput.op = cgOp;
+		cogroupInput.isInner = isInner;
+		
+		log.trace("Exiting GroupItem");		
+		return cogroupInput;
+    }
+}
+
+LogicalOperator OrderClause(LogicalPlan lp) : 
+{
+	LogicalOperator op; 
+	ExpressionOperator col; 
+	boolean star = false; 
+	ArrayList<ExpressionOperator> sortCols = new ArrayList<ExpressionOperator>(); 
+	ArrayList<LogicalPlan> sortColPlans = new ArrayList<LogicalPlan>(); 
+	ArrayList<Boolean> ascOrder = new ArrayList<Boolean>(); 
+	boolean asc = true; 
+	String funcName = null; 
+	Token t1;
+    FuncSpec funcSpec = null;
+	log.trace("Entering OrderClause");
+}
+{
+	(
+	op = NestedExpr(lp) <BY> 
+	(
+	    ( 
+		(
+		col = SortCol(op.getSchema(), lp, op, ascOrder, sortColPlans) 
+		("," col = SortCol(op.getSchema(), lp, op, ascOrder, sortColPlans))*		
+		)
+	)
+	|	<STAR> {star = true;} [<ASC> | <DESC> {asc = false;}] 
+		{
+            LogicalPlan sortColPlan = new LogicalPlan();
+		    LOProject projectStar = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), op, -1);
+			((LOProject)projectStar).setStar(true);
+            sortColPlan.add(projectStar);
+            sortColPlans.add(sortColPlan);
+			log.debug("Set star to true");
+			if(asc) {
+				ascOrder.add(true);
+			} else {	
+				ascOrder.add(false);
+			}
+		}	
+	)
+	(
+	    <USING>  funcSpec = NonEvalFuncSpec(FunctionType.COMPARISONFUNC)
+    )?
+
+	)
+	{
+		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
+		                          funcSpec );
+		sort.setStar(star);
+		sort.setLimit(-1);
+		lp.add(sort);
+		log.debug("Added operator " + sort.getClass().getName() + " to the logical plan");
+		
+		lp.connect(op, sort);
+		log.debug("Connecting sort input alias " + op.getAlias() + " operator " + op.getClass().getName() + " to operator " + sort.getClass().getName() + " in the logical plan");
+		
+		log.trace("Exiting OrderClause");
+		return sort;		
+	}
+}
+
+
+ExpressionOperator SortCol(Schema over, LogicalPlan lp, LogicalOperator op, ArrayList<Boolean> ascOrder, ArrayList<LogicalPlan> sortColPlans) : 
+{
+	ExpressionOperator col; 
+    int colNum;
+	boolean asc = true; 
+	LogicalPlan sortColPlan = new LogicalPlan(); 
+	log.trace("Entering SortCol");}
+{
+	(
+		//col = ColOrSpec(op.getSchema(), null, sortColPlan, op) [<ASC> | <DESC> {asc = false;}]
+		colNum = ColNameOrNum(op.getSchema()) [<ASC> | <DESC> {asc = false;}]
+		{
+			if(asc) {
+				log.debug("Ascending");
+				ascOrder.add(true);
+			} else {
+				log.debug("Descending");	
+				ascOrder.add(false);
+			}
+            col = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), op, colNum);
+            sortColPlan.add(col);
+			sortColPlans.add(sortColPlan);
+		}
+		|
+		( 
+			//"(" col = ColOrSpec(op.getSchema(), null, sortColPlan, op) ")" [<ASC> | <DESC> {asc = false;}]
+			"(" colNum = ColNameOrNum(op.getSchema()) ")" [<ASC> | <DESC> {asc = false;}]
+			{
+				if(asc) {
+					log.debug("Ascending");
+					ascOrder.add(true);
+				} else {
+					log.debug("Descending");	
+					ascOrder.add(false);
+				}
+                col = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), op, colNum);
+                sortColPlan.add(col);
+				sortColPlans.add(sortColPlan);
+			}
+		)
+	)
+	{
+		log.trace("Exiting SortCol");
+		return col;
+	}	
+}
+
+int ColNameOrNum(Schema over) : 
+{
+	Token t; 
+	log.trace("Entering ColNameOrNum");
+}
+{
+	(
+	t = <DOLLARVAR> {return undollar(t.image);}
+	|
+	t = <IDENTIFIER> 
+	{	int i;
+		
+        try {
+		    if ( over == null ||  (i = over.getPosition(t.image)) == -1) {
+			    throw new ParseException("Invalid alias: " + t.image + " in " + over);
+		    } 
+        } catch (FrontendException fee) {
+        	ParseException pe = new ParseException(fee.getMessage());
+        	pe.initCause(fee);
+            throw pe;
+        }
+		
+		log.trace("Exiting ColNameOrNum");
+		return i;
+	}
+	)
+}		
+
+LogicalOperator CrossClause(LogicalPlan lp) : 
+{
+	LogicalOperator op; 
+	ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>(); 
+	log.trace("Entering CrossClause");
+}
+{
+	(
+	op = NestedExpr(lp) { inputs.add(op); }
+	("," op = NestedExpr(lp) { inputs.add(op); })+
+	)
+	{
+		LogicalOperator cross = new LOCross(lp, new OperatorKey(scope, getNextId()));
+		lp.add(cross);
+		log.debug("Added operator " + cross.getClass().getName() + " to the logical plan");
+		
+		for (LogicalOperator lop: inputs) {
+				lp.connect(lop, cross);	
+				log.debug("Connected operator " + lop.getClass().getName() + " " + lop + " to " + cross + " logical plan " + lp);
+		}
+		log.debug("Connected cross inputs to the cross operator");
+		
+		log.trace("Exiting CrossClause");
+		return cross;
+	}
+}
+
+LogicalOperator JoinClause(LogicalPlan lp) : 
+{
+	CogroupInput gi; 
+	ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
+	log.trace("Entering JoinClause");
+	log.debug("LogicalPlan: " + lp);
+	LogicalOperator frj = null;
+}
+{
+	(gi = GroupItem(lp) { gis.add(gi); }
+	("," gi = GroupItem(lp) { gis.add(gi); })+
+	// The addition of using replicated to indicate FRJoin
+	[<USING> ("\"replicated\"" | "\"repl\"") { frj = parseFRJoin(gis, lp); }] )
+	{log.trace("Exiting JoinClause"); return (frj==null) ? rewriteJoin(gis, lp) : frj;}
+	
+}
+
+LogicalOperator UnionClause(LogicalPlan lp) : 
+{
+	LogicalOperator op;
+	ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>(); 
+	log.trace("Entering UnionClause");
+}
+{
+	(op = NestedExpr(lp){inputs.add(op);} 
+	("," op = NestedExpr(lp) {inputs.add(op);})+)
+	{
+		LogicalOperator union = new LOUnion(lp, new OperatorKey(scope, getNextId()));
+		lp.add(union);
+		log.debug("Added operator " + union.getClass().getName() + " to the logical plan");
+		
+		for (LogicalOperator lop: inputs) {
+			lp.connect(lop, union);
+			log.debug("Connected union input operator " + lop.getClass().getName() + " to operator " + lop.getClass().getName() + " in the logical plan");
+		}		
+		
+		log.trace("Exiting UnionClause");
+		return union;
+	}
+}
+
+LogicalOperator ForEachClause(LogicalPlan lp) : 
+{
+	ArrayList<LogicalOperator> specList = new ArrayList<LogicalOperator>(); 
+	LogicalOperator input, foreach; 
+	LogicalPlan foreachPlan = new LogicalPlan();
+    ArrayList<LogicalPlan> foreachPlans = new ArrayList<LogicalPlan>();
+	log.trace("Entering ForEachClause");
+}
+{
+	(
+	input = NestedExpr(lp)
+	specList = NestedBlock(input.getSchema(), specList, foreachPlan, input)
+	)
+	{
+        LOGenerate generate = (LOGenerate)specList.get(specList.size() - 1);
+        List<LogicalPlan> generatePlans = generate.getGeneratePlans();
+        List<Boolean> flattenList = generate.getFlatten();
+        List<Schema> userDefinedSchemaList = generate.getUserDefinedSchema();
+        /*
+        Generate's nested plans will be translated to foreach's nested plan
+        If generate contains an expression that does not require generate's
+        inputs then it should be made part of foreach without the generate
+        For the remaining expressions, the entire DAG till generate has to be
+        duplicated and then the nested plan attached to a new generate
+        */
+
+        for (int planCtr = 0; planCtr < generatePlans.size(); ++planCtr) {
+            LogicalPlan generatePlan = generatePlans.get(planCtr);
+            List<LogicalOperator> planRoots = new ArrayList<LogicalOperator>(generatePlan.getRoots());
+            boolean needGenerateInput = false;
+            boolean needForEachInput = false;
+            MultiMap<LogicalOperator, LogicalOperator> mapProjectInputs = null;
+            Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
+            for(LogicalOperator root: planRoots) {
+                if(root instanceof ExpressionOperator && !(root instanceof LOProject)) {
+                    if(checkGenerateInput(root)) {
+                        needGenerateInput = true;
+                        attachPlan(generatePlan, root, foreachPlan, rootProcessed);
+                        rootProcessed.put(root, true);
+                    }
+                }
+            }
+            
+            planRoots = generatePlan.getRoots();
+            needGenerateInput = false;
+            needForEachInput = false;
+
+            for(LogicalOperator root: planRoots) {
+                if(root instanceof LOProject) {
+                    LOProject project = (LOProject)root;
+                    LogicalOperator projectInput = project.getExpression();
+                    if(checkGenerateInput(projectInput) || !(projectInput.equals(input))) {
+                        needGenerateInput = true;
+                        if(null == mapProjectInputs) {
+                            mapProjectInputs = new MultiMap<LogicalOperator, LogicalOperator>();
+                        }
+                        mapProjectInputs.put(root, projectInput);
+                    } else {
+                        needForEachInput = true;
+                    }
+                } 
+            }
+            if(needGenerateInput) {
+                /*
+                Duplicate the logical plan until the generate but excluding generate
+                Create a new generate operator with the plan being iterated on
+                Attach the generate as the leaf and add the duplicated plan to
+                the list of foreach plans
+                */
+
+                for(LogicalOperator project: mapProjectInputs.keySet()) {
+                    for(LogicalOperator projectInput: mapProjectInputs.get(project)) {
+                        generatePlan.add(projectInput);
+                        generatePlan.connect(projectInput, project);
+                        attachPlan(generatePlan, projectInput, foreachPlan, rootProcessed);
+                        rootProcessed.put(projectInput, true);
+                    }
+                }
+            }
+            LogicalPlanCloner lpCloner = new LogicalPlanCloner(generatePlan);
+            LogicalPlan generatePlanClone;
+            try {
+                generatePlanClone = lpCloner.getClonedPlan();
+            } catch (CloneNotSupportedException cnse) {
+                ParseException pe = new ParseException("Not able to clone foreach plan");
+                pe.initCause(cnse);
+                throw pe;
+            }
+            RemoveRedundantOperators removeOperators = new RemoveRedundantOperators(generatePlanClone);
+            try {
+                removeOperators.visit();
+            } catch (VisitorException ve) {
+            	ParseException pe = new ParseException("Could not remove redundant operators in foreach plan.");
+                pe.initCause(ve);
+                throw pe;
+            }
+            foreachPlans.add(generatePlanClone);
+        }
+
+		resetGenerateState();
+		foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), (ArrayList)foreachPlans, (ArrayList)flattenList, (ArrayList) userDefinedSchemaList);
+		try {
+			lp.add(foreach);
+			log.debug("Added operator " + foreach.getClass().getName() + " to the logical plan");
+		
+			lp.connect(input, foreach);
+			log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " object " + input + " to operator " + foreach.getClass().getName() + " in the logical plan");
+		} catch (PlanException planException) {
+			ParseException pe = new ParseException(planException.getMessage());
+			pe.initCause(planException);
+			throw pe;
+		}
+		
+		log.trace("Exiting ForEachClause");
+		return foreach;
+	}
+}
+
+LogicalOperator StreamClause(LogicalPlan lp): 
+{
+	LogicalOperator input; 
+	StreamingCommand command;
+}
+{
+	input = NestedExpr(lp)	
+	
+	<THROUGH> command = Command()
+	{
+		LOStream loStream = new LOStream(lp, new OperatorKey(scope, getNextId()), input, 
+                    pigContext.createExecutableManager(), command);
+        //addAlias(input.getAlias(), input);
+        lp.add(loStream);
+        lp.connect(input, loStream);
+        return loStream;
+	}
+}
+
+StreamingCommand Command(): {Token t; StreamingCommand command;}
+{
+	t = <EXECCOMMAND>
+	{
+		String[] argv = splitArgs(unquote(t.image));
+		command = new StreamingCommand(pigContext, argv);
+        checkAutoShipSpecs(command, argv);
+		return command;
+	}
+	|
+	t = <IDENTIFIER>
+	{
+		command = pigContext.getCommandForAlias(t.image);
+		if (command == null) {
+			throw new ParseException("Undefined command-alias: " + t.image + 
+			                         " used as stream operator");
+		}
+
+		return command;
+	}
+}
+
+LogicalOperator DefineClause(LogicalPlan lp) : {Token t; Token cmd; String functionName, functionArgs;}
+{
+    t = <IDENTIFIER>
+    (
+    ( 
+        cmd = <EXECCOMMAND>
+        {
+            StreamingCommand command = 
+               new StreamingCommand(pigContext, splitArgs(unquote(cmd.image)));
+            String[] paths;
+            StreamingCommand.HandleSpec[] handleSpecs;
+        }
+        (
+            <SHIP> "(" paths = PathList() ")" 
+            {
+                if (paths.length == 0) {
+                	command.setShipFiles(false);
+                } else {
+                    for (String path : paths) {
+                    	try {
+                            command.addPathToShip(path);
+                        } catch(IOException e) {
+                        	ParseException pe = new ParseException(e.getMessage());
+                        	pe.initCause(e); 
+                            throw pe;
+                        }
+                    }
+                }
+            }
+            |
+            <CACHE> "(" paths = PathList() ")"
+            {
+                for (String path : paths) {
+                    try {
+                        command.addPathToCache(path);
+                    } catch(IOException e) {
+                    	ParseException pe = new ParseException(e.getMessage());
+                    	pe.initCause(e); 
+                        throw pe;
+                    }
+                }
+            }
+            |
+            <INPUT> "(" InputOutputSpec(command, StreamingCommand.Handle.INPUT) ")"
+            |
+            <OUTPUT> "(" InputOutputSpec(command, StreamingCommand.Handle.OUTPUT) ")"
+            |
+            <ERROR> "(" ErrorSpec(command, t.image) ")"
+        )*
+        {
+            pigContext.registerStreamCmd(t.image, command); 
+        }
+    )
+    |
+    (
+        functionName = QualifiedFunction() "(" functionArgs = StringList() ")"
+        {
+            pigContext.registerFunction(t.image, new FuncSpec(functionName + "(" + functionArgs + ")"));
+        }
+    )
+    )
+    {
+        // Return the dummy LODefine
+        LogicalOperator lo = new LODefine(lp, new OperatorKey(scope, getNextId()));
+        lp.add(lo);
+        return lo;
+    }
+}
+
+String[] PathList() : {Token t; List<String> pathList = new ArrayList<String>();}
+{
+    (
+    (
+    t = <QUOTEDSTRING> {pathList.add(unquote(t.image));}
+    ( "," t = <QUOTEDSTRING> {pathList.add(unquote(t.image));} )*
+    )
+    | {}
+    )
+    {return pathList.toArray(new String[pathList.size()]);}
+}
+
+void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
+{
+    String stream, deserializer;
+    StreamingCommand.HandleSpec[] handleSpecs;
+    String functionName = "PigStorage", functionArgs="";
+    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) != 0 ? FunctionType.LOADFUNC : FunctionType.STOREFUNC) ;
+    FuncSpec funcSpec = null;
+} 
+{
+    stream = CommandStream() 
+    [
+	    <USING>  funcSpec = NonEvalFuncSpec(funcType)
+    ]
+    {
+        deserializer = (funcSpec == null? functionName + "(" + ")" : funcSpec.toString());
+        command.addHandleSpec(handle, 
+                              new HandleSpec(stream, deserializer)
+                             );
+    }
+    (
+        "," 
+        stream = CommandStream() 
+        [
+	        <USING>  funcSpec = NonEvalFuncSpec(funcType)
+        ] 
+        {
+            deserializer = (funcSpec == null? functionName + "(" + ")" : funcSpec.toString());
+            command.addHandleSpec(handle, 
+                                  new HandleSpec(stream, deserializer)
+                                 );
+        }
+    )* 
+}
+
+String CommandStream(): {Token t;}
+{
+    t = <STDIN>
+    {return "stdin";}
+    |
+    t = <STDOUT>
+    {return "stdout";}
+    |
+    t = <QUOTEDSTRING>
+    {return unquote(t.image);}
+}
+
+void ErrorSpec(StreamingCommand command, String alias): {Token t1, t2; int limit = StreamingCommand.MAX_TASKS;}
+{
+	(
+	t1 = <QUOTEDSTRING>
+	(<LIMIT> t2 = <INTEGER> {limit = Integer.parseInt(t2.image);})?
+	{
+		command.setLogDir(unquote(t1.image));
+		command.setLogFilesLimit(limit);
+	}
+	)
+	|
+	{
+        command.setLogDir(alias);
+	}
+}
+LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; String fileName; String functionSpec = null; 
+                                                String functionName, functionArgs; FuncSpec funcSpec = null;}
+{
+    t = <IDENTIFIER> <INTO> fileName = FileName()
+    (
+        <USING>  funcSpec = NonEvalFuncSpec(FunctionType.STOREFUNC)
+    )?
+    {
+
+        if (funcSpec == null) {
+            funcSpec = new FuncSpec(PigStorage.class.getName() + "()");
+        }
+
+        LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
+                                            new FileSpec(fileName, funcSpec));
+
+        LogicalOperator input = mapAliasOp.get(t.image);
+        if (input == null)
+            throw new ParseException("Unable to find alias " + t.image);
+
+        lp.add(store);
+        lp.add(input);
+        lp.connect(input, store);
+        return store;
+    }
+}
+
+ArrayList<LogicalOperator> NestedBlock(Schema over, ArrayList<LogicalOperator> specList, LogicalPlan lp, LogicalOperator input):
+{
+	LogicalOperator spec; 
+	Map<String, LogicalOperator> specs = new HashMap<String, LogicalOperator>(); 
+	log.trace("Entering NestedBlock");
+}
+{
+	(
+	spec = GenerateStatement(over,specs, lp, input) {specList.add(spec);}
+|	("{" (NestedCommand(over,specs,specList, lp, input) ";")* spec = GenerateStatement(over,specs,lp,input)	 ";" "}")
+	{specList.add(spec);}
+	)
+	{log.trace("Exiting NestedBlock"); return specList;}
+}
+
+void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<LogicalOperator> specList, LogicalPlan lp, LogicalOperator input):
+{
+	Token t; 
+	LogicalOperator item; 
+	LogicalOperator eOp = null; 
+	log.trace("Entering NestedCommand");
+}
+{
+	(
+	t = <IDENTIFIER> "="
+	(
+	LOOKAHEAD(EvalFuncSpec(over, specs, lp, input, FunctionType.EVALFUNC)) item = InfixExpr(over,specs,lp, input)
+    {
+        lp.add(item);
+    }
+|	LOOKAHEAD(NestedProject(over, specs, lp,input)) eOp = NestedProject(over,specs,lp,input) 
+	{
+		item = eOp;
+		lp.add(eOp);
+		log.debug("Added operator " + eOp.getClass().getName() + " " + eOp + " to the logical plan " + lp);
+	}
+|	item = InfixExpr(over,specs,lp, input)
+    {
+        lp.add(item);
+    }
+|	item = NestedFilter(over,specs,lp, input)	 
+| 	item = NestedSortOrArrange(over,specs,lp, input)
+|	item = NestedDistinct(over,specs,lp, input)	
+	)
+	)	
+	{
+		String alias = t.image;
+		item.setAlias(alias);
+		specs.put(alias,item);
+		log.debug("Added " + alias + " to the specs map");
+		specList.add(item);
+		log.debug("Added " + alias + " to the specList");
+		
+		log.trace("Exiting NestedCommand");
+	}
+}		
+
+LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+    Token t;
+	ArrayList<Integer> colList = new ArrayList<Integer>();
+    int i = -1;
+    LogicalOperator foreachInput = null;
+    Schema subSchema = null;
+	log.trace("Entering NestedFilter");
+}
+{
+    (
+	t = <IDENTIFIER> 
+    {
+        if(null != specs) {
+            foreachInput = specs.get(t.image);
+        }
+        if(null == foreachInput) {
+            try {
+			    if ((null == over) ||  (i = over.getPosition(t.image)) == -1) {
+				    throw new ParseException("Invalid alias: " + t.image + " in " + over);
+			    }
+            } catch (FrontendException fee) {
+            	ParseException pe = new ParseException(fee.getMessage());
+            	pe.initCause(fee); 
+                throw pe;
+            }
+            foreachInput = new LOProject(lp, new OperatorKey(scope, getNextId()), input, i);
+        }
+
+        try {
+            lp.add(foreachInput);
+            if(input instanceof ExpressionOperator) {
+                lp.add(input);
+                lp.connect(input, foreachInput);
+            }
+        } catch (Exception planException) {
+        	ParseException pe = new ParseException(planException.getMessage());
+            pe.initCause(planException);
+            throw pe;
+        }
+    }
+|   t = <DOLLARVAR>
+    {
+        foreachInput = new LOProject(lp, new OperatorKey(scope, getNextId()), input, undollar(t.image));
+    }
+    )
+    {
+        if(foreachInput instanceof ExpressionOperator) {
+            subSchema = ((ExpressionOperator)foreachInput).getFieldSchema().schema;
+        } else {
+            subSchema = foreachInput.getSchema();
+        }
+    }
+    "." 
+    (
+    i = ColNameOrNum(subSchema) {colList.add(i);}
+|   "(" i = ColNameOrNum(subSchema) {colList.add(i);} ("," i = ColNameOrNum(over) {colList.add(i);})* ")"
+    )
+    {
+        ArrayList<LogicalPlan> foreachPlans = new ArrayList<LogicalPlan>();
+        ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+        for(int j: colList) {
+            LogicalPlan plan = new LogicalPlan();
+            LOProject project = new LOProject(plan, new OperatorKey(scope, getNextId()), foreachInput, j);
+            plan.add(project);
+            foreachPlans.add(plan);
+            flattenList.add(false);
+        }
+		LogicalOperator foreach = new LOForEach(lp, new OperatorKey(scope, getNextId()), foreachPlans, flattenList);
+        lp.add(foreach);
+        lp.add(foreachInput);
+        lp.connect(foreachInput, foreach);
+        return foreach;
+    }
+}
+
+LogicalOperator NestedFilter(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	ExpressionOperator cond; 
+	Schema subSchema = null; 
+	LogicalOperator eOp; 
+	LogicalPlan conditionPlan = new LogicalPlan(); 
+    Token t;
+	log.trace("Entering NestedFilter");
+}
+{
+	(
+	<FILTER>
+    (
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
+	{subSchema = eOp.getSchema();}
+	<BY> cond = PCond(subSchema,null,conditionPlan,eOp)
+	)
+	{ 
+		lp.add(eOp);
+		log.debug("Added " + eOp.getAlias() + " to the logical plan");
+		//LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan, eOp);
+		LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan);
+		lp.add(filter);
+		log.debug("Added nested filter operator " + filter.getClass().getName() + " to the logical plan");
+		
+		lp.connect(eOp, filter);
+		log.debug("Connected the filter input to the filter");
+		
+		log.trace("Exiting NestedFilter");
+		return filter;  
+	}
+
+}
+
+LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	ExpressionOperator col;	
+	boolean star = false; 
+	ArrayList<LogicalPlan> sortColPlans = new ArrayList<LogicalPlan>(); 
+	ArrayList<Boolean> ascOrder = new ArrayList<Boolean>(); 
+	String funcName = null; 
+	LogicalOperator eOp;
+	Token t; 
+	boolean asc = true; 
+    FuncSpec funcSpec = null;
+	log.trace("Entering NestedSortOrArrange");}
+{
+	(
+	( <ORDER> | <ARRANGE> )
+    (
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
+	<BY> 
+	(
+		(
+			col = SortCol(eOp.getSchema(), lp, eOp, ascOrder, sortColPlans) 
+			("," col = SortCol(eOp.getSchema(), lp, eOp, ascOrder, sortColPlans) )*		
+			
+		)
+		| <STAR> {star = true;} [<ASC> | <DESC> {asc = false;}] 
+			{
+                LogicalPlan sortColPlan = new LogicalPlan();
+		        LOProject projectStar = new LOProject(sortColPlan, new OperatorKey(scope, getNextId()), eOp, -1);
+			    ((LOProject)projectStar).setStar(true);
+                sortColPlan.add(projectStar);
+                sortColPlans.add(sortColPlan);
+				if(asc) {
+					ascOrder.add(true);
+				} else {	
+					ascOrder.add(false);
+				}
+			}		
+	)     
+    (
+        <USING>  funcSpec = NonEvalFuncSpec(FunctionType.COMPARISONFUNC)
+    )?
+	)
+	{	
+		log.debug("Before creating LOSort");
+		LOSort sort = new LOSort(lp, new OperatorKey(scope, getNextId()), sortColPlans, ascOrder, 
+		                          funcSpec);
+		sort.setStar(star);
+		log.debug("After creating LOSort");
+		try {
+			lp.add(eOp);
+			log.debug("Added " + eOp +  " " + eOp.getClass().getName() + " to the logical plan");
+			lp.add(sort);
+			log.debug("Added operator " + sort.getClass().getName() + " to the logical plan");
+		
+			lp.connect(eOp, sort);
+			log.debug("Connected alias " + eOp.getAlias() + " operator " + eOp.getClass().getName() + " to operator " + sort.getClass().getName() + " the logical plan");
+		} catch (PlanException planException) {
+			ParseException pe = new ParseException(planException.getMessage());
+			pe.initCause(planException); 
+			throw pe;
+		}
+		
+		log.trace("Exiting NestedSortOrArrange");
+		return sort;		
+	}
+}
+	
+LogicalOperator NestedDistinct(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	Token t; 
+	LogicalOperator eOp; 
+	log.trace("Entering NestedDistinct");
+}
+{
+	(
+	<DISTINCT>
+    (
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
+	)
+	{ 
+		lp.add(eOp);
+		log.debug("Added " + eOp.getAlias() + " to the logical plan");
+		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId()));
+		lp.add(distinct);
+		log.debug("Added operator " + distinct.getClass().getName() + " to the logical plan");
+		
+		lp.connect(eOp, distinct);
+		log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + distinct.getClass().getName() + " in the logical plan");
+		
+		log.trace("Exiting NestedDistinct");
+		return distinct; 
+	}
+}
+	
+	
+LogicalOperator GenerateStatement(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	LogicalOperator spec = null; 
+	Schema schema;
+	setInsideGenerate(true);
+	log.trace("Entering GenerateStatement");
+}
+{
+	(
+	<GENERATE>
+	spec = FlattenedGenerateItemList(over,specs,lp,input)
+	)
+	{
+		log.debug("Connecting generate inputs");
+		for(LogicalOperator op: getGenerateInputs()) {
+			lp.connect(op, spec);
+			log.debug("Connected operator: " + op + " to " + spec + " in logical plan " + lp);
+		}
+		log.trace("Exiting GenerateStatement");
+		return spec;
+	}
+}
+
+LogicalOperator FlattenedGenerateItemList(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>(); 
+	ArrayList<Boolean> flattenList = new ArrayList<Boolean>(); 
+	ArrayList<Schema> userDefinedSchemaList = new ArrayList<Schema>(); 
+	ExpressionOperator item;
+	LogicalPlan generatePlan;
+	log.trace("Entering FlattenedGenerateItemList");
+}
+{
+	(
+        item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList, userDefinedSchemaList)
+            {
+                generatePlans.add(generatePlan);
+            }
+        ("," item = FlattenedGenerateItem(over, specs, generatePlan = new LogicalPlan(), input, flattenList, userDefinedSchemaList)
+            {
+                generatePlans.add(generatePlan);
+            }
+        )*
+
+    )
+	{
+		LogicalOperator generate = new LOGenerate(lp, new OperatorKey(scope, getNextId()), generatePlans, flattenList, userDefinedSchemaList);
+		lp.add(generate);
+		log.debug("Added operator " + generate.getClass().getName() + " to the logical plan");
+		log.trace("Exiting FlattenedGenerateItemList");
+		return generate;
+	}
+}
+	
+
+ExpressionOperator FlattenedGenerateItem(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input, ArrayList<Boolean> flattenList, ArrayList<Schema> userDefinedSchemaList): 
+{
+	ExpressionOperator item; 
+	Schema schema = null; 
+	Token t; 
+	Schema.FieldSchema fs = null; 
+	boolean flatten = false;
+	log.trace("Entering FlattenedGenerateItem");
+}
+{
+	(
+	(
+		<FLATTEN> "(" item = InfixExpr(over,specs,lp,input) ")" 
+		{
+			flatten = true;
+		}
+        [ <AS> ( "(" schema = TupleSchema() ")" | fs = FieldSchema() ) ]
+	)
+|	
+    (
+    (
+    (item = InfixExpr(over,specs,lp,input))
+|	( <STAR> 
+		{
+			LOProject project = new LOProject(lp, new OperatorKey(scope, getNextId()), input, -1); 
+			project.setStar(true); 
+			item = project;
+			lp.add(project);
+            if(input instanceof ExpressionOperator) {
+			    lp.add(input);
+			    lp.connect(input, project);
+            }
+			log.debug("FGItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+		}
+	)
+    )
+        [ <AS> fs = FieldSchema() ]
+	)
+	)
+	{
+		log.debug("item: " + item.getClass().getName());
+        if(null != fs) {
+            schema = new Schema(fs);
+        }
+	    flattenList.add(flatten);
+        userDefinedSchemaList.add(schema);
+		log.trace("Exiting FlattenedGenerateItem");
+		return item;
+	}
+}
+	
+ExpressionOperator InfixExpr(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator expr; 
+	log.trace("Entering InFixExpr");
+}
+{
+	expr = AdditiveExpr(over,specs,lp,input) 
+	{log.trace("Exiting InFixExpr");return expr;}
+}
+
+ExpressionOperator AdditiveExpr(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{ 
+	Token t; 
+	ExpressionOperator lhs, rhs, exprOp; 
+	log.trace("Entering AdditiveExpr");
+}
+{
+	(
+	lhs = MultiplicativeExpr(over,specs,lp,input) 	
+		(
+		( t = "+" | t = "-" ) rhs = MultiplicativeExpr(over,specs,lp,input)
+		 	
+		{
+			assertAtomic(lhs,true);
+			assertAtomic(rhs,true);
+			if (t.image.equals("+")){
+				exprOp = new LOAdd(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+			}else{
+				exprOp = new LOSubtract(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+			}
+			lp.add(exprOp);
+			log.debug("AdditiveExpr: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
+			lp.connect(lhs, exprOp);
+			log.debug("AdditiveExpr: Connected operator " + lhs.getClass().getName() + " " + lhs+ " to " + exprOp + " logical plan " + lp);
+			lp.connect(rhs, exprOp);
+			log.debug("AdditiveExpr: Connected operator " + rhs.getClass().getName() + " " + rhs+ " to " + exprOp + " logical plan " + lp);
+			lhs = exprOp;
+		}
+		)*
+	)
+	{
+		log.trace("Exiting AdditiveExpr");
+		return lhs;
+	}		
+}
+
+ExpressionOperator MultiplicativeExpr(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{ 
+	Token t; 
+	ExpressionOperator lhs, rhs, exprOp; 
+	log.trace("Entering MultiplicativeExpr");
+}
+{
+		(
+		lhs = CastExpr(over,specs,lp,input)
+		(
+		( t = <STAR> | t = "/" | t = "%") rhs = CastExpr(over,specs,lp,input) 			
+		{
+			assertAtomic(lhs,true);
+			assertAtomic(rhs,true);
+			if (t.image.equals("*")){
+				exprOp = new LOMultiply(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+			}else if (t.image.equals("/")){
+				exprOp = new LODivide(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+			}else {
+				exprOp = new LOMod(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+			}
+			lp.add(exprOp);
+			log.debug("MultiplicativeExpr: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
+			lp.connect(lhs, exprOp);
+			log.debug("MultiplicativeExpr: Connected operator " + lhs.getClass().getName() + " " + lhs+ " to " + exprOp + " logical plan " + lp);
+			lp.connect(rhs, exprOp);
+			log.debug("MultiplicativeExpr: Connected operator " + rhs.getClass().getName() + " " + rhs+ " to " + exprOp + " logical plan " + lp);
+			lhs = exprOp;
+		}
+		)*
+		)
+		{
+			log.trace("Exiting MultiplicativeExpr");
+			return lhs;
+		}
+}
+
+ExpressionOperator CastExpr(Schema over, Map<String, LogicalOperator> specs,LogicalPlan lp,LogicalOperator input) :
+{
+    byte type = DataType.BYTEARRAY;
+    Schema.FieldSchema fs = null;
+    ExpressionOperator cast;
+    ExpressionOperator exprOp;
+    boolean castRequired = false;
+    log.trace("Entering Cast");
+}
+{
+    [LOOKAHEAD(2)"(" fs = TypeFieldSchema() {castRequired = true;}")"] exprOp = UnaryExpr(over, specs, lp, input)
+    {
+        if(castRequired) {
+            cast = new LOCast(lp, new OperatorKey(scope, getNextId()), exprOp, fs.type);
+            cast.setFieldSchema(fs);
+            lp.add(cast);
+		    log.debug("Added operator " + cast.getClass().getName() + " " + cast + " to logical plan " + lp);
+            lp.connect(exprOp, cast);
+		    log.debug("Connected operator " + exprOp.getClass().getName() + " " + exprOp + " to " + cast + " logical plan " + lp);
+            log.trace("Exiting Cast");
+            return cast;
+        } else {
+            log.trace("Exiting Cast");
+            return exprOp;
+        }
+    }
+}
+
+ExpressionOperator UnaryExpr(Schema over,  Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator expr; 
+	log.trace("Entering UnaryExpr");
+}
+{
+	(
+	LOOKAHEAD(BaseEvalSpec(over,specs,lp,input)) expr = BaseEvalSpec(over,specs,lp,input)
+|	( "(" expr = InfixExpr(over,specs,lp,input) ")" )
+|	expr = NegativeExpr(over,specs,lp,input)
+	)
+	{log.trace("Exiting UnaryExpr");return expr;}
+}
+
+ExpressionOperator NegativeExpr(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ExpressionOperator c1;
+	LogicalPlan exprPlan = new LogicalPlan();
+	log.trace("Entering NegativeExpr");
+}
+{
+	"-" c1=CastExpr(over,specs,lp,input)
+	{
+		ExpressionOperator eOp = new LONegative(lp, new OperatorKey(scope, getNextId()), c1);
+		lp.add(eOp);
+		log.debug("NegativeExpr: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
+		lp.connect(c1, eOp);
+		log.trace("Exiting NegativeExpr");
+		return eOp;
+	}
+}
+
+	
+ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) :
+{
+	ExpressionOperator item;
+	ExpressionOperator projection; 
+	Schema subSchema = null; 
+	Token t; 
+    Object key = new Object();
+	log.trace("Entering BaseEvalSpec");
+}
+{
+	(
+    LOOKAHEAD(Const(lp)) item = Const(lp)
+|	(
+	(
+		LOOKAHEAD(EvalFuncSpec(over,specs,lp,input, FunctionType.EVALFUNC))
+		item = EvalFuncSpec(over,specs,lp,input, FunctionType.EVALFUNC)
+	|	item = ColOrSpec(over,specs,lp,input) 
+	| 	item = BinCond(over,specs,lp,input)
+	
+	)
+	(
+		{ 
+			Schema.FieldSchema fs = item.getFieldSchema(); 
+            if(null != fs) {
+			    subSchema = fs.schema; 
+            }
+			log.debug("subSchema: " + subSchema);
+		}
+		( 
+			"." projection = BracketedSimpleProj(subSchema,lp,item) 
+			{
+				assertAtomic(item,false); 
+				item = projection;
+			}
+		)
+|		( "#" key = AtomDatum() { 
+			assertAtomic(item, false);
+			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), item, key, DataType.BYTEARRAY, null);
+			lp.add(mapLookup);
+			log.debug("BaseEvalSpec: Added operator " + mapLookup.getClass().getName() + " " + mapLookup + " to logical plan " + lp);
+			lp.connect(item, mapLookup);
+			item = mapLookup;
+			log.debug("BaseEvalSpec: Connected operator " + item.getClass().getName() + " " + item+ " to " + mapLookup + " logical plan " + lp);
+		}
+		)
+	)*	
+	)
+	)
+	{log.trace("Exiting BaseEvalSpec"); return item;}
+}
+
+
+
+ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	ExpressionOperator cond; 
+	ExpressionOperator ifTrue, ifFalse; 
+	LogicalPlan conditionPlan = new LogicalPlan();
+	LogicalPlan truePlan = new LogicalPlan();
+	LogicalPlan falsePlan = new LogicalPlan();
+	log.trace("Entering BinCond");
+}
+{	
+	(
+	"(" cond = PCond(over,specs,lp,input) "?" ifTrue = InfixExpr(over,specs,lp,input) 
+	":" ifFalse = InfixExpr(over,specs,lp,input) ")"
+	
+	)
+	{ 
+		//ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()), conditionPlan, truePlan, falsePlan);
+		ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()), cond, ifTrue, ifFalse);
+		lp.add(bincond);
+		log.debug("BinCond: Added operator " + bincond.getClass().getName() + " " + bincond + " to logical plan " + lp);
+		lp.connect(cond, bincond);
+		lp.connect(ifTrue, bincond);
+		lp.connect(ifFalse, bincond);
+		log.trace("Exiting BinCond");
+		return bincond;
+	}
+}
+
+
+ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input, byte funcType) : 
+{
+	String funcName = null; 
+	FuncSpec funcSpec = null; 
+	String funcNameAlias = null; 
+    boolean registeredFunction = false;
+	List<ExpressionOperator> args;
+	ExpressionOperator userFunc;
+    LOUserFunc userAliasFunc = null;
+    Object func = null;
+	log.trace("Entering EvalFuncSpec");
+}
+{
+	(
+    (
+    LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
+    {
+		func = pigContext.instantiateFuncFromAlias(funcNameAlias);
+		try{
+            FunctionType.tryCasting(func, funcType);
+		} catch (Exception e){
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e); 
+			throw pe;
+		}
+    }
+    )
+|   func=EvalFunction(funcType)
+    )
+    "(" args=EvalArgs(over,specs,lp,input) ")" 
+	{
+		if(null != func) {
+            funcName = func.getClass().getName();
+            if(null != funcNameAlias) {
+                funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
+            } else {
+                funcSpec = new FuncSpec(funcName);
+            }
+            byte type = DataType.BYTEARRAY;
+            switch(funcType) {
+            case FunctionType.EVALFUNC:
+                Type javaType = ((EvalFunc)func).getReturnType();
+                type = DataType.findType(javaType);
+                log.debug("Return type of UDF: " + DataType.findTypeName(type));
+                log.debug("EvalFuncSpec: funcSpec: " + funcSpec);
+                break;
+            default:
+                throw new ParseException("Received an unknown function type: " + funcType);
+            }
+			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
+        } else {
+            throw new ParseException("Could not instantiate function: " + funcNameAlias);
+        }
+		lp.add(userFunc);
+		log.debug("EvalFuncSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
+		for(ExpressionOperator exprOp: args) {
+			lp.connect(exprOp, userFunc);
+			log.debug("EvalFuncSpec: Connected operator " + exprOp.getClass().getName() + " " + exprOp+ " to " + userFunc + " logical plan " + lp);
+		}
+		log.trace("Exiting EvalFuncSpec");
+		return userFunc;
+	}
+}
+
+FuncSpec NonEvalFuncSpec(byte funcType) : 
+{
+	String functionName = null; 
+	FuncSpec funcSpec = null; 
+	String funcNameAlias = null; 
+    String functionArgs = null;
+    Object func = null;
+	log.trace("Entering NonEvalFuncSpec");
+}
+{
+	(
+    (
+    LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
+    {
+		func = pigContext.instantiateFuncFromAlias(funcNameAlias);
+		try{
+            FunctionType.tryCasting(func, funcType);
+		} catch (Exception e){
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e);
+			throw pe;
+		}
+    }
+    )
+|   functionName = QualifiedFunction() ( "(" functionArgs = StringList() ")" )?
+    )
+	{
+		if(null != func) {
+            functionName = func.getClass().getName();
+            if(null != funcNameAlias) {
+                funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
+            } else {
+                funcSpec = new FuncSpec(functionName);
+            }
+        } else if (functionName != null) {
+            funcSpec = new FuncSpec(functionName + (functionArgs == null? "(" + ")" : "(" + functionArgs + ")"));
+        } else {
+            throw new ParseException("Could not instantiate function: " + funcNameAlias);
+        }
+            switch(funcType) {
+            case FunctionType.COMPARISONFUNC:
+            case FunctionType.LOADFUNC:
+            case FunctionType.STOREFUNC:
+                func = pigContext.instantiateFuncFromSpec(funcSpec);
+		        try{
+                    FunctionType.tryCasting(func, funcType);
+		        } catch (Exception e){
+		        	ParseException pe = new ParseException(e.getMessage());
+		        	pe.initCause(e); 
+			        throw pe;
+		        }
+                break;
+            default:
+                throw new ParseException("Received an unknown function type: " + funcType);
+            }
+		log.trace("Exiting NonEvalFuncSpec");
+		return funcSpec;
+	}
+}
+
+List<ExpressionOperator> EvalArgs(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input) : 
+{
+	ArrayList<ExpressionOperator> specList = new ArrayList<ExpressionOperator>(); 
+	ExpressionOperator item;
+	log.trace("Entering EvalArgs");
+}
+{
+	(
+	(item=EvalArgsItem(over,specs,lp,input)	{specList.add(item);}
+	("," item=EvalArgsItem(over,specs,lp,input) {specList.add(item);})*)
+	
+	| {}
+	)
+	{
+		log.trace("Exiting EvalArgs");
+		return specList;
+	}
+}
+
+ExpressionOperator EvalArgsItem(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+	ExpressionOperator item;
+	log.trace("Entering EvalArgsItem");
+}
+{
+	(
+	item = InfixExpr(over,specs,lp,input)
+|	<STAR> 
+	{
+		LOProject project = new LOProject(lp, new OperatorKey(scope, getNextId()), input, -1); 
+		project.setStar(true); 
+		item = project;
+		lp.add(project);
+        if(input instanceof ExpressionOperator) {
+		    lp.add(input);
+		    lp.connect(input, project);
+        }
+		log.debug("EvalArgsItem: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+	}
+	)
+	{log.trace("Exiting EvalArgsItem");return item;}
+}
+
+byte Type() : 
+{ 
+	log.trace("Entering Type");
+	byte type;
+}
+{
+ (type = BasicType() | type = CompositeType()) 
+ {
+	log.trace("Exiting Type");
+ 	return type;
+ }	
+}
+
+byte CompositeType() : 
+{ 
+	log.trace("Entering CompositeType");
+	Token t = null;
+	byte type;
+}
+{
+ (t = <MAP>| t = <BAG>| t = <TUPLE>) 
+ {
+	log.debug("t: " + t + " type: " + nameToTypeMap.get(t.image.toUpperCase()));
+ 	type = nameToTypeMap.get(t.image.toUpperCase());
+	log.trace("Exiting CompositeType");
+ 	return type;
+ }
+}
+
+byte BasicType() : 
+{ 
+	log.trace("Entering BasicType");
+	Token t = null;
+	byte type;
+}
+{
+ (t = <INT>| t = <LONG>| t = <FLOAT>| t = <DOUBLE>| t = <CHARARRAY>| t = <BYTEARRAY>) 
+ {
+    String typeName = t.image;
+	log.debug(" nameToTypeMap: " + nameToTypeMap);
+	log.debug("t: " + t + " type: " + nameToTypeMap.get(typeName.toUpperCase()));
+    if(typeName.equalsIgnoreCase("int")) {
+        typeName = "integer";
+    }
+ 	type = nameToTypeMap.get(typeName.toUpperCase());
+	log.trace("Exiting BasicType");
+ 	return type;
+ }
+}
+
+Schema.FieldSchema FieldSchema() : 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.FieldSchema fs = null; 
+	log.trace("Entering FieldSchema");
+}
+{
+	(
+	LOOKAHEAD(SchemaTuple()) fs = SchemaTuple()
+|	LOOKAHEAD(SchemaBag()) fs = SchemaBag()
+|	LOOKAHEAD(SchemaMap()) fs = SchemaMap()
+|	LOOKAHEAD(AtomSchema()) fs = AtomSchema()
+	)
+	//{log.debug("Printing Aliases"); item.printAliases();log.trace("Exiting Schema");return item;}
+	{log.trace("Exiting FieldSchema");return fs;}
+}
+
+Schema.FieldSchema AtomSchema() : 
+{
+	Token t1 = null;
+	byte type = DataType.NULL;
+	Schema.FieldSchema fs;
+	log.trace("Entering AtomSchema");
+}
+{
+	(  ( t1 = <IDENTIFIER> [":" type = BasicType() ] )
+		{ 
+			if(null != t1) {
+				log.debug("AtomSchema: " + t1.image);
+				fs = new Schema.FieldSchema(t1.image, type); 
+			} else {
+				fs = new Schema.FieldSchema(null, type); 
+			}
+			
+			log.trace("Exiting AtomSchema");
+			return fs;
+		} 
+	)
+}
+
+Schema.FieldSchema SchemaMap() :
+{
+	Token t1 = null; 
+	Schema.FieldSchema fs;
+	log.trace("Entering SchemaMap");
+}
+{
+	( t1 = <IDENTIFIER> )  [LOOKAHEAD(2) ":" <MAP>| ":"] "[" "]"
+	{
+		if (null != t1) {
+			log.debug("MAP alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, DataType.MAP);
+		} else {
+			fs = new Schema.FieldSchema(null, DataType.MAP);
+		}
+		log.trace("Exiting SchemaMap");
+		return fs;
+	} 
+}
+
+Schema.FieldSchema SchemaTuple() : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.FieldSchema fs;
+	log.trace("Entering SchemaTuple");
+}
+{ 
+	( t1 = <IDENTIFIER> )  [LOOKAHEAD(2) ":" <TUPLE> | ":"] "(" s = TupleSchema() ")" 
+	{
+		if (null != t1) {
+			log.debug("TUPLE alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.TUPLE);
+		} else {
+			fs = new Schema.FieldSchema(null, s, DataType.TUPLE);
+		}
+		log.trace("Exiting SchemaTuple");
+		return fs;
+	} 
+}
+
+Schema.FieldSchema SchemaBag() : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.FieldSchema fs;
+	log.trace("Entering SchemaBag");
+}
+{ 
+	( t1 = <IDENTIFIER> ) [LOOKAHEAD(2) ":" <BAG> | ":"] "{" (fs = SchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" 
+	{
+        s = new Schema(fs);
+        // since this schema has tuple field schema which internally
+        // has a list of field schemas for the actual items in the bag
+        // an access to any field in the bag is a  two level access
+        s.setTwoLevelAccessRequired(true);
+		if (null != t1) {
+			log.debug("BAG alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.BAG);
+		} else {
+			fs = new Schema.FieldSchema(null, s, DataType.BAG);
+		}
+		log.trace("Exiting SchemaBag");
+		return fs;
+	} 
+}
+
+
+Schema TupleSchema() : 
+{
+	Schema item = null; 
+	Schema list = new Schema(); 
+	Schema.FieldSchema fs = null;
+	log.trace("Entering TupleSchema");
+}
+{
+	(	
+	(	
+		fs = FieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);} 
+		( "," fs = FieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);})* 
+	)
+|		{} {list = null;}
+	)
+	{log.debug("Printing list in TupleSchema" + list); log.trace("Exiting TupleSchema");return list;}
+}
+
+
+Schema.FieldSchema TypeFieldSchema() : 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.FieldSchema fs = null; 
+	log.trace("Entering TypeFieldSchema");
+}
+{
+	(
+	LOOKAHEAD(TypeSchemaTuple()) fs = TypeSchemaTuple()
+|	LOOKAHEAD(TypeSchemaBag()) fs = TypeSchemaBag()
+|	LOOKAHEAD(TypeSchemaMap()) fs = TypeSchemaMap()
+|	LOOKAHEAD(TypeAtomSchema()) fs = TypeAtomSchema()
+	)
+	{log.trace("Exiting TypeFieldSchema");return fs;}
+}
+
+Schema.FieldSchema TypeAtomSchema() : 
+{
+	byte type = DataType.BYTEARRAY;
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeAtomSchema");
+}
+{
+	(  ( type = BasicType() )
+		{ 
+            if(type == DataType.BYTEARRAY) {
+            	int errCode = 1051;
+            	String msg = "Cannot cast to bytearray";
+                FrontendException fee = new FrontendException(msg, errCode, PigException.INPUT);
+                ParseException pe = new ParseException(msg);
+                pe.initCause(fee);
+                throw pe;
+            }
+			fs = new Schema.FieldSchema(null, type); 
+			
+			log.trace("Exiting TypeAtomSchema");
+			return fs;
+		} 
+	)
+}
+
+Schema.FieldSchema TypeSchemaMap() :
+{
+	Token t1 = null; 
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeSchemaMap");
+}
+{
+	( <MAP> "[" "]")
+	{
+		if (null != t1) {
+			log.debug("MAP alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, DataType.MAP);
+		} else {
+			fs = new Schema.FieldSchema(null, DataType.MAP);
+		}
+		log.trace("Exiting TypeSchemaMap");
+		return fs;
+	} 
+}
+
+Schema.FieldSchema TypeSchemaTuple() : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeSchemaTuple");
+}
+{ 
+	( <TUPLE> "(" s = TypeTupleSchema() ")") 
+	{
+		if (null != t1) {
+			log.debug("TUPLE alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.TUPLE);
+		} else {
+			fs = new Schema.FieldSchema(null, s, DataType.TUPLE);
+		}
+		log.trace("Exiting TypeSchemaTuple");
+		return fs;
+	} 
+}
+
+Schema.FieldSchema TypeSchemaBag() : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.FieldSchema fs;
+	log.trace("Entering TypeSchemaBag");
+}
+{ 
+	( <BAG> "{" (fs = TypeSchemaTuple() | {} {fs = new Schema.FieldSchema(null, new Schema());}) "}" ) 
+	{
+        s = new Schema(fs);
+        // since this schema has tuple field schema which internally
+        // has a list of field schemas for the actual items in the bag
+        // an access to any field in the bag is a  two level access
+        s.setTwoLevelAccessRequired(true);
+		if (null != t1) {
+			log.debug("BAG alias " + t1.image);
+			fs = new Schema.FieldSchema(t1.image, s, DataType.BAG);
+		} else {
+			fs = new Schema.FieldSchema(null, s, DataType.BAG);
+		}
+		log.trace("Exiting TypeSchemaBag");
+		return fs;
+	} 
+}
+
+
+Schema TypeTupleSchema() : 
+{
+	Schema item = null; 
+	Schema list = new Schema(); 
+	Schema.FieldSchema fs = null;
+	log.trace("Entering TypeTupleSchema");
+}
+{
+	(	
+	(	
+		fs = TypeFieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);} 
+		( "," fs = TypeFieldSchema() {log.debug("Adding " + fs.alias + " to the list: " + list);list.add(fs);})* 
+	)
+|		{} {list = null;}
+	)
+	{log.debug("Printing list in TypeTupleSchema: " + list); log.trace("Exiting TypeTupleSchema");return list;}
+}
+
+// These the simple non-terminals that are shared across many
+
+Object  EvalFunction(byte funcType) : 
+{
+	String funcName;
+    Object func = null;
+	log.trace("Entering EvalFunction");
+}
+{
+	funcName = QualifiedFunction()
+	{
+        func = pigContext.instantiateFuncFromAlias(funcName);
+		try{
+            FunctionType.tryCasting(func, funcType);
+		}catch (Exception e){
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e);
+			throw pe;
+		}
+		log.trace("Exiting EvalFunction");
+		
+		return func;
+	}
+}
+
+/**
+ * Bug 831620 - '$' support
+ */
+void ClassName() #void : {} { <IDENTIFIER> (("."  <IDENTIFIER>)|("$"  <IDENTIFIER>))* }
+
+/**
+ * Bug 831620 - '$' support
+ */
+String QualifiedFunction() #void : {Token t1;StringBuffer s=new StringBuffer(); log.trace("Entering QualifiedFunction");}
+{
+	((t1=<IDENTIFIER> { s.append(t1.image);}
+	 (("." t1=<IDENTIFIER> {s.append("." + t1.image);})| 
+	  ("$" t1=<IDENTIFIER> {s.append("$" + t1.image);}))*)) 
+	 {
+	 	log.debug("QualifiedFunction: " + s.toString());
+	 	log.trace("Exiting QualifiedFunction"); 
+	 	return s.toString();
+	 }
+}
+
+
+// If there is one time it may not be bracketed, but if multiple, they must be bracketed
+ExpressionOperator BracketedSimpleProj(Schema over, LogicalPlan lp, LogicalOperator eOp) : 
+{
+	ExpressionOperator es; 
+	int i; 
+	ExpressionOperator spec = null;
+	log.trace("Entering BracketedSimpleProj");
+	log.debug("eOp: " + eOp);
+	bracketed = true;
+}
+{
+	(
+	spec = ColOrSpec(over,null,lp,eOp) 
+|	("(" spec = SimpleProj(over,lp,eOp) ")")	
+	
+	)
+	{log.trace("Exiting BracketedSimpleProj");bracketed=false; return spec;}	
+}
+
+ExpressionOperator SimpleProj(Schema over, LogicalPlan lp, LogicalOperator eOp): 
+{
+	int i; 
+	ArrayList<Integer> colList = new ArrayList<Integer>();
+	log.trace("Entering SimpleProj");
+}
+{
+	i = ColNameOrNum(over) {colList.add(i);}	
+		("," i = ColNameOrNum(over) {colList.add(i);})*
+	{
+		ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, colList);
+		lp.add(project);
+		log.debug("SimpleProj: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+        if(eOp instanceof ExpressionOperator) {
+		    lp.add(eOp);
+		    lp.connect(eOp, project);
+        }
+		log.trace("Exiting SimpleProj");
+		return project;
+	}
+}
+
+DataBag Bag() :
+{
+	byte type = DataType.BYTEARRAY;
+	BagFactory bagFactory = BagFactory.getInstance();
+    DataBag bag = bagFactory.newDefaultBag();
+    Tuple t = null;
+    log.trace("Entering bag");
+}
+{
+ ("(" t = Tuple() {bag.add(t);} ")" ("," "(" t = Tuple() {bag.add(t);} ")" )* )
+ {
+    log.trace("Exiting bag");
+    return bag;
+ }
+}
+
+Tuple Tuple() : 
+{
+	byte type = DataType.BYTEARRAY;
+	Object obj = null;
+	TupleFactory tupleFactory = TupleFactory.getInstance();
+	ArrayList<Object> objList = new ArrayList<Object>(); 
+	log.trace("Entering Tuple");
+}
+{
+	(	
+	(	
+            (
+                obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);} 
+		        ( LOOKAHEAD(2) "," obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);})* 
+            )
+	)
+	)
+	{
+		Tuple tuple = tupleFactory.newTuple(objList);
+		log.trace("Exiting Tuple");
+		return tuple;
+	}
+}
+
+Map<Object, Object> Map() :
+{
+	Map<Object, Object> keyValues = new HashMap<Object, Object>();
+	log.trace("Entering Map");
+	
+}
+{
+	( KeyValuePair(keyValues) ("," KeyValuePair(keyValues))* )
+	{
+		log.trace("Exiting Map");
+		return keyValues;
+	}
+}
+
+void KeyValuePair(Map<Object, Object> keyValues) :
+{
+	Object key = null;
+	Object value = null;
+	log.trace("Entering KeyValuePair");
+}
+{
+	(key = AtomDatum() "#" value = Datum())
+	{
+		if(key == null)
+		    throw new ParseException("key in a map cannot be null (provided input has '"+ key + "#" + value + "')");
+		keyValues.put(key, value);
+		log.trace("Exiting KeyValuePair");
+	}
+	
+}
+
+Object AtomDatum():
+{
+    Object obj = null;
+	Token t;
+	log.trace("Entering AtomDatum");
+}
+{
+	(
+	t = <INTEGER> {obj = new Integer(Integer.parseInt(t.image));}
+|	t = <LONGINTEGER> 
+    {
+        String num = t.image.substring(0, t.image.length() - 1);
+        obj = new Long(Long.parseLong(num));
+    }
+|	t = <FLOATNUMBER> {obj = new Float(Float.parseFloat(t.image));}
+|	t = <DOUBLENUMBER> {obj = new Double(Double.parseDouble(t.image));}
+|	t = <QUOTEDSTRING> {obj = unquote(t.image);}
+|   t = <NULL> {obj = null;}
+	)
+	{
+        log.debug("Number: " + t.image + " obj type: " + DataType.findTypeName(DataType.findType(obj)));
+		log.trace("Exiting AtomDatum");
+		return obj;
+	}
+}
+
+Object Datum(): 
+{
+    Object obj = null;
+	log.trace("Entering Datum");
+}
+{
+	(
+	"[" obj = Map() "]"
+|	"{" obj = Bag() "}"
+|	"(" obj = Tuple() ")"
+|	obj = AtomDatum()
+	)
+	{
+		log.trace("Exiting Datum");
+		return obj;
+	}
+}
+
+ExpressionOperator Const(LogicalPlan lp) : 
+{
+	Token t1; 
+	String s;
+	Object obj = null;
+	byte type = DataType.BYTEARRAY;
+	log.trace("Entering Const");
+}
+{
+	(
+	LOOKAHEAD(AtomDatum()) obj = AtomDatum ()
+|	obj= Datum()
+	)
+	{
+		ExpressionOperator lConst = new LOConst(lp, new OperatorKey(scope, getNextId()), obj);
+        type = DataType.findType(obj);
+        log.debug("type: " + DataType.findTypeName(type));
+		lConst.setType(type);
+		lp.add(lConst);
+		log.debug("Const: Added operator " + lConst.getClass().getName() + " " + lConst + " to logical plan " + lp);
+		log.trace("Exiting Const");
+		return lConst;
+	}
+}
+
+ExpressionOperator ColOrSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator eOp) : 
+{
+	ExpressionOperator spec;
+	log.trace("Entering ColOrSpec");
+}
+{
+	(
+	spec = DollarVar(over, specs, lp, eOp)
+|	spec = AliasFieldOrSpec(over, specs, lp, eOp)
+
+	)
+	{
+		log.trace("Exiting ColOrSpec");
+		return spec;
+	}
+}
+
+ExpressionOperator DollarVar(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator eOp) : 
+{
+	Token t1;
+	log.trace("Entering DollarVar");
+}
+{
+	t1=<DOLLARVAR>	
+	{
+        int colNum = undollar(t1.image);
+		log.debug("Token: " + t1.image);
+        if(null != over) {
+            if(colNum >= over.size()) {
+                throw new ParseException("Out of bound access. Trying to access non-existent column: " + colNum + ". Schema " + over + " has " + over.size() + " column(s).");
+            }
+        }
+		ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, undollar(t1.image));
+		try {
+			log.debug("eOp: " + eOp.getClass().getName() + " " + eOp);
+			lp.add(project);
+			log.debug("DollarVar: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+            if((eOp instanceof ExpressionOperator) && (bracketed)) {
+			    lp.add(eOp);
+			    lp.connect(eOp, project);
+            }
+		} catch (Exception planException) {
+			ParseException pe = new ParseException(planException.getMessage());
+			pe.initCause(planException); 
+			throw pe;
+		}
+		log.trace("Exiting DollarVar");
+		return project;
+	}
+}
+
+ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator eOp) : 
+{
+	Token t1;
+	LogicalPlan projectInputPlan = new LogicalPlan();
+	log.trace("Entering AliasFieldOrSpec");
+}
+{
+	(t1=<GROUP> | t1=<IDENTIFIER>) 
+	{	
+		log.debug("Token: " + t1.image);
+		if(null != eOp) log.debug("eOp: " + eOp.getClass().getName());
+		int i; 
+		ExpressionOperator item = null;
+		if (specs!=null) {
+			log.debug("specs != null");
+			LogicalOperator op = specs.get(t1.image);
+			if(null != op) {
+				log.debug("Alias: " + op.getAlias());
+
+                if((op instanceof ExpressionOperator) && insideGenerate()) {
+                    item = (ExpressionOperator)op;
+                } else {
+                    item = new LOProject(lp, new OperatorKey(scope, getNextId()), op, -1);
+                    ((LOProject)item).setStar(true);
+                    log.debug("Set star to true");
+                    item.setAlias(t1.image);
+                }
+				
+				if(insideGenerate()) {
+					log.debug("AliasFieldOrSpec: Inside generate");
+					addGenerateInput(op);
+				}
+				try {
+					lp.add(item);
+					log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
+                    if((op instanceof ExpressionOperator) && !insideGenerate()) {
+					    lp.add(op);
+					    lp.connect(op, item);
+                    }
+				} catch (Exception planException) {
+					ParseException pe = new ParseException(planException.getMessage());
+					pe.initCause(planException);
+					throw pe;
+				}
+			}
+		}
+		
+		if (item == null){
+			log.debug("item == null");
+			if (null == over) log.debug("over is null");
+            try {
+			    if ( over == null ||  (i = over.getPosition(t1.image)) == -1) {
+				    log.debug("Invalid alias: " + t1.image + " in " + over);
+				    if(null != over) {
+					    log.debug("Printing out the aliases in the schema");
+					    over.printAliases();
+				    }
+				    throw new ParseException("Invalid alias: " + t1.image + " in " + over);
+			    }
+            } catch (FrontendException fee) {
+            	ParseException pe = new ParseException(fee.getMessage());
+            	pe.initCause(fee);
+                throw pe;
+            }
+			log.debug("Position of " + t1.image + " = " + i);
+			if(null != over) {
+				log.debug("Printing out the aliases in the schema");
+				over.printAliases();
+			}	
+			item = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, i);
+			item.setAlias(t1.image);
+			try {
+				lp.add(item);
+				log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
+                if((eOp instanceof ExpressionOperator) && (bracketed)) {
+				    lp.add(eOp);
+				    lp.connect(eOp, item);
+                }
+			} catch (Exception planException) {
+				ParseException parseException = new ParseException(planException.getMessage());
+				parseException.initCause(planException);
+				throw parseException;
+			}
+		}
+		
+		log.trace("Exiting AliasFieldOrSpec");
+		return item;
+	}
+}

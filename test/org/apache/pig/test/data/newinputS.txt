@@ -1,0 +1,10 @@
+key1=value1
+date=20080202
+mypath=/user/abhit/$date
+date2=20080202.txt
+path2='user/kal/$date/$date2'
+
+
+a 	=	2
+b	=	3
+c = $a + $b

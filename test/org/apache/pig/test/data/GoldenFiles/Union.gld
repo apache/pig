@@ -1,0 +1,7 @@
+Union[bag] - Test-Plan-Builder-228
+|
+|---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-225
+|
+|---Load(b:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-226
+|
+|---Load(c:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-227

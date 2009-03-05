@@ -1,0 +1,61 @@
+<query> := <expr> ";"
+
+<expr> := [<alias> "="] <baseexpr> ["PARALLEL" <integer>]
+
+<baseexpr> := <alias> | "LOAD" <loadclause> | "EVAL" <evalclause> | "FILTER" <filterclause> | ["CO"]"GROUP" <cogroupclause> | "CROSS" <nestedexprs> | "UNION" <nestedexprs> | "LIMIT" <limitclause> |"(" <baseexpr> ")"
+
+<nestedexpr> := <alias> | "("<expr>")"
+
+<nestedexprs> := <nestedexpr> ["," <nestedexprs>]
+
+<loadclause> := <filename> ["USING" <loadfunc>"("[<loadfuncargs>]")"]
+
+<loadfuncargs> := <constant> ["," <loadfuncargs>]
+
+<cogroupclause> := <groupexpr> ["OUTER" | "INNER"]
+
+<groupexpr> := "BY" <simpleprojitem> | "BY" <groupfunc>"("<simpleproj>")" | "ALL" | "ANY"
+
+<simpleproj> := <simpleprojitem> ["," <simpleproj>]
+
+<simpleprojitem>  := <field> | <constant> | "*"
+
+<field> := "$"<integer>
+
+<filename> := <quotedstring>
+
+<constant> := <quotedstring>
+
+<quotedstring> := "'"<string>"'"
+
+<filterclause> := "FILTER" <filter> "OVER" <nestedexpr>
+
+<limitclause> := "LIMIT" <nestedexpr> <integer>
+
+<filter> := <cond> "?" [<simpleproj> ":" <simpleproj>]
+
+<cond> := <basecond> | <cond> "AND" <cond> | <cond> "OR" <cond> | "NOT" <cond> | "("<cond>")"
+
+<basecond> := <comparable> <compareop> <comparable> | <comparable> "MATCHES" "'"<regex>"'" | <filterfunc>"("<simpleproj>")"
+
+<comparable> := <field> | <constant>
+
+<compareop> := "==" | "!=" | "<" | "<=" | ">" | ">="
+
+<evalclause> := "EVAL" <evalitemlist> "OVER" <nestedexpr>
+
+<evalitemlist> := (<evalitem> | (<nestableevalitem> ("["<innerevalspec>"]")* ["."<subproj>])) ["," <evalitemlist>]
+
+<innerevalspec> := ["EVAL"] <simpleproj> | "FILTER" <filter> | <sad>
+
+<subproj> := <subprojitem> | "(" <subprojitem> ("," <subprojitem>)* ")"
+
+<subprojitem> := "*" | <field>
+
+<nestableevalitem> := <field> | <alias> | <evalfunc>"("<argslist>")"
+
+<argslist> := (<evalitem> | (<nestableevalitem> ("["<innerevalspec>"]")*) ["," <argslist>]
+
+<evalitem> := <constant> | "*"
+
+<sad> := ("SORT" | "ARRANGE") "BY" <simpleproj> | "DISTINCT" [<simpleproj>]

@@ -1,0 +1,451 @@
+Pig Change Log
+
+Trunk (unreleased changes)
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+    PIG-554 Added fragment replicate map side join (shravanmn via pkamath and gates)
+
+	PIG-620: Added MaxTupleBy1stField UDF to piggybank (vzaliva via gates)
+
+	PIG-692: When running a job from a script, use the name of that script as
+	the default name for the job (vzaliva via gates)
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+  	PIG-24 Files that were incorrectly placed under test/reports have been
+	removed.  ant clean now cleans test/reports.  (milindb via gates)
+
+	PIG-25 com.yahoo.pig dir left under pig/test by mistake. removed it (olgan@)
+
+	PIG-23 Made pig work with java 1.5. (milindb via gates)
+
+	PIG-8 added binary comparator (olgan)
+
+	PIG-17 integrated with Hadoop 0.15 (olgan@)
+
+    PIG-11 Add capability to search for jar file to register. (antmagna via
+	olgan)
+
+	PIG-20 Added custom comparator functions for order by (phunt via gates)
+
+	PIG-33 Help was commented out - uncommented (olgan)
+
+	PIG-31: second half of concurrent mode problem addressed (olgan)
+
+	PIG-14: added heartbeat functionality (olgan)
+
+	PIG-17: updated hadoop15.jar to match hadoop 0.15.1 release
+
+	PIG-7: Added use of combiner in some restricted cases. (gates)
+	
+	PIG-29: fixed bag factory to be properly initialized (utkarsh)
+
+    PIG-43: fixed problem where using the combiner prevented a pig alias
+    from being evaluated more than once. (gates)
+
+    PIG-45: Fixed pig.pl to not assume hodrc file is named the same as
+    cluster name (gates).
+
+    PIG-7 (more): Fixed bug in PigCombiner where it was writing IndexedTuples
+    instead of Tuples, causing Reducer to crash in some cases.
+
+    PIG-47: Added methods to DataMap to provide access to its content
+
+	PIG-12: Added time stamps to log4j messages (phunt via gates).
+
+	PIG-44: Added adaptive decision of the number of records to hold in memory 
+	before spilling (utkarsh)
+    PIG-39: created more efficient version of read (spullara via olgan)
+
+    PIG-41: Added patterns to svn:ignore
+
+    PIG-51: Fixed combiner in the presence of flattening
+
+	PIG-30: Rewrote DataBags to better handle decisions of when to spill to
+	disk and to spill more intelligently. (gates)
+
+	PIG-61: Fixed MapreducePlanCompiler to use PigContext to load up the
+	comparator function instead of Class.forName.  (gates)
+
+	PIG-56: Made DataBag implement Iterable. (groves via gates)
+
+	PIG-63: Fix for non-ascii UTF-8 data (breed@ and olgan@)
+
+	PIG-77: Added eclipse specific files to svn:ignore
+
+	PIG-57: Fixed NPE in PigContext.fixUpDomain (francisoud via gates)
+
+	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
+
+	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arun
+	via olgan)
+
+	PIG-32: ABstraction layer (olgan)
+
+	PIG-87: Fix pig.pl to find java via JAVA_HOME instead of hardcoded default
+	path.  Also fix it to not die if pigclient.conf is missing. (craigm via
+	gates).
+
+	PIG-89: Fix DefaultDataBag, DistinctDataBag, SortedDataBag to close spill
+	files when they are done spilling (contributions by craigm, breed, and
+	gates, committed by gates).
+
+	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
+
+	PIG-65: convert tabs to spaces (groves via olgan)
+
+	PIG-97: Turn off combiner in the case of Cogroup, as it doesn't work when
+	more than one bag is involved (gates).
+
+	PIG-92: Fix NullPointerException in PIgContext due to uninitialized conf
+	reference. (francisoud via gates)
+
+	PIG-83: Change everything except grunt and Main (PigServer on down) to use
+	common logging abstraction instead of log4j.  By default in grunt, log4j
+	still used as logging layer.  Also converted all System.out/err.println
+	statements to use logging instead. (francisoud via gates)
+
+	PIG-80: In a number of places stack trace information was being lost by an
+	exception being caught, and a different exception then thrown.  All those
+	locations have been changed so that the new exception now wraps the old.
+	(francisoud via gates).
+
+	PIG-84: Converted printStackTrace calls to calls to the logger.
+	(francisoud via gates).
+
+	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
+
+	PIG-99: Fix to make unit tests not run out of memory. (francisoud via
+	gates).
+
+    PIG-107: enabled several tests. (francisoud via olgan)
+
+    PIG-46: abort processing on error for non-interactive mode (olston via
+    olgan)
+
+    PIG-109: improved exception handling (oae via olgan)
+
+	PIG-72: Move unit tests to use MiniDFS and MiniMR so that unit tests can
+	be run w/o access to a hadoop cluster. (xuzh via gates)
+
+    PIG-68: improvements to build.xml (joa23 via olgan)
+
+	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
+	flattening the combiner case. (gates and oae)
+
+    PIG-213: Remove non-static references to logger from data bags and tuples, 
+    as it causes significant overhead (vgeschel via gates).
+
+    PIG-284: target for building source jar (oae via olgan)
+
+    PIG-294: string comparator unit tests (sms via pi_song)
+
+    PIG-258: cleaning up directories on failure (daijy via olgan)
+
+    PIG-139: command line editing (daijy via olgan)
+
+    PIG-270: proper line number for parse errors (daijy via olgan)
+
+    PIG-363: fix for describe to produce schema name
+
+    PIG-367: convinience function for UDFs to name schema
+
+    PIG-368: making JobConf available to Load/Store UDFs
+
+    PIG-311: cross is broken
+
+    PIG-369: support for filter UDFs
+
+    PIG-375: support for implicit split
+
+    PIG-301: fix for order by descending
+
+    PIG-378: fix for GENERATE + LIMIT
+
+    PIG-362: don't push limit above generate with flatten
+
+    PIG-381: bincond does not handle null data
+
+    PIG-382: bincond throws typecast exception
+
+    PIG-352: java.lang.ClassCastException when invalid field is accessed
+
+    PIG-329: TestStoreOld, 2 unit tests were broken
+
+    PIG-353: parsing of complex types
+
+    PIG-392: error handling with multiple MRjobs
+
+    PIG-397: code defaults to single reducer
+
+    PIG-373: unconnected load causes problem,
+
+    PIG-413: problem with float sum
+
+    PIG-398: Expressions not allowed inside foreach (sms via olgan)
+
+    PIG-418: divide by 0 problem
+
+    PIG-402: order by with user comparator (shravanmn via olgan)
+
+    PIG-415: problem with comparators (shravanmn via olgan)
+
+    PIG-422: cross is broken (shravanmn via olgan)
+
+    PIG-407: need to clone operators (pradeepkth via olgan)
+
+    PIG-428: TypeCastInserter does not replace projects in inner plans
+    correctly (pradeepkth vi olgan)
+
+    PIG-421: error with complex nested plan (sms via olgan)
+    
+    PIG-429: Self join wth implicit split has the join output in wrong order
+    (pradeepkth via olgan)
+
+    PIG-434: short-circuit AND and OR (pradeepkth viia olgan)
+
+    PIG-333: allowing no parethesis with single column alias with flatten (sms
+    via olgan)
+
+    PIG-426: Adding result of two UDFs gives a syntax error
+
+    PIG-426: Adding result of two UDFs gives a syntax error (sms via olgan)
+
+    PIG-436: alias is lost when single column is flattened (pradeepkth via
+    olgan)
+
+    PIG-364: Limit return incorrect records when we use multiple reducer
+    (daijy via olgan)
+
+    PIG-439: disallow alias renaming (pradeepkth via olgan)
+
+    PIG-440: Exceptions from UDFs inside a foreach are not captured (pradeepkth
+    via olgan)
+
+    PIG-442: Disambiguated alias after a foreach flatten is not accessible a
+    couple of statements after the foreach (sms via olgan)
+
+    PIG-424: nested foreach with flatten and agg gives an error (sms via
+    olgan)
+
+    PIG-411: Pig leaves HOD processes behind if Ctrl-C is used before HOD
+    connection is fully established (olgan)
+
+    PIG-430: Projections in nested filter and inside foreach do not work (sms
+    via olgan)
+
+    PIG-445: Null Pointer Exceptions in the mappers leading to lot of retries
+    (shravanmn via olgan)
+
+    PIG-444: job.jar is left behined (pradeepkth via olgan)
+
+    PIG-447: improved error messages (pradeepkth via olgan)
+
+    PIG-448: explain broken after load with types (pradeepkth via olgan)
+
+    PIG-380: invalid schema for databag constant (sms via olgan)
+
+    PIG-451: If an field is part of group followed by flatten, then referring
+    to it causes a parse error (pradeepkth via olgan)
+
+    PIG-455: "group" alias is lost after a flatten(group) (pradeepkth vi olgan)
+
+    PIG-458: integration with Hadoop 18 (olgan)
+
+    PIG-459: increased sleep time before checking for job progress
+
+    PIG-462: LIMIT N should create one output file with N rows (shravanmn via
+    olgan)
+
+    PIG-443:  Illustrate for the Types branch (shubham via olgan)
+    
+    PIG-376: set job name (olgan)
+
+    PIG-463: POCast changes (pradeepkth via olgan)
+
+    PIG-427: casting input to UDFs
+     
+    PIG-437: as in alias names causing problems (sms via olgan)
+
+    PIG-54: MIN/MAX don't deal with invalid data (pradeepkth via olgan)
+
+    PIG-470: TextLoader should produce bytearrays (sms via olgan)
+
+    PIG-335: lineage (sms vi olgan)
+
+    PIG-464: bag schema definition (pradeepkth via olgan)
+
+    PIG-457: report 100% on successful jobs only (shravanmn via olgan)
+
+    PIG-471: ignoring status errors from hadoop (pradeepkth via olgan)
+
+    PIG-465: performance improvement - removing keys from the value (pradeepkth
+    via olgan)
+    
+    PIG-489: (*) processing (sms via olgan)
+
+    PIG-475: missing heartbeats (shravanmn via olgan)
+
+    PIG-468: make determine Schema work for BinStorage (pradeepkth via olgan)
+
+    PIG-494: invalid handling of UTF-8 data in PigStorage (pradeepkth via olgan)
+
+    PIG-501: Make branches/types work under cygwin (daijy via olgan)
+
+    PIG-504: cleanup illustrate not to produce cn= (shubham via olgan)
+
+    PIG-469: make sure that describe says "int" not "integer" (sms via olgan)
+
+    PIG-495: projecting of bags only give 1 field (olgan)
+
+    PIG-500: Load Func for POCast is not being set in some cases (sms via
+    olgan)
+
+    PIG-499: parser issue with as (sms via olgan)
+
+    PIG-507: permission error not reported (pradeepkth via olgan)
+
+    PIG-508: problem with double joins (pradeepkth via olgan)
+
+    PIG-497: problems with UTF8 handling in BinStorage (pradeepkth via olgan)
+
+    PIG-505: working with map elements (sms via olgan)
+
+    PIG-517: load functiin with parameters does not work with cast (pradeepkth
+    via olgan)
+
+    PIG-525: make sure cast for udf parameters works (olgan)
+
+    PIG-512: Expressions in foreach lead to errors (sms via olgan)
+
+    PIG-528: use UDF return in schema computation (sms via olgan)
+
+    PIG-527: allow PigStorage to write out complex output (sms via olgan)
+
+    PIG-537: Failure in Hadoop map collect stage due to type mismatch in the
+    keys used in cogroup (pradeepkth vi olgan)
+
+    PIG-538: support for null constants (pradeepkth via olgan)
+
+    PIG-385: more null handling (pradeepkth via olgan)
+
+    PIG-546: FilterFunc calls empty constructor when it should be calling
+    parameterized constructor (sms via olgan)
+
+    PIG-449: Schemas for bags should contain tuples all the time (pradeepkth via
+    olgan)
+
+    PIG-501: make unit tests run under windows (daijy via olgan)
+
+	PIG-543: Restore local mode to truly run locally instead of use map
+	reduce. (shubhamc via gates)
+
+	PIG-556: Changed FindQuantiles to report progress.  Fixed issue with null
+	reporter being passed to EvalFuncs. (gates)
+
+	PIG-6: Add load support from hbase (hustlmsp via gates).
+
+    PIG-522: make negation work (pradeepkth via olgan)
+
+    PIG-563: support for multiple combiner invocations (pradeepkth via olgan)
+
+    PIG-580: using combiner to compute distinct aggs (pradeepkth via olgan)
+
+    PIG-558: Distinct followed by a Join results in Invalid size 0 for a tuple
+    error (pradeepkth via olgan)
+
+	PIG-572 A PigServer.registerScript() method, which lets a client
+	programmatically register a Pig Script.  (shubhamc via gates)
+
+    PIG-570:  problems with handling bzip data (breed via olgan)
+
+	PIG-599: Added buffering to BufferedPositionedInputStream (gates)
+
+    PIG-597: Fix for how * is treated by UDFs (shravanmn via olgan)
+
+    PIG-629: performance improvement: getting rid of targeted tuple (pradeepkth
+    via olgan)
+
+    PIG-623: Fix spelling errors in output messages (tomwhite via sms)
+
+    PIG-622: Include pig executable in distribution (tomwhite via sms)
+
+    PIG-628: misc performance improvements (pradeepkth via olgan)
+    
+    PIG-589: error handling, phase 1-2 (sms via olgan)
+
+    PIG-615: Wrong number of jobs with limit (shravanmn via sms)
+
+    PIG-635: POCast.java has incorrect formatting (sms)
+
+    PIG-634: When POUnion is one of the roots of a map plan, POUnion.getNext()
+    gives a null pointer exception (pradeepkth)
+
+    PIG-632: Improved error message for binary operators (sms)
+
+    PIG-636: Performance improvement: Use lightweight bag implementations which do not
+    register with SpillableMemoryManager with Combiner (pradeepkth)
+
+    PIG-631: 4 Unit test failures on Windows (daijy)
+
+    PIG-645:  Streaming is broken with the latest trunk (pradeepkth)
+
+    PIG-646: Distinct UDF should report progress (sms)
+
+    PIG-647: memory sized passed on pig command line does not get propagated
+    to JobConf (sms)
+
+    PIG-648: BinStorage fails when it finds markers unexpectedly in the data
+    (pradeepkth)
+
+    PIG-649: RandomSampleLoader does not handle skipping correctly in
+    getNext() (pradeepkth)
+
+    PIG-560: UTFDataFormatException (encoded string too long) is thrown when
+    storing strings > 65536 bytes (in UTF8 form) using BinStorage() (sms)
+
+    PIG-642: Limit after FRJ causes problems (daijy)
+
+    PIG-637: Limit broken after order by in the local mode (shubhamc via
+    olgan)
+
+    PIG-553: EvalFunc.finish() not getting called (shravanmn via sms)
+
+    PIG-654: Optimize build.xml (daijy)
+
+    PIG-574: allowing to run scripts from within grunt shell (hagleitn via
+    olgan)
+
+    PIG-665: Map key type not correctly set (for use when key is null) when
+    map plan does not have localrearrange (pradeepkth)
+
+    PIG-590: error handling on the backend (sms via olgan)
+
+    PIG-590: error handling on the backend (sms)
+
+    PIG-545: PERFORMANCE: Sampler for order bys does not produce a good
+    distribution (pradeepkth)
+
+    PIG-658: Data type long : When 'L' or 'l' is included with data 
+    (123L or 123l) load produces null value. Also the case with Float (thejas
+    via sms)
+
+    PIG-591: Error handling phase four (sms via pradeepkth)
+
+    PIG-664: Semantics of * is not consistent (sms)
+
+    PIG-684: outputSchema method in TOKENIZE is broken (thejas via sms)
+
+    PIG-655: Comparison of schemas of bincond operands is flawed (sms via
+    pradeepkth)
+
+    PIG-691: BinStorage skips tuples when ^A is present in data (pradeepkth
+    via sms)
+
+    PIG-577: outer join query looses name information (sms via pradeepkth)
+
+    PIG-690: UNION doesn't work in the latest code (pradeepkth via sms)
