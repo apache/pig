@@ -751,11 +751,9 @@ public class PigServer {
             if(leaves.size() == 1) {
                 leaf = leaves.get(0);
             } else {
-                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
-                    LogicalOperator leafOp = it.next();
-                    if(leafOp.getAlias().equals(alias))
-                        leaf = leafOp;
-                }
+                // should have exactly one leaf since we asked for a
+                // specific alias.
+                throw new AssertionError("Ceci n'est pas un bug.");
             }
             
             lp = QueryParser.generateStorePlan(scope, lp, "fakefile", 

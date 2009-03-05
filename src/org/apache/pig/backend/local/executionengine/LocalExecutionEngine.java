@@ -49,7 +49,6 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LocalLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
@@ -151,7 +150,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
                 String scope = leaf.getOperatorKey().getScope();
                 POStore str = new POStore(new OperatorKey(scope,
                         NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                         pigContext).toString(), new FuncSpec(BinStorage.class
                         .getName()));
@@ -161,7 +159,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
                 spec = ((POStore) leaf).getSFile();
             }
 
-            // LocalLauncher launcher = new LocalLauncher();
             LocalPigLauncher launcher = new LocalPigLauncher();
             boolean success = launcher.launchPig(plan, jobName, pigContext);
             if (success)
@@ -189,7 +186,6 @@ public class LocalExecutionEngine implements ExecutionEngine {
         try {
             ExecTools.checkLeafIsStore(plan, pigContext);
 
-            // LocalLauncher launcher = new LocalLauncher();
             LocalPigLauncher launcher = new LocalPigLauncher();
             launcher.explain(plan, pigContext, stream, 
                              format, isVerbose);

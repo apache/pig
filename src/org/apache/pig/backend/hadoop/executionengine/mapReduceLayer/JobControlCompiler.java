@@ -22,12 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -53,6 +49,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TupleFactory;
@@ -104,85 +101,121 @@ public class JobControlCompiler{
 
     public static final String LOG_DIR = "_logs";
 
+    private List<Path> tmpPath;
+    private Path curTmpPath;
+
+    public JobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
+        this.pigContext = pigContext;
+        this.conf = conf;
+        tmpPath = new LinkedList<Path>();
+    }
+
+    /**
+     * Moves all the results of a collection of MR jobs to the final
+     * output directory. Some of the results may have been put into a
+     * temp location to work around restrictions with multiple output
+     * from a single map reduce job.
+     *
+     * This method should always be called after the job execution
+     * completes.
+     */
+    public void moveResults() throws IOException {
+        if (curTmpPath != null) {
+            tmpPath.add(curTmpPath);
+            curTmpPath = null;
+        }
+
+        for (Path tmp: tmpPath) {
+            Path abs = new Path(tmp, "abs");
+            Path rel = new Path(tmp, "rel");
+            FileSystem fs = tmp.getFileSystem(conf);
+
+            if (fs.exists(abs)) {
+                moveResults(abs, abs.toUri().getPath(), fs);
+            }
+            
+            if (fs.exists(rel)) {        
+                moveResults(rel, rel.toUri().getPath()+"/", fs);
+            }
+        }
+        tmpPath = new LinkedList<Path>();
+    }
+
+    /**
+     * Walks the temporary directory structure to move (rename) files
+     * to their final location.
+     */
+    private void moveResults(Path p, String rem, FileSystem fs) throws IOException {
+        for (FileStatus fstat: fs.listStatus(p)) {
+            Path src = fstat.getPath();
+            if (fstat.isDir()) {
+                fs.mkdirs(removePart(src, rem));
+                moveResults(fstat.getPath(), rem, fs);
+            } else {
+                Path dst = removePart(src, rem);
+                fs.rename(src,dst);
+            }
+        }
+    }
+
+    private Path removePart(Path src, String part) {
+        URI uri = src.toUri();
+        String pathStr = uri.getPath().replace(part, "");
+        return new Path(pathStr);
+    }
+
+    private void makeTmpPath() throws IOException {
+        if (curTmpPath != null) {
+            tmpPath.add(curTmpPath);
+        }
+
+        for (int tries = 0;;) {
+            try {
+                curTmpPath = 
+                    new Path(FileLocalizer
+                             .getTemporaryPath(null, pigContext).toString());
+                FileSystem fs = curTmpPath.getFileSystem(conf);
+                curTmpPath = curTmpPath.makeQualified(fs);
+                fs.mkdirs(curTmpPath);
+                break;
+            } catch (IOException ioe) {
+                if (++tries==100) {
+                    throw ioe;
+                }
+            }
+        }
+    }
+
     /**
      * The map between MapReduceOpers and their corresponding Jobs
      */
     Map<OperatorKey, Job> seen = new Hashtable<OperatorKey, Job>();
     
     /**
-     * Top level compile method that issues a call to the recursive
-     * compile method.
+     * Compiles all jobs that have no dependencies removes them from
+     * the plan and returns. Should be called with the same plan until
+     * exhausted. 
      * @param plan - The MROperPlan to be compiled
      * @param grpName - The name given to the JobControl
-     * @param conf - The Configuration object having the various properties
-     * @param pigContext - PigContext passed on from the execution engine
-     * @return JobControl object
+     * @return JobControl object - null if no more jobs in plan
      * @throws JobCreationException
      */
-    public JobControl compile(MROperPlan plan, String grpName, Configuration conf, PigContext pigContext) throws JobCreationException{
+    public JobControl compile(MROperPlan plan, String grpName) throws JobCreationException{
         this.plan = plan;
-        this.conf = conf;
-        this.pigContext = pigContext;
-        JobControl jobCtrl = new JobControl(grpName);
-        
-        List<MapReduceOper> leaves ;
-        leaves = plan.getLeaves();
-        
-        for (MapReduceOper mro : leaves) {
-            jobCtrl.addJob(compile(mro,jobCtrl));
+
+        if (plan.size() == 0) {
+            return null;
         }
-        return jobCtrl;
-    }
-    
-    /**
-     * The recursive compilation method that works by doing a depth first 
-     * traversal of the MROperPlan. Compiles a Job for the input MapReduceOper
-     * with the dependencies maintained in jobCtrl
-     * @param mro - Input MapReduceOper for which a Job needs to be compiled
-     * @param jobCtrl - The running JobCtrl object to maintain dependencies b/w jobs
-     * @return Job corresponding to the input mro
-     * @throws JobCreationException
-     */
-    private Job compile(MapReduceOper mro, JobControl jobCtrl) throws JobCreationException {
-        List<MapReduceOper> pred = plan.getPredecessors(mro);
-        
-        JobConf currJC = null;
-        
-        try{
-            if(pred==null || pred.size()<=0){
-                //No dependencies! Create the JobConf
-                //Construct the Job object with it and return
-                Job ret = null;
-                if(seen.containsKey(mro.getOperatorKey()))
-                    ret = seen.get(mro.getOperatorKey());
-                else{
-                    currJC = getJobConf(mro, conf, pigContext);
-                    ret = new Job(currJC,null);
-                    seen.put(mro.getOperatorKey(), ret);
-                }
-                return ret;
+
+        JobControl jobCtrl = new JobControl(grpName);
+
+        try {
+            List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
+            roots.addAll(plan.getRoots());
+            for (MapReduceOper mro: roots) {
+                jobCtrl.addJob(new Job(getJobConf(mro, conf, pigContext)));
+                plan.remove(mro);
             }
-            
-            //Has dependencies. So compile all the inputs
-            List<Job> compiledInputs = new ArrayList<Job>(pred.size());
-            
-            for (MapReduceOper oper : pred) {
-                Job ret = null;
-                if(seen.containsKey(oper.getOperatorKey()))
-                    ret = seen.get(oper.getOperatorKey());
-                else{
-                    ret = compile(oper, jobCtrl);
-                    jobCtrl.addJob(ret);
-                    seen.put(oper.getOperatorKey(),ret);
-                }
-                compiledInputs.add(ret);
-            }
-            //Get JobConf for the current MapReduceOper
-            currJC = getJobConf(mro, conf, pigContext);
-            
-            //Create a new Job with the obtained JobConf
-            //and the compiled inputs as dependent jobs
-            return new Job(currJC,(ArrayList<Job>)compiledInputs);
         } catch (JobCreationException jce) {
         	throw jce;
         } catch(Exception e) {
@@ -190,8 +223,10 @@ public class JobControlCompiler{
             String msg = "Internal error creating job configuration.";
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
+
+        return jobCtrl;
     }
-    
+        
     /**
      * The method that creates the JobConf corresponding to a MapReduceOper.
      * The assumption is that
@@ -225,10 +260,10 @@ public class JobControlCompiler{
         jobConf.setUser(user != null ? user : "Pigster");
         
         //Process the POLoads
-        List<PhysicalOperator> lds = getRoots(mro.mapPlan);
+        List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
+
         if(lds!=null && lds.size()>0){
-            for (PhysicalOperator operator : lds) {
-                POLoad ld = (POLoad)operator;
+            for (POLoad ld : lds) {
                 
                 Pair<FileSpec, Boolean> p = new Pair<FileSpec, Boolean>(ld.getLFile(), ld.isSplittable());
                 //Store the inp filespecs
@@ -275,27 +310,49 @@ public class JobControlCompiler{
             jobConf.setOutputFormat(PigOutputFormat.class);
             
             //Process POStore and remove it from the plan
-            POStore st = null;
-            if(mro.reducePlan.isEmpty()){
-                st = (POStore) mro.mapPlan.getLeaves().get(0);
-                mro.mapPlan.remove(st);
-            }
-            else{
-                st = (POStore) mro.reducePlan.getLeaves().get(0);
-                mro.reducePlan.remove(st);
-            }
-            //set out filespecs
-            String outputPath = st.getSFile().getFileName();
-            FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
-            FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
-            jobConf.set("pig.storeFunc", outputFuncSpec.toString());
+            List<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
+            List<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
 
-            // Setup the logs directory for streaming jobs
-            jobConf.set("pig.streaming.log.dir", 
-                        new Path(new Path(outputPath), LOG_DIR).toString());
-            jobConf.set("pig.streaming.task.output.dir", outputPath);
+            if (mapStores.size() + reduceStores.size() == 1) { // single store case
+                log.info("Setting up single store job");
+                
+                POStore st;
+                if (reduceStores.isEmpty()) {
+                    st = mapStores.remove(0);
+                    mro.mapPlan.remove(st);
+                }
+                else {
+                    st = reduceStores.remove(0);
+                    mro.reducePlan.remove(st);
+                }
+                String outputPath = st.getSFile().getFileName();
+                FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
+                FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
+                jobConf.set("pig.storeFunc", outputFuncSpec.toString());
+                
+                jobConf.set("pig.streaming.log.dir", 
+                            new Path(outputPath, LOG_DIR).toString());
+                jobConf.set("pig.streaming.task.output.dir", outputPath);
+            } 
+           else { // multi store case
+                log.info("Setting up multi store job");
 
-            
+                makeTmpPath();
+                FileSystem fs = curTmpPath.getFileSystem(conf);
+                for (POStore st: mapStores) {
+                    Path tmpOut = new Path(
+                        curTmpPath,
+                        PlanHelper.makeStoreTmpPath(st.getSFile().getFileName()));
+                    fs.mkdirs(tmpOut);
+                }
+
+                FileOutputFormat.setOutputPath(jobConf, curTmpPath);
+
+                jobConf.set("pig.streaming.log.dir", 
+                            new Path(curTmpPath, LOG_DIR).toString());
+                jobConf.set("pig.streaming.task.output.dir", curTmpPath.toString());
+           }
+
             // store map key type
             // this is needed when the key is null to create
             // an appropriate NullableXXXWritable object

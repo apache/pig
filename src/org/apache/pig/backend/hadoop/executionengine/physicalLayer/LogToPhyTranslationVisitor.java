@@ -1169,7 +1169,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         POStore store = new POStore(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)));
         store.setSFile(loStore.getOutputFile());
-        store.setPc(pc);
         currentPlan.add(store);
         
         List<LogicalOperator> op = loStore.getPlan().getPredecessors(loStore); 

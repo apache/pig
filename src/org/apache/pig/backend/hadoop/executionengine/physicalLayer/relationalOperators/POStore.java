@@ -45,20 +45,13 @@ import org.apache.pig.impl.plan.VisitorException;
  *
  */
 public class POStore extends PhysicalOperator {
-    /**
-     * 
-     */
+
     private static final long serialVersionUID = 1L;
-    // The user defined load function or a default load function
-    private StoreFunc storer;
-    // The filespec on which the operator is based
-    FileSpec sFile;
-    // The stream used to bind to by the loader
-    OutputStream os;
-    // PigContext passed to us by the operator creator
-    PigContext pc;
-    
+    private static Result empty = new Result(POStatus.STATUS_NULL, null);
+    private StoreFunc storer;    
     private final Log log = LogFactory.getLog(getClass());
+    private POStoreImpl impl;
+    private FileSpec sFile;
     
     public POStore(OperatorKey k) {
         this(k, -1, null);
@@ -73,87 +66,56 @@ public class POStore extends PhysicalOperator {
     }
     
     /**
-     * Set up the storer by 
-     * 1) Instantiating the store func
-     * 2) Opening an output stream to the specified file and
-     * 3) Binding to the output stream
+     * Set up the storer
      * @throws IOException
      */
-    private void setUp() throws IOException{
-        storer = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
-        os = FileLocalizer.create(sFile.getFileName(), pc);
-        storer.bindTo(os);
+    public void setUp() throws IOException{
+        if (impl != null) {
+            storer = impl.createStoreFunc(sFile);
+        }
     }
     
     /**
-     * At the end of processing, the outputstream is closed
-     * using this method
+     * Called at the end of processing for clean up.
      * @throws IOException
      */
-    private void tearDown() throws IOException{
-        os.close();
-    }
+    public void tearDown() throws IOException{
+        if (impl != null) {
+            impl.tearDown();
+        }
+   }
     
     /**
      * To perform cleanup when there is an error.
-     * Uses the FileLocalizer method which only 
-     * deletes the file but not the dirs created
-     * with it.
      * @throws IOException
      */
-    private void cleanUp() throws IOException{
-        String fName = sFile.getFileName();
-        os.flush();
-        if(FileLocalizer.fileExists(fName,pc))
-            FileLocalizer.delete(fName,pc);
+    public void cleanUp() throws IOException{
+        if (impl != null) {
+            impl.cleanUp();
+        }
     }
     
-    /**
-     * The main method used by the local execution engine
-     * to store tuples into the specified file using the
-     * specified store function. One call to this method
-     * retrieves all tuples from its predecessor operator
-     * and stores it into the file till it recieves an EOP.
-     * 
-     * If there is an error, the cleanUp routine is called
-     * and then the tearDown is called to close the OutputStream
-     * 
-     * @return Whatever the predecessor returns
-     *          A null from the predecessor is ignored
-     *          and processing of further tuples continued
-     */
-    public Result store() throws ExecException{
-        try{
-            setUp();
-        }catch (IOException e) {
-            ExecException ee = new ExecException("Unable to setup the storer because of the exception: " + e.getMessage());
-            ee.initCause(e);
-            throw ee;
+    @Override
+    public Result getNext(Tuple t) throws ExecException {
+        Result res = processInput();
+        try {
+            switch (res.returnStatus) {
+            case POStatus.STATUS_OK:
+                storer.putNext((Tuple)res.result);
+                res = empty;
+                break;
+            case POStatus.STATUS_EOP:
+                break;
+            case POStatus.STATUS_ERR:
+            case POStatus.STATUS_NULL:
+            default:
+                break;
+            }
+        } catch (IOException ioe) {
+            log.error("Received error from storer function: " + ioe);
+            throw new ExecException(ioe);
         }
-        try{
-            Result res;
-            Tuple inpValue = null;
-            while(true){
-                res = processInput();
-                if(res.returnStatus==POStatus.STATUS_OK)
-                    storer.putNext((Tuple)res.result);
-                else if(res.returnStatus==POStatus.STATUS_NULL)
-                    continue;
-                else
-                    break;
-            }
-            if(res.returnStatus==POStatus.STATUS_EOP){
-                storer.finish();
-            }
-            else{
-                cleanUp();
-            }
-            tearDown();
-            return res;
-        }catch(IOException e){
-            log.error("Received error from storer function: " + e);
-            return new Result();
-        }
+        return res;
     }
 
     @Override
@@ -174,12 +136,6 @@ public class POStore extends PhysicalOperator {
         return false;
     }
 
-    public StoreFunc getStorer() {
-        return storer;
-    }
-
-    
-
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitStore(this);
@@ -189,16 +145,11 @@ public class POStore extends PhysicalOperator {
         return sFile;
     }
 
-    public void setSFile(FileSpec file) {
-        sFile = file;
+    public void setSFile(FileSpec sFile) {
+        this.sFile = sFile;
     }
 
-    public PigContext getPc() {
-        return pc;
+    public void setStoreImpl(POStoreImpl impl) {
+        this.impl = impl;
     }
-
-    public void setPc(PigContext pc) {
-        this.pc = pc;
-    }
-
 }

@@ -21,6 +21,7 @@ package org.apache.pig.backend.local.executionengine;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.BitSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,13 +33,16 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
 public class LocalPigLauncher extends Launcher {
-
-    Log log = LogFactory.getLog(getClass());
+    private static final Tuple DUMMYTUPLE = null;
+    private Log log = LogFactory.getLog(getClass());
+    List<POStore> stores;
 
     @Override
     public void explain(PhysicalPlan pp, PigContext pc, PrintStream ps,
@@ -53,16 +57,16 @@ public class LocalPigLauncher extends Launcher {
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException {
         // TODO Auto-generated method stub
-        List<PhysicalOperator> stores = php.getLeaves();
+        stores = PlanHelper.getStores(php);
         int noJobs = stores.size();
         int failedJobs = 0;
 
-        for (PhysicalOperator op : stores) {
-            POStore store = (POStore) op;
-            Result res = store.store();
-            if (res.returnStatus != POStatus.STATUS_EOP)
-                failedJobs++;
+        for (POStore op : stores) {
+            op.setStoreImpl(new LocalPOStoreImpl(pc));
+            op.setUp();
         }
+
+        failedJobs = runPipeline(stores.toArray(new POStore[0]));
 
         if (failedJobs == 0) {
             log.info("100% complete!");
@@ -76,4 +80,36 @@ public class LocalPigLauncher extends Launcher {
 
     }
 
+    private int runPipeline(POStore[] leaves) throws IOException, ExecException {
+        BitSet bs = new BitSet(leaves.length);
+        int failed = 0;
+        while(true) {
+            if (bs.cardinality() == leaves.length) {
+                break;
+            }
+            for(int i=bs.nextClearBit(0); i<leaves.length; i=bs.nextClearBit(i+1)) {
+                Result res = leaves[i].getNext(DUMMYTUPLE);
+                switch(res.returnStatus) {
+                case POStatus.STATUS_NULL:
+                    // good null from store means keep at it.
+                    continue;
+                case POStatus.STATUS_OK:
+                    // ok shouldn't happen store should have consumed it.
+                    // fallthrough
+                case POStatus.STATUS_ERR:
+                    leaves[i].cleanUp();
+                    leaves[i].tearDown();
+                    failed++;
+                    // fallthrough
+                case POStatus.STATUS_EOP:
+                    leaves[i].tearDown();
+                    // fallthrough
+                default:
+                    bs.set(i);
+                    break;
+                }
+            }
+        }
+        return failed;
+    }
 }

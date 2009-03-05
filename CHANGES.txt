@@ -408,3 +408,5 @@ Trunk (unreleased changes)
     PIG-642: Limit after FRJ causes problems (daijy)
 
     PIG-627: multiquery support M1 (hagleitn via olgan)
+
+    PIG-627: multiquery support M2 (hagleitn via pradeepkth)

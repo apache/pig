@@ -302,7 +302,6 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private POStore getStore(){
         POStore st = new POStore(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        st.setPc(pigContext);
         return st;
     }
     
@@ -577,14 +576,6 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
-    /*private void addUDFs(PhysicalPlan plan) throws VisitorException{
-        if(plan!=null){
-            udfFinderForExpr.setPlan(plan);
-            udfFinderForExpr.visit();
-            curMROp.UDFs.addAll(udfFinderForExpr.getUDFs());
-        }
-    }*/
-    
     private void addUDFs(PhysicalPlan plan) throws VisitorException{
         if(plan!=null){
             udfFinder.setPlan(plan);

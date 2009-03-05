@@ -39,6 +39,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.backend.local.executionengine.LocalPigLauncher;
+import org.apache.pig.backend.local.executionengine.LocalPOStoreImpl;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -67,30 +70,34 @@ public class TestStore extends junit.framework.TestCase {
         st.setSFile(fSpec);
         pc = new PigContext();
         pc.connect();
-        st.setPc(pc);
+        st.setStoreImpl(new LocalPOStoreImpl(pc));
         
         proj = GenPhyOp.exprProject();
         proj.setColumn(0);
         proj.setResultType(DataType.TUPLE);
         proj.setOverloaded(true);
         List<PhysicalOperator> inps = new ArrayList<PhysicalOperator>();
-        inps.add(proj);
-        st.setInputs(inps);
-        
     }
 
     @After
     public void tearDown() throws Exception {
     }
 
+    private boolean store() throws Exception {
+        PhysicalPlan pp = new PhysicalPlan();
+        pp.add(proj);
+        pp.add(st);
+        pp.connect(proj, st);
+        return new LocalPigLauncher().launchPig(pp, "TestStore", pc);
+    }
+
     @Test
-    public void testStore() throws ExecException, IOException {
+    public void testStore() throws Exception {
         inpDB = GenRandomData.genRandSmallTupDataBag(new Random(), 10, 100);
         Tuple t = new DefaultTuple();
         t.append(inpDB);
         proj.attachInput(t);
-        Result res = st.store();
-        assertEquals(POStatus.STATUS_EOP, res.returnStatus);
+        assertTrue(store());
         
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader("/tmp/storeTest.txt"));
@@ -112,13 +119,12 @@ public class TestStore extends junit.framework.TestCase {
     }
 
     @Test
-    public void testStoreComplexData() throws ExecException, IOException {
+    public void testStoreComplexData() throws Exception {
         inpDB = GenRandomData.genRandFullTupTextDataBag(new Random(), 10, 100);
         Tuple t = new DefaultTuple();
         t.append(inpDB);
         proj.attachInput(t);
-        Result res = st.store();
-        assertEquals(POStatus.STATUS_EOP, res.returnStatus);
+        assertTrue(store());
         PigStorage ps = new PigStorage(":");
         
         int size = 0;
@@ -144,15 +150,14 @@ public class TestStore extends junit.framework.TestCase {
     }
 
     @Test
-    public void testStoreComplexDataWithNull() throws ExecException, IOException {
+    public void testStoreComplexDataWithNull() throws Exception {
         Tuple inputTuple = GenRandomData.genRandSmallBagTextTupleWithNulls(new Random(), 10, 100);
         inpDB = DefaultBagFactory.getInstance().newDefaultBag();
         inpDB.add(inputTuple);
         Tuple t = new DefaultTuple();
         t.append(inpDB);
         proj.attachInput(t);
-        Result res = st.store();
-        assertEquals(POStatus.STATUS_EOP, res.returnStatus);
+        assertTrue(store());
         PigStorage ps = new PigStorage(":");
         
         int size = 0;

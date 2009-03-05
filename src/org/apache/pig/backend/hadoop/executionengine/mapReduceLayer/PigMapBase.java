@@ -39,8 +39,11 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
@@ -54,6 +57,10 @@ public abstract class PigMapBase extends MapReduceBase{
     
     //Map Plan
     protected PhysicalPlan mp;
+
+    // Store operators
+    protected List<POStore> stores;
+
     protected TupleFactory tf = TupleFactory.getInstance();
     
     OutputCollector<PigNullableWritable, Writable> outputCollector;
@@ -77,7 +84,7 @@ public abstract class PigMapBase extends MapReduceBase{
     @Override
     public void close() throws IOException {
         super.close();
-        PhysicalOperator.setReporter(null);
+
         if(errorInMap) {
             //error in map - returning
             return;
@@ -100,7 +107,19 @@ public abstract class PigMapBase extends MapReduceBase{
             }
         }
         mp = null;
-        
+
+        for (POStore store: stores) {
+            if (!initialized) {
+                MapReducePOStoreImpl impl 
+                    = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                store.setStoreImpl(impl);
+                store.setUp();
+            }
+            store.tearDown();
+        }
+
+        PhysicalOperator.setReporter(null);
+        initialized = false;
     }
 
     /**
@@ -113,8 +132,9 @@ public abstract class PigMapBase extends MapReduceBase{
         SpillableMemoryManager.configure(ConfigurationUtil.toProperties(job));
         PigMapReduce.sJobConf = job;
         try {
-            mp = (PhysicalPlan) ObjectSerializer.deserialize(job
-                    .get("pig.mapPlan"));
+            mp = (PhysicalPlan) ObjectSerializer.deserialize(
+                job.get("pig.mapPlan"));
+            stores = PlanHelper.getStores(mp);
             
             // To be removed
             if(mp.isEmpty())
@@ -166,6 +186,13 @@ public abstract class PigMapBase extends MapReduceBase{
             this.outputCollector = oc;
             pigReporter.setRep(reporter);
             PhysicalOperator.setReporter(pigReporter);
+            for (POStore store: stores) {
+                MapReducePOStoreImpl impl 
+                    = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                impl.setReporter(reporter);
+                store.setStoreImpl(impl);
+                store.setUp();
+            }
         }
         
         if(mp.isEmpty()){

@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.LinkedList;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,7 +59,7 @@ public class MapReduceLauncher extends Launcher{
                                                    IOException,
                                                    ExecException,
                                                    JobCreationException {
-        long sleepTime = 5000;
+        long sleepTime = 500;
         MROperPlan mrp = compile(php, pc);
         
         ExecutionEngine exe = pc.getExecutionEngine();
@@ -66,30 +67,38 @@ public class MapReduceLauncher extends Launcher{
         Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
         JobClient jobClient = ((HExecutionEngine)exe).getJobClient();
 
-        JobControlCompiler jcc = new JobControlCompiler();
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
-        JobControl jc = jcc.compile(mrp, grpName, conf, pc);
-        
-        int numMRJobs = jc.getWaitingJobs().size();
-        
-        new Thread(jc).start();
-
+        List<Job> failedJobs = new LinkedList<Job>();
+        List<Job> succJobs = new LinkedList<Job>();
+        JobControl jc;
+        int numMRJobs = mrp.size();
         double lastProg = -1;
-        int perCom = 0;
-        while(!jc.allFinished()){
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {}
-            double prog = calculateProgress(jc, jobClient)/numMRJobs;
-            if(prog>=(lastProg+0.01)){
-                perCom = (int)(prog * 100);
-                if(perCom!=100)
-                    log.info( perCom + "% complete");
+
+        while((jc = jcc.compile(mrp, grpName)) != null) {
+            numMRJobs += jc.getWaitingJobs().size();
+
+            new Thread(jc).start();
+            
+            while(!jc.allFinished()){
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {}
+                double prog = calculateProgress(jc, jobClient)/numMRJobs;
+                if(prog>=(lastProg+0.01)){
+                    int perCom = (int)(prog * 100);
+                    if(perCom!=100)
+                        log.info( perCom + "% complete");
+                }
+                lastProg = prog;
             }
-            lastProg = prog;
+            failedJobs.addAll(jc.getFailedJobs());
+            succJobs.addAll(jc.getSuccessfulJobs());
+            jcc.moveResults();
+            jc.stop(); 
         }
+
         // Look to see if any jobs failed.  If so, we need to report that.
-        List<Job> failedJobs = jc.getFailedJobs();
         if (failedJobs != null && failedJobs.size() > 0) {
             log.error("Map reduce job failed");
             for (Job fj : failedJobs) {
@@ -100,13 +109,12 @@ public class MapReduceLauncher extends Launcher{
             return false;
         }
 
-        List<Job> succJobs = jc.getSuccessfulJobs();
-        if(succJobs!=null)
+        if(succJobs!=null) {
             for(Job job : succJobs){
                 getStats(job,jobClient, false);
             }
+        }
 
-        jc.stop(); 
         log.info( "100% complete");
         log.info("Success!");
         return true;
