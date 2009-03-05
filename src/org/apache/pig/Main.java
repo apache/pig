@@ -264,6 +264,11 @@ public static void main(String args[])
 
             logFileName = validateLogFile(logFileName, file);
             pigContext.getProperties().setProperty("pig.logfile", logFileName);
+
+            // Set job name based on name of the script
+            pigContext.getProperties().setProperty(PigContext.JOB_NAME, 
+                                                   "PigLatin:" +new File(file).getName()
+            );
             
             if (!debug)
                 new File(substFile).deleteOnExit();
@@ -338,6 +343,11 @@ public static void main(String args[])
 
             if (!debug)
                 new File(substFile).deleteOnExit();
+
+            // Set job name based on name of the script
+            pigContext.getProperties().setProperty(PigContext.JOB_NAME, 
+                                                   "PigLatin:" +new File(remainders[0]).getName()
+            );
 
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;

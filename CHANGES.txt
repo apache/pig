@@ -10,6 +10,9 @@ Trunk (unreleased changes)
 
 	PIG-620: Added MaxTupleBy1stField UDF to piggybank (vzaliva via gates)
 
+	PIG-692: When running a job from a script, use the name of that script as
+	the default name for the job (vzaliva via gates)
+
   OPTIMIZATIONS
 
   BUG FIXES
