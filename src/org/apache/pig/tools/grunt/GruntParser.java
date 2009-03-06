@@ -61,6 +61,7 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.impl.util.LogUtils;
 
 public class GruntParser extends PigScriptParser {
 
@@ -110,7 +111,7 @@ public class GruntParser extends PigScriptParser {
             }
             catch(Exception e)
             {
-                Exception pe = Utils.getPermissionException(e);
+                Exception pe = LogUtils.getPermissionException(e);
                 if (pe != null)
                     log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
                 else {

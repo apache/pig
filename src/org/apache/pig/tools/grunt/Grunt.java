@@ -35,7 +35,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.tools.pigscript.parser.*;
 import org.apache.pig.impl.logicalLayer.parser.TokenMgrError;
-
+import org.apache.pig.impl.util.LogUtils;
 
 public class Grunt 
 {
@@ -69,7 +69,7 @@ public class Grunt
                 parser.parseStopOnError();
                 break;                            
             } catch(Throwable t) {
-                Utils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
+                LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
                 parser.ReInit(in);
             }
         }
@@ -81,7 +81,7 @@ public class Grunt
             parser.setInteractive(false);
             parser.parseStopOnError();
         } catch (Throwable t) {
-            Utils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
+            LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
             throw (t);
         }
     }

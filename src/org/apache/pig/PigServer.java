@@ -67,7 +67,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.grunt.GruntParser;
 
 
@@ -311,7 +311,7 @@ public class PigServer {
                     aliasesMap, opTableMap, aliasOpMap, startLine);
         } catch (ParseException e) {
             //throw (IOException) new IOException(e.getMessage()).initCause(e);
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             int errCode = 1000;
             String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);

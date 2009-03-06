@@ -29,8 +29,11 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.logging.Log;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -43,6 +46,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -53,6 +57,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
 
     Iterator<Tuple>     i              = null;
     protected BufferedPositionedInputStream in = null;
+    private static final Log mLog = LogFactory.getLog(BinStorage.class);
     private DataInputStream inData = null;
     protected long                end            = Long.MAX_VALUE;
     
@@ -125,75 +130,115 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         t.write(out);
     }
 
-    public DataBag bytesToBag(byte[] b) throws IOException {
+    public DataBag bytesToBag(byte[] b){
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (DataBag)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return DataReaderWriter.bytesToBag(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to bag, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }        
     }
 
-    public String bytesToCharArray(byte[] b) throws IOException {
+    public String bytesToCharArray(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (String)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return DataReaderWriter.bytesToCharArray(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to chararray, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Double bytesToDouble(byte[] b) throws IOException {
+    public Double bytesToDouble(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Double)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return new Double(dis.readDouble());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to double, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Float bytesToFloat(byte[] b) throws IOException {
+    public Float bytesToFloat(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Float)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return new Float(dis.readFloat());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to float, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+            
+            return null;
         }
     }
 
-    public Integer bytesToInteger(byte[] b) throws IOException {
+    public Integer bytesToInteger(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Integer)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return new Integer(dis.readInt());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to integer, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Long bytesToLong(byte[] b) throws IOException {
+    public Long bytesToLong(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Long)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return new Long(dis.readLong());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to long, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<Object, Object> bytesToMap(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Map<Object, Object>)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return DataReaderWriter.bytesToMap(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to map, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Tuple bytesToTuple(byte[] b) throws IOException {
+    public Tuple bytesToTuple(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Tuple)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            throw ee;
+            return DataReaderWriter.bytesToTuple(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to tuple, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
