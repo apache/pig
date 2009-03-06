@@ -72,11 +72,13 @@ public class MapReduceLauncher extends Launcher{
         List<Job> failedJobs = new LinkedList<Job>();
         List<Job> succJobs = new LinkedList<Job>();
         JobControl jc;
-        int numMRJobs = mrp.size();
+        int totalMRJobs = mrp.size();
+        int numMRJobsCompl = 0;
+        int numMRJobsCurrent = 0;
         double lastProg = -1;
 
         while((jc = jcc.compile(mrp, grpName)) != null) {
-            numMRJobs += jc.getWaitingJobs().size();
+            numMRJobsCurrent = jc.getWaitingJobs().size();
 
             new Thread(jc).start();
             
@@ -84,7 +86,7 @@ public class MapReduceLauncher extends Launcher{
                 try {
                     Thread.sleep(sleepTime);
                 } catch (InterruptedException e) {}
-                double prog = calculateProgress(jc, jobClient)/numMRJobs;
+                double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
                 if(prog>=(lastProg+0.01)){
                     int perCom = (int)(prog * 100);
                     if(perCom!=100)
@@ -92,6 +94,7 @@ public class MapReduceLauncher extends Launcher{
                 }
                 lastProg = prog;
             }
+            numMRJobsCompl += numMRJobsCurrent;
             failedJobs.addAll(jc.getFailedJobs());
             succJobs.addAll(jc.getSuccessfulJobs());
             jcc.moveResults();

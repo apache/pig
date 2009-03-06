@@ -90,6 +90,23 @@ public class GruntParser extends PigScriptParser {
 
     private void init() {
         mDone = false;
+        mLoadOnly = false;
+    }
+
+    private void setBatchOn() {
+        mPigServer.setBatchOn();
+    }
+
+    private void executeBatch() throws IOException {
+        if (mPigServer.isBatchOn() && !mLoadOnly) {
+            mPigServer.executeBatch();
+        }
+    }
+
+    private void discardBatch() throws IOException {
+        if (mPigServer.isBatchOn()) {
+            mPigServer.discardBatch();
+        }
     }
     
     /** 
@@ -106,7 +123,7 @@ public class GruntParser extends PigScriptParser {
         }
 
         if (!mInteractive) {
-            mPigServer.setBatchOn();
+            setBatchOn();
         }
 
         try {
@@ -115,21 +132,17 @@ public class GruntParser extends PigScriptParser {
             while(!mDone) {
                 parse();
             }
-        } catch(IOException e) {
-            if (!mInteractive) {
-                mPigServer.discardBatch();
-            }
-            throw e;
-        } catch (ParseException e) {
-            if (!mInteractive) {
-                mPigServer.discardBatch();
-            }
-            throw e;
+            
+            executeBatch();
+        } 
+        finally {
+            discardBatch();
         }
+    }
 
-        if (!mInteractive) {
-            mPigServer.executeBatch();
-        }
+    public void setLoadOnly(boolean loadOnly) 
+    {
+        mLoadOnly = loadOnly;
     }
 
     public void setParams(PigServer pigServer)
@@ -183,14 +196,14 @@ public class GruntParser extends PigScriptParser {
         PrintStream out = System.out;
 
         if (script != null) {
-            mPigServer.setBatchOn();
+            setBatchOn();
             try {
-                loadScript(script, true, params, files);
+                loadScript(script, true, true, params, files);
             } catch(IOException e) {
-                mPigServer.discardBatch();
+                discardBatch();
                 throw e;
             } catch (ParseException e) {
-                mPigServer.discardBatch();
+                discardBatch();
                 throw e;
             }
         }
@@ -215,7 +228,7 @@ public class GruntParser extends PigScriptParser {
         }
         mPigServer.explain(alias, format, isVerbose, out, out, out);
         if (script != null) {
-            mPigServer.discardBatch();
+            discardBatch();
         }
     }
     
@@ -246,25 +259,26 @@ public class GruntParser extends PigScriptParser {
                                  List<String> params, List<String> files) 
         throws IOException, ParseException {
         
+        if (script == null) {
+            executeBatch();
+            return;
+        }
+        
         if (batch) {
-            mPigServer.setBatchOn();
+            setBatchOn();
             try {
-                loadScript(script, true, params, files);
-            } catch (IOException e) {
-                mPigServer.discardBatch();
-                throw e;
-            } catch (ParseException e) {
-                mPigServer.discardBatch();
-                throw e;
+                loadScript(script, true, mLoadOnly, params, files);
+                executeBatch();
+            } finally {
+                discardBatch();
             }
-            mPigServer.executeBatch();
         } else {
-            loadScript(script, false, params, files);
+            loadScript(script, false, mLoadOnly, params, files);
         }
     }
 
-    private void loadScript(String script, boolean batch, 
-                                 List<String> params, List<String> files) 
+    private void loadScript(String script, boolean batch, boolean loadOnly,
+                            List<String> params, List<String> files) 
         throws IOException, ParseException {
         
         Reader inputReader;
@@ -299,6 +313,7 @@ public class GruntParser extends PigScriptParser {
         parser.setParams(mPigServer);
         parser.setConsoleReader(reader);
         parser.setInteractive(interactive);
+        parser.setLoadOnly(loadOnly);
         
         parser.prompt();
         while(!parser.isDone()) {
@@ -344,6 +359,8 @@ public class GruntParser extends PigScriptParser {
     
     protected void processCat(String path) throws IOException
     {
+        executeBatch();
+
         try {
             byte buffer[] = new byte[65536];
             ElementDescriptor dfsPath = mDfs.asElement(path);
@@ -518,6 +535,8 @@ public class GruntParser extends PigScriptParser {
 
     protected void processMove(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mDfs.asElement(src);
             ElementDescriptor dstPath = mDfs.asElement(dst);
@@ -535,6 +554,8 @@ public class GruntParser extends PigScriptParser {
     
     protected void processCopy(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mDfs.asElement(src);
             ElementDescriptor dstPath = mDfs.asElement(dst);
@@ -548,6 +569,8 @@ public class GruntParser extends PigScriptParser {
     
     protected void processCopyToLocal(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mDfs.asElement(src);
             ElementDescriptor dstPath = mLfs.asElement(dst);
@@ -561,6 +584,8 @@ public class GruntParser extends PigScriptParser {
 
     protected void processCopyFromLocal(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mLfs.asElement(src);
             ElementDescriptor dstPath = mDfs.asElement(dst);
@@ -596,6 +621,8 @@ public class GruntParser extends PigScriptParser {
     protected void processRemove(String path, String options ) throws IOException
     {
         ElementDescriptor dfsPath = mDfs.asElement(path);
+
+        executeBatch();
         
         if (!dfsPath.exists()) {
             if (options == null || !options.equalsIgnoreCase("force")) {
@@ -614,5 +641,6 @@ public class GruntParser extends PigScriptParser {
     private Properties mConf;
     private JobClient mJobClient;
     private boolean mDone;
+    private boolean mLoadOnly;
 
 }

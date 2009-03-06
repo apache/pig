@@ -71,7 +71,7 @@ public class TestMultiQueryLocal extends TestCase {
 
             myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 500;");
+            myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
             myPig.registerQuery("c = group b by gid;");
             myPig.registerQuery("store c into '/tmp/output2';");
@@ -81,9 +81,6 @@ public class TestMultiQueryLocal extends TestCase {
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 10);
 
-            // XXX MR plan doesn't seem to work in the local case
-            checkMRPlan(pp, 2, 2, 2);
-
             Assert.assertTrue(executePlan(pp));
 
         } catch (Exception e) {
@@ -91,6 +88,22 @@ public class TestMultiQueryLocal extends TestCase {
             Assert.fail();
         } finally {
             deleteOutputFiles();
+        }
+    }
+
+    @Test
+    public void testEmptyExecute() {
+        System.out.println("=== test empty execute ===");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.executeBatch();
+            myPig.executeBatch();
+            myPig.discardBatch();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
         }
     }
 
@@ -104,12 +117,40 @@ public class TestMultiQueryLocal extends TestCase {
 
             myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 500;");
+            myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
             myPig.registerQuery("c = group b by gid;");
             myPig.registerQuery("store c into '/tmp/output2';");
 
             myPig.executeBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            deleteOutputFiles();
+        }
+    }
+
+    @Test
+    public void testMultiQueryWithTwoStores2Execs() {
+
+        System.out.println("===== test multi-query with 2 stores (2) =====");
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+            myPig.registerQuery("b = filter a by uid > 5;");
+            myPig.executeBatch();
+            myPig.registerQuery("store b into '/tmp/output1';");
+            myPig.executeBatch();
+            myPig.registerQuery("c = group b by gid;");
+            myPig.registerQuery("store c into '/tmp/output2';");
+
+            myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,19 +170,16 @@ public class TestMultiQueryLocal extends TestCase {
 
             myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 500;");
+            myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
-            myPig.registerQuery("c = filter b by uid > 1000;");
+            myPig.registerQuery("c = filter b by uid > 10;");
             myPig.registerQuery("store c into '/tmp/output2';");
-            myPig.registerQuery("d = filter c by uid > 1500;");
+            myPig.registerQuery("d = filter c by uid > 15;");
             myPig.registerQuery("store d into '/tmp/output3';");
 
             LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
-
-            // XXX MR plan doesn't seem to work in the local case
-            checkMRPlan(pp, 3, 3, 3);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -163,14 +201,15 @@ public class TestMultiQueryLocal extends TestCase {
 
             myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 500;");
+            myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
-            myPig.registerQuery("c = filter b by uid > 1000;");
+            myPig.registerQuery("c = filter b by uid > 10;");
             myPig.registerQuery("store c into '/tmp/output2';");
-            myPig.registerQuery("d = filter c by uid > 1500;");
+            myPig.registerQuery("d = filter c by uid > 15;");
             myPig.registerQuery("store d into '/tmp/output3';");
 
             myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -192,8 +231,8 @@ public class TestMultiQueryLocal extends TestCase {
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd2' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("c = filter a by uid > 500;");
-            myPig.registerQuery("d = filter b by uid > 1000;");
+            myPig.registerQuery("c = filter a by uid > 5;");
+            myPig.registerQuery("d = filter b by uid > 10;");
             myPig.registerQuery("store c into '/tmp/output1';");
             myPig.registerQuery("store d into '/tmp/output2';");
             myPig.registerQuery("e = cogroup c by uid, d by uid;");
@@ -203,9 +242,6 @@ public class TestMultiQueryLocal extends TestCase {
 
             // XXX the total number of ops is one less in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 18);
-
-            // XXX MR plan doesn't seem to work in the local case
-            checkMRPlan(pp, 4, 4, 4);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -229,14 +265,15 @@ public class TestMultiQueryLocal extends TestCase {
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd2' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("c = filter a by uid > 500;");
-            myPig.registerQuery("d = filter b by uid > 1000;");
+            myPig.registerQuery("c = filter a by uid > 5;");
+            myPig.registerQuery("d = filter b by uid > 10;");
             myPig.registerQuery("store c into '/tmp/output1';");
             myPig.registerQuery("store d into '/tmp/output2';");
             myPig.registerQuery("e = cogroup c by uid, d by uid;");
             myPig.registerQuery("store e into '/tmp/output3';");
 
             myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -256,15 +293,13 @@ public class TestMultiQueryLocal extends TestCase {
 
             myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 500;");
+            myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("group b by gid;");
 
             LogicalPlan lp = checkLogicalPlan(0, 0, 0);
 
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 0, 0, 0);
-
-            //checkMRPlan(pp, 0, 0, 0);
 
             //Assert.assertTrue(executePlan(pp));
 
@@ -284,10 +319,11 @@ public class TestMultiQueryLocal extends TestCase {
 
             myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 500;");
+            myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("group b by gid;");
 
             myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -304,7 +340,7 @@ public class TestMultiQueryLocal extends TestCase {
         try {
             String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
-                          + "b = filter a by uid > 500;"
+                          + "b = filter a by uid > 5;"
                           + "explain b;"
                           + "store b into '/tmp/output1';\n";
             
@@ -329,7 +365,7 @@ public class TestMultiQueryLocal extends TestCase {
         try {
             String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
-                          + "b = filter a by uid > 500;"
+                          + "b = filter a by uid > 5;"
                           + "dump b;"
                           + "store b into '/tmp/output1';\n";
             
@@ -354,7 +390,7 @@ public class TestMultiQueryLocal extends TestCase {
         try {
             String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
-                          + "b = filter a by uid > 500;"
+                          + "b = filter a by uid > 5;"
                           + "describe b;"
                           + "store b into '/tmp/output1';\n";
             
@@ -379,7 +415,7 @@ public class TestMultiQueryLocal extends TestCase {
         try {
             String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
-                          + "b = filter a by uid > 500;"
+                          + "b = filter a by uid > 5;"
                           + "illustrate b;"
                           + "store b into '/tmp/output1';\n";
             
@@ -465,25 +501,6 @@ public class TestMultiQueryLocal extends TestCase {
         showPlanOperators(pp);
 
         return pp;
-    }
-
-    private MROperPlan checkMRPlan(PhysicalPlan pp, int expectedRoots,
-            int expectedLeaves, int expectedSize) throws IOException {
-
-        System.out.println("===== check map-reduce plan =====");
-
-        ExecTools.checkLeafIsStore(pp, myPig.getPigContext());
-        
-        MRCompiler mrcomp = new MRCompiler(pp, myPig.getPigContext());
-        MROperPlan mrp = mrcomp.compile();
-
-        Assert.assertEquals(expectedRoots, mrp.getRoots().size());
-        Assert.assertEquals(expectedLeaves, mrp.getLeaves().size());
-        Assert.assertEquals(expectedSize, mrp.size());
-
-        showPlanOperators(mrp);
-
-        return mrp;
     }
 
     private boolean executePlan(PhysicalPlan pp) throws IOException {

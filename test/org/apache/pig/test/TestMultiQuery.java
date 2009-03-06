@@ -94,6 +94,22 @@ public class TestMultiQuery extends TestCase {
     }
 
     @Test
+    public void testEmptyExecute() {
+        System.out.println("=== test empty execute ===");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.executeBatch();
+            myPig.executeBatch();
+            myPig.discardBatch();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+        
+    @Test
     public void testMultiQueryWithTwoStores2() {
 
         System.out.println("===== test multi-query with 2 stores (2) =====");
@@ -109,6 +125,34 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("store c into '/tmp/output2';");
 
             myPig.executeBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            deleteOutputFiles();
+        }
+    }
+
+    @Test
+    public void testMultiQueryWithTwoStores2Execs() {
+
+        System.out.println("===== test multi-query with 2 stores (2) =====");
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+            myPig.registerQuery("b = filter a by uid > 5;");
+            myPig.executeBatch();
+            myPig.registerQuery("store b into '/tmp/output1';");
+            myPig.executeBatch();
+            myPig.registerQuery("c = group b by gid;");
+            myPig.registerQuery("store c into '/tmp/output2';");
+
+            myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -169,6 +213,7 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("store d into '/tmp/output3';");
 
             myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -233,6 +278,7 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("store e into '/tmp/output3';");
 
             myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -283,6 +329,7 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("group b by gid;");
 
             myPig.executeBatch();
+            myPig.discardBatch();
 
         } catch (Exception e) {
             e.printStackTrace();

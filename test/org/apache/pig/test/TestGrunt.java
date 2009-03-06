@@ -471,4 +471,50 @@ public class TestGrunt extends TestCase {
     
         grunt.exec();
     }
+
+    @Test
+    public void testPartialExecution() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "rmf bar; rmf baz; a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"store a into 'bar'; exec; a = load 'bar'; store a into 'baz';\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testFileCmds() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = 
+            "rmf bar; rmf baz;"
+            +"a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"store a into 'bar';"
+            +"cp bar baz;"
+            +"rm bar; rm baz;"
+            +"store a into 'baz';"
+            +"store a into 'bar';"
+            +"rm baz; rm bar;"
+            +"store a into 'baz';"
+            +"mv baz bar;"
+            +"b = load 'bar';"
+            +"store b into 'baz';"
+            +"cat baz;"
+            +"rm baz;"
+            +"rm bar;\n";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
 }

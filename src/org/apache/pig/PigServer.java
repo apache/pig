@@ -191,12 +191,7 @@ public class PigServer {
             throw new IllegalStateException("setBatchOn() must be called first.");
         }
         
-        try {
-            currDAG.execute();
-        } finally {
-            log.info("Delete the current graph.");
-            currDAG = graphs.pop();
-        }
+        currDAG.execute();
     }
 
     /**
@@ -332,62 +327,13 @@ public class PigServer {
     }
  
     public LogicalPlan clonePlan(String alias) throws IOException {
-        // There are two choices on how we clone the logical plan
-        // 1 - we really clone each operator and connect up the cloned operators
-        // 2 - we cache away the script till the point we need to clone
-        // and then simply re-parse the script. 
-        // The latter approach is used here
-        // FIXME: There is one open issue with this now:
-        // Consider the following script:
-        // A = load 'file:/somefile';
-        // B = filter A by $0 > 10;
-        // store B into 'bla';
-        // rm 'file:/somefile';
-        // A = load 'file:/someotherfile'
-        // when we try to clone - we try to reparse
-        // from the beginning and currently the parser
-        // checks for file existence of files in the load
-        // in the case where the file is a local one -i.e. with file: prefix
-        // This will be a known issue now and we will need to revisit later
-        
-        // parse each line of the cached script and the
-        // final logical plan is the clone that we want
-        LogicalPlan lp = null;
-        int lineNumber = 1;
-        
-        // create data structures needed for parsing        
-        Graph graph = new Graph(true);
-        
-        for (Iterator<String> it = currDAG.getScriptCache().iterator(); it.hasNext(); lineNumber++) {
-            if (isBatchOn()) {
-                graph.registerQuery(it.next(), lineNumber);
-            } else {
-                lp = graph.parseQuery(it.next(), lineNumber);
-            }
-        }
-        
-        if(alias == null) {
-            // a store prompted the execution - so return
-            // the entire logical plan
-            if (isBatchOn()) {
-                lp = new LogicalPlan();
-                for (LogicalPlan lpPart : graph.getStoreOpTable().values()) {
-                    lp.mergeSharedPlan(lpPart);
-                }
-            }
+        Graph graph = currDAG.clone();
 
-            return lp;
-        } else {
-            // return the logical plan corresponding to the 
-            // alias supplied
-            LogicalOperator op = graph.getAliasOp().get(alias);
-            if(op == null) {
-                int errCode = 1003;
-                String msg = "Unable to find an operator for alias " + alias;
-                throw new FrontendException(msg, errCode, PigException.INPUT);
-            }
-            return graph.getAliases().get(op);
+        if (graph == null) {
+            throw new AssertionError("Re-parsing has failed");
         }
+
+        return graph.getPlan(alias);
     }
     
     public void registerQuery(String query) throws IOException {
@@ -435,20 +381,6 @@ public class PigServer {
      * result
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
-        if (isBatchOn()) {
-            log.info("Skip DUMP command in batch mode.");
-            return new Iterator<Tuple>() {
-                public boolean hasNext() {
-                    return false;
-                }
-                public Tuple next() {
-                    return null;
-                }
-                public void remove() {
-                }
-            };
-        }
-
         try {
             LogicalOperator op = currDAG.getAliasOp().get(id);
             if(null == op) {
@@ -913,13 +845,20 @@ public class PigServer {
         private String jobName;
         
         private boolean batchMode;
-      
+
+        private int processedStores;
+
+        private int ignoreNumStores;
+        
+        private LogicalPlan lp;
         
         Graph(boolean batchMode) { 
             this.batchMode = batchMode;
+            this.processedStores = 0;
+            this.ignoreNumStores = 0;
             this.jobName = "DefaultJobName";
+            this.lp = new LogicalPlan();
         };
-        
         
         Map<LogicalOperator, LogicalPlan> getAliases() { return aliases; }
         
@@ -936,25 +875,42 @@ public class PigServer {
         void execute() throws ExecException, FrontendException {
             pigContext.getProperties().setProperty(PigContext.JOB_NAME, PigContext.JOB_NAME_PREFIX + ":" + jobName);
             PigServer.this.execute(null);
+            processedStores = storeOpTable.keySet().size();
         }
 
         void setJobName(String name) {
             jobName = name;
         }
 
+        LogicalPlan getPlan(String alias) throws IOException {
+            LogicalPlan plan = lp;
+                
+            if (alias != null) {
+                LogicalOperator op = aliasOp.get(alias);
+                if(op == null) {
+                    int errCode = 1003;
+                    String msg = "Unable to find an operator for alias " + alias;
+                    throw new FrontendException(msg, errCode, PigException.INPUT);
+                }
+                plan = aliases.get(op);
+            }
+            return plan;
+        }
+
         void registerQuery(String query, int startLine) throws IOException {
             
-            LogicalPlan lp = parseQuery(query, startLine);
+            LogicalPlan tmpLp = parseQuery(query, startLine);
             
             // store away the query for use in cloning later
             scriptCache.add(query);
-            if (lp.getLeaves().size() == 1) {
-                LogicalOperator op = lp.getSingleLeafPlanOutputOp();
-
+            if (tmpLp.getLeaves().size() == 1) {
+                LogicalOperator op = tmpLp.getSingleLeafPlanOutputOp();
+                
                 // Check if we just processed a LOStore i.e. STORE
                 if (op instanceof LOStore) {
 
                     if (!batchMode) {
+                        lp = tmpLp;
                         try {
                             execute();
                         } catch (Exception e) {
@@ -965,9 +921,13 @@ public class PigServer {
                                     PigException.INPUT, e);
                         }
                     } else {
-                        storeOpTable.put(op, lp);
+                        if (0 == ignoreNumStores) {
+                            storeOpTable.put(op, tmpLp);
+                            lp.mergeSharedPlan(tmpLp);
+                        } else {
+                            --ignoreNumStores;
+                        }
                     }
-
                 }
             }
         }        
@@ -990,6 +950,47 @@ public class PigServer {
                 String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
                 throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
             }
+        }
+
+        protected Graph clone() {
+            // There are two choices on how we clone the logical plan
+            // 1 - we really clone each operator and connect up the cloned operators
+            // 2 - we cache away the script till the point we need to clone
+            // and then simply re-parse the script. 
+            // The latter approach is used here
+            // FIXME: There is one open issue with this now:
+            // Consider the following script:
+            // A = load 'file:/somefile';
+            // B = filter A by $0 > 10;
+            // store B into 'bla';
+            // rm 'file:/somefile';
+            // A = load 'file:/someotherfile'
+            // when we try to clone - we try to reparse
+            // from the beginning and currently the parser
+            // checks for file existence of files in the load
+            // in the case where the file is a local one -i.e. with file: prefix
+            // This will be a known issue now and we will need to revisit later
+            
+            // parse each line of the cached script
+            int lineNumber = 1;
+            
+            // create data structures needed for parsing        
+            Graph graph = new Graph(true);
+            graph.ignoreNumStores = processedStores;
+            graph.processedStores = processedStores;
+            
+            try {
+                for (Iterator<String> it = getScriptCache().iterator(); it.hasNext(); lineNumber++) {
+                    if (isBatchOn()) {
+                        graph.registerQuery(it.next(), lineNumber);
+                    } else {
+                        graph.lp = graph.parseQuery(it.next(), lineNumber);
+                    }
+                }
+            } catch (IOException ioe) {
+                graph = null;
+            }
+            return graph;
         }
     }
 }

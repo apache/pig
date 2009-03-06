@@ -530,7 +530,7 @@ void Explain() throws IOException:
 void Script() throws IOException:
 {
     Token t;
-    String script;
+    String script = null;
     boolean batch = false;
     ArrayList<String> params;
     ArrayList<String> files;
@@ -556,8 +556,10 @@ void Script() throws IOException:
 		t = GetPath()
 		{files.add(t.image);}
 	)*
-	t = GetPath()
-	{script = t.image;}
+	(
+		t = GetPath()
+		{script = t.image;}
+	)?
 	{processScript(script, batch, params, files);}
 }
 
