@@ -38,7 +38,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -222,7 +222,7 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         } catch(Exception e) {
             exceptionCaused = true;
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("{float,double}, {float,long}"));
@@ -307,7 +307,7 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
@@ -328,7 +328,7 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
@@ -349,7 +349,7 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Could not infer the matching function"));
         }
@@ -461,7 +461,7 @@ public class TestBestFitCast extends TestCase {
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double}"));
@@ -637,7 +637,7 @@ public class TestBestFitCast extends TestCase {
         try{
             pigServer.openIterator("B");
         }catch (Exception e) {
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertEquals(true,msg.contains("as multiple or none of them fit"));
         }
@@ -691,7 +691,7 @@ public class TestBestFitCast extends TestCase {
         try{
             pigServer.openIterator("B");
         }catch (Exception e) {
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertEquals(true,msg.contains("Multiple matching functions"));
         }

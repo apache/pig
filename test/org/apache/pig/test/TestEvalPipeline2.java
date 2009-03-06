@@ -21,6 +21,7 @@ import static org.apache.pig.ExecType.MAPREDUCE;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Random;
@@ -33,6 +34,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.Identity;
+import org.apache.pig.builtin.BinStorage;
 
 import junit.framework.TestCase;
 
@@ -91,5 +93,167 @@ public class TestEvalPipeline2 extends TestCase {
         assertEquals(LOOP_COUNT, numIdentity);
 
     }
+    @Test
+    public void testBinStorageByteArrayCastsSimple() throws IOException {
+        // Test for PIG-544 fix
+        // Tries to read data in BinStorage bytearrays as other pig types,
+        // should return null if the conversion fails.
+        // This test case does not use a practical example , it just tests
+        // if the conversion happens when minimum conditions for conversion
+        // such as expected number of bytes are met.
+        String[] input = {
+                    "asdf\t12\t1.1\t231\t234", 
+                    "sa\t1231\t123.4\t12345678\t1234.567",
+                    "asdff\t1232123\t1.45345\t123456789\t123456789.9"
+                    };
+        
+        Util.createInputFile(cluster, "table_bs_ac", input);
 
+        // test with BinStorage
+        pigServer.registerQuery("a = load 'table_bs_ac';");
+        String output = "/pig/out/TestEvalPipeline2_BinStorageByteArrayCasts";
+        pigServer.deleteFile(output);
+        pigServer.store("a", output, BinStorage.class.getName());
+
+        pigServer.registerQuery("b = load '" + output + "' using BinStorage() "
+                + "as (name: int, age: int, gpa: float, lage: long, dgpa: double);");
+        
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        
+        Tuple tup=null;
+        
+        // I have separately verified only few of the successful conversions,
+        // assuming the rest are correct.
+        // It is primarily testing if null is being returned when conversions
+        // are expected to fail
+        
+        //tuple 1 
+        tup = it.next();
+
+        
+        //1634952294 is integer whose  binary represtation is same as that of "asdf"
+        // other columns are returning null because they have less than num of bytes
+        //expected for the corresponding numeric type's binary respresentation.
+        assertTrue( (Integer)tup.get(0) == 1634952294); 
+        assertTrue(tup.get(1) == null);
+        assertTrue(tup.get(2) == null);
+        assertTrue(tup.get(3) == null);
+        assertTrue(tup.get(4) == null);
+        
+        //tuple 2 
+        tup = it.next();
+        assertTrue(tup.get(0) == null);
+        assertTrue( (Integer)tup.get(1) == 825373489);
+        assertTrue( (Float)tup.get(2) == 2.5931501E-9F);
+        assertTrue( (Long)tup.get(3) == 3544952156018063160L);
+        assertTrue( (Double)tup.get(4) == 1.030084341992388E-71);
+        
+        //tuple 3
+        tup = it.next();
+        // when byte array is larger than required num of bytes for given number type
+        // it uses the required bytes from beginging of byte array for conversion
+        // for example 1634952294 corresponds to first 4 byptes of binary string correspnding to
+        // asdff
+        assertTrue((Integer)tup.get(0) == 1634952294);
+        assertTrue( (Integer)tup.get(1) == 825373490);
+        assertTrue( (Float)tup.get(2) == 2.5350009E-9F);
+        assertTrue( (Long)tup.get(3) == 3544952156018063160L);
+        assertTrue( (Double)tup.get(4) == 1.0300843656201408E-71);
+        
+        Util.deleteFile(cluster, "table");
+    }
+    @Test
+    public void testBinStorageByteArrayCastsComplexBag() throws IOException {
+        // Test for PIG-544 fix
+        
+        // Tries to read data in BinStorage bytearrays as other pig bags,
+        // should return null if the conversion fails.
+        
+        String[] input = {
+                "{(asdf)}",
+                "{(2344)}",
+                "{(2344}",
+                "{(323423423423434)}",
+                "{(323423423423434L)}",
+                "{(asdff)}"
+        };
+        
+        Util.createInputFile(cluster, "table_bs_ac_clx", input);
+
+        // test with BinStorage
+        pigServer.registerQuery("a = load 'table_bs_ac_clx' as (f1);");
+        pigServer.registerQuery("b = foreach a generate (bag{tuple(int)})f1;");
+        
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        
+        Tuple tup=null;
+
+        //tuple 1 
+        tup = it.next();
+        assertTrue(tup.get(0) != null);
+        
+        //tuple 2 
+        tup = it.next();
+        assertTrue(tup.get(0) != null);
+        
+        //tuple 3 - malformed
+        tup = it.next();
+        assertTrue(tup.get(0) == null);
+
+        //tuple 4 - integer exceeds size limit
+        tup = it.next();
+        assertTrue(tup.get(0) == null);
+
+        //tuple 5 
+        tup = it.next();
+        assertTrue(tup.get(0) != null);
+
+        //tuple 6
+        tup = it.next();
+        assertTrue(tup.get(0) != null);
+        
+        Util.deleteFile(cluster, "table_bs_ac_clx");
+    }
+    @Test
+    public void testBinStorageByteArrayCastsComplexTuple() throws IOException {
+        // Test for PIG-544 fix
+        
+        // Tries to read data in BinStorage bytearrays as other pig bags,
+        // should return null if the conversion fails.
+        
+        String[] input = {
+                "(123)",
+                "((123)",
+                "(123123123123)",
+                "(asdf)"
+        };
+        
+        Util.createInputFile(cluster, "table_bs_ac_clxt", input);
+
+        // test with BinStorage
+        pigServer.registerQuery("a = load 'table_bs_ac_clxt' as (t:tuple(t:tuple(i:int)));");
+        Iterator<Tuple> it = pigServer.openIterator("a");
+        
+        Tuple tup=null;
+
+        //tuple 1 
+        tup = it.next();
+        assertTrue(tup.get(0) != null);
+        
+        //tuple 2 -malformed tuple
+        tup = it.next();
+        assertTrue(tup.get(0) == null);
+        
+        //tuple 3 - integer exceeds size limit
+        tup = it.next();
+        assertTrue(tup.get(0) == null);
+
+        //tuple 5 
+        tup = it.next();
+        assertTrue(tup.get(0) != null);
+
+        Util.deleteFile(cluster, "table_bs_ac_clxt");
+    }
+
+    
 }
