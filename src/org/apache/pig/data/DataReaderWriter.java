@@ -38,46 +38,69 @@ public class DataReaderWriter {
     static final int UNSIGNED_SHORT_MAX = 65535;
     static final String UTF8 = "UTF-8";
 
+    public static Tuple bytesToTuple(DataInput in) throws IOException {
+        // Don't use Tuple.readFields, because it requires you to
+        // create a tuple with no size and then append fields.
+        // That's less efficient than allocating the tuple size up
+        // front and then filling in the spaces.
+        // Read the size.
+        int sz = in.readInt();
+        // if sz == 0, we construct an "empty" tuple -
+        // presumably the writer wrote an empty tuple!
+        if (sz < 0) {
+            throw new IOException("Invalid size " + sz + " for a tuple");
+        }
+        Tuple t = mTupleFactory.newTuple(sz);
+        for (int i = 0; i < sz; i++) {
+            t.set(i, readDatum(in));
+        }
+        return t;
+
+    }
+    
+    public static DataBag bytesToBag(DataInput in) throws IOException {
+        DataBag bag = mBagFactory.newDefaultBag();
+        bag.readFields(in);
+        return bag;
+    }
+    
+    public static Map<Object, Object> bytesToMap(DataInput in) throws IOException {
+        int size = in.readInt();    
+        Map<Object, Object> m = new HashMap<Object, Object>(size);
+        for (int i = 0; i < size; i++) {
+            Object key = readDatum(in);
+            m.put(key, readDatum(in));
+        }
+        return m;    
+    }
+    
+    public static String bytesToCharArray(DataInput in) throws IOException{
+        int size = in.readUnsignedShort();
+        byte[] ba = new byte[size];
+        in.readFully(ba);
+        return new String(ba, DataReaderWriter.UTF8);
+    }
+
+    public static String bytesToBigCharArray(DataInput in) throws IOException{
+        int size = in.readInt();
+        byte[] ba = new byte[size];
+        in.readFully(ba);
+        return new String(ba, DataReaderWriter.UTF8);
+    }
+    
+        
     public static Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
         byte b = in.readByte();
         switch (b) {
-            case DataType.TUPLE: {
-                
-                // Don't use Tuple.readFields, because it requires you to
-                // create a tuple with no size and then append fields.
-                // That's less efficient than allocating the tuple size up
-                // front and then filling in the spaces.
-                // Read the size.
-                int sz = in.readInt();
-                // if sz == 0, we construct an "empty" tuple -
-                // presumably the writer wrote an empty tuple!
-                if (sz < 0) {
-                    throw new IOException("Invalid size " + sz +
-                        " for a tuple");
-                }
-                Tuple t = mTupleFactory.newTuple(sz);
-                for (int i = 0; i < sz; i++) {
-                    t.set(i, readDatum(in));
-                }
-                return t;
-                                 }
+            case DataType.TUPLE: 
+                return bytesToTuple(in);
+            
+            case DataType.BAG: 
+                return bytesToBag(in);
 
-            case DataType.BAG: {
-                DataBag bag = mBagFactory.newDefaultBag();
-                bag.readFields(in);
-                return bag;
-                               }
-
-            case DataType.MAP: {
-                int size = in.readInt();
-                Map<Object, Object> m = new HashMap<Object, Object>(size);
-                for (int i = 0; i < size; i++) {
-                    Object key = readDatum(in);
-                    m.put(key, readDatum(in));
-                }
-                return m;
-                               }
+            case DataType.MAP: 
+                return bytesToMap(in);    
 
             case DataType.INTEGER:
                 return new Integer(in.readInt());
@@ -104,21 +127,13 @@ public class DataReaderWriter {
                 return new DataByteArray(ba);
                                      }
 
-            case DataType.BIGCHARARRAY: {
-                int size = in.readInt();
-                byte[] ba = new byte[size];
-                in.readFully(ba);
-            	return new String(ba, DataReaderWriter.UTF8);
-            }
+            case DataType.BIGCHARARRAY: 
+                return bytesToBigCharArray(in);
+            
 
-            case DataType.CHARARRAY: {
-                int size = in.readUnsignedShort();
-                byte[] ba = new byte[size];
-                in.readFully(ba);
-            	return new String(ba, DataReaderWriter.UTF8);
-            }
-
-
+            case DataType.CHARARRAY: 
+                return bytesToCharArray(in);
+            
             case DataType.NULL:
                 return null;
 

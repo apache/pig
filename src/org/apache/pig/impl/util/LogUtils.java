@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.tools.grunt;
+package org.apache.pig.impl.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -24,12 +24,28 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 
-public class Utils {
-    static Exception getPermissionException(Exception top){
+public class LogUtils {
+    
+    public static void warn(Object o, String msg, PigWarning warningEnum, 
+                Log log) {
+        
+        PigLogger pigLogger = PhysicalOperator.getPigLogger();
+        if(pigLogger != null) {
+            pigLogger.warn(o, msg, warningEnum);
+        } else {
+            log.warn(msg); 
+        }           
+    }
+    
+    public static Exception getPermissionException(Exception top){
         Throwable current = top;
 
         while (current != null && (current.getMessage() == null || current.getMessage().indexOf("Permission denied") == -1)){
@@ -62,13 +78,13 @@ public class Utils {
         String message = null;
         
         if(t instanceof Exception) {
-            Exception pe = Utils.getPermissionException((Exception)t);
+            Exception pe = LogUtils.getPermissionException((Exception)t);
             if (pe != null) {
                 log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
             }
         }
 
-        PigException pigException = Utils.getPigException(t);
+        PigException pigException = LogUtils.getPigException(t);
 
         if(pigException != null) {
             message = "ERROR " + pigException.getErrorCode() + ": " + pigException.getMessage();

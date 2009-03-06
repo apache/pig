@@ -449,3 +449,6 @@ Trunk (unreleased changes)
     PIG-577: outer join query looses name information (sms via pradeepkth)
 
     PIG-690: UNION doesn't work in the latest code (pradeepkth via sms)
+
+    PIG-544: Utf8StorageConverter.java does not always produce NULLs when data
+    is malformed(thejas via sms)

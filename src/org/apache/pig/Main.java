@@ -40,7 +40,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.PigCompletor;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
@@ -370,12 +370,12 @@ public static void main(String args[])
             rc = 2;
         }
         if(!gruntCalled) {
-        	Utils.writeLog(pe, logFileName, log, verbose);
+        	LogUtils.writeLog(pe, logFileName, log, verbose);
         }
     } catch (Throwable e) {
         rc = 2;
         if(!gruntCalled) {
-        	Utils.writeLog(e, logFileName, log, verbose);
+        	LogUtils.writeLog(e, logFileName, log, verbose);
         }
     } finally {
         // clear temp files

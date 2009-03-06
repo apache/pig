@@ -47,7 +47,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 
 public abstract class Launcher {
     private static final Log log = LogFactory.getLog(Launcher.class);
@@ -190,7 +190,7 @@ public abstract class Launcher {
                 if(exceptions.size() > 1) {
                     for(int j = 0; j < exceptions.size(); ++j) {
                         String headerMessage = "Error message from task (" + type + ") " + reports[i].getTaskID();
-                        Utils.writeLog(exceptions.get(j), pigContext.getProperties().getProperty("pig.logfile"), log, false, headerMessage, false, false);
+                        LogUtils.writeLog(exceptions.get(j), pigContext.getProperties().getProperty("pig.logfile"), log, false, headerMessage, false, false);
                     }
                     throw exceptions.get(0);
                 } else if(exceptions.size() == 1) {
