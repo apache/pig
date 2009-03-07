@@ -2497,6 +2497,7 @@ ExpressionOperator CastExpr(Schema over, Map<String, LogicalOperator> specs,Logi
     {
         if(castRequired) {
             cast = new LOCast(lp, new OperatorKey(scope, getNextId()), exprOp, fs.type);
+            fs.alias = exprOp.getFieldSchema().alias;
             cast.setFieldSchema(fs);
             lp.add(cast);
 		    log.debug("Added operator " + cast.getClass().getName() + " " + cast + " to logical plan " + lp);
