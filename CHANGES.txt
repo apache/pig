@@ -452,3 +452,5 @@ Trunk (unreleased changes)
 
     PIG-544: Utf8StorageConverter.java does not always produce NULLs when data
     is malformed(thejas via sms)
+
+    PIG-532: Casting a field removes its alias.(thejas via sms)
