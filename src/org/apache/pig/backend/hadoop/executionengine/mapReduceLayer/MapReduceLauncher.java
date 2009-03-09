@@ -241,12 +241,14 @@ public class MapReduceLauncher extends Launcher{
     	RunningJob runningJob = null;
     	try {
     		runningJob = jobClient.getJob(mapRedJobID);
+    		if(runningJob != null) {
     		Counters counters = runningJob.getCounters();
-    		for(Enum e : PigWarning.values()) {
-    			Long currentCount = aggMap.get(e);
-    			currentCount = (currentCount == null? 0 : currentCount);
-    			currentCount += counters.getCounter(e);
-    			aggMap.put(e, currentCount);
+        		for(Enum e : PigWarning.values()) {
+        			Long currentCount = aggMap.get(e);
+        			currentCount = (currentCount == null? 0 : currentCount);
+        			currentCount += counters.getCounter(e);
+        			aggMap.put(e, currentCount);
+        		}
     		}
     	} catch (IOException ioe) {
     		String msg = "Unable to retrieve job to compute warning aggregation.";
