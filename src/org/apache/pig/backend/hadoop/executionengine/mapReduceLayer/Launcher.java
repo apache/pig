@@ -120,9 +120,20 @@ public abstract class Launcher {
     
     protected void getStats(Job job, JobClient jobClient, boolean errNotDbg, PigContext pigContext) throws Exception {
         JobID MRJobID = job.getAssignedJobID();
-
+        String jobMessage = job.getMessage();
         if(MRJobID == null) {
-        	throw getExceptionFromString(job.getMessage()); 
+        	try {
+                throw getExceptionFromString(jobMessage);
+            } catch (Exception e) {
+                //just get the first line in the message and log the rest
+                String firstLine = getFirstLineFromMessage(jobMessage);
+
+                LogUtils.writeLog(new Exception(jobMessage), pigContext.getProperties().getProperty("pig.logfile"), 
+                        log, false, null, false, false);
+                int errCode = 2997;
+                String msg = "Unable to recreate exception from backend error: " + firstLine;
+                throw new ExecException(msg, errCode, PigException.BUG, e);
+            } 
         }
         try {
             TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
@@ -137,7 +148,7 @@ public abstract class Launcher {
                 // we were unable to get statistics
                 log.warn("Unable to get job related diagnostics");
             } else {
-            	throw e;
+                throw e;
             }
         }
     }
@@ -172,8 +183,17 @@ public abstract class Launcher {
 		            	if (errNotDbg) {
 		            		//errNotDbg is used only for failed jobs
 		            	    //keep track of all the unique exceptions
-			                Exception e = getExceptionFromString(msgs[j]);
-			                exceptions.add(e);
+                            try {
+                                Exception e = getExceptionFromString(msgs[j]);
+                                exceptions.add(e);
+                            } catch (Exception e1) {
+                                String firstLine = getFirstLineFromMessage(msgs[j]);                                
+                                LogUtils.writeLog(new Exception(msgs[j]), pigContext.getProperties().getProperty("pig.logfile"), 
+                                        log, false, null, false, false);
+                                int errCode = 2997;
+                                String msg = "Unable to recreate exception from backed error: " + firstLine;
+                                throw new ExecException(msg, errCode, PigException.BUG, e1);
+                            }
 		                } else {
 		                    log.debug("Error message from task (" + type + ") " +
 		                        reports[i].getTaskID() + msgs[j]);
@@ -526,6 +546,15 @@ public abstract class Launcher {
             lineNumber = Integer.parseInt(items[1]);
         }
         return new StackTraceElement(declaringClass, methodName, fileName, lineNumber);
-    }  
+    }
+    
+    private String getFirstLineFromMessage(String message) {
+        String[] messages = message.split(newLine);
+        if(messages.length > 0) {
+            return messages[0];
+        } else {
+            return new String(message);
+        }        
+    }
 
 }

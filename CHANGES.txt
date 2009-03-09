@@ -454,3 +454,6 @@ Trunk (unreleased changes)
     is malformed(thejas via sms)
 
     PIG-532: Casting a field removes its alias.(thejas via sms)
+
+    PIG-705: Pig should display a better error message when backend error
+    messages cannot be parsed (sms)
