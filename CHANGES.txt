@@ -457,3 +457,7 @@ Trunk (unreleased changes)
 
     PIG-705: Pig should display a better error message when backend error
     messages cannot be parsed (sms)
+
+    PIG-650: pig should look for and use the pig specific
+    'pig-cluster-hadoop-site.xml' in the non HOD case just like it does in the
+    HOD case (sms)
