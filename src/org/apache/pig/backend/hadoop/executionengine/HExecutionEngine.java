@@ -161,6 +161,15 @@ public class HExecutionEngine implements ExecutionEngine {
             // 2. hadoop-site.xml: Site-specific configuration for a given hadoop installation.
             // Now add the settings from "properties" object to override any existing properties
             // All of the above is accomplished in the method call below
+           
+            JobConf jobConf = new JobConf();
+            jobConf.addResource("pig-cluster-hadoop-site.xml");
+            
+            //the method below alters the properties object by overriding the
+            //hadoop properties with the values from properties and recomputing
+            //the properties
+            recomputeProperties(jobConf, properties);
+            
             configuration = ConfigurationUtil.toConfiguration(properties);            
             properties = ConfigurationUtil.toProperties(configuration);
             cluster = properties.getProperty(JOB_TRACKER_LOCATION);
@@ -382,36 +391,11 @@ public class HExecutionEngine implements ExecutionEngine {
             JobConf jobConf = new JobConf(hadoopConf);
             jobConf.addResource("pig-cluster-hadoop-site.xml");
 
-			// We need to load the properties from the hadoop configuration
-			// file we just found in the hod dir.  We want to override
-			// these with any existing properties we have.
-        	if (jobConf != null) {
-        	    Properties hodProperties = new Properties();
-            	Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
-            	while (iter.hasNext()) {
-                	Map.Entry<String, String> entry = iter.next();
-                	hodProperties.put(entry.getKey(), entry.getValue());
-            	}
-
-            	//override hod properties with user defined properties
-            	Enumeration<Object> propertiesIter = properties.keys();
-                while (propertiesIter.hasMoreElements()) {
-                    String key = (String) propertiesIter.nextElement();
-                    String val = properties.getProperty(key);
-                    hodProperties.put(key, val);
-                }
-                
-                //clear user defined properties and re-populate
-                properties.clear();
-                Enumeration<Object> hodPropertiesIter = hodProperties.keys();
-                while (hodPropertiesIter.hasMoreElements()) {
-                    String key = (String) hodPropertiesIter.nextElement();
-                    String val = hodProperties.getProperty(key);
-                    properties.put(key, val);
-                }
-
-        	}
-
+            //the method below alters the properties object by overriding the
+            //hod properties with the values from properties and recomputing
+            //the properties
+            recomputeProperties(jobConf, properties);
+            
             hdfs = properties.getProperty(FILE_SYSTEM_LOCATION);
             if (hdfs == null) {
                 int errCode = 4007;
@@ -749,6 +733,44 @@ public class HExecutionEngine implements ExecutionEngine {
             return Integer.getInteger("hod.nodes", 15);
         }
     }
+    
+    /**
+     * Method to recompute pig properties by overriding hadoop properties
+     * with pig properties
+     * @param conf JobConf with appropriate hadoop resource files
+     * @param properties Pig properties that will override hadoop properties; properties might be modified
+     */
+    private void recomputeProperties(JobConf jobConf, Properties properties) {
+        // We need to load the properties from the hadoop configuration
+        // We want to override these with any existing properties we have.
+        if (jobConf != null && properties != null) {
+            Properties hadoopProperties = new Properties();
+            Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
+            while (iter.hasNext()) {
+                Map.Entry<String, String> entry = iter.next();
+                hadoopProperties.put(entry.getKey(), entry.getValue());
+            }
+
+            //override hadoop properties with user defined properties
+            Enumeration<Object> propertiesIter = properties.keys();
+            while (propertiesIter.hasMoreElements()) {
+                String key = (String) propertiesIter.nextElement();
+                String val = properties.getProperty(key);
+                hadoopProperties.put(key, val);
+            }
+            
+            //clear user defined properties and re-populate
+            properties.clear();
+            Enumeration<Object> hodPropertiesIter = hadoopProperties.keys();
+            while (hodPropertiesIter.hasMoreElements()) {
+                String key = (String) hodPropertiesIter.nextElement();
+                String val = hadoopProperties.getProperty(key);
+                properties.put(key, val);
+            }
+
+        }
+    }
+    
 }
 
 
