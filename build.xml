@@ -37,6 +37,7 @@
     <property name="src.lib.dir" value="${basedir}/lib-src/" />
     <property name="src.gen.dir" value="${basedir}/src-gen/" />
     <property name="src.docs.dir" value="${basedir}/docs/" />
+    <property name="docs.dir" value="${basedir}/src/docs/" />
 
 
     <!-- build properties -->
@@ -158,6 +159,7 @@
     <!-- ================================================================== -->
     <target name="clean" description="Cleanup build artifacts">
         <delete dir="${src.gen.dir}" />
+        <delete dir="${docs.dir}/build" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
     </target>
@@ -263,9 +265,27 @@
     <!-- ================================================================== -->
     <!-- @depricated, Documentation                                         -->
     <!-- ================================================================== -->
-    <target name="doc" depends="javadoc">
+    <target name="docs" depends="forrest.check, javadoc" description="Generate forrest-based documentation. 
+		To use, specify -Dforrest.home=&lt;base of Apache Forrest installation&gt; on the command line." if="forrest.home">
+    	<exec dir="${docs.dir}" executable="${forrest.home}/bin/forrest"
+          failonerror="true">
+      		<env key="JAVA_HOME" value="${java5.home}"/>
+    	</exec>
+    	<copy todir="${build.docs}">
+      		<fileset dir="${docs.dir}/build/site/" />
+    	</copy>
     </target>
-	
+
+    <target name="forrest.check" unless="forrest.home" depends="java5.check">
+    	<fail message="'forrest.home' is not defined. 
+		Please pass -Dforrest.home=&lt;base of Apache Forrest installation&gt; to Ant on the command-line." />
+    </target>
+
+    <target name="java5.check" unless="java5.home">
+    	<fail message="'java5.home' is not defined. Forrest requires Java 5.  
+		Please pass -Djava5.home=&lt;base of Java 5 distribution&gt; to Ant on the command-line." />
+    </target>
+
     <target name="source-jar" depends="cc-compile">
 	    <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}">
             <manifest>
