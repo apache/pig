@@ -465,3 +465,7 @@ Trunk (unreleased changes)
     PIG-699: Implement forrest docs target in Pig Build (gkesavan via olgan)
 
     PIG-706:  Implement ant target to use findbugs on PIG (gkesavan via olgan)
+
+    PIG-708: implement releaseaudit tart to use rats on pig (gkesavan via
+    olgan)
+
