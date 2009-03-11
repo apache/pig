@@ -467,5 +467,35 @@
             </tarfileset>
         </tar>
     </target>
+   
+    <!-- ================================================================== -->
+    <!-- Findbugs                                                           -->
+    <!-- ================================================================== -->
+
+    <property name="findbugs.home" value=""/>
+    <target name="findbugs" depends="check-for-findbugs, jar" if="findbugs.present" description="Run findbugs if present">
+    	<property name="findbugs.out.dir" value="${test.build.dir}/findbugs"/>
+    	<property name="findbugs.report.htmlfile" value="${findbugs.out.dir}/pig-findbugs-report.html"/>
+    	<property name="findbugs.report.xmlfile" value="${findbugs.out.dir}/pig-findbugs-report.xml"/>
+    	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
+        		classpath="${findbugs.home}/lib/findbugs-ant.jar" />
+	<mkdir dir="${findbugs.out.dir}"/>
+    	<findbugs home="${findbugs.home}" output="xml:withMessages"
+        		outputFile="${findbugs.report.xmlfile}" effort="max" jvmargs="-Xmx512M">
+      		<auxClasspath>
+        		<fileset dir="${lib.dir}">
+          			<include name="**/*.jar"/>
+        		</fileset>
+      		</auxClasspath>
+      		<sourcePath path="${src.dir}"/>
+      		<class location="${output.jarfile.core}" />
+    	</findbugs>
+        <xslt style="${findbugs.home}/src/xsl/default.xsl" in="${findbugs.report.xmlfile}"
+        		out="${findbugs.report.htmlfile}"/>
+    </target>
+	
+    <target name="check-for-findbugs">
+    	<available property="findbugs.present" file="${findbugs.home}/lib/findbugs.jar" />
+    </target>
 
 </project>
