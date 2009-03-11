@@ -28,10 +28,12 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.commons.logging.Log;
@@ -49,6 +51,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOCogroup;
+import org.apache.pig.impl.logicalLayer.LOFRJoin;
+import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
@@ -62,6 +67,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
@@ -838,9 +844,11 @@ public class PigServer {
         
         private Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
        
-        private ArrayList<String> scriptCache = new ArrayList<String>();	
+        private List<String> scriptCache = new ArrayList<String>();	
     
-        private Map<LogicalOperator, LogicalPlan> storeOpTable = new HashMap<LogicalOperator, LogicalPlan>();
+        private Map<LOStore, LogicalPlan> storeOpTable = new HashMap<LOStore, LogicalPlan>();
+        
+        private Set<LOLoad> loadOps = new HashSet<LOLoad>();
 
         private String jobName;
         
@@ -866,9 +874,7 @@ public class PigServer {
         
         Map<String, LogicalOperator> getAliasOp() { return aliasOp; }
         
-        ArrayList<String> getScriptCache() { return scriptCache; }
-        
-        Map<LogicalOperator, LogicalPlan> getStoreOpTable() { return storeOpTable; }
+        List<String> getScriptCache() { return scriptCache; }
         
         boolean isBatchOn() { return batchMode; };
         
@@ -922,8 +928,15 @@ public class PigServer {
                         }
                     } else {
                         if (0 == ignoreNumStores) {
-                            storeOpTable.put(op, tmpLp);
+                            storeOpTable.put((LOStore)op, tmpLp);
                             lp.mergeSharedPlan(tmpLp);
+                            List<LogicalOperator> roots = tmpLp.getRoots();
+                            for (LogicalOperator root : roots) {
+                                if (root instanceof LOLoad) {
+                                    loadOps.add((LOLoad)root);
+                                }
+                            }
+
                         } else {
                             --ignoreNumStores;
                         }
@@ -987,10 +1000,51 @@ public class PigServer {
                         graph.lp = graph.parseQuery(it.next(), lineNumber);
                     }
                 }
+                graph.postProcess();
             } catch (IOException ioe) {
                 graph = null;
-            }
+            }          
             return graph;
+        }
+        
+        private void postProcess() throws IOException {
+
+            // The following code deals with store/load combination of 
+            // intermediate files. In this case we replace the load operator
+            // with a (implicit) split operator.
+            for (LOLoad load : loadOps) {
+                for (LOStore store : storeOpTable.keySet()) {
+                    String ifile = load.getInputFile().getFileName();
+                    String ofile = store.getOutputFile().getFileName();
+                    if (ofile.compareTo(ifile) == 0) {
+                        LogicalOperator storePred = lp.getPredecessors(store).get(0);
+
+                        lp.disconnect(store, load);
+                        lp.replace(load, storePred);
+
+                        List<LogicalOperator> succs = lp.getSuccessors(storePred);
+
+                        for (LogicalOperator succ : succs) {
+                            MultiMap<LogicalOperator, LogicalPlan> innerPls = null;
+
+                            // fix inner plans for cogroup and frjoin operators
+                            if (succ instanceof LOCogroup) {
+                                innerPls = ((LOCogroup)succ).getGroupByPlans();
+                            } else if (succ instanceof LOFRJoin) {
+                                innerPls = ((LOFRJoin)succ).getJoinColPlans();
+                            }
+
+                            if (innerPls != null) {
+                                if (innerPls.containsKey(load)) {
+                                    Collection<LogicalPlan> pls = innerPls.get(load);
+                                    innerPls.removeKey(load);
+                                    innerPls.put(storePred, pls);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

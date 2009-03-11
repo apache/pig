@@ -28,20 +28,33 @@ import java.util.Set;
  * DependencyOrderWalker traverses the graph in such a way that no node is visited
  * before all the nodes it depends on have been visited.  Beyond this, it does not
  * guarantee any particular order.  So, you have a graph with node 1 2 3 4, and
- * edges 1->3, 2->3, and 3->4, this walker guarnatees that 1 and 2 will be visited
+ * edges 1->3, 2->3, and 3->4, this walker guarantees that 1 and 2 will be visited
  * before 3 and 3 before 4, but it does not guarantee whether 1 or 2 will be
  * visited first.
  */
 public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O>>
     extends PlanWalker<O, P> {
 
+    private boolean rootsFirst = true;
+    
     /**
      * @param plan Plan for this walker to traverse.
      */
     public DependencyOrderWalker(P plan) {
-        super(plan);
+        this(plan, true);
     }
 
+    /**
+     * Constructs a walker with the specified plan and walk direction
+     * @param plan plan for this walker to traverse
+     * @param rootsFirst flag that indicates walking up (from roots 
+     *      to leaves) or walking down (from leaves to roots)
+     */   
+    public DependencyOrderWalker(P plan, boolean rootsFirst) {
+        super(plan);
+        this.rootsFirst = rootsFirst;
+    }
+    
     /**
      * Begin traversing the graph.
      * @param visitor Visitor this walker is being used by.
@@ -58,12 +71,14 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
 
         List<O> fifo = new ArrayList<O>();
         Set<O> seen = new HashSet<O>();
-        List<O> leaves = mPlan.getLeaves();
-        if (leaves == null) return;
-        for (O op : leaves) {
-            doAllPredecessors(op, seen, fifo);
+        List<O> nodes = rootsFirst ? mPlan.getLeaves() : mPlan.getRoots();
+       
+        if (nodes == null) return;
+            
+        for (O op : nodes) {
+            doAllDependencies(op, seen, fifo);
         }
-
+        
         for (O op: fifo) {
             op.visit(visitor);
         }
@@ -73,9 +88,28 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
         return new DependencyOrderWalker<O, P>(plan);
     }
 
+    protected void doAllDependencies(O node,
+                                     Set<O> seen,
+                                     Collection<O> fifo) throws VisitorException {
+        if (!seen.contains(node)) {
+            // We haven't seen this one before.
+            Collection<O> nodes = rootsFirst ? 
+                    mPlan.getPredecessors(node) : mPlan.getSuccessors(node);
+            if (nodes != null) {
+                // Do all our predecessors before ourself
+                for (O op : nodes) {
+                    doAllDependencies(op, seen, fifo);
+                }
+            }
+            // Now do ourself
+            seen.add(node);
+            fifo.add(node);
+        }
+    }
+
     protected void doAllPredecessors(O node,
-                                   Set<O> seen,
-                                   Collection<O> fifo) throws VisitorException {
+                                     Set<O> seen,
+                                     Collection<O> fifo) throws VisitorException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
             Collection<O> preds = mPlan.getPredecessors(node);
@@ -86,8 +120,9 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
                 }
             }
             // Now do ourself
-            seen.add(node);
+            seen.add(node);             
             fifo.add(node);
         }
     }
+
 }

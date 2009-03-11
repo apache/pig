@@ -52,7 +52,12 @@ public class PlanHelper {
             if (leaf instanceof POStore) {
                 stores.add((POStore)leaf);
             }
-        }
+            if (leaf instanceof POSplit) {
+                PhysicalPlan pl = ((POSplit)leaf).getPlan();
+                List<POStore> nestedStores = getStores(pl);
+                stores.addAll(nestedStores);
+            }
+       }
         return stores;
     }
 

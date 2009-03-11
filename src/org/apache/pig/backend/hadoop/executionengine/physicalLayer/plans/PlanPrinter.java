@@ -157,6 +157,9 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
           else if(node instanceof POForEach){
             sb.append(planString(((POForEach)node).getInputPlans()));
           }
+          else if (node instanceof POSplit) {
+              sb.append(planString(((POSplit)node).getPlans()));
+          }
           else if(node instanceof POFRJoin){
             POFRJoin frj = (POFRJoin)node;
             List<List<PhysicalPlan>> joinPlans = frj.getJoinPlans();
