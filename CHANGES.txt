@@ -461,3 +461,5 @@ Trunk (unreleased changes)
     PIG-650: pig should look for and use the pig specific
     'pig-cluster-hadoop-site.xml' in the non HOD case just like it does in the
     HOD case (sms)
+
+    PIG-699: Implement forrest docs target in Pig Build (gkesavan via olgan)
