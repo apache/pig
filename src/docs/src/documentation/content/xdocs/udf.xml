@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2002-2004 The Apache Software Foundation
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+
+
+<document>
+<header>
+<title>Pig UDF Manual</title>
+</header>
+<body>
+
+
+<section>
+<title>Overview</title>
+<p>Pig provides extensive support for user-defined functions (UDFs) as a way to specify custom processing. 
+Functions can be a part of almost every operator in Pig. 
+This document describes how to use existing functions as well as how to write your own functions.</p>
+</section>
+
+<section>
+<title>Eval Functions</title>
+
+<section>
+<title>How to Use a Simple Eval Function</title>
+<p>Eval is the most common type of function. It can be used in <code>FOREACH</code> statements as shown in this script: </p>
+
+<source>
+-- myscript.pig
+REGISTER myudfs.jar;
+A = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);
+B = FOREACH A GENERATE myudfs.UPPER(name);
+DUMP B;
+</source>
+
+<p>The command below can be used to run the script. Note that all examples in this document run in local mode for simplicity 
+but the examples can also run in Hadoop mode. For more information on how to run Pig, please see the PigTutorial. </p>
+
+<source>
+java -cp pig.jar org.apache.pig.Main -x local myscript.pig
+</source>
+
+<p>The first line of the script provides the location of the <code>jar&nbsp;file</code> that contains the UDF. 
+(Note that there are no quotes around the jar file. Having quotes would result in a syntax error.) 
+To locate the jar file, Pig first checks the <code>classpath</code>. If the jar file can't be found in the classpath, 
+Pig assumes that the location is either an absolute path or a path relative to the location from which Pig was invoked. 
+If the jar file can't be found, an error will be printed: <code>java.io.IOException:&nbsp;Can't&nbsp;read&nbsp;jar&nbsp;file:&nbsp;myudfs.jar</code>. </p>
+
+<p>Multiple <code>register</code> commands can be used in the same script. If the same fully-qualified function is present in multiple jars, 
+the first occurrence will be used consistently with Java semantics. </p>
+
+<p>The name of the UDF has to be fully qualified with the package name or an error will be reported: 
+<code>java.io.IOException:&nbsp;Cannot&nbsp;instantiate:UPPER</code>. Also, the function name is case sensitive (UPPER and upper are not the same). 
+A UDF can take one or more parameters. The exact signature of the function should clear from its documentation. </p>
+
+<p>The function provided in this example takes an ASCII string and produces its uppercase version. If you are familiar with column transformation functions 
+in SQL, you will recognize that UPPER fits this concept. However, as we will see later in the document, eval functions in Pig go beyond column 
+transformation functions and include aggregate and filter functions. </p>
+
+<p>If you are just a user of UDFs, this is most of what you need to know about UDFs to use them in your code.  </p>
+
+</section>
+
+<section>
+<title> How to Write a Simple Eval Function</title>
+<p>Let's now look at the implementation of the <code>UPPER</code> UDF. </p>
+
+<source>
+package myudfs;
+import java.io.IOException;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.WrappedIOException;
+
+public class UPPER extends EvalFunc (String)
+{
+    public String exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+        try{
+            String str = (String)input.get(0);
+            return str.toUpperCase();
+        }catch(Exception e){
+            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+        }
+    }
+}
+</source>
+
+<p>The first line indicates that the function is part of the <code>myudfs</code> package. The UDF class extends the <code>EvalFunc</code> class which is the base class for all eval functions. It is parameterized with the return type of the UDF which is a Java <code>String</code> in this case. We will look into the <code>EvalFunc</code> class in more detail later, but for now all we need to do is to implement the <code>exec</code> function. This function is invoked on every input tuple. The input into the function is a tuple with input parameters in the order they are passed to the function in the Pig script. In our example, it will contain a single string field corresponding to the student name. </p>
+<p>The first thing to decide is what to do with invalid data. This depends on the format of the data. If the data is of type <code>bytearray</code> it means that it has not yet been converted to its proper type. In this case, if the format of the data does not match the expected type, a NULL value should be returned. If, on the other hand, the input data is of another type, this means that the conversion has already happened and the data should be in the correct format. This is the case with our example and that's why it throws an error (line 16.) Note that <code>WrappedIOException</code> is a helper class to convert the actual exception to an IOException.  </p>
+<p>Also, note that lines 10-11 check if the input data is null or empty and if so returns null. </p>
+<p>The actual function implementation is on lines 13-14 and is self-explanatory. </p>
+<p>Now that we have the function implemented, it needs to be compiled and included in a jar. You will need to build <code>pig.jar</code> to compile your UDF. You can use the following set of commands to checkout the code from SVN repository and create pig.jar: </p>
+
+<source>
+svn co http://svn.apache.org/repos/asf/hadoop/pig/trunk
+cd trunk
+ant
+</source>
+
+<p>You should see <code>pig.jar</code> in your current working directory. The set of commands below first compiles the function and then creates a jar file that contains it. </p>
+
+<source>
+cd myudfs
+javac -cp pig.jar UPPER.java
+cd ..
+jar -cf myudfs.jar myudfs
+</source>
+
+<p>You should now see <code>myudfs.jar</code> in your current working directory. You can use this jar with the script described in the previous section. </p>
+
+</section>
+
+<section>
+<title>Aggregate Functions</title>
+<p>Aggregate functions are another common type of eval function. Aggregate functions are usually applied to grouped data, as shown in this script: </p>
+
+<source>
+-- myscript2.pig
+A = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);
+B = GROUP A BY name;
+C = FOREACH B GENERATE group, COUNT(A);
+DUMP C;
+</source>
+
+<p>The script above uses the <code>COUNT</code> function to count the number of students with the same name. There are a couple of things to note about this script. First, even though we are using a function, there is no <code>register</code> command. Second, the function is not qualified with the package name. The reason for both is that <code>COUNT</code> is a <code>builtin</code> function meaning that it comes with the Pig distribution. These are the only two differences between builtins and UDFs. Builtins are discussed in more detail later in this document.  </p>
+
+<p>An aggregate function is an eval function that takes a bag and returns a scalar value. One interesting and useful property of many aggregate functions is that they can be computed incrementally in a distributed fashion. We call these functions <code>algebraic</code>. <code>COUNT</code> is an example of an algebraic function because we can count the number of elements in a subset of the data and then sum the counts to produce a final output. In the Hadoop world, this means that the partial computations can be done by the map and combiner, and the final result can be computed by the reducer. </p>
+
+<p>It is very important for performance to make sure that aggregate functions that are algebraic are implemented as such. Let's look at the implementation of the COUNT function to see what this means. (Error handling and some other code is omitted to save space. The full code can be accessed <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/COUNT.java?view=markup"> here</a>.</p>
+
+<source>
+public class COUNT extends EvalFunc (Long) implements Algebraic{
+    public Long exec(Tuple input) throws IOException {return count(input);}
+    public String getInitial() {return Initial.class.getName();}
+    public String getIntermed() {return Intermed.class.getName();}
+    public String getFinal() {return Final.class.getName();}
+    static public class Initial extends EvalFunc (Tuple) {
+        public Tuple exec(Tuple input) throws IOException {return TupleFactory.getInstance().newTuple(count(input));}
+    }
+    static public class Intermed extends EvalFunc (Tuple) {
+        public Tuple exec(Tuple input) throws IOException {return TupleFactory.getInstance().newTuple(sum(input));}
+    }
+    static public class Final extends EvalFunc (Long) {
+        public Tuple exec(Tuple input) throws IOException {return sum(input);}
+    }
+    static protected Long count(Tuple input) throws ExecException {
+        Object values = input.get(0);
+        if (values instanceof DataBag) return ((DataBag)values).size();
+        else if (values instanceof Map) return new Long(((Map)values).size());
+    }
+    static protected Long sum(Tuple input) throws ExecException, NumberFormatException {
+        DataBag values = (DataBag)input.get(0);
+        long sum = 0;
+        for (Iterator (Tuple) it = values.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            sum += (Long)t.get(0);
+        }
+        return sum;
+    }
+}
+</source>
+
+<p><code>COUNT</code> implements <code>Algebraic</code> interface which looks like this: </p>
+
+<source>
+public interface Algebraic{
+    public String getInitial();
+    public String getIntermed();
+    public String getFinal();
+}
+</source>
+
+<p>For a function to be algebraic, it needs to implement <code>Algebraic</code> interface that consist of definition of three classes derived from <code>EvalFunc</code>. The contract is that the  <code>exec</code> function of the <code>Initial</code> class is called once and is passed the original input tuple. Its output is a tuple that contains partial results. The <code>exec</code> function of the <code>Intermed</code> class can be called zero or more times and takes as its input a tuple that contains partial results produced by the <code>Initial</code> class or by prior invocations of the <code>Intermed</code> class and produces a tuple with another partial result. Finally, the <code>exec</code> function of the <code>Final</code> class is called and produces the final result as a scalar type. </p>
+<p>Here's the way to think about this in the Hadoop world. The <code>exec</code> function of the <code>Initial</code> class is invoked once by the <code>map</code> process and produces partial results. The <code>exec</code> function of the <code>Intermed</code> class is invoked once by each <code>combiner</code> invocation (which can happen zero or more times) and also produces partial results. The <code>exec</code> function of the <code>Final</code> class is invoked once by the reducer and produces the final result. </p>
+<p>Take a look at the <code>COUNT</code> implementation to see how this is done. Note that the <code>exec</code> function of the <code>Initial</code> and <code>Intermed</code> classes is parameterized with <code>Tuple</code> and the <code>exec</code> of the <code>Final</code> class is parameterized with the real type of the function, which in the case of the <code>COUNT</code> is <code>Long</code>. Also, note that the fully-qualified name of the class needs to be returned from <code>getInitial</code>, <code>getIntermed</code>, and <code>getFinal</code> methods. </p>
+</section>
+
+<section>
+<title> Filter Functions</title>
+<p>Filter functions are eval functions that return a <code>boolean</code> value. Filter functions can be used anywhere a Boolean expression is appropriate, including the <code>FILTER</code> operator or <code>bincond</code> expression. </p>
+<p>The example below uses the <code>IsEmpy</code> builtin filter function to implement joins. </p>
+
+<source>
+-- inner join
+A = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);
+B = LOAD 'voter_data' AS (name: chararray, age: int, registration: chararay, contributions: float);
+C = COGROUP A BY name, B BY name;
+D = FILTER C BY not IsEmpty(A);
+E = FILTER D BY not IsEmpty(B);
+F = FOREACH E GENERATE flatten(A), flatten(B);
+DUMP F;
+</source>
+
+<p>Note that, even if filtering is omitted, the same results will be produced because the <code>foreach</code> results is a cross product and cross products get rid of empty bags. However, doing up-front filtering is more efficient since it reduces the input of the cross product. </p>
+
+<source>
+-- full outer join
+A = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);
+B = LOAD 'voter_data' AS (name: chararray, age: int, registration: chararay, contributions: float);
+C = COGROUP A BY name, B BY name;
+D = FOREACH C GENERATE group, flatten((IsEmpty(A) ? null : A)), flatten((IsEmpty(B) ? null : B));
+dump D
+</source>
+
+<p>The implementation of the <code>IsEmpty</code> function looks like this: </p>
+
+<source>
+import java.io.IOException;
+import java.util.Map;
+import org.apache.pig.FilterFunc;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.util.WrappedIOException;
+
+public class IsEmpty extends FilterFunc {
+    public Boolean exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+        try {
+            Object values = input.get(0);
+            if (values instanceof DataBag)
+                return ((DataBag)values).size() == 0;
+            else if (values instanceof Map)
+                return ((Map)values).size() == 0;
+            else{
+                throw new IOException("Cannot test a " +
+                    DataType.findTypeName(values) + " for emptiness.");
+            }
+        } catch (ExecException ee) {
+            throw WrappedIOException.wrap("Caught exception processing input row ", ee);   
+        }
+    }
+}
+
+</source>
+</section>
+
+<section>
+<title> Pig Types</title>
+<p>The main thing to know about Pig's type system is that Pig uses native Java types for almost all of its types, as shown in this table. </p>
+
+
+<table>
+<tr>
+<td>
+<p> Pig Type </p>
+</td>
+<td>
+<p> Java Class </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> bytearray </p>
+</td>
+<td>
+<p> DataByteArray </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> chararray </p>
+</td>
+<td>
+<p> String </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> int </p>
+</td>
+<td>
+<p> Integer </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> long </p>
+</td>
+<td>
+<p> Long </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> float </p>
+</td>
+<td>
+<p> Float </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> double </p>
+</td>
+<td>
+<p> Double </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> tuple </p>
+</td>
+<td>
+<p> Tuple </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> bag </p>
+</td>
+<td>
+<p> DataBag </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> map </p>
+</td>
+<td>
+<p> Map&lt;Object, Object&gt; </p>
+</td>
+</tr>
+</table>
+
+<p>All Pig-specific classes are available <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/data/"> here</a> </p>
+<p><code>Tuple</code> and <code>DataBag</code> are different in that they are not concrete classes but rather interfaces. This enables users to extend Pig with their own versions of tuples and bags. As a result, UDFs cannot directly instantiate bags or tuples; they need to go through factory classes: <code>TupleFactory</code> and <code>BagFactory</code>. </p>
+<p>The builtin <code>TOKENIZE</code> function shows how bags and tuples are created. A function takes a text string as input and returns a bag of words from the text. (Note that currently Pig bags always contain tuples.) </p>
+
+<source>
+package org.apache.pig.builtin;
+
+import java.io.IOException;
+import java.util.StringTokenizer;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+
+public class TOKENIZE extends EvalFunc (DataBag) {
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
+    BagFactory mBagFactory = BagFactory.getInstance();
+
+    public DataBag exec(Tuple input) throws IOException 
+        try {
+            DataBag output = mBagFactory.newDefaultBag();
+            Object o = input.get(0);
+            if (!(o instanceof String)) {
+                throw new IOException("Expected input to be chararray, but  got " + o.getClass().getName());
+            }
+            StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
+            while (tok.hasMoreTokens()) output.add(mTupleFactory.newTuple(tok.nextToken()));
+            return output;
+        } catch (ExecException ee) {
+            // error handling goes here
+        }
+    }
+}
+</source>
+</section>
+
+<section>
+<title> Schema</title>
+
+<p>The latest version of Pig uses type information for validation and performance. It is important for UDFs to participate in type propagation. Until now, our UDFs made no effort to communicate their output schema to Pig. This is because, most of the time, Pig can figure out this information by using Java's <a href="http://java.sun.com/developer/technicalArticles/ALT/Reflection/"> Reflection</a>. If your UDF returns a scalar or a map, no work is required. However, if your UDF returns a <code>tuple</code> or a <code>bag</code> (of tuples), it needs to help Pig figure out the structure of the tuple. </p>
+<p>If a UDF returns a <code>tuple</code> or a <code>bag</code> and schema information is not provided, Pig assumes that the tuple contains a single field of type <code>bytearray</code>. If this is not the case, then not specifying the schema can cause failures. We look at this next. </p>
+<p>Let's assume that we have UDF <code>Swap</code> that, given a tuple with two fields, swaps their order. Let's assume that the UDF does not specify a schema and look at the scripts below: </p>
+
+<source>
+register myudfs.jar;
+A = load 'student_data' as (name: chararray, age: int, gpa: float);
+B = foreach A generate flatten(myudfs.Swap(name, age)), gpa;
+C = foreach B generate $2;
+D = limit B 20;
+dump D;
+</source>
+
+<p>This script will result in the following error cause by line 4. </p>
+
+<source>
+java.io.IOException: Out of bound access. Trying to access non-existent column: 2. Schema {bytearray,gpa: float} has 2 column(s).
+</source>
+
+<p>This is because Pig is only aware of two columns in B while line 4 is requesting the third column of the tuple. (Column indexing in Pig starts with 0.) </p>
+<p>The function, including the schema, looks like this: </p>
+
+<source>
+package myudfs;
+import java.io.IOException;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+
+public class Swap extends EvalFunc (Tuple) {
+    public Tuple exec(Tuple input) throws IOException {
+        if (input == null || input.size()   2
+            return null;
+        try{
+            Tuple output = TupleFactory.getInstance().newTuple(2);
+            output.set(0, input.get(1));
+            output.set(1, input.get(0));
+            return output;
+        } catch(Exception e){
+            System.err.println("Failed to process input; error - " + e.getMessage());
+            return null;
+        }
+    }
+    public Schema outputSchema(Schema input) {
+        try{
+            Schema tupleSchema = new Schema();
+            tupleSchema.add(input.getField(1));
+            tupleSchema.add(input.getField(0));
+            return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input),tupleSchema, DataType.TUPLE));
+        }catch (Exception e){
+                return null;
+        }
+    }
+}
+</source>
+
+<p>The function creates a schema with a single field (of type <code>FieldSchema=)&nbsp;of&nbsp;type&nbsp;=tuple</code>. The name of the field is constructed using the <code>getSchemaName</code> function of the <code>EvalFunc</code> class. The name consists of the name of the UDF function, the first parameter passed to it, and a sequence number to guarantee uniqueness. In the previous script, if you replace <code>dump&nbsp;D;</code>  with <code>describe&nbsp;B;</code> , you will see the following output: 
+</p>
+
+<source>
+B: {myudfs.swap_age_3::age: int,myudfs.swap_age_3::name: chararray,gpa: float}
+</source>
+
+<p>The second parameter to the <code>FieldSchema</code> constructor is the schema representing this field, which in this case is a tuple with two fields. The third parameter represents the type of the schema, which in this case is a <code>TUPLE</code>. All supported schema types are defined in the <code>org.apache.pig.data.DataType</code> class. </p>
+
+<source>
+public class DataType {
+    public static final byte UNKNOWN   =   0;
+    public static final byte NULL      =   1;
+    public static final byte BOOLEAN   =   5; // internal use only
+    public static final byte BYTE      =   6; // internal use only
+    public static final byte INTEGER   =  10;
+    public static final byte LONG      =  15;
+    public static final byte FLOAT     =  20;
+    public static final byte DOUBLE    =  25;
+    public static final byte BYTEARRAY =  50;
+    public static final byte CHARARRAY =  55;
+    public static final byte MAP       = 100;
+    public static final byte TUPLE     = 110;
+    public static final byte BAG       = 120;
+    public static final byte ERROR     =  -1;
+    // more code here
+}
+</source>
+
+<p>You need to import the <code>org.apache.pig.data.DataType</code> class into your code to define schemas. You also need to import the schema class <code>org.apache.pig.impl.logicalLayer.schema.Schema</code>. </p>
+<p>The example above shows how to create an output schema for a tuple. Doing this for a bag is very similar. Let's extend the <code>TOKENIZE</code> function to do that: </p>
+
+<source>
+package org.apache.pig.builtin;
+
+import java.io.IOException;
+import java.util.StringTokenizer;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+
+public class TOKENIZE extends EvalFunc (DataBag) {
+    TupleFactory mTupleFactory = TupleFactory.getInstance();
+    BagFactory mBagFactory = BagFactory.getInstance();
+    public DataBag exec(Tuple input) throws IOException {
+        try {
+            DataBag output = mBagFactory.newDefaultBag();
+            Object o = input.get(0);
+            if (!(o instanceof String)) {
+                throw new IOException("Expected input to be chararray, but  got " + o.getClass().getName());
+            }
+            StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
+            while (tok.hasMoreTokens()) output.add(mTupleFactory.newTuple(tok.nextToken()));
+            return output;
+        } catch (ExecException ee) {
+            // error handling goes here
+        }
+    }
+    public Schema outputSchema(Schema input) {
+         try{
+             Schema bagSchema = new Schema();
+             bagSchema.add(new Schema.FieldSchema("token", DataType.CHARARRAY));
+
+             return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input),
+                                                    bagSchema, DataType.BAG));
+         }catch (Exception e){
+            return null;
+         }
+    }
+}
+</source>
+
+<p>As you can see, this is very similar to the output schema definition in the <code>Swap</code> function. One difference is that instead of reusing input schema, we create a brand new field schema to represent the tokens stored in the bag. The other difference is that the type of the schema created is <code>BAG</code> (not =TUPLE=). </p>
+
+</section>
+
+<section>
+<title> Error Handling</title>
+
+<p>There are several types of errors that can occur in a UDF: </p>
+<ol>
+<li><p>An error that affects a particular row but is not likely to impact other rows. An example of such an error would be a malformed input value or divide by zero problem. A reasonable handling of this situation would be to emit a warning and return a null value. <code>ABS</code> function in the next section demonstrates this approach. The current approach is to write the warning to <code>stderr</code>. Eventually we would like to pass a logger to the UDFs. Note that returning a NULL value only makes sense if the malformed value is of type <code>bytearray</code>. Otherwise the proper type has been already created and should have an appropriate value. If this is not the case, it is an internal error and should cause the system to fail. Both cases can be seen in the implementation of the <code>ABS</code> function in the next section. </p>
+</li>
+<li><p>An error that affects the entire processing but can succeed on retry. An example of such a failure is the inability to open a lookup file because the file could not be found. This could be a temporary environmental issue that can go away on retry. A UDF can signal this to Pig by throwing an <code>IOException</code> as with the case of the <code>ABS</code> function below. </p>
+</li>
+<li><p>An error that affects the entire processing and is not likely to succeed on retry. An example of such a failure is the inability to open a lookup file because of file permission problems. Pig currently does not have a way to handle this case. Hadoop does not have a way to handle this case either. It will be handled the same way as 2 above. </p>
+</li>
+</ol>
+<p>Pig provides a helper class <code>WrappedIOException</code>. The intent here is to allow you to convert any exception into <code>IOException</code>. Its usage can be seen in the <code>UPPER</code> function in our first example. </p>
+
+</section>
+
+<section>
+<title>Function Overloading</title>
+
+<p>Before the type system was available in Pig, all values for the purpose of arithmetic calculations were assumed to be doubles as the safest choice. However, this is not very efficient if the data is actually of type integer or long. (We saw about a 2x slowdown of a query when using double where integer could be used.) Now that Pig supports types we can take advantage of the type information and choose the function that is most efficient for the provided operands. </p>
+<p>UDF writers are encouraged to provide type-specific versions of a function if this can result in better performance. On the other hand, we don't want the users of the functions to worry about different functions - the right thing should just happen. Pig allows for this via a function table mechanism as shown in the next example. </p>
+<p>This example shows the implementation of the <code>ABS</code> function that returns the absolute value of a numeric value passed to it as input. </p>
+
+<source>
+import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DataType;
+
+public class ABS extends EvalFunc (Double) {
+    public Double exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+        Double d;
+        try{
+            d = DataType.toDouble(input.get(0));
+        } catch (NumberFormatException nfe){
+            System.err.println("Failed to process input; error - " + nfe.getMessage());
+            return null;
+        } catch (Exception e){
+            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+        }
+        return Math.abs(d);
+    }
+    public List (FuncSpec) getArgToFuncMapping() throws FrontendException {
+        List (FuncSpec) funcList = new ArrayList (FuncSpec) ();
+        funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY))));
+        funcList.add(new FuncSpec(DoubleAbs.class.getName(),  new Schema(new Schema.FieldSchema(null, DataType.DOUBLE))));
+        funcList.add(new FuncSpec(FloatAbs.class.getName(),   new Schema(new Schema.FieldSchema(null, DataType.FLOAT))));
+        funcList.add(new FuncSpec(IntAbs.class.getName(),  new Schema(new Schema.FieldSchema(null, DataType.INTEGER))));
+        funcList.add(new FuncSpec(LongAbs.class.getName(),  new Schema(new Schema.FieldSchema(null, DataType.LONG))));
+        return funcList;
+    }
+}
+</source>
+
+<p>The main thing to notice in this example is the <code>getArgToFuncMapping()</code> method. This method returns a list that contains a mapping from the input schema to the class that should be used to handle it. In this example the main class handles the <code>bytearray</code> input and outsources the rest of the work to other classes implemented in separate files in the same package. The example of one such class is below. This class handles integer input values. </p>
+
+<source>
+import java.io.IOException;
+import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
+
+public class IntAbs extends EvalFunc (Integer) {
+    public Integer exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+        Integer d;
+        try{
+            d = (Integer)input.get(0);
+        } catch (Exception e){
+            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+        }
+        return Math.abs(d);
+    }
+}
+</source>
+
+
+<p>A note on error handling. The <code>ABS</code> class covers the case of the <code>bytearray</code> which means the data has not been converted yet to its actual type. This is why a null value is returned when <code>NumberFormatException</code> is encountered. However, the <code>IntAbs</code> function is only called if the data is already of type <code>Integer</code> which means it has already been converted to the real type and bad format has been dealt with. This is why an exception is thrown if the input can't be cast to <code>Integer</code>. </p>
+<p>The example above covers a reasonably simple case where the UDF only takes one parameter and there is a separate function for each parameter type. However, this will not always be the case. If Pig can't find an <code>exact&nbsp;match</code> it tries to do a <code>best&nbsp;match</code>. The rule for the best match is to find the most efficient function that can be used safely. This means that Pig must find the function that, for each input parameter, provides the smallest type that is equal to or greater than the input type. The type progression rules are: <code>int=-&gt;=long=-&gt;=float=-&gt;=double</code>. </p>
+<p>For instance, let's consider function <code>MAX</code> which is part of the <code>piggybank</code> described later in this document. Given two values, the function returns the larger value. The function table for <code>MAX</code> looks like this: </p>
+
+<source>
+public List (FuncSpec) getArgToFuncMapping() throws FrontendException {
+    List (FuncSpec) funcList = new ArrayList (FuncSpec) ();
+    Util.addToFunctionList(funcList, IntMax.class.getName(), DataType.INTEGER);
+    Util.addToFunctionList(funcList, DoubleMax.class.getName(), DataType.DOUBLE);
+    Util.addToFunctionList(funcList, FloatMax.class.getName(), DataType.FLOAT);
+    Util.addToFunctionList(funcList, LongMax.class.getName(), DataType.LONG);
+
+    return funcList;
+}
+</source>
+
+<p>The <code>Util.addToFunctionList</code> function is a helper function that adds an entry to the list as the first argument, with the key of the class name passed as the second argument, and the schema containing two fields of the same type as the third argument.  </p>
+
+<p>Let's now see how this function can be used in a Pig script: </p>
+
+<source>
+REGISTER piggybank.jar
+A = LOAD 'student_data' AS (name: chararray, gpa1: float, gpa2: double);
+B = FOREACH A GENERATE name, org.apache.pig.piggybank.evaluation.math.MAX(gpa1, gpa2);
+DUMP B;
+</source>
+
+<p>In this example, the function gets one parameter of type <code>float</code> and another of type <code>double</code>. The best fit will be the function that takes two double values. Pig makes this choice on the user's behalf by inserting implicit casts for the parameters. Running the script above is equivalent to running the script below: </p>
+
+<source>
+A = LOAD 'student_data' AS (name: chararray, gpa1: float, gpa2: double);
+B = FOREACH A GENERATE name, org.apache.pig.piggybank.evaluation.math.MAX((double)gpa1, gpa2);
+DUMP B;
+</source>
+
+<p>A special case of the <code>best&nbsp;fit</code> approach is handling data without a schema specified. The type for this data is interpreted as <code>bytearray</code>. Since the type of the data is not known, there is no way to choose a best fit version. The only time a cast is performed is when the function table contains only a single entry. This works well to maintain backward compatibility.  </p>
+
+<p>Let's revisit the <code>UPPER</code> function from our first example. As it is written now, it would only work if the data passed to it is of type <code>chararray</code>. To make it work with data whose type is not explicitly set, a function table with a single entry needs to be added: </p>
+
+<source>
+package myudfs;
+import java.io.IOException;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
+
+public class UPPER extends EvalFunc (String)
+{
+    public String exec(Tuple input) throws IOException {
+        if (input == null || input.size() == 0)
+            return null;
+        try{
+            String str = (String)input.get(0);
+            return str.toUpperCase();
+        }catch(Exception e){
+            System.err.println("WARN: UPPER: failed to process input; error - " + e.getMessage());
+            return null;
+        }
+    }
+    public List (FuncSpec) getArgToFuncMapping() throws FrontendException {
+        List (FuncSpec) funcList = new ArrayList (FuncSpec) ();
+        funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
+        return funcList;
+    }
+}
+</source>
+
+<p>Now the following script will ran: </p>
+
+<source>
+-- this is myscript.pig
+REGISTER myudfs.jar;
+A = LOAD 'student_data' AS (name, age, gpa);
+B = FOREACH A GENERATE myudfs.UPPER(name);
+DUMP B;
+</source>
+
+</section>
+
+<section>
+<title>Reporting Progress</title>
+
+<p>A challenge of running a large shared system is to make sure system resources are used efficiently. One aspect of this challenge is detecting runaway processes that are no longer making progress. Pig uses a heartbeat mechanism for this purpose. If any of the tasks stops sending a heartbeat, the system assumes that it is dead and kills it.   </p>
+<p>Most of the time, single-tuple processing within a UDF is very short and does not require a UDF to heartbeat. The same is true for aggregate functions that operate on large bags because bag iteration code takes care of it. However, if you have a function that performs a complex computation that can take an order of minutes to execute, you should add a progress indicator to your code. This is very easy to accomplish. The <code>EvalFunc</code> function provides a <code>progress</code> function that you need to call in your <code>exec</code> method. </p>
+<p>For instance, the <code>UPPER</code> function would now look as follows: </p>
+
+<source>
+public class UPPER extends EvalFunc (String)
+{
+        public String exec(Tuple input) throws IOException {
+                if (input == null || input.size() == 0)
+                return null;
+                try{
+                        reporter.progress();
+                        String str = (String)input.get(0);
+                        return str.toUpperCase();
+                }catch(Exception e){
+                    throw WrappedIOException.wrap("Caught exception processing input row ", e);
+                }
+        }
+}
+</source>
+</section></section>
+
+<section>
+<title> Load/Store Functions</title>
+
+<p>These user-defined functions control how data goes into Pig and comes out of Pig. Often, the same function handles both input and output but that does not have to be the case. </p>
+
+
+<section>
+<title> Load Functions</title>
+
+<p>Every load function needs to implement the <code>LoadFunc</code> interface. An abbreviated version is shown below. The full definition can be seen <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadFunc.java?view=markup"> here</a>. </p>
+
+<source>
+public interface LoadFunc {
+    public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException;
+    public Tuple getNext() throws IOException;
+    // conversion functions
+    public Integer bytesToInteger(byte[] b) throws IOException;
+    public Long bytesToLong(byte[] b) throws IOException;
+    ......
+    public void fieldsToRead(Schema schema);
+    public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException;
+</source>
+
+
+<p>The <code>bindTo</code> function is called once by each Pig task before it starts processing data. It is intended to connect the function to its input. It provides the following information: </p>
+<ul>
+<li><p> <code>fileName</code> - The name of the file from which the data is read. Not used most of the time </p>
+</li>
+<li><p> <code>is</code> - The input stream from which the data is read. It is already positioned at the place where the function needs to start reading </p>
+</li>
+<li><p> <code>offset</code> - The offset into the stream from which to read. It is equivalent to <code>is.getPosition()</code> and not strictly needed </p>
+</li>
+<li><p> <code>end</code> - The position of the last byte that should be read by the function. </p>
+</li>
+</ul>
+
+<p>In the Hadoop world, the input data is treated as a continuous stream of bytes. A <code>slicer</code>, discussed in the Advanced Topics section, is used to split the data into chunks with each chunk going to a particular task for processing. This chunk is what <code>bindTo</code> provides to the UDF. Note that unless you use a custom slicer, the default slicer is not aware of tuple boundaries. This means that the chunk you get can start and end in the middle of a particular tuple. One common approach is to skip the first partial tuple and continue past the end position to finish processing a tuple. This is what <code>PigStorage</code> does as the example later in this section shows. </p>
+<p>The <code>getNext</code> function reads the input stream and constructs the next tuple. It returns <code>null</code> when it is done with processing and throws an <code>IOException</code> if it fails to process an input tuple. </p>
+<p>Next is a bunch of conversion routines that convert data from <code>bytearray</code> to the requested type. This requires further explanation. By default, we would like the loader to do as little per-tuple processing as possible. This is because many tuples can be thrown out during filtering or joins. Also, many fields might not get used because they get projected out. If the data needs to be converted into another form, we would like this conversion to happen as late as possible. The majority of the loaders should return the data as bytearrays and the Pig will request a conversion from bytearray to the actual type when needed. Let's looks at the example below: </p>
+
+<source>
+A = load 'student_data' using PigStorage() as (name: chararray, age: int, gpa: float);
+B = filter A by age >25;
+C = foreach B generate name;
+dump C;
+</source>
+
+<p>In this query, only <code>age</code> needs to be converted to its actual type (=int=) right away. <code>name</code> only needs to be converted in the next step of processing where the data is likely to be much smaller. <code>gpa</code> is not used at all and will never need to be converted. </p>
+<p>This is the main reason for Pig to separate the reading of the data (which can happen immediately) from the converting of the data (to the right type, which can happen later). For ASCII data, Pig provides <code>Utf8StorageConverter</code> that your loader class can extend and will take care of all the conversion routines. The code for it can be found <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/Utf8StorageConverter.java?view=markup"> here</a>. </p>
+<p>Note that conversion rutines should return null values for data that can't be converted to the specified type. </p>
+<p>Loaders that work with binary data like <code>BinStorage</code> are not going to use this model. Instead, they will produce objects of the appropriate types. However, they might still need to define conversion routines in case some of the fields in a tuple are of type <code>bytearray</code>. </p>
+<p><code>fieldsToRead</code> is reserved for future use and should be left empty. </p>
+<p>The <code>determineSchema</code> function must be implemented by loaders that return real data types rather than <code>bytearray</code> fields. Other loaders should just return <code>null</code>. The idea here is that Pig needs to know the actual types it will be getting; Pig will call <code>determineSchema</code> on the client side to get this information. The function is provided as a way to sample the data to determine its schema.  </p>
+<p>Here is the example of the function implemented by =BinStorage=: </p>
+
+<source>
+public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException {
+    InputStream is = FileLocalizer.open(fileName, execType, storage);
+    bindTo(fileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        // get the first record from the input file and figure out the schema 
+        Tuple t = getNext();
+        if(t == null) return null;
+        int numFields = t.size();
+        Schema s = new Schema();
+        for (int i = 0; i  numFields; i++) {
+            try {
+                s.add(DataType.determineFieldSchema(t.get(i)));
+            } catch (Exception e) {
+                throw WrappedIOException.wrap(e);
+            }
+        }
+        return s;
+    }
+</source>
+
+<p>Note that this approach assumes that the data has a uniform schema. The function needs to make sure that the data it produces conforms to the schema returned by <code>determineSchema</code>, otherwise the processing will fail. This means producing the right number of fields in the tuple (dropping fields or emitting null values if needed) and producing fields of the right type (again emitting null values as needed). </p>
+<p>For complete examples, see <a  href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/BinStorage.java?view=markup">BinStorage</a> and <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/PigStorage.java?view=markup"> PigStorage</a>. </p>
+
+</section>
+
+<section>
+<title> Store Functions</title>
+
+<p>All store functions need to implement the <code>StoreFunc</code> interface: </p>
+
+<source>
+public interface StoreFunc {
+    public abstract void bindTo(OutputStream os) throws IOException;
+    public abstract void putNext(Tuple f) throws IOException;
+    public abstract void finish() throws IOException;
+}
+</source>
+
+<p>The <code>bindTo</code> method is called in the beginning of the processing to connect the store function to the output stream it will write to. The <code>putNext</code> method is called for every tuple to be stored and is responsible for writing the tuple into the output. The <code>finish</code> function is called at the end of the processing to do all needed cleanup like flushing the output stream. </p>
+<p>Here is an example of a simple store function that writes data as a string returned from the <code>toString</code> function. </p>
+
+<source>
+public class StringStore implements StoreFunc {
+    OutputStream os;
+    private byte recordDel = (byte)'\n';
+    public void bindTo(OutputStream os) throws IOException
+    {
+        this.os = os;
+    }
+    public void putNext(Tuple t) throws IOException
+    {
+        os.write((t.toString() + (char)this.recordDel).getBytes("utf8"));
+    }
+    public void finish() throws IOException
+    {
+         os.flush();
+    }
+}
+</source>
+</section></section>
+
+<section>
+<title> Comparison Functions</title>
+
+<p>Comparison UDFs are mostly obsolete now. They were added to the language because, at that time, the <code>ORDER</code> operator had two significant shortcomings. First, it did not allow descending order and, second, it only supported alphanumeric order. </p>
+<p>The latest version of Pig solves both of these issues. The <a href="http://wiki.apache.org/pig/UserDefinedOrdering"> pointer</a> to the original documentation is provided here for completeness. </p>
+
+</section>
+
+<section>
+<title>Builtin Functions and Function Repositories</title>
+
+<p>Pig comes with a set of builtin in functions. (NEED LINK) Two main properties differentiate builtin functions from UDFs. First, they don't need to be registered because Pig knows where they are. Second, they don't need to be qualified when used because Pig knows where to find them. </p>
+<p>In addition to builtins, Pig hosts a UDF repository called <code>piggybank</code> that allows users to share UDFs that they have written. The details are described in <a href="http://wiki.apache.org/pig/PiggyBank"> PiggyBank</a>. </p>
+
+</section>
+
+<section>
+<title>Advanced Topics</title>
+
+
+<section>
+<title>Function Instantiation</title>
+
+<p>One problem that users run into is when they make assumption about how many times a constructor for their UDF is called. For instance, they might be creating side files in the store function and doing it in the constructor seems like a good idea. The problem with this approach is that in most cases Pig instantiates functions on the client side to, for instance, examine the schema of the data.  </p>
+<p>Users should not make assumptions about how many times a function is instantiated; instead, they should make their code resilient to multiple instantiations. For instance, they could check if the files exist before creating them. </p>
+
+
+</section>
+
+<section>
+<title>Schemas</title>
+
+<p>One request from users is to have the ability to examine the input schema of the data before processing the data. For example, they would like to know how to convert an input tuple to a map such that the keys in the map are the names of the input columns. The current answer is that there is now way to do this. This is something we would like to support in the future. </p>
+
+ </section>
+ 
+ <section>
+<title>Custom Slicer</title>
+
+<p>Sometimes a <code>LoadFunc</code> needs more control over how input is chopped up or even found. </p>
+<p>Here are some scenarios that call for a custom slicer: </p>
+<ul>
+<li><p> Input needs to be chopped up differently than on block boundaries. (Perhaps you want every 1M instead of every 128M. Or, you may want to process in big 1G chunks.) </p>
+</li>
+<li><p> Input comes from a source outside of HDFS. (Perhaps you are reading from a database.) </p>
+</li>
+<li><p> There are locality preferences for processing the data that is more than simple HDFS locality. </p>
+</li>
+<li><p> Extra information needs to be passed from the client machine to the <code>LoadFunc</code> instances running remotely. </p>
+</li>
+</ul>
+<p>All of these scenarios are addressed by slicers. There are two parts to the slicing framework: <code>Slicer</code>, the class that creates slices, and <code>Slice</code>, the class that represents a particular piece of the input. Slicing kicks in when Pig sees that the <code>LoadFunc</code> implements the <code>Slicer</code> interface. </p>
+
+
+<section>
+<title>Slicer</title>
+
+<p>The slicer has two basic functions: validate input and slice up the input. Both of these methods will be called on the client machine.  </p>
+
+<source>
+public interface Slicer {
+    void validate(DataStorage store, String location) throws IOException;
+   Slice[] slice(DataStorage store, String location) throws IOException;
+}
+</source>
+</section>
+
+<section>
+<title>Slice</title>
+
+<p>Each slice describes a unit of work and will correspond to a map task in Hadoop. </p>
+
+<source>
+public interface Slice extends Serializable {
+    String[] getLocations();
+    void init(DataStorage store) throws IOException;
+    long getStart();
+    long getLength();
+    void close() throws IOException;
+    long getPos() throws IOException;
+    float getProgress() throws IOException;
+    boolean next(Tuple value) throws IOException;
+}
+</source>
+
+<p>Only one of the methods is used for scheduling: <code>getLocations()</code>. This method allows the implementor to give hints to Pig about where the task should be run. It is only a hint. If things are busy, the task may get scheduled elsewhere. </p>
+<p>The rest of the <code>Slice</code> methods are used to read records on the processing nodes. <code>init</code> is called right after the <code>Slice</code> object is deserialized and <code>close</code> is called after the last record has been read. The Pig runtime will read records from the <code>Slice</code> until <code>getPos()</code> exceeds <code>getLength()</code>. Because <code>Slice</code> implements serializable, <code>Slicer</code> can encode information in the <code>Slice</code> that will later be available when the task is run. </p>
+
+</section>
+
+<section>
+<title> Example</title>
+
+<p>This example shows a simple <code>Slicer</code> that gets a count from the input stream and generates that number of <code>Slice</code> s.  </p>
+
+<source>
+public class RangeSlicer implements Slicer, LoadFunc {
+    /**
+     * Expects location to be a Stringified integer, and makes
+     * Integer.parseInt(location) slices. Each slice generates a single value,
+     * its index in the sequence of slices.
+     */
+    public Slice[] slice (DataStorage store, String location) throws IOException {
+        // Note: validate has already made sure that location is an integer
+        int numslices = Integer.parseInt(location);
+        Slice[] slices = new Slice[numslices];
+        for (int i = 0; i  slices.length; i++) {
+            slices[i] = new SingleValueSlice(i);
+        }
+        return slices;
+    }
+    public void validate(DataStorage store, String location) throws IOException {
+        try {
+            Integer.parseInt(location);
+        } catch (NumberFormatException nfe) {
+            throw new IOException(nfe.getMessage());
+        }
+    }
+    /**
+     * A Slice that returns a single value from next.
+     */
+    public static class SingleValueSlice implements Slice {
+        // note this value is set by the Slicer and will get serialized and deserialized at the remote processing node
+        public int val;
+        // since we just have a single value, we can use a boolean rather than a counter
+        private transient boolean read;
+        public SingleValueSlice (int value) {
+            this.val = value;
+        }
+        public void close () throws IOException {}
+        public long getLength () { return 1; }
+        public String[] getLocations () { return new String[0]; }
+        public long getStart() { return 0; }
+        public long getPos () throws IOException { return read ? 1 : 0; }
+        public float getProgress () throws IOException { return read ? 1 : 0; }
+        public void init (DataStorage store) throws IOException {}
+        public boolean next (Tuple value) throws IOException {
+            if (!read) {
+                value.appendField(new DataAtom(val));
+                read = true;
+                return true;
+            }
+            return false;
+        }
+        private static final long serialVersionUID = 1L;
+    }
+}
+</source>
+
+<p>You can invoke the <code>RangeSlicer</code> class with the following Pig Latin statement: </p>
+
+<source>
+LOAD '27' USING RangeSlicer();
+</source>
+
+</section></section></section>
+
+</body>
+</document>
+
