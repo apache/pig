@@ -38,7 +38,7 @@ SVG spec (http://www.w3.org/TR/SVG/) as a reference.
      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
      xsl:version="1.0"
      xmlns:for="http://apache.org/forrest"
-     width="420" height="65" >
+     width="250" height="65" >
   <title>Anteater logo</title>
 
   <defs>

@@ -16,38 +16,24 @@
   limitations under the License.
 -->
 <!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
+
 <document>
   <header>
-    <title>Welcome to MyProj</title>
+    <title>Overview </title>
   </header>
+  
   <body>
-    <section id="status">
-      <title>Congratulations</title>
       <p>
-        You have successfully generated and rendered an
-        <a
-          href="ext:forrest">Apache Forrest</a> site. This page is
-        from the site template. It is found in
-        <code>src/documentation/content/xdocs/index.xml</code> Please edit it
-        and replace this text with content of your own.
-      </p>
-    </section>
-    <section id="examples">
-      <title>Using examples as templates</title>
-      <p>
-        This demo site has many examples. See the menu at the left. The sources
-        for these examples are in the directory
-        <code>src/documentation/content/xdocs/</code>
+        The Pig Documentation provides the information you need to get started using Pig.
       </p>
       <p>
-        The sources for the Apache Forrest website are also included in your
-        distribution at <code>$FORREST_HOME/site-author/</code>
+        Begin with the <a href="quickstart.html"> Pig Quick Start</a> which shows you how to build and run Pig. 
+        Then try out the <a href="tutorial.html">Pig Tutorial</a> to get an idea of how easy it us to use Pig. 
+        When you are ready to start writing your own scripts, read through the <a href="piglatin.html">Pig Latin Manual </a>to become familiar with Pig's features. 
+        Also review the <a href="cookbook.html">Pig Cookbook</a> to learn how to tweak your scripts for optimal performance.
       </p>
       <p>
-        You can also extend the functionality of Forrest via
-        <a href="site:plugins">plugins</a>, these will often come with more
-        samples for you to out.
-      </p>
-    </section>
+		If you have more questions, you can ask on the <a href="http://hadoop.apache.org/pig/mailing_lists.html">Pig Mailing Lists</a>.
+    </p>
   </body>
 </document>

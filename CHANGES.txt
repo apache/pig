@@ -469,3 +469,4 @@ Trunk (unreleased changes)
     PIG-708: implement releaseaudit tart to use rats on pig (gkesavan via
     olgan)
 
+    PIG-703: user documentation (chandec vi olgan)

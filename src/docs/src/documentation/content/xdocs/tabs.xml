@@ -16,9 +16,9 @@
   limitations under the License.
 -->
 <!DOCTYPE tabs PUBLIC "-//APACHE//DTD Cocoon Documentation Tab V1.1//EN" "http://forrest.apache.org/dtd/tab-cocoon-v11.dtd">
-<tabs software="MyProj"
-  title="MyProj"
-  copyright="Foo"
+<tabs software="The Forresters"
+  title="The Forresters"
+  copyright="The Apache Software Foundation"
   xmlns:xlink="http://www.w3.org/1999/xlink">
 <!-- The rules for tabs are:
     @dir will always have '/@indexfile' added.
@@ -30,18 +30,8 @@
    Tabs can be embedded to a depth of two. The second level of tabs will only 
     be displayed when their parent tab is selected.    
   -->
-  <tab id="" label="Home" dir="" indexfile="index.html"/>
-  <tab id="samples" label="Samples" dir="samples" indexfile="sample.html">
-    <tab id="samples-index" label="Index" dir="samples" indexfile="index.html"/>
-    <tab id="samples-sample2" label="Sample2" dir="samples" indexfile="static.html"/>
-  </tab>
-  <tab label="Apache XML Projects" href="http://xml.apache.org">
-    <tab label="Forrest" href="http://forrest.apache.org"/>
-    <tab label="Xerces" href="http://xml.apache.org/xerces"/>
-  </tab>
-  <tab id="plugins" label="Plugins" dir="pluginDocs/plugins_0_80" indexfile="index.html"/>
-<!-- Add new tabs here, eg:
-  <tab label="How-Tos" dir="community/howto/"/>
-  <tab label="XML Site" dir="xml-site/"/>
-  -->
+  <tab label="Project" href="http://hadoop.apache.org/pig/" type="visible" /> 
+  <tab label="Wiki" href="http://wiki.apache.org/pig/" type="visible" /> 
+  <tab label="Pig 0.20 Documentation" dir="" type="visible" /> 
+
 </tabs>
