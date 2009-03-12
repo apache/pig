@@ -470,3 +470,6 @@ Trunk (unreleased changes)
     olgan)
 
     PIG-703: user documentation (chandec vi olgan)
+
+    PIG-711: Implement checkstyle for pig (gkesavan via olgan)
+
