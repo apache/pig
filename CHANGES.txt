@@ -474,3 +474,5 @@ Trunk (unreleased changes)
     PIG-711: Implement checkstyle for pig (gkesavan via olgan)
 
     PIG-715: doc updates (chandec vi olgan)
+
+    PIG-718: To add standard ant targets to build.xml file  (gkesavan via olgan)
