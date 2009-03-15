@@ -101,6 +101,14 @@
     <!-- javadoc properties  -->
     <property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
 
+    <!-- test patch properties -->
+    <property name="scratch.dir" value="${user.home}/tmp"/>
+    <property name="svn.cmd" value="svn"/>
+    <property name="grep.cmd" value="grep"/>
+    <property name="patch.cmd" value="patch"/>
+    <property name="make.cmd" value="make"/>
+    <property name="test_patch_sh" value="${test.src.dir}/bin/test-patch.sh"/>
+
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
@@ -164,6 +172,7 @@
     <target name="clean" description="Cleanup build artifacts">
         <delete dir="${src.gen.dir}" />
         <delete dir="${docs.dir}/build" />
+        <delete file="${lib.dir}/rats.jar" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
     </target>
@@ -364,7 +373,7 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test" depends="compile-test,jar">
+    <target name="test-core" depends="compile-test,jar">
         <delete dir="${test.log.dir}"/>
         <mkdir dir="${test.log.dir}"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
@@ -412,6 +421,15 @@
         </junit>
         <fail if="tests.failed">Tests failed!</fail>
     </target>
+    
+    <target name="test" description="to call the test-core and test-contrib target">
+	<antcall target="test-core"/>
+	<antcall target="test-contrib"/>
+    </target>    
+
+    <target name="test-contrib" description="to call contrib tests">
+        <!--#### test-contrib is yet to be implemented #### -->	
+    </target>	
 
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
@@ -543,4 +561,56 @@
  	</path>
     </target>	
 
+    <target name="findbugs.check" depends="check-for-findbugs" unless="findbugs.present">
+    	<fail message="'findbugs.home' is not defined. Please pass -Dfindbugs.home=&lt;base of Findbugs installation&gt; 
+		to Ant on the command-line." />
+    </target>
+
+    <target name="patch.check" unless="patch.file">
+  	<fail message="'patch.file' is not defined. Please pass -Dpatch.file=&lt;location of patch file&gt; 
+		to Ant on the command-line." />
+    </target>
+
+    <target name="test-patch" depends="patch.check,findbugs.check,forrest.check">
+  	<exec executable="bash" failonerror="true">
+    		<arg value="${test_patch_sh}"/>
+    		<arg value="DEVELOPER"/>
+    		<arg value="${patch.file}"/>
+    		<arg value="${scratch.dir}"/>
+    		<arg value="${svn.cmd}"/>
+    		<arg value="${grep.cmd}"/>
+    		<arg value="${patch.cmd}"/>
+    		<arg value="${findbugs.home}"/>
+    		<arg value="${forrest.home}"/>
+    		<arg value="${basedir}"/>
+    		<arg value="${java5.home}"/>
+        	<arg value="${ant.project.name}"/>
+  	</exec>
+    </target>
+
+    <target name="hudson-test-patch" depends="findbugs.check,forrest.check">
+  	<exec executable="bash" failonerror="true">
+    		<arg value="${test_patch_sh}"/>
+    		<arg value="HUDSON"/>
+    		<arg value="${scratch.dir}"/>
+    		<arg value="${support.dir}"/>
+    		<arg value="${ps.cmd}"/>
+    		<arg value="${wget.cmd}"/>
+    		<arg value="${jiracli.cmd}"/>
+    		<arg value="${svn.cmd}"/>
+    		<arg value="${grep.cmd}"/>
+    		<arg value="${patch.cmd}"/>
+    		<arg value="${findbugs.home}"/>
+    		<arg value="${forrest.home}"/>
+    		<arg value="${eclipse.home}"/>
+    		<arg value="${python.home}"/>
+    		<arg value="${basedir}"/>
+    		<arg value="${trigger.url}"/>
+    		<arg value="${jira.passwd}"/>
+    		<arg value="${java5.home}"/>
+    		<arg value="${curl.cmd}"/>
+    		<arg value="${defect}"/>
+		<arg value="${ant.project.name}"/>
+    	</exec>
+     </target>
 </project>
