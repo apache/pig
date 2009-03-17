@@ -25,7 +25,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="1.0.0-dev" />
+    <property name="version" value="1.0.1-dev" />
     <property name="final.name" value="${name}-${version}" />
     <condition property="isWindows">
         <os family="windows"/>
@@ -457,7 +457,22 @@
 
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
-            <fileset dir="${src.gen.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/lib-src" includeEmptyDirs="true">
+            <fileset dir="${src.lib.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/test" includeEmptyDirs="true">
+            <fileset dir="${test.src.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/tutorial" includeEmptyDirs="true">
+            <fileset dir="tutorial" />
+        </copy>
+
+        <copy todir="${dist.dir}/contrib" includeEmptyDirs="true">
+            <fileset dir="contrib" />
         </copy>
 
         <copy todir="${dist.dir}/" file="build.xml" />
