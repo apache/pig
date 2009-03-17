@@ -116,6 +116,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
     public boolean debug = true;
     
+    private String last_alias = null;
+
     // List of paths skipped for automatic shipping
     List<String> skippedShipPaths = new ArrayList<String>();
     
@@ -325,6 +327,14 @@ public class PigContext implements Serializable, FunctionInstantiator {
      */
     public Properties getConf() {
         return getProperties();
+    }
+
+    public String getLastAlias() {
+      return this.last_alias;
+    }
+
+    public void setLastAlias(String value) {
+      this.last_alias = value;
     }
 
     /**

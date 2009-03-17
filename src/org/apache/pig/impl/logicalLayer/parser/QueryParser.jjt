@@ -830,7 +830,11 @@ LogicalPlan Parse() :
 			throw new ParseException(
 			"Currently PIG does not support assigning an existing relation (" + t1.image + ") to another alias (" + t2.image + ")");})
 |	LOOKAHEAD(2) 
-	(t1 = <IDENTIFIER> "=" root = Expr(lp) ";" {root.setAlias(t1.image); addAlias(t1.image, root);})
+	(t1 = <IDENTIFIER> "=" root = Expr(lp) ";" {
+	  root.setAlias(t1.image);
+	  addAlias(t1.image, root);
+	  pigContext.setLastAlias(t1.image);
+	})
 |	(root = Expr(lp) ";")
 |	(<SPLIT> root = SplitClause(lp) ";")
 	)

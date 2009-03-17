@@ -387,6 +387,10 @@ public class PigServer {
         }
     }
 
+    public void printAliases () throws FrontendException {
+        System.out.println("aliases: " + aliasOp.keySet());
+    }
+
     public Schema dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");

@@ -33,6 +33,10 @@ NEW FEATURES
 
     PIG-535: added rmf command
 
+	PIG-704 Added ALIASES command that shows all currently defined ALIASES.
+	Changed semantics of DEFINE to define last used alias if no argument is
+	given (ericg via gates).
+
 IMPROVEMENTS
 
     PIG-270: proper line number for parse errors (daijy via olgan)
