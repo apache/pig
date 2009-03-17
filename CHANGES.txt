@@ -390,6 +390,8 @@ BUG FIXES
 
     PIG-718: To add standard ant targets to build.xml file  (gkesavan via olgan)
 
+    PIG-720: further doc cleanup (gkesavan via olgan)
+
 Release 0.1.1 - 2008-12-04
 
 INCOMPATIBLE CHANGES
