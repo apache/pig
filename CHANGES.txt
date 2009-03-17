@@ -18,6 +18,14 @@
 
 Pig Change Log
 
+Trunk (unreleased changes)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+BUG FIXES
+
 Release 1.0.0 - Unreleased
 
 INCOMPATIBLE CHANGES
