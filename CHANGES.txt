@@ -18,7 +18,7 @@
 
 Pig Change Log
 
-Release 1.0.0 - Unreleased
+Release 1.0.0 - 03/17/09
 
 INCOMPATIBLE CHANGES
 
