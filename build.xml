@@ -36,7 +36,6 @@
     <property name="src.dir" value="${basedir}/src/" />
     <property name="src.lib.dir" value="${basedir}/lib-src/" />
     <property name="src.gen.dir" value="${basedir}/src-gen/" />
-    <property name="src.docs.dir" value="${basedir}/docs/" />
     <property name="docs.dir" value="${basedir}/src/docs/" />
 
 
@@ -263,7 +262,7 @@
     <!-- ================================================================== -->
     <target name="javadoc" depends="jar" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
-        <javadoc overview="${src.docs.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+        <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
             <link href="${javadoc.link.java}" />
             <classpath>
@@ -434,7 +433,7 @@
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
-    <target name="package" depends="jar, javadoc" description="Create a Pig release">
+    <target name="package" depends="docs" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
         <mkdir dir="${dist.dir}/scripts" />
