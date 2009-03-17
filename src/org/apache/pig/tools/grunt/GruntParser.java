@@ -167,8 +167,16 @@ public class GruntParser extends PigScriptParser {
     }
     
     protected void processDescribe(String alias) throws IOException {
+        if(alias==null) {
+            alias = mPigServer.getPigContext().getLastAlias();
+        }
         mPigServer.dumpSchema(alias);
     }
+
+    protected void printAliases() throws IOException {
+        mPigServer.printAliases();
+    }
+
 
     protected void processExplain(String alias) throws IOException {
         mPigServer.explain(alias, System.out);
