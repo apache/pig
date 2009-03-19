@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-700: To automate the pig patch test process (gkesavan via sms)
+
 BUG FIXES
 
 Release 1.0.0 - Unreleased
