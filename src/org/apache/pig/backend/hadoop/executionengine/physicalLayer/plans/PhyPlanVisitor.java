@@ -244,7 +244,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     }
 
     /**
-     * @param localRearrangeForIllustrate
+     * @param lrfi
      * @throws VisitorException 
      */
     public void visitLocalRearrangeForIllustrate(

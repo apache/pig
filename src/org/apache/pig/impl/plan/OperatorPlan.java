@@ -178,9 +178,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
     }
 
     /**
-     * Remove an edge from between two nodes. Use {@link insertBetween} if disconnect is used 
-     * in the process of inserting a new node between two nodes by calling disconnect 
-     * followed by a connect.
+     * Remove an edge from between two nodes. 
+     * Use {@link org.apache.pig.impl.plan.OperatorPlan#insertBetween(Operator, Operator, Operator)} 
+     * if disconnect is used in the process of inserting a new node between two nodes 
+     * by calling disconnect followed by a connect.
      * @param from Operator data would flow from.
      * @param to Operator data would flow to.
      * @return true if the nodes were connected according to the specified data

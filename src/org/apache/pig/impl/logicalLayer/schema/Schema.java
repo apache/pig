@@ -1572,7 +1572,7 @@ public class Schema implements Serializable, Cloneable {
 
     /**
      * Recursively set NULL type to the specifid type in a schema
-     * @param schema the schema whose NULL type has to be set 
+     * @param s the schema whose NULL type has to be set 
      * @param t the specified type
      */
     public static void setSchemaDefaultType(Schema s, byte t) {

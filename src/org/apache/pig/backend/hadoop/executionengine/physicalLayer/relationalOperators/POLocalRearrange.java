@@ -476,7 +476,7 @@ public class POLocalRearrange extends PhysicalOperator {
     }
 
     /**
-     * @param plans2
+     * @param plans
      * @throws ExecException 
      */
     public void setPlansFromCombiner(List<PhysicalPlan> plans) throws PlanException {
