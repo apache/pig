@@ -133,7 +133,7 @@ public abstract class ExpressionOperator extends LogicalOperator {
     }
 
     /**
-     * @see org.apache.pig.impl.plan.LogicalOperator#clone()
+     * @see org.apache.pig.impl.logicalLayer.LogicalOperator#clone()
      * Do not use the clone method directly. Operators are cloned when logical plans
      * are cloned using {@link LogicalPlanCloner}
      */

@@ -109,7 +109,7 @@ public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> 
          * We only care about the values, so we are going to skip the keys when
          * we write.
          * 
-         * @see org.apache.hadoop.mapred.RecordWriter#write(K, V)
+         * @see org.apache.hadoop.mapred.RecordWriter#write(Object, Object)
          */
         public void write(WritableComparable key, Tuple value)
                 throws IOException {

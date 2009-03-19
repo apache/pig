@@ -56,8 +56,13 @@ public class LOLoad extends LogicalOperator {
      *            OperatorKey for this operator
      * @param inputFileSpec
      *            the file to be loaded *
-     * @param schemaFile
-     *            the file with the schema for the data to be loaded
+     * @param execType
+     *            the execution mode @see org.apache.pig.ExecType
+     * @param storage
+     *            the underlying storage
+     * @param splittable
+     *            if the input file is splittable (.gz is not)
+     *            
      * 
      */
     public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,

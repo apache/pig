@@ -40,7 +40,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
 
     /**
      * @param plan logical plan to be cloned
-     * @param walker walker used for traversing the logical plan
      */
     public LogicalPlanCloneHelper(LogicalPlan plan) throws CloneNotSupportedException {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
@@ -54,7 +53,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
     
     /**
      * @param plan
-     * @param walker
      * @param origCloneMap the lookup table used for tracking operators cloned in the plan
      */
     public LogicalPlanCloneHelper(LogicalPlan plan,

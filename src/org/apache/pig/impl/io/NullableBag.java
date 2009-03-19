@@ -35,7 +35,7 @@ public class NullableBag extends PigNullableWritable {
     }
 
     /**
-     * @param bytes
+     * @param b
      */
     public NullableBag(DataBag b) {
         mValue = b;
