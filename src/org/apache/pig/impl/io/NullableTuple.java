@@ -35,7 +35,7 @@ public class NullableTuple extends PigNullableWritable {
     }
 
     /**
-     * @param bytes
+     * @param t
      */
     public NullableTuple(Tuple t) {
         mValue = t;

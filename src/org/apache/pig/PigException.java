@@ -306,7 +306,7 @@ public class PigException extends IOException {
 
     /**
      * Set the detailed message of the exception
-     * @param msg - detailed message to be used by developers
+     * @param detailMsg - detailed message to be used by developers
      */
     public void setDetailedMessage(String detailMsg) {
         detailedMessage = detailMsg;
