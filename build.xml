@@ -123,6 +123,17 @@
         <fileset file="${lib.dir}/commons-collections-3.2.jar" />
     </path>
 
+    <!-- javadoc-classpath -->
+    <!-- This is going to stay back until we use a mechanism for automatic dependency management -->
+    <path id="javadoc-classpath">
+        <fileset file="${lib.dir}/${hbase.jarfile}" />
+        <fileset file="${lib.dir}/${hbase.test.jarfile}" />
+        <fileset file="${lib.dir}/javacc.jar" />
+        <fileset file="${lib.dir}/jsch-0.1.33.jar" />
+        <fileset file="${lib.dir}/junit-4.1.jar" />
+        <fileset file="${lib.dir}/jline-0.9.94.jar" />
+    </path>
+
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
@@ -266,8 +277,7 @@
             <packageset dir="${src.dir}" />
             <link href="${javadoc.link.java}" />
             <classpath>
-                <path refid="classpath" />
-                <pathelement path="${java.class.path}" />
+                <path refid="javadoc-classpath" />
             	<pathelement path="${output.jarfile}" />
             </classpath>
             <group title="pig" packages="org.apache.*" />
