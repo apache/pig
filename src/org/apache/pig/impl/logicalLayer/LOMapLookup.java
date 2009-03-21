@@ -36,7 +36,6 @@ public class LOMapLookup extends ExpressionOperator {
      * The key to lookup along with the type and schema corresponding to the
      * type and schema of the value linked to the key
      */
-    private ExpressionOperator mMap;
     private Object mMapKey;
     private byte mValueType;
     private Schema mValueSchema;
@@ -48,8 +47,6 @@ public class LOMapLookup extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param key
      *            Operator key to assign to this node.
-     * @param map
-     *            the map expression
      * @param mapKey
      *            key to look up in the map. The key is of atomic type
      * @param valueType
@@ -57,7 +54,7 @@ public class LOMapLookup extends ExpressionOperator {
      * @param valueSchema
      *            schema of the value if the type is tuple
      */
-    public LOMapLookup(LogicalPlan plan, OperatorKey key, ExpressionOperator map,
+    public LOMapLookup(LogicalPlan plan, OperatorKey key,
             Object mapKey, byte valueType, Schema valueSchema)
             throws ParseException {
         super(plan, key);
@@ -66,7 +63,6 @@ public class LOMapLookup extends ExpressionOperator {
             throw new ParseException("Map key " + mapKey.toString()
                     + " is not atomic");
         }
-        mMap = map;
         mMapKey = mapKey;
         mValueType = valueType;
         mValueSchema = valueSchema;
@@ -74,11 +70,10 @@ public class LOMapLookup extends ExpressionOperator {
     }
 
     public ExpressionOperator getMap() {
-        return mMap;
-    }
-
-    public void setMap(ExpressionOperator map) {
-        mMap = map;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(0);
     }
 
     public Object getLookUpKey() {
@@ -112,7 +107,8 @@ public class LOMapLookup extends ExpressionOperator {
             } else {
                 mFieldSchema = new Schema.FieldSchema(null, mValueType);
             }
-            mFieldSchema.setParent(mMap.getFieldSchema().canonicalName, mMap);
+            ExpressionOperator map = getMap();
+            mFieldSchema.setParent(map.getFieldSchema().canonicalName, map);
 
             mIsFieldSchemaComputed = true;
         }

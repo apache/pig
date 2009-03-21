@@ -43,22 +43,13 @@ public class LORegexp extends BinaryExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param key
      *            Operator key to assign to this node.
-     * @param operand
-     *            input expression to be tested against
-     * @param regexp
-     *            regular expression to match
      */
-    public LORegexp(LogicalPlan plan, OperatorKey key,
-            ExpressionOperator operand, ExpressionOperator regexp) {
-        super(plan, key, operand, regexp);
+    public LORegexp(LogicalPlan plan, OperatorKey key) {
+        super(plan, key);
     }
 
     public ExpressionOperator getOperand() {
         return getLhsOperand();
-    }
-
-    public void setOperand(ExpressionOperator op) {
-        setLhsOperand(op) ;
     }
 
     public String getRegexp() {

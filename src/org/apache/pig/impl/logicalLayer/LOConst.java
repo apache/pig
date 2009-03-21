@@ -79,7 +79,7 @@ public class LOConst extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "Const " + mKey.scope + "-" + mKey.id;
+        return "Const " + mKey.scope + "-" + mKey.id + "( " + mValue + " )";
     }
 
     @Override

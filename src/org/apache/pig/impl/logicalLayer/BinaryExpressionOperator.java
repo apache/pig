@@ -18,6 +18,8 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.List;
+
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -33,8 +35,6 @@ import org.apache.commons.logging.LogFactory;
 
 public abstract class BinaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
-    private ExpressionOperator mLhsOperand; //left hand side operand
-    private ExpressionOperator mRhsOperand; //right hand side operand
     private static Log log = LogFactory.getLog(BinaryExpressionOperator.class);
 
     /**
@@ -45,16 +45,9 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
-     * @param lhsOperand
-     *            ExpressionOperator the left hand side operand
-     * @param rhsOperand
-     *            ExpressionOperator the right hand side operand
      */
-    public BinaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp,
-            ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
+    public BinaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp) {
         super(plan, k, rp);
-        mLhsOperand = lhsOperand;
-        mRhsOperand = rhsOperand;
     }
 
     /**
@@ -62,34 +55,25 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param lhsOperand
-     *            ExpressionOperator the left hand side operand
-     * @param rhsOperand
-     *            ExpressionOperator the right hand side operand
      */
-    public BinaryExpressionOperator(LogicalPlan plan, OperatorKey k,
-            ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
+    public BinaryExpressionOperator(LogicalPlan plan, OperatorKey k) {
         super(plan, k);
-        mLhsOperand = lhsOperand;
-        mRhsOperand = rhsOperand;
     }
     
     public ExpressionOperator getLhsOperand() {
-        return mLhsOperand;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(0);
     }
 
     public ExpressionOperator getRhsOperand() {
-        return mRhsOperand;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(1);
     }
-    
-    public void setLhsOperand(ExpressionOperator lhs) {
-        mLhsOperand = lhs ;
-    }
-
-    public void setRhsOperand(ExpressionOperator rhs) {
-        mRhsOperand = rhs ;
-    }
-    
+        
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);

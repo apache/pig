@@ -165,8 +165,8 @@ public class TypeCastInserter extends LogicalTransformer {
                             // Either no schema was determined by loader OR the type 
                             // from the "determinedSchema" is different
                             // from the type specified - so we need to cast
-                            LOCast cast = new LOCast(p, OperatorKey.genOpKey(scope),
-                                proj, fs.type);
+                            LOCast cast = new LOCast(p, 
+                                        OperatorKey.genOpKey(scope), fs.type);
                             p.add(cast);
                             p.connect(proj, cast);
                             
