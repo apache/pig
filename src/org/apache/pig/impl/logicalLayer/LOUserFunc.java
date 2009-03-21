@@ -35,8 +35,7 @@ public class LOUserFunc extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
     private FuncSpec mFuncSpec;
-    private List<ExpressionOperator> mArgs;
-
+    
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
@@ -44,16 +43,13 @@ public class LOUserFunc extends ExpressionOperator {
      *            OperatorKey for this operator.
      * @param funcSpec
      *            name of the user defined function.
-     * @param args
-     *            List of expressions that form the arguments for this function.
      * @param returnType
      *            return type of this function.
      */
     public LOUserFunc(LogicalPlan plan, OperatorKey k, FuncSpec funcSpec,
-            List<ExpressionOperator> args, byte returnType) {
+            byte returnType) {
         super(plan, k, -1);
         mFuncSpec = funcSpec;
-        mArgs = args;
         mType = returnType;
     }
 
@@ -62,11 +58,15 @@ public class LOUserFunc extends ExpressionOperator {
     }
 
     public List<ExpressionOperator> getArguments() {
-        return mArgs;
-    }
-
-    public void setArguments(List<ExpressionOperator> args) {
-        mArgs = args;
+        List<LogicalOperator> preds = getPlan().getPredecessors(this);
+        List<ExpressionOperator> args = new ArrayList<ExpressionOperator>();
+        if(preds == null)
+                return args;
+            
+        for(LogicalOperator lo : preds){
+            args.add((ExpressionOperator)lo);
+        }
+        return args;
     }
 
     @Override
@@ -88,7 +88,8 @@ public class LOUserFunc extends ExpressionOperator {
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
             Schema inputSchema = new Schema();
-            for(ExpressionOperator op: mArgs) {
+            List<ExpressionOperator> args = getArguments();
+            for(ExpressionOperator op: args) {
                 if (!DataType.isUsableType(op.getType())) {
                     mFieldSchema = null;
                     mIsFieldSchemaComputed = false;
@@ -139,10 +140,6 @@ public class LOUserFunc extends ExpressionOperator {
      */
     public void setFuncSpec(FuncSpec funcSpec) {
         mFuncSpec = funcSpec;
-    }
-
-    public void setMArgs(List<ExpressionOperator> args) {
-        mArgs = args;
     }
 
     /**

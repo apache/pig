@@ -1137,7 +1137,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
         p.setResultType(func.getType());
         currentPlan.add(p);
-        List<LogicalOperator> fromList = func.getPlan().getPredecessors(func);
+        List<org.apache.pig.impl.logicalLayer.ExpressionOperator> fromList = func.getArguments();
         if(fromList!=null){
             for (LogicalOperator op : fromList) {
                 PhysicalOperator from = LogToPhyMap.get(op);
@@ -1283,10 +1283,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         String scope = op.getOperatorKey().scope;
         UnaryComparisonOperator physOp = new POIsNull(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), op.getRequestedParallelism(), null);
-        physOp.setOperandType(op.getOperand().getType());
-        currentPlan.add(physOp);
-
-        LogToPhyMap.put(op, physOp);
 
         List<LogicalOperator> inputs = op.getPlan().getPredecessors(op); 
         ExpressionOperator from;
@@ -1299,6 +1295,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
         }
 
+        
+        physOp.setOperandType(op.getOperand().getType());
+        currentPlan.add(physOp);
+
+        LogToPhyMap.put(op, physOp);
+
+        
         ((POIsNull) physOp).setExpr(from);
         try {
             currentPlan.connect(from, physOp);

@@ -18,6 +18,8 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.List;
+
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -31,7 +33,6 @@ public class LOCast extends ExpressionOperator {
     // Cast has an expression that has to be converted to a specified type
 
     private static final long serialVersionUID = 2L;
-    private ExpressionOperator mExpr;
     private FuncSpec mLoadFuncSpec = null;
 
     /**
@@ -40,24 +41,19 @@ public class LOCast extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param expr
-     *            the expression whose type has to be cast
      * @param type
      *            the type to which the expression is cast
      */
-    public LOCast(LogicalPlan plan, OperatorKey k,
-            ExpressionOperator expr, byte type) {
+    public LOCast(LogicalPlan plan, OperatorKey k, byte type) {
         super(plan, k);
-        mExpr = expr;
         mType = type;
     }// End Constructor LOCast
 
     public ExpressionOperator getExpression() {
-        return mExpr;
-    }
-
-    public void setExpression(ExpressionOperator expr) {
-        mExpr = expr;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(0);
     }
 
     @Override

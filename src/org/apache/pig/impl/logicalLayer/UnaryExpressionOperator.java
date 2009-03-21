@@ -18,6 +18,8 @@
 
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.List;
+
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
@@ -32,7 +34,6 @@ import org.apache.commons.logging.LogFactory;
  */
 public abstract class UnaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
-    protected ExpressionOperator mOperand; // operand
     private static Log log = LogFactory.getLog(UnaryExpressionOperator.class);
 
     /**
@@ -43,13 +44,9 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
      * @param rp
      *            degree of requested parallelism with which to execute this
      *            node.
-     * @param operand
-     *            ExpressionOperator the left hand side operand
      */
-    public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp,
-            ExpressionOperator operand) {
+    public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k, int rp) {
         super(plan, k, rp);
-        mOperand = operand;
     }
 
     /**
@@ -57,21 +54,17 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param operand
-     *            ExpressionOperator the left hand side operand
      */
-    public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k,
-            ExpressionOperator operand) {
+    public UnaryExpressionOperator(LogicalPlan plan, OperatorKey k) {
         super(plan, k);
-        mOperand = operand;
+
     }
     
     public ExpressionOperator getOperand() {
-        return mOperand;
-    }
-
-    public void setOperand(ExpressionOperator eOp) {
-        mOperand = eOp;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(0);
     }
 
     @Override
