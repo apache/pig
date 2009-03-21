@@ -23,16 +23,21 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.utils.Identity;
 import org.apache.pig.builtin.BinStorage;
 
@@ -54,6 +59,37 @@ public class TestEvalPipeline2 extends TestCase {
 //        pigServer = new PigServer(ExecType.LOCAL);
     }
     
+    
+    @Test
+    public void testUdfInputOrder() throws IOException {
+        String[] input = {
+                "(123)",
+                "((123)",
+                "(123123123123)",
+                "(asdf)"
+        };
+        
+        Util.createInputFile(cluster, "table_udfInp", input);
+        pigServer.registerQuery("a = load 'table_udfInp' as (i:int);");
+        pigServer.registerQuery("b = foreach a {dec = 'hello'; str1 = " +  Identity.class.getName() + 
+                    "(dec,'abc','def');" + 
+                    "generate dec,str1; };");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        
+        Tuple tup=null;
+
+        //tuple 1 
+        tup = it.next();
+        Tuple out = (Tuple)tup.get(1);
+
+        assertEquals( out.get(0).toString(), "hello");
+        assertEquals(out.get(1).toString(), "abc");
+        assertEquals(out.get(2).toString(), "def");
+        
+        Util.deleteFile(cluster, "table_udfInp");
+    }
+ 
+
     @Test
     public void testUDFwithStarInput() throws Exception {
         int LOOP_COUNT = 10;
@@ -255,5 +291,4 @@ public class TestEvalPipeline2 extends TestCase {
         Util.deleteFile(cluster, "table_bs_ac_clxt");
     }
 
-    
 }

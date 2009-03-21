@@ -1205,7 +1205,7 @@ ExpressionOperator POrCond(Schema over, Map<String, LogicalOperator> specs, Logi
 	(
 		<OR> rhsCond = PAndCond(over,specs,lp,input)
 		{
-			ExpressionOperator exprOp = new LOOr(lp, new OperatorKey(scope, getNextId()), lhsCond, rhsCond);
+			ExpressionOperator exprOp = new LOOr(lp, new OperatorKey(scope, getNextId()) );
 			lp.add(exprOp);
 			log.debug("POrCond: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
 			lp.connect(lhsCond, exprOp);
@@ -1234,7 +1234,7 @@ ExpressionOperator PAndCond(Schema over, Map<String, LogicalOperator> specs, Log
 	(
 		<AND> rhsCond = PUnaryCond(over,specs,lp,input)
 		{
-			ExpressionOperator exprOp = new LOAnd(lp, new OperatorKey(scope, getNextId()), lhsCond, rhsCond);
+			ExpressionOperator exprOp = new LOAnd(lp, new OperatorKey(scope, getNextId()) );
 			lp.add(exprOp);
 			log.debug("PAndCond: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
 			lp.connect(lhsCond, exprOp);
@@ -1280,28 +1280,28 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
             // numeric ops first
         case '=':
             if (op2 == '=') {
-                cond = new LOEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOEqual(lp, new OperatorKey(scope, getNextId()) );
             } else {
                 throw new ParseException("Internal error: Invalid filter operator: " + op);
             }
             break;
         case '<':
             if (op2 == '=') {
-                cond = new LOLesserThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOLesserThanEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
-                cond = new LOLesserThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOLesserThan(lp, new OperatorKey(scope, getNextId()));
             }
             break;
         case '>':
             if (op2 == '=') {
-                cond = new LOGreaterThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOGreaterThanEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
-                cond = new LOGreaterThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOGreaterThan(lp, new OperatorKey(scope, getNextId()));
             }
             break;
         case '!':
             if (op2 == '=') {
-                cond = new LONotEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LONotEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
                 throw new ParseException("Internal error: Invalid filter operator: " + op);
             }
@@ -1309,28 +1309,28 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
             // now string ops
         case 'e':
             if (op2 == 'q') {
-                cond = new LOEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
                 throw new ParseException("Internal error: Invalid filter operator: " + op);
             }
             break;
         case 'l':
             if (op2 == 't' && op3 == 'e') {
-                cond = new LOLesserThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOLesserThanEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
-                cond = new LOLesserThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOLesserThan(lp, new OperatorKey(scope, getNextId()));
             }
             break;
         case 'g':
             if (op2 == 't' && op3 == 'e') {
-                cond = new LOGreaterThanEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOGreaterThanEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
-                cond = new LOGreaterThan(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LOGreaterThan(lp, new OperatorKey(scope, getNextId()));
             }
             break;
         case 'n':
             if (op2 == 'e' && op3 == 'q') {
-                cond = new LONotEqual(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+                cond = new LONotEqual(lp, new OperatorKey(scope, getNextId()));
             } else {
                 throw new ParseException("Internal error: Invalid filter operator: " + op);
             }
@@ -1352,7 +1352,7 @@ ExpressionOperator PUnaryCond(Schema over, Map<String, LogicalOperator> specs, L
 			{
                 LOConst rconst = new LOConst(lp, new OperatorKey(scope, getNextId()), unquote(t1.image));
                 rconst.setType(DataType.CHARARRAY);
-				cond = new LORegexp(lp, new OperatorKey(scope, getNextId()), lhs, rconst); 
+				cond = new LORegexp(lp, new OperatorKey(scope, getNextId())); 
 				lp.add(rconst); 
 				lp.add(cond); 
 				log.debug("PUnaryCond: Added operator " + cond.getClass().getName() + " " + cond + " to logical plan " + lp);
@@ -1377,7 +1377,7 @@ ExpressionOperator PNotCond(Schema over, Map<String, LogicalOperator> specs,Logi
 {
 	<NOT> c1=PUnaryCond(over,specs,lp,input)
 	{
-		ExpressionOperator eOp = new LONot(lp, new OperatorKey(scope, getNextId()), c1);
+		ExpressionOperator eOp = new LONot(lp, new OperatorKey(scope, getNextId()));
 		lp.add(eOp);
 		log.debug("PNotCond: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
 		lp.connect(c1, eOp);
@@ -1396,14 +1396,14 @@ ExpressionOperator PNullCond(Schema over, Map<String, LogicalOperator> specs,Log
 {
 	c1=InfixExpr(over,specs,lp,input) <IS> [<NOT> {not = true;}] <NULL>
 	{
-		ExpressionOperator eOp = new LOIsNull(lp, new OperatorKey(scope, getNextId()), c1);
+		ExpressionOperator eOp = new LOIsNull(lp, new OperatorKey(scope, getNextId()));
 		lp.add(eOp);
 		log.debug("PNullCond: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
 		lp.connect(c1, eOp);
 		log.debug("PNullCond: Connected operator " + eOp.getClass().getName() + " " + eOp + " to " + c1 + " logical plan " + lp);
         ExpressionOperator notNull = null;
         if (not) {
-            notNull = new LONot(lp, new OperatorKey(scope, getNextId()), eOp); 
+            notNull = new LONot(lp, new OperatorKey(scope, getNextId())); 
             lp.add(notNull);
 		    log.debug("PNullCond: Added operator " + notNull.getClass().getName() + " " + notNull + " to logical plan " + lp);
             lp.connect(eOp, notNull);
@@ -1475,7 +1475,7 @@ CogroupInput GroupItem(LogicalPlan lp) :
 					listPlans.add(groupByPlan);
 			}
 		|	<ANY> {
-					es = new LOUserFunc(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), new FuncSpec(GFAny.class.getName()), null, DataType.INTEGER); 
+					es = new LOUserFunc(groupByPlan = new LogicalPlan(), new OperatorKey(scope, getNextId()), new FuncSpec(GFAny.class.getName()), DataType.INTEGER); 
 					groupByPlan.add(es);
 					log.debug("GroupItem: Added operator " + es.getClass().getName() + " " + es + " to logical plan " + groupByPlan);
 					listPlans.add(groupByPlan);
@@ -2430,9 +2430,9 @@ ExpressionOperator AdditiveExpr(Schema over, Map<String, LogicalOperator> specs,
 			assertAtomic(lhs,true);
 			assertAtomic(rhs,true);
 			if (t.image.equals("+")){
-				exprOp = new LOAdd(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+				exprOp = new LOAdd(lp, new OperatorKey(scope, getNextId()));
 			}else{
-				exprOp = new LOSubtract(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+				exprOp = new LOSubtract(lp, new OperatorKey(scope, getNextId()));
 			}
 			lp.add(exprOp);
 			log.debug("AdditiveExpr: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
@@ -2465,11 +2465,11 @@ ExpressionOperator MultiplicativeExpr(Schema over, Map<String, LogicalOperator> 
 			assertAtomic(lhs,true);
 			assertAtomic(rhs,true);
 			if (t.image.equals("*")){
-				exprOp = new LOMultiply(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+				exprOp = new LOMultiply(lp, new OperatorKey(scope, getNextId()));
 			}else if (t.image.equals("/")){
-				exprOp = new LODivide(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+				exprOp = new LODivide(lp, new OperatorKey(scope, getNextId()));
 			}else {
-				exprOp = new LOMod(lp, new OperatorKey(scope, getNextId()), lhs, rhs);
+				exprOp = new LOMod(lp, new OperatorKey(scope, getNextId()));
 			}
 			lp.add(exprOp);
 			log.debug("MultiplicativeExpr: Added operator " + exprOp.getClass().getName() + " " + exprOp + " to logical plan " + lp);
@@ -2500,7 +2500,7 @@ ExpressionOperator CastExpr(Schema over, Map<String, LogicalOperator> specs,Logi
     [LOOKAHEAD(2)"(" fs = TypeFieldSchema() {castRequired = true;}")"] exprOp = UnaryExpr(over, specs, lp, input)
     {
         if(castRequired) {
-            cast = new LOCast(lp, new OperatorKey(scope, getNextId()), exprOp, fs.type);
+            cast = new LOCast(lp, new OperatorKey(scope, getNextId()), fs.type);
             fs.alias = exprOp.getFieldSchema().alias;
             cast.setFieldSchema(fs);
             lp.add(cast);
@@ -2539,7 +2539,7 @@ ExpressionOperator NegativeExpr(Schema over, Map<String, LogicalOperator> specs,
 {
 	"-" c1=CastExpr(over,specs,lp,input)
 	{
-		ExpressionOperator eOp = new LONegative(lp, new OperatorKey(scope, getNextId()), c1);
+		ExpressionOperator eOp = new LONegative(lp, new OperatorKey(scope, getNextId()));
 		lp.add(eOp);
 		log.debug("NegativeExpr: Added operator " + eOp.getClass().getName() + " " + eOp + " to logical plan " + lp);
 		lp.connect(c1, eOp);
@@ -2586,7 +2586,7 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 		)
 |		( "#" key = AtomDatum() { 
 			assertAtomic(item, false);
-			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), item, key, DataType.BYTEARRAY, null);
+			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), key, DataType.BYTEARRAY, null);
 			lp.add(mapLookup);
 			log.debug("BaseEvalSpec: Added operator " + mapLookup.getClass().getName() + " " + mapLookup + " to logical plan " + lp);
 			lp.connect(item, mapLookup);
@@ -2618,8 +2618,7 @@ ExpressionOperator BinCond(Schema over, Map<String, LogicalOperator> specs, Logi
 	
 	)
 	{ 
-		//ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()), conditionPlan, truePlan, falsePlan);
-		ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()), cond, ifTrue, ifFalse);
+		ExpressionOperator bincond = new LOBinCond(lp, new OperatorKey(scope, getNextId()));
 		lp.add(bincond);
 		log.debug("BinCond: Added operator " + bincond.getClass().getName() + " " + bincond + " to logical plan " + lp);
 		lp.connect(cond, bincond);
@@ -2680,7 +2679,7 @@ ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs,
             default:
                 throw new ParseException("Received an unknown function type: " + funcType);
             }
-			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, args, type);
+			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, type);
         } else {
             throw new ParseException("Could not instantiate function: " + funcNameAlias);
         }

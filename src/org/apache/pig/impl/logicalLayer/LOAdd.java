@@ -37,14 +37,9 @@ public class LOAdd extends BinaryExpressionOperator {
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param lhsOperand
-     *            the left hand side operand
-     * @param rhsOperand
-     *            the right hand side operand
      */
-    public LOAdd(LogicalPlan plan, OperatorKey k,
-            ExpressionOperator lhsOperand, ExpressionOperator rhsOperand) {
-        super(plan, k, lhsOperand, rhsOperand);
+    public LOAdd(LogicalPlan plan, OperatorKey k) {
+        super(plan, k);
     }
 
     @Override

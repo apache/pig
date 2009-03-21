@@ -17,12 +17,14 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Map;
 import java.util.ArrayList;
 
+import org.apache.commons.el.RelationalOperator;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -54,102 +56,74 @@ public class RemoveRedundantOperators extends
     protected void visit(LOProject project) throws VisitorException {
         LogicalPlan currentPlan = (LogicalPlan)mCurrentWalker.getPlan();
         
-        //if the project is a project(*) and if there are predecessors and successors that are
+        //if the project is a project(*) and if there are predecessors 
+        // and successors that are
         //1. both relational operators OR
         //2. both expression operators
-        //then the project(*) can be removed and the input and outputs short circuited, i.e. directly connected
+        //then the project(*) can be removed and the input and outputs
+        // short circuited, i.e. directly connected
         if(project.isStar()) {
 
-            List<LogicalOperator> projectSuccessors = currentPlan.getSuccessors(project);
-            List<LogicalOperator> projectPredecessors = currentPlan.getPredecessors(project);
-
-            if(((projectSuccessors != null) && (projectSuccessors.size() > 0)) 
-                && ((projectPredecessors != null) && (projectPredecessors.size() > 0))) {
-
-                //Making copies to avoid concurrent modification exceptions
-                List<LogicalOperator> successors = new ArrayList(currentPlan.getSuccessors(project));
-                List<LogicalOperator> predecessors = new ArrayList(currentPlan.getPredecessors(project));
-
-                //if the project(*) cannot be removed
-                boolean removeProject = true;
-
-                for(LogicalOperator projectPred: predecessors) {
-                    for(LogicalOperator projectSucc: successors) {
-                        if (((projectPred instanceof ExpressionOperator) && (projectSucc instanceof ExpressionOperator))
-                            || (!(projectPred instanceof ExpressionOperator) && !(projectSucc instanceof ExpressionOperator))) {
-                            try {
-                                currentPlan.disconnect(projectPred, project);
-                                currentPlan.disconnect(project, projectSucc);
-                                currentPlan.connect(projectPred, projectSucc);
-                                patchInputReference(projectSucc, project, projectPred);
-                            } catch (PlanException pe) {
-                                throw new VisitorException(pe.getMessage(), pe);
-                            }
-                        } else {
-                            removeProject = false;
-                        }
+            List<LogicalOperator> prSuccessors = 
+                    currentPlan.getSuccessors(project);
+            
+            List<LogicalOperator> prPredecessors = 
+                    currentPlan.getPredecessors(project);
+            
+            if( ((prSuccessors != null) && (prSuccessors.size() > 0)) 
+                    /* prPredecessors.size() == 1 for project(*) */
+                    && ((prPredecessors != null) && (prPredecessors.size() == 1)) ){
+                
+                LogicalOperator pred =  prPredecessors.get(0);
+                
+                
+                //check if either all pred and succ oper are ExpressionOperator
+                // or if all of them are relationalOperators (ie != ExpressionOperator)
+                boolean allExpressionOp = true;
+                boolean allRelationalOp = true;
+                if(pred instanceof ExpressionOperator)
+                    allRelationalOp = false;
+                else 
+                    allExpressionOp = false;
+                
+                for(LogicalOperator op: prSuccessors){
+                    if (op instanceof ExpressionOperator) 
+                        allRelationalOp = false;
+                    else 
+                        allExpressionOp = false;
+                    
+                    if(allExpressionOp == false && allRelationalOp == false)
+                        break;
+                }
+                
+                // remove project if either condition is met
+                if(allExpressionOp == true || allRelationalOp == true){
+                    try{
+                        currentPlan.removeAndReconnectMultiSucc(project);
+                        patchInputReference(pred, project, prSuccessors);
+                    }catch (PlanException pe){
+                        String msg = new String("Error while removing redundant project in plan");
+                        throw new VisitorException(msg,pe);
                     }
                 }
-                if(removeProject) {
-                    currentPlan.remove(project);
+                
+            }
+        }       
+    }
+    
+    
+    private void patchInputReference(LogicalOperator pred, LogicalOperator current, List<LogicalOperator> succs) {
+        for(LogicalOperator n : succs){
+            // special handling of LOProject because its getExpression() does
+            // need not be same as getPredecessors(LOProject)
+            if(n instanceof LOProject){
+                LOProject lop = (LOProject)n;
+                if(current == lop.getExpression()){
+                    lop.setExpression((LogicalOperator)pred);
                 }
             }
         }
     }
-
-    private void patchInputReference(LogicalOperator op, LogicalOperator prevInput, LogicalOperator newInput) {
-        //TODO
-        //Using reference comparison here as operators do not have equals() method yet
-        //Depending on the successor of prevInput, fix the referenes to point to newInput
-        if(op instanceof BinaryExpressionOperator) {
-            BinaryExpressionOperator binOp = (BinaryExpressionOperator)op;
-            if(prevInput == binOp.getLhsOperand()) {
-                binOp.setLhsOperand((ExpressionOperator)newInput);
-            } else if(prevInput == binOp.getRhsOperand()) {
-                binOp.setRhsOperand((ExpressionOperator)newInput);
-            }
-        } else if (op instanceof UnaryExpressionOperator) {
-            UnaryExpressionOperator uniOp = (UnaryExpressionOperator)op;
-            if(prevInput == uniOp.getOperand()) {
-                uniOp.setOperand((ExpressionOperator)newInput);
-            }
-        } else if (op instanceof LOBinCond) {
-            LOBinCond binCond = (LOBinCond)op;
-            if(prevInput == binCond.getLhsOp()) {
-                binCond.setLhsOp((ExpressionOperator)newInput);
-            } else if(prevInput == binCond.getRhsOp()) {
-                binCond.setRhsOp((ExpressionOperator)newInput);
-            } else if(prevInput == binCond.getCond()) {
-                binCond.setCond((ExpressionOperator)newInput);
-            }
-        } else if (op instanceof LOCast) {
-            LOCast cast = (LOCast)op;
-            if(prevInput == cast.getExpression()) {
-                cast.setExpression((ExpressionOperator)newInput);
-            }
-        } else if (op instanceof LOMapLookup) {
-            LOMapLookup map = (LOMapLookup)op;
-            if(prevInput == map.getMap()) {
-                map.setMap((ExpressionOperator)newInput);
-            }
-        } else if (op instanceof LOUserFunc) {
-            LOUserFunc userFunc = (LOUserFunc)op;
-            List<ExpressionOperator> args = userFunc.getArguments();
-            ArrayList<ExpressionOperator> newArgs = new ArrayList<ExpressionOperator>(args.size());
-            for(ExpressionOperator expOp: args) {
-                if(prevInput == expOp) {
-                    newArgs.add((ExpressionOperator)newInput);
-                } else {
-                    newArgs.add(expOp);
-                }
-            }
-            userFunc.setArguments(newArgs);
-        } else if (op instanceof LOProject) {
-            LOProject proj = (LOProject)op;
-            if(prevInput == proj.getExpression()) {
-                proj.setExpression(newInput);
-            }
-        }
-    }
-
+    
+    
 }

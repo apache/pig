@@ -19,6 +19,8 @@
 package org.apache.pig.impl.logicalLayer;
 
 
+import java.util.List;
+
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
@@ -31,58 +33,40 @@ public class LOBinCond extends ExpressionOperator {
     // is executed else the second nested query is executed
 
     private static final long serialVersionUID = 2L;
-    private ExpressionOperator mCond;
-    private ExpressionOperator mLhsOp;
-    private ExpressionOperator mRhsOp;
-
+ 
     /**
      * 
      * @param plan
      *            Logical plan this operator is a part of.
      * @param k
      *            Operator key to assign to this node.
-     * @param cond
-     *            ExpressionOperator the expression specifying condition
-     * @param lhsOp
-     *            ExpressionOperator query to be executed when condition is true
-     * @param rhsOp
-     *            ExpressionOperator query to be executed when condition is
-     *            false
      */
-    public LOBinCond(LogicalPlan plan, OperatorKey k,
-            ExpressionOperator cond, ExpressionOperator lhsOp,
-            ExpressionOperator rhsOp) {
+    public LOBinCond(LogicalPlan plan, OperatorKey k) {
         super(plan, k);
-        mCond = cond;
-        mLhsOp = lhsOp;
-        mRhsOp = rhsOp;
-
     }// End Constructor LOBinCond
 
     public ExpressionOperator getCond() {
-        return mCond;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(0);
     }
 
     public ExpressionOperator getLhsOp() {
-        return mLhsOp;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(1);
     }
 
     public ExpressionOperator getRhsOp() {
-        return mRhsOp;
+        List<LogicalOperator>preds = getPlan().getPredecessors(this);
+        if(preds == null)
+            return null;
+        return (ExpressionOperator)preds.get(2);
     }
     
-    public void setCond(ExpressionOperator cond) {
-        mCond = cond;
-    }
-
-    public void setLhsOp(ExpressionOperator op) {
-        mLhsOp = op ;
-    }
-
-    public void setRhsOp(ExpressionOperator op) {
-        mRhsOp = op;
-    }
-
+    
     @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
@@ -99,7 +83,7 @@ public class LOBinCond extends ExpressionOperator {
         //The type checker perform this task
         if (!mIsFieldSchemaComputed) {
             try {
-                mFieldSchema = mLhsOp.getFieldSchema();
+                mFieldSchema = getLhsOp().getFieldSchema();
                 mIsFieldSchemaComputed = true;
             } catch (FrontendException fee) {
                 mFieldSchema = null;
