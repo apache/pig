@@ -100,6 +100,9 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
                 }
             }
         }
+        else if(op instanceof POSplit) {
+            plans.addAll(((POSplit)op).getPlans());
+        }
 
         return plans;
     }

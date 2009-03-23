@@ -213,6 +213,9 @@ public class GruntParser extends PigScriptParser {
 
             if (file.isDirectory()) {
                 mPigServer.explain(alias, format, isVerbose, target);
+                if (script != null) {
+                    discardBatch();
+                }
                 return;
             }
             else {
@@ -220,8 +223,14 @@ public class GruntParser extends PigScriptParser {
                     out = new PrintStream(new FileOutputStream(target));
                 }
                 catch (FileNotFoundException fnfe) {
+                    if (script != null) {
+                        discardBatch();
+                    }
                     throw new ParseException("File not found: " + target);
                 } catch (SecurityException se) {
+                    if (script != null) {
+                        discardBatch();
+                    }
                     throw new ParseException("Cannot access file: " + target);
                 }
             }
@@ -456,7 +465,7 @@ public class GruntParser extends PigScriptParser {
             else
             {    
                 job.killJob();
-                log.error("kill submited.");
+                log.error("kill submitted.");
             }
         }
     }
