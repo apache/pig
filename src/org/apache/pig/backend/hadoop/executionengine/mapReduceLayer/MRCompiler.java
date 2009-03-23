@@ -64,7 +64,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
@@ -240,9 +239,6 @@ public class MRCompiler extends PhyPlanVisitor {
         la.visit();
         la.adjust();
         
-        MultiQueryAdjuster ma = new MultiQueryAdjuster(MRPlan);
-        ma.visit();
-        
         return MRPlan;
     }
     
@@ -308,11 +304,6 @@ public class MRCompiler extends PhyPlanVisitor {
         POStore st = new POStore(new OperatorKey(scope,nig.getNextNodeId(scope)));
         return st;
     }
-    
-    private POSplit getSplit(){
-        POSplit sp = new POSplit(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        return sp;
-    }    
     
     /**
      * A map MROper is an MROper whose map plan is still open
@@ -611,6 +602,7 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             FileSpec fSpec = op.getSplitStore();
             MapReduceOper mro = endSingleInputPlanWithStr(fSpec);
+            mro.setSplitter(true);
             splitsSeen.put(op.getOperatorKey(), mro);
             curMROp = startNew(fSpec, mro);
         }catch(Exception e){
@@ -1665,257 +1657,4 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
-    /** 
-     * An adjuster that merges all or part splitee MapReduceOpers into 
-     * splitter MapReduceOper. The merge can produce a MROperPlan that has 
-     * fewer MapReduceOpers than MapReduceOpers in the original MROperPlan.
-     * 
-     * The MRCompler generates multiple MapReduceOpers whenever it encounters 
-     * a split operator and connects the single splitter MapReduceOper to 
-     * one or more splitee MapReduceOpers using store/load operators:  
-     *  
-     *     ---- POStore (in splitter) -... ----
-     *     |        |    ...    |
-     *     |        |    ...    |
-     *    POLoad  POLoad ...  POLoad (in splitees)
-     *      |        |           |
-     *      
-     *  This adjuster merges those MapReduceOpers by replacing POLoad/POStore 
-     *  combination with POSplit operator.    
-     */
-    private class MultiQueryAdjuster extends MROpPlanVisitor {
- 
-        MultiQueryAdjuster(MROperPlan plan) {
-            super(plan, new DependencyOrderWalker<MapReduceOper, MROperPlan>(plan, false));
-        }
-
-        @Override
-        public void visitMROp(MapReduceOper mr) throws VisitorException {
-            
-            if (!isSplitter(mr)) {
-                return;
-            }
-            
-            // find all the single load map-only MROpers in the splitees
-            List<MapReduceOper> mappers = new ArrayList<MapReduceOper>();
-            List<MapReduceOper> multiLoadMappers = new ArrayList<MapReduceOper>();
-            List<MapReduceOper> mapReducers = new ArrayList<MapReduceOper>();
-                        
-            List<MapReduceOper> successors = getPlan().getSuccessors(mr);
-            for (MapReduceOper successor : successors) {
-                if (isMapOnly(successor)) {
-                    if (isSingleLoadMapperPlan(successor.mapPlan)) { 
-                        mappers.add(successor);
-                    } else {
-                        multiLoadMappers.add(successor);
-                    }
-                } else {
-                    mapReducers.add(successor);
-                }                
-            }
-                
-            PhysicalPlan splitterPl = isMapOnly(mr) ? mr.mapPlan : mr.reducePlan;                            
-            PhysicalOperator storeOp = splitterPl.getLeaves().get(0);
-            List<PhysicalOperator> storePreds = splitterPl.getPredecessors(storeOp);             
-            
-            if (mappers.size() == 1 && mapReducers.size() == 0 && multiLoadMappers.size() == 0) {
-                                               
-                // In this case, just add splitee's map plan to the splitter's plan
-                MapReduceOper mapper = mappers.get(0);
-                
-                PhysicalPlan pl = mapper.mapPlan;
-                PhysicalOperator load = pl.getRoots().get(0);               
-                pl.remove(load);
-                                
-                // make a copy before removing the store operator
-                List<PhysicalOperator> predsCopy = new ArrayList<PhysicalOperator>(storePreds);
-                splitterPl.remove(storeOp);                
-                
-                // connect two plans
-                List<PhysicalOperator> roots = pl.getRoots();
-                try {
-                    splitterPl.merge(pl);
-                } catch (PlanException e) {
-                    throw new VisitorException(e);
-                }                
-                
-                for (PhysicalOperator pred : predsCopy) {
-                    for (PhysicalOperator root : roots) {
-                        try {
-                            splitterPl.connect(pred, root);
-                        } catch (PlanException e) {
-                            throw new VisitorException(e);
-                        }
-                    }
-                }
-                
-            } else if (mappers.size() > 0) {
-                
-                // merge splitee's map plans into nested plan of 
-                // the splitter operator
-                POSplit splitOp = getSplit();
-                for (MapReduceOper mapper : mappers) {
-                                        
-                    PhysicalPlan pl = mapper.mapPlan;
-                    PhysicalOperator load = pl.getRoots().get(0);
-                    pl.remove(load);
-                    try {
-                        splitOp.addPlan(pl);
-                    } catch (PlanException e) {
-                        throw new VisitorException(e);
-                    }
-                }
-                        
-                // add original store to the split operator 
-                // if there is at least one MapReduce splitee
-                if (mapReducers.size() + multiLoadMappers.size() > 0) {
-                    PhysicalPlan storePlan = new PhysicalPlan();
-                    try {
-                        storePlan.addAsLeaf(storeOp);
-                        splitOp.addPlan(storePlan);
-                    } catch (PlanException e) {
-                        throw new VisitorException(e);
-                    }                
-                }
-            
-                // replace store operator in the splitter with split operator
-                splitOp.setInputs(storePreds);
-                try {
-                    splitterPl.replace(storeOp, splitOp);;
-                } catch (PlanException e) {
-                    throw new VisitorException(e);
-                }                   
-            }                       
-            
-            // remove all the map-only splitees from the MROperPlan
-            for (MapReduceOper mapper : mappers) {
-                removeAndReconnect(mapper, mr);                  
-            }
-            
-            // TO-DO: merge the other splitees if possible
-            if (mapReducers.size() + multiLoadMappers.size() > 0 ) {
-                // XXX
-            }
-        }
-        
-        /**
-         * Removes the specified MR operator from the plan after the merge. 
-         * Connects its predecessors and successors to the merged MR operator
-         * @param mr the MR operator to remove
-         * @param newMR the MR operator to be connected to the predecessors and 
-         *              the successors of the removed operator
-         * @throws VisitorException if connect operation fails
-         */
-        private void removeAndReconnect(MapReduceOper mr, MapReduceOper newMR) throws VisitorException {
-            List<MapReduceOper> mapperSuccs = getPlan().getSuccessors(mr);
-            List<MapReduceOper> mapperPreds = getPlan().getPredecessors(mr);
-            
-            // make a copy before removing operator
-            ArrayList<MapReduceOper> succsCopy = null;
-            ArrayList<MapReduceOper> predsCopy = null;
-            if (mapperSuccs != null) {
-                succsCopy = new ArrayList<MapReduceOper>(mapperSuccs);
-            }
-            if (mapperPreds != null) {
-                predsCopy = new ArrayList<MapReduceOper>(mapperPreds);
-            }
-            getPlan().remove(mr);   
-            
-            // reconnect the mapper's successors
-            if (succsCopy != null) {
-                for (MapReduceOper succ : succsCopy) {
-                    try {
-                        getPlan().connect(newMR, succ);
-                    } catch (PlanException e) {
-                        throw new VisitorException(e);
-                    }
-                }
-            }
-            
-            // reconnect the mapper's predecessors
-            if (predsCopy != null) {
-                for (MapReduceOper pred : predsCopy) {
-                    if (newMR.getOperatorKey().equals(pred.getOperatorKey())) {
-                        continue;
-                    }
-                    try {
-                        getPlan().connect(pred, newMR);
-                    } catch (PlanException e) {
-                        throw new VisitorException(e);
-                    }
-                }
-            }                   
-        }
-        
-        /*
-         * Checks whether the specified MapReduce operator is a splitter 
-         */
-        private boolean isSplitter(MapReduceOper mr) {
-  
-            List<MapReduceOper> successors = getPlan().getSuccessors(mr);
-            if (successors == null || successors.size() == 0) {
-                return false;
-            }
-                                   
-            PhysicalPlan pl = isMapOnly(mr) ? mr.mapPlan : mr.reducePlan;
-            
-            List<PhysicalOperator> mapLeaves = pl.getLeaves();
-            if (mapLeaves == null || mapLeaves.size() != 1) {
-                return false;
-            }
-           
-            PhysicalOperator mapLeaf = mapLeaves.get(0);
-            if (!(mapLeaf instanceof POStore)) {
-                return false;
-            }
-            
-            POStore store = (POStore)mapLeaf;
-            String fileName = store.getSFile().getFileName(); 
-            
-            for (MapReduceOper mro : successors) {
-                List<PhysicalOperator> roots = mro.mapPlan.getRoots();
-                boolean splitee = false;
-                for (PhysicalOperator root : roots) {
-                    if (root instanceof POLoad) {
-                        POLoad load = (POLoad)root;
-                        if (fileName.compareTo(load.getLFile().getFileName()) == 0) {
-                            splitee = true;
-                            break;
-                        }
-                    }
-                }
-                if (!splitee) return false;
-            }
-            
-            return true;
-        }
-        
-        private boolean isMapOnly(MapReduceOper mr) {
-            return mr.reducePlan.isEmpty();
-        }
-        
-        private boolean isSingleLoadMapperPlan(PhysicalPlan pl) {
-            List<PhysicalOperator> roots = pl.getRoots();
-            if (roots.size() != 1) {
-                return false;
-            }
-            
-            PhysicalOperator root = roots.get(0);
-            if (!(root instanceof POLoad)) {
-                throw new IllegalStateException("Invalid root operator in mapper Splitee: " 
-                        +  root.getClass().getName());
-            }           
-            List<PhysicalOperator> successors = pl.getSuccessors(root);
-            if (successors == null || successors.size() != 1) {
-                throw new IllegalStateException("Root in mapper Splitee has no successor: "
-                        + successors.size());
-            }
-            PhysicalOperator op = successors.get(0);
-            if (!(op instanceof POFilter)) {
-                throw new IllegalStateException("Invalid successor of load in mapper Splitee: "
-                        + op.getClass().getName());
-            }
-            return true;
-        }
-    }    
 }

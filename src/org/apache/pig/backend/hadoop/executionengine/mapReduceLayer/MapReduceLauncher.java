@@ -183,6 +183,10 @@ public class MapReduceLauncher extends Launcher{
         // an appropriate NullableXXXWritable object
         KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
         kdv.visit();
+        
+        MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
+        mqOptimizer.visit();
+        
         return plan;
     }
  

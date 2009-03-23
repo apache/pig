@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.pig.ExecType;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
@@ -213,17 +214,15 @@ public class BinStorage implements ReversibleLoadStoreFunc {
     public Schema determineSchema(String fileName, ExecType execType,
             DataStorage storage) throws IOException {
 
-        InputStream is = null;
-
-        try {
-            is = FileLocalizer.open(fileName, execType, storage);
-        } catch (IOException e) {
+        if (!FileLocalizer.fileExists(fileName, storage)) {
             // At compile time in batch mode, the file may not exist
             // (such as intermediate file). Just return null - the
-            // same way as we could's get a valid record from the input.
+            // same way as we would if we did not get a valid record
             return null;
         }
         
+        InputStream is = FileLocalizer.open(fileName, execType, storage);
+       
         bindTo(fileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
         // get the first record from the input file
         // and figure out the schema from the data in

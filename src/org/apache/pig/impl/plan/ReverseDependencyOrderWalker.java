@@ -25,20 +25,20 @@ import java.util.Set;
 
 
 /**
- * DependencyOrderWalker traverses the graph in such a way that no node is visited
- * before all the nodes it depends on have been visited.  Beyond this, it does not
+ * ReverseDependencyOrderWalker traverses the graph in such a way that no node is visited
+ * before all the nodes that are its successors on have been visited.  Beyond this, it does not
  * guarantee any particular order.  So, you have a graph with node 1 2 3 4, and
- * edges 1->3, 2->3, and 3->4, this walker guarnatees that 1 and 2 will be visited
- * before 3 and 3 before 4, but it does not guarantee whether 1 or 2 will be
+ * edges 1->3, 2->3, and 3->4, this walker guarantees that 4 will be visited
+ * before 3 and 3 before 1 and 2, but it does not guarantee whether 1 or 2 will be
  * visited first.
  */
-public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O>>
+public class ReverseDependencyOrderWalker <O extends Operator, P extends OperatorPlan<O>>
     extends PlanWalker<O, P> {
 
     /**
      * @param plan Plan for this walker to traverse.
      */
-    public DependencyOrderWalker(P plan) {
+    public ReverseDependencyOrderWalker(P plan) {
         super(plan);
     }
 
@@ -50,18 +50,18 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
     public void walk(PlanVisitor<O, P> visitor) throws VisitorException {
         // This is highly inefficient, but our graphs are small so it should be okay.
         // The algorithm works by starting at any node in the graph, finding it's
-        // predecessors and calling itself for each of those predecessors.  When it
-        // finds a node that has no unfinished predecessors it puts that node in the
+        // successors and calling itself for each of those successors.  When it
+        // finds a node that has no unfinished successors it puts that node in the
         // list.  It then unwinds itself putting each of the other nodes in the list.
         // It keeps track of what nodes it's seen as it goes so it doesn't put any
         // nodes in the graph twice.
 
         List<O> fifo = new ArrayList<O>();
         Set<O> seen = new HashSet<O>();
-        List<O> leaves = mPlan.getLeaves();
-        if (leaves == null) return;
-        for (O op : leaves) {
-            doAllPredecessors(op, seen, fifo);
+        List<O> roots = mPlan.getRoots();
+        if (roots == null) return;
+        for (O op : roots) {
+            doAllSuccessors(op, seen, fifo);
         }
 
         for (O op: fifo) {
@@ -70,19 +70,19 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
     }
 
     public PlanWalker<O, P> spawnChildWalker(P plan) { 
-        return new DependencyOrderWalker<O, P>(plan);
+        return new ReverseDependencyOrderWalker<O, P>(plan);
     }
 
-    protected void doAllPredecessors(O node,
+    protected void doAllSuccessors(O node,
                                    Set<O> seen,
                                    Collection<O> fifo) throws VisitorException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            Collection<O> preds = mPlan.getPredecessors(node);
-            if (preds != null && preds.size() > 0) {
-                // Do all our predecessors before ourself
-                for (O op : preds) {
-                    doAllPredecessors(op, seen, fifo);
+            Collection<O> succs = mPlan.getSuccessors(node);
+            if (succs != null && succs.size() > 0) {
+                // Do all our successors before ourself
+                for (O op : succs) {
+                    doAllSuccessors(op, seen, fifo);
                 }
             }
             // Now do ourself

@@ -414,3 +414,5 @@ Trunk (unreleased changes)
     PIG-627: multiquery support incremental patch (Richard Ding via pradeepkth)
 
     PIG-627: multiquery support incremental patch (hagleitn via pradeepkth)
+
+    PIG-627: multiquery support incremental patch (Richard Ding via pradeepkth)

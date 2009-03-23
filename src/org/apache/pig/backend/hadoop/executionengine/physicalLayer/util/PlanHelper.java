@@ -53,11 +53,13 @@ public class PlanHelper {
                 stores.add((POStore)leaf);
             }
             if (leaf instanceof POSplit) {
-                PhysicalPlan pl = ((POSplit)leaf).getPlan();
-                List<POStore> nestedStores = getStores(pl);
-                stores.addAll(nestedStores);
+                List<PhysicalPlan> pls = ((POSplit)leaf).getPlans();
+                for (PhysicalPlan pl : pls) {
+                    List<POStore> nestedStores = getStores(pl);
+                    stores.addAll(nestedStores);
+                }
             }
-       }
+        }
         return stores;
     }
 

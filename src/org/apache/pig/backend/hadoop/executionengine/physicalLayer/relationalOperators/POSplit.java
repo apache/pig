@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -84,16 +85,15 @@ public class POSplit extends PhysicalOperator {
      * which is the job containing the split
      */
     private FileSpec splitStore;
-    
-    /*
-     * The inner physical plan
-     */
-    private PhysicalPlan myPlan = new PhysicalPlan(); 
-    
+       
     /*
      * The list of sub-plans the inner plan is composed of
      */
     private List<PhysicalPlan> myPlans = new ArrayList<PhysicalPlan>();
+    
+    private BitSet processedSet = new BitSet();
+    
+    private static Result empty = new Result(POStatus.STATUS_NULL, null);
     
     /**
      * Constructs an operator with the specified key
@@ -170,16 +170,7 @@ public class POSplit extends PhysicalOperator {
     }
 
     /**
-     * Returns the inner physical plan associated with this operator
-     * @return the inner plan
-     */
-    public PhysicalPlan getPlan() {
-        return myPlan;
-    }
-
-    /**
-     * Returns the list of nested plans. This is used by 
-     * explain method to display the inner plans.
+     * Returns the list of nested plans. 
      * @return the list of the nested plans
      * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter
      */
@@ -193,67 +184,69 @@ public class POSplit extends PhysicalOperator {
      * @param plan plan to be appended to the list
      */
     public void addPlan(PhysicalPlan inPlan) throws PlanException {        
-        myPlan.merge(inPlan);
         myPlans.add(inPlan);
+        processedSet.set(myPlans.size()-1);
     }
    
     @Override
     public Result getNext(Tuple t) throws ExecException {
         
-        Result inp = processInput();
+        if (processedSet.cardinality() == myPlans.size()) {
             
-        if (inp.returnStatus == POStatus.STATUS_EOP) {
-            return inp;
-        }
+            Result inp = processInput();
+            
+            if (inp.returnStatus == POStatus.STATUS_EOP) {
+                return inp;
+            }
          
-        // process the nested plans
-        myPlan.attachInput((Tuple)inp.result);           
-        processPlan();
+            Tuple tuple = (Tuple)inp.result;
+            for (PhysicalPlan pl : myPlans) {
+                pl.attachInput(tuple);
+            }
             
-        return new Result(POStatus.STATUS_NULL, null);                        
+            processedSet.clear();
+        }
+        
+        return processPlan();                                       
     }
 
-    private void processPlan() throws ExecException {
+    private Result processPlan() throws ExecException {
    
-        List<PhysicalOperator> leaves = myPlan.getLeaves();
+        int idx = processedSet.nextClearBit(0);
+        PhysicalOperator leaf = myPlans.get(idx).getLeaves().get(0);
         
-        for (PhysicalOperator leaf : leaves) {
-            
-            // TO-DO: other types of leaves are possible later
-            if (!(leaf instanceof POStore) && !(leaf instanceof POSplit)) {
-                throw new ExecException("Invalid operator type in the split plan: "
-                        + leaf.getOperatorKey());
-            }            
-                   
-            runPipeline(leaf);     
+        Result res = runPipeline(leaf);
+        
+        if (res.returnStatus == POStatus.STATUS_EOP) {
+            processedSet.set(idx++);        
+            if (idx < myPlans.size()) {
+                res = processPlan();
+            }
         }
+        
+        return (res.returnStatus == POStatus.STATUS_OK) ? res : empty;
     }
     
-    private void runPipeline(PhysicalOperator leaf) throws ExecException {
+    private Result runPipeline(PhysicalOperator leaf) throws ExecException {
        
+        Result res = null;
+        
         while (true) {
             
-            Result res = leaf.getNext(dummyTuple);
+            res = leaf.getNext(dummyTuple);
             
-            if (res.returnStatus == POStatus.STATUS_OK ||
-                    res.returnStatus == POStatus.STATUS_NULL) {                
+            if (res.returnStatus == POStatus.STATUS_OK) {                
+                break;
+            } else if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
-            }                 
-            
-            if (res.returnStatus == POStatus.STATUS_EOP) {
+            } else if (res.returnStatus == POStatus.STATUS_EOP) {
+                break;
+            } else if (res.returnStatus == POStatus.STATUS_ERR) {
                 break;
             }
-            
-            if (res.returnStatus == POStatus.STATUS_ERR) {
-
-                // if there is an err message use it
-                String errMsg = (res.result != null) ?
-                        "Received Error while processing the split plan: " + res.result :
-                        "Received Error while processing the split plan.";   
-                    
-                throw new ExecException(errMsg);
-            }
-        }        
+        }   
+        
+        return res;
     }
         
 }
