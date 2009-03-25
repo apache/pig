@@ -25,7 +25,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="0.1.0-dev" />
+    <property name="version" value="1.0.1-dev" />
     <property name="final.name" value="${name}-${version}" />
     <condition property="isWindows">
         <os family="windows"/>
@@ -36,7 +36,7 @@
     <property name="src.dir" value="${basedir}/src/" />
     <property name="src.lib.dir" value="${basedir}/lib-src/" />
     <property name="src.gen.dir" value="${basedir}/src-gen/" />
-    <property name="src.docs.dir" value="${basedir}/docs/" />
+    <property name="docs.dir" value="${basedir}/src/docs/" />
 
 
     <!-- build properties -->
@@ -92,9 +92,21 @@
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
     <property name="src.gen.textdata.parser.dir" value="${src.gen.dir}/org/apache/pig/data/parser" />
     <property name="javacc.home" value="${basedir}/lib" />
+    
+    <!-- rats properties -->
+    <property name="rats_url" value="http://arat.googlecode.com/files/rat-lib-all-0.5.1.jar" />
+    <property name="rat.reporting.classname" value="rat.Report"/>
 
-	<!-- javadoc properties  -->
-	<property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
+    <!-- javadoc properties  -->
+    <property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
+
+    <!-- test patch properties -->
+    <property name="scratch.dir" value="${user.home}/tmp"/>
+    <property name="svn.cmd" value="svn"/>
+    <property name="grep.cmd" value="grep"/>
+    <property name="patch.cmd" value="patch"/>
+    <property name="make.cmd" value="make"/>
+    <property name="test_patch_sh" value="${test.src.dir}/bin/test-patch.sh"/>
 
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
@@ -109,6 +121,17 @@
         <fileset file="${lib.dir}/junit-4.1.jar" />
         <fileset file="${lib.dir}/jline-0.9.94.jar" />
         <fileset file="${lib.dir}/commons-collections-3.2.jar" />
+    </path>
+
+    <!-- javadoc-classpath -->
+    <!-- This is going to stay back until we use a mechanism for automatic dependency management -->
+    <path id="javadoc-classpath">
+        <fileset file="${lib.dir}/${hbase.jarfile}" />
+        <fileset file="${lib.dir}/${hbase.test.jarfile}" />
+        <fileset file="${lib.dir}/javacc.jar" />
+        <fileset file="${lib.dir}/jsch-0.1.33.jar" />
+        <fileset file="${lib.dir}/junit-4.1.jar" />
+        <fileset file="${lib.dir}/jline-0.9.94.jar" />
     </path>
 
     <path id="test.classpath">
@@ -158,6 +181,8 @@
     <!-- ================================================================== -->
     <target name="clean" description="Cleanup build artifacts">
         <delete dir="${src.gen.dir}" />
+        <delete dir="${docs.dir}/build" />
+        <delete file="${lib.dir}/rats.jar" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
     </target>
@@ -171,8 +196,8 @@
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/PigFileParser.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/parameters/ParamLoader.jj" outputdirectory="${src.gen.param.parser.dir}" javacchome="${javacc.home}" />
-        <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/Dot.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
-        <javacc target="${src.gen.dot.parser.dir}/Dot.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/DOTParser.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
+        <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <jjtree target="${src.dir}/org/apache/pig/data/parser/TextDataParser.jjt" outputdirectory="${src.gen.textdata.parser.dir}/" javacchome="${javacc.home}" />
         <javacc target="${src.gen.textdata.parser.dir}/TextDataParser.jj" outputdirectory="${src.gen.textdata.parser.dir}" javacchome="${javacc.home}" />
     </target>
@@ -248,12 +273,11 @@
     <!-- ================================================================== -->
     <target name="javadoc" depends="jar" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
-        <javadoc overview="${src.docs.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+        <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
             <link href="${javadoc.link.java}" />
             <classpath>
-                <path refid="classpath" />
-                <pathelement path="${java.class.path}" />
+                <path refid="javadoc-classpath" />
             	<pathelement path="${output.jarfile}" />
             </classpath>
             <group title="pig" packages="org.apache.*" />
@@ -263,9 +287,27 @@
     <!-- ================================================================== -->
     <!-- @depricated, Documentation                                         -->
     <!-- ================================================================== -->
-    <target name="doc" depends="javadoc">
+    <target name="docs" depends="forrest.check, javadoc" description="Generate forrest-based documentation. 
+		To use, specify -Dforrest.home=&lt;base of Apache Forrest installation&gt; on the command line." if="forrest.home">
+    	<exec dir="${docs.dir}" executable="${forrest.home}/bin/forrest"
+          failonerror="true">
+      		<env key="JAVA_HOME" value="${java5.home}"/>
+    	</exec>
+    	<copy todir="${build.docs}">
+      		<fileset dir="${docs.dir}/build/site/" />
+    	</copy>
     </target>
-	
+
+    <target name="forrest.check" unless="forrest.home" depends="java5.check">
+    	<fail message="'forrest.home' is not defined. 
+		Please pass -Dforrest.home=&lt;base of Apache Forrest installation&gt; to Ant on the command-line." />
+    </target>
+
+    <target name="java5.check" unless="java5.home">
+    	<fail message="'java5.home' is not defined. Forrest requires Java 5.  
+		Please pass -Djava5.home=&lt;base of Java 5 distribution&gt; to Ant on the command-line." />
+    </target>
+
     <target name="source-jar" depends="cc-compile">
 	    <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}">
             <manifest>
@@ -340,7 +382,7 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test" depends="compile-test,jar">
+    <target name="test-core" depends="compile-test,jar">
         <delete dir="${test.log.dir}"/>
         <mkdir dir="${test.log.dir}"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
@@ -388,11 +430,20 @@
         </junit>
         <fail if="tests.failed">Tests failed!</fail>
     </target>
+    
+    <target name="test" description="to call the test-core and test-contrib target">
+	<antcall target="test-core"/>
+	<antcall target="test-contrib"/>
+    </target>    
+
+    <target name="test-contrib" description="to call contrib tests">
+        <!--#### test-contrib is yet to be implemented #### -->	
+    </target>	
 
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
-    <target name="package" depends="jar, javadoc" description="Create a Pig release">
+    <target name="package" depends="docs" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
         <mkdir dir="${dist.dir}/scripts" />
@@ -416,7 +467,22 @@
 
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
-            <fileset dir="${src.gen.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/lib-src" includeEmptyDirs="true">
+            <fileset dir="${src.lib.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/test" includeEmptyDirs="true">
+            <fileset dir="${test.src.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/tutorial" includeEmptyDirs="true">
+            <fileset dir="tutorial" />
+        </copy>
+
+        <copy todir="${dist.dir}/contrib" includeEmptyDirs="true">
+            <fileset dir="contrib" />
         </copy>
 
         <copy todir="${dist.dir}/" file="build.xml" />
@@ -447,5 +513,128 @@
             </tarfileset>
         </tar>
     </target>
+   
+    <!-- ================================================================== -->
+    <!-- Findbugs                                                           -->
+    <!-- ================================================================== -->
 
+    <property name="findbugs.home" value=""/>
+    <target name="findbugs" depends="check-for-findbugs, jar" if="findbugs.present" description="Run findbugs if present">
+    	<property name="findbugs.out.dir" value="${test.build.dir}/findbugs"/>
+    	<property name="findbugs.report.htmlfile" value="${findbugs.out.dir}/pig-findbugs-report.html"/>
+    	<property name="findbugs.report.xmlfile" value="${findbugs.out.dir}/pig-findbugs-report.xml"/>
+    	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
+        		classpath="${findbugs.home}/lib/findbugs-ant.jar" />
+	<mkdir dir="${findbugs.out.dir}"/>
+    	<findbugs home="${findbugs.home}" output="xml:withMessages"
+        		outputFile="${findbugs.report.xmlfile}" effort="max" jvmargs="-Xmx512M">
+      		<auxClasspath>
+        		<fileset dir="${lib.dir}">
+          			<include name="**/*.jar"/>
+        		</fileset>
+      		</auxClasspath>
+      		<sourcePath path="${src.dir}"/>
+      		<class location="${output.jarfile.core}" />
+    	</findbugs>
+        <xslt style="${findbugs.home}/src/xsl/default.xsl" in="${findbugs.report.xmlfile}"
+        		out="${findbugs.report.htmlfile}"/>
+    </target>
+	
+    <target name="check-for-findbugs">
+    	<available property="findbugs.present" file="${findbugs.home}/lib/findbugs.jar" />
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Perform audit activities for the release                           -->
+    <!-- ================================================================== -->
+    <target name="get-rats" description="Downloads the release audit tool">
+    	<get src="${rats_url}" dest="${lib.dir}/rats.jar" usetimestamp="false" />
+    </target>
+   
+    <target name="releaseaudit" depends="get-rats ,package" description="Release Audit activities">
+    	<java classname="${rat.reporting.classname}" fork="true" classpath="${lib.dir}/rats.jar">
+      		<arg value="${build.dir}/${final.name}"/>
+    	</java>
+    </target>
+
+    <target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home" 
+			description="Run optional third-party tool targets">
+    	<taskdef resource="checkstyletask.properties">
+       		<classpath refid="classpath"/>
+        	<classpath refid="checkstyle-classpath"/>
+        </taskdef>
+        <mkdir dir="${test.build.dir}"/>
+        <checkstyle config="${test.src.dir}/checkstyle.xml" failOnViolation="false">
+        	<fileset dir="${src.dir}" includes="**/*.java" excludes="**/generated/**"/>
+        	<formatter type="xml" toFile="${test.build.dir}/checkstyle-errors.xml"/>
+        </checkstyle>
+        <xslt style="${test.src.dir}/checkstyle-noframes-sorted.xsl" in="${test.build.dir}/checkstyle-errors.xml"
+        	out="${test.build.dir}/checkstyle-errors.html"/>
+    </target>
+
+    <target name="checkstyle.check" unless="checkstyle.home">
+    	<fail message="'checkstyle.home' is not defined. Please pass -Dcheckstyle.home=&lt;base of checkstyle installation&gt; 
+		to Ant on the command-line." />
+    </target>
+    
+    <target name="set-checkstyle-classpath">
+    	<path id="checkstyle-classpath">
+        	<fileset dir="${checkstyle.home}">
+			<include name="**/*.jar"/>
+         	</fileset>
+ 	</path>
+    </target>	
+
+    <target name="findbugs.check" depends="check-for-findbugs" unless="findbugs.present">
+    	<fail message="'findbugs.home' is not defined. Please pass -Dfindbugs.home=&lt;base of Findbugs installation&gt; 
+		to Ant on the command-line." />
+    </target>
+
+    <target name="patch.check" unless="patch.file">
+  	<fail message="'patch.file' is not defined. Please pass -Dpatch.file=&lt;location of patch file&gt; 
+		to Ant on the command-line." />
+    </target>
+
+    <target name="test-patch" depends="patch.check,findbugs.check,forrest.check">
+  	<exec executable="bash" failonerror="true">
+    		<arg value="${test_patch_sh}"/>
+    		<arg value="DEVELOPER"/>
+    		<arg value="${patch.file}"/>
+    		<arg value="${scratch.dir}"/>
+    		<arg value="${svn.cmd}"/>
+    		<arg value="${grep.cmd}"/>
+    		<arg value="${patch.cmd}"/>
+    		<arg value="${findbugs.home}"/>
+    		<arg value="${forrest.home}"/>
+    		<arg value="${basedir}"/>
+    		<arg value="${java5.home}"/>
+        	<arg value="${ant.project.name}"/>
+  	</exec>
+    </target>
+
+    <target name="hudson-test-patch" depends="findbugs.check,forrest.check">
+  	<exec executable="bash" failonerror="true">
+    		<arg value="${test_patch_sh}"/>
+    		<arg value="HUDSON"/>
+    		<arg value="${scratch.dir}"/>
+    		<arg value="${support.dir}"/>
+    		<arg value="${ps.cmd}"/>
+    		<arg value="${wget.cmd}"/>
+    		<arg value="${jiracli.cmd}"/>
+    		<arg value="${svn.cmd}"/>
+    		<arg value="${grep.cmd}"/>
+    		<arg value="${patch.cmd}"/>
+    		<arg value="${findbugs.home}"/>
+    		<arg value="${forrest.home}"/>
+    		<arg value="${eclipse.home}"/>
+    		<arg value="${python.home}"/>
+    		<arg value="${basedir}"/>
+    		<arg value="${trigger.url}"/>
+    		<arg value="${jira.passwd}"/>
+    		<arg value="${java5.home}"/>
+    		<arg value="${curl.cmd}"/>
+    		<arg value="${defect}"/>
+		<arg value="${ant.project.name}"/>
+    	</exec>
+     </target>
 </project>

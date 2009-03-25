@@ -62,6 +62,8 @@ public abstract class PigScriptParser
 	
 	abstract protected void quit();
 	
+	abstract protected void printAliases() throws IOException;
+
 	abstract protected void processDescribe(String alias) throws IOException;
 
 	abstract protected void processExplain(String alias, String script, boolean isVerbose, String format, String target, List<String> params, List<String> files) throws IOException, ParseException;
@@ -133,6 +135,7 @@ TOKEN: {<COPYFROMLOCAL: "copyFromLocal">}
 TOKEN: {<COPYTOLOCAL: "copyToLocal">}
 TOKEN: {<DUMP: "dump">}
 TOKEN: {<DESCRIBE: "describe">}
+TOKEN: {<ALIASES: "aliases">}
 TOKEN: {<EXPLAIN: "explain">}
 TOKEN: {<HELP: "help">}
 TOKEN: {<KILL: "kill">}
@@ -621,6 +624,8 @@ Token GetReserved () :
 	|
 	t = <DESCRIBE>
 	|
+	t = <ALIASES>
+	|
 	t = <EXPLAIN>
 	|
 	t = <HELP>
@@ -669,15 +674,5 @@ Token GetReserved () :
 JAVACODE 
 void handle_invalid_command(int kind) 
 {
-	ParseException e = generateParseException();  // generate the exception object.
-	
-	if (mInteractive) {
-		System.out.println(e.toString());  // print the error message
-		Token t = getNextToken();
-
-		while (t.kind != kind)
-			t = getNextToken();
-	} else {
-		throw e;
-	}
+	throw generateParseException();  // throw the exception object.
 }

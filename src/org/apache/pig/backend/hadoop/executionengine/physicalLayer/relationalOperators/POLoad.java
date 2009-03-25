@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -121,10 +122,10 @@ public class POLoad extends PhysicalOperator {
         if(!setUpDone && lFile!=null){
             try {
                 setUp();
-            } catch (IOException e) {
-                ExecException ee = new ExecException("Unable to setup the loader because of the exception: " + e.getMessage());
-                ee.initCause(e);
-                throw ee;
+            } catch (IOException ioe) {
+                int errCode = 2081;
+                String msg = "Unable to setup the load function.";
+                throw new ExecException(msg, errCode, PigException.BUG, ioe);
             }
             setUpDone = true;
         }

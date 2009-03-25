@@ -29,7 +29,11 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.logging.Log;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
@@ -43,6 +47,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.WrappedIOException;
 
 
@@ -53,6 +58,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
 
     Iterator<Tuple>     i              = null;
     protected BufferedPositionedInputStream in = null;
+    private static final Log mLog = LogFactory.getLog(BinStorage.class);
     private DataInputStream inData = null;
     protected long                end            = Long.MAX_VALUE;
     
@@ -70,11 +76,18 @@ public class BinStorage implements ReversibleLoadStoreFunc {
             if (in == null || in.getPosition() >=end) {
                 return null;
             }
-            b = (byte) in.read();
-            if(b != RECORD_1 && b != -1) {
-                continue;
+            // check if we saw RECORD_1 in our last attempt
+            // this can happen if we have the following 
+            // sequence RECORD_1-RECORD_1-RECORD_2-RECORD_3
+            // After reading the second RECORD_1 in the above
+            // sequence, we should not look for RECORD_1 again
+            if(b != RECORD_1) {
+                b = (byte) in.read();
+                if(b != RECORD_1 && b != -1) {
+                    continue;
+                }
+                if(b == -1) return null;
             }
-            if(b == -1) return null;
             b = (byte) in.read();
             if(b != RECORD_2 && b != -1) {
                 continue;
@@ -90,9 +103,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             return (Tuple)DataReaderWriter.readDatum(inData);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -120,91 +131,115 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         t.write(out);
     }
 
-    public DataBag bytesToBag(byte[] b) throws IOException {
+    public DataBag bytesToBag(byte[] b){
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (DataBag)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return DataReaderWriter.bytesToBag(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to bag, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }        
     }
 
-    public String bytesToCharArray(byte[] b) throws IOException {
+    public String bytesToCharArray(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (String)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return DataReaderWriter.bytesToCharArray(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to chararray, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Double bytesToDouble(byte[] b) throws IOException {
+    public Double bytesToDouble(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Double)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return new Double(dis.readDouble());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to double, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Float bytesToFloat(byte[] b) throws IOException {
+    public Float bytesToFloat(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Float)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return new Float(dis.readFloat());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to float, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+            
+            return null;
         }
     }
 
-    public Integer bytesToInteger(byte[] b) throws IOException {
+    public Integer bytesToInteger(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Integer)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return new Integer(dis.readInt());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to integer, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Long bytesToLong(byte[] b) throws IOException {
+    public Long bytesToLong(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Long)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return new Long(dis.readLong());
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to long, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<Object, Object> bytesToMap(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Map<Object, Object>)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return DataReaderWriter.bytesToMap(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to map, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
-    public Tuple bytesToTuple(byte[] b) throws IOException {
+    public Tuple bytesToTuple(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return (Tuple)DataReaderWriter.readDatum(dis);
-        } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            return DataReaderWriter.bytesToTuple(dis);
+        } catch (IOException e) {
+            LogUtils.warn(this, "Unable to convert bytearray to tuple, " +
+                    "caught IOException <" + e.getMessage() + ">",
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
+                    mLog);
+        
+            return null;
         }
     }
 
@@ -239,7 +274,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
             try {
                 s.add(DataType.determineFieldSchema(t.get(i)));
             } catch (Exception e) {
-                throw WrappedIOException.wrap(e);
+                int errCode = 2104;
+                String msg = "Error while determining schema of BinStorage data.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             } 
         }
         return s;
@@ -256,9 +293,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, bag);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting bag to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -269,9 +306,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, s);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting chararray to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -282,9 +319,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, d);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting double to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -295,9 +332,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, f);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting float to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -308,9 +345,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, i);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting int to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -321,9 +358,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, l);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting long to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -334,9 +371,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, m);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting map to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }
@@ -347,9 +384,9 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         try {
             DataReaderWriter.writeDatum(dos, t);
         } catch (Exception ee) {
-            IOException oughtToBeEE = new IOException();
-            ee.initCause(ee);
-            throw oughtToBeEE;
+            int errCode = 2105;
+            String msg = "Error while converting tuple to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();
     }

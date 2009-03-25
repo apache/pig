@@ -94,6 +94,11 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // wrap their own version of a reporter.
     public static PigProgressable reporter;
 
+    // Will be used by operators to aggregate warning messages
+    // Should be set by the backends to appropriate implementations that
+    // wrap their own version of a logger.
+    protected static PigLogger pigLogger;
+
     // Dummy types used to access the getNext of appropriate
     // type. These will be null
     static protected DataByteArray dummyDBA;
@@ -297,7 +302,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public PhysicalOperator clone() throws CloneNotSupportedException {
         String s = new String("This physical operator does not " +
             "implement clone.");
-        log.error(s);
         throw new CloneNotSupportedException(s);
     }
 
@@ -310,6 +314,18 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      */
     public void setParentPlan(PhysicalPlan physicalPlan) {
        parentPlan = physicalPlan;
+    }
+    
+    public Log getLogger() {
+    	return log;
+    }
+    
+    public static void setPigLogger(PigLogger logger) {
+    	pigLogger = logger;
+    }
+    
+    public static PigLogger getPigLogger() {
+    	return pigLogger;
     }
 
 }

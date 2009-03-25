@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -33,7 +34,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.WrappedIOException;
 
 
 /**
@@ -46,7 +46,11 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         try {
             return sum(input);
         } catch (ExecException ee) {
-            throw WrappedIOException.wrap("Caught exception in SUM", ee);
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 
@@ -81,7 +85,11 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
                 // treat this particular input as null
                 return tfact.newTuple(null);
             } catch (ExecException e) {
-                throw WrappedIOException.wrap("Caught exception in SUM.Initial", e);
+                throw e;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -90,10 +98,14 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            try {
+        	try {
                 return tfact.newTuple(sumDoubles(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in SUM.Intermediate", ee);
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -103,7 +115,11 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
             try {
                 return sumDoubles(input);
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in SUM.Final", ee);
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
     }
@@ -130,9 +146,9 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
                 sum += d;
             
             }catch(RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage(), exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing sum of doubles.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
         
@@ -171,9 +187,9 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
                 sum += d;
             
             }catch(RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage(), exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing sum of doubles.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
         

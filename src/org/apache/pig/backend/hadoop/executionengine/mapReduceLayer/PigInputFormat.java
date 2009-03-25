@@ -39,9 +39,11 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.Slice;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.PigSlicer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
@@ -100,7 +102,9 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
     protected Path[] listPaths(JobConf job) throws IOException {
         Path[] dirs = FileInputFormat.getInputPaths(job);
         if (dirs.length == 0) {
-            throw new IOException("No input paths specified in job");
+            int errCode = 2092;
+            String msg = "No input paths specified in job.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         
         List<Path> result = new ArrayList<Path>();
@@ -176,37 +180,54 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
      */
     public InputSplit[] getSplits(JobConf job, int numSplits)
             throws IOException {
-        ArrayList<Pair<FileSpec, Boolean>> inputs = (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer
-                .deserialize(job.get("pig.inputs"));
-        ArrayList<ArrayList<OperatorKey>> inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
-                .deserialize(job.get("pig.inpTargets"));
-        PigContext pigContext = (PigContext) ObjectSerializer.deserialize(job
-                .get("pig.pigContext"));
+        ArrayList<Pair<FileSpec, Boolean>> inputs;
+		ArrayList<ArrayList<OperatorKey>> inpTargets;
+		PigContext pigContext;
+		try {
+			inputs = (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer
+			        .deserialize(job.get("pig.inputs"));
+			inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
+			        .deserialize(job.get("pig.inpTargets"));
+			pigContext = (PigContext) ObjectSerializer.deserialize(job
+			        .get("pig.pigContext"));
+		} catch (Exception e) {
+			int errCode = 2094;
+			String msg = "Unable to deserialize object.";
+			throw new ExecException(msg, errCode, PigException.BUG, e);
+		}
         
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
-            Path path = new Path(inputs.get(i).first.getFileName());
-            FileSystem fs = path.getFileSystem(job);
-            // if the execution is against Mapred DFS, set
-            // working dir to /user/<userid>
-            if(pigContext.getExecType() == ExecType.MAPREDUCE)
-                fs.setWorkingDirectory(new Path("/user", job.getUser()));
-            
-            DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
-            ValidatingInputFileSpec spec;
-            if (inputs.get(i).first instanceof ValidatingInputFileSpec) {
-                spec = (ValidatingInputFileSpec) inputs.get(i).first;
-            } else {
-                spec = new ValidatingInputFileSpec(inputs.get(i).first, store);
-            }
-            boolean isSplittable = inputs.get(i).second;
-            if (isSplittable && (spec.getSlicer() instanceof PigSlicer)) {
-                ((PigSlicer)spec.getSlicer()).setSplittable(isSplittable);
-            }
-            Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
-            for (Slice split : pigs) {
-                splits.add(new SliceWrapper(split, pigContext, i, fs, inpTargets.get(i)));
-            }
+            try {
+				Path path = new Path(inputs.get(i).first.getFileName());
+				FileSystem fs = path.getFileSystem(job);
+				// if the execution is against Mapred DFS, set
+				// working dir to /user/<userid>
+				if(pigContext.getExecType() == ExecType.MAPREDUCE)
+				    fs.setWorkingDirectory(new Path("/user", job.getUser()));
+				
+				DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
+				ValidatingInputFileSpec spec;
+				if (inputs.get(i).first instanceof ValidatingInputFileSpec) {
+				    spec = (ValidatingInputFileSpec) inputs.get(i).first;
+				} else {
+				    spec = new ValidatingInputFileSpec(inputs.get(i).first, store);
+				}
+				boolean isSplittable = inputs.get(i).second;
+				if (isSplittable && (spec.getSlicer() instanceof PigSlicer)) {
+				    ((PigSlicer)spec.getSlicer()).setSplittable(isSplittable);
+				}
+				Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
+				for (Slice split : pigs) {
+				    splits.add(new SliceWrapper(split, pigContext, i, fs, inpTargets.get(i)));
+				}
+            } catch (ExecException ee) {
+            	throw ee;
+			} catch (Exception e) {
+				int errCode = 2118;
+				String msg = "Unable to create input slice for: " + inputs.get(i).first.getFileName();
+				throw new ExecException(msg, errCode, PigException.BUG, e);
+			}
         }
         return splits.toArray(new SliceWrapper[splits.size()]);
     }

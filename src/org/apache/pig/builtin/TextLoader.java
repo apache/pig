@@ -26,7 +26,9 @@ import java.util.Map;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -71,7 +73,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Boolean bytesToBoolean(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Boolean");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Boolean.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
     
     /**
@@ -79,7 +83,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Integer bytesToInteger(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Integer");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Integer.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -87,7 +93,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Long bytesToLong(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Long");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Long.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -95,7 +103,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Float bytesToFloat(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Float");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Float.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -103,7 +113,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Double bytesToDouble(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Double");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Double.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -121,7 +133,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Map");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Map.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -129,7 +143,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public Tuple bytesToTuple(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Tuple");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Tuple.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -137,7 +153,9 @@ public class TextLoader implements LoadFunc{
      * @throws IOException if the value cannot be cast.
      */
     public DataBag bytesToBag(byte[] b) throws IOException {
-        throw new IOException("TextLoader does not support conversion to Bag");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Bag.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     /**
@@ -155,7 +173,9 @@ public class TextLoader implements LoadFunc{
     }
 
     public byte[] toBytes(DataBag bag) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Bag");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Bag.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     public byte[] toBytes(String s) throws IOException {
@@ -163,26 +183,38 @@ public class TextLoader implements LoadFunc{
     }
 
     public byte[] toBytes(Double d) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Double");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Double.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     public byte[] toBytes(Float f) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Float");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Float.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     public byte[] toBytes(Integer i) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Integer");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Integer.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     public byte[] toBytes(Long l) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Long");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Long.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     public byte[] toBytes(Map<Object, Object> m) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Map");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Map.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     public byte[] toBytes(Tuple t) throws IOException {
-        throw new IOException("TextLoader does not support conversion from Tuple");
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Tuple.";
+        throw new ExecException(msg, errCode, PigException.BUG);
     }
 }

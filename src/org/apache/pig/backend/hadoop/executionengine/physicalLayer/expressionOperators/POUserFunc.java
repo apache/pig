@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -38,6 +39,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -60,6 +63,7 @@ public class POUserFunc extends ExpressionOperator {
 	public static final byte INITIAL = 0;
 	public static final byte INTERMEDIATE = 1;
 	public static final byte FINAL = 2;
+	private boolean initialized = false;
 
 	public POUserFunc(OperatorKey k, int rp, List<PhysicalOperator> inp) {
 		super(k, rp);
@@ -91,7 +95,15 @@ public class POUserFunc extends ExpressionOperator {
 
 	private void instantiateFunc(FuncSpec fSpec) {
 		this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
+		//the next couple of initializations do not work as intended for the following reasons
+		//the reporter and pigLogger are member variables of PhysicalOperator
+		//when instanitateFunc is invoked at deserialization time, both
+		//reporter and pigLogger are null. They are set during map and reduce calls,
+		//making the initializations here basically useless. Look at the processInput
+		//method where these variables are re-initialized. At that point, the PhysicalOperator
+		//is set up correctly with the reporter and pigLogger references
         this.func.setReporter(reporter);
+        this.func.setPigLogger(pigLogger);
 	}
 	
 	public Result processInput() throws ExecException {
@@ -100,7 +112,11 @@ public class POUserFunc extends ExpressionOperator {
         // across in the serialization (don't know why).  I suspect it's as
         // cheap to call the setReporter call everytime as to check whether I
         // have (hopefully java will inline it).
-        func.setReporter(reporter);
+        if(!initialized) {
+        	func.setReporter(reporter);
+        	func.setPigLogger(pigLogger);
+        	initialized = true;
+        }
 
 		Result res = new Result();
 		Tuple inpValue = null;
@@ -159,8 +175,7 @@ public class POUserFunc extends ExpressionOperator {
                 if(temp.returnStatus!=POStatus.STATUS_OK)
                     return temp;
                 
-                /* Refer Pig-597 */
-                /* if(op instanceof POProject &&
+                if(op instanceof POProject &&
                         op.getResultType() == DataType.TUPLE){
                     POProject projOp = (POProject)op;
                     if(projOp.isStar()){
@@ -170,7 +185,7 @@ public class POUserFunc extends ExpressionOperator {
                             rslt.append(trslt.get(i));
                         continue;
                     }
-                }*/
+                }
                 ((Tuple)res.result).append(temp.result);
 			}
 			res.returnStatus = temp.returnStatus;
@@ -192,15 +207,27 @@ public class POUserFunc extends ExpressionOperator {
 				return result;
 			}
 			return result;
-			
-		} catch (IOException e1) {
-		    errMsg = "Caught error from UDF " + funcSpec.getClassName() + 
-            "[" + e1.getMessage() + "]";
-			log.error(errMsg);
+		} catch (ExecException ee) {
+		    throw ee;
+		} catch (IOException ioe) {
+		    int errCode = 2078;
+		    String msg = "Caught error from UDF: " + funcSpec.getClassName(); 
+            String footer = " [" + ioe.getMessage() + "]";
+		    
+		    if(ioe instanceof PigException) {
+		        int udfErrorCode = ((PigException)ioe).getErrorCode();
+		        if(udfErrorCode != 0) {
+		            errCode = udfErrorCode;
+		            msg = ((PigException)ioe).getMessage();
+		        } else {
+		            msg += " [" + ((PigException)ioe).getMessage() + " ]";
+		        }
+		    } else {
+		        msg += footer;
+		    }
+		    
+			throw new ExecException(msg, errCode, PigException.BUG, ioe);
 		}
-		result.result = errMsg;
-		result.returnStatus = POStatus.STATUS_ERR;
-		return result;
 	}
 
 	@Override
@@ -260,7 +287,7 @@ public class POUserFunc extends ExpressionOperator {
 		return getNext();
 	}
 
-	public void setAlgebraicFunction(byte Function) {
+	public void setAlgebraicFunction(byte Function) throws ExecException {
 		// This will only be used by the optimizer for putting correct functions
 		// in the mapper,
 		// combiner and reduce. This helps in maintaining the physical plan as
@@ -285,39 +312,39 @@ public class POUserFunc extends ExpressionOperator {
         setResultType(DataType.findType(((EvalFunc<?>) func).getReturnType()));
 	}
 
-	public String getInitial() {
+	public String getInitial() throws ExecException {
 	    instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getInitial();
 		} else {
-			String msg = new String("Attempt to run a non-algebraic function"
-                + " as an algebraic function");
-            log.error(msg);
-            throw new RuntimeException(msg);
+		    int errCode = 2072;
+			String msg = "Attempt to run a non-algebraic function"
+                + " as an algebraic function";
+            throw new ExecException(msg, errCode, PigException.BUG);
 		}
 	}
 
-	public String getIntermed() {
+	public String getIntermed() throws ExecException {
         instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getIntermed();
 		} else {
-			String msg = new String("Attempt to run a non-algebraic function"
-                + " as an algebraic function");
-            log.error(msg);
-            throw new RuntimeException(msg);
+            int errCode = 2072;
+            String msg = "Attempt to run a non-algebraic function"
+                + " as an algebraic function";
+            throw new ExecException(msg, errCode, PigException.BUG);
 		}
 	}
 
-	public String getFinal() {
+	public String getFinal() throws ExecException {
         instantiateFunc(origFSpec);
 		if (func instanceof Algebraic) {
 			return ((Algebraic) func).getFinal();
 		} else {
-			String msg = new String("Attempt to run a non-algebraic function"
-                + " as an algebraic function");
-            log.error(msg);
-            throw new RuntimeException(msg);
+            int errCode = 2072;
+            String msg = "Attempt to run a non-algebraic function"
+                + " as an algebraic function";
+            throw new ExecException(msg, errCode, PigException.BUG);
 		}
 	}
 

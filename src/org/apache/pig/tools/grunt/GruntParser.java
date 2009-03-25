@@ -63,6 +63,7 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.impl.util.LogUtils;
 
 public class GruntParser extends PigScriptParser {
 
@@ -185,6 +186,9 @@ public class GruntParser extends PigScriptParser {
     }
     
     protected void processDescribe(String alias) throws IOException {
+        if(alias==null) {
+            alias = mPigServer.getPigContext().getLastAlias();
+        }
         mPigServer.dumpSchema(alias);
     }
 
@@ -239,6 +243,10 @@ public class GruntParser extends PigScriptParser {
         if (script != null) {
             discardBatch();
         }
+    }
+
+    protected void printAliases() throws IOException {
+        mPigServer.printAliases();
     }
     
     protected void processRegister(String jar) throws IOException {

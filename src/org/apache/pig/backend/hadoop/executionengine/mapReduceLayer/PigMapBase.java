@@ -30,12 +30,16 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -75,7 +79,8 @@ public abstract class PigMapBase extends MapReduceBase{
 
     private PhysicalOperator leaf;
 
-    private boolean initialized = false;
+    PigContext pigContext = null;
+    private volatile boolean initialized = false;
     
     /**
      * Will be called when all the tuples in the input
@@ -101,12 +106,9 @@ public abstract class PigMapBase extends MapReduceBase{
             try {
                 runPipeline(leaf);
             } catch (ExecException e) {
-                 IOException ioe = new IOException("Error running pipeline in close() of map");
-                 ioe.initCause(e);
-                 throw ioe;
+            	throw e;
             }
         }
-        mp = null;
 
         for (POStore store: stores) {
             if (!initialized) {
@@ -117,6 +119,18 @@ public abstract class PigMapBase extends MapReduceBase{
             }
             store.tearDown();
         }
+        
+        //Calling EvalFunc.finish()
+        UDFFinishVisitor finisher = new UDFFinishVisitor(mp, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(mp));
+        try {
+            finisher.visit();
+        } catch (VisitorException e) {
+        	int errCode = 2121;
+        	String msg = "Error while calling finish method on UDFs.";
+            throw new VisitorException(msg, errCode, PigException.BUG, e);
+        }
+        
+        mp = null;
 
         PhysicalOperator.setReporter(null);
         initialized = false;
@@ -160,9 +174,12 @@ public abstract class PigMapBase extends MapReduceBase{
                 roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
                 leaf = mp.getLeaves().get(0);
             }
-        } catch (IOException e) {
-            log.error(e.getMessage() + "was caused by:");
-            log.error(e.getCause().getMessage());
+            
+            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+            
+        } catch (IOException ioe) {
+            String msg = "Problem while configuring map plan.";
+            throw new RuntimeException(msg, ioe);
         }
     }
     
@@ -186,6 +203,7 @@ public abstract class PigMapBase extends MapReduceBase{
             this.outputCollector = oc;
             pigReporter.setRep(reporter);
             PhysicalOperator.setReporter(pigReporter);
+
             for (POStore store: stores) {
                 MapReducePOStoreImpl impl 
                     = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
@@ -193,15 +211,20 @@ public abstract class PigMapBase extends MapReduceBase{
                 store.setStoreImpl(impl);
                 store.setUp();
             }
+            
+            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+
+            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+            pigHadoopLogger.setAggregate(aggregateWarning);
+            pigHadoopLogger.setReporter(reporter);
+            PhysicalOperator.setPigLogger(pigHadoopLogger);
         }
         
         if(mp.isEmpty()){
             try{
                 collect(oc,inpTuple);
             } catch (ExecException e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.initCause(e.getCause());
-                throw ioe;
+                throw e;
             }
             return;
         }
@@ -213,9 +236,7 @@ public abstract class PigMapBase extends MapReduceBase{
             runPipeline(leaf);
             
         } catch (ExecException e) {
-            IOException ioe = new IOException(e.getMessage());
-            ioe.initCause(e.getCause());
-            throw ioe;
+        	throw e;
         }
     }
 
@@ -248,8 +269,9 @@ public abstract class PigMapBase extends MapReduceBase{
                     "processing the map plan.";
                 }
                     
-                IOException ioe = new IOException(errMsg);
-                throw ioe;
+                int errCode = 2055;
+                ExecException ee = new ExecException(errMsg, errCode, PigException.BUG);
+                throw ee;
             }
         }
         

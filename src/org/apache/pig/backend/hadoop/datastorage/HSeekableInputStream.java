@@ -22,7 +22,9 @@ import java.io.IOException;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
+import org.apache.pig.backend.executionengine.ExecException;
 
 public class HSeekableInputStream extends SeekableInputStream {
 
@@ -53,7 +55,9 @@ public class HSeekableInputStream extends SeekableInputStream {
             break;
         }
         default: {
-            throw new IOException("Invalid seek option: " + whence);
+            int errCode = 2098;
+            String msg = "Invalid seek option: " + whence;
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         }
         

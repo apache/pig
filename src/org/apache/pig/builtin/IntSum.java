@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -40,7 +41,11 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         try {
             return sum(input);
         } catch (ExecException ee) {
-            throw WrappedIOException.wrap("Caught exception in IntSum", ee);
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 
@@ -75,7 +80,11 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
                 // treat this particular input as null
                 return tfact.newTuple(null);
             } catch (ExecException e) {
-                throw WrappedIOException.wrap("Caught exception in IntSum.Initial", e);
+                throw e;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -87,7 +96,11 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
             try {
                 return tfact.newTuple(sumLongs(input));
             } catch (ExecException ee) {
-                throw WrappedIOException.wrap("Caught exception in IntSum.Intermediate", ee);
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -97,7 +110,11 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
             try {
                 return sumLongs(input);
             } catch (ExecException e) {
-                 throw WrappedIOException.wrap("Caught exception in IntSum.Intermediate", e);
+                 throw e;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -123,9 +140,9 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
                 sawNonNull = true;
                 sum += l;
             }catch(RuntimeException exp) {
-                throw new ExecException(
-                        "Error processing: " +
-                        t.toString() + exp.getMessage(), exp);
+                int errCode = 2103;
+                String msg = "Problem while computing sum of longs.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
 
@@ -156,9 +173,9 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
                 sawNonNull = true;
                 sum += i;
             }catch(RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage(), exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing sum of ints.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
 

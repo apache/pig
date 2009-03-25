@@ -87,7 +87,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
                 bag.add((Tuple)input.get(0));
                 return tupleFactory.newTuple(bag);
             } catch (ExecException e) {
-                throw WrappedIOException.wrap(e);
+                throw e;
             }
         }
     }
@@ -132,7 +132,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
                 }
             }
         } catch (ExecException e) {
-           throw WrappedIOException.wrap(e);
+           throw e;
         }
         return result;
     }
@@ -151,7 +151,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
             }
             return result;
         } catch (ExecException e) {
-             throw WrappedIOException.wrap(e);
+             throw e;
         }
     }
 

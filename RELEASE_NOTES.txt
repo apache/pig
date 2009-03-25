@@ -1,0 +1,54 @@
+This notes are for Pig 1.0.0 release.
+
+Highlights
+==========
+
+The main focus of this release is pipeline redesign, addition of type system and
+significant (2-10x) performance improvements.
+
+System Requirements
+===================
+
+1. Java 1.6.x or newer, preferably from Sun. Set JAVA_HOME to the root of your
+Java installation
+2. Ant build tool:  http://ant.apache.org - to build source only
+3. Sigwin: http://www.cygwin.com/ - to run under windows 
+4. This release is compatible with Hadoop 0.18.x releases
+
+Trying the Release
+==================
+
+1. Download pig-1.0.0.tar.gz
+2. Unpack the file: tar -xzvf pig-1.0.0.tar.gz
+3. Move into the installation directory: cd pig-1.0.0
+4. To run pig without Hadoop cluster, execute the command below. This will
+take you into an interactive shell called grunt that allows you to navigate
+the local file system and execute Pig commands against the local files
+    bin/pig -x local
+5. To run on your Hadoop cluster, you need to set PIG_CLASSPATH environment
+variable to point to the directory with your hadoop-site.xml file and then run
+pig. The commands below will take you into an interactive shell called grunt
+that allows you to navigate Hadoop DFS and execute Pig commands against it
+export PIG_CLASSPATH=/hadoop/conf
+    bin/pig
+6. To build your own version of pig.jar run
+    ant
+7. To run unit tests run
+    ant test 
+8. To build jar file with available user defined functions run commands below.
+This currently only works with Java 1.6.x.
+    cd contrib/piggybank/java
+    ant
+9. To build the tutorial:
+    cd tutorial
+    ant
+10. To run tutorial follow instructions in http://wiki.apache.org/pig/PigTutorial
+
+Relevant Documentation
+======================
+
+Pig Language Manual(including Grant commands):
+http://wiki.apache.org/pig-data/attachments/FrontPage/attachments/plrm.htm 
+UDF Manual: http://wiki.apache.org/pig/UDFManual
+Piggy Bank: http://wiki.apache.org/pig/PiggyBank
+Pig Tutorial: http://wiki.apache.org/pig/PigTutorial

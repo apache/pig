@@ -25,7 +25,9 @@ import org.apache.commons.logging.LogFactory;
 
 import org.apache.pig.PigException;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -41,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -48,6 +51,8 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
 
 /**
  * Optimize map reduce plans to use the combiner where possible.
@@ -104,10 +109,24 @@ public class CombinerOptimizer extends MROpPlanVisitor {
     private byte mKeyType = 0;
     
     private String chunkSize;
+    
+    private CompilationMessageCollector messageCollector = null;
 
     public CombinerOptimizer(MROperPlan plan, String chunkSize) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
         this.chunkSize = chunkSize;
+        messageCollector = new CompilationMessageCollector() ; 
+    }
+
+    public CombinerOptimizer(MROperPlan plan, String chunkSize, 
+    		CompilationMessageCollector messageCollector) {
+        super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+        this.chunkSize = chunkSize;
+        this.messageCollector = messageCollector ; 
+    }
+    
+    public CompilationMessageCollector getMessageCollector() {
+    	return messageCollector;
     }
 
     @Override
@@ -119,7 +138,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         // Find the POLocalRearrange in the map.  I'll need it later.
         List<PhysicalOperator> mapLeaves = mr.mapPlan.getLeaves();
         if (mapLeaves == null || mapLeaves.size() != 1) {
-            log.warn("Expected map to have single leaf!");
+            messageCollector.collect("Expected map to have single leaf!", MessageType.Warning, PigWarning.MULTI_LEAF_MAP);
             return;
         }
         PhysicalOperator mapLeaf = mapLeaves.get(0);
@@ -130,7 +149,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
         List<PhysicalOperator> reduceRoots = mr.reducePlan.getRoots();
         if (reduceRoots.size() != 1) {
-            log.warn("Expected reduce to have single leaf");
+        	messageCollector.collect("Expected reduce to have single leaf", MessageType.Warning, PigWarning.MULTI_LEAF_REDUCE);
             return;
         }
 
@@ -138,7 +157,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         // not, I don't know what's going on, so I'm out of here.
         PhysicalOperator root = reduceRoots.get(0);
         if (!(root instanceof POPackage)) {
-            log.warn("Expected reduce root to be a POPackage");
+        	messageCollector.collect("Expected reduce root to be a POPackage", MessageType.Warning, PigWarning.NON_PACKAGE_REDUCE_PLAN_ROOT);
             return;
         }
         POPackage pack = (POPackage)root;
@@ -195,8 +214,8 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 				// udf will be a POProject which will project the column
 				// corresponding to the position of the udf in the foreach
                 if (mr.combinePlan.getRoots().size() != 0) {
-                    log.warn("Wasn't expecting to find anything already "
-                        + "in the combiner!");
+                	messageCollector.collect("Wasn't expecting to find anything already "
+                        + "in the combiner!", MessageType.Warning, PigWarning.NON_EMPTY_COMBINE_PLAN);
                     return;
                 }
                 mr.combinePlan = new PhysicalPlan();
@@ -278,7 +297,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 } catch (Exception e) {
                     int errCode = 2018;
                     String msg = "Internal error. Unable to introduce the combiner for optimization.";
-                    throw new VisitorException(msg, errCode, PigException.BUG, e);
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
             }
         }
@@ -442,7 +461,9 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     try {
                         dp.visit();
                     } catch (VisitorException e) {
-                        throw new PlanException(e);
+                        int errCode = 2073;
+                        String msg = "Problem with replacing distinct operator with distinct built-in function.";
+                        throw new PlanException(msg, errCode, PigException.BUG, e);
                     }
                     
                     
@@ -461,7 +482,13 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     // to type Intermediate in combine plan and to type Final in
                     // the reduce
                     POUserFunc distinctFunc = (POUserFunc)getDistinctUserFunc(plans[j], leaf);
-                    distinctFunc.setAlgebraicFunction(funcTypes[j]);
+                    try {
+                        distinctFunc.setAlgebraicFunction(funcTypes[j]);
+                    } catch (ExecException e) {
+                        int errCode = 2074;
+                        String msg = "Could not configure distinct's algebraic functions in map reduce plan.";
+                        throw new PlanException(msg, errCode, PigException.BUG, e);
+                    }
                 }
                 
             }
@@ -474,7 +501,9 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             try {
                 new fixMapProjects(mpl).visit();
             } catch (VisitorException e) {
-                throw new PlanException(e);
+                int errCode = 2089;
+                String msg = "Unable to flag project operator to use single tuple bag.";
+                throw new PlanException(msg, errCode, PigException.BUG, e);
             }
         }
 
@@ -619,7 +648,13 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             throw new PlanException(msg, errCode, PigException.BUG);
         }
         POUserFunc func = (POUserFunc)leaf;
-        func.setAlgebraicFunction(type);
+        try {
+            func.setAlgebraicFunction(type);
+        } catch (ExecException e) {
+            int errCode = 2075;
+            String msg = "Could not set algebraic function type.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     private void fixUpRearrange(POLocalRearrange rearrange) throws PlanException {
@@ -802,8 +837,9 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 if(patched) {
                     // we should not already have been patched since the
                     // Project-Distinct pair should occur only once
-                    throw new VisitorException(
-                            "Unexpected Project-Distinct pair while trying to set up plans for use with combiner.");
+                    int errCode = 2076;
+                    String msg = "Unexpected Project-Distinct pair while trying to set up plans for use with combiner.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG);
                 }
                 // we have stick in the POUserfunc(org.apache.pig.builtin.Distinct)[DataBag]
                 // in place of the Project-PODistinct pair
@@ -824,11 +860,13 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     func.setResultType(DataType.BAG);
                     mPlan.replace(proj, func);
                     mPlan.remove(pred);
-                    // connect the the newly add "func" to
+                    // connect the the newly added "func" to
                     // the predecessor to the earlier PODistinct
                     mPlan.connect(distinctPredecessor, func);
                 } catch (PlanException e) {
-                    throw new VisitorException(e);
+                    int errCode = 2077;
+                    String msg = "Problem with reconfiguring plan to add distinct built-in function.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
                 patched = true;
             } 

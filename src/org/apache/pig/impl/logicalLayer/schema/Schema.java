@@ -362,7 +362,7 @@ public class Schema implements Serializable, Cloneable {
                 // Don't do the comparison if both embedded schemas are
                 // null.  That will cause Schema.equals to return false,
                 // even though we want to view that as true.
-                if (!(fschema.schema == null && fother.schema == null)) { 
+                if (!(fschema.schema == null && fother.schema == null)) {
                     // compare recursively using schema
                     if (!Schema.equals(fschema.schema, fother.schema, false, relaxAlias)) {
                         return false ;
@@ -1155,6 +1155,32 @@ public class Schema implements Serializable, Cloneable {
         if (other == null) {
             return false ;
         }
+        
+        /*
+         * Need to check for bags with schemas and bags with tuples that in turn have schemas.
+         * Retrieve the tuple schema of the bag if twoLevelAccessRequired
+         * Assuming that only bags exhibit this behavior and twoLevelAccessRequired is used
+         * with the right intentions
+         */
+        if(schema.isTwoLevelAccessRequired() || other.isTwoLevelAccessRequired()) {
+            if(schema.isTwoLevelAccessRequired()) {
+                try {
+                    schema = schema.getField(0).schema;
+                } catch (FrontendException fee) {
+                    return false;
+                }
+            }
+            
+            if(other.isTwoLevelAccessRequired()) {
+                try {
+                    other = other.getField(0).schema;
+                } catch (FrontendException fee) {
+                    return false;
+                }
+            }
+            
+            return Schema.equals(schema, other, relaxInner, relaxAlias);
+        }
 
         if (schema.size() != other.size()) return false;
 
@@ -1352,7 +1378,13 @@ public class Schema implements Serializable, Cloneable {
 
                 // create the merged field
                 // the mergedSubSchema can be true if allowIncompatibleTypes
-                mergedFs = new FieldSchema(mergedAlias, mergedSubSchema) ;
+                try {
+                    mergedFs = new FieldSchema(mergedAlias, mergedSubSchema, mergedType) ;
+                } catch (FrontendException e) {
+                    int errCode = 2124;
+                    String errMsg = "Internal Error: Unexpected error creating field schema";
+                    throw new SchemaMergeException(errMsg, errCode, PigException.BUG, e);
+                }
 
             }
             outputList.add(mergedFs) ;
@@ -1540,7 +1572,7 @@ public class Schema implements Serializable, Cloneable {
 
     /**
      * Recursively set NULL type to the specifid type in a schema
-     * @param schema the schema whose NULL type has to be set 
+     * @param s the schema whose NULL type has to be set 
      * @param t the specified type
      */
     public static void setSchemaDefaultType(Schema s, byte t) {

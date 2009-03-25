@@ -28,7 +28,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
@@ -110,7 +110,7 @@ public class TestGrunt extends TestCase {
         try {
             grunt.exec();
         } catch (Exception e) {
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertTrue(msg.contains("Encountered \" \";"));
         }

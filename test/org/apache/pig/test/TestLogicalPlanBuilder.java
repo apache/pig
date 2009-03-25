@@ -53,7 +53,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.test.utils.Identity;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.PigException;
 
 
@@ -1539,33 +1539,33 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("a = load 'a';");
         buildPlan("store a into 'out' using PigStorage();");
     }
-    
+
     @Test
     public void testQuery104() {
         // check that a field alias can be referenced
         // by unambiguous free form alias, fully qualified alias
         // and partially qualified unambiguous alias
-        String query = "a = load 'st10k' as (name, age, gpa);" +
-            "b = group a by name;" +
-            "c = foreach b generate flatten(a);" +
-            "d = filter c by name != 'fred';" +
-            "e = group d by name;" +
-            "f = foreach e generate flatten(d);" +
-            "g = foreach f generate name, d::a::name, a::name;";
-        buildPlan(query);
+        buildPlan( "a = load 'st10k' as (name, age, gpa);" );
+        buildPlan( "b = group a by name;" );
+        buildPlan("c = foreach b generate flatten(a);" );
+        buildPlan("d = filter c by name != 'fred';" );
+        buildPlan("e = group d by name;" );
+        buildPlan("f = foreach e generate flatten(d);" );
+        buildPlan("g = foreach f generate name, d::a::name, a::name;");
+
     }
-    
+
     @Test
     public void testQuery105() {
         // test that the alias "group" can be used
         // after a flatten(group)
-        String query = "a = load 'st10k' as (name, age, gpa);" +
-            "b = group a by name;" +
-            "c = foreach b generate flatten(group), COUNT(a) as cnt;" +
-            "d = foreach c generate group;";
-        buildPlan(query);
+        buildPlan( "a = load 'st10k' as (name, age, gpa);" );
+        buildPlan("b = group a by name;" );
+        buildPlan("c = foreach b generate flatten(group), COUNT(a) as cnt;" );
+        buildPlan("d = foreach c generate group;");
+
     }
-    
+
     @Test
     public void testQuery106()  throws FrontendException, ParseException {
         LogicalPlan lp;
@@ -1796,89 +1796,129 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testNullConsArithExprs() {
-        String query = "a = load 'a' as (x:int, y:double);" +
-        		"b = foreach a generate x + null, x * null, x / null, x - null, null % x, " +
-                "y + null, y * null, y / null, y - null;";
-        buildPlan(query);
+        buildPlan("a = load 'a' as (x:int, y:double);" );
+        buildPlan("b = foreach a generate x + null, x * null, x / null, x - null, null % x, " +
+                "y + null, y * null, y / null, y - null;"
+        );
     }
-    
+
     @Test
     public void testNullConsBincond1() {
-        String query = "a = load 'a' as (x:int, y:double);" +
-        		"b = foreach a generate (2 > 1? null : 1), ( 2 < 1 ? null : 1), " +
-        		"(2 > 1 ? 1 : null), ( 2 < 1 ? 1 : null);";
-        buildPlan(query);
+        buildPlan("a = load 'a' as (x:int, y:double);" );
+        buildPlan("b = foreach a generate (2 > 1? null : 1), ( 2 < 1 ? null : 1), " +
+                "(2 > 1 ? 1 : null), ( 2 < 1 ? 1 : null);"
+        );
     }
-    
+
     @Test
     public void testNullConsBincond2() {
-        String query = "a = load 'a' as (x:int, y:double);" +
-                 "b = foreach a generate (null is null ? 1 : 2), ( null is not null ? 2 : 1);";
-        buildPlan(query);
+        buildPlan("a = load 'a' as (x:int, y:double);" );
+        buildPlan("b = foreach a generate (null is null ? 1 : 2), ( null is not null ? 2 : 1);");
     }
-    
+
     @Test
     public void testNullConsForEachGenerate() {
-        String query = "a = load 'a' as (x:int, y:double);" +
-        		"b = foreach a generate x, null, y, null;";
-        buildPlan(query);
+        buildPlan("a = load 'a' as (x:int, y:double);" );
+        buildPlan("b = foreach a generate x, null, y, null;");
+
     }
-    
+
     @Test
     public void testNullConsOuterJoin() {
-        String query = "a = load 'a' as (x:int, y:chararray);" +
-        		"b = load 'b' as (u:int, v:chararray);" +
-        		"c = cogroup a by x, b by u;" +
-        		"d = foreach c generate flatten((SIZE(a) == 0 ? null : a)), " +
-        		"flatten((SIZE(b) == 0 ? null : b));";
-        buildPlan(query);
+        buildPlan("a = load 'a' as (x:int, y:chararray);" );
+        buildPlan("b = load 'b' as (u:int, v:chararray);" );
+        buildPlan("c = cogroup a by x, b by u;" );
+        buildPlan("d = foreach c generate flatten((SIZE(a) == 0 ? null : a)), " +
+                "flatten((SIZE(b) == 0 ? null : b));"
+        );
     }
-    
+
     @Test
     public void testNullConsConcatSize() {
-        String query = "a = load 'a' as (x:int, y:double, str:chararray);" +
-        		"b = foreach a generate SIZE(null), CONCAT(str, null), " +
-        "CONCAT(null, str);";
-        buildPlan(query);
+        buildPlan("a = load 'a' as (x:int, y:double, str:chararray);" );
+        buildPlan("b = foreach a generate SIZE(null), CONCAT(str, null), " + 
+                "CONCAT(null, str);"
+        );
     }
 
     @Test
     public void testFilterUdfDefine() {
-        String query = "define isempty IsEmpty(); a = load 'a' as (x:int, y:double, str:chararray);" +
-        		"b = filter a by isempty(*);";
-        buildPlan(query);
-    }
-    
-    @Test
-    public void testLoadUdfDefine() {
-        String query = "define PS PigStorage(); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
-        		"b = filter a by IsEmpty(*);";
-        buildPlan(query);
-    }
-    
-    @Test
-    public void testLoadUdfConstructorArgDefine() {
-        String query = "define PS PigStorage(':'); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
-        		"b = filter a by IsEmpty(*);";
-        buildPlan(query);
-    }
-    
-    @Test
-    public void testStoreUdfDefine() {
-        String query = "define PS PigStorage(); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
-        		"b = filter a by IsEmpty(*);" +
-                "store b into 'x' using PS;" ;
-        buildPlan(query);
-    }
-    
-    @Test
-    public void testStoreUdfConstructorArgDefine() {
-        String query = "define PS PigStorage(':'); a = load 'a' using PS as (x:int, y:double, str:chararray);" +
-        		"b = filter a by IsEmpty(*);" +
-                "store b into 'x' using PS;" ;
-        buildPlan(query);
+        buildPlan("define isempty IsEmpty();");
+        buildPlan("a = load 'a' as (x:int, y:double, str:chararray);");
+        buildPlan("b = filter a by isempty(*);");
     }
 
+    @Test
+    public void testLoadUdfDefine() {
+        buildPlan("define PS PigStorage();");
+        buildPlan("a = load 'a' using PS as (x:int, y:double, str:chararray);" );
+        buildPlan("b = filter a by IsEmpty(*);");
+    }
+
+    @Test
+    public void testLoadUdfConstructorArgDefine() {
+        buildPlan("define PS PigStorage(':');");
+        buildPlan("a = load 'a' using PS as (x:int, y:double, str:chararray);" );
+        buildPlan("b = filter a by IsEmpty(*);");
+    }
+
+    @Test
+    public void testStoreUdfDefine() {
+        buildPlan( "define PS PigStorage();");
+        buildPlan("a = load 'a' using PS as (x:int, y:double, str:chararray);" );
+        buildPlan("b = filter a by IsEmpty(*);" );
+        buildPlan("store b into 'x' using PS;");
+    }
+
+    @Test
+    public void testStoreUdfConstructorArgDefine() {
+        buildPlan( "define PS PigStorage(':');");
+        buildPlan(" a = load 'a' using PS as (x:int, y:double, str:chararray);" );
+        buildPlan(" b = filter a by IsEmpty(*);" );
+        buildPlan(" store b into 'x' using PS;") ;
+
+    }
+
+    @Test
+    public void testCastAlias() {
+        buildPlan("a = load 'one.txt' as (x,y); ");
+        buildPlan("b =  foreach a generate (int)x, (double)y;");
+        buildPlan("c = group b by x;");
+    }
+
+    @Test
+    public void testCast() {
+        buildPlan("a = load 'one.txt' as (x,y); " );
+        buildPlan("b = foreach a generate (int)$0, (double)$1;" ); 
+        buildPlan("c = group b by $0;");
+    }
+
+
+    @Test
+    public void testTokenizeSchema()  throws FrontendException, ParseException {
+        LogicalPlan lp;
+        LOForEach foreach;
+
+        buildPlan("a = load 'one' as (f1: chararray);");
+        lp = buildPlan("b = foreach a generate TOKENIZE(f1);");
+        foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema.FieldSchema tokenFs = new Schema.FieldSchema("token", 
+                DataType.CHARARRAY); 
+        Schema tupleSchema = new Schema(tokenFs);
+
+        Schema.FieldSchema tupleFs;
+        tupleFs = new Schema.FieldSchema("tuple_of_tokens", tupleSchema,
+                DataType.TUPLE);
+
+        Schema bagSchema = new Schema(tupleFs);
+        bagSchema.setTwoLevelAccessRequired(true);
+        Schema.FieldSchema bagFs = new Schema.FieldSchema(
+                    "bag_of_tokenTuples",bagSchema, DataType.BAG);
+        
+        assertTrue(Schema.equals(foreach.getSchema(), new Schema(bagFs), false, true));
+    }
+    
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");
@@ -1940,13 +1980,13 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             // log.error(e);
             //System.err.println("IOException Stack trace for query: " + query);
             //e.printStackTrace();
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             fail("IOException: " + (pe == null? e.getMessage(): pe.getMessage()));
         } catch (Exception e) {
             log.error(e);
             //System.err.println("Exception Stack trace for query: " + query);
             //e.printStackTrace();
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             fail(e.getClass().getName() + ": " + (pe == null? e.getMessage(): pe.getMessage()) + " -- " + query);
         }
         return null;

@@ -28,6 +28,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.Launcher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.UDFFinishVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -35,6 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -56,8 +59,12 @@ public class LocalPigLauncher extends Launcher {
     public boolean launchPig(PhysicalPlan php, String grpName, PigContext pc)
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException {
-        // TODO Auto-generated method stub
+
+    	//Until a PigLocalLogger is implemented, setting up a PigHadoopLogger
+    	PhysicalOperator.setPigLogger(PigHadoopLogger.getInstance());
+
         stores = PlanHelper.getStores(php);
+
         int noJobs = stores.size();
         int failedJobs = 0;
 
@@ -65,8 +72,11 @@ public class LocalPigLauncher extends Launcher {
             op.setStoreImpl(new LocalPOStoreImpl(pc));
             op.setUp();
         }
-
+                
         failedJobs = runPipeline(stores.toArray(new POStore[0]));
+
+        UDFFinishVisitor finisher = new UDFFinishVisitor(php, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(php));
+        finisher.visit();
 
         if (failedJobs == 0) {
             log.info("100% complete!");
@@ -79,6 +89,8 @@ public class LocalPigLauncher extends Launcher {
         return false;
 
     }
+    
+    
 
     private int runPipeline(POStore[] leaves) throws IOException, ExecException {
         BitSet bs = new BitSet(leaves.length);

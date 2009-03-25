@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.pig.FilterFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -37,13 +38,14 @@ public class IsEmpty extends FilterFunc {
                 return ((DataBag)values).size() == 0;
             else if (values instanceof Map)
                 return ((Map)values).size() == 0;
-            else
-                throw new IOException("Cannot test a " +
-                    DataType.findTypeName(values) + " for emptiness.");
+            else {
+                int errCode = 2102;
+                String msg = "Cannot test a " +
+                DataType.findTypeName(values) + " for emptiness.";
+                throw new ExecException(msg, errCode, PigException.BUG);
+            }
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 

@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -271,11 +272,12 @@ public class POForEach extends PhysicalOperator {
                 inputData = planLeafOps[i].getNext(dummyString);
                 break;
 
-                default:
-                    String msg = new String("Unknown type " +
-                        DataType.findTypeName(resultTypes[i]));
-                    log.error(msg);
-                    throw new ExecException(msg);
+                default: {
+                    int errCode = 2080;
+                    String msg = "Foreach currently does not handle type " + DataType.findTypeName(resultTypes[i]);
+                    throw new ExecException(msg, errCode, PigException.BUG);
+                }
+                
                 }
                 
                 if(inputData.returnStatus == POStatus.STATUS_EOP) {

@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -39,9 +40,11 @@ public class LongMin extends EvalFunc<Long> implements Algebraic {
         try {
             return min(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 
@@ -69,9 +72,11 @@ public class LongMin extends EvalFunc<Long> implements Algebraic {
                 Tuple tp = bg.iterator().next();
                 return tfact.newTuple((Long)(tp.get(0)));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing min in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);            
             }
         }
     }
@@ -84,9 +89,11 @@ public class LongMin extends EvalFunc<Long> implements Algebraic {
             try {
                 return tfact.newTuple(min(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing min in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);            
             }
         }
     }
@@ -96,9 +103,11 @@ public class LongMin extends EvalFunc<Long> implements Algebraic {
             try {
                 return min(input);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing min in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);            
             }
         }
     }
@@ -122,10 +131,9 @@ public class LongMin extends EvalFunc<Long> implements Algebraic {
                 sawNonNull = true;
                 curMin = java.lang.Math.min(curMin, l);
             } catch (RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage());
-                newE.initCause(exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing min of longs.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
     

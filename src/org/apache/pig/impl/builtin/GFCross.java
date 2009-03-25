@@ -63,9 +63,7 @@ public class GFCross extends EvalFunc<DataBag> {
     
             return output;
         }catch(ExecException e){
-            IOException ioe = new IOException();
-            ioe.initCause(e);
-            throw ioe;
+            throw e;
         }
     }
     

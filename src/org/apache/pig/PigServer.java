@@ -66,13 +66,14 @@ import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.grunt.GruntParser;
 
 
@@ -121,6 +122,9 @@ public class PigServer {
     private static int scopeCounter = 0;
     private String scope = constructScope();
 
+    private ArrayList<String> cachedScript = new ArrayList<String>();
+    private boolean aggregateWarning = true;
+    
     private String constructScope() {
         // scope servers for now as a session id
         
@@ -148,9 +152,18 @@ public class PigServer {
     }
   
     public PigServer(PigContext context) throws ExecException {
+        this(context, true);
+    }
+    
+    public PigServer(PigContext context, boolean connect) throws ExecException {
         this.pigContext = context;
         currDAG = new Graph(false);
-        pigContext.connect();
+        
+        aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+        
+        if (connect) {
+            pigContext.connect();
+        }
     }
     
     public PigContext getPigContext(){
@@ -363,6 +376,10 @@ public class PigServer {
         }
     }
 
+    public void printAliases () throws FrontendException {
+        System.out.println("aliases: " + currDAG.getAliasOp().keySet());
+    }
+
     public Schema dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
@@ -398,6 +415,7 @@ public class PigServer {
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
             
             // invocation of "execute" is synchronous!
+
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
                     return job.getResults();
             } else {
@@ -769,39 +787,23 @@ public class PigServer {
             // throw.
             caught = fe;            
         }
-        // Check to see if we had any problems.
-        StringBuilder sb = new StringBuilder();
-        for (CompilationMessageCollector.Message msg : collector) {
-            switch (msg.getMessageType()) {
-            case Info:
-                log.info(msg.getMessage());
-                break;
-
-            case Warning:
-                log.warn(msg.getMessage());
-                break;
-
-            case Unknown:
-            case Error:
-                //Error messages are displayed separately and are not bundled here
-                break;
-
-            default:
-                throw new AssertionError("Unknown message type " +
-                    msg.getMessageType());
-
-            }
+        
+        if(aggregateWarning) {
+        	CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
+        } else {
+        	for(Enum type: MessageType.values()) {
+        		CompilationMessageCollector.logAllMessages(collector, log);
+        	}
         }
-
-        if (sb.length() > 0 || caught != null) {
-            //int errCode = 1003;
-            //throw new FrontendException(sb.toString(), errCode, PigException.INPUT, false, null, caught);
+        
+        if (caught != null) {
             throw caught;
         }
 
         // optimize
         if (optimize) {
-            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone);
+            //LogicalOptimizer optimizer = new LogicalOptimizer(lpClone);
+            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone, pigContext.getExecType());
             optimizer.optimize();
         }
 
@@ -960,7 +962,7 @@ public class PigServer {
                 return new LogicalPlanBuilder(PigServer.this.pigContext).parse(scope, query,
                                               aliases, opTable, aliasOp, startLine);
             } catch (ParseException e) {
-                PigException pe = Utils.getPigException(e);
+                PigException pe = LogUtils.getPigException(e);
                 int errCode = 1000;
                 String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
                 throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);

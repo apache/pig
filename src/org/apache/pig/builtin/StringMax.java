@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -39,9 +40,7 @@ public class StringMax extends EvalFunc<String> implements Algebraic {
          try {
             return max(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -69,9 +68,11 @@ public class StringMax extends EvalFunc<String> implements Algebraic {
                 Tuple tp = bg.iterator().next();
                 return tfact.newTuple((String)(tp.get(0)));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing max in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -84,9 +85,11 @@ public class StringMax extends EvalFunc<String> implements Algebraic {
             try {
                 return tfact.newTuple(max(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing max in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -96,9 +99,11 @@ public class StringMax extends EvalFunc<String> implements Algebraic {
             try {
                 return max(input);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing max in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -130,10 +135,9 @@ public class StringMax extends EvalFunc<String> implements Algebraic {
                 }
                 
             } catch (RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage());
-                newE.initCause(exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing max of strings.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
     

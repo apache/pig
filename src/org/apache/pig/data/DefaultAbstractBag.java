@@ -28,8 +28,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.ArrayList;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.impl.util.Spillable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,6 +43,8 @@ import org.apache.commons.logging.LogFactory;
 public abstract class DefaultAbstractBag implements DataBag {
 
      private static final Log log = LogFactory.getLog(DataBag.class);
+     
+     private static PigLogger pigLogger = PhysicalOperator.getPigLogger();
 
     // Container that holds the tuples. Actual object instantiated by
     // subclasses.
@@ -243,7 +247,7 @@ public abstract class DefaultAbstractBag implements DataBag {
                 Object o = DataReaderWriter.readDatum(in);
                 add((Tuple)o);
             } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+                throw ee;
             }
         }
     }
@@ -327,8 +331,9 @@ public abstract class DefaultAbstractBag implements DataBag {
               if (tmpDir.exists()) {
                 log.info("Temporary directory already exists: " + tmpDir.getAbsolutePath());
               } else {
-                log.error("Unable to create temporary directory: " + tmpDir.getAbsolutePath());
-                throw new IOException("Unable to create temporary directory: " + tmpDir.getAbsolutePath() );                  
+                int errCode = 2111;
+                String msg = "Unable to create temporary directory: " + tmpDir.getAbsolutePath();
+                throw new ExecException(msg, errCode, PigException.BUG);                  
               }
           }
         }
@@ -347,6 +352,15 @@ public abstract class DefaultAbstractBag implements DataBag {
         if (PhysicalOperator.reporter != null) {
             PhysicalOperator.reporter.progress();
         }
+    }
+
+    protected void warn(String msg, Enum warningEnum, Exception e) {
+    	pigLogger = PhysicalOperator.getPigLogger();
+    	if(pigLogger != null) {
+    		pigLogger.warn(this, msg, warningEnum);
+    	} else {
+    		log.warn(msg, e);
+    	}    	
     }
 
     public static abstract class BagDelimiterTuple extends DefaultTuple{}

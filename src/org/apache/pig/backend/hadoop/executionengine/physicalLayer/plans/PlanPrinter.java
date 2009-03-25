@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.Operator;
@@ -71,8 +72,10 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     public void visit() throws VisitorException {
         try {
             stream.write(depthFirstPP().getBytes());
-        } catch (IOException e) {
-            throw new VisitorException(e.getMessage());
+        } catch (IOException ioe) {
+            int errCode = 2079;
+            String msg = "Unexpected error while printing physical plan.";
+            throw new VisitorException(msg, errCode, PigException.BUG, ioe);
         }
     }
 

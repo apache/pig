@@ -299,8 +299,10 @@ public class DefaultTuple implements Tuple {
         // Make sure it's a tuple.
         byte b = in.readByte();
         if (b != DataType.TUPLE) {
-            throw new IOException("Unexpected data while reading tuple " +
-                "from binary file");
+            int errCode = 2112;
+            String msg = "Unexpected data while reading tuple " +
+            "from binary file.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         // Read the number of fields
         int sz = in.readInt();
@@ -308,7 +310,7 @@ public class DefaultTuple implements Tuple {
             try {
                 append(DataReaderWriter.readDatum(in));
             } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+                throw ee;
             }
         }
     }

@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -42,10 +43,11 @@ public class SIZE extends EvalFunc<Long> {
             DataByteArray dba = (DataByteArray)(input.get(0));
             return dba == null ? null : new Long(dba.size());
         } catch (ExecException exp) {
-            IOException oughtToBeEE = new IOException("Error processing: " +
-                input.toString() + exp.getMessage());
-            oughtToBeEE.initCause(exp);
-            throw oughtToBeEE;
+            throw exp;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing size in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 

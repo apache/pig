@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import junit.framework.TestCase;
 
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
@@ -82,6 +83,12 @@ public class TestPigContext extends TestCase {
         registerAndStore(pigServer);
         
         check_asserts();
+    }
+    
+    @Test
+    public void testHadoopExceptionCreation() throws Exception {
+    	Object object = PigContext.instantiateFuncFromSpec("org.apache.hadoop.mapred.FileAlreadyExistsException");
+    	assertTrue(object instanceof FileAlreadyExistsException);
     }
 
     @After

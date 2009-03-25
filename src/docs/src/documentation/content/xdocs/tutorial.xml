@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  Copyright 2002-2004 The Apache Software Foundation
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+
+<document>
+<header>
+<title>Pig Tutorial</title>
+</header>
+<body>
+
+<section>
+<title>Overview</title>
+
+<p>The Pig tutorial shows you how to run two Pig scripts in local mode and hadoop mode.   </p>
+
+<ul>
+<li><p> <strong>Local Mode</strong>: To run the scripts in local mode, no Hadoop or HDFS installation is required. All files are installed and run from your local host and file system. </p>
+</li>
+<li><p> <strong>Hadoop Mode</strong>: To run the scripts in hadoop (mapreduce) mode, you need access to a Hadoop cluster and HDFS installation. </p>
+</li>
+</ul>
+<p>The Pig tutorial file (tutorial/pigtutorial.tar.gz file in the pig distribution) includes the Pig JAR file (pig.jar) and the tutorial files (tutorial.jar, Pigs scripts, log files). 
+These files work with Hadoop 0.18 and provide everything you need to run the Pig scripts.</p>
+
+<p>To get started, follow these basic steps:  </p>
+<ol>
+<li><p>Install Java. </p>
+</li>
+<li><p>Download the Pig tutorial file and install Pig. </p>
+</li>
+<li><p>Run the Pig scripts - locally or on a Hadoop cluster.  </p>
+</li>
+</ol>
+</section>
+
+<section>
+<title> Java Installation</title>
+
+<p>Make sure your run-time environment includes the following: </p>
+<ol >
+<li><p>Java 1.6 or higher (preferably from Sun) </p>
+</li>
+<li><p>The JAVA_HOME environment variable is set the root of your Java installation.  </p>
+</li>
+</ol>
+
+</section>
+
+<section>
+<title> Pig Installation</title>
+
+<p>To install Pig, do the following: </p>
+<ol>
+<li><p>Download the Pig tutorial file to your local directory. </p>
+</li>
+<li><p>Unzip the Pig tutorial file (the files are stored in a newly created directory, pigtmp). </p>
+</li>
+</ol>
+
+<source>
+$ tar -xzf pigtutorial.tar.gz
+</source>
+<p> </p>
+<ol>
+<li><p>Move to the pigtmp directory.  </p>
+</li>
+<li><p>Review the contents of the Pig tutorial file. </p>
+</li>
+<li><p>Copy the <strong>pig.jar</strong> file to the appropriate directory on your system. For example: /home/me/pig.  </p>
+</li>
+<li><p>Create an environment variable, <strong>PIGDIR</strong>, and point it to your directory. For example: export PIGDIR=/home/me/pig (bash, sh) or setenv PIGDIR /home/me/pig (tcsh, csh).  </p>
+</li>
+</ol>
+
+</section>
+
+<section>
+<title> Running the Pig Scripts in Local Mode</title>
+
+<p>To run the Pig scripts in local mode, do the following: </p>
+<ol>
+<li><p>Move to the pigtmp directory. </p>
+</li>
+<li><p>Review Pig Script 1 and Pig Script 2. </p>
+</li>
+<li><p>Execute the following command (using either script1-local.pig or script2-local.pig). </p>
+</li>
+</ol>
+
+<source>
+$ java -cp $PIGDIR/pig.jar org.apache.pig.Main -x local script1-local.pig
+</source>
+<ol>
+<li><p>Review the result file (either script1-local-results.txt or script2-local-results.txt): </p>
+</li>
+</ol>
+
+<source>
+$ ls -l script1-local-results.txt
+$ cat script1-local-results.txt
+</source>
+
+</section>
+
+<section>
+<title> Running the Pig Scripts in Hadoop Mode</title>
+
+<p>To run the Pig scripts in hadoop (mapreduce) mode, do the following: </p>
+<ol>
+<li><p>Move to the pigtmp directory. </p>
+</li>
+<li><p>Review Pig Script 1 and Pig Script 2. </p>
+</li>
+<li><p>Copy the excite.log.bz2 file from the pigtmp directory to the HDFS directory. </p>
+</li>
+</ol>
+
+<source>
+$ hadoop fs –copyFromLocal excite.log.bz2 .
+</source>
+<ol>
+<li><p>Set the HADOOPSITEPATH environment variable to the location of your hadoop-site.xml file. </p>
+</li>
+<li><p>Execute the following command (using either script1-hadoop.pig or script2-hadoop.pig): </p>
+</li>
+</ol>
+
+<source>
+$ java -cp $PIGDIR/pig.jar:$HADOOPSITEPATH org.apache.pig.Main script1-hadoop.pig
+</source>
+<ol>
+<li><p>Review the result files (located in either the script1-hadoop-results or script2-hadoop-results HDFS directory): </p>
+</li>
+</ol>
+
+<source>
+$ hadoop fs -ls script1-hadoop-results
+$ hadoop fs -cat 'script1-hadoop-results/*' | less
+</source>
+
+
+</section>
+
+<section>
+<title> Pig Tutorial File</title>
+
+<p>The contents of the Pig tutorial file (pigtutorial.tar.gz) are described here. </p>
+
+<table>
+<tr>
+<td>
+<p> <strong>File</strong> </p>
+</td>
+<td>
+<p> <strong>Description</strong></p>
+</td>
+</tr>
+<tr>
+<td>
+<p> pig.jar </p>
+</td>
+<td>
+<p> Pig JAR file </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> tutorial.jar </p>
+</td>
+<td>
+<p> User-defined functions (UDFs) and Java classes </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> script1-local.pig </p>
+</td>
+<td>
+<p> Pig Script 1, Query Phrase Popularity (local mode) </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> script1-hadoop.pig </p>
+</td>
+<td>
+<p> Pig Script 1, Query Phrase Popularity (Hadoop cluster) </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> script2-local.pig </p>
+</td>
+<td>
+<p> Pig Script 2, Temporal Query Phrase Popularity (local mode)</p>
+</td>
+</tr>
+<tr>
+<td>
+<p> script2-hadoop.pig </p>
+</td>
+<td>
+<p> Pig Script 2, Temporal Query Phrase Popularity (Hadoop cluster) </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> excite-small.log </p>
+</td>
+<td>
+<p> Log file, Excite search engine (local mode) </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> excite.log.bz2 </p>
+</td>
+<td>
+<p> Log file, Excite search engine (Hadoop cluster) </p>
+</td>
+</tr>
+</table>
+
+
+<p>The user-defined functions (UDFs) are described here. </p>
+
+<table>
+<tr>
+<td>
+<p> <strong>UDF</strong> </p>
+</td>
+<td>
+<p> <strong>Description</strong></p>
+</td>
+</tr>
+<tr>
+<td>
+<p> ExtractHour </p>
+</td>
+<td>
+<p> Extracts the hour from the record.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p> NGramGenerator </p>
+</td>
+<td>
+<p> Composes n-grams from the set of words. </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> NonURLDetector </p>
+</td>
+<td>
+<p> Removes the record if the query field is empty or a URL. </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> ScoreGenerator </p>
+</td>
+<td>
+<p> Calculates a "popularity" score for the n-gram.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p> ToLower </p>
+</td>
+<td>
+<p> Changes the query field to lowercase. </p>
+</td>
+</tr>
+<tr>
+<td>
+<p> TutorialUtil </p>
+</td>
+<td>
+<p> Divides the query string into a set of words.</p>
+</td>
+</tr>
+</table>
+
+</section>
+
+<section>
+<title> Pig Script 1: Query Phrase Popularity</title>
+
+<p>The Query Phrase Popularity script (script1-local.pig or script1-hadoop.pig) processes a search query log file from the Excite search engine and finds search phrases that occur with particular high frequency during certain times of the day. </p>
+<p>The script is shown here: </p>
+<ul>
+<li><p> Register the tutorial JAR file so that the included UDFs can be called in the script. </p>
+</li>
+</ul>
+
+<source>
+REGISTER ./tutorial.jar; 
+</source>
+<ul>
+<li><p> Use the PigStorage function to load the excite log file (excite.log or excite-small.log) into the “raw” bag as an array of records with the fields <strong>user</strong>, <strong>time</strong>, and <strong>query</strong>.  </p>
+</li>
+</ul>
+
+<source>
+raw = LOAD 'excite.log' USING PigStorage('\t') AS (user, time, query);
+</source>
+<ul>
+<li><p> Call the NonURLDetector UDF to remove records if the query field is empty or a URL.  </p>
+</li>
+</ul>
+
+<source>
+clean1 = FILTER raw BY org.apache.pig.tutorial.NonURLDetector(query);
+</source>
+<ul>
+<li><p> Call the ToLower UDF to change the query field to lowercase.  </p>
+</li>
+</ul>
+
+<source>
+clean2 = FOREACH clean1 GENERATE user, time, org.apache.pig.tutorial.ToLower(query) as query;
+</source>
+<ul>
+<li><p> Because the log file only contains queries for a single day, we are only interested in the hour. The excite query log timestamp format is YYMMDDHHMMSS. Call the ExtractHour UDF to extract the hour (HH) from the time field. </p>
+</li>
+</ul>
+
+<source>
+houred = FOREACH clean2 GENERATE user, org.apache.pig.tutorial.ExtractHour(time) as hour, query;
+</source>
+<ul>
+<li><p> Call the NGramGenerator UDF to compose the n-grams of the query. </p>
+</li>
+</ul>
+
+<source>
+ngramed1 = FOREACH houred GENERATE user, hour, flatten(org.apache.pig.tutorial.NGramGenerator(query)) as ngram;
+</source>
+<ul>
+<li><p> Use the DISTINCT operator to get the unique n-grams for all records.  </p>
+</li>
+</ul>
+
+<source>
+ngramed2 = DISTINCT ngramed1;
+</source>
+<ul>
+<li><p> Use the GROUP operator to group records by n-gram and hour. </p>
+</li>
+</ul>
+
+<source>
+hour_frequency1 = GROUP ngramed2 BY (ngram, hour);
+</source>
+<ul>
+<li><p> Use the COUNTfunction to get the count (occurrences) of each n-gram.  </p>
+</li>
+</ul>
+
+<source>
+hour_frequency2 = FOREACH hour_frequency1 GENERATE flatten($0), COUNT($1) as count;
+</source>
+<ul>
+<li><p> Use the GROUP operator to group records by n-gram only. Each group now corresponds to a distinct n-gram and has the count for each hour. </p>
+</li>
+</ul>
+
+<source>
+uniq_frequency1 = GROUP hour_frequency2 BY group::ngram;
+</source>
+<ul>
+<li><p> For each group, identify the hour in which this n-gram is used with a particularly high frequency. Call the ScoreGenerator UDF to calculate a "popularity" score for the n-gram. </p>
+</li>
+</ul>
+
+<source>
+uniq_frequency2 = FOREACH uniq_frequency1 GENERATE flatten($0), flatten(org.apache.pig.tutorial.ScoreGenerator($1));
+</source>
+<ul>
+<li><p> Use the FOREACH-GENERATE operator to assign names to the fields.  </p>
+</li>
+</ul>
+
+<source>
+uniq_frequency3 = FOREACH uniq_frequency2 GENERATE $1 as hour, $0 as ngram, $2 as score, $3 as count, $4 as mean;
+</source>
+<ul>
+<li><p> Use the FILTER operator to move all records with a score less than or equal to 2.0. </p>
+</li>
+</ul>
+
+<source>
+filtered_uniq_frequency = FILTER uniq_frequency3 BY score &gt; 2.0;
+</source>
+<ul>
+<li><p> Use the ORDER operator to sort the remaining records by hour and score.  </p>
+</li>
+</ul>
+
+<source>
+ordered_uniq_frequency = ORDER filtered_uniq_frequency BY (hour, score);
+</source>
+<ul>
+<li><p> Use the PigStorage function to store the results. The output file contains a list of n-grams with the following fields: <strong>hour</strong>, <strong>ngram</strong>, <strong>score</strong>, <strong>count</strong>, <strong>mean</strong>. </p>
+</li>
+</ul>
+
+<source>
+STORE ordered_uniq_frequency INTO '/tmp/tutorial-results' USING PigStorage(); 
+</source>
+
+
+</section>
+
+<section>
+
+<title>Pig Script 2: Temporal Query Phrase Popularity</title>
+
+<p>The Temporal Query Phrase Popularity script (script2-local.pig or script2-hadoop.pig) processes a search query log file from the Excite search engine and compares the occurrence of frequency of search phrases across two time periods separated by twelve hours. </p>
+<p>The script is shown here: </p>
+<ul>
+<li><p> Register the tutorial JAR file so that the user-defined functions (UDFs) can be called in the script. </p>
+</li>
+</ul>
+
+<source>
+REGISTER ./tutorial.jar;
+</source>
+<ul>
+<li><p> Use the PigStorage function to load the excite log file (excite.log or excite-small.log) into the “raw” bag as an array of records with the fields <strong>user</strong>, <strong>time</strong>, and <strong>query</strong>. </p>
+</li>
+</ul>
+
+<source>
+raw = LOAD 'excite.log' USING PigStorage('\t') AS (user, time, query);
+</source>
+<ul>
+<li><p> Call the NonURLDetector UDF to remove records if the query field is empty or a URL. </p>
+</li>
+</ul>
+
+<source>
+clean1 = FILTER raw BY org.apache.pig.tutorial.NonURLDetector(query);
+</source>
+<ul>
+<li><p> Call the ToLower UDF to change the query field to lowercase. </p>
+</li>
+</ul>
+
+<source>
+clean2 = FOREACH clean1 GENERATE user, time, org.apache.pig.tutorial.ToLower(query) as query;
+</source>
+<ul>
+<li><p> Because the log file only contains queries for a single day, we are only interested in the hour. The excite query log timestamp format is YYMMDDHHMMSS. Call the ExtractHour UDF to extract the hour from the time field. </p>
+</li>
+</ul>
+
+<source>
+houred = FOREACH clean2 GENERATE user, org.apache.pig.tutorial.ExtractHour(time) as hour, query;
+</source>
+<ul>
+<li><p> Call the NGramGenerator UDF to compose the n-grams of the query. </p>
+</li>
+</ul>
+
+<source>
+ngramed1 = FOREACH houred GENERATE user, hour, flatten(org.apache.pig.tutorial.NGramGenerator(query)) as ngram;
+</source>
+<ul>
+<li><p> Use the DISTINCT operator to get the unique n-grams for all records.  </p>
+</li>
+</ul>
+
+<source>
+ngramed2 = DISTINCT ngramed1;
+</source>
+<ul>
+<li><p> Use the GROUP operator to group the records by n-gram and hour.  </p>
+</li>
+</ul>
+
+<source>
+hour_frequency1 = GROUP ngramed2 BY (ngram, hour);
+</source>
+<ul>
+<li><p> Use the COUNT function to get the count (occurrences) of each n-gram.  </p>
+</li>
+</ul>
+
+<source>
+hour_frequency2 = FOREACH hour_frequency1 GENERATE flatten($0), COUNT($1) as count;
+</source>
+<ul>
+<li><p> Use the FOREACH-GENERATE operator to assign names to the fields. </p>
+</li>
+</ul>
+
+<source>
+hour_frequency3 = FOREACH hour_frequency2 GENERATE $0 as ngram, $1 as hour, $2 as count;
+</source>
+<ul>
+<li><p> Use the  FILTERoperator to get the n-grams for hour ‘00’  </p>
+</li>
+</ul>
+
+<source>
+hour00 = FILTER hour_frequency2 BY hour eq '00';
+</source>
+<ul>
+<li><p> Uses the FILTER operators to get the n-grams for hour ‘12’ </p>
+</li>
+</ul>
+
+<source>
+hour12 = FILTER hour_frequency3 BY hour eq '12';
+</source>
+<ul>
+<li><p> Use the JOIN operator to get the n-grams that appear in both hours. </p>
+</li>
+</ul>
+
+<source>
+same = JOIN hour00 BY $0, hour12 BY $0;
+</source>
+<ul>
+<li><p> Use the FOREACH-GENERATE operator to record their frequency. </p>
+</li>
+</ul>
+
+<source>
+same1 = FOREACH same GENERATE hour_frequency2::hour00::group::ngram as ngram, $2 as count00, $5 as count12;
+</source>
+<ul>
+<li><p> Use the PigStorage function to store the results. The output file contains a list of n-grams with the following fields: <strong>hour</strong>, <strong>count00</strong>, <strong>count12</strong>. </p>
+</li>
+</ul>
+
+<source>
+STORE same1 INTO '/tmp/tutorial-join-results' USING PigStorage();
+</source>
+
+</section>
+</body>
+</document>

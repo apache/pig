@@ -88,8 +88,7 @@ public class InputOutputFileVisitor extends LOVisitor {
             }
         } catch (PlanValidationException pve) {
             throw pve;
-        }
-        catch (IOException ioe) {
+        } catch (IOException ioe) {
             byte errSrc = pigCtx.getErrorSource();
             int errCode = 0;
             switch(errSrc) {
@@ -108,6 +107,11 @@ public class InputOutputFileVisitor extends LOVisitor {
                     + filename + " will be stored ";
             msgCollector.collect(msg, MessageType.Error) ;
             throw new PlanValidationException(msg, errCode, errSrc, ioe);
+        } catch (Exception e) {
+            int errCode = 2116;
+            String msg = "Unexpected error. Could not check for the existence of the file(s): " + filename;
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new PlanValidationException(msg, errCode, PigException.BUG, e);
         }
     }
 

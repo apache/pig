@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -197,11 +198,13 @@ public class POSort extends PhysicalOperator {
                 res = Op.getNext(dummyTuple);
                 break;
 
-            default:
-                String msg = new String("Did not expect result of type " +
-                    DataType.findTypeName(resultType));
-                log.error(msg);
-                throw new RuntimeException(msg);
+            default: {
+                int errCode = 2082;
+                String msg = "Did not expect result of type: " +
+                        DataType.findTypeName(resultType);
+                    throw new ExecException(msg, errCode, PigException.BUG);                
+            }
+            
             }
 			return res;
 		}

@@ -40,6 +40,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.PigCompletor;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
@@ -71,6 +72,10 @@ public static void main(String args[])
     int rc = 1;
     Properties properties = new Properties();
     PropertiesUtil.loadPropertiesFromFile(properties);
+    
+    boolean verbose = false;
+    boolean gruntCalled = false;
+    String logFileName = null;
 
     try {
         BufferedReader pin = null;
@@ -96,6 +101,7 @@ public static void main(String args[])
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('w', "warning", CmdLineParser.ValueExpected.NOT_ACCEPTED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -110,7 +116,8 @@ public static void main(String args[])
             cluster = clusterConfigured;
         }
         
-        String logFileName = validateLogFile(null, null);       
+        //by default warning aggregation is on
+        properties.setProperty("aggregate.warning", ""+true);
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
@@ -202,6 +209,11 @@ public static void main(String args[])
                             
             case 'v':
                 properties.setProperty(VERBOSE, ""+true);
+                verbose = true;
+                break;
+
+            case 'w':
+                properties.setProperty("aggregate.warning", ""+false);
                 break;
 
             case 'x':
@@ -224,6 +236,11 @@ public static void main(String args[])
         configureLog4J(properties);
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
+        
+        if(logFileName == null) {
+            logFileName = validateLogFile(null, null);
+        }
+        
         pigContext.getProperties().setProperty("pig.logfile", logFileName);
 
         LogicalPlanBuilder.classloader = pigContext.createCl(null);
@@ -247,11 +264,17 @@ public static void main(String args[])
 
             logFileName = validateLogFile(logFileName, file);
             pigContext.getProperties().setProperty("pig.logfile", logFileName);
+
+            // Set job name based on name of the script
+            pigContext.getProperties().setProperty(PigContext.JOB_NAME, 
+                                                   "PigLatin:" +new File(file).getName()
+            );
             
             if (!debug)
                 new File(substFile).deleteOnExit();
             
             grunt = new Grunt(pin, pigContext);
+            gruntCalled = true;
             grunt.exec();
             rc = 0;
             return;
@@ -267,6 +290,7 @@ public static void main(String args[])
             }
             in = new BufferedReader(new StringReader(sb.toString()));
             grunt = new Grunt(in, pigContext);
+            gruntCalled = true;
             grunt.exec();
             rc = 0;
             return;
@@ -293,6 +317,7 @@ public static void main(String args[])
             ConsoleReaderInputStream inputStream = new ConsoleReaderInputStream(reader);
             grunt = new Grunt(new BufferedReader(new InputStreamReader(inputStream)), pigContext);
             grunt.setConsoleReader(reader);
+            gruntCalled = true;
             grunt.run();
             rc = 0;
             return;
@@ -319,7 +344,13 @@ public static void main(String args[])
             if (!debug)
                 new File(substFile).deleteOnExit();
 
+            // Set job name based on name of the script
+            pigContext.getProperties().setProperty(PigContext.JOB_NAME, 
+                                                   "PigLatin:" +new File(remainders[0]).getName()
+            );
+
             grunt = new Grunt(pin, pigContext);
+            gruntCalled = true;
             grunt.exec();
             rc = 0;
             return;
@@ -338,8 +369,14 @@ public static void main(String args[])
         } else {
             rc = 2;
         }
+        if(!gruntCalled) {
+        	LogUtils.writeLog(pe, logFileName, log, verbose);
+        }
     } catch (Throwable e) {
         rc = 2;
+        if(!gruntCalled) {
+        	LogUtils.writeLog(e, logFileName, log, verbose);
+        }
     } finally {
         // clear temp files
         FileLocalizer.deleteTempFiles();
@@ -455,6 +492,7 @@ public static void usage()
     System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
     System.out.println("    -i, -version display version information");
     System.out.println("    -l, -logfile path to client side log file; current working directory is default");
+    System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
 }
 
 private static String validateLogFile(String logFileName, String scriptName) {
@@ -484,7 +522,7 @@ private static String validateLogFile(String logFileName, String scriptName) {
         if(logFile.isDirectory()) {            
             if(logFile.canWrite()) {
                 try {
-                    logFileName += logFile.getCanonicalPath() + File.separator + defaultLogFileName;
+                    logFileName = logFile.getCanonicalPath() + File.separator + defaultLogFileName;
                 } catch (IOException ioe) {
                     throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());       
                 }
@@ -533,8 +571,8 @@ private static String validateLogFile(String logFileName, String scriptName) {
     //revert to the current working directory
     String currDir = System.getProperty("user.dir");
     logFile = new File(currDir);
-    if(logFile.canWrite()) {
-        logFileName = currDir + File.separator + (logFileName == null? defaultLogFileName : logFileName);
+    logFileName = currDir + File.separator + (logFileName == null? defaultLogFileName : logFileName);
+    if(logFile.canWrite()) {        
         return logFileName;
     }    
     throw new RuntimeException("Cannot write to log file: " + logFileName);

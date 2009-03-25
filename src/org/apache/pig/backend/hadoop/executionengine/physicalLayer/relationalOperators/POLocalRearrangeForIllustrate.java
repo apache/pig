@@ -30,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -128,7 +129,13 @@ public class POLocalRearrangeForIllustrate extends POLocalRearrange {
             mKey.scope, 
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism);
-        clone.setPlans(clonePlans);
+        try {
+            clone.setPlans(clonePlans);
+        } catch (PlanException pe) {
+            CloneNotSupportedException cnse = new CloneNotSupportedException("Problem with setting plans of " + this.getClass().getSimpleName());
+            cnse.initCause(pe);
+            throw cnse;
+        }
         clone.keyType = keyType;
         clone.index = index;
         // Needs to be called as setDistinct so that the fake index tuple gets

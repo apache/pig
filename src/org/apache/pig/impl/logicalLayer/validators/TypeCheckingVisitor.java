@@ -37,6 +37,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Algebraic;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -215,113 +216,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
-
-        /*
-        if (!pj.getSentinel()) {
-
-            LogicalOperator op = pj.getExpression() ;
-
-            if (!(op instanceof LOProject)) {
-                throw new AssertionError("LOProject.getExpression() has to be "
-                                         + "LOProject if it's not a sentinel") ;
-            }
-
-            // else
-            LOProject innerProject = (LOProject) op ;
-            resolveLOProjectType(innerProject) ;
-
-            if ( (innerProject.getType() != DataType.BAG) &&
-                 (innerProject.getType() != DataType.TUPLE) ) {
-                throw new AssertionError("Nested LOProject is for extracting "
-                                         + " from TUPLE/BAG only") ;
-            }
-
-            // set type of this project
-            pj.setType(innerProject.getType());
-            Schema inputSchema = null ;
-
-            try {
-                inputSchema = innerProject.getSchema() ;
-            }
-            catch (FrontendException fe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(fe) ;
-                throw new VisitorException(msg) ;
-            }
-
-            // extracting schema from projection
-            List<FieldSchema> fsList = new ArrayList<FieldSchema>() ;
-            try {
-                for(int index: pj.getProjection()) {
-                    FieldSchema fs = null ;
-                    // typed input
-                    if (inputSchema != null) {
-                        fs = inputSchema.getField(index) ;
-                        FieldSchema newFs = new FieldSchema(fs.alias, fs.schema, fs.type) ;
-                        fsList.add(newFs) ;
-                    }
-                    // non-typed input
-                    else {
-                        FieldSchema newFs = new FieldSchema(null, DataType.BYTEARRAY) ;
-                        fsList.add(newFs) ;
-                    }
-                }
-                pj.setFieldSchema(new FieldSchema(null, new Schema(fsList), innerProject.getType()));
-            }
-            catch (FrontendException fe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(fe) ;
-                throw new VisitorException(msg) ;
-            }
-            catch (ParseException pe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(pe) ;
-                throw new VisitorException(msg) ;
-            }
-        }
-        // if it's a sentinel, we just get the projected input type to it
-        else {
-            if (pj.getProjection().size() != 1) {
-                throw new AssertionError("Sentinel LOProject can have only "
-                                         + "1 projection") ;
-            }
-            LogicalOperator input = pj.getExpression() ;
-            int projectedField = pj.getProjection().get(0) ;
-            try {
-                Schema schema = input.getSchema() ;
-
-                if (schema != null) {
-                    FieldSchema fs = schema.getField(projectedField) ;
-                    pj.setFieldSchema(fs);
-                }
-                else {
-                    FieldSchema fs = new FieldSchema(null, DataType.BYTEARRAY) ;
-                    pj.setFieldSchema(fs);
-                }
-            }
-            catch (FrontendException fe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(fe) ;
-                throw new VisitorException(msg) ;
-            }
-            catch (ParseException pe) {
-                String msg = "Cannot get source schema into LOProject" ;
-                msgCollector.collect(msg, MessageType.Error);
-                VisitorException vse = new VisitorException(msg) ;
-                vse.initCause(pe) ;
-                throw new VisitorException(msg) ;
-            }
-        }
-        */
-        
     }
 
     /**
@@ -374,23 +268,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private void insertCastForRegexp(LORegexp rg) throws VisitorException {
-        LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-        collectCastWarning(rg, DataType.BYTEARRAY, DataType.CHARARRAY) ;
-        OperatorKey newKey = genNewOperatorKey(rg) ;
-        LOCast cast = new LOCast(currentPlan, newKey, rg.getOperand(), DataType.CHARARRAY) ;
-        currentPlan.add(cast) ;
-        currentPlan.disconnect(rg.getOperand(), rg) ;
-        try {
-            currentPlan.connect(rg.getOperand(), cast) ;
-            currentPlan.connect(cast, rg) ;
-        }
-        catch (PlanException pe) {
-            int errCode = 2059;
-            String msg = "Problem with inserting cast operator for regular expression in plan.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
-        }
-        rg.setOperand(cast) ;
-        this.visit(cast);
+        insertCast(rg, DataType.CHARARRAY, rg.getOperand());
     }
 
     public void visit(LOAnd binOp) throws VisitorException {
@@ -1117,52 +995,37 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
                                            byte toType ) throws VisitorException {
-        LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-        collectCastWarning(binOp,
-                           binOp.getLhsOperand().getType(),
-                           toType) ;
-        OperatorKey newKey = genNewOperatorKey(binOp) ;
-        LOCast cast = new LOCast(currentPlan, newKey, binOp.getLhsOperand(), toType) ;
-        currentPlan.add(cast) ;
-        currentPlan.disconnect(binOp.getLhsOperand(), binOp) ;
-        try {
-            currentPlan.connect(binOp.getLhsOperand(), cast) ;
-            currentPlan.connect(cast, binOp) ;
-            binOp.setLhsOperand(cast);
-        }
-        catch (PlanException pe) {
-            int errCode = 2059;
-            String msg = "Problem with inserting cast operator for binary conditional in plan.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
-        }
-        binOp.setLhsOperand(cast) ;
-        this.visit(cast);
+        insertCast(binOp, toType, binOp.getLhsOperand());
     }
 
     private void insertRightCastForBinaryOp(BinaryExpressionOperator binOp,
                                             byte toType ) throws VisitorException {
+        insertCast(binOp, toType, binOp.getRhsOperand());
+    }
+
+
+    private void insertCast(ExpressionOperator node,
+                            byte toType, ExpressionOperator predecessor) 
+    throws VisitorException {
         LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-        collectCastWarning(binOp,
-                           binOp.getRhsOperand().getType(),
-                           toType) ;
-        OperatorKey newKey = genNewOperatorKey(binOp) ;
-        LOCast cast = new LOCast(currentPlan, newKey, binOp.getRhsOperand(), toType) ;
+        collectCastWarning(node, predecessor.getType(), toType);
+
+        OperatorKey newKey = genNewOperatorKey(node);
+        LOCast cast = new LOCast(currentPlan, newKey, toType) ;
         currentPlan.add(cast) ;
-        currentPlan.disconnect(binOp.getRhsOperand(), binOp) ;
         try {
-            currentPlan.connect(binOp.getRhsOperand(), cast) ;
-            currentPlan.connect(cast, binOp) ;
-            binOp.setRhsOperand(cast);
+            currentPlan.insertBetween(predecessor, cast, node);
         }
         catch (PlanException pe) {
             int errCode = 2059;
-            String msg = "Problem with inserting cast operator for binary conditional in plan.";
+            String msg = "Problem with inserting cast operator for " + node + " in plan.";
             throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
         }
-        binOp.setRhsOperand(cast) ;
         this.visit(cast);
     }
 
+    
+    
     /**
      * Currently, there are two unaryOps: Neg and Not.
      */
@@ -1207,36 +1070,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private void insertCastForUniOp(UnaryExpressionOperator uniOp, byte toType) throws VisitorException {
-        collectCastWarning(uniOp,
-                           uniOp.getOperand().getType(),
-                           toType) ;
-        LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-        List<LogicalOperator> list = currentPlan.getPredecessors(uniOp) ;
-        if (list==null) {
-            int errCode = 1080;
-            String msg = "Did not find inputs for operator: " + uniOp.getClass().getSimpleName();
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
-        }
-        // All uniOps at the moment only work with Expression input
-        ExpressionOperator input = (ExpressionOperator) list.get(0) ;                
-        OperatorKey newKey = genNewOperatorKey(uniOp) ;
-        LOCast cast = new LOCast(currentPlan, newKey, input, toType) ;
-        
-        currentPlan.add(cast);
-        currentPlan.disconnect(input, uniOp) ;
-        try {
-            currentPlan.connect(input, cast) ;
-            currentPlan.connect(cast, uniOp) ;
-        } 
-        catch (PlanException pe) {
-            int errCode = 2059;
-            String msg = "Problem with inserting cast operator for unary operator in plan.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
-        }
-
-        uniOp.setOperand(cast);
-        this.visit(cast);
-
+        insertCast(uniOp, toType, uniOp.getOperand());
     }
     
     // Currently there is no input type information support in UserFunc
@@ -1391,7 +1225,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                              " will be called with following argument types: " +
                              matchingSpec.getInputArgsSchema() + ". If you want to use " +
                              "different input argument types, please use explicit casts.";
-                msgCollector.collect(msg, MessageType.Warning);
+                msgCollector.collect(msg, MessageType.Warning, PigWarning.USING_OVERLOADED_FUNCTION);
             }
             func.setFuncSpec(matchingSpec);
             insertCastsForUDF(func, s, matchingSpec.getInputArgsSchema());
@@ -1794,35 +1628,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             ++i;
             FieldSchema tFSch = tsLst.get(i); 
             if(fFSch.type==tFSch.type) {
-                newArgs.add(args.get(i));
                 continue;
             }
-            collectCastWarning(udf,
-                    fFSch.type,
-                    tFSch.type);
-            LogicalPlan currentPlan = (LogicalPlan) mCurrentWalker.getPlan();
-            /*List<LogicalOperator> list = currentPlan.getPredecessors(udf);
-            if (list == null) {
-                throw new AssertionError("No input for " + udf.getClass());
-            }*/
-            // All uniOps at the moment only work with Expression input
-            ExpressionOperator input = args.get(i);
-            OperatorKey newKey = genNewOperatorKey(udf);
-            LOCast cast = new LOCast(currentPlan, newKey, input, tFSch.type);
-            currentPlan.add(cast);
-            try {
-                currentPlan.insertBetween(input, cast, udf);
-                this.visit(cast);
-            } catch (PlanException pe) {
-                int errCode = 2059;
-                String msg = "Problem with inserting cast operator for user defined function in plan.";
-                throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
-            } catch (VisitorException ve) {
-                throw ve;
-            }
+            insertCast(udf, tFSch.type, args.get(i));
         }
-        udf.setMArgs(newArgs);
-
     }
 
     /**
@@ -1879,9 +1688,11 @@ public class TypeCheckingVisitor extends LOVisitor {
             // Matching schemas if we're working with tuples
             if (DataType.isSchemaType(lhsType)) {            
                 try {
-                    if (!Schema.equals(binCond.getLhsOp().getSchema(), binCond.getRhsOp().getSchema(), false, true)) {
+                    if (!Schema.FieldSchema.equals(binCond.getLhsOp().getFieldSchema(), binCond.getRhsOp().getFieldSchema(), false, true)) {
                         int errCode = 1048;
-                        String msg = "Two inputs of BinCond must have compatible schemas" ;
+                        String msg = "Two inputs of BinCond must have compatible schemas." 
+                            + " left hand side: " + binCond.getLhsOp().getFieldSchema() 
+                            + " right hand side: " + binCond.getRhsOp().getFieldSchema();
                         msgCollector.collect(msg, MessageType.Error) ;
                         throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                     }
@@ -1919,73 +1730,11 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private void insertLeftCastForBinCond(LOBinCond binCond, byte toType) throws VisitorException {
-        LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-
-        collectCastWarning(binCond,
-                           binCond.getLhsOp().getType(),
-                           toType) ;
-
-        OperatorKey newKey = genNewOperatorKey(binCond) ;
-        LOCast cast = new LOCast(currentPlan, newKey, binCond.getLhsOp(), toType) ;
-        // if we are casting a null constant, also set its field schema to the
-        // field schema of the other operator in the bincond
-        if (binCond.getLhsOp() instanceof LOConst
-                && ((LOConst) binCond.getLhsOp()).getValue() == null) {
-            try {
-                    cast.setFieldSchema(binCond.getRhsOp().getFieldSchema());
-            } catch (FrontendException e) {
-                int errCode = 1043;
-                String msg = "Unable to retrieve field schema of operator";
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
-            }
-        }
-        currentPlan.add(cast) ;
-        try {
-            currentPlan.insertBetween(binCond.getLhsOp(), cast, binCond);
-        } 
-        catch (PlanException pe) {
-            int errCode = 2059;
-            String msg = "Problem with inserting cast operator for binary conditional in plan.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
-        } 
-        binCond.setLhsOp(cast) ;
-        this.visit(cast);
-
+        insertCast(binCond, toType, binCond.getLhsOp());
     }
 
     private void insertRightCastForBinCond(LOBinCond binCond, byte toType) throws VisitorException {
-        LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
-
-        collectCastWarning(binCond,
-                           binCond.getRhsOp().getType(),
-                           toType) ;
-
-        OperatorKey newKey = genNewOperatorKey(binCond) ;
-        LOCast cast = new LOCast(currentPlan, newKey, binCond.getRhsOp(), toType) ;
-        // if we are casting a null constant, also set its field schema to the
-        // field schema of the other operator in the bincond
-        if (binCond.getRhsOp() instanceof LOConst
-                && ((LOConst) binCond.getRhsOp()).getValue() == null) {
-            try {
-                cast.setFieldSchema(binCond.getLhsOp().getFieldSchema());
-            } catch (FrontendException e) {
-                int errCode = 1043;
-                String msg = "Unable to retrieve field schema of operator";
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
-            }
-        }
-        currentPlan.add(cast) ;
-        try {
-            currentPlan.insertBetween(binCond.getRhsOp(), cast, binCond) ;
-        } 
-        catch (PlanException pe) {
-            int errCode = 2059;
-            String msg = "Problem with inserting cast operator for binary conditional in plan.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
-        }               
-        binCond.setRhsOp(cast) ;
-        this.visit(cast);
-
+        insertCast(binCond, toType, binCond.getRhsOp());
     }
 
     /**
@@ -2646,7 +2395,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         ExpressionOperator currentOutput = (ExpressionOperator) leaves.get(0);
         collectCastWarning(frj, currentOutput.getType(), toType);
         OperatorKey newKey = genNewOperatorKey(currentOutput);
-        LOCast cast = new LOCast(innerPlan, newKey, currentOutput, toType);
+        LOCast cast = new LOCast(innerPlan, newKey, toType);
         innerPlan.add(cast);
         try {
             innerPlan.connect(currentOutput, cast);
@@ -2679,7 +2428,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         ExpressionOperator currentOutput = (ExpressionOperator) leaves.get(0) ;
         collectCastWarning(cg, currentOutput.getType(), toType) ;
         OperatorKey newKey = genNewOperatorKey(currentOutput) ;
-        LOCast cast = new LOCast(innerPlan, newKey, currentOutput, toType) ;
+        LOCast cast = new LOCast(innerPlan, newKey, toType) ;
         innerPlan.add(cast) ;
         try {
             innerPlan.connect(currentOutput, cast) ;
@@ -2723,7 +2472,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                 // We just warn about mismatch type in non-strict mode
                 if (!strictMode) {
                     String msg = "COGroup by incompatible types results in ByteArray" ;
-                    msgCollector.collect(msg, MessageType.Warning) ;
+                    msgCollector.collect(msg, MessageType.Warning, PigWarning.GROUP_BY_INCOMPATIBLE_TYPES) ;
                     groupType = DataType.BYTEARRAY ;
                 }
                 // We just die if in strict mode
@@ -2780,7 +2529,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     // We just warn about mismatch type in non-strict mode
                     if (!strictMode) {
                         String msg = "COGroup by incompatible types results in ByteArray" ;
-                        msgCollector.collect(msg, MessageType.Warning) ;
+                        msgCollector.collect(msg, MessageType.Warning, PigWarning.GROUP_BY_INCOMPATIBLE_TYPES) ;
                         fsList.get(j).type = DataType.BYTEARRAY ;
                     }
                     // We just die if in strict mode
@@ -3071,7 +2820,6 @@ public class TypeCheckingVisitor extends LOVisitor {
                 castNeededCounter++ ;
                 LOCast cast = new LOCast(genPlan,
                                          genNewOperatorKey(fromOp),
-                                         project,
                                          inputFieldType) ;
                 genPlan.add(cast) ;
                 try {
@@ -3138,9 +2886,36 @@ public class TypeCheckingVisitor extends LOVisitor {
         String originalTypeName = DataType.findTypeName(originalType) ;
         String toTypeName = DataType.findTypeName(toType) ;
         String opName = op.getClass().getSimpleName() ;
+        Enum kind = null;
+        switch(toType) {
+        case DataType.BAG:
+        	kind = PigWarning.IMPLICIT_CAST_TO_BAG;
+        	break;
+        case DataType.CHARARRAY:
+        	kind = PigWarning.IMPLICIT_CAST_TO_CHARARRAY;
+        	break;
+        case DataType.DOUBLE:
+        	kind = PigWarning.IMPLICIT_CAST_TO_DOUBLE;
+        	break;
+        case DataType.FLOAT:
+        	kind = PigWarning.IMPLICIT_CAST_TO_FLOAT;
+        	break;
+        case DataType.INTEGER:
+        	kind = PigWarning.IMPLICIT_CAST_TO_INT;
+        	break;
+        case DataType.LONG:
+        	kind = PigWarning.IMPLICIT_CAST_TO_LONG;
+        	break;
+        case DataType.MAP:
+        	kind = PigWarning.IMPLICIT_CAST_TO_MAP;
+        	break;
+        case DataType.TUPLE:
+        	kind = PigWarning.IMPLICIT_CAST_TO_TUPLE;
+        	break;
+        }
         msgCollector.collect(originalTypeName + " is implicitly cast to "
                              + toTypeName +" under " + opName + " Operator",
-                             MessageType.Warning) ;
+                             MessageType.Warning, kind) ;
     }
 
     /***

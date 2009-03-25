@@ -31,7 +31,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.conf.Configuration;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.*;
+import org.apache.pig.backend.executionengine.ExecException;
 
 public abstract class HPath implements ElementDescriptor {
 
@@ -89,8 +91,10 @@ public abstract class HPath implements ElementDescriptor {
                                        new Configuration());
         
         if (!result) {
-            throw new IOException("Failed to copy from: " + this.toString() +
-                                  " to: " + dstName.toString());
+            int errCode = 2097;
+            String msg = "Failed to copy from: " + this.toString() +
+            " to: " + dstName.toString();
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
     }
     

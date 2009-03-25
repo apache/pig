@@ -15,3 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
+
+/**
+ * 
+ * An interface to allow aggregation of messages
+ */
+public interface PigLogger {
+    
+	/**
+	 * If you have warning messages that need aggregation 
+	 */
+    public void warn(Object o, String msg, Enum warningEnum);
+}

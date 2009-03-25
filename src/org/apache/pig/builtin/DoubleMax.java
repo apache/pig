@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -40,9 +41,11 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
          try {
             return max(input);
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing max in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
     }
 
@@ -70,9 +73,11 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
                 Tuple tp = bg.iterator().next();
                 return tfact.newTuple((Double)(tp.get(0)));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing max in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);            
             }
         }
     }
@@ -85,9 +90,11 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
             try {
                 return tfact.newTuple(max(input));
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing max in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -97,9 +104,11 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
             try {
                 return max(input);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing max in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -124,9 +133,9 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
                 sawNonNull = true;
                 curMax = java.lang.Math.max(curMax, d);
             } catch (RuntimeException exp) {
-                ExecException newE = new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage(), exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing max of doubles.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
 

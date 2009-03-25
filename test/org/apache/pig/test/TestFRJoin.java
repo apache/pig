@@ -98,13 +98,12 @@ public class TestFRJoin extends TestCase{
         }
 
         @Override
-        public DataBag exec(Tuple in) throws IOException {
+        public DataBag exec(Tuple input) throws IOException {
             if(!isTblSetUp){
                 setUpHashTable();
                 isTblSetUp = true;
             }
             try {
-                Tuple input = (Tuple)in.get(0);
                 String key = (String) input.get(keyField);
                 if(!replTbl.containsKey(key)) return BagFactory.getInstance().newDefaultBag();
                 return replTbl.get(key);

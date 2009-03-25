@@ -30,6 +30,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 
 
@@ -48,6 +49,7 @@ public abstract class EvalFunc<T>  {
     // if the exec is taking more that 300 ms
     protected PigProgressable reporter;
     protected Log log = LogFactory.getLog(getClass());
+    protected PigLogger pigLogger;
 
     private static int nextSchemaId; // for assigning unique ids to UDF columns
     protected String getSchemaName(String name, Schema input) {
@@ -118,7 +120,12 @@ public abstract class EvalFunc<T>  {
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
     public final void progress() {
         if (reporter != null) reporter.progress();
-        else log.warn("No reporter object provided to UDF " + this.getClass().getName());
+        else warn("No reporter object provided to UDF.", PigWarning.PROGRESS_REPORTER_NOT_PROVIDED);
+    }
+    
+    public final void warn(String msg, Enum warningEnum) {
+    	if(pigLogger != null) pigLogger.warn(this, msg, warningEnum);
+    	else log.warn("No logger object provided to UDF: " + this.getClass().getName() + ". " + msg);
     }
 
     /**
@@ -176,5 +183,17 @@ public abstract class EvalFunc<T>  {
      */
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException{
         return null;
+    }
+    
+    public PigLogger getPigLogger() {
+        return pigLogger;
+    }
+
+    public final void setPigLogger(PigLogger pigLogger) {
+        this.pigLogger = pigLogger;
+    }
+    
+    public Log getLogger() {
+    	return log;
     }
 }

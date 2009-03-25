@@ -38,6 +38,16 @@ public class FuncSpec implements Serializable, Cloneable {
     
     /**
      * @param className the name of the class for the udf
+     * @param ctorArg the argument for the constructor for the above class
+     */
+    public FuncSpec(String className, String ctorArg) {
+        this.className = className;
+        this.ctorArgs = new String[1];
+        this.ctorArgs[0] = ctorArg;
+    }
+
+    /**
+     * @param className the name of the class for the udf
      * @param ctorArgs the arguments for the constructor for the above class
      */
     public FuncSpec(String className, String[] ctorArgs) {

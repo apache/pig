@@ -229,8 +229,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             if (cloneFrom == null) {
                 String msg = new String("Unable to find clone for op "
                     + op.name());
-                log.error(msg);
-                throw new RuntimeException(msg);
+                throw new CloneNotSupportedException(msg);
             }
             Collection<PhysicalOperator> toOps = mFromEdges.get(op);
             for (PhysicalOperator toOp : toOps) {
@@ -238,13 +237,14 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
                 if (cloneTo == null) {
                     String msg = new String("Unable to find clone for op "
                         + toOp.name());
-                    log.error(msg);
-                    throw new RuntimeException(msg);
+                    throw new CloneNotSupportedException(msg);
                 }
                 try {
                     clone.connect(cloneFrom, cloneTo);
                 } catch (PlanException pe) {
-                    throw new RuntimeException(pe);
+                    CloneNotSupportedException cnse = new CloneNotSupportedException();
+                    cnse.initCause(pe);
+                    throw cnse;
                 }
             }
         }
@@ -259,16 +259,14 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             if (cloneOp == null) {
                 String msg = new String("Unable to find clone for op "
                     + cloneOp.name());
-                log.error(msg);
-                throw new RuntimeException(msg);
+                throw new CloneNotSupportedException(msg);
             }
             for (PhysicalOperator iOp : inputs) {
                 PhysicalOperator cloneIOp = matches.get(iOp);
                 if (cloneIOp == null) {
                     String msg = new String("Unable to find clone for op "
                         + cloneIOp.name());
-                    log.error(msg);
-                    throw new RuntimeException(msg);
+                    throw new CloneNotSupportedException(msg);
                 }
                 newInputs.add(cloneIOp);
             }

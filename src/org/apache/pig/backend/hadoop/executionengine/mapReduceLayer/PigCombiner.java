@@ -33,10 +33,12 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
@@ -44,8 +46,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.WrappedIOException;
@@ -78,6 +82,9 @@ public class PigCombiner {
         PhysicalOperator[] roots;
         PhysicalOperator leaf;
         
+        PigContext pigContext = null;
+        private volatile boolean initialized = false;
+        
         /**
          * Configures the Reduce plan, the POPackage operator
          * and the reporter thread
@@ -109,9 +116,12 @@ public class PigCombiner {
                     roots = cp.getRoots().toArray(new PhysicalOperator[1]);
                     leaf = cp.getLeaves().get(0);
                 }
-            } catch (IOException e) {
-                log.error(e.getMessage() + "was caused by:");
-                log.error(e.getCause().getMessage());
+                
+                pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
+                
+            } catch (IOException ioe) {
+                String msg = "Problem while configuring combiner's reduce plan.";
+                throw new RuntimeException(msg, ioe);
             }
         }
         
@@ -126,8 +136,18 @@ public class PigCombiner {
                 OutputCollector<PigNullableWritable, Writable> oc,
                 Reporter reporter) throws IOException {
             
-            pigReporter.setRep(reporter);
-            PhysicalOperator.setReporter(pigReporter);
+        	if(!initialized) {
+        		initialized = true;
+	            pigReporter.setRep(reporter);	            
+	            PhysicalOperator.setReporter(pigReporter);
+
+	            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+
+	            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+	            pigHadoopLogger.setAggregate(aggregateWarning);
+	            pigHadoopLogger.setReporter(reporter);
+	            PhysicalOperator.setPigLogger(pigHadoopLogger);
+        	}
             
             // In the case we optimize, we combine
             // POPackage and POForeach - so we could get many
@@ -195,13 +215,13 @@ public class PigCombiner {
                             continue;
                         
                         if(redRes.returnStatus==POStatus.STATUS_ERR){
+                            int errCode = 2090;
                             String msg = "Received Error while " +
                             "processing the combine plan.";
                             if(redRes.result != null) {
                                 msg += redRes.result;
                             }
-                            IOException ioe = new IOException(msg);
-                            throw ioe;
+                            throw new ExecException(msg, errCode, PigException.BUG);
                         }
                     }
                 }
@@ -210,8 +230,9 @@ public class PigCombiner {
                     return false;
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
-                    IOException ioe = new IOException("Packaging error while processing group");
-                    throw ioe;
+                    int errCode = 2091;
+                    String msg = "Packaging error while processing group.";
+                    throw new ExecException(msg, errCode, PigException.BUG);
                 }
                 
                 if(res.returnStatus==POStatus.STATUS_EOP) {
@@ -221,9 +242,7 @@ public class PigCombiner {
                 return false;    
                 
             } catch (ExecException e) {
-                IOException ioe = new IOException(e.getMessage());
-                ioe.initCause(e.getCause());
-                throw ioe;
+                throw e;
             }
 
         }

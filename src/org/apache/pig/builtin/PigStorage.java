@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -92,13 +93,11 @@ public class PigStorage extends Utf8StorageConverter
                     Integer.valueOf(delimiter.substring(2)).byteValue();
                 break;
 
-            default:
-                mLog.error("Unknown delimiter " + delimiter);
+            default:                
                 throw new RuntimeException("Unknown delimiter " + delimiter);
             }
-        } else {
-            mLog.error("PigStorage delimeter must be single character");
-            throw new RuntimeException("PigStorage delimeter must be single character");
+        } else {            
+            throw new RuntimeException("PigStorage delimeter must be a single character");
         }
     }
 
@@ -223,7 +222,7 @@ public class PigStorage extends Utf8StorageConverter
                 try {
                     putField(t.get(i));
                 } catch (ExecException ee) {
-                    throw new RuntimeException(ee);
+                    throw ee;
                 }
             }
             mOut.write(tupleEndDelim.getBytes(UTF8));
@@ -244,9 +243,12 @@ public class PigStorage extends Utf8StorageConverter
             mOut.write(bagEndDelim.getBytes(UTF8));
             break;
             
-        default:
-            throw new RuntimeException("Unknown datatype " + 
-                DataType.findType(field));
+        default: {
+            int errCode = 2108;
+            String msg = "Could not determine data type of field: " + field;
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+        
         }
     }
 
@@ -260,7 +262,7 @@ public class PigStorage extends Utf8StorageConverter
             try {
                 field = f.get(i);
             } catch (ExecException ee) {
-                throw new RuntimeException(ee);
+                throw ee;
             }
 
             putField(field);

@@ -40,7 +40,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
 
     /**
      * @param plan logical plan to be cloned
-     * @param walker walker used for traversing the logical plan
      */
     public LogicalPlanCloneHelper(LogicalPlan plan) throws CloneNotSupportedException {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
@@ -54,7 +53,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
     
     /**
      * @param plan
-     * @param walker
      * @param origCloneMap the lookup table used for tracking operators cloned in the plan
      */
     public LogicalPlanCloneHelper(LogicalPlan plan,
@@ -94,14 +92,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
     
     @Override
     public void visit(BinaryExpressionOperator binOp) {
-        ExpressionOperator lhsOperandClone = (ExpressionOperator)mOpToCloneMap.get(binOp.getLhsOperand());
-        if(lhsOperandClone != null) {
-            binOp.setLhsOperand(lhsOperandClone);
-        }
-        ExpressionOperator rhsOperandClone = (ExpressionOperator)mOpToCloneMap.get(binOp.getRhsOperand());
-        if(rhsOperandClone != null) {
-            binOp.setRhsOperand(rhsOperandClone);
-        }
     }
 
     /**
@@ -125,20 +115,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
      */
     @Override
     protected void visit(LOBinCond binCond) throws VisitorException {
-        ExpressionOperator condClone = (ExpressionOperator)mOpToCloneMap.get(binCond.getCond());
-        if(condClone != null) {
-            binCond.setCond(condClone);
-        }
-
-        ExpressionOperator lhsOpClone = (ExpressionOperator)mOpToCloneMap.get(binCond.getLhsOp());
-        if(lhsOpClone != null) {
-            binCond.setLhsOp(lhsOpClone);
-        }
-
-        ExpressionOperator rhsOpClone = (ExpressionOperator)mOpToCloneMap.get(binCond.getRhsOp());
-        if(rhsOpClone != null) {
-            binCond.setRhsOp(rhsOpClone);
-        }
     }
 
     /**
@@ -146,10 +122,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
      */
     @Override
     protected void visit(LOCast cast) throws VisitorException {
-        ExpressionOperator exprClone = (ExpressionOperator)mOpToCloneMap.get(cast.getExpression());
-        if(exprClone != null) {
-            cast.setExpression(exprClone);
-        }
     }
 
     /**
@@ -304,10 +276,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
      */
     @Override
     public void visit(LOMapLookup op) throws VisitorException {
-        ExpressionOperator mapClone = (ExpressionOperator)mOpToCloneMap.get(op.getMap());
-        if(mapClone != null) {
-            op.setMap(mapClone);
-        }
     }
 
     /**
@@ -450,17 +418,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
      */
     @Override
     protected void visit(LOUserFunc func) throws VisitorException {
-        List<ExpressionOperator> args = func.getArguments();
-        List<ExpressionOperator> argsClone = new ArrayList<ExpressionOperator>(args.size());
-        for(ExpressionOperator arg: args) {
-            ExpressionOperator argClone = (ExpressionOperator)mOpToCloneMap.get(arg);
-            if(argClone != null) {
-                argsClone.add(argClone);
-            } else {
-                argsClone.add(arg);
-            }
-        }
-        func.setArguments(argsClone);
     }
 
     /**
@@ -468,10 +425,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
      */
     @Override
     protected void visit(UnaryExpressionOperator uniOp) throws VisitorException {
-        ExpressionOperator operandClone = (ExpressionOperator)mOpToCloneMap.get(uniOp.getOperand());
-        if(operandClone != null) {
-            uniOp.setOperand(operandClone);
-        }
     }
     
 }

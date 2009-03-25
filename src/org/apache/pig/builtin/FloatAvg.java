@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -55,9 +56,7 @@ public class FloatAvg extends EvalFunc<Double> implements Algebraic {
     
             return avg;
         } catch (ExecException ee) {
-            IOException oughtToBeEE = new IOException();
-            oughtToBeEE.initCause(ee);
-            throw oughtToBeEE;
+            throw ee;
         }
     }
 
@@ -86,12 +85,12 @@ public class FloatAvg extends EvalFunc<Double> implements Algebraic {
                 t.set(0, f != null ? new Double(f) : null);
                 t.set(1, 1L);
                 return t;
-            } catch(RuntimeException t) {
-                throw new RuntimeException(t.getMessage() + ": " + input);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing average in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
                 
         }
@@ -104,9 +103,11 @@ public class FloatAvg extends EvalFunc<Double> implements Algebraic {
                 DataBag b = (DataBag)input.get(0);
                 return combine(b);
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing average in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -130,9 +131,11 @@ public class FloatAvg extends EvalFunc<Double> implements Algebraic {
                 }
                 return avg;
             } catch (ExecException ee) {
-                IOException oughtToBeEE = new IOException();
-                oughtToBeEE.initCause(ee);
-                throw oughtToBeEE;
+                throw ee;
+            } catch (Exception e) {
+                int errCode = 2106;
+                String msg = "Error while computing average in " + this.getClass().getSimpleName();
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
         }
     }
@@ -196,9 +199,9 @@ public class FloatAvg extends EvalFunc<Double> implements Algebraic {
                 sawNonNull = true;
                 sum += f;
             }catch(RuntimeException exp) {
-                ExecException newE =  new ExecException("Error processing: " +
-                    t.toString() + exp.getMessage(), exp);
-                throw newE;
+                int errCode = 2103;
+                String msg = "Problem while computing sum of floats.";
+                throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
 

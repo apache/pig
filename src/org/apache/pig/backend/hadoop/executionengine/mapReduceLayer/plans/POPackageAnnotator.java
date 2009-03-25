@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -32,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.Pair;
 
 /**
@@ -77,8 +79,10 @@ public class POPackageAnnotator extends MROpPlanVisitor {
                 // just look for the corresponding LocalRearrange(s) in the combine plan
                 if(pkg instanceof POCombinerPackage) {
                     if(patchPackage(mr.combinePlan, pkg) != pkg.getNumInps()) {
-                        throw new VisitorException("Unexpected problem while trying " +
-                        		"to optimize (could not find LORearrange in combine plan)");
+                        int errCode = 2085;
+                        String msg = "Unexpected problem during optimization." +
+                        " Could not find LocalRearrange in combine plan.";
+                        throw new OptimizerException(msg, errCode, PigException.BUG);
                     }
                 } else {
                     handlePackage(mr, pkg);
@@ -106,8 +110,11 @@ public class POPackageAnnotator extends MROpPlanVisitor {
                 }     
             }
         }
-        if(lrFound != pkg.getNumInps())
-            throw new VisitorException("Unexpected problem while trying to optimize (Could not find all LocalRearranges)");
+        if(lrFound != pkg.getNumInps()) {
+            int errCode = 2086;
+            String msg = "Unexpected problem during optimization. Could not find all LocalRearrange operators.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
     }
 
     private int patchPackage(PhysicalPlan plan, POPackage pkg) throws VisitorException {
@@ -199,9 +206,11 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             if(keyInfo.get(lrearrange.getIndex()) != null) {
                 // something is wrong - we should not be getting key info 
                 // for the same index from two different Local Rearranges
-                throw new VisitorException("Unexpected problem while trying " +
-                                "to optimize (found same index:" + lrearrange.getIndex() + 
-                                " in multiple Local Rearrange operators");
+                int errCode = 2087;
+                String msg = "Unexpected problem during optimization." +
+                " Found index:" + lrearrange.getIndex() + 
+                " in multiple LocalRearrange operators.";
+                throw new OptimizerException(msg, errCode, PigException.BUG);
                 
             }
             keyInfo.put(new Integer(lrearrange.getIndex()), 

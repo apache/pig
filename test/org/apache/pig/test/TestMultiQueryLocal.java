@@ -40,7 +40,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.tools.grunt.GruntParser;
-import org.apache.pig.tools.grunt.Utils;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.Before;
@@ -468,7 +468,7 @@ public class TestMultiQueryLocal extends TestCase {
             Assert.assertNotNull(lp);
 
         } catch (Exception e) {
-            PigException pe = Utils.getPigException(e);
+            PigException pe = LogUtils.getPigException(e);
             if (pe != null) {
                 throw pe;
             } else {

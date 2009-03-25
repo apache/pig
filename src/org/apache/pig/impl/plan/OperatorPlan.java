@@ -172,13 +172,15 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             log.error(pe.getMessage());
             throw pe;
         }
-
         mFromEdges.put(from, to);
         mToEdges.put(to, from);
     }
 
     /**
-     * Remove an edge from between two nodes.
+     * Remove an edge from between two nodes. 
+     * Use {@link org.apache.pig.impl.plan.OperatorPlan#insertBetween(Operator, Operator, Operator)} 
+     * if disconnect is used in the process of inserting a new node between two nodes 
+     * by calling disconnect followed by a connect.
      * @param from Operator data would flow from.
      * @param to Operator data would flow to.
      * @return true if the nodes were connected according to the specified data
@@ -186,7 +188,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      */
     public boolean disconnect(E from, E to) {
         markDirty();
-
+        
         boolean sawNull = false;
         if (mFromEdges.remove(from, to) == null) sawNull = true;
         if (mToEdges.remove(to, from) == null) sawNull = true;
@@ -436,6 +438,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
 
     /**
      * Given two connected nodes add another node between them.
+     * 'newNode' will be placed in same position in predecessor list as 'before' (old node).
      * @param after Node to insert this node after
      * @param newNode new node to insert.  This node must have already been
      * added to the plan.
@@ -458,6 +461,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         mToEdges.put(newNode, after);
     }
 
+    // replaces (src -> dst) entry in multiMap with (src -> replacement)
     private boolean replaceNode(E src, E replacement, E dst, MultiMap<E, E> multiMap) {
         Collection c = multiMap.get(src);
         if (c == null) return false;
@@ -558,6 +562,104 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         remove(node);
         if (pred != null && succ != null) connect(pred, succ);
     }
+
+    /**
+     * Remove a node in a way that connects the node's predecessor (if any)
+     * with the node's successors (if any).  This function handles the
+     * case where the node has *one* predecessor and one or more successors.
+     * It replaces the predecessor in same position as node was in
+     * each of the successors predecessor list(getPredecessors()), to 
+     * preserve input ordering 
+     * for eg, it is used to remove redundant project(*) from plan
+     * which will have only one predecessor,but can have multiple success
+     * @param node Node to be removed
+     * @throws PlanException if the node has more than one predecessor
+     */
+    public void removeAndReconnectMultiSucc(E node) throws PlanException {
+
+        // Before:
+        //    A (predecessor (only one) )
+        //  / |
+        // X  B(nodeB)  Y(some predecessor of a Cn)
+        //  / | \     / 
+        // C1 C2  C3 ... (Successors)
+        // should become
+        // After:
+        //    ___ A     Y
+        //   /  / | \  /
+        //  X  C1 C2 C3 ...
+        // the variable names are from above example
+
+    	E nodeB = node;
+        List<E> preds = getPredecessors(nodeB);
+        //checking pre-requisite conditions
+        if (preds == null || preds.size() != 1) {
+            Integer size = null;
+            if(preds != null)
+                size = preds.size();
+
+            PlanException pe = new PlanException("Attempt to remove " +
+                    " and reconnect for node with  " + size +
+            " predecessors.");
+            log.error(pe.getMessage());
+            throw pe;
+        }
+
+        //A and C
+        E nodeA = preds.get(0);
+        Collection<E> nodeC = mFromEdges.get(nodeB);
+
+        //checking pre-requisite conditions
+        if (nodeC == null || nodeC.size() == 0) {
+            PlanException pe = new PlanException("Attempt to remove " +
+            " and reconnect for node with no successors.");
+            log.error(pe.getMessage());
+            throw pe;
+        }   
+
+
+        // replace B in A.succesors and add B.successors(ie C) to it
+        replaceAndAddSucessors(nodeA, nodeB);
+        
+        // for all C(succs) , replace B(node) in predecessors, with A(pred)
+        for(E c: nodeC) {
+            Collection<E> sPreds = mToEdges.get(c);
+            ArrayList<E> newPreds = new ArrayList<E>(sPreds.size());
+            for(E p: sPreds){
+                if(p == nodeB){
+                    //replace
+                    newPreds.add(nodeA);
+                }
+                else{
+                    newPreds.add(p);
+                }
+            }
+            mToEdges.removeKey(c);
+            mToEdges.put(c,newPreds);
+            
+        }
+        remove(nodeB); 
+    }
+    
+    //removes entry  for succ in list of successors of nd, and adds successors
+    // of succ in its place
+    // @param nd - parent node whose entry for succ needs to be replaced
+    // @param succ - see above
+    private void replaceAndAddSucessors(E nd, E succ) throws PlanException {
+       Collection<E> oldSuccs = mFromEdges.get(nd);
+       Collection<E> repSuccs = mFromEdges.get(succ);
+       ArrayList<E> newSuccs = new ArrayList<E>(oldSuccs.size() - 1 + repSuccs.size() );
+       for(E s: oldSuccs){
+           if(s == succ){
+               newSuccs.addAll(repSuccs);
+           }else{
+               newSuccs.add(s);
+           }
+       }
+       mFromEdges.removeKey(nd);
+       mFromEdges.put(nd,newSuccs);
+    }
+    
 
     public void dump(PrintStream ps) {
         ps.println("Ops");
