@@ -255,6 +255,7 @@
     		<classpath refid="${cp}" />
         </javac>
         <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete" todir="${build.classes}/org/apache/pig/tools/grunt"/>
+        <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete_aliases" todir="${build.classes}/org/apache/pig/tools/grunt"/>
     </target>
         
     <!-- this target is for compilation with all warnings enabled -->

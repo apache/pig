@@ -25,12 +25,15 @@ import java.io.IOException;
 import java.io.FileOutputStream;
 
 import jline.ConsoleReader;
+import jline.Completor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.grunt.PigCompletor;
+import org.apache.pig.tools.grunt.PigCompletorAliases;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.tools.pigscript.parser.*;
@@ -59,8 +62,11 @@ public class Grunt
 
     public void setConsoleReader(ConsoleReader c)
     {
+        c.addCompletor(new PigCompletorAliases(pig));
+        c.addCompletor(new PigCompletor());
         parser.setConsoleReader(c);
     }
+
     public void run() {        
         boolean verbose = "true".equalsIgnoreCase(pig.getPigContext().getProperties().getProperty("verbose"));
         while(true) {
