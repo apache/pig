@@ -39,7 +39,6 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.tools.grunt.PigCompletor;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
@@ -309,7 +308,6 @@ public static void main(String args[])
             // Interactive
             mode = ExecMode.SHELL;
             ConsoleReader reader = new ConsoleReader(System.in, new OutputStreamWriter(System.out));
-            reader.addCompletor(new PigCompletor());
             reader.setDefaultPrompt("grunt> ");
             final String HISTORYFILE = ".pig_history";
             String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
