@@ -21,6 +21,7 @@ import java.io.StringReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Properties;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -39,8 +40,10 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.ExecType;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.Before;
@@ -52,7 +55,9 @@ public class TestMultiQueryLocal extends TestCase {
 
     @Before
     public void setUp() throws Exception {
-        myPig = new PigServer("local");
+        PigContext context = new PigContext(ExecType.LOCAL, new Properties());
+        context.getProperties().setProperty("opt.multiquery", ""+true);
+        myPig = new PigServer(context);
     }
 
     @After

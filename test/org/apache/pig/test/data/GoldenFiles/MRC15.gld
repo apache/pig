@@ -10,10 +10,10 @@ MapReduce(1,GFCross) - -153:
 |       |---Package[tuple]{Unknown} - --885269774183211482
 |   Local Rearrange[tuple]{Unknown}(false) - --776319888013965510
 |   |
-|   |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -152
+|   |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -152
 |
 |---MapReduce(1,AVG) - -150:
-    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -151
+    |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -151
     |   |
     |   |---New For Each(false)[tuple] - -7965768498188214494
     |       |   |
@@ -24,10 +24,10 @@ MapReduce(1,GFCross) - -153:
     |       |---Package[tuple]{Unknown} - --7335024873119453444
     |   Local Rearrange[tuple]{Unknown}(false) - -4589138876054328603
     |   |
-    |   |---Load(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -149
+    |   |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -149
     |
     |---MapReduce(20,TestMRCompiler$WeirdComparator,COUNT,SUM) - -142:
-        |   Store(/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -148
+        |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -148
         |   |
         |   |---New For Each(false,false)[tuple] - --4248200967728536480
         |       |   |
@@ -48,10 +48,10 @@ MapReduce(1,GFCross) - -153:
         |   |   |
         |   |   Project[tuple][*] - -143
         |   |
-        |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -141
+        |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -141
         |
         |---MapReduce(1,TestMRCompiler$WeirdComparator) - -130:
-            |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -140
+            |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -140
             |   |
             |   |---New For Each(false,false)[tuple] - -139
             |       |   |
@@ -72,11 +72,11 @@ MapReduce(1,GFCross) - -153:
             |       |   |
             |       |   Project[tuple][*] - -131
             |       |
-            |       |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader) - -129
+            |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader) - -129
             |
             |---MapReduce(-1) - -127:
                 Reduce Plan Empty
-                |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -128
+                |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -128
                 |   |
                 |   |---Filter[tuple] - -9193928674704944093
                 |       |

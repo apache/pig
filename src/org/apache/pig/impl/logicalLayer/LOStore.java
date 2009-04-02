@@ -37,6 +37,12 @@ public class LOStore extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
     private FileSpec mOutputFile;
+
+    // If we know how to reload the store, here's how. The lFile
+    // FileSpec is set in PigServer.postProcess. It can be used to
+    // reload this store, if the optimizer has the need.
+    private FileSpec mInputSpec;
+
     transient private StoreFunc mStoreFunc;
     private static Log log = LogFactory.getLog(LOStore.class);
 
@@ -111,5 +117,13 @@ public class LOStore extends LogicalOperator {
 
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
+    }
+
+    public void setInputSpec(FileSpec in) {
+        mInputSpec = in;
+    }
+
+    public FileSpec getInputSpec() {
+        return mInputSpec;
     }
 }

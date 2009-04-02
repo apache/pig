@@ -593,3 +593,5 @@ Release 0.1.0 - 2008-09-11
 
     PIG-627: multiquery support incremental patch
     to merge changes in trunk to multiquery branch (hagleitn via pradeepkth)
+
+    PIG-627: multiquery support incremental patch (hagleitn via pradeepkth)

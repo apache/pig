@@ -31,6 +31,8 @@ PARSER_BEGIN(QueryParser)
 package org.apache.pig.impl.logicalLayer.parser;
 import java.io.*;
 import java.util.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.lang.reflect.Type;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.*;
@@ -60,7 +62,9 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.PigException;
-
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 
 public class QueryParser {
 	private PigContext pigContext;
@@ -72,6 +76,7 @@ public class QueryParser {
 	private Map<String, LogicalOperator> mapAliasOp;
 	private static Log log = LogFactory.getLog(QueryParser.class);
 	private boolean bracketed = false;
+        private Map<String, String> fileNameMap;
 	
 	private long getNextId() {
 		return nodeIdGen.getNextNodeId(scope);
@@ -82,7 +87,8 @@ public class QueryParser {
 					   String scope, 
 					   Map<LogicalOperator, LogicalPlan> aliases,
 					   Map<OperatorKey, LogicalOperator> opTable,
-					   Map<String, LogicalOperator> aliasOp) {
+					   Map<String, LogicalOperator> aliasOp,
+                                           Map<String, String> fileNameMap) {
 		this(in);
 		this.pigContext = pigContext;
 		this.aliases = aliases;
@@ -90,6 +96,7 @@ public class QueryParser {
 		this.scope = scope;
 		this.nodeIdGen = NodeIdGenerator.getGenerator();
 		this.mapAliasOp = aliasOp;
+                this.fileNameMap = fileNameMap;
 	}
 	
     public QueryParser(InputStream in,
@@ -98,8 +105,9 @@ public class QueryParser {
             Map<LogicalOperator, LogicalPlan> aliases,
             Map<OperatorKey, LogicalOperator> opTable,
             Map<String, LogicalOperator> aliasOp,
-            int start) {
-        this(in, pigContext, scope, aliases, opTable, aliasOp);
+            int start,
+            Map<String, String> fileNameMap) {
+        this(in, pigContext, scope, aliases, opTable, aliasOp, fileNameMap);
         token_source.input_stream.line = start;
     }
 
@@ -163,15 +171,67 @@ public class QueryParser {
 	}
 	
 
-	String massageFilename(String filename, PigContext pigContext) throws IOException, ParseException {
-		if (pigContext.getExecType() != ExecType.LOCAL) {
-			if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-					filename = FileLocalizer.hadoopify(filename, pigContext);
-			} 
-			// Removed check for file existence, that will be handled later by InputOutputFileValidator
-		}
-		return filename;
-	}
+    String massageFilename(String filename, PigContext pigContext, boolean isLoad) throws IOException, ParseException {
+        boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
+
+        if (!isMultiQuery) {
+            if(!isLoad) {
+                return filename;
+            }
+
+            if (pigContext.getExecType() != ExecType.LOCAL) {
+                if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+                    filename = FileLocalizer.hadoopify(filename, pigContext);
+                } 
+            }
+            return filename;
+        }
+
+        String fname;
+
+        if (null != (fname = fileNameMap.get(filename))) {
+            return fname;
+        } else {
+            fname = filename;
+        }
+
+        URI uri = null;
+        try {
+            uri = new URI(fname);
+        } catch (URISyntaxException ue) {
+            log.info(fname + " is not a valid URI.");
+            return fname;
+        }
+        String scheme = uri.getScheme();
+        if (scheme != null) {
+            scheme = scheme.toLowerCase();
+        }
+        
+        String path = uri.getPath();
+        if (path == null) {
+            // file:foo is not a valid uri. So the path ends up in the scheme specific part...
+            path = uri.getSchemeSpecificPart();
+        }
+
+        if (scheme == null || scheme.equals("file") || scheme.equals("hdfs")) {
+            if (pigContext.getExecType() != ExecType.LOCAL) {
+                if (fname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+                    if (isLoad) {
+                        fname = FileLocalizer.hadoopify(fname, pigContext);
+                    }
+                    return fname;
+                }
+            }       
+            DataStorage dfs = pigContext.getDfs();
+            ContainerDescriptor desc = dfs.getActiveContainer();
+            ElementDescriptor el = dfs.asElement(desc, path);
+            fname = el.toString();
+        }
+        if (!fname.equals(filename)) {
+            fileNameMap.put(filename, fname);
+        }
+        return fname;
+    }
 	
 	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
 		
@@ -1086,7 +1146,7 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 		}
 
         try {
-		    lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext), funcSpec),
+		    lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext, true), funcSpec),
 		              pigContext.getExecType(), pigContext.getFs(), splittable);
         } catch (IOException ioe) {
             // The autogenerated parser code only catches RuntimeException and
@@ -2014,7 +2074,7 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
         }
 
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
-                                            new FileSpec(fileName, funcSpec));
+                                            new FileSpec(massageFilename(fileName, pigContext, false), funcSpec));
 
         LogicalOperator input = mapAliasOp.get(t.image);
         if (input == null)

@@ -105,6 +105,10 @@ public class MiniCluster {
     public Properties getProperties() {
         return ConfigurationUtil.toProperties(m_conf);
     }
+
+    public void setProperty(String name, String value) {
+        m_conf.set(name, value);
+    }
     
     public FileSystem getFileSystem() {
         return m_fileSys;

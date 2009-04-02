@@ -19,6 +19,10 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.*;
+
+import org.apache.pig.ExecType;
+
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -26,6 +30,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import junit.framework.Assert;
+import org.apache.pig.impl.plan.OperatorKey;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -37,6 +44,7 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.PigServer;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.backend.local.executionengine.LocalPigLauncher;
@@ -47,9 +55,18 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.impl.logicalLayer.LOStore;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,6 +78,7 @@ public class TestStore extends junit.framework.TestCase {
     static MiniCluster cluster = MiniCluster.buildCluster();
     PigContext pc;
     POProject proj;
+    PigServer pig;
     
     @Before
     public void setUp() throws Exception {
@@ -68,8 +86,11 @@ public class TestStore extends junit.framework.TestCase {
         fSpec = new FileSpec("file:/tmp/storeTest.txt",
                       new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
         st.setSFile(fSpec);
-        pc = new PigContext();
-        pc.connect();
+
+        FileLocalizer.deleteTempFiles();
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pc = pig.getPigContext();
+
         st.setStoreImpl(new LocalPOStoreImpl(pc));
         
         proj = GenPhyOp.exprProject();
@@ -184,4 +205,80 @@ public class TestStore extends junit.framework.TestCase {
         FileLocalizer.delete(fSpec.getFileName(), pc);
     }
 
+    @Test
+    public void testStoreRemoteRel() throws Exception {
+        checkStorePath("test","/tmp/test");
+    }
+
+    @Test
+    public void testStoreRemoteAbs() throws Exception {
+        checkStorePath("/tmp/test","/tmp/test");
+    }
+
+    @Test
+    public void testStoreRemoteRelScheme() throws Exception {
+        checkStorePath("hdfs:test","/tmp/test");
+    }
+
+    @Test
+    public void testStoreRemoteAbsScheme() throws Exception {
+        checkStorePath("hdfs:/tmp/test","/tmp/test");
+    }
+
+    @Test
+    public void testStoreRemoteAbsAuth() throws Exception {
+        checkStorePath("hdfs://localhost:9000/test","/test");
+    }
+
+    @Test
+    public void testStoreRemoteNormalize() throws Exception {
+        checkStorePath("/tmp/foo/../././","/tmp");
+    }
+
+    private void checkStorePath(String orig, String expected) throws Exception {
+        checkStorePath(orig, expected, false);
+    }
+
+    private void checkStorePath(String orig, String expected, boolean isTmp) throws Exception {
+        pc.getProperties().setProperty("opt.multiquery",""+true);
+
+        DataStorage dfs = pc.getDfs();
+        dfs.setActiveContainer(dfs.asContainer("/tmp"));
+        Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
+        Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
+        Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+        Map<String, String> fileNameMap = new HashMap<String, String>();
+        
+        LogicalPlanBuilder builder = new LogicalPlanBuilder(pc);
+        
+        String query = "a = load 'foo';";
+        LogicalPlan lp = builder.parse("Test-Store",
+                                       query,
+                                       aliases,
+                                       logicalOpTable,
+                                       aliasOp,
+                                       fileNameMap);
+        query = "store a into '"+orig+"';";
+        lp = builder.parse("Test-Store",
+                           query,
+                           aliases,
+                           logicalOpTable,
+                           aliasOp,
+                           fileNameMap);
+
+        Assert.assertTrue(lp.size()>1);
+        LogicalOperator op = lp.getLeaves().get(0);
+        
+        Assert.assertTrue(op instanceof LOStore);
+        LOStore store = (LOStore)op;
+
+        String p = store.getOutputFile().getFileName();
+        p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
+        
+        if (isTmp) {
+            Assert.assertTrue(p.matches("/tmp.*"));
+        } else {
+            Assert.assertEquals(p, expected);
+        }
+    }
 }

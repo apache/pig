@@ -32,7 +32,11 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -44,6 +48,7 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.hadoop.fs.Path;
 
 public class TestMultiQuery extends TestCase {
 
@@ -53,6 +58,7 @@ public class TestMultiQuery extends TestCase {
 
     @Before
     public void setUp() throws Exception {
+        cluster.setProperty("opt.multiquery", ""+true);
         myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         deleteOutputFiles();
     }
@@ -968,6 +974,167 @@ public class TestMultiQuery extends TestCase {
         } 
     }
 
+    @Test
+    public void testEmptyFilterRemoval() {
+        System.out.println("===== multi-query empty filters =====");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+            myPig.registerQuery("b = filter a by uid>0;");
+            myPig.registerQuery("c = filter a by uid>5;");
+            myPig.registerQuery("d = filter c by uid<10;");
+            myPig.registerQuery("store b into '/tmp/output1';");
+            myPig.registerQuery("store b into '/tmp/output2';");
+            myPig.registerQuery("store b into '/tmp/output3';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 3, 10);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 10);
+            MROperPlan mp = checkMRPlan(pp, 1, 1, 1);
+
+            MapReduceOper mo = mp.getRoots().get(0);
+
+            checkPhysicalPlan(mo.mapPlan, 1, 1, 4);
+            PhysicalOperator leaf = mo.mapPlan.getLeaves().get(0);
+            
+            Assert.assertTrue(leaf instanceof POSplit);
+            
+            POSplit split = (POSplit)leaf;
+
+            int i = 0;
+            for (PhysicalPlan p: split.getPlans()) {
+                checkPhysicalPlan(p, 1, 1, 1);
+                ++i;
+            }
+
+            Assert.assertEquals(i,3);
+
+            myPig.executeBatch();
+            myPig.discardBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+
+    }
+
+    @Test
+    public void testUnnecessaryStoreRemoval() {
+        System.out.println("===== multi-query unnecessary stores =====");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+            myPig.registerQuery("b = group a by uname;");
+            myPig.registerQuery("store b into '/tmp/output1';");
+            myPig.registerQuery("store b into '/tmp/output2';");
+            myPig.registerQuery("c = load '/tmp/output1';");
+            myPig.registerQuery("d = group c by $0;");
+            myPig.registerQuery("e = store d into '/tmp/output3';");
+            myPig.registerQuery("f = load '/tmp/output2';");
+            myPig.registerQuery("g = group f by $0;");
+            myPig.registerQuery("store g into '/tmp/output4';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 4, 14);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 4, 20);
+            MROperPlan mp = checkMRPlan(pp, 1, 2, 3);
+
+            MapReduceOper mo1 = mp.getRoots().get(0);
+            MapReduceOper mo2 = mp.getLeaves().get(0);
+            MapReduceOper mo3 = mp.getLeaves().get(1);
+
+            checkPhysicalPlan(mo1.mapPlan, 1, 1, 3);
+            checkPhysicalPlan(mo1.reducePlan, 1, 1, 2);
+            PhysicalOperator leaf = mo1.reducePlan.getLeaves().get(0);
+            
+            Assert.assertTrue(leaf instanceof POSplit);
+
+            POSplit split = (POSplit)leaf;
+            
+            int i = 0;
+            for (PhysicalPlan p: split.getPlans()) {
+                checkPhysicalPlan(p, 1, 1, 1);
+                ++i;
+            }
+
+            Assert.assertEquals(i,2);
+            
+            checkPhysicalPlan(mo2.mapPlan, 1, 1, 2);
+            checkPhysicalPlan(mo2.reducePlan, 1, 1, 2);
+            leaf = mo2.reducePlan.getLeaves().get(0);
+            
+            Assert.assertTrue(leaf instanceof POStore);
+
+            checkPhysicalPlan(mo3.mapPlan, 1, 1, 2);
+            checkPhysicalPlan(mo3.reducePlan, 1, 1, 2);
+            leaf = mo3.reducePlan.getLeaves().get(0);
+            
+            Assert.assertTrue(leaf instanceof POStore);
+
+            myPig.executeBatch();
+            myPig.discardBatch(); 
+
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output1"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output2"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output3"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output4"));
+
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
+    @Test
+    public void testUnnecessaryStoreRemovalCollapseSplit() {
+        System.out.println("===== multi-query unnecessary stores collapse split =====");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+            myPig.registerQuery("b = group a by uname;");
+            myPig.registerQuery("store b into '/tmp/output1';");
+            myPig.registerQuery("c = load '/tmp/output1';");
+            myPig.registerQuery("d = group c by $0;");
+            myPig.registerQuery("e = store d into '/tmp/output2';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 2, 9);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 13);
+            MROperPlan mp = checkMRPlan(pp, 1, 1, 2);
+
+            MapReduceOper mo1 = mp.getRoots().get(0);
+            MapReduceOper mo2 = mp.getLeaves().get(0);
+
+            checkPhysicalPlan(mo1.mapPlan, 1, 1, 3);
+            checkPhysicalPlan(mo1.reducePlan, 1, 1, 2);
+            PhysicalOperator leaf = mo1.reducePlan.getLeaves().get(0);
+            
+            Assert.assertTrue(leaf instanceof POStore);
+            
+            checkPhysicalPlan(mo2.mapPlan, 1, 1, 2);
+            checkPhysicalPlan(mo2.reducePlan, 1, 1, 2);
+            leaf = mo2.reducePlan.getLeaves().get(0);
+            
+            Assert.assertTrue(leaf instanceof POStore);
+
+            myPig.executeBatch();
+            myPig.discardBatch(); 
+
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output1"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output2"));
+
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
     // --------------------------------------------------------------------------
     // Helper methods
 
@@ -1026,6 +1193,25 @@ public class TestMultiQuery extends TestCase {
         Assert.assertEquals(expectedSize, lp.size());
 
         return lp;
+    }
+
+    private void checkPhysicalPlan(PhysicalPlan pp, int expectedRoots,
+                                   int expectedLeaves, int expectedSize) throws IOException {
+
+        System.out.println("===== check physical plan =====");
+
+        showPlanOperators(pp);
+       
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        pp.explain(out);
+
+        System.out.println("===== Display Physical Plan =====");
+        System.out.println(out.toString());
+
+        Assert.assertEquals(expectedRoots, pp.getRoots().size());
+        Assert.assertEquals(expectedLeaves, pp.getLeaves().size());
+        Assert.assertEquals(expectedSize, pp.size());
+
     }
 
     private PhysicalPlan checkPhysicalPlan(LogicalPlan lp, int expectedRoots,
@@ -1097,6 +1283,7 @@ public class TestMultiQuery extends TestCase {
             FileLocalizer.delete("/tmp/output1", myPig.getPigContext());
             FileLocalizer.delete("/tmp/output2", myPig.getPigContext());
             FileLocalizer.delete("/tmp/output3", myPig.getPigContext());
+            FileLocalizer.delete("/tmp/output4", myPig.getPigContext());
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();

@@ -235,9 +235,20 @@ public class MapReduceLauncher extends Launcher{
         // an appropriate NullableXXXWritable object
         KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
         kdv.visit();
+
+        // removes the filter(constant(true)) operators introduced by
+        // splits.
+        NoopFilterRemover fRem = new NoopFilterRemover(plan);
+        fRem.visit();
         
         MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
         mqOptimizer.visit();
+
+        // removes unnecessary stores (as can happen with splits in
+        // some cases.). This has to run after the MultiQuery and
+        // NoopFilterRemover.
+        NoopStoreRemover sRem = new NoopStoreRemover(plan);
+        sRem.visit();
         
         return plan;
     }

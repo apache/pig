@@ -181,7 +181,7 @@ public abstract class HPath implements ElementDescriptor {
    
     @Override
     public String toString() {
-        return path.toString();
+        return path.makeQualified(getHFS()).toString();
     }
     
     @Override

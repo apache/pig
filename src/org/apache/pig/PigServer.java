@@ -124,6 +124,7 @@ public class PigServer {
 
     private ArrayList<String> cachedScript = new ArrayList<String>();
     private boolean aggregateWarning = true;
+    private boolean isMultiQuery = true;
     
     private String constructScope() {
         // scope servers for now as a session id
@@ -160,7 +161,8 @@ public class PigServer {
         currDAG = new Graph(false);
         
         aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-        
+        isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
+
         if (connect) {
             pigContext.connect();
         }
@@ -187,7 +189,7 @@ public class PigServer {
         if (currDAG != null) {
             graphs.push(currDAG);
         }
-        currDAG = new Graph(true);
+        currDAG = new Graph(isMultiQuery);
     }
 
     /**
@@ -196,7 +198,10 @@ public class PigServer {
      * @return true if the execution mode is batch; false otherwise.
      */
     public boolean isBatchOn() {
-        return currDAG.isBatchOn();
+        // Batch is on when there are multiple graphs on the
+        // stack. That gives the right response even if multiquery was
+        // turned off.
+        return graphs.size() > 0;
     }
 
     /**
@@ -206,7 +211,12 @@ public class PigServer {
      * @throws ExecException
      */
     public void executeBatch() throws FrontendException, ExecException {
-        if (currDAG == null || !isBatchOn() || graphs.size() < 1) {
+        if (!isMultiQuery) {
+            // ignore if multiquery is off
+            return;
+        }
+
+        if (currDAG == null || !isBatchOn()) {
             throw new IllegalStateException("setBatchOn() must be called first.");
         }
         
@@ -220,7 +230,7 @@ public class PigServer {
      * @throws ExecException
      */
     public void discardBatch() throws FrontendException {
-        if (currDAG == null || !isBatchOn() || graphs.size() < 1) {
+        if (currDAG == null || !isBatchOn()) {
             throw new IllegalStateException("setBatchOn() must be called first.");
         }
         
@@ -552,6 +562,7 @@ public class PigServer {
                         PrintStream pps,
                         PrintStream eps) throws IOException {
         try {
+            pigContext.inExplain = true;
             LogicalPlan lp = getStorePlan(alias);
             if (lp.size() == 0) {
                 lps.println("Logical plan is empty.");
@@ -567,6 +578,8 @@ public class PigServer {
             int errCode = 1067;
             String msg = "Unable to explain alias " + alias;
             throw new FrontendException(msg, errCode, PigException.INPUT, e);
+        } finally {
+            pigContext.inExplain = false;
         }
     }
 
@@ -849,6 +862,12 @@ public class PigServer {
         private Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
        
         private List<String> scriptCache = new ArrayList<String>();	
+
+        // the fileNameMap contains filename to canonical filename
+        // mappings. This is done so we can reparse the cached script
+        // and remember the translation (current directory might only
+        // be correct during the first parse
+        private Map<String, String> fileNameMap = new HashMap<String, String>();
     
         private Map<LOStore, LogicalPlan> storeOpTable = new HashMap<LOStore, LogicalPlan>();
         
@@ -960,7 +979,7 @@ public class PigServer {
         
             try {
                 return new LogicalPlanBuilder(PigServer.this.pigContext).parse(scope, query,
-                                              aliases, opTable, aliasOp, startLine);
+                                              aliases, opTable, aliasOp, startLine, fileNameMap);
             } catch (ParseException e) {
                 PigException pe = LogUtils.getPigException(e);
                 int errCode = 1000;
@@ -992,9 +1011,10 @@ public class PigServer {
             int lineNumber = 1;
             
             // create data structures needed for parsing        
-            Graph graph = new Graph(true);
+            Graph graph = new Graph(isBatchOn());
             graph.ignoreNumStores = processedStores;
             graph.processedStores = processedStores;
+            graph.fileNameMap = fileNameMap;
             
             try {
                 for (Iterator<String> it = getScriptCache().iterator(); it.hasNext(); lineNumber++) {
@@ -1022,6 +1042,12 @@ public class PigServer {
                     String ofile = store.getOutputFile().getFileName();
                     if (ofile.compareTo(ifile) == 0) {
                         LogicalOperator storePred = lp.getPredecessors(store).get(0);
+                        
+                        // In this case we remember the input file
+                        // spec in the store. We might have to use it
+                        // in the MR compiler to recreate the load, if
+                        // the store happens on a job boundary.
+                        store.setInputSpec(load.getInputFile());
 
                         lp.disconnect(store, load);
                         lp.replace(load, storePred);

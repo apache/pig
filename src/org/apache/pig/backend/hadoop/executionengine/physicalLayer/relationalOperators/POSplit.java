@@ -187,6 +187,16 @@ public class POSplit extends PhysicalOperator {
         myPlans.add(inPlan);
         processedSet.set(myPlans.size()-1);
     }
+
+    /**
+     * Removes plan from
+     * the nested input plan list
+     * @param plan plan to be removed
+     */
+    public void removePlan(PhysicalPlan plan) {
+        myPlans.remove(plan);
+        processedSet.clear(myPlans.size());
+    }
    
     @Override
     public Result getNext(Tuple t) throws ExecException {

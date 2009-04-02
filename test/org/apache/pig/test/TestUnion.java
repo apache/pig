@@ -35,6 +35,7 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -193,6 +194,7 @@ public class TestUnion extends junit.framework.TestCase {
         Util.createInputFile(cluster, "a.txt", new String[] {"1\t2\t3", "4\t5\t6"});
         Util.createInputFile(cluster, "b.txt", new String[] {"7\t8\t9", "1\t200\t300"});
         Util.createInputFile(cluster, "c.txt", new String[] {"1\t20\t30"});
+        FileLocalizer.deleteTempFiles();
         PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pig.registerQuery("a = load 'a.txt' ;");
         pig.registerQuery("b = load 'b.txt';");

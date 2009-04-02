@@ -8,16 +8,16 @@ MapReduce(-1) - -37:
 |   |   |
 |   |   |---Filter[tuple] - -7391599663069134339
 |   |       |
-|   |       |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -33
+|   |       |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -33
 |   |
 |   |---Local Rearrange[tuple]{Unknown}(false) - -8760996681222683693
 |       |
 |       |---Filter[tuple] - -956528893337238225
 |           |
-|           |---Load(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -35
+|           |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -35
 |
 |---MapReduce(-1) - -31:
     Reduce Plan Empty
-    |   Store(/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -32
+    |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.builtin.BinStorage) - -32
     |   |
     |   |---Load(DummyFil:DummyLdr) - --5840807574562740596

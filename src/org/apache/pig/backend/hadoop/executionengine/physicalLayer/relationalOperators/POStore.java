@@ -53,6 +53,14 @@ public class POStore extends PhysicalOperator {
     private final Log log = LogFactory.getLog(getClass());
     private POStoreImpl impl;
     private FileSpec sFile;
+
+    // flag to distinguish user stores from MRCompiler stores.
+    private boolean isTmpStore;
+    
+    // If we know how to reload the store, here's how. The lFile
+    // FileSpec is set in PigServer.postProcess. It can be used to
+    // reload this store, if the optimizer has the need.
+    private FileSpec lFile;
     
     public POStore(OperatorKey k) {
         this(k, -1, null);
@@ -154,6 +162,22 @@ public class POStore extends PhysicalOperator {
 
     public void setSFile(FileSpec sFile) {
         this.sFile = sFile;
+    }
+
+    public void setInputSpec(FileSpec lFile) {
+        this.lFile = lFile;
+    }
+
+    public FileSpec getInputSpec() {
+        return lFile;
+    }
+    
+    public void setIsTmpStore(boolean tmp) {
+        isTmpStore = tmp;
+    }
+    
+    public boolean isTmpStore() {
+        return isTmpStore;
     }
 
     public void setStoreImpl(POStoreImpl impl) {

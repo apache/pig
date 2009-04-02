@@ -314,6 +314,9 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private POStore getStore(){
         POStore st = new POStore(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        // mark store as tmp store. These could be removed by the
+        // optimizer, because it wasn't the user requesting it.
+        st.setIsTmpStore(true);
         return st;
     }
     
