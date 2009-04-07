@@ -148,7 +148,7 @@ public class POStore extends PhysicalOperator {
 
     @Override
     public boolean supportsMultipleOutputs() {
-        return false;
+        return true;
     }
 
     @Override

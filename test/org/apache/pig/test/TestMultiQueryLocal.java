@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.StringReader;
 import java.io.IOException;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
@@ -437,6 +438,46 @@ public class TestMultiQueryLocal extends TestCase {
         }
     }
 
+    @Test
+    public void testStoreOrder() {
+        System.out.println("===== multi-query store order =====");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd';");
+            myPig.registerQuery("store a into '/tmp/output1' using BinStorage();");
+            myPig.registerQuery("a = load '/tmp/output1';");
+            myPig.registerQuery("store a into '/tmp/output2';");
+            myPig.registerQuery("a = load '/tmp/output1';");
+            myPig.registerQuery("store a into '/tmp/output3';");
+            myPig.registerQuery("a = load '/tmp/output2' using BinStorage();");
+            myPig.registerQuery("store a into '/tmp/output4';");
+            myPig.registerQuery("a = load '/tmp/output2';");
+            myPig.registerQuery("b = load '/tmp/output1';");
+            myPig.registerQuery("c = cogroup a by $0, b by $0;");
+            myPig.registerQuery("store c into '/tmp/output5';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 16);
+
+            myPig.executeBatch();
+            myPig.discardBatch(); 
+
+            Assert.assertTrue(new File("/tmp/output1").exists());
+            Assert.assertTrue(new File("/tmp/output2").exists());
+            Assert.assertTrue(new File("/tmp/output3").exists());
+            Assert.assertTrue(new File("/tmp/output4").exists());
+            Assert.assertTrue(new File("/tmp/output5").exists());
+
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            deleteOutputFiles();
+        }
+    }
+
     // --------------------------------------------------------------------------
     // Helper methods
 
@@ -523,6 +564,8 @@ public class TestMultiQueryLocal extends TestCase {
             FileLocalizer.delete("/tmp/output1", myPig.getPigContext());
             FileLocalizer.delete("/tmp/output2", myPig.getPigContext());
             FileLocalizer.delete("/tmp/output3", myPig.getPigContext());
+            FileLocalizer.delete("/tmp/output4", myPig.getPigContext());
+            FileLocalizer.delete("/tmp/output5", myPig.getPigContext());
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();

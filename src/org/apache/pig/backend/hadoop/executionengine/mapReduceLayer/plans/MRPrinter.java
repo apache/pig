@@ -43,9 +43,9 @@ public class MRPrinter extends MROpPlanVisitor {
     public MRPrinter(PrintStream ps, MROperPlan plan) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
         mStream = ps;
-        mStream.println("--------------------------------------------------");
-        mStream.println("| Map Reduce Plan                                |");
-        mStream.println("--------------------------------------------------");
+        mStream.println("#--------------------------------------------------");
+        mStream.println("# Map Reduce Plan                                  ");
+        mStream.println("#--------------------------------------------------");
     }
 
     public void setVerbose(boolean verbose) {
@@ -81,6 +81,7 @@ public class MRPrinter extends MROpPlanVisitor {
             mStream.println("Quantile file: " + mr.getQuantFile());
         }
         mStream.println("----------------");
+        mStream.println("");
     }
 }
 

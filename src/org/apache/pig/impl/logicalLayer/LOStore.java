@@ -112,7 +112,7 @@ public class LOStore extends LogicalOperator {
 
     @Override
     public boolean supportsMultipleOutputs() {
-        return false;
+        return true;
     }
 
     public void visit(LOVisitor v) throws VisitorException {

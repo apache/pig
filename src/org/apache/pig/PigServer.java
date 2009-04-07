@@ -36,6 +36,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
 
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -202,6 +203,20 @@ public class PigServer {
         // stack. That gives the right response even if multiquery was
         // turned off.
         return graphs.size() > 0;
+    }
+
+    /**
+     * Returns whether there is anything to process in the current batch.
+     * @throws FrontendException
+     * @return true if there are no stores to process in the current
+     * batch, false otherwise.
+     */
+    public boolean isBatchEmpty() throws FrontendException {
+        if (currDAG == null) {
+            throw new IllegalStateException("setBatchOn() must be called first.");
+        }
+
+        return currDAG.isBatchEmpty();
     }
 
     /**
@@ -514,7 +529,7 @@ public class PigServer {
      */
     public void explain(String alias,
                         PrintStream stream) throws IOException {
-        explain(alias, "text", true, stream, stream, stream);
+        explain(alias, "text", true, false, stream, stream, stream);
     }
 
     /**
@@ -522,34 +537,9 @@ public class PigServer {
      * @param alias Name of alias to explain.
      * @param format Format in which the explain should be printed
      * @param verbose Controls the amount of information printed
-     * @param dir Directory to print the differnt plans into
-     * @throws IOException if the requested alias cannot be found.
-     */
-    public void explain(String alias,
-                        String format,
-                        boolean verbose,
-                        String dir) throws IOException {
-        try {
-            PrintStream lps = new PrintStream(new File(dir,"logical_plan."+format));
-            PrintStream pps = new PrintStream(new File(dir,"physical_plan."+format));
-            PrintStream eps = new PrintStream(new File(dir,"exec_plan."+format));
-            explain(alias, format, verbose, lps, pps, eps);
-            lps.close();
-            pps.close();
-            eps.close();
-            
-        } catch (Exception e) {
-            int errCode = 1067;
-            String msg = "Unable to explain alias " + alias;
-            throw new FrontendException(msg, errCode, PigException.INPUT, e);
-        }
-    }
-
-    /**
-     * Provide information on how a pig query will be executed.
-     * @param alias Name of alias to explain.
-     * @param format Format in which the explain should be printed
-     * @param verbose Controls the amount of information printed
+     * @param markAsExecute When set will treat the explain like a
+     * call to execute in the respoect that all the pending stores are
+     * marked as complete.
      * @param lps Stream to print the logical tree
      * @param lps Stream to print the physical tree
      * @param lps Stream to print the execution tree
@@ -558,6 +548,7 @@ public class PigServer {
     public void explain(String alias,
                         String format,
                         boolean verbose,
+                        boolean markAsExecute,
                         PrintStream lps,
                         PrintStream pps,
                         PrintStream eps) throws IOException {
@@ -574,6 +565,9 @@ public class PigServer {
             lp.explain(lps, format, verbose);
             pp.explain(pps, format, verbose);
             pigContext.getExecutionEngine().explain(pp, eps, format, verbose);
+            if (markAsExecute) {
+                currDAG.markAsExecuted();
+            }
         } catch (Exception e) {
             int errCode = 1067;
             String msg = "Unable to explain alias " + alias;
@@ -900,10 +894,16 @@ public class PigServer {
         List<String> getScriptCache() { return scriptCache; }
         
         boolean isBatchOn() { return batchMode; };
+
+        boolean isBatchEmpty() { return processedStores == storeOpTable.keySet().size(); }
         
         void execute() throws ExecException, FrontendException {
             pigContext.getProperties().setProperty(PigContext.JOB_NAME, PigContext.JOB_NAME_PREFIX + ":" + jobName);
             PigServer.this.execute(null);
+            processedStores = storeOpTable.keySet().size();
+        }
+
+        void markAsExecuted() {
             processedStores = storeOpTable.keySet().size();
         }
 
@@ -1032,16 +1032,27 @@ public class PigServer {
         }
         
         private void postProcess() throws IOException {
+            
+            // Set the logical plan values correctly in all the operators
+            PlanSetter ps = new PlanSetter(lp);
+            ps.visit();
 
             // The following code deals with store/load combination of 
-            // intermediate files. In this case we replace the load operator
-            // with a (implicit) split operator.
+            // intermediate files. In this case we will replace the load operator
+            // with a (implicit) split operator, iff the load/store
+            // func is reversible (because that's when we can safely
+            // skip the load and keep going with the split output). If
+            // the load/store func is not reversible (or they are
+            // different functions), we connect the store and the load
+            // to remember the dependency.
             for (LOLoad load : loadOps) {
                 for (LOStore store : storeOpTable.keySet()) {
                     String ifile = load.getInputFile().getFileName();
                     String ofile = store.getOutputFile().getFileName();
                     if (ofile.compareTo(ifile) == 0) {
-                        LogicalOperator storePred = lp.getPredecessors(store).get(0);
+                        LoadFunc lFunc = (LoadFunc) pigContext.instantiateFuncFromSpec(load.getInputFile().getFuncSpec());
+                        StoreFunc sFunc = (StoreFunc) pigContext.instantiateFuncFromSpec(store.getOutputFile().getFuncSpec());
+                        if (lFunc.getClass() == sFunc.getClass() && lFunc instanceof ReversibleLoadStoreFunc) {
                         
                         // In this case we remember the input file
                         // spec in the store. We might have to use it
@@ -1049,27 +1060,42 @@ public class PigServer {
                         // the store happens on a job boundary.
                         store.setInputSpec(load.getInputFile());
 
-                        lp.disconnect(store, load);
-                        lp.replace(load, storePred);
+                            LogicalOperator storePred = lp.getPredecessors(store).get(0);
+                            
+                            // In this case we remember the input file
+                            // spec in the store. We might have to use it
+                            // in the MR compiler to recreate the load, if
+                            // the store happens on a job boundary.
+                            store.setInputSpec(load.getInputFile());
+                            
+                            lp.disconnect(store, load);
+                            lp.replace(load, storePred);
 
-                        List<LogicalOperator> succs = lp.getSuccessors(storePred);
-
-                        for (LogicalOperator succ : succs) {
-                            MultiMap<LogicalOperator, LogicalPlan> innerPls = null;
-
-                            // fix inner plans for cogroup and frjoin operators
-                            if (succ instanceof LOCogroup) {
-                                innerPls = ((LOCogroup)succ).getGroupByPlans();
-                            } else if (succ instanceof LOFRJoin) {
-                                innerPls = ((LOFRJoin)succ).getJoinColPlans();
-                            }
-
-                            if (innerPls != null) {
-                                if (innerPls.containsKey(load)) {
-                                    Collection<LogicalPlan> pls = innerPls.get(load);
-                                    innerPls.removeKey(load);
-                                    innerPls.put(storePred, pls);
+                            List<LogicalOperator> succs = lp.getSuccessors(storePred);
+                            
+                            for (LogicalOperator succ : succs) {
+                                MultiMap<LogicalOperator, LogicalPlan> innerPls = null;
+                                
+                                // fix inner plans for cogroup and frjoin operators
+                                if (succ instanceof LOCogroup) {
+                                    innerPls = ((LOCogroup)succ).getGroupByPlans();
+                                } else if (succ instanceof LOFRJoin) {
+                                    innerPls = ((LOFRJoin)succ).getJoinColPlans();
                                 }
+                                
+                                if (innerPls != null) {
+                                    if (innerPls.containsKey(load)) {
+                                        Collection<LogicalPlan> pls = innerPls.get(load);
+                                        innerPls.removeKey(load);
+                                        innerPls.put(storePred, pls);
+                                    }
+                                }
+                            }
+                        } else {
+                            try {
+                                store.getPlan().connect(store, load);
+                            } catch (PlanException ex) {
+                                log.warn(ex.getMessage());
                             }
                         }
                     }

@@ -26,6 +26,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,42 +44,35 @@ public class PlanHelper {
     private PlanHelper() {}
 
     /**
-     * Get all the store operators in the plan
+     * Get all the store operators in the plan in the right dependency order
      * @param plan
      * @return List of stores (could be empty)
      */
     public static List<POStore> getStores(PhysicalPlan plan) {
-        List<POStore> stores = new LinkedList<POStore>();
-        List<PhysicalOperator> leaves = plan.getLeaves();
-        for (PhysicalOperator leaf: leaves) {
-            if (leaf instanceof POStore) {
-                stores.add((POStore)leaf);
-            }
-            if (leaf instanceof POSplit) {
-                List<PhysicalPlan> pls = ((POSplit)leaf).getPlans();
-                for (PhysicalPlan pl : pls) {
-                    List<POStore> nestedStores = getStores(pl);
-                    stores.addAll(nestedStores);
-                }
-            }
+        LoadStoreFinder finder = new LoadStoreFinder(plan);
+
+        try {
+            finder.visit();
+        } catch (VisitorException ve) {
+            log.warn("Exception in getStores(): "+ve.getMessage());
         }
-        return stores;
+        return finder.getStores();
     }
 
     /**
-     * Get all the load operators in the plan
+     * Get all the load operators in the plan in the right dependency order
      * @param plan
      * @return List of loads (could be empty)
      */
     public static List<POLoad> getLoads(PhysicalPlan plan) {
-        List<POLoad> loads = new LinkedList<POLoad>();
-        List<PhysicalOperator> roots = plan.getRoots();
-        for (PhysicalOperator root: roots) {
-            if (root instanceof POLoad) {
-                loads.add((POLoad)root);
-            }
+        LoadStoreFinder finder = new LoadStoreFinder(plan);
+
+        try {
+            finder.visit();
+        } catch (VisitorException ve) {
+            log.warn("Exception in getLoads(): "+ve.getMessage());
         }
-        return loads;
+        return finder.getLoads();
     }
 
     /**
@@ -93,6 +89,42 @@ public class PlanHelper {
             return new Path("abs"+pathStr).toString();
         } else {
             return new Path("rel/"+pathStr).toString();
+        }
+    }
+
+    private static class LoadStoreFinder extends PhyPlanVisitor {
+        private List<POLoad> loads;
+        private List<POStore> stores;
+        
+        LoadStoreFinder(PhysicalPlan plan) {
+            super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
+            stores = new LinkedList<POStore>();
+            loads = new LinkedList<POLoad>();
+        }
+        
+        @Override
+        public void visit() throws VisitorException {
+            super.visit();
+        }
+        
+        @Override 
+        public void visitStore(POStore st) throws VisitorException {
+            super.visitStore(st);
+            stores.add(st);
+        }
+
+        @Override 
+        public void visitLoad(POLoad load) throws VisitorException {
+            super.visitLoad(load);
+            loads.add(load);
+        }
+
+        public List<POStore> getStores() {
+            return stores;
+        }
+
+        public List<POLoad> getLoads() {
+            return loads;
         }
     }
 }

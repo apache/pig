@@ -76,6 +76,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
 /**
  * The compiler that compiles a given physical plan
@@ -128,6 +129,9 @@ public class MRCompiler extends PhyPlanVisitor {
     
     //The output of compiling the inputs
     MapReduceOper[] compiledInputs = null;
+
+    //Mapping of which MapReduceOper a store belongs to.
+    Map<POStore, MapReduceOper> storeToMapReduceMap;
     
     //The split operators seen till now. If not
     //maintained they will haunt you.
@@ -172,6 +176,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
         scope = roots.get(0).getOperatorKey().getScope();
         messageCollector = new CompilationMessageCollector() ;
+        storeToMapReduceMap = new HashMap<POStore, MapReduceOper>();
     }
     
     public void randomizeFileLocalizer(){
@@ -219,8 +224,8 @@ public class MRCompiler extends PhyPlanVisitor {
             }
         }
 
-        for (PhysicalOperator op : leaves) {
-            POStore store = (POStore)op;
+        List<POStore> stores = PlanHelper.getStores(plan);
+        for (POStore store: stores) {
             FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
             compile(store);
         }
@@ -273,6 +278,41 @@ public class MRCompiler extends PhyPlanVisitor {
         //op.
         List<PhysicalOperator> predecessors = plan.getPredecessors(op);
         if (predecessors != null && predecessors.size() > 0) {
+            // When processing an entire script (multiquery), we can
+            // get into a situation where a load has
+            // predecessors. This means that it depends on some store
+            // earlier in the plan. We need to take that dependency
+            // and connect the respective MR operators, while at the
+            // same time removing the connection between the Physical
+            // operators. That way the jobs will run in the right
+            // order.
+            if (op instanceof POLoad) {
+
+                if (predecessors.size() != 1) {
+                    int errCode = 2035;
+                    String msg = "Expected at most one predecessor of load. Got "+predecessors.size();
+                    throw new PlanException(msg, errCode, PigException.BUG);
+                }
+
+                PhysicalOperator p = predecessors.get(0);
+                if (!(p instanceof POStore)) {
+                    int errCode = 2036;
+                    String msg = "Predecessor of load should be a store. Got "+p.getClass();
+                    throw new PlanException(msg, errCode, PigException.BUG);
+                }
+
+                // Need new operator
+                curMROp = getMROp();
+                curMROp.mapPlan.add(op);
+                MRPlan.add(curMROp);
+                
+                MapReduceOper oper = storeToMapReduceMap.get((POStore)p);
+
+                plan.disconnect(op, p);
+                MRPlan.connect(oper, curMROp);
+                return;
+            }
+            
             Collections.sort(predecessors);
             compiledInputs = new MapReduceOper[predecessors.size()];
             int i = -1;
@@ -639,6 +679,7 @@ public class MRCompiler extends PhyPlanVisitor {
     
     public void visitStore(POStore op) throws VisitorException{
         try{
+            storeToMapReduceMap.put(op, curMROp);
             nonBlocking(op);
         }catch(Exception e){
             int errCode = 2034;

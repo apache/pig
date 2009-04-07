@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.Date;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.PrintStream;
@@ -92,6 +93,7 @@ public class GruntParser extends PigScriptParser {
     private void init() {
         mDone = false;
         mLoadOnly = false;
+        mExplain = null;
     }
 
     private void setBatchOn() {
@@ -99,8 +101,14 @@ public class GruntParser extends PigScriptParser {
     }
 
     private void executeBatch() throws IOException {
-        if (mPigServer.isBatchOn() && !mLoadOnly) {
-            mPigServer.executeBatch();
+        if (mPigServer.isBatchOn()) {
+            if (mExplain != null) {
+                explainCurrentBatch();
+            }
+
+            if (!mLoadOnly) {
+                mPigServer.executeBatch();
+            }
         }
     }
 
@@ -196,52 +204,83 @@ public class GruntParser extends PigScriptParser {
                                   String format, String target, 
                                   List<String> params, List<String> files) 
         throws IOException, ParseException {
-
-        PrintStream out = System.out;
-
-        if (script != null) {
-            setBatchOn();
-            try {
-                loadScript(script, true, true, params, files);
-            } catch(IOException e) {
-                discardBatch();
-                throw e;
-            } catch (ParseException e) {
-                discardBatch();
-                throw e;
-            }
-        }
         
-        if (target != null) {
-            File file = new File(target);
+        if (null != mExplain) {
+            return;
+        }
 
-            if (file.isDirectory()) {
-                mPigServer.explain(alias, format, isVerbose, target);
-                if (script != null) {
-                    discardBatch();
+        try {
+            mExplain = new ExplainState(alias, target, script, isVerbose, format);
+            
+            if (script != null) {
+                if (!"true".equalsIgnoreCase(mPigServer.
+                                             getPigContext()
+                                             .getProperties().
+                                             getProperty("opt.multiquery","true"))) {
+                    throw new ParseException("Cannot explain script if multiquery is disabled.");
                 }
+                setBatchOn();
+                try {
+                    loadScript(script, true, true, params, files);
+                } catch(IOException e) {
+                    discardBatch();
+                    throw e;
+            } catch (ParseException e) {
+                    discardBatch();
+                    throw e;
+                }
+            }
+
+            mExplain.mLast = true;
+            explainCurrentBatch();
+
+        } finally {
+            if (script != null) {
+                discardBatch();
+            }
+            mExplain = null;
+        }
+    }
+
+    protected void explainCurrentBatch() throws IOException {
+        PrintStream lp = System.out;
+        PrintStream pp = System.out;
+        PrintStream ep = System.out;
+        
+        if (!(mExplain.mLast && mExplain.mCount == 0)) {
+            if (mPigServer.isBatchEmpty()) {
                 return;
             }
+        }
+
+        mExplain.mCount++;
+        boolean markAsExecuted = (mExplain.mScript != null);
+
+        if (mExplain.mTarget != null) {
+            File file = new File(mExplain.mTarget);
+            
+            if (file.isDirectory()) {
+                String sCount = (mExplain.mLast && mExplain.mCount == 1)?"":"_"+mExplain.mCount;
+                lp = new PrintStream(new File(file, "logical_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                pp = new PrintStream(new File(file, "physical_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                ep = new PrintStream(new File(file, "exec_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                mPigServer.explain(mExplain.mAlias, mExplain.mFormat, 
+                                   mExplain.mVerbose, markAsExecuted, lp, pp, ep);
+                lp.close();
+                pp.close();
+                ep.close();
+            }
             else {
-                try {
-                    out = new PrintStream(new FileOutputStream(target));
-                }
-                catch (FileNotFoundException fnfe) {
-                    if (script != null) {
-                        discardBatch();
-                    }
-                    throw new ParseException("File not found: " + target);
-                } catch (SecurityException se) {
-                    if (script != null) {
-                        discardBatch();
-                    }
-                    throw new ParseException("Cannot access file: " + target);
-                }
+                boolean append = !(mExplain.mCount==1);
+                lp = pp = ep = new PrintStream(new FileOutputStream(mExplain.mTarget, append));
+                mPigServer.explain(mExplain.mAlias, mExplain.mFormat, 
+                                   mExplain.mVerbose, markAsExecuted, lp, pp, ep);
+                lp.close();
             }
         }
-        mPigServer.explain(alias, format, isVerbose, out, out, out);
-        if (script != null) {
-            discardBatch();
+        else {
+            mPigServer.explain(mExplain.mAlias, mExplain.mFormat, 
+                               mExplain.mVerbose, markAsExecuted, lp, pp, ep);
         }
     }
 
@@ -331,6 +370,7 @@ public class GruntParser extends PigScriptParser {
         parser.setConsoleReader(reader);
         parser.setInteractive(interactive);
         parser.setLoadOnly(loadOnly);
+        parser.mExplain = mExplain;
         
         parser.prompt();
         while(!parser.isDone()) {
@@ -652,6 +692,29 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    private class ExplainState {
+        public long mTime;
+        public int mCount;
+        public String mAlias;
+        public String mTarget;
+        public String mScript;
+        public boolean mVerbose;
+        public String mFormat;
+        public boolean mLast;
+
+        public ExplainState(String alias, String target, String script,
+                            boolean verbose, String format) {
+            mTime = new Date().getTime();
+            mCount = 0;
+            mAlias = alias;
+            mTarget = target;
+            mScript = script;
+            mVerbose = verbose;
+            mFormat = format;
+            mLast = false;
+        }
+    }        
+
     private PigServer mPigServer;
     private DataStorage mDfs;
     private DataStorage mLfs;
@@ -659,5 +722,5 @@ public class GruntParser extends PigScriptParser {
     private JobClient mJobClient;
     private boolean mDone;
     private boolean mLoadOnly;
-
+    private ExplainState mExplain;
 }

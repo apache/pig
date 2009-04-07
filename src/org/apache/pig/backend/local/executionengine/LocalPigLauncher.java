@@ -21,7 +21,9 @@ package org.apache.pig.backend.local.executionengine;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -72,8 +74,32 @@ public class LocalPigLauncher extends Launcher {
             op.setStoreImpl(new LocalPOStoreImpl(pc));
             op.setUp();
         }
+
+        // We need to handle stores that have loads as successors
+        // first. PlanHelper's getStores has returned those in the
+        // dependency order, so that's how we will run them.
+        for (Iterator<POStore> it = stores.iterator(); it.hasNext(); ) {
+            POStore op = it.next();
+
+            List<PhysicalOperator> sucs = new ArrayList<PhysicalOperator>();
+            if (php.getSuccessors(op) != null) {
+                sucs.addAll(php.getSuccessors(op));
+            }
+            
+            if (sucs.size() != 0) {
+                log.info("running store with dependencies");
+                POStore[] st = new POStore[1];
+                st[0] = op;
+                failedJobs += runPipeline(st);
+                for (PhysicalOperator suc: sucs) {
+                    php.disconnect(op, suc);
+                }
+                it.remove();
+            }
+        }
                 
-        failedJobs = runPipeline(stores.toArray(new POStore[0]));
+        // The remaining stores can be run together.
+        failedJobs += runPipeline(stores.toArray(new POStore[0]));
 
         UDFFinishVisitor finisher = new UDFFinishVisitor(php, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(php));
         finisher.visit();

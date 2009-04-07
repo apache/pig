@@ -108,6 +108,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
 
         if (format.equals("text")) {
             explain((OutputStream)ps, verbose);
+            ps.println("");
         } else if (format.equals("dot")) {
             DotPOPrinter pp = new DotPOPrinter(this, ps);
             pp.setVerbose(verbose);

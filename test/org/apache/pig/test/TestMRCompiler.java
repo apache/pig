@@ -98,7 +98,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
     // WILL OVERWRITE THE GOLDEN FILES - So use this
     // with caution and only for the testcases you need
     // and are sure of
-    private boolean generate = true;
+    private boolean generate = false;
 
     @Before
     public void setUp() throws ExecException {

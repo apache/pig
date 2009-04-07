@@ -362,13 +362,9 @@ public class JobControlCompiler{
 
             // set parent plan in all operators in map and reduce plans
             // currently the parent plan is really used only when POStream is present in the plan
-            PhysicalPlan[] plans = new PhysicalPlan[] { mro.mapPlan, mro.reducePlan };
-            for (int i = 0; i < plans.length; i++) {
-                for (Iterator<PhysicalOperator> it = plans[i].iterator(); it.hasNext();) {
-                    PhysicalOperator op = it.next();
-                    op.setParentPlan(plans[i]);                
-                }    
-            }
+            new PhyPlanSetter(mro.mapPlan).visit();
+            new PhyPlanSetter(mro.reducePlan).visit();
+
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
                 //MapOnly Job

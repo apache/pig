@@ -158,6 +158,11 @@ public class GenPhyOp{
     public static POLocalRearrange topLocalRearrangeOp() {
         POLocalRearrange ret = new POLocalRearrange(new OperatorKey("", r
                 .nextLong()));
+        List<PhysicalPlan> plans = new LinkedList<PhysicalPlan>();
+        try {
+            ret.setPlans(plans);
+        } catch(PlanException pe) {
+        }
         return ret;
     }
     
@@ -574,6 +579,11 @@ public class GenPhyOp{
 
     public static POFilter topFilterOp() {
         POFilter ret = new POFilter(new OperatorKey("", r.nextLong()));
+        ConstantExpression ex = GenPhyOp.exprConst();
+        ex.setValue(new Boolean(true));
+        PhysicalPlan pp = new PhysicalPlan();
+        pp.add(ex);
+        ret.setPlan(pp);
         return ret;
     }
     

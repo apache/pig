@@ -1135,6 +1135,45 @@ public class TestMultiQuery extends TestCase {
         } 
     }
 
+    @Test
+    public void testStoreOrder() {
+        System.out.println("===== multi-query store order =====");
+        
+        try {
+            myPig.setBatchOn();
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd';");
+            myPig.registerQuery("store a into '/tmp/output1' using BinStorage();");
+            myPig.registerQuery("a = load '/tmp/output1';");
+            myPig.registerQuery("store a into '/tmp/output2';");
+            myPig.registerQuery("a = load '/tmp/output1';");
+            myPig.registerQuery("store a into '/tmp/output3';");
+            myPig.registerQuery("a = load '/tmp/output2' using BinStorage();");
+            myPig.registerQuery("store a into '/tmp/output4';");
+            myPig.registerQuery("a = load '/tmp/output2';");
+            myPig.registerQuery("b = load '/tmp/output1';");
+            myPig.registerQuery("c = cogroup a by $0, b by $0;");
+            myPig.registerQuery("store c into '/tmp/output5';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 17);
+            MROperPlan mp = checkMRPlan(pp, 1, 3, 5);
+
+            myPig.executeBatch();
+            myPig.discardBatch(); 
+
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output1"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output2"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output3"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output4"));
+            Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output5"));
+
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
     // --------------------------------------------------------------------------
     // Helper methods
 
@@ -1284,6 +1323,7 @@ public class TestMultiQuery extends TestCase {
             FileLocalizer.delete("/tmp/output2", myPig.getPigContext());
             FileLocalizer.delete("/tmp/output3", myPig.getPigContext());
             FileLocalizer.delete("/tmp/output4", myPig.getPigContext());
+            FileLocalizer.delete("/tmp/output5", myPig.getPigContext());
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();

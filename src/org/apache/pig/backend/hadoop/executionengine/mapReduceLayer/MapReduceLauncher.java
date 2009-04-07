@@ -192,6 +192,7 @@ public class MapReduceLauncher extends Launcher{
             DotMRPrinter printer =new DotMRPrinter(mrp, ps);
             printer.setVerbose(verbose);
             printer.dump();
+            ps.println("");
         }
     }
 

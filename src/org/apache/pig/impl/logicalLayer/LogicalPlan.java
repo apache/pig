@@ -73,8 +73,8 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
             DotLOPrinter lpp = new DotLOPrinter(this, ps);
             lpp.setVerbose(verbose);
             lpp.dump();
+            ps.println("");
         }
-        ps.println("");
     }
     
 //    public String toString() {

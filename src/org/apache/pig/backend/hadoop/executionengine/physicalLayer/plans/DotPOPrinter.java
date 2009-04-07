@@ -65,7 +65,14 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
     protected String[] getAttributes(PhysicalOperator op) {
         if (op instanceof POStore || op instanceof POLoad) {
             String[] attributes = new String[3];
-            attributes[0] = "label=\""+getName(op).replace(":",",\\n")+"\"";
+            String name = getName(op);
+            int idx = name.lastIndexOf(":");
+            if (idx != -1) {
+                String part1 = name.substring(0,idx);
+                String part2 = name.substring(idx+1,name.length());
+                name = part1+",\\n"+part2;
+            }
+            attributes[0] = "label=\""+name+"\"";
             attributes[1] = "style=\"filled\"";
             attributes[2] = "fillcolor=\"gray\"";
             return attributes;
