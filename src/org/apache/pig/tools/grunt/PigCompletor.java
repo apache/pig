@@ -50,15 +50,11 @@ public class PigCompletor implements Completor {
             try
             {
                 keywordStream = new FileInputStream(AUTOCOMPLETE_FILENAME);
+                PigCompletor.loadCandidateKeywords(keywordStream, candidates);
             }
             catch (FileNotFoundException e)
             {
                 log.debug("Can not find autocomplete file in current directory, skipped");
-            }
-            if (keywordStream!=null)
-            {
-                processKeywordStream(keywordStream);
-                keywordStream.close();
             }
             
             // try to find all keyword file in CLASSPATH
@@ -67,30 +63,25 @@ public class PigCompletor implements Completor {
             {
                 URL url = itr.nextElement();
                 keywordStream = url.openStream();
-                if (keywordStream!=null)
-                {
-                    processKeywordStream(keywordStream);
-                    keywordStream.close();
-                }
-                else
+                if (!PigCompletor.loadCandidateKeywords(keywordStream, candidates))
                     log.debug("Error loading " + url + ", skipped");
             }
             
             // try to use default keyword file
             keywordStream = getClass().getResourceAsStream("/org/apache/pig/tools/grunt/autocomplete");
-            if (keywordStream!=null)
-            {
-                processKeywordStream(keywordStream);
-                keywordStream.close();
+            PigCompletor.loadCandidateKeywords(keywordStream, candidates);
             }
-        }
         catch (IOException e) {
             log.warn("Error occurs when reading internal autocomplete file, skipped");
         }
     }
 
-    private void processKeywordStream(InputStream stream) throws IOException
+    public static boolean loadCandidateKeywords(InputStream stream, Set<String> candidates)
+    throws IOException
     {
+        if (stream==null)
+          return false;
+
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         String line;
         while ((line=reader.readLine())!=null)
@@ -99,28 +90,18 @@ public class PigCompletor implements Completor {
             {
                 line = line.trim();
                 if (!line.equals(""))
-                    addCandidateString(line);
+                    candidates.add(line);
             }
                 
         }
         reader.close();
-    }
-
-    public void addCandidateString(final String candidateString) {
-        for (int i=0;i<candidateString.length();i++)
-        {
-            if (isDelimit(candidateString.charAt(i)))
-            {
-                log.warn("Auto-complete keyword \"" + candidateString + "\" is skipped because it contains white spaces");
-                return;
-            }
-        }
-        candidates.add(candidateString);
+        stream.close();
+        return true;
     }
 
     public int complete(String buffer, int cursor, List candidates) {
         if (cursor == 0)
-            return 0;
+            return -1;
         int p = cursor;
         p--;
         while (p > 0) {
@@ -138,12 +119,17 @@ public class PigCompletor implements Completor {
         if (!sb.toString().equals("")) {
             List<String> matches = searchCandidate(sb.toString());
             if (matches != null) {
+                if(matches.size()==1) {
+                    candidates.add(matches.get(0)+" ");
+                }
+                else {
                 for (String match:matches)
                     candidates.add(match);
+                }
                 return p;
             }
         }
-        return 0;
+        return -1;
     }
 
     private boolean isDelimit(char c) {
@@ -155,7 +141,7 @@ public class PigCompletor implements Completor {
     private List<String> searchCandidate(String s) {
         List<String> list = new ArrayList<String>();
         for (String can : candidates) {
-            if (can.startsWith(s) && !can.equals(s))
+            if (can.startsWith(s))
                 list.add(can);
         }
         return list;

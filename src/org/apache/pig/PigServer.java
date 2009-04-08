@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
-
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -685,6 +684,10 @@ public class PigServer {
             // hence, for now, we won't call it.
         //
         // pigContext.getExecutionEngine().reclaimScope(this.scope);
+    }
+
+    public Set<String> getAliasKeySet() {
+        return currDAG.getAliasOp().keySet();
     }
 
     public Map<LogicalOperator, DataBag> getExamples(String alias) {

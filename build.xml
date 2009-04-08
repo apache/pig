@@ -25,7 +25,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="1.0.1-dev" />
+    <property name="version" value="0.3.0-dev" />
     <property name="final.name" value="${name}-${version}" />
     <condition property="isWindows">
         <os family="windows"/>
@@ -255,6 +255,7 @@
     		<classpath refid="${cp}" />
         </javac>
         <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete" todir="${build.classes}/org/apache/pig/tools/grunt"/>
+        <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete_aliases" todir="${build.classes}/org/apache/pig/tools/grunt"/>
     </target>
         
     <!-- this target is for compilation with all warnings enabled -->
