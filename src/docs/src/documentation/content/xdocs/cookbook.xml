@@ -295,7 +295,7 @@ C = foreach B generate group, MyUDF(A);
 
 <section>
 <title>Drop Nulls Before a Join</title>
-<p>This comment only applies to pig on the types branch, as pig 0.1.0 does not have nulls. </p>
+<p>This comment only applies to pig 0.2.0 branch, as pig 0.1.0 does not have nulls. </p>
 <p>With the introduction of nulls, join and cogroup semantics were altered to work with nulls.  The semantic for cogrouping with nulls is that nulls from a given input are grouped together, but nulls across inputs are not grouped together.  This preserves the semantics of grouping (nulls are collected together from a single input to be passed to aggregate functions like COUNT) and the semantics of join (nulls are not joined across inputs).  Since flattening an empty bag results in an empty row, in a standard join the rows with a null key will always be dropped.  The join:  </p>
 
 <source>
