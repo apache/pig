@@ -36,6 +36,7 @@ import org.apache.pig.PigWarning;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -148,6 +149,8 @@ public class MRCompiler extends PhyPlanVisitor {
     private UDFFinder udfFinder;
     
     private CompilationMessageCollector messageCollector = null;
+    
+    public static String USER_COMPARATOR_MARKER = "user.comparator.func:";
     
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
@@ -1312,10 +1315,55 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.reducePlan.add(nfe2);
         mro.reducePlan.connect(pkg, nfe2);
         
+        // Let's connect the output from the foreach containing
+        // number of quantiles and the sorted bag of samples to
+        // another foreach with the FindQuantiles udf. The input
+        // to the FindQuantiles udf is a project(*) which takes the 
+        // foreach input and gives it to the udf
+        PhysicalPlan ep4 = new PhysicalPlan();
+        POProject prjStar4 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        prjStar4.setResultType(DataType.TUPLE);
+        prjStar4.setStar(true);
+        ep4.add(prjStar4);
+        
+        List<PhysicalOperator> ufInps = new ArrayList<PhysicalOperator>();
+        ufInps.add(prjStar4);
+        // Turn the asc/desc array into an array of strings so that we can pass it
+        // to the FindQuantiles function.
+        List<Boolean> ascCols = inpSort.getMAscCols();
+        String[] ascs = new String[ascCols.size()];
+        for (int i = 0; i < ascCols.size(); i++) ascs[i] = ascCols.get(i).toString();
+        // check if user defined comparator is used in the sort, if so
+        // prepend the name of the comparator as the first fields in the
+        // constructor args array to the FindQuantiles udf
+        String[] ctorArgs = ascs;
+        if(sort.isUDFComparatorUsed) {
+            String userComparatorFuncSpec = sort.getMSortFunc().getFuncSpec().toString();
+            ctorArgs = new String[ascs.length + 1];
+            ctorArgs[0] = USER_COMPARATOR_MARKER + userComparatorFuncSpec;
+            for(int j = 0; j < ascs.length; j++) {
+                ctorArgs[j+1] = ascs[j];
+            }
+        }
+        
+        POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, 
+            new FuncSpec(FindQuantiles.class.getName(), ctorArgs));
+        ep4.add(uf);
+        ep4.connect(prjStar4, uf);
+        
+        List<PhysicalPlan> ep4s = new ArrayList<PhysicalPlan>();
+        ep4s.add(ep4);
+        List<Boolean> flattened3 = new ArrayList<Boolean>();
+        flattened3.add(false);
+        POForEach nfe3 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ep4s, flattened3);
+        
+        mro.reducePlan.add(nfe3);
+        mro.reducePlan.connect(nfe2, nfe3);
+        
         POStore str = getStore();
         str.setSFile(quantFile);
         mro.reducePlan.add(str);
-        mro.reducePlan.connect(nfe2, str);
+        mro.reducePlan.connect(nfe3, str);
         
         mro.setReduceDone(true);
         mro.requestedParallelism = 1;
