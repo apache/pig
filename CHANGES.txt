@@ -28,6 +28,9 @@ PIG-700: To automate the pig patch test process (gkesavan via sms)
 
 BUG FIXES
 
+PIG-733: Order by sampling dumps entire sample to hdfs which causes dfs
+"FileSystem closed" error on large input (pradeepkth)
+
 PIG-693: Parameter to UDF which is an alias returned in another UDF in nested
 foreach causes incorrect results (thejas via sms)
 
