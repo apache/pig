@@ -322,6 +322,7 @@ public class GruntParser extends PigScriptParser {
         
         if (batch) {
             setBatchOn();
+            mPigServer.setJobName(script);
             try {
                 loadScript(script, true, mLoadOnly, params, files);
                 executeBatch();

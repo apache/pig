@@ -132,7 +132,7 @@ public class TestLoad extends junit.framework.TestCase {
 
     @Test
     public void testLoadRemoteRelScheme() throws Exception {
-        checkLoadPath("hdfs:test","/tmp/test");
+        checkLoadPath("test","/tmp/test");
     }
 
     @Test

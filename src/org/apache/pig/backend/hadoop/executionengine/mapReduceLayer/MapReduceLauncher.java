@@ -222,10 +222,6 @@ public class MapReduceLauncher extends Launcher{
         POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);
         pkgAnnotator.visit();
         
-        // check whether stream operator is present
-        MRStreamHandler checker = new MRStreamHandler(plan);
-        checker.visit();
-        
         // optimize joins
         LastInputStreamingOptimizer liso = 
             new MRCompiler.LastInputStreamingOptimizer(plan, lastInputChunkSize);
@@ -250,6 +246,12 @@ public class MapReduceLauncher extends Launcher{
         // NoopFilterRemover.
         NoopStoreRemover sRem = new NoopStoreRemover(plan);
         sRem.visit();
+
+        // check whether stream operator is present
+        // after MultiQueryOptimizer because it can shift streams from
+        // map to reduce, etc.
+        MRStreamHandler checker = new MRStreamHandler(plan);
+        checker.visit();
         
         return plan;
     }

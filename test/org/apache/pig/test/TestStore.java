@@ -217,7 +217,7 @@ public class TestStore extends junit.framework.TestCase {
 
     @Test
     public void testStoreRemoteRelScheme() throws Exception {
-        checkStorePath("hdfs:test","/tmp/test");
+        checkStorePath("test","/tmp/test");
     }
 
     @Test

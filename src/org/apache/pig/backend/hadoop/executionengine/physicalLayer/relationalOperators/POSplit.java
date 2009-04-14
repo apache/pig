@@ -95,6 +95,8 @@ public class POSplit extends PhysicalOperator {
     
     private static Result empty = new Result(POStatus.STATUS_NULL, null);
     
+    private boolean inpEOP = false;
+    
     /**
      * Constructs an operator with the specified key
      * @param k the operator key
@@ -200,6 +202,12 @@ public class POSplit extends PhysicalOperator {
    
     @Override
     public Result getNext(Tuple t) throws ExecException {
+
+        if (this.parentPlan.endOfAllInput) {
+            
+            return getStreamCloseResult();         
+        
+        } 
         
         if (processedSet.cardinality() == myPlans.size()) {
             
@@ -257,6 +265,54 @@ public class POSplit extends PhysicalOperator {
         }   
         
         return res;
+    }
+    
+    private Result getStreamCloseResult() throws ExecException {
+        Result res = null;
+        
+        while (true) {
+            
+            if (processedSet.cardinality() == myPlans.size()) {
+                Result inp = processInput();
+                if (inp.returnStatus == POStatus.STATUS_OK) {                
+                    Tuple tuple = (Tuple)inp.result;
+                    for (PhysicalPlan pl : myPlans) {
+                        pl.attachInput(tuple);
+                    }
+                    inpEOP = false;
+                } else if (inp.returnStatus == POStatus.STATUS_EOP){
+                    inpEOP = true;
+                } else if (inp.returnStatus == POStatus.STATUS_NULL) {
+                    inpEOP = false;
+                } else if (inp.returnStatus == POStatus.STATUS_ERR) {
+                    return inp;
+                }
+                processedSet.clear();
+            } 
+            
+            int idx = processedSet.nextClearBit(0);
+            PhysicalOperator leaf = myPlans.get(idx).getLeaves().get(0);
+            
+            res = leaf.getNext(dummyTuple);
+           
+            if (res.returnStatus == POStatus.STATUS_EOP)  {
+                processedSet.set(idx++);        
+                if (idx < myPlans.size()) {
+                    continue;
+                }
+            } else {
+                break;
+            }
+            
+            if (!inpEOP && res.returnStatus == POStatus.STATUS_EOP) {                   
+                continue;
+            } else {
+                break;
+            }
+        }
+        
+        return res;
+                
     }
         
 }

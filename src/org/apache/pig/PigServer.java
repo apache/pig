@@ -884,7 +884,8 @@ public class PigServer {
             this.batchMode = batchMode;
             this.processedStores = 0;
             this.ignoreNumStores = 0;
-            this.jobName = "DefaultJobName";
+            this.jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME,
+                                                                  PigContext.JOB_NAME_PREFIX+":DefaultJobName");
             this.lp = new LogicalPlan();
         };
         
@@ -901,7 +902,7 @@ public class PigServer {
         boolean isBatchEmpty() { return processedStores == storeOpTable.keySet().size(); }
         
         void execute() throws ExecException, FrontendException {
-            pigContext.getProperties().setProperty(PigContext.JOB_NAME, PigContext.JOB_NAME_PREFIX + ":" + jobName);
+            pigContext.getProperties().setProperty(PigContext.JOB_NAME, jobName);
             PigServer.this.execute(null);
             processedStores = storeOpTable.keySet().size();
         }
@@ -911,7 +912,7 @@ public class PigServer {
         }
 
         void setJobName(String name) {
-            jobName = name;
+            jobName = PigContext.JOB_NAME_PREFIX+":"+name;
         }
 
         LogicalPlan getPlan(String alias) throws IOException {

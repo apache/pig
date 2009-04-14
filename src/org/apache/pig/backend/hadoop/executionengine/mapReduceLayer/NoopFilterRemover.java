@@ -71,6 +71,7 @@ class NoopFilterRemover extends MROpPlanVisitor {
             for (Pair<POFilter, PhysicalPlan> pair: removalQ) {
                 removeFilter(pair.first, pair.second);
             }
+            removalQ.clear();
         }
         
         @Override
@@ -94,7 +95,15 @@ class NoopFilterRemover extends MROpPlanVisitor {
         private void removeFilter(POFilter filter, PhysicalPlan plan) {
             if (plan.size() > 1) {
                 try {
+                    List<PhysicalOperator> fInputs = filter.getInputs();
+                    List<PhysicalOperator> sucs = plan.getSuccessors(filter);
+
                     plan.removeAndReconnect(filter);
+                    if(sucs!=null && sucs.size()!=0){
+                        for (PhysicalOperator suc : sucs) {
+                            suc.setInputs(fInputs);
+                        }
+                    }
                 } catch (PlanException pe) {
                     log.info("Couldn't remove a filter in optimizer: "+pe.getMessage());
                 }
