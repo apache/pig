@@ -619,6 +619,64 @@ public class DataType {
     }
 
     /**
+     * Force a data object to a String, if possible.  Any simple (atomic) type
+     * can be forced to a String including ByteArray.  Complex types cannot be
+     * forced to a String.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a String you
+     * should just cast it.
+     * @return The object as a String.
+     * @throws ExecException if the type can't be forced to a String.
+     */
+    public static String toString(Object o) throws ExecException {
+        try {
+			switch (findType(o)) {
+			case INTEGER:
+			    return ((Integer)o).toString();
+
+			case LONG:
+			    return ((Long)o).toString();
+
+			case FLOAT:
+			    return ((Float)o).toString();
+
+			case DOUBLE:
+			    return ((Double)o).toString();
+
+			case BYTEARRAY:
+			    return ((DataByteArray)o).toString();
+
+			case CHARARRAY:
+			    return ((String)o);
+
+			case NULL:
+			    return null;
+
+			case BOOLEAN:
+			    return ((Boolean)o).toString();
+
+			case BYTE:
+			    return ((Byte)o).toString();
+
+			case MAP:
+			case TUPLE:
+			case BAG:
+			case UNKNOWN:
+			default:
+			    int errCode = 1071;
+			    String msg = "Cannot convert a " + findTypeName(o) +
+			    " to a String";
+			    throw new ExecException(msg, errCode, PigException.INPUT);
+			}
+		} catch (ExecException ee) {
+			throw ee;
+		} catch (Exception e) {
+			int errCode = 2054;
+			String msg = "Internal error. Could not convert " + o + " to String.";
+			throw new ExecException(msg, errCode, PigException.BUG);
+		}
+    }
+
+    /**
      * If this object is a map, return it as a map.
      * This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Map you
