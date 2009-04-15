@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.*;
 import org.apache.pig.impl.plan.optimizer.*;
 
@@ -41,6 +40,9 @@ import org.junit.Test;
 public class TestOperatorPlan extends junit.framework.TestCase {
 
     private int mNextKey = 0;
+    private static final String SCOPE = "RULE";
+    private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
+    public static int MAX_OPTIMIZATION_ITERATIONS = 250;
 
     abstract class TOperator extends Operator implements Comparable {
         protected String mName;
@@ -80,6 +82,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
 
         public String name() {
+            //return this.getClass().getName() + " " + mName
             return mName;
         }
 
@@ -103,6 +106,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
 
         public String name() {
+            //return this.getClass().getName() + " " + mName;
             return mName;
         }
 
@@ -194,7 +198,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
     static class TOptimizer extends PlanOptimizer<TOperator, TPlan> {
 
         public TOptimizer(TPlan plan) {
-            super(plan);
+            super(plan, TestOperatorPlan.MAX_OPTIMIZATION_ITERATIONS);
         }
 
         public void addRule(Rule rule) {
@@ -202,6 +206,49 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
     }
 
+    class AlwaysTransform extends Transformer<TOperator, TPlan> {
+        public boolean mTransformed = false;
+        private int mNumChecks = 0;
+
+        AlwaysTransform(TPlan plan) {
+            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
+        }
+
+        public boolean check(List<TOperator> nodes) {
+            ++mNumChecks;
+            return true;
+        }
+
+        public void transform(List<TOperator> nodes) {
+            mTransformed = true;
+        }
+        
+        public int getNumberOfChecks() {
+            return mNumChecks;
+        }
+    }
+
+    class NeverTransform extends Transformer<TOperator, TPlan> {
+        public boolean mTransformed = false;
+        private int mNumChecks = 0;
+
+        NeverTransform(TPlan plan) {
+            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
+        }
+
+        public boolean check(List<TOperator> nodes) {
+            ++mNumChecks;
+            return false;
+        }
+
+        public void transform(List<TOperator> nodes) {
+            mTransformed = true;
+        }
+        
+        public int getNumberOfChecks() {
+            return mNumChecks;
+        }
+    }
 
     @Test
     public void testAddRemove() throws Exception {
@@ -529,22 +576,6 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertEquals("Nodes: 0 1 3 4 5 FromEdges: 3->4 3->5 ToEdges: 4->3 5->3 ", plan.display());
     }
 
-    class AlwaysTransform extends Transformer<TOperator, TPlan> {
-        public boolean mTransformed = false;
-
-        AlwaysTransform(TPlan plan) {
-            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
-        }
-
-        public boolean check(List<TOperator> nodes) {
-            return true;
-        }
-
-        public void transform(List<TOperator> nodes) {
-            mTransformed = true;
-        }
-    }
-
     // Test that we don't match when nodes don't match pattern.  Will give
     // a pattern of S->S->M and a plan of S->M->S.
     @Test
@@ -562,20 +593,22 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[1], ops[2]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(true);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+        
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
@@ -600,20 +633,23 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[0], ops[1]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(true);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
+        
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
@@ -638,25 +674,28 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[1], ops[2]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(true);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+        
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
 
         optimizer.optimize();
+
         assertTrue(transformer.mTransformed);
     }
 
@@ -677,14 +716,15 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[1], ops[2]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("any");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(1);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class,
+                RuleOperator.NodeType.ANY_NODE,
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
@@ -713,20 +753,22 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[2], ops[3]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(true);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
@@ -753,20 +795,22 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[1], ops[2]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(false);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
@@ -775,9 +819,8 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertTrue(transformer.mTransformed);
     }
 
-    // Test that we match when a node is optional and the optional node is
-    // missing.  Will give
-    // a pattern of S->S->M (with second S optional) and a plan of S->M.
+    // Test that we do not match when a node is missing.  Will give
+    // a pattern of S->S->M and a plan of S->M.
     @Test
     public void testOptimizerOptionalMissing() throws Exception {
         // Build a plan
@@ -790,42 +833,28 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[0], ops[1]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(false);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
         AlwaysTransform transformer = new AlwaysTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
 
         optimizer.optimize();
-        assertTrue(transformer.mTransformed);
-    }
-
-    class NeverTransform extends Transformer<TOperator, TPlan> {
-        public boolean mTransformed = false;
-
-        NeverTransform(TPlan plan) {
-            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
-        }
-
-        public boolean check(List<TOperator> nodes) {
-            return false;
-        }
-
-        public void transform(List<TOperator> nodes) {
-            mTransformed = true;
-        }
+        assertFalse(transformer.mTransformed);
     }
 
     // Test that even if we match, if check returns false then the optimization
@@ -845,20 +874,22 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         plan.connect(ops[1], ops[2]);
 
         // Create our rule
-        ArrayList<String> nodes = new ArrayList<String>(3);
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$SingleOperator");
-        nodes.add("org.apache.pig.test.TestOperatorPlan$MultiOperator");
-        HashMap<Integer, Integer> edges = new HashMap<Integer, Integer>(2);
-        edges.put(0, 1);
-        edges.put(1, 2);
-        ArrayList<Boolean> required = new ArrayList<Boolean>(3);
-        required.add(true);
-        required.add(true);
-        required.add(true);
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
         NeverTransform transformer = new NeverTransform(plan);
         Rule<TOperator, TPlan> r =
-            new Rule<TOperator, TPlan>(nodes, edges, required, transformer);
+            new Rule<TOperator, TPlan>(rulePlan, transformer, "TestRule");
 
         TOptimizer optimizer = new TOptimizer(plan);
         optimizer.addRule(r);
@@ -909,9 +940,825 @@ public class TestOperatorPlan extends junit.framework.TestCase {
 
         assertEquals("Nodes: 1 3 4 FromEdges: 1->3 ToEdges: 3->1 ", plan.display());
     }
+    
+    // Input and pattern are both
+    // S   S
+    //  \ /
+    //   M
+    // Test that we match
+    @Test
+    public void testMultiInputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, multiOperator_1);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+    }
+    
+    // Pattern
+    // S   M
+    //  \ /
+    //   M
+    // Input has the roots swapped
+    // M   S
+    //  \ /
+    //   M
+    // Test that we match
+    @Test
+    public void testIsomorphicMultiInputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+        rulePlan.connect(singleOperator_1, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+    }
+    
+    // Input and pattern are both
+    // M
+    // ||
+    // M
+    // Test that we match
+    @Test
+    public void testMultiInputMultiOutputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[2];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[0], ops[1]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+        
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+    }
+
+    // Input and pattern are both
+    //  M
+    // / \
+    // S  S
+    // Test that we match
+    @Test
+    public void testMultiOutputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new SingleOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[0], ops[2]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.connect(multiOperator_1, singleOperator_1);
+        rulePlan.connect(multiOperator_1, singleOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+        
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+    }
+    
+    // Pattern
+    //  M
+    // / \
+    // S  S
+    // Input
+    //  M
+    //  |
+    //  S
+    // Test that we don't match
+    @Test
+    public void testNegativeMultiOutputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[2];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        plan.connect(ops[0], ops[1]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.connect(multiOperator_1, singleOperator_1);
+        rulePlan.connect(multiOperator_1, singleOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+        
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertFalse(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == 0); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == 0); //default max iterations
+    }
+    
+    // Pattern
+    //  M
+    //  |
+    //  M
+    // Input
+    //  M
+    // ||
+    //  M
+    // Test that we don't match
+    @Test
+    public void testNegativeMultiOutputPattern1() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[2];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new MultiOperator("2");
+        plan.add(ops[1]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[0], ops[1]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+        
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertFalse(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == 0); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == 0); //default max iterations
+    }
+    
+    // Pattern
+    // S   S
+    //  \ /
+    //   M
+    // Input
+    // S   S    S   S
+    //  \ /      \ /
+    //   M        M
+    // Test that we match multiple instances in the disconnected graph
+    @Test
+    public void testMultipleMultiInputPatternInDisconnectedGraph() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        
+        ops[3] = new SingleOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new SingleOperator("5");
+        plan.add(ops[4]);
+        ops[5] = new MultiOperator("6");
+        plan.add(ops[5]);
+        plan.connect(ops[3], ops[5]);
+        plan.connect(ops[4], ops[5]);
 
 
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, multiOperator_1);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
 
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
 
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == (2* MAX_OPTIMIZATION_ITERATIONS)); 
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == (2 * MAX_OPTIMIZATION_ITERATIONS));
+    }
+
+    // Pattern is
+    // S   S
+    //  \ /
+    //   M
+    // Input
+    // S   S    S   S
+    //  \ /      \ /
+    //   M        M
+    //    \      /
+    //       M
+    // Test that we match multiple instances in a connected graph
+    @Test
+    public void testMultipleMultiInputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[7];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        
+        ops[3] = new SingleOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new SingleOperator("5");
+        plan.add(ops[4]);
+        ops[5] = new MultiOperator("6");
+        plan.add(ops[5]);
+        plan.connect(ops[3], ops[5]);
+        plan.connect(ops[4], ops[5]);
+
+        ops[6] = new MultiOperator("7");
+        plan.add(ops[6]);
+        plan.connect(ops[2], ops[6]);
+        plan.connect(ops[5], ops[6]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, multiOperator_1);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == (2 * MAX_OPTIMIZATION_ITERATIONS));
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == (2 * MAX_OPTIMIZATION_ITERATIONS));
+    }
+
+    // Pattern is
+    // S   S
+    //  \ /
+    //   M
+    // Test that we match only one instance in a connected graph
+    @Test
+    public void testSingleMultiInputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        
+        ops[3] = new SingleOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new MultiOperator("5");
+        plan.add(ops[4]);
+        plan.connect(ops[3], ops[4]);
+
+        ops[5] = new MultiOperator("6");
+        plan.add(ops[5]);
+        plan.connect(ops[4], ops[5]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, multiOperator_1);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS);
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS);
+    }
+    
+    // Input and pattern are both
+    //  M
+    // / \
+    // S  S
+    // \ /
+    //  M
+    // Test that we match
+    @Test
+    public void testDiamondPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[4];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new SingleOperator("3");
+        plan.add(ops[2]);
+        ops[3] = new MultiOperator("4");
+        plan.add(ops[3]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[3]);
+        plan.connect(ops[2], ops[3]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_1, singleOperator_1);
+        rulePlan.connect(multiOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_1, multiOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+        
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+    }
+
+    // Pattern 
+    //  M
+    // / \
+    // S  S
+    // \ /
+    //  M
+    // Input has an additional edge from the bottom of the diamond
+    //  M
+    // / \
+    // S  S
+    // \ /
+    //  M
+    //  |
+    //  S
+    // Test that we match
+    @Test
+    public void testDiamondWithEdgePattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[5];
+        ops[0] = new MultiOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new SingleOperator("3");
+        plan.add(ops[2]);
+        ops[3] = new MultiOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new SingleOperator("5");
+        plan.add(ops[4]);
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[3]);
+        plan.connect(ops[2], ops[3]);
+        plan.connect(ops[3], ops[4]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(multiOperator_1);
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_1, singleOperator_1);
+        rulePlan.connect(multiOperator_1, singleOperator_2);
+        rulePlan.connect(singleOperator_1, multiOperator_2);
+        rulePlan.connect(singleOperator_2, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+        
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS); //default max iterations
+    }
+    
+    // Input and Pattern is
+    // S   S
+    //  \ /
+    //   M
+    //   |
+    //   M
+    //  / \
+    // S   S
+    // Test that we match once
+    @Test
+    public void testComplexInputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        
+        ops[3] = new SingleOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new SingleOperator("5");
+        plan.add(ops[4]);
+        ops[5] = new MultiOperator("6");
+        plan.add(ops[5]);
+        plan.connect(ops[5], ops[3]);
+        plan.connect(ops[5], ops[4]);
+
+        plan.connect(ops[2], ops[5]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, multiOperator_1);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+        
+        RuleOperator singleOperator_3 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_4 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_3);
+        rulePlan.add(singleOperator_4);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_2, singleOperator_3);
+        rulePlan.connect(multiOperator_2, singleOperator_4);
+        
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertTrue(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS);
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == MAX_OPTIMIZATION_ITERATIONS);
+    }
+    
+    // Pattern is
+    // S   S
+    //  \ /
+    //   M
+    //   ||
+    //   M
+    //  / \
+    // S   S
+    // Input is
+    // S   S
+    //  \ /
+    //   M
+    //   |
+    //   M
+    //  / \
+    // S   S
+    // Test that we don't match
+    @Test
+    public void testNegativeComplexInputPattern() throws Exception {
+        // Build a plan
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        
+        ops[3] = new SingleOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new SingleOperator("5");
+        plan.add(ops[4]);
+        ops[5] = new MultiOperator("6");
+        plan.add(ops[5]);
+        plan.connect(ops[5], ops[3]);
+        plan.connect(ops[5], ops[4]);
+
+        plan.connect(ops[2], ops[5]);
+
+        // Create our rule
+        RulePlan rulePlan = new RulePlan();
+        RuleOperator singleOperator_1 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_2 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_1 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_1);
+        rulePlan.add(singleOperator_2);
+        rulePlan.add(multiOperator_1);
+        rulePlan.connect(singleOperator_1, multiOperator_1);
+        rulePlan.connect(singleOperator_2, multiOperator_1);
+        
+        RuleOperator singleOperator_3 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator singleOperator_4 = new RuleOperator(SingleOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        RuleOperator multiOperator_2 = new RuleOperator(MultiOperator.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(singleOperator_3);
+        rulePlan.add(singleOperator_4);
+        rulePlan.add(multiOperator_2);
+        rulePlan.connect(multiOperator_2, singleOperator_3);
+        rulePlan.connect(multiOperator_2, singleOperator_4);
+        
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+        rulePlan.connect(multiOperator_1, multiOperator_2);
+
+        AlwaysTransform alwaysTransform = new AlwaysTransform(plan);
+        Rule<TOperator, TPlan> r1 =
+            new Rule<TOperator, TPlan>(rulePlan, alwaysTransform, "TestRule");
+
+        NeverTransform neverTransform = new NeverTransform(plan);
+        Rule<TOperator, TPlan> r2 =
+            new Rule<TOperator, TPlan>(rulePlan, neverTransform, "TestRule");
+
+        TOptimizer optimizer = new TOptimizer(plan);
+        optimizer.addRule(r1);
+        optimizer.addRule(r2);
+
+        optimizer.optimize();
+        assertFalse(alwaysTransform.mTransformed);
+        assertTrue(alwaysTransform.getNumberOfChecks() == 0);
+        assertFalse(neverTransform.mTransformed);
+        assertTrue(neverTransform.getNumberOfChecks() == 0);
+    }
 }
 

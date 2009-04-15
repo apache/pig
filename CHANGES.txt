@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-693: Proposed improvements to pig's optimizer (sms)
+
 PIG-700: To automate the pig patch test process (gkesavan via sms)
 
 BUG FIXES
