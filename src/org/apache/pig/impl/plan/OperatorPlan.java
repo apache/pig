@@ -17,6 +17,8 @@
  */
 package org.apache.pig.impl.plan;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -651,6 +653,12 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         }
     }
     
+    public void explain(
+            OutputStream out,
+            PrintStream ps) throws VisitorException, IOException {
+        PlanPrinter pp = new PlanPrinter(ps, this);
+        pp.print(out);
+    }
 
 
 }

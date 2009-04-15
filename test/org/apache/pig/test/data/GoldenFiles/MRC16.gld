@@ -1,36 +1,36 @@
-MapReduce(-1) - -167:
+MapReduce(-1) - -170:
 |   Store(DummyFil:DummyLdr) - -7973970339130605847
 |   |
-|   |---New For Each(true)[bag] - -170
+|   |---New For Each(true)[bag] - -173
 |       |   |
-|       |   Project[tuple][0] - -169
+|       |   Project[tuple][0] - -172
 |       |
-|       |---Package[tuple]{tuple} - -168
-|   Local Rearrange[tuple]{tuple}(true) - -164
+|       |---Package[tuple]{tuple} - -171
+|   Local Rearrange[tuple]{tuple}(true) - -167
 |   |   |
-|   |   Project[tuple][*] - -163
+|   |   Project[tuple][*] - -166
 |   |
-|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -166
+|   |---Load(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -169
 |
-|---MapReduce(-1) - -162:
-    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -165
+|---MapReduce(-1) - -165:
+    |   Store(/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -168
     |   |
     |   |---Package[tuple]{Unknown} - -2082992246427879202
     |   Local Rearrange[tuple]{Unknown}(false) - --3148893660811981376
     |   |
-    |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -161
+    |   |---Load(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -164
     |
-    |---MapReduce(-1) - -154:
-        |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -160
+    |---MapReduce(-1) - -157:
+        |   Store(/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -163
         |   |
-        |   |---New For Each(true)[bag] - -159
+        |   |---New For Each(true)[bag] - -162
         |       |   |
-        |       |   Project[tuple][0] - -158
+        |       |   Project[tuple][0] - -161
         |       |
-        |       |---Package[tuple]{tuple} - -157
-        |   Local Rearrange[tuple]{tuple}(true) - -156
+        |       |---Package[tuple]{tuple} - -160
+        |   Local Rearrange[tuple]{tuple}(true) - -159
         |   |   |
-        |   |   Project[tuple][*] - -155
+        |   |   Project[tuple][*] - -158
         |   |
         |   |---Filter[tuple] - --7926255547935388282
         |       |

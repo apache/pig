@@ -60,7 +60,7 @@ public class TypeCastInserter extends LogicalTransformer {
     }
 
     @Override
-    public boolean check(List<LogicalOperator> nodes) throws OptimizerException {
+    public boolean check(List<LogicalOperator> nodes) throws OptimizerException {       
         try {
             LogicalOperator op = getOperator(nodes);
             Schema s = op.getSchema();
@@ -70,7 +70,7 @@ public class TypeCastInserter extends LogicalTransformer {
             List<Schema.FieldSchema> fss = s.getFields();
             List<Byte> types = new ArrayList<Byte>(s.size());
             Schema determinedSchema = null;
-            if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
+            if(LOLoad.class.getName().equals(operatorClassName)) {
                 determinedSchema = ((LOLoad)op).getDeterminedSchema();
             }
             for (int i = 0; i < fss.size(); i++) {
@@ -105,7 +105,7 @@ public class TypeCastInserter extends LogicalTransformer {
         }
         
         LogicalOperator lo = nodes.get(0);
-        if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
+        if(LOLoad.class.getName().equals(operatorClassName)) {
             if (lo == null || !(lo instanceof LOLoad)) {
                 int errCode = 2005;
                 String msg = "Expected " + LOLoad.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
@@ -113,7 +113,7 @@ public class TypeCastInserter extends LogicalTransformer {
             }
     
             return lo;
-        } else if(operatorClassName == LogicalOptimizer.LOSTREAM_CLASSNAME){
+        } else if(LOStream.class.getName().equals(operatorClassName)){
             if (lo == null || !(lo instanceof LOStream)) {
                 int errCode = 2005;
                 String msg = "Expected " + LOStream.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
@@ -147,7 +147,7 @@ public class TypeCastInserter extends LogicalTransformer {
             // Note that in this case, the data coming out of the loader is not
             // a BYTEARRAY but is whatever determineSchema() says it is.
             Schema determinedSchema = null;
-            if(operatorClassName == LogicalOptimizer.LOLOAD_CLASSNAME) {
+            if(LOLoad.class.getName().equals(operatorClassName)) {
                 determinedSchema = ((LOLoad)lo).getDeterminedSchema();
             }
             for (int i = 0; i < s.size(); i++) {

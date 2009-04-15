@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.impl.plan.VisitorException;
 
 /******************************************************************************
  * A class to optimize plans.  This class need not be subclassed for a
@@ -34,15 +35,29 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
     
     protected List<Rule> mRules;
     protected P mPlan;
+    protected int mMaxIterations;
 
     /**
      * @param plan Plan to optimize
      */
     protected PlanOptimizer(P plan) {
-        mRules = new ArrayList<Rule>();
-        mPlan = plan;
+        this(plan, 500);
     }
 
+    /**
+     * @param plan Plan to optimize
+     * @param iterations maximum number of optimization iterations
+     */
+    protected PlanOptimizer(P plan, int iterations) {
+        mRules = new ArrayList<Rule>();
+        mPlan = plan;
+        if(iterations < 0) {
+            mMaxIterations = 1000;
+        } else {
+            mMaxIterations = iterations;
+        }
+    }
+    
     /**
      * Run the optimizer.  This method attempts to match each of the Rules
      * against the plan.  If a Rule matches, it then calls the check
@@ -52,20 +67,26 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
      * @throws OptimizerException
      */
     public final void optimize() throws OptimizerException {
-        RuleMatcher matcher = new RuleMatcher();
-        for (Rule rule : mRules) {
-            if (matcher.match(rule)) {
-                // It matches the pattern.  Now check if the transformer
-                // approves as well.
-                List<List<O>> matches = matcher.getAllMatches();
-                for (List<O> match:matches)
-                {
-	                if (rule.transformer.check(match)) {
-	                    // The transformer approves.
-	                    rule.transformer.transform(match);
-	                }
+        boolean sawMatch = false;
+        int numIterations = 0;
+        do {
+            sawMatch = false;
+            for (Rule rule : mRules) {
+                RuleMatcher matcher = new RuleMatcher();
+                if (matcher.match(rule)) {
+                    // It matches the pattern.  Now check if the transformer
+                    // approves as well.
+                    List<List<O>> matches = matcher.getAllMatches();
+                    for (List<O> match:matches)
+                    {
+    	                if (rule.getTransformer().check(match)) {
+    	                    // The transformer approves.
+    	                    sawMatch = true;
+    	                    rule.getTransformer().transform(match);
+    	                }
+                    }
                 }
             }
-        }
+        } while(sawMatch && ++numIterations < mMaxIterations);
     }
 }

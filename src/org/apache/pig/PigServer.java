@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
@@ -728,8 +730,6 @@ public class PigServer {
         PlanSetter ps = new PlanSetter(lpClone);
         ps.visit();
         
-        //(new SplitIntroducer(lp)).introduceImplSplits();
-        
         // run through validator
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         FrontendException caught = null;
@@ -758,8 +758,18 @@ public class PigServer {
 
         // optimize
         if (optimize) {
-            //LogicalOptimizer optimizer = new LogicalOptimizer(lpClone);
-            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone, pigContext.getExecType());
+            HashSet<String> optimizerRules = null;
+            try {
+                optimizerRules = (HashSet<String>) ObjectSerializer
+                        .deserialize(pigContext.getProperties().getProperty(
+                                "pig.optimizer.rules"));
+            } catch (IOException ioe) {
+                int errCode = 2110;
+                String msg = "Unable to deserialize optimizer rules.";
+                throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+            }
+
+            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone, pigContext.getExecType(), optimizerRules);
             optimizer.optimize();
         }
 
