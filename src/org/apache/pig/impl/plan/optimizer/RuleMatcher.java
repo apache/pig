@@ -19,6 +19,7 @@ package org.apache.pig.impl.plan.optimizer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -27,9 +28,12 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.optimizer.RuleOperator.NodeType;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * RuleMatcher contains the logic to determine whether a given rule matches.
@@ -41,25 +45,37 @@ import org.apache.pig.impl.plan.VisitorException;
 public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
 
     private Rule<O, P> mRule;
-    private List<O> mMatch;
+    private List<Pair<O, RuleOperator.NodeType>> mMatch;
+    private List<List<Pair<O, RuleOperator.NodeType>>> mPrelimMatches = new ArrayList<List<Pair<O, RuleOperator.NodeType>>>();
     private List<List<O>> mMatches = new ArrayList<List<O>>();
-    private P mPlan; // for convience.
-    Set<O> seen = new HashSet<O>();
+    private P mPlan; // for convenience.
+    private int mNumCommonNodes = 0;
+    private List<RuleOperator> mCommonNodes = null;
 
     /**
      * Test a rule to see if it matches the current plan. Save all matched nodes using BFS
      * @param rule Rule to test for a match.
      * @return true if the plan matches.
      */
-    public boolean match(Rule<O, P> rule) {
+    public boolean match(Rule<O, P> rule) throws OptimizerException {
         mRule = rule;
-        
-        mPlan = mRule.transformer.getPlan();
+        CommonNodeFinder commonNodeFinder = new CommonNodeFinder(mRule.getPlan());
+        try {
+            commonNodeFinder.visit();
+            mNumCommonNodes = commonNodeFinder.getCount();
+            mCommonNodes = commonNodeFinder.getCommonNodes();
+        } catch (VisitorException ve) {
+            int errCode = 2125;
+            String msg = "Internal error. Problem in computing common nodes in the Rule Plan.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, ve);
+        }
+        mPlan = mRule.getTransformer().getPlan();
         mMatches.clear();
+        mPrelimMatches.clear();
         
-        if (mRule.algo == Rule.WalkerAlgo.DependencyOrderWalker)
+        if (mRule.getWalkerAlgo() == Rule.WalkerAlgo.DependencyOrderWalker)
         	DependencyOrderWalker();
-        else if (mRule.algo == Rule.WalkerAlgo.DepthFirstWalker)
+        else if (mRule.getWalkerAlgo() == Rule.WalkerAlgo.DepthFirstWalker)
         	DepthFirstWalker();        
         
         return (mMatches.size()!=0);
@@ -78,11 +94,181 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
         for (O op: fifo) {
         	if (beginMatch(op))
 			{
-        		mMatches.add(mMatch);
+        		mPrelimMatches.add(mMatch);
 			}
+        }
+        
+        if(mPrelimMatches.size() > 0) {
+            processPreliminaryMatches();
         }
     }
     
+    /**
+     * A method to compute the final matches
+     */
+    private void processPreliminaryMatches() {
+        //The preliminary matches contain paths that match
+        //the specification in the RulePlan. However, if there
+        //are twigs and DAGs, then a further computation is required
+        //to extract the nodes in the mPlan that correspond to the
+        //roots of the RulePlan
+        
+        //compute the number of common nodes in each preliminary match
+        
+        List<List<O>> commonNodesPerMatch = new ArrayList<List<O>>();
+        for(int i = 0; i < mPrelimMatches.size(); ++i) {
+            commonNodesPerMatch.add(getCommonNodesFromMatch(mPrelimMatches.get(i)));
+        }
+        
+        if(mNumCommonNodes == 0) {
+            //the rule plan had simple paths
+            
+            //verification step
+            //if any of the preliminary matches had common nodes 
+            //then its an anomaly
+            
+            for(int i = 0; i < commonNodesPerMatch.size(); ++i) {
+                if(commonNodesPerMatch.get(i) != null) {
+                    //we have found common nodes when there should be none
+                    //just return as mMatches will be empty
+                    return;
+                }
+            }
+            
+            //pick the first node of each match and put them into individual lists
+            //put the lists inside the list of lists mMatches
+            
+            for(int i = 0; i < mPrelimMatches.size(); ++i) {
+                List<O> match = new ArrayList<O>();
+                match.add(mPrelimMatches.get(i).get(0).first);
+                mMatches.add(match);
+            }
+            //all the matches have been computed for the simple path
+            return;
+        } else {
+            for(int i = 0; i < commonNodesPerMatch.size(); ++i) {
+                int commonNodes = (commonNodesPerMatch.get(i) == null? 0 : commonNodesPerMatch.get(i).size());
+                if(commonNodes != mNumCommonNodes) {
+                    //if there are is a mismatch in the common nodes then we have a problem
+                    //the rule plan states that we have mNumCommonNodes but we have commonNodes 
+                    //in the match. Just return
+                    
+                    return;
+                }
+            }
+        }
+        
+        //keep track of the matches that have been processed
+        List<Boolean> processedMatches = new ArrayList<Boolean>();
+        for(int i = 0; i < mPrelimMatches.size(); ++i) {
+            processedMatches.add(false);
+        }
+        
+        //a do while loop to handle single matches
+        int outerIndex = 0;
+        do {
+            
+            if(processedMatches.get(outerIndex)) {
+               ++outerIndex;
+               continue;
+            }
+            
+            List<Pair<O, RuleOperator.NodeType>> outerMatch = mPrelimMatches.get(outerIndex);
+            List<O> outerCommonNodes = commonNodesPerMatch.get(outerIndex);
+            Set<O> outerSetCommonNodes = new HashSet<O>(outerCommonNodes);
+            Set<O> finalIntersection = new HashSet<O>(outerCommonNodes);
+            Set<O> cumulativeIntersection = new HashSet<O>(outerCommonNodes);
+            List<O> patternMatchingRoots = new ArrayList<O>();
+            Set<O> unionOfRoots = new HashSet<O>();
+            boolean innerMatchProcessed = false;
+            unionOfRoots.add(outerMatch.get(0).first);
+            
+            
+            for(int innerIndex = outerIndex + 1; 
+                (innerIndex < mPrelimMatches.size()) && (!processedMatches.get(innerIndex)); 
+                ++innerIndex) {
+                List<Pair<O, RuleOperator.NodeType>> innerMatch = mPrelimMatches.get(innerIndex);
+                List<O> innerCommonNodes = commonNodesPerMatch.get(innerIndex);
+                Set<O> innerSetCommonNodes = new HashSet<O>(innerCommonNodes);
+                
+                //we need to compute the intersection of the common nodes
+                //the size of the intersection should be equal to the number
+                //of common nodes and the type of each rule node class
+                //if there is no match then it could be that we hit a match
+                //for a different path, i.e., another pattern that matched
+                //with a different set of nodes. In this case, we mark this
+                //match as not processed and move onto the next match
+                
+                outerSetCommonNodes.retainAll(innerSetCommonNodes);
+                
+                if(outerSetCommonNodes.size() != mNumCommonNodes) {
+                    //there was no match
+                    //continue to the next match
+                    continue;
+                } else {
+                    Set<O> tempCumulativeIntersection = new HashSet<O>(cumulativeIntersection);
+                    tempCumulativeIntersection.retainAll(outerSetCommonNodes);
+                    if(tempCumulativeIntersection.size() != mNumCommonNodes) {
+                        //problem - there was a set intersection with a size mismatch
+                        //between the cumulative intersection and the intersection of the
+                        //inner and outer common nodes 
+                        //set mMatches to empty and return
+                        mMatches = new ArrayList<List<O>>();
+                        return;
+                    } else {
+                        processedMatches.set(innerIndex, true);
+                        innerMatchProcessed = true;
+                        cumulativeIntersection = tempCumulativeIntersection;
+                        unionOfRoots.add(innerMatch.get(0).first);
+                    }
+                }
+            }
+            
+            cumulativeIntersection.retainAll(finalIntersection);
+            if(cumulativeIntersection.size() != mNumCommonNodes) {
+                //the cumulative and final intersections did not intersect
+                //this could happen when each of the matches are disjoint
+                //check if the innerMatches were processed at all
+                if(innerMatchProcessed) {
+                    //problem - the inner matches were processed and we did
+                    //not find common intersections
+                    mMatches = new ArrayList<List<O>>();
+                    return;
+                }
+            }
+            processedMatches.set(outerIndex, true);
+            for(O node: unionOfRoots) {
+                patternMatchingRoots.add(node);
+            }
+            mMatches.add(patternMatchingRoots);
+            ++outerIndex;
+        } while (outerIndex < mPrelimMatches.size() - 1);        
+    }
+
+    private List<O> getCommonNodesFromMatch(List<Pair<O, NodeType>> match) {
+        List<O> commonNodes = null;
+        //A lookup table to weed out duplicates
+        Map<O, Boolean> lookup = new HashMap<O, Boolean>();
+        for(int index = 0; index < match.size(); ++index) {
+            if(match.get(index).second.equals(RuleOperator.NodeType.COMMON_NODE)) {
+                if(commonNodes == null) {
+                    commonNodes = new ArrayList<O>();
+                }
+                O node = match.get(index).first;
+                //lookup the node under question
+                //if the node is not found in the table
+                //then we are examining it for the first time
+                //add it to the output list and mark it as seen
+                //else continue to the next iteration
+                if(lookup.get(node) == null) {
+                    commonNodes.add(node);
+                    lookup.put(node, true);
+                }
+            }
+        }
+        return commonNodes;
+    }
+
     private void BFSDoAllPredecessors(O node, Set<O> seen, Collection<O> fifo)  {
 		if (!seen.contains(node)) {
 		// We haven't seen this one before.
@@ -111,7 +297,7 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
         for (O suc : successors) {
             if (seen.add(suc)) {
             	if (beginMatch(suc))
-            		mMatches.add(mMatch);
+            		mPrelimMatches.add(mMatch);
                 Collection<O> newSuccessors = mPlan.getSuccessors(suc);
                 DFSVisit(suc, newSuccessors, seen);
             }
@@ -144,75 +330,83 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
     /*
      * This pattern matching is fairly simple and makes some important
      * assumptions.
-     * 1)  The pattern to be matched must be expressable as a simple list.  That
-     *     is it can match patterns like: 1->2, 2->3.  It cannot match patterns
-     *     like 1->2, 1->3.
-     * 2)  The pattern must always begin with the first node in the nodes array.
-     *     After that it can go where it wants.  So 1->3, 3->4 is legal.  A
-     *     pattern of 2->1 is not.
+     * 1)  The pattern to be matched must be expressible as a graph.
+     * 2)  The pattern must always begin with one of the root nodes in the rule plan.
+     *     After that it can go where it wants.
      *
      */
     private boolean beginMatch(O node) {
         if (node == null) return false;
         
-        int sz = mRule.nodes.size();
-        mMatch = new ArrayList<O>(sz);
-        // Add sufficient slots in the matches array
-        for (int i = 0; i < sz; i++) mMatch.add(null);
+        mMatch = new ArrayList<Pair<O, RuleOperator.NodeType>>();
         
-        List<O> successors = new ArrayList<O>();
-        if (node.getClass().getName().equals(mRule.nodes.get(0)) || 
-                mRule.nodes.get(0).equals("any")) {
-            mMatch.set(0, node);
-            // Follow the edge to see the next node we should be looking for.
-            Integer nextOpNum = mRule.edges.get(0);
-            if (nextOpNum == null) {
-                // This was looking for a single node
-                return true;
-            }
-            successors = mPlan.getSuccessors(node);
-            if (successors == null) return false;
-            for (O successorOp : successors) {
-                if (continueMatch(successorOp, nextOpNum)) return true;
+        List<O> nodeSuccessors;
+        List<RuleOperator> ruleRoots = mRule.getPlan().getRoots();
+        for(RuleOperator ruleRoot: ruleRoots) {
+            if (node.getClass().getName().equals(ruleRoot.getNodeClass().getName()) || 
+                    ruleRoot.getNodeType().equals(RuleOperator.NodeType.ANY_NODE)) {
+                mMatch.add(new Pair<O, RuleOperator.NodeType>(node, ruleRoot.getNodeType()));
+                // Follow the edge to see the next node we should be looking for.
+                List<RuleOperator> ruleRootSuccessors = mRule.getPlan().getSuccessors(ruleRoot);
+                if (ruleRootSuccessors == null) {
+                    // This was looking for a single node
+                    return true;
+                }
+                nodeSuccessors = mPlan.getSuccessors(node);
+                if ((nodeSuccessors == null) || (nodeSuccessors.size() != ruleRootSuccessors.size())) {
+                    //the ruleRoot has successors but the node does not
+                    //OR
+                    //the number of successors for the ruleRoot does not match 
+                    //the number of successors for the node
+                    return false; 
+                }
+                boolean foundMatch = false;
+                for (O nodeSuccessor : nodeSuccessors) {
+                    foundMatch |= continueMatch(nodeSuccessor, ruleRootSuccessors);
+                }
+                return foundMatch;
             }
         }
         // If we get here we haven't found it.
         return false;
     }
 
-    private boolean continueMatch(O current, Integer nodeNumber) {
-        if (current.getClass().getName().equals(mRule.nodes.get(nodeNumber)) || 
-                mRule.nodes.get(nodeNumber).equals("any")) {
-            mMatch.set(nodeNumber, current);
-
-            // Follow the edge to see the next node we should be looking for.
-            Integer nextOpNum = mRule.edges.get(nodeNumber);
-            if (nextOpNum == null) {
-                // We've comleted the match
-                return true;
+    private boolean continueMatch(O node, List<RuleOperator> ruleOperators) {
+        for(RuleOperator ruleOperator: ruleOperators) {
+            if (node.getClass().getName().equals(ruleOperator.getNodeClass().getName()) || 
+                    ruleOperator.getNodeType().equals(RuleOperator.NodeType.ANY_NODE)) {
+                mMatch.add(new Pair<O, RuleOperator.NodeType>(node,ruleOperator.getNodeType()));
+    
+                // Follow the edge to see the next node we should be looking for.
+                List<RuleOperator> ruleOperatorSuccessors = mRule.getPlan().getSuccessors(ruleOperator);
+                if (ruleOperatorSuccessors == null) {
+                    // We've completed the match
+                    return true;
+                }
+                List<O> nodeSuccessors;
+                nodeSuccessors = mPlan.getSuccessors(node);
+                if ((nodeSuccessors == null) || 
+                        (nodeSuccessors.size() != ruleOperatorSuccessors.size())) {
+                    //the ruleOperator has successors but the node does not
+                    //OR
+                    //the number of successors for the ruleOperator does not match 
+                    //the number of successors for the node
+                    return false;
+                }
+                boolean foundMatch = false;
+                for (O nodeSuccessor : nodeSuccessors) {
+                    foundMatch |= continueMatch(nodeSuccessor, ruleOperatorSuccessors);
+                }
+                return foundMatch;
             }
-            List<O> successors = new ArrayList<O>();
-            successors = mPlan.getSuccessors(current);
-            if (successors == null) return false;
-            for (O successorOp : successors) {
-                if (continueMatch(successorOp, nextOpNum)) return true;
-            }
-        } else if (!mRule.required.get(nodeNumber)) {
-            // This node was optional, so it's okay if we don't match, keep
-            // going anyway.  Keep looking for the current node (don't find our
-            // successors, but look for the next edge.
-            Integer nextOpNum = mRule.edges.get(nodeNumber);
-            if (nextOpNum == null) {
-                // We've comleted the match
-                return true;
-            }
-            if (continueMatch(current, nextOpNum)) return true;
+    
+            // We can arrive here either because we didn't match at this node or
+            // further down the line.  One way or another we need to remove ourselves
+            // from the match vector and return false.
+            //SMS - I don't think we need this as mMatch will be discarded anyway
+            //mMatch.set(nodeNumber, null);
+            return false;
         }
-
-        // We can arrive here either because we didn't match at this node or
-        // further down the line.  One way or another we need to remove ourselves
-        // from the match vector and return false.
-        mMatch.set(nodeNumber, null);
         return false;
     }
 

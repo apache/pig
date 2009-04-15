@@ -23,24 +23,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.optimizer.ImplicitSplitInserter;
 import org.apache.pig.impl.logicalLayer.optimizer.OpLimitOptimizer;
 import org.apache.pig.impl.logicalLayer.optimizer.StreamOptimizer;
 import org.apache.pig.impl.logicalLayer.optimizer.TypeCastInserter;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.optimizer.PlanOptimizer;
 import org.apache.pig.impl.plan.optimizer.Rule;
+import org.apache.pig.impl.plan.optimizer.RuleOperator;
+import org.apache.pig.impl.plan.optimizer.RulePlan;
+import org.apache.pig.impl.util.MultiMap;
 
 //This optimiser puts in the bare minimum modifications needed to make sure the plan is functional
 public class FunctionalLogicalOptimizer extends
         PlanOptimizer<LogicalOperator, LogicalPlan> {
 
-    public static final String LOLOAD_CLASSNAME = "org.apache.pig.impl.logicalLayer.LOLoad";
-    public static final String LOSTREAM_CLASSNAME = "org.apache.pig.impl.logicalLayer.LOStream";
-
+    private static final String SCOPE = "RULE";
+    private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
+    
     public FunctionalLogicalOptimizer(LogicalPlan plan) {
         super(plan);
+
+        RulePlan rulePlan;        
 
         // List of rules for the logical optimizer
 
@@ -50,33 +59,32 @@ public class FunctionalLogicalOptimizer extends
         // it explicit. Since the RuleMatcher doesn't handle trees properly,
         // we cheat and say that we match any node. Then we'll do the actual
         // test in the transformers check method.
-        List<String> nodes = new ArrayList<String>(1);
-        Map<Integer, Integer> edges = new HashMap<Integer, Integer>();
-        List<Boolean> required = new ArrayList<Boolean>(1);
-        nodes.add("any");
-        required.add(true);
-        mRules.add(new Rule<LogicalOperator, LogicalPlan>(nodes, edges,
-                required, new ImplicitSplitInserter(plan)));
+        
+        rulePlan = new RulePlan();
+        RuleOperator anyLogicalOperator = new RuleOperator(LogicalOperator.class, RuleOperator.NodeType.ANY_NODE, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(anyLogicalOperator);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                new ImplicitSplitInserter(plan), "ImplicitSplitInserter"));
+
 
         // Add type casting to plans where the schema has been declared (by
         // user, data, or data catalog).
-        nodes = new ArrayList<String>(1);
-        nodes.add(LOLOAD_CLASSNAME);
-        edges = new HashMap<Integer, Integer>();
-        required = new ArrayList<Boolean>(1);
-        required.add(true);
-        mRules.add(new Rule<LogicalOperator, LogicalPlan>(nodes, edges,
-                required, new TypeCastInserter(plan, LOLOAD_CLASSNAME)));
+        rulePlan = new RulePlan();
+        RuleOperator loLoad = new RuleOperator(LOLoad.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(loLoad);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                new TypeCastInserter(plan, LOLoad.class.getName()), "LoadTypeCastInserter"));
 
         // Add type casting to plans where the schema has been declared by
         // user in a statement with stream operator.
-        nodes = new ArrayList<String>(1);
-        nodes.add(LOSTREAM_CLASSNAME);
-        edges = new HashMap<Integer, Integer>();
-        required = new ArrayList<Boolean>(1);
-        required.add(true);
-        mRules.add(new Rule(nodes, edges, required, new TypeCastInserter(plan,
-                LOSTREAM_CLASSNAME)));
+        rulePlan = new RulePlan();
+        RuleOperator loStream= new RuleOperator(LOStream.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(loStream);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
+                LOStream.class.getName()), "StreamTypeCastInserter"));
 
     }
 
