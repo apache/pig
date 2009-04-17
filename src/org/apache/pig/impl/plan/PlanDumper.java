@@ -84,7 +84,7 @@ public class PlanDumper<E extends Operator,
     /**
      * makeDumper is a factory method. Used by subclasses to specify
      * what dumper should handle the nested plan.
-     * @param S Plan that the new dumper should handle
+     * @param plan Plan that the new dumper should handle
      * @return the dumper for S
      */
     protected PlanDumper makeDumper(S plan, PrintStream ps) {
@@ -93,7 +93,7 @@ public class PlanDumper<E extends Operator,
 
     /**
      * Will be called to dump a simple operator
-     * @param E the operator to be dumped
+     * @param op the operator to be dumped
      */
     protected void dumpOperator(E op) {
         ps.println(op.name().replace(" ","_"));
@@ -102,7 +102,7 @@ public class PlanDumper<E extends Operator,
     /**
      * Will be called when an operator has nested plans, which are
      * connected to one of the multiple inputs.
-     * @param E the nested operator
+     * @param op the nested operator
      * @param plans a map of input operator to connected nested plan
      */
     protected void dumpMultiInputNestedOperator(E op, MultiMap<E,S> plans) {
@@ -118,7 +118,7 @@ public class PlanDumper<E extends Operator,
     /**
      * Will be called for nested operators. The operators are not
      * specifically connected to any input or output operators of E
-     * @param E the nested operator
+     * @param op the nested operator
      * @param plans a collection of sub plans.
      */
     protected void dumpNestedOperator(E op, Collection<S> plans) {
@@ -142,8 +142,8 @@ public class PlanDumper<E extends Operator,
     /**
      * Used to determine if an operator has nested plans, which are
      * connected to specific input operators.
-     * @param E operator
-     * @returns Map describing the input to nested plan relationship.
+     * @param op operator
+     * @return Map describing the input to nested plan relationship.
      */
     protected MultiMap<E, S> getMultiInputNestedPlans(E op) {
         return new MultiMap<E, S>();
@@ -152,8 +152,8 @@ public class PlanDumper<E extends Operator,
     /**
      * Used to determine if an operator has nested plans (without
      * connections to in- or output operators.
-     * @param E operator
-     * @returns Collection of nested plans.
+     * @param op operator
+     * @return Collection of nested plans.
      */
     protected Collection<S> getNestedPlans(E op) {
         return new LinkedList<S>();

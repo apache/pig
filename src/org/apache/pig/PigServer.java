@@ -540,8 +540,8 @@ public class PigServer {
      * call to execute in the respoect that all the pending stores are
      * marked as complete.
      * @param lps Stream to print the logical tree
-     * @param lps Stream to print the physical tree
-     * @param lps Stream to print the execution tree
+     * @param pps Stream to print the physical tree
+     * @param eps Stream to print the execution tree
      * @throws IOException if the requested alias cannot be found.
      */
     public void explain(String alias,

@@ -164,7 +164,7 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
 
     /**
      * Used to generate the label for an operator.
-     * @param E operator to dump
+     * @param op operator to dump
      */
     protected String getName(E op) {
         return op.name();
@@ -172,7 +172,7 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
     
     /**
      * Used to generate the the attributes of a node
-     * @param E operator
+     * @param op operator
      */
     protected String[] getAttributes(E op) {
         String[] attributes = new String[1];

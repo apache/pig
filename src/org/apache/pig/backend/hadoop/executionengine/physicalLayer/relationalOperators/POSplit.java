@@ -183,7 +183,7 @@ public class POSplit extends PhysicalOperator {
     /**
      * Appends the specified plan to the end of 
      * the nested input plan list
-     * @param plan plan to be appended to the list
+     * @param inPlan plan to be appended to the list
      */
     public void addPlan(PhysicalPlan inPlan) throws PlanException {        
         myPlans.add(inPlan);
