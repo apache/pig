@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -416,7 +417,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
      * @param newNode new node to insert.  This node must have already been
      * added to the plan.
      * @param before Node to insert this node before
-     * @throws PlanException if it encounters trouble disconecting or
+     * @throws PlanException if it encounters trouble disconnecting or
      * connecting nodes.
      */
     public void insertBetween(
@@ -436,20 +437,48 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
 
     // replaces (src -> dst) entry in multiMap with (src -> replacement)
     private boolean replaceNode(E src, E replacement, E dst, MultiMap<E, E> multiMap) {
-        Collection c = multiMap.get(src);
-        if (c == null) return false;
-
-        ArrayList al = new ArrayList(c);
-        for(int i = 0; i < al.size(); ++i) {
-            E to = (E)al.get(i);
-            if(to.equals(dst)) {
-                al.set(i, replacement);
-                multiMap.removeKey(src);
-                multiMap.put(src, al);
+        if(multiMap == null) return false;
+        
+        if(src == null) return false;
+      
+        List<E> nodes = (ArrayList<E>)multiMap.get(src);
+        if (nodes == null) {
+            //we need to add replacement to the multimap as long as replacement != null
+            if(replacement == null) {
+                return false;
+            } else if (dst == null) {
+                ArrayList<E> replacementNodes = new ArrayList<E>();
+                replacementNodes.add(replacement);
+                multiMap.put(src, replacementNodes);
                 return true;
+            } else {
+                return false;
             }
         }
-        return false;
+        
+        if(dst == null) return false;
+        
+        boolean replaced = false;
+        ArrayList<E> replacementNodes = new ArrayList<E>();
+        for(int i = 0; i < nodes.size(); ++i) {
+            E to = nodes.get(i);
+            if(to.equals(dst)) {
+                replaced = true;
+                if(replacement != null) {
+                    replacementNodes.add(replacement);
+                }
+            } else {
+                replacementNodes.add(to);
+            }
+        }
+        
+        if(replaced) {
+            multiMap.removeKey(src);
+            if(replacementNodes.size() > 0) {
+                multiMap.put(src, replacementNodes);
+            }
+        }
+        return replaced;
     }
 
     /**
@@ -536,20 +565,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         if (pred != null && succ != null) connect(pred, succ);
     }
 
-    /**
-     * Remove a node in a way that connects the node's predecessor (if any)
-     * with the node's successors (if any).  This function handles the
-     * case where the node has *one* predecessor and one or more successors.
-     * It replaces the predecessor in same position as node was in
-     * each of the successors predecessor list(getPredecessors()), to 
-     * preserve input ordering 
-     * for eg, it is used to remove redundant project(*) from plan
-     * which will have only one predecessor,but can have multiple success
-     * @param node Node to be removed
-     * @throws PlanException if the node has more than one predecessor
-     */
-    public void removeAndReconnectMultiSucc(E node) throws PlanException {
-
+    private void reconnectSuccessors(E node, boolean successorRequired, boolean removeNode) throws PlanException {
         // Before:
         //    A (predecessor (only one) )
         //  / |
@@ -563,7 +579,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         //  X  C1 C2 C3 ...
         // the variable names are from above example
 
-    	E nodeB = node;
+        E nodeB = node;
         List<E> preds = getPredecessors(nodeB);
         //checking pre-requisite conditions
         if (preds == null || preds.size() != 1) {
@@ -583,57 +599,186 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         Collection<E> nodeC = mFromEdges.get(nodeB);
 
         //checking pre-requisite conditions
-        if (nodeC == null || nodeC.size() == 0) {
-            PlanException pe = new PlanException("Attempt to remove " +
-            " and reconnect for node with no successors.");
-            log.error(pe.getMessage());
-            throw pe;
-        }   
+        if(successorRequired) {
+            if (nodeC == null || nodeC.size() == 0) {
+                PlanException pe = new PlanException("Attempt to remove " +
+                " and reconnect for node with no successors.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
+        }
 
 
         // replace B in A.succesors and add B.successors(ie C) to it
         replaceAndAddSucessors(nodeA, nodeB);
         
         // for all C(succs) , replace B(node) in predecessors, with A(pred)
-        for(E c: nodeC) {
-            Collection<E> sPreds = mToEdges.get(c);
-            ArrayList<E> newPreds = new ArrayList<E>(sPreds.size());
-            for(E p: sPreds){
-                if(p == nodeB){
-                    //replace
-                    newPreds.add(nodeA);
+        if(nodeC != null) {
+            for(E c: nodeC) {
+                Collection<E> sPreds = mToEdges.get(c);
+                ArrayList<E> newPreds = new ArrayList<E>(sPreds.size());
+                for(E p: sPreds){
+                    if(p == nodeB){
+                        //replace
+                        newPreds.add(nodeA);
+                    }
+                    else{
+                        newPreds.add(p);
+                    }
                 }
-                else{
-                    newPreds.add(p);
-                }
+                mToEdges.removeKey(c);
+                mToEdges.put(c,newPreds);
+                
             }
-            mToEdges.removeKey(c);
-            mToEdges.put(c,newPreds);
-            
         }
-        remove(nodeB); 
+        
+        if(removeNode) {
+            remove(nodeB);
+        } else {
+            //make sure that the node does not have any dangling from and to edges
+            mFromEdges.removeKey(nodeB);
+            mToEdges.removeKey(nodeB);
+        }
     }
     
-    //removes entry  for succ in list of successors of nd, and adds successors
-    // of succ in its place
-    // @param nd - parent node whose entry for succ needs to be replaced
-    // @param succ - see above
-    private void replaceAndAddSucessors(E nd, E succ) throws PlanException {
-       Collection<E> oldSuccs = mFromEdges.get(nd);
-       Collection<E> repSuccs = mFromEdges.get(succ);
-       ArrayList<E> newSuccs = new ArrayList<E>(oldSuccs.size() - 1 + repSuccs.size() );
-       for(E s: oldSuccs){
-           if(s == succ){
-               newSuccs.addAll(repSuccs);
+    private void reconnectPredecessors(E node, boolean predecessorRequired, boolean removeNode) throws PlanException {
+        // Before:
+        // C1 C2  C3 ... (Predecessors)
+        //  \ |  /    \
+        // X  B(nodeB)  Y(some successor of a Cn)
+        //  \ |
+        //    A (successor (only one) )
+ 
+
+        // should become
+        // After:
+        //  X  C1 C2 C3 ...
+        //   \  \ | /  \
+        //        A     Y
+        // the variable names are from above example
+
+        E nodeB = node;
+        List<E> nodeBsuccessors = getSuccessors(nodeB);
+        //checking pre-requisite conditions
+        if (nodeBsuccessors == null || nodeBsuccessors.size() != 1) {
+            Integer size = null;
+            if(nodeBsuccessors != null)
+                size = nodeBsuccessors.size();
+
+            PlanException pe = new PlanException("Attempt to remove " +
+                    " and reconnect for node with  " + size +
+            " successors.");
+            log.error(pe.getMessage());
+            throw pe;
+        }
+
+        //A and C
+        E nodeA = nodeBsuccessors.get(0);
+        Collection<E> nodeC = mToEdges.get(nodeB);
+
+        //checking pre-requisite conditions
+        if(predecessorRequired) {
+            if (nodeC == null || nodeC.size() == 0) {
+                PlanException pe = new PlanException("Attempt to remove " +
+                " and reconnect for node with no predecessors.");
+                log.error(pe.getMessage());
+                throw pe;
+            }
+        }
+
+
+        // replace B in A.predecessors and add B.predecessors(ie C) to it
+        replaceAndAddPredecessors(nodeA, nodeB);
+        
+        // for all C(predecessors) , replace B(node) in successors, with A(successor)
+        if(nodeC != null) {
+            for(E c: nodeC) {
+                Collection<E> sPreds = mFromEdges.get(c);
+                ArrayList<E> newPreds = new ArrayList<E>(sPreds.size());
+                for(E p: sPreds){
+                    if(p == nodeB){
+                        //replace
+                        newPreds.add(nodeA);
+                    }
+                    else{
+                        newPreds.add(p);
+                    }
+                }
+                mFromEdges.removeKey(c);
+                mFromEdges.put(c,newPreds);
+                
+            }
+        }
+        
+        if(removeNode) {
+            remove(nodeB);
+        } else {
+            //make sure that the node does not have any dangling from and to edges
+            mFromEdges.removeKey(nodeB);
+            mToEdges.removeKey(nodeB);
+        }
+    }
+    
+    // removes entry for successor in list of successors of node
+    // and adds successors of successor in its place
+    // @param noded - parent node whose entry for successor needs to be replaced
+    // @param successor - see above
+    private void replaceAndAddSucessors(E node, E successor) throws PlanException {
+       Collection<E> oldSuccessors = mFromEdges.get(node);
+       Collection<E> replacementSuccessors = mFromEdges.get(successor);
+       ArrayList<E> newSuccessors = new ArrayList<E>();
+       for(E s: oldSuccessors){
+           if(s == successor){
+               if(replacementSuccessors != null) {
+                   newSuccessors.addAll(replacementSuccessors);
+               }
            }else{
-               newSuccs.add(s);
+               newSuccessors.add(s);
            }
        }
-       mFromEdges.removeKey(nd);
-       mFromEdges.put(nd,newSuccs);
+       mFromEdges.removeKey(node);
+       mFromEdges.put(node,newSuccessors);
+    }    
+
+    // removes entry  for predecessor in list of predecessors of node, 
+    // and adds predecessors of predecessor in its place
+    // @param node - parent node whose entry for predecessor needs to be replaced
+    // @param predecessor - see above
+    private void replaceAndAddPredecessors(E node, E predecessor) throws PlanException {
+       Collection<E> oldPredecessors = mToEdges.get(node);
+       Collection<E> replacementPredecessors = mToEdges.get(predecessor);
+       ArrayList<E> newPredecessors = new ArrayList<E>();
+       for(E p: oldPredecessors){
+           if(p == predecessor){
+               if(replacementPredecessors != null) {
+                   newPredecessors.addAll(replacementPredecessors);
+               }
+           }else{
+               newPredecessors.add(p);
+           }
+       }
+       mToEdges.removeKey(node);
+       mToEdges.put(node,newPredecessors);
+    }
+    
+    /**
+     * Remove a node in a way that connects the node's predecessor (if any)
+     * with the node's successors (if any).  This function handles the
+     * case where the node has *one* predecessor and one or more successors.
+     * It replaces the predecessor in same position as node was in
+     * each of the successors predecessor list(getPredecessors()), to 
+     * preserve input ordering 
+     * for eg, it is used to remove redundant project(*) from plan
+     * which will have only one predecessor,but can have multiple success
+     * @param node Node to be removed
+     * @throws PlanException if the node has more than one predecessor
+     */
+    public void removeAndReconnectMultiSucc(E node) throws PlanException {
+        reconnectSuccessors(node, true, true);
     }
     
 
+    
     public void dump(PrintStream ps) {
         ps.println("Ops");
         for (E op : mOps.keySet()) {
@@ -660,5 +805,405 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
         pp.print(out);
     }
 
+    /**
+     * Swap two operators in a plan.  Both of the operators must have single
+     * inputs and single outputs.
+     * @param first operator
+     * @param second operator
+     * @throws PlanException if either operator is not single input and output.
+     */
+    public void swap(E first, E second) throws PlanException {
+        E firstNode = first;
+        E secondNode = second;
+        
+        if(firstNode == null) {
+            int errCode = 1092;
+            String msg = "First operator in swap is null. Cannot swap null operators.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        if(secondNode == null) {
+            int errCode = 1092;
+            String msg = "Second operator in swap is null. Cannot swap null operators.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        checkInPlan(firstNode);
+        checkInPlan(secondNode);
+        
+        List<E> firstNodePredecessors = (ArrayList<E>)mToEdges.get(firstNode);
+        
+        if(firstNodePredecessors != null && firstNodePredecessors.size() > 1) {
+            int errCode = 1093;
+            String msg = "Swap supports swap of operators with at most one input."
+                            + " Found first operator with " + firstNodePredecessors.size() + " inputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> firstNodeSuccessors = (ArrayList<E>)mFromEdges.get(firstNode);
+        
+        if(firstNodeSuccessors != null && firstNodeSuccessors.size() > 1) {
+            int errCode = 1093;
+            String msg = "Swap supports swap of operators with at most one output."
+                + " Found first operator with " + firstNodeSuccessors.size() + " outputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> secondNodePredecessors = (ArrayList<E>)mToEdges.get(secondNode);
+        
+        if(secondNodePredecessors != null && secondNodePredecessors.size() > 1) {
+            int errCode = 1093;
+            String msg = "Swap supports swap of operators with at most one input."
+                + " Found second operator with " + secondNodePredecessors.size() + " inputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> secondNodeSuccessors = (ArrayList<E>)mFromEdges.get(secondNode);
+        
+        if(secondNodeSuccessors != null && secondNodeSuccessors.size() > 1) {
+            int errCode = 1093;
+            String msg = "Swap supports swap of operators with at most one output."
+                + " Found second operator with " + secondNodeSuccessors.size() + " outputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        E firstNodePredecessor = null;
+        E firstNodeSuccessor = null;
+        E secondNodePredecessor = null;
+        E secondNodeSuccessor = null;
+        
+        if(firstNodePredecessors != null) {
+            firstNodePredecessor = firstNodePredecessors.get(0);
+        }
+        
+        if(firstNodeSuccessors != null) {
+            firstNodeSuccessor = firstNodeSuccessors.get(0);
+        }
+
+        if(secondNodePredecessors != null) {
+            secondNodePredecessor = secondNodePredecessors.get(0);
+        }
+        
+        if(secondNodeSuccessors != null) {
+            secondNodeSuccessor = secondNodeSuccessors.get(0);
+        }
+        
+        boolean immediateNodes = false;
+        
+        if((firstNodeSuccessor == secondNode) && (secondNodePredecessor == firstNode)) {
+            immediateNodes = true;
+        } else if ((secondNodeSuccessor == firstNode) && (firstNodePredecessor == secondNode)) {
+            immediateNodes = true;
+            //swap the firstNode and secondNode
+            E tmpNode = firstNode;
+            firstNode = secondNode;
+            secondNode = tmpNode;
+            
+            //swap the predecessor and successor nodes
+            tmpNode = firstNodePredecessor;
+            firstNodePredecessor = secondNodePredecessor;
+            secondNodePredecessor = tmpNode;
+            
+            tmpNode = firstNodeSuccessor;
+            firstNodeSuccessor = secondNodeSuccessor;
+            secondNodeSuccessor = tmpNode;
+        }
+
+        if(immediateNodes) {
+            //Replace the predecessors and successors of first and second in their respective edge lists       
+            replaceNode(firstNode, secondNodeSuccessor, firstNodeSuccessor, mFromEdges);
+            replaceNode(firstNode, secondNode, firstNodePredecessor, mToEdges);
+            replaceNode(secondNode, firstNode, secondNodeSuccessor, mFromEdges);
+            replaceNode(secondNode, firstNodePredecessor, secondNodePredecessor, mToEdges);
+        } else {
+            //Replace the predecessors and successors of first and second in their respective edge lists       
+            replaceNode(firstNode, secondNodeSuccessor, firstNodeSuccessor, mFromEdges);
+            replaceNode(firstNode, secondNodePredecessor, firstNodePredecessor, mToEdges);
+            replaceNode(secondNode, firstNodeSuccessor, secondNodeSuccessor, mFromEdges);
+            replaceNode(secondNode, firstNodePredecessor, secondNodePredecessor, mToEdges);
+        }
+
+        //Replace first with second in the edges list for first's predecessor and successor        
+        replaceNode(firstNodePredecessor, secondNode, firstNode, mFromEdges);
+        replaceNode(firstNodeSuccessor, secondNode, firstNode, mToEdges);
+        
+        //Replace second with first in the edges list for second's predecessor and successor
+        replaceNode(secondNodePredecessor, firstNode, secondNode, mFromEdges);
+        replaceNode(secondNodeSuccessor, firstNode, secondNode, mToEdges);
+        
+        markDirty();
+    }
+
+    /**
+     * Push one operator in front of another.  This function is for use when
+     * the first operator has multiple inputs.  The caller can specify
+     * which input of the first operator the second operator should be pushed to.
+     * @param first operator, assumed to have multiple inputs.
+     * @param second operator, will be pushed in front of first
+     * @param inputNum indicates which input of the first operator the second
+     * operator will be pushed onto.  Numbered from 0.
+     * @throws PlanException if inputNum does not exist for first operator
+     */
+    public void pushBefore(E first, E second, int inputNum) throws PlanException {
+        E firstNode = first;
+        E secondNode = second;
+        
+        if(firstNode == null) {
+            int errCode = 1085;
+            String msg = "First operator in pushBefore is null. Cannot pushBefore null operators.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        if(secondNode == null) {
+            int errCode = 1085;
+            String msg = "Second operator in pushBefore is null. Cannot pushBefore null operators.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        checkInPlan(firstNode);
+        checkInPlan(secondNode);
+        
+        List<E> firstNodePredecessors = (ArrayList<E>)mToEdges.get(firstNode);
+        
+        if(firstNodePredecessors == null || firstNodePredecessors.size() <= 1) {
+            int size = (firstNodePredecessors == null ? 0 : firstNodePredecessors.size());
+            int errCode = 1086;
+            String msg = "First operator in pushBefore should have multiple inputs."
+                            + " Found first operator with " + size + " inputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        if(inputNum >= firstNodePredecessors.size()) {
+            int errCode = 1087;
+            String msg = "The inputNum " + inputNum + " should be lesser than the number of inputs of the first operator."
+                            + " Found first operator with " + firstNodePredecessors.size() + " inputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> firstNodeSuccessors = (ArrayList<E>)mFromEdges.get(firstNode);
+        
+        if(firstNodeSuccessors == null) {
+            int errCode = 1088;
+            String msg = "First operator in pushBefore should have at least one output."
+                + " Found first operator with no outputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> secondNodePredecessors = (ArrayList<E>)mToEdges.get(secondNode);
+        
+        if(secondNodePredecessors == null || secondNodePredecessors.size() > 1) {
+            int size = (secondNodePredecessors == null ? 0 : secondNodePredecessors.size());
+            int errCode = 1088;
+            String msg = "Second operator in pushBefore should have one input."
+                + " Found second operator with " + size + " inputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> secondNodeSuccessors = (ArrayList<E>)mFromEdges.get(secondNode);
+        
+        //check for multiple edges from first to second
+        int edgesFromFirstToSecond = 0;
+        for(E node: firstNodeSuccessors) {
+            if(node == secondNode) {
+                ++edgesFromFirstToSecond;
+            }
+        }
+        
+        if(edgesFromFirstToSecond == 0) {
+            int errCode = 1089;
+            String msg = "Second operator in pushBefore should be the successor of the First operator.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        } else if (edgesFromFirstToSecond > 1) {
+            int errCode = 1090;
+            String msg = "Second operator can have at most one incoming edge from First operator."
+                + " Found " + edgesFromFirstToSecond + " edges.";
+            throw new PlanException(msg, errCode, PigException.INPUT);            
+        }
+        
+        //check if E (i.e., firstNode) can support multiple outputs before we short-circuit
+        
+        if(!firstNode.supportsMultipleOutputs()) {
+            int numSecondNodeSuccessors = (secondNodeSuccessors == null? 0 : secondNodeSuccessors.size());
+            if((firstNodeSuccessors.size() > 0) || (numSecondNodeSuccessors > 0)) {
+                int errCode = 1091;
+                String msg = "First operator does not support multiple outputs."
+                    + " On completing the pushBefore operation First operator will end up with "
+                    + (firstNodeSuccessors.size() + numSecondNodeSuccessors) + " edges.";
+                throw new PlanException(msg, errCode, PigException.INPUT);
+            }
+        }
+        
+        //Assume that we have a graph which is like
+        //   A   B   C   D
+        //   \   |   |  /
+        //         E
+        //      /  |  \
+        //     F   G   H
+        //      /  |  \
+        //     I   J   K
+        //
+        //Now pushBefore(E, G, 1)
+        //This can be done using the following sequence of transformations
+        //1. Promote G's successors as E's successors using reconnectSuccessors(G)
+        //2. Insert G between B and E using insertBetween(B, G, E)
+        //The graphs after each step
+        //Step 1 - Note that G is standing alone
+        //   A   B   C   D   G
+        //   \   |   |  /
+        //         E
+        //   /  /  |  \  \
+        //  F  I   J   K  H  
+        //Step 2
+        //       B
+        //       |
+        //   A   G   C   D
+        //   \   |   |  /
+        //         E
+        //   /  /  |  \  \
+        //  F  I   J   K  H           
+        
+        reconnectSuccessors(secondNode, false, false);
+        insertBetween(firstNodePredecessors.get(inputNum), secondNode, firstNode);
+
+        markDirty();
+        return;
+    }
+
+    /**
+     * Push one operator after another.  This function is for use when the second
+     * operator has multiple outputs.  The caller can specify which output of the
+     * second operator the first operator should be pushed to.
+     * @param first operator, assumed to have multiple outputs
+     * @param second operator, will be pushed after the first operator
+     * @param outputNum indicates which output of the first operator the second 
+     * operator will be pushed onto.  Numbered from 0.
+     * @throws PlanException if outputNum does not exist for first operator
+     */
+    public void pushAfter(E first, E second, int outputNum) throws PlanException {
+        E firstNode = first;
+        E secondNode = second;
+        
+        if(firstNode == null) {
+            int errCode = 1085;
+            String msg = "First operator in pushAfter is null. Cannot pushBefore null operators.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        if(secondNode == null) {
+            int errCode = 1085;
+            String msg = "Second operator in pushAfter is null. Cannot pushBefore null operators.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        checkInPlan(firstNode);
+        checkInPlan(secondNode);
+        
+        List<E> firstNodePredecessors = (ArrayList<E>)mToEdges.get(firstNode);
+
+        if(firstNodePredecessors == null) {
+            int errCode = 1088;
+            String msg = "First operator in pushAfter should have at least one input."
+                + " Found first operator with no inputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }        
+
+        List<E> firstNodeSuccessors = (ArrayList<E>)mFromEdges.get(firstNode);
+        
+        if(firstNodeSuccessors == null || firstNodeSuccessors.size() <= 1) {
+            int size = (firstNodeSuccessors == null ? 0 : firstNodeSuccessors.size());
+            int errCode = 1086;
+            String msg = "First operator in pushAfter should have multiple outputs."
+                            + " Found first operator with " + size + " outputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        if(outputNum >= firstNodeSuccessors.size()) {
+            int errCode = 1087;
+            String msg = "The outputNum " + outputNum + " should be lesser than the number of outputs of the first operator."
+                            + " Found first operator with " + firstNodeSuccessors.size() + " outputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+        List<E> secondNodePredecessors = (ArrayList<E>)mToEdges.get(secondNode);
+        
+        List<E> secondNodeSuccessors = (ArrayList<E>)mFromEdges.get(secondNode);
+
+        if(secondNodeSuccessors == null || secondNodeSuccessors.size() > 1) {
+            int size = (secondNodeSuccessors == null ? 0 : secondNodeSuccessors.size());
+            int errCode = 1088;
+            String msg = "Second operator in pushAfter should have one output."
+                + " Found second operator with " + size + " outputs.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        
+
+        //check for multiple edges from second to first
+        int edgesFromSecondToFirst = 0;
+        for(E node: secondNodeSuccessors) {
+            if(node == firstNode) {
+                ++edgesFromSecondToFirst;
+            }
+        }
+        
+        if(edgesFromSecondToFirst == 0) {
+            int errCode = 1089;
+            String msg = "Second operator in pushAfter should be the predecessor of the First operator.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        } else if (edgesFromSecondToFirst > 1) {
+            int errCode = 1090;
+            String msg = "Second operator can have at most one outgoing edge from First operator."
+                + " Found " + edgesFromSecondToFirst + " edges.";
+            throw new PlanException(msg, errCode, PigException.INPUT);            
+        }
+        
+        //check if E (i.e., firstNode) can support multiple outputs before we short-circuit
+        
+        if(!firstNode.supportsMultipleInputs()) {
+            int numSecondNodePredecessors = (secondNodePredecessors == null? 0 : secondNodePredecessors.size());
+            if((firstNodePredecessors.size() > 0) || (numSecondNodePredecessors > 0)) {
+                int errCode = 1091;
+                String msg = "First operator does not support multiple inputs."
+                    + " On completing the pushAfter operation First operator will end up with "
+                    + (firstNodePredecessors.size() + numSecondNodePredecessors) + " edges.";
+                throw new PlanException(msg, errCode, PigException.INPUT);
+            }
+        }
+        
+        //Assume that we have a graph which is like
+        //   A   B   C   D
+        //   \   |   |  /
+        //         E
+        //         |
+        //         G
+        //      /  |  \
+        //     I   J   K
+        //
+        //Now pushAfter(G, E, 1)
+        //This can be done using the following sequence of transformations
+        //1. Promote E's predecessors as G's predecessors using reconnectPredecessors(E)
+        //2. Insert E between G and J using insertBetween(G, E, J)
+        //The graphs after each step
+        //Step 1 - Note that E is standing alone
+        //   A   B   C   D   E
+        //   \   |   |  /
+        //         G
+        //      /  |  \
+        //     I   J   K  
+        //Step 2
+        //   A   B   C   D 
+        //   \   |   |  /
+        //         G
+        //      /  |  \
+        //     I   E   K
+        //         |
+        //         J
+        
+        reconnectPredecessors(secondNode, false, false);
+        insertBetween(firstNode, secondNode, firstNodeSuccessors.get(outputNum));
+        
+        markDirty();
+        return;
+
+    }
 
 }
