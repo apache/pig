@@ -127,8 +127,9 @@ public class POStore extends PhysicalOperator {
                 break;
             }
         } catch (IOException ioe) {
-            log.error("Received error from storer function: " + ioe);
-            throw new ExecException(ioe);
+            int errCode = 2135;
+            String msg = "Received error from store function." + ioe.getMessage();
+            throw new ExecException(msg, errCode, ioe);
         }
         return res;
     }

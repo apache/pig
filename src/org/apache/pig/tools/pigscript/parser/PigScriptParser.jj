@@ -404,8 +404,15 @@ void parse() throws IOException:
 	{processIllustrate(t1.image);}
 	|
 	<DESCRIBE>
+	(
 	t1 = <IDENTIFIER>
 	{processDescribe(t1.image);}
+	|
+		{processDescribe(null);}
+	)
+	|
+	<ALIASES>
+	{printAliases();}
 	|
 	Explain()
 	|

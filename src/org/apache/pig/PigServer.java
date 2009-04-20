@@ -212,7 +212,9 @@ public class PigServer {
      */
     public boolean isBatchEmpty() throws FrontendException {
         if (currDAG == null) {
-            throw new IllegalStateException("setBatchOn() must be called first.");
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
         }
 
         return currDAG.isBatchEmpty();
@@ -231,7 +233,9 @@ public class PigServer {
         }
 
         if (currDAG == null || !isBatchOn()) {
-            throw new IllegalStateException("setBatchOn() must be called first.");
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
         }
         
         currDAG.execute();
@@ -245,7 +249,9 @@ public class PigServer {
      */
     public void discardBatch() throws FrontendException {
         if (currDAG == null || !isBatchOn()) {
-            throw new IllegalStateException("setBatchOn() must be called first.");
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
         }
         
         currDAG = graphs.pop();
@@ -373,7 +379,9 @@ public class PigServer {
         Graph graph = currDAG.clone();
 
         if (graph == null) {
-            throw new AssertionError("Re-parsing has failed");
+            int errCode = 2127;
+            String msg = "Cloning of plan failed.";
+            throw new FrontendException(msg, errCode, PigException.BUG);
         }
 
         return graph.getPlan(alias);
@@ -972,14 +980,14 @@ public class PigServer {
             }
         }        
     
-        LogicalPlan parseQuery(String query, int startLine) throws IOException {
-            if (query != null) {
-                query = query.trim();
-            }
-        
+        LogicalPlan parseQuery(String query, int startLine) throws IOException {        
             if (query == null || query.length() == 0) { 
-                throw new IllegalArgumentException();
+                int errCode = 1084;
+                String msg = "Invalid Query: Query is null or of size 0";
+                throw new FrontendException(msg, errCode, PigException.INPUT);
             }
+
+            query = query.trim();
         
             try {
                 return new LogicalPlanBuilder(PigServer.this.pigContext).parse(scope, query,
@@ -1099,7 +1107,9 @@ public class PigServer {
                             try {
                                 store.getPlan().connect(store, load);
                             } catch (PlanException ex) {
-                                log.warn(ex.getMessage());
+                                int errCode = 2128;
+                                String msg = "Failed to connect store with dependent load.";
+                                throw new FrontendException(msg, errCode, ex);
                             }
                         }
                     }

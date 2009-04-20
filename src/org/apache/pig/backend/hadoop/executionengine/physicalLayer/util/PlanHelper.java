@@ -48,14 +48,10 @@ public class PlanHelper {
      * @param plan
      * @return List of stores (could be empty)
      */
-    public static List<POStore> getStores(PhysicalPlan plan) {
+    public static List<POStore> getStores(PhysicalPlan plan) throws VisitorException {
         LoadStoreFinder finder = new LoadStoreFinder(plan);
 
-        try {
-            finder.visit();
-        } catch (VisitorException ve) {
-            log.warn("Exception in getStores(): "+ve.getMessage());
-        }
+        finder.visit();
         return finder.getStores();
     }
 
@@ -64,14 +60,10 @@ public class PlanHelper {
      * @param plan
      * @return List of loads (could be empty)
      */
-    public static List<POLoad> getLoads(PhysicalPlan plan) {
+    public static List<POLoad> getLoads(PhysicalPlan plan) throws VisitorException {
         LoadStoreFinder finder = new LoadStoreFinder(plan);
 
-        try {
-            finder.visit();
-        } catch (VisitorException ve) {
-            log.warn("Exception in getLoads(): "+ve.getMessage());
-        }
+        finder.visit();
         return finder.getLoads();
     }
 

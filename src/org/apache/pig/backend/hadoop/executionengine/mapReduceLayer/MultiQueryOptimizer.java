@@ -34,6 +34,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.PigException;
 
 /** 
  * An optimizer that merges all or part splittee MapReduceOpers into 
@@ -156,7 +158,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 storePlan.addAsLeaf(storeOp);
                 splitOp.addPlan(storePlan);
             } catch (PlanException e) {
-                throw new VisitorException(e);
+                int errCode = 2129;
+                String msg = "Internal Error. Unable to add store to the split plan for optimization.";
+                throw new OptimizerException(msg, errCode, PigException.BUG, e);
             }                               
         }
     }                
@@ -178,7 +182,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         try {
             splitterPl.merge(pl);
         } catch (PlanException e) {
-            throw new VisitorException(e);
+            int errCode = 2130;
+            String msg = "Internal Error. Unable to merge split plans for optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }                
         
         // connect two plans   
@@ -188,7 +194,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 try {
                     splitterPl.connect(pred, root);
                 } catch (PlanException e) {
-                    throw new VisitorException(e);
+                    int errCode = 2131;
+                    String msg = "Internal Error. Unable to connect split plan for optimization.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
+
                 }
             }
         }
@@ -228,7 +237,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             try {
                 splitOp.addPlan(pl);
             } catch (PlanException e) {
-                throw new VisitorException(e);
+                int errCode = 2130;
+                String msg = "Internal Error. Unable to merge split plans for optimization.";
+                throw new OptimizerException(msg, errCode, PigException.BUG, e);
             }
         }
                            
@@ -237,7 +248,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         try {
             splitterPl.replace(storeOp, splitOp);;
         } catch (PlanException e) {
-            throw new VisitorException(e);
+            int errCode = 2132;
+            String msg = "Internal Error. Unable to replace store with split operator for optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }    
         
         // remove all the map-only splittees from the MROperPlan
@@ -260,7 +273,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         try {
             splitOp.addPlan(pl);
         } catch (PlanException e) {
-            throw new VisitorException(e);
+            int errCode = 2130;
+            String msg = "Internal Error. Unable to merge split plans for optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
                               
         splitter.setMapDone(true);
@@ -274,7 +289,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             try {
                 splitterPl.replace(storeOp, splitOp);;
             } catch (PlanException e) {
-                throw new VisitorException(e);
+                int errCode = 2132;
+                String msg = "Internal Error. Unable to replace store with split operator for optimization.";
+                throw new OptimizerException(msg, errCode, PigException.BUG, e);
             }  
         }
         
@@ -310,7 +327,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 try {                   
                     getPlan().connect(newMR, succ);
                 } catch (PlanException e) {
-                    throw new VisitorException(e);
+                    int errCode = 2133;
+                    String msg = "Internal Error. Unable to connect map plan with successors for optimization.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
             }
         }
@@ -324,7 +343,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 try {                    
                     getPlan().connect(pred, newMR);
                 } catch (PlanException e) {
-                    throw new VisitorException(e);
+                    int errCode = 2134;
+                    String msg = "Internal Error. Unable to connect map plan with predecessors for optimization.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
             }
         }     

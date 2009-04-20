@@ -292,14 +292,14 @@ public class MRCompiler extends PhyPlanVisitor {
             if (op instanceof POLoad) {
 
                 if (predecessors.size() != 1) {
-                    int errCode = 2035;
+                    int errCode = 2125;
                     String msg = "Expected at most one predecessor of load. Got "+predecessors.size();
                     throw new PlanException(msg, errCode, PigException.BUG);
                 }
 
                 PhysicalOperator p = predecessors.get(0);
                 if (!(p instanceof POStore)) {
-                    int errCode = 2036;
+                    int errCode = 2126;
                     String msg = "Predecessor of load should be a store. Got "+p.getClass();
                     throw new PlanException(msg, errCode, PigException.BUG);
                 }

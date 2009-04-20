@@ -260,32 +260,33 @@ public class JobControlCompiler{
         //used as the working directory
         String user = System.getProperty("user.name");
         jobConf.setUser(user != null ? user : "Pigster");
-        
-        //Process the POLoads
-        List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
 
-        if(lds!=null && lds.size()>0){
-            for (POLoad ld : lds) {
-                
-                Pair<FileSpec, Boolean> p = new Pair<FileSpec, Boolean>(ld.getLFile(), ld.isSplittable());
-                //Store the inp filespecs
-                inp.add(p);
-                
-                //Store the target operators for tuples read
-                //from this input
-                List<PhysicalOperator> ldSucs = mro.mapPlan.getSuccessors(ld);
-                List<OperatorKey> ldSucKeys = new ArrayList<OperatorKey>();
-                if(ldSucs!=null){
-                    for (PhysicalOperator operator2 : ldSucs) {
-                        ldSucKeys.add(operator2.getOperatorKey());
+        try{        
+            //Process the POLoads
+            List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
+            
+            if(lds!=null && lds.size()>0){
+                for (POLoad ld : lds) {
+                    
+                    Pair<FileSpec, Boolean> p = new Pair<FileSpec, Boolean>(ld.getLFile(), ld.isSplittable());
+                    //Store the inp filespecs
+                    inp.add(p);
+                    
+                    //Store the target operators for tuples read
+                    //from this input
+                    List<PhysicalOperator> ldSucs = mro.mapPlan.getSuccessors(ld);
+                    List<OperatorKey> ldSucKeys = new ArrayList<OperatorKey>();
+                    if(ldSucs!=null){
+                        for (PhysicalOperator operator2 : ldSucs) {
+                            ldSucKeys.add(operator2.getOperatorKey());
+                        }
                     }
+                    inpTargets.add(ldSucKeys);
+                    //Remove the POLoad from the plan
+                    mro.mapPlan.remove(ld);
                 }
-                inpTargets.add(ldSucKeys);
-                //Remove the POLoad from the plan
-                mro.mapPlan.remove(ld);
             }
-        }
-        try{
+
             //Create the jar of all functions reuired
             File submitJarFile = File.createTempFile("Job", ".jar");
             // ensure the job jar is deleted on exit
