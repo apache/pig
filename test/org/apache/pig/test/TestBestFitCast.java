@@ -43,9 +43,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.sun.org.apache.bcel.internal.ExceptionConstants;
-import com.sun.org.apache.xerces.internal.impl.xpath.regex.ParseException;
-
 import junit.framework.TestCase;
 
 public class TestBestFitCast extends TestCase {

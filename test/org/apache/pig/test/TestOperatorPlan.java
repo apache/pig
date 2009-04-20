@@ -78,7 +78,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
 
         @Override
         public void visit(PlanVisitor v) throws VisitorException {
-            ((TVisitor)v).visitSingleOperator(this);
+            ((TVisitor)v).visit(this);
         }
 
         public String name() {
@@ -102,11 +102,61 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         }
 
         public void visit(PlanVisitor v) throws VisitorException {
-            ((TVisitor)v).visitMultiOperator(this);
+            ((TVisitor)v).visit(this);
         }
 
         public String name() {
             //return this.getClass().getName() + " " + mName;
+            return mName;
+        }
+
+    }
+    
+    class MultiInputSingleOutputOperator extends TOperator {
+        MultiInputSingleOutputOperator(String name) {
+            super(name);
+        }
+
+        public boolean supportsMultipleInputs() {
+            return true;
+        }
+
+        public boolean supportsMultipleOutputs() {
+            return false;
+        }
+
+        @Override
+        public void visit(PlanVisitor v) throws VisitorException {
+            ((TVisitor)v).visit(this);
+        }
+
+        public String name() {
+            //return this.getClass().getName() + " " + mName
+            return mName;
+        }
+
+    }
+    
+    class MultiOutputSingleInputOperator extends TOperator {
+        MultiOutputSingleInputOperator(String name) {
+            super(name);
+        }
+
+        public boolean supportsMultipleInputs() {
+            return false;
+        }
+
+        public boolean supportsMultipleOutputs() {
+            return true;
+        }
+
+        @Override
+        public void visit(PlanVisitor v) throws VisitorException {
+            ((TVisitor)v).visit(this);
+        }
+
+        public String name() {
+            //return this.getClass().getName() + " " + mName
             return mName;
         }
 
@@ -166,13 +216,23 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             mJournal = new StringBuilder();
         }
 
-        public void visitSingleOperator(SingleOperator so) throws VisitorException {
+        public void visit(SingleOperator so) throws VisitorException {
             mJournal.append(so.name());
             mJournal.append(' ');
         }
 
-        public void visitMultiOperator(MultiOperator mo) throws VisitorException {
+        public void visit(MultiOperator mo) throws VisitorException {
             mJournal.append(mo.name());
+            mJournal.append(' ');
+        }
+        
+        public void visit(MultiInputSingleOutputOperator miso) throws VisitorException {
+            mJournal.append(miso.name());
+            mJournal.append(' ');
+        }
+        
+        public void visit(MultiOutputSingleInputOperator mosi) throws VisitorException {
+            mJournal.append(mosi.name());
             mJournal.append(' ');
         }
 
@@ -1760,5 +1820,1125 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         assertFalse(neverTransform.mTransformed);
         assertTrue(neverTransform.getNumberOfChecks() == 0);
     }
+    
+    //Swap two roots in a graph. Both the roots are disconnected
+    //and are the only nodes in the graph
+    @Test
+    public void testSwapRootsInDisconnectedGraph() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[2];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+        
+        plan.swap(ops[0], ops[1]);
+        
+        List<TOperator> roots = (ArrayList<TOperator>)plan.getRoots();
+        for(int i = 0; i < roots.size(); ++i) {
+            assertEquals(roots.get(i), ops[i]);
+        }
+    }
+    
+    //Swap two nodes in a graph.
+    //Input
+    //S1->S2
+    //Ouput
+    //S2->S1
+    //Swap again
+    //Output
+    //S1->S2
+    @Test
+    public void testSimpleSwap() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[2];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+        
+        plan.connect(ops[0], ops[1]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+        
+        plan.swap(ops[0], ops[1]);
+        
+        //planPrinter.visit();
+        
+        List<TOperator> roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[1]);
+        
+        List<TOperator> rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[0]);
+        
+        List<TOperator> leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[0]);
+        
+        List<TOperator> leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[1]);
+        
+        plan.swap(ops[0], ops[1]);
+        
+        //planPrinter.visit();
+        
+        roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[0]);
+        
+        rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[1]);
+        
+        leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[1]);
+        
+        leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[0]);
+    }
+    
+    //Swap two nodes in a graph.
+    //Swap S1 and S3
+    //Input
+    //S1->S2->S3
+    //Intermediate Output
+    //S3->S2->S1
+    //Output
+    //S1->S2->S3
+    @Test
+    public void testSimpleSwap2() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+        
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+        
+        plan.swap(ops[0], ops[2]);
+
+        //planPrinter.visit();
+        
+        List<TOperator> roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[2]);
+        
+        List<TOperator> rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[1]);
+        
+        List<TOperator> leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[0]);
+        
+        List<TOperator> leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[1]);
+        
+        plan.swap(ops[0], ops[2]);
+        
+        //planPrinter.visit();
+        
+        roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[0]);
+        
+        rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[1]);
+        
+        leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[2]);
+        
+        leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[1]);
+    }
+    
+    //Swap two nodes in a graph and then swap it back again.
+    //Swap S2 and S3
+    //Input
+    //S1->S2->S3
+    //Intermediate Output
+    //S1->S3->S2
+    //Output
+    //S1->S2->S3
+    @Test
+    public void testSimpleSwap3() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+        
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        plan.swap(ops[1], ops[2]);
+        
+        //planPrinter.visit();
+
+        List<TOperator> roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[0]);
+        
+        List<TOperator> rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[2]);
+        
+        List<TOperator> leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[1]);
+        
+        List<TOperator> leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[2]);
+        
+        plan.swap(ops[1], ops[2]);
+        
+        //planPrinter.visit();
+
+        roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[0]);
+        
+        rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[1]);
+        
+        leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[2]);
+        
+        leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[1]);
+    }
+    
+    //Swap two nodes in a graph and then swap it back again.
+    //Swap S1 and S2
+    //Input
+    //S1->S2->S3
+    //Intermediate Output
+    //S2->S1->S3
+    //Output
+    //S1->S2->S3
+    @Test
+    public void testSimpleSwap4() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[3];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+            plan.add(ops[i]);
+        }
+        
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        plan.swap(ops[0], ops[1]);
+
+        //planPrinter.visit();
+        
+        List<TOperator> roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[1]);
+        
+        List<TOperator> rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[0]);
+        
+        List<TOperator> leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[2]);
+        
+        List<TOperator> leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[0]);
+        
+        plan.swap(ops[0], ops[1]);
+
+        //planPrinter.visit();
+        
+        roots = (ArrayList<TOperator>)plan.getRoots();
+        assertEquals(roots.get(0), ops[0]);
+        
+        rootSuccessors = plan.getSuccessors(roots.get(0));
+        assertEquals(rootSuccessors.get(0), ops[1]);
+        
+        leaves = (ArrayList<TOperator>)plan.getLeaves();
+        assertEquals(leaves.get(0), ops[2]);
+        
+        leafPredecessors = plan.getPredecessors(leaves.get(0));
+        assertEquals(leafPredecessors.get(0), ops[1]);
+    }
+    
+    //Swap non-existent nodes in a graph and check for exceptions
+    //Swap S1 and S4
+    //Swap S4 and S1
+    //Swap S5 and S4
+    //Swap S1 and null
+    //Swap null and S1
+    //Swap null and null
+    //Input
+    //S1->S2->S3 S4 S5
+    @Test
+    public void testNegativeSimpleSwap() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[5];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+        }
+
+        for(int i = 0; i < ops.length - 2; ++i) {
+            plan.add(ops[i]);
+        }
+
+        
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        try {
+            plan.swap(ops[0], ops[3]);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+        
+        try {
+            plan.swap(ops[3], ops[0]);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+
+        try {
+            plan.swap(ops[4], ops[3]);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+        
+        try {
+            plan.swap(ops[0], null);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1092);
+        }
+        
+        try {
+            plan.swap(null, ops[0]);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1092);
+        }
+        
+        try {
+            plan.swap(null, null);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1092);
+        }
+
+    }
+    
+    //Swap nodes that have multiple inputs and multiple outs in a graph and check for exceptions
+    //Input
+    // S1   S2
+    //  \ /
+    //   M1
+    //   |
+    //   M2
+    //  / \
+    // S3   S4
+    //Swap S1 and M1
+    //Swap M1 and S1
+    //Swap M1 and M2
+    //Swap M2 and M1
+    //Swap M2 and S3
+    //Swap S3 and M2
+    @Test
+    public void testNegativeSimpleSwap1() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        ops[0] = new SingleOperator("1");
+        plan.add(ops[0]);
+        ops[1] = new SingleOperator("2");
+        plan.add(ops[1]);
+        ops[2] = new MultiOperator("3");
+        plan.add(ops[2]);
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[2]);
+        
+        ops[3] = new SingleOperator("4");
+        plan.add(ops[3]);
+        ops[4] = new SingleOperator("5");
+        plan.add(ops[4]);
+        ops[5] = new MultiOperator("6");
+        plan.add(ops[5]);
+        plan.connect(ops[5], ops[3]);
+        plan.connect(ops[5], ops[4]);
+
+        plan.connect(ops[2], ops[5]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        try {
+            plan.swap(ops[0], ops[2]);
+            fail("Expected exception for multi-input operator.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1093);
+        }
+        
+        try {
+            plan.swap(ops[2], ops[0]);
+            fail("Expected exception for multi-input operator.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1093);
+        }
+
+        try {
+            plan.swap(ops[2], ops[5]);
+            fail("Expected exception for multi-input operator.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1093);
+        }
+        
+        try {
+            plan.swap(ops[5], ops[2]);
+            fail("Expected exception for multi-output operator.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1093);
+        }
+        
+        try {
+            plan.swap(ops[5], ops[3]);
+            fail("Expected exception for multi-output operator.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1093);
+        }
+        
+        try {
+            plan.swap(ops[3], ops[5]);
+            fail("Expected exception for multi-output operator.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1093);
+        }
+
+    }
+    
+    //Push M11 before M10's inputs - 0 through 3
+    //Input
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //      /  |  \
+    //     S5  M11  S6
+    //      /  |  \
+    //     S7  S8  S9
+    //Output when pushed before 1st input
+    //       S2
+    //       |
+    //  S1   M11  S3  S4
+    //   \   |   |  /
+    //       M10
+    //   / / |  \ \
+    // S5 S7 S8 S9 S6
+    @Test
+    public void testpushBefore() throws Exception {
+        for(int index = 0; index < 4; index++) {
+            TPlan plan = new TPlan();
+            TOperator[] ops = new TOperator[11];
+            
+            for(int i = 0; i < ops.length - 2; ++i) {
+                ops[i] = new SingleOperator(Integer.toString(i+1));
+                plan.add(ops[i]);
+            }
+            
+            ops[9] = new MultiOperator("10");
+            plan.add(ops[9]);
+            
+            ops[10] = new MultiOperator("11");
+            plan.add(ops[10]);
+            
+            plan.connect(ops[0], ops[9]);
+            plan.connect(ops[1], ops[9]);
+            plan.connect(ops[2], ops[9]);
+            plan.connect(ops[3], ops[9]);
+            plan.connect(ops[9], ops[4]);
+            plan.connect(ops[9], ops[10]);
+            plan.connect(ops[9], ops[5]);
+            
+            plan.connect(ops[10], ops[6]);
+            plan.connect(ops[10], ops[7]);
+            plan.connect(ops[10], ops[8]);
+            
+            //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+            //planPrinter.visit();
+    
+            plan.pushBefore(ops[9], ops[10], index) ;
+            
+            //planPrinter.visit();
+            
+            Set<TOperator> rootSet = new HashSet<TOperator>();
+            rootSet.add(ops[0]);
+            rootSet.add(ops[1]);
+            rootSet.add(ops[2]);
+            rootSet.add(ops[3]);
+            
+            Set<TOperator> expectedRootSet = new HashSet<TOperator>(plan.getRoots());
+            
+            rootSet.retainAll(expectedRootSet);
+            assertTrue(rootSet.size() == 4);
+            
+            Set<TOperator> leafSet = new HashSet<TOperator>();
+            leafSet.add(ops[4]);
+            leafSet.add(ops[5]);
+            leafSet.add(ops[6]);
+            leafSet.add(ops[7]);
+            leafSet.add(ops[8]);
+            
+            Set<TOperator> expectedLeafSet = new HashSet<TOperator>(plan.getLeaves());
+            
+            leafSet.retainAll(expectedLeafSet);
+            assertTrue(leafSet.size() == 5);
+            
+            List<TOperator> m10Predecessors = plan.getPredecessors(ops[9]);            
+            assertTrue(m10Predecessors.get(index) == ops[10]);
+            
+            List<TOperator> m11Predecessors = plan.getPredecessors(ops[10]);
+            assertTrue(m11Predecessors.get(0) == ops[index]);
+        }
+    }
+    
+    //Push S5 and S6 before M10's input
+    //Input
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //      /  |  \
+    //     S5  M11  S6
+    //      /  |  \
+    //     S7  S8  S9
+    //Output when pushed before 1st input
+    //       S2
+    //       |
+    //  S1   S5  S3  S4
+    //   \   |   |  /
+    //        M10
+    //       /   \
+    //      M11   S6
+    //    /  |  \
+    //   S7  S8  S9
+    @Test
+    public void testpushBefore2() throws Exception {
+        for(int outerIndex = 0; outerIndex < 2; outerIndex++) {
+            for(int index = 0; index < 2; index++) {
+                TPlan plan = new TPlan();
+                TOperator[] ops = new TOperator[11];
+                
+                for(int i = 0; i < ops.length - 2; ++i) {
+                    ops[i] = new SingleOperator(Integer.toString(i+1));
+                    plan.add(ops[i]);
+                }
+                
+                ops[9] = new MultiOperator("10");
+                plan.add(ops[9]);
+                
+                ops[10] = new MultiOperator("11");
+                plan.add(ops[10]);
+                
+                plan.connect(ops[0], ops[9]);
+                plan.connect(ops[1], ops[9]);
+                plan.connect(ops[2], ops[9]);
+                plan.connect(ops[3], ops[9]);
+                plan.connect(ops[9], ops[4]);
+                plan.connect(ops[9], ops[10]);
+                plan.connect(ops[9], ops[5]);
+                
+                plan.connect(ops[10], ops[6]);
+                plan.connect(ops[10], ops[7]);
+                plan.connect(ops[10], ops[8]);
+                
+                //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+                //planPrinter.visit();
+        
+                int secondNodeIndex = outerIndex + 4;
+                plan.pushBefore(ops[9], ops[secondNodeIndex], index) ;
+                
+                //planPrinter.visit();
+                
+                Set<TOperator> rootSet = new HashSet<TOperator>();
+                rootSet.add(ops[0]);
+                rootSet.add(ops[1]);
+                rootSet.add(ops[2]);
+                rootSet.add(ops[3]);
+                
+                Set<TOperator> expectedRootSet = new HashSet<TOperator>(plan.getRoots());
+                
+                rootSet.retainAll(expectedRootSet);
+                assertTrue(rootSet.size() == 4);
+                
+                Set<TOperator> leafSet = new HashSet<TOperator>();
+                for(int leafIndex = 4; leafIndex < 9; ++leafIndex) {
+                    if(leafIndex != secondNodeIndex) {
+                        leafSet.add(ops[leafIndex]);
+                    }
+                }
+                
+                Set<TOperator> expectedLeafSet = new HashSet<TOperator>(plan.getLeaves());
+                
+                leafSet.retainAll(expectedLeafSet);
+                assertTrue(leafSet.size() == 4);
+                
+                List<TOperator> outerIndexNodePredecessors = plan.getPredecessors(ops[secondNodeIndex]);            
+                assertTrue(outerIndexNodePredecessors.get(0) == ops[index]);
+                
+                List<TOperator> m10Predecessors = plan.getPredecessors(ops[9]);            
+                assertTrue(m10Predecessors.get(index) == ops[secondNodeIndex]);
+            }
+        }
+    }
+
+    //Push non-existent nodes in a graph and check for exceptions
+    //Push S1 after S4
+    //Push S4 after S1
+    //Push S5 after S4
+    //Push S1 after null
+    //Push null after S1
+    //Push null after null
+    //Input
+    //S1->S2->S3 S4 S5
+    @Test
+    public void testNegativePushBefore() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[5];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+        }
+
+        for(int i = 0; i < ops.length - 2; ++i) {
+            plan.add(ops[i]);
+        }
+
+        
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        try {
+            plan.pushBefore(ops[0], ops[3], 0);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+        
+        try {
+            plan.pushBefore(ops[3], ops[0], 0);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+
+        try {
+            plan.pushBefore(ops[4], ops[3], 0);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+        
+        try {
+            plan.pushBefore(ops[0], null, 0);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1085);
+        }
+        
+        try {
+            plan.pushBefore(null, ops[0], 0);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1085);
+        }
+        
+        try {
+            plan.pushBefore(null, null, 0);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1085);
+        }
+
+    }
+
+    //Negative test cases
+    //Input
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //      /  |  \
+    //     S5  M11  S6
+    //      /  |  \
+    //     S7  S8  S9
+    @Test
+    public void testNegativePushBefore2() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[11];
+        
+        for(int i = 0; i < ops.length - 2; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i+1));
+            plan.add(ops[i]);
+        }
+        
+        ops[9] = new MultiOperator("10");
+        plan.add(ops[9]);
+        
+        ops[10] = new MultiOperator("11");
+        plan.add(ops[10]);
+        
+        plan.connect(ops[0], ops[9]);
+        plan.connect(ops[1], ops[9]);
+        plan.connect(ops[2], ops[9]);
+        plan.connect(ops[3], ops[9]);
+        plan.connect(ops[9], ops[4]);
+        plan.connect(ops[9], ops[10]);
+        plan.connect(ops[9], ops[5]);
+        
+        plan.connect(ops[10], ops[6]);
+        plan.connect(ops[10], ops[7]);
+        plan.connect(ops[10], ops[8]);
+        
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        try {
+            plan.pushBefore(ops[0], ops[9], 0) ;
+            fail("Expected exception for first operator having null predecessors");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1086);
+        }
+        
+        try {
+            plan.pushBefore(ops[10], ops[6], 0) ;
+            fail("Expected exception for first operator having one predecessor");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1086);
+        }
+        
+        try {
+            plan.pushBefore(ops[9], ops[10], 4) ;
+            fail("Expected exception for inputNum exceeding number of predecessors");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1087);
+        }
+        
+        try {
+            plan.pushBefore(ops[9], ops[0], 0) ;
+            fail("Expected exception for second operator having null predecessors");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1088);
+        }
+
+        try {
+            plan.pushBefore(ops[9], ops[9], 0) ;
+            fail("Expected exception for second operator having more than one predecessor");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1088);
+        }
+        
+        try {
+            plan.pushBefore(ops[9], ops[8], 0) ;
+            fail("Expected exception for second operator not being a successor of first operator");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1089);
+        }
+        
+        plan.disconnect(ops[9], ops[4]);
+        plan.disconnect(ops[9], ops[5]);
+        
+        MultiInputSingleOutputOperator miso = new MultiInputSingleOutputOperator("12");
+        
+        plan.replace(ops[9], miso);
+        
+        try {
+            plan.pushBefore(miso, ops[10], 0) ;
+            fail("Expected exception for trying to connect multiple outputs to the first operator");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1091);
+        }
+        
+    }
+
+    //Push M10 after M11's outputs - 0 through 2
+    //Input
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //    S5   |  S6
+    //     \   |  /
+    //        M11
+    //      /  |  \
+    //     S7  S8  S9
+    //Output when pushed after 1st output
+    //  S5 S1  S2  S3  S4 S6
+    //   \   \  \  /  /  /
+    //           M10
+    //         /  |  \
+    //        S7  M11  S9
+    //            |
+    //            S8
+
+    @Test
+    public void testpushAfter() throws Exception {
+        for(int index = 0; index < 3; index++) {
+            TPlan plan = new TPlan();
+            TOperator[] ops = new TOperator[11];
+            
+            for(int i = 0; i < ops.length - 2; ++i) {
+                ops[i] = new SingleOperator(Integer.toString(i+1));
+                plan.add(ops[i]);
+            }
+            
+            ops[9] = new MultiOperator("10");
+            plan.add(ops[9]);
+            
+            ops[10] = new MultiOperator("11");
+            plan.add(ops[10]);
+            
+            plan.connect(ops[0], ops[9]);
+            plan.connect(ops[1], ops[9]);
+            plan.connect(ops[2], ops[9]);
+            plan.connect(ops[3], ops[9]);
+            plan.connect(ops[9], ops[10]);
+            plan.connect(ops[4], ops[10]);
+            plan.connect(ops[5], ops[10]);
+            
+            plan.connect(ops[10], ops[6]);
+            plan.connect(ops[10], ops[7]);
+            plan.connect(ops[10], ops[8]);
+            
+            //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+            //planPrinter.visit();
+    
+            plan.pushAfter(ops[10], ops[9], index) ;
+            
+            //planPrinter.visit();
+            
+            Set<TOperator> rootSet = new HashSet<TOperator>();
+            rootSet.add(ops[0]);
+            rootSet.add(ops[1]);
+            rootSet.add(ops[2]);
+            rootSet.add(ops[3]);
+            rootSet.add(ops[4]);
+            rootSet.add(ops[5]);
+            
+            Set<TOperator> expectedRootSet = new HashSet<TOperator>(plan.getRoots());
+            
+            rootSet.retainAll(expectedRootSet);
+            assertTrue(rootSet.size() == 6);
+            
+            Set<TOperator> leafSet = new HashSet<TOperator>();
+            leafSet.add(ops[6]);
+            leafSet.add(ops[7]);
+            leafSet.add(ops[8]);
+            
+            Set<TOperator> expectedLeafSet = new HashSet<TOperator>(plan.getLeaves());
+            
+            leafSet.retainAll(expectedLeafSet);
+            assertTrue(leafSet.size() == 3);
+            
+            List<TOperator> m10Successors = plan.getSuccessors(ops[9]);            
+            assertTrue(m10Successors.get(0) == ops[index + 6]);
+            
+            List<TOperator> m11Successors = plan.getSuccessors(ops[10]);
+            assertTrue(m11Successors.get(index) == ops[9]);
+        }
+    }
+
+    //Push S5 and S6 after M11's outputs - 0 through 2
+    //Input
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //    S5   |  S6
+    //     \   |  /
+    //        M11
+    //      /  |  \
+    //     S7  S8  S9
+    //Output when S5 is pushed after 1st output
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //         |  S6
+    //         |  /
+    //        M11
+    //      /  |  \
+    //     S7  S5  S9
+    //         |
+    //         S8
+
+    @Test
+    public void testpushAfter1() throws Exception {
+        for(int outerIndex = 0; outerIndex < 2; outerIndex++) {
+            for(int index = 0; index < 3; index++) {
+                TPlan plan = new TPlan();
+                TOperator[] ops = new TOperator[11];
+                
+                for(int i = 0; i < ops.length - 2; ++i) {
+                    ops[i] = new SingleOperator(Integer.toString(i+1));
+                    plan.add(ops[i]);
+                }
+                
+                ops[9] = new MultiOperator("10");
+                plan.add(ops[9]);
+                
+                ops[10] = new MultiOperator("11");
+                plan.add(ops[10]);
+                
+                plan.connect(ops[0], ops[9]);
+                plan.connect(ops[1], ops[9]);
+                plan.connect(ops[2], ops[9]);
+                plan.connect(ops[3], ops[9]);
+                plan.connect(ops[9], ops[10]);
+                plan.connect(ops[4], ops[10]);
+                plan.connect(ops[5], ops[10]);
+                
+                plan.connect(ops[10], ops[6]);
+                plan.connect(ops[10], ops[7]);
+                plan.connect(ops[10], ops[8]);
+                
+                //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+                //planPrinter.visit();
+        
+                int secondNodeIndex = outerIndex + 4;
+                plan.pushAfter(ops[10], ops[secondNodeIndex], index) ;
+                
+                //planPrinter.visit();
+                
+                Set<TOperator> rootSet = new HashSet<TOperator>();
+                rootSet.add(ops[0]);
+                rootSet.add(ops[1]);
+                rootSet.add(ops[2]);
+                rootSet.add(ops[3]);
+
+                for(int rootIndex = 0; rootIndex < 6; ++rootIndex) {
+                    if(rootIndex != secondNodeIndex) {
+                        rootSet.add(ops[rootIndex]);
+                    }
+                }
+
+                Set<TOperator> expectedRootSet = new HashSet<TOperator>(plan.getRoots());
+                
+                rootSet.retainAll(expectedRootSet);
+                assertTrue(rootSet.size() == 5);
+
+                Set<TOperator> leafSet = new HashSet<TOperator>();
+                leafSet.add(ops[6]);
+                leafSet.add(ops[7]);
+                leafSet.add(ops[8]);
+                
+                Set<TOperator> expectedLeafSet = new HashSet<TOperator>(plan.getLeaves());
+                
+                leafSet.retainAll(expectedLeafSet);
+                assertTrue(leafSet.size() == 3);
+                
+                List<TOperator> outerIndexNodeSuccessors = plan.getSuccessors(ops[secondNodeIndex]);
+                assertTrue(outerIndexNodeSuccessors.get(0) == ops[index + 6]);
+                
+                List<TOperator> m11Successors = plan.getSuccessors(ops[10]);            
+                assertTrue(m11Successors.get(index) == ops[secondNodeIndex]);
+            }
+        }
+    }
+    
+    //Push non-existent nodes in a graph and check for exceptions
+    //Push S1 after S4
+    //Push S4 after S1
+    //Push S5 after S4
+    //Push S1 after null
+    //Push null after S1
+    //Push null after null
+    //Input
+    //S1->S2->S3 S4 S5
+    @Test
+    public void testNegativePushAfter() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[5];
+        
+        for(int i = 0; i < ops.length; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i));
+        }
+
+        for(int i = 0; i < ops.length - 2; ++i) {
+            plan.add(ops[i]);
+        }
+
+        
+        plan.connect(ops[0], ops[1]);
+        plan.connect(ops[1], ops[2]);
+
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        try {
+            plan.pushAfter(ops[0], ops[3], 0);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+        
+        try {
+            plan.pushAfter(ops[3], ops[0], 0);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+
+        try {
+            plan.pushAfter(ops[4], ops[3], 0);
+            fail("Expected exception for node not in plan.");
+        } catch (PlanException pe) {
+            assertTrue(pe.getMessage().contains("not in the plan"));
+        }
+        
+        try {
+            plan.pushAfter(ops[0], null, 0);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1085);
+        }
+        
+        try {
+            plan.pushAfter(null, ops[0], 0);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1085);
+        }
+        
+        try {
+            plan.pushAfter(null, null, 0);
+            fail("Expected exception for having null as one of the inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1085);
+        }
+
+    }
+
+    //Negative test cases
+    //Input
+    //  S1   S2  S3  S4
+    //   \   |   |  /
+    //        M10
+    //    S5   |  S6
+    //     \   |  /
+    //        M11
+    //      /  |  \
+    //     S7  S8  S9
+    @Test
+    public void testNegativePushAfter2() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[11];
+        
+        for(int i = 0; i < ops.length - 2; ++i) {
+            ops[i] = new SingleOperator(Integer.toString(i+1));
+            plan.add(ops[i]);
+        }
+        
+        ops[9] = new MultiOperator("10");
+        plan.add(ops[9]);
+        
+        ops[10] = new MultiOperator("11");
+        plan.add(ops[10]);
+        
+        plan.connect(ops[0], ops[9]);
+        plan.connect(ops[1], ops[9]);
+        plan.connect(ops[2], ops[9]);
+        plan.connect(ops[3], ops[9]);
+        plan.connect(ops[9], ops[10]);
+        plan.connect(ops[4], ops[10]);
+        plan.connect(ops[5], ops[10]);
+        
+        plan.connect(ops[10], ops[6]);
+        plan.connect(ops[10], ops[7]);
+        plan.connect(ops[10], ops[8]);
+        
+        //PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(System.err, plan);
+        //planPrinter.visit();
+
+        try {
+            plan.pushAfter(ops[6], ops[9], 0) ;
+            fail("Expected exception for first operator having null successors");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1086);
+        }
+        
+        try {
+            plan.pushAfter(ops[0], ops[9], 0) ;
+            fail("Expected exception for first operator having no inputs");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1088);
+        }
+        
+        try {
+            plan.pushAfter(ops[9], ops[6], 0) ;
+            fail("Expected exception for first operator having one successor");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1086);
+        }
+        
+        try {
+            plan.pushAfter(ops[6], ops[10], 0) ;
+            fail("Expected exception for first operator having one successors");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1086);
+        }
+
+        
+        try {
+            plan.pushAfter(ops[10], ops[9], 4) ;
+            fail("Expected exception for outputNum exceeding the number of outputs of first operator");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1087);
+        }
+
+        try {
+            plan.pushAfter(ops[10], ops[6], 0) ;
+            fail("Expected exception for second operator having null successors");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1088);
+        }
+        
+        try {
+            plan.pushAfter(ops[10], ops[10], 0) ;
+            fail("Expected exception for second operator having more than one successor");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1088);
+        }
+        
+        try {
+            plan.pushAfter(ops[10], ops[0], 0) ;
+            fail("Expected exception for second operator not being a predecessor of first operator");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1089);
+        }
+        
+        plan.disconnect(ops[4], ops[10]);
+        plan.disconnect(ops[5], ops[10]);
+        
+        MultiOutputSingleInputOperator mosi = new MultiOutputSingleInputOperator("12");
+        
+        plan.replace(ops[10], mosi);
+        
+        try {
+            plan.pushAfter(mosi, ops[9], 0) ;
+            fail("Expected exception for trying to connect multiple inputs to the first operator");
+        } catch (PlanException pe) {
+            assertTrue(pe.getErrorCode() == 1091);
+        }
+        
+    }
+
 }
 
