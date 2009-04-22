@@ -69,8 +69,12 @@ public class IntMax extends EvalFunc<Integer> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to max on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                return tfact.newTuple((Integer)(tp.get(0)));
+                Integer i = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    i = (Integer)(tp.get(0));
+                }
+                return tfact.newTuple(i);
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {

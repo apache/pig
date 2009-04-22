@@ -70,8 +70,12 @@ public class DoubleMax extends EvalFunc<Double> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to max on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                return tfact.newTuple((Double)(tp.get(0)));
+                Double d = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    d = (Double)(tp.get(0));
+                }
+                return tfact.newTuple(d);
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {

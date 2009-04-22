@@ -42,6 +42,8 @@ package "org.apache.commons.logging" (gkesavan via sms)
 PIG-745: Add DataType.toString() to force basic types to chararray, useful
 for UDFs that want to handle all simple types as strings (ciemo via gates).
 
+PIG-514: COUNT returns no results as a result of two filter statements in
+FOREACH (pradeepkth)
 
 Release 0.2.0 - Unreleased
 

@@ -80,8 +80,11 @@ public class FloatAvg extends EvalFunc<Double> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to avg on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                Float f = (Float)(tp.get(0));
+                Float f = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    f = (Float)(tp.get(0));
+                }
                 t.set(0, f != null ? new Double(f) : null);
                 t.set(1, 1L);
                 return t;

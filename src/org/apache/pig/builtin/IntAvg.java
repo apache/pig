@@ -81,8 +81,11 @@ public class IntAvg extends EvalFunc<Double> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to avg on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                Integer i = (Integer)tp.get(0);
+                Integer i = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    i = (Integer)tp.get(0);
+                }
                 t.set(0, i != null ? new Long(i): null);
                 t.set(1, 1L);
                 return t;

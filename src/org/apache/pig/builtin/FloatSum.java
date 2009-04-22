@@ -73,10 +73,13 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to sum
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-				// send down a double since intermediate
-				// would  be sending a double
-                Float f = (Float)tp.get(0);
+                Float f = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    f = (Float)tp.get(0);
+                }
+                // send down a double since intermediate
+                // would  be sending a double
                 return tfact.newTuple(f != null ? 
                         new Double(f) : null);
             } catch (ExecException e) {

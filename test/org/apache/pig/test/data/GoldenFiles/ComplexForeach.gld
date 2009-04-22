@@ -1,6 +1,6 @@
 New For Each(false)[bag] - Test-Plan-Builder-22
 |   |
-|   Project[bag][*] - Test-Plan-Builder-21
+|   RelationToExpressionProject[bag][*] - Test-Plan-Builder-21
 |   |
 |   |---Filter[bag] - Test-Plan-Builder-17
 |       |   |
