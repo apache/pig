@@ -117,6 +117,11 @@ public class GruntParser extends PigScriptParser {
             mPigServer.discardBatch();
         }
     }
+
+    public void parseStopOnError() throws IOException, ParseException
+    {
+	parseStopOnError(false);
+    }
     
     /** 
      * Parses Pig commands in either interactive mode or batch mode. 
@@ -125,13 +130,13 @@ public class GruntParser extends PigScriptParser {
      *
      * @throws IOException, ParseException
      */
-    public void parseStopOnError() throws IOException, ParseException
+    public void parseStopOnError(boolean sameBatch) throws IOException, ParseException
     {
         if (mPigServer == null) {
             throw new IllegalStateException();
         }
 
-        if (!mInteractive) {
+        if (!mInteractive && !sameBatch) {
             setBatchOn();
         }
 
@@ -142,10 +147,14 @@ public class GruntParser extends PigScriptParser {
                 parse();
             }
             
-            executeBatch();
+	    if (!sameBatch) {
+		executeBatch();
+	    }
         } 
         finally {
-            discardBatch();
+	    if (!sameBatch) {
+		discardBatch();
+	    }
         }
     }
 

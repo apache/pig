@@ -1,6 +1,6 @@
 digraph graph1 {
-    LOLoad55 -> LOSort57;
-    LOSort57 [limit="-1"];
-    LOSort57 -> LOLimit58;
-    LOLimit58 [limit="10"];
+    LOLoad1053 -> LOSort1055;
+    LOSort1055 [limit="-1"];
+    LOSort1055 -> LOLimit1056;
+    LOLimit1056 [limit="10"];
 }

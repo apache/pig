@@ -72,8 +72,10 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             // Since Initial is guaranteed to be called
             // only in the map, it will be called with an
             // input of a bag with a single tuple - the 
-            // count should always be 1.
-            return mTupleFactory.newTuple(new Long(1));
+            // count should always be 1 if bag is non empty
+            DataBag bag = (DataBag)input.get(0);
+            return mTupleFactory.newTuple(bag.iterator().hasNext()? 
+                    new Long(1) : new Long(0));
         }
     }
 

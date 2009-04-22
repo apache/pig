@@ -864,8 +864,14 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     @Override
     public void visit(LOProject op) throws VisitorException {
         String scope = op.getOperatorKey().scope;
-        POProject exprOp = new POProject(new OperatorKey(scope, nodeGen
+        POProject exprOp;
+        if(op.isSendEmptyBagOnEOP()) {
+            exprOp = new PORelationToExprProject(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), op.getRequestedParallelism());
+        } else {
+            exprOp = new POProject(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), op.getRequestedParallelism());
+        }
         exprOp.setResultType(op.getType());
         exprOp.setColumns((ArrayList)op.getProjection());
         exprOp.setStar(op.isStar());

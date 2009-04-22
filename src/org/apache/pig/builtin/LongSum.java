@@ -73,8 +73,12 @@ public class LongSum extends EvalFunc<Long> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to sum
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                return tfact.newTuple( (Long)tp.get(0));
+                Long l = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    l = (Long)tp.get(0);
+                }
+                return tfact.newTuple(l);
             } catch (ExecException e) {
                 throw e;
             } catch (Exception e) {

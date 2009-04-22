@@ -76,8 +76,11 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to min on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                DataByteArray dba = (DataByteArray)tp.get(0); 
+                DataByteArray dba = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    dba = (DataByteArray)tp.get(0);
+                }
                 return tfact.newTuple(dba != null?
                         Double.valueOf(dba.toString()) : null);
             } catch (NumberFormatException e) {

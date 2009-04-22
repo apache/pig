@@ -38,8 +38,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
@@ -53,6 +55,7 @@ public class POForEach extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
     
     protected List<PhysicalPlan> inputPlans;
+    protected List<PhysicalOperator> opsToBeReset;
     protected Log log = LogFactory.getLog(getClass());
     protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
     //Since the plan has a generate, this needs to be maintained
@@ -104,6 +107,7 @@ public class POForEach extends PhysicalOperator {
         super(k, rp);
         setUpFlattens(isToBeFlattened);
         this.inputPlans = inp;
+        opsToBeReset = new ArrayList<PhysicalOperator>();
         getLeaves();
     }
 
@@ -194,7 +198,10 @@ public class POForEach extends PhysicalOperator {
             }
             
             attachInputToPlans((Tuple) inp.result);
-            
+            for (PhysicalOperator po : opsToBeReset) {
+                po.reset();
+            }
+
             res = processPlan();
             
             processingPlan = true;
@@ -427,6 +434,18 @@ public class POForEach extends PhysicalOperator {
             noItems = 0;
             resultTypes = null;
         }
+        
+        if(inputPlans != null) {
+            for (PhysicalPlan pp : inputPlans) {
+                try {
+                    ResetFinder lf = new ResetFinder(pp, opsToBeReset);
+                    lf.visit();
+                } catch (VisitorException ve) {
+                    String errMsg = "Internal Error:  Unexpected error looking for nested operators which need to be reset in FOREACH";
+                    throw new RuntimeException(errMsg, ve);
+                }
+            }
+        }
     }
     
     public List<PhysicalPlan> getInputPlans() {
@@ -499,9 +518,15 @@ public class POForEach extends PhysicalOperator {
                 flattens.add(b);
             }
         }
+        
+        List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(opsToBeReset.size());
+        for (PhysicalOperator op : opsToBeReset) {
+            ops.add(op);
+        }
         POForEach clone = new POForEach(new OperatorKey(mKey.scope, 
                 NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
                 requestedParallelism, plans, flattens);
+        clone.setOpsToBeReset(ops);
         clone.setResultType(getResultType());
         return clone;
     }
@@ -521,5 +546,59 @@ public class POForEach extends PhysicalOperator {
                 isToBeFlattenedArray[i++] = it.next();
             }
         }
+    }
+
+    /**
+     * Visits a pipeline and calls reset on all the nodes.  Currently only
+     * pays attention to limit nodes, each of which need to be told to reset
+     * their limit.
+     */
+    private class ResetFinder extends PhyPlanVisitor {
+
+        ResetFinder(PhysicalPlan plan, List<PhysicalOperator> toBeReset) {
+            super(plan,
+                new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
+        }
+
+        @Override
+        public void visitDistinct(PODistinct d) throws VisitorException {
+            // FIXME: add only if limit is present
+            opsToBeReset.add(d);
+        }
+
+        @Override
+        public void visitLimit(POLimit limit) throws VisitorException {
+            opsToBeReset.add(limit);
+        }
+
+        @Override
+        public void visitSort(POSort sort) throws VisitorException {
+            // FIXME: add only if limit is present
+            opsToBeReset.add(sort);
+        }
+        
+        /* (non-Javadoc)
+         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitProject(org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject)
+         */
+        @Override
+        public void visitProject(POProject proj) throws VisitorException {
+            if(proj instanceof PORelationToExprProject) {
+                opsToBeReset.add(proj);
+            }
+        }
+    }
+
+    /**
+     * @return the opsToBeReset
+     */
+    public List<PhysicalOperator> getOpsToBeReset() {
+        return opsToBeReset;
+    }
+
+    /**
+     * @param opsToBeReset the opsToBeReset to set
+     */
+    public void setOpsToBeReset(List<PhysicalOperator> opsToBeReset) {
+        this.opsToBeReset = opsToBeReset;
     }
 }

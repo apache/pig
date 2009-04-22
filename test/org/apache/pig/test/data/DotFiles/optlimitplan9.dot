@@ -1,4 +1,4 @@
 digraph graph1 {
-    LOLoad59 -> LOSort61;
-    LOSort61 [limit="10"];
+    LOLoad1057 -> LOSort1059;
+    LOSort1059 [limit="10"];
 }

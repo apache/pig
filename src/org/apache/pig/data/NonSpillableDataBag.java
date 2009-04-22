@@ -36,7 +36,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
  * will be done on this bag to disk.
  */
 public class NonSpillableDataBag implements DataBag {
-
+    // the reason this class does NOT extend DefaultAbstractBag
+    // is that we don't want to bloat this class with members it
+    // does not need (DefaultAbstractBag has many members related
+    // to spilling which are not needed here)
     /**
      * 
      */
@@ -179,6 +182,14 @@ public class NonSpillableDataBag implements DataBag {
                 throw ee;
             }
         }
+    }
+    
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        return compareTo(obj) == 0;
     }
 
     @Override

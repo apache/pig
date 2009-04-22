@@ -36,6 +36,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
@@ -82,6 +83,7 @@ public static void main(String args[])
         boolean dryrun = false;
         ArrayList<String> params = new ArrayList<String>();
         ArrayList<String> paramFiles = new ArrayList<String>();
+        HashSet<String> optimizerRules = new HashSet<String>();
 
         CmdLineParser opts = new CmdLineParser(args);
         opts.registerOpt('4', "log4jconf", CmdLineParser.ValueExpected.REQUIRED);
@@ -91,17 +93,18 @@ public static void main(String args[])
         opts.registerOpt('e', "execute", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('f', "file", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('h', "help", CmdLineParser.ValueExpected.NOT_ACCEPTED);
-        opts.registerOpt('o', "hod", CmdLineParser.ValueExpected.NOT_ACCEPTED);
-        opts.registerOpt('j', "jar", CmdLineParser.ValueExpected.REQUIRED);
-        opts.registerOpt('v', "verbose", CmdLineParser.ValueExpected.NOT_ACCEPTED);
-        opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);
-        opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
+        opts.registerOpt('j', "jar", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
+        opts.registerOpt('o', "hod", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+        opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
-        opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('t', "optimizer_off", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('v', "verbose", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('w', "warning", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+        opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -165,6 +168,10 @@ public static void main(String args[])
                 usage();
                 return;
 
+            case 'i':
+            	System.out.println(getVersionString());
+            	return;
+
             case 'j': 
                 String jarsString = opts.getValStr();
                 if(jarsString != null){
@@ -213,6 +220,10 @@ public static void main(String args[])
                 // will be extended in the future
                 dryrun = true;
                 break;
+
+            case 't':
+            	optimizerRules.add(opts.getValStr());
+                break;
                             
             case 'v':
                 properties.setProperty(VERBOSE, ""+true);
@@ -230,9 +241,6 @@ public static void main(String args[])
                         throw new RuntimeException("ERROR: Unrecognized exectype.", e);
                     }
                 break;
-            case 'i':
-            	System.out.println(getVersionString());
-            	return;
             default: {
                 Character cc = new Character(opt);
                 throw new AssertionError("Unhandled option " + cc.toString());
@@ -249,6 +257,10 @@ public static void main(String args[])
         }
         
         pigContext.getProperties().setProperty("pig.logfile", logFileName);
+        
+        if(optimizerRules.size() > 0) {
+        	pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
+        }
 
         LogicalPlanBuilder.classloader = pigContext.createCl(null);
 
@@ -491,14 +503,21 @@ public static void usage()
     System.out.println("    -b, -brief brief logging (no timestamps)");
     System.out.println("    -c, -cluster clustername, kryptonite is default");
     System.out.println("    -d, -debug debug level, INFO is default");
+    System.out.println("    -e, -execute commands to execute (within quotes)");
+    System.out.println("    -f, -file path to the script to execute");
     System.out.println("    -h, -help display this message");
-    System.out.println("    -j, -jar jarfile load jarfile"); 
-    System.out.println("    -o, -hod read hod server from system property ssh.gateway");
-    System.out.println("    -v, -verbose print all error messages to screen");
-    System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
     System.out.println("    -i, -version display version information");
+    System.out.println("    -j, -jar jarfile load jarfile"); 
     System.out.println("    -l, -logfile path to client side log file; current working directory is default");
+    System.out.println("    -m, -param_file path to the parameter file");
+    System.out.println("    -o, -hod read hod server from system property ssh.gateway");
+    System.out.println("    -p, -param key value pair of the form param=val");
+    System.out.println("    -r, -dryrun CmdLineParser.ValueExpected.NOT_ACCEPTED");
+    System.out.println("    -t, -optimizer_off optimizer rule name, turn optimizer off for this rule; use all to turn all rules off, optimizer is turned on by default");
+    System.out.println("    -v, -verbose print all error messages to screen");
     System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
+    System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
+
     System.out.println("    -M, -no_multiquery turn multiquery optimization off; Multiquery is on by default");
 }
 

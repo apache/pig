@@ -69,8 +69,12 @@ public class LongMax extends EvalFunc<Long> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to max on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                return tfact.newTuple((Long)(tp.get(0)));
+                Long l = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    l = (Long)(tp.get(0));
+                }
+                return tfact.newTuple(l);
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {

@@ -65,8 +65,12 @@ public class StringMax extends EvalFunc<String> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to max on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                return tfact.newTuple((String)(tp.get(0)));
+                String s = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    s = (String)(tp.get(0));
+                }
+                return tfact.newTuple(s);
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {

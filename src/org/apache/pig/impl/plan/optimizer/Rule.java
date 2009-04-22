@@ -17,56 +17,70 @@
  */
 package org.apache.pig.impl.plan.optimizer;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 
 /**
- * A rule for optimizing a plan.  The rule contains a pattern that must be
- * matched in the plan before the optimizer can consider applying the rule
- * and a transformer to do further checks and possibly transform the plan.
- * The rule pattern is expressed as a list of node names, a map of edges in
- * the plan, and a list of boolean values indicating whether the node is
- * required.  For example, a rule pattern could be expressed as:
- * [Filter, Filter] {[0, 1]} [true, true], which would indicate this rule
- * matches two nodes of class name Filter, with an edge between the two,
- * and both are required.
+ * A rule for optimizing a plan. The rule contains a pattern that must be
+ * matched in the plan before the optimizer can consider applying the rule and a
+ * transformer to do further checks and possibly transform the plan. The rule
+ * pattern is expressed as a list of node names, a map of edges in the plan, and
+ * a list of boolean values indicating whether the node is required. For
+ * example, a rule pattern could be expressed as: [Filter, Filter] {[0, 1]}
+ * [true, true], which would indicate this rule matches two nodes of class name
+ * Filter, with an edge between the two, and both are required.
  */
 public class Rule<O extends Operator, P extends OperatorPlan<O>> {
 
-	public enum WalkerAlgo {DepthFirstWalker, DependencyOrderWalker};
-    public List<String> nodes;
-    public Map<Integer, Integer> edges;
-    public List<Boolean> required;
-    public Transformer<O, P> transformer;
-    public WalkerAlgo algo;
+    public enum WalkerAlgo {
+        DepthFirstWalker, DependencyOrderWalker
+    };
+
+    private RulePlan mRulePlan;
+    private Transformer<O, P> mTransformer;
+    private WalkerAlgo mWalkerAlgo;
+    private String mRuleName = null;
 
     /**
-     * @param n List of node types to look for.
-     * @param e Map of integers to integers.  Each integer
-     * represents the offset into nodes list.
-     * @param r List of boolean indicating whether given nodes are
-     * required for the pattern to match.
-     * @param t Transformer to apply if the rule matches.
-     * @param al Walker algorithm to find rule match within the plan.
+     * @param plan
+     *            pattern to look for
+     * @param t
+     *            Transformer to apply if the rule matches.
      */
-    public Rule(List<String> n,
-                Map<Integer, Integer> e, 
-                List<Boolean> r,
-                Transformer<O, P> t, WalkerAlgo al) {
-        nodes = n;
-        edges = e;
-        required = r;
-        transformer = t;
-        algo = al;
+    public Rule(RulePlan plan, Transformer<O, P> t, String ruleName) {
+        this(plan, t, ruleName, WalkerAlgo.DependencyOrderWalker);
     }
-    
-    public Rule(List<String> n,
-                Map<Integer, Integer> e, 
-                List<Boolean> r,
-                Transformer<O, P> t) {
-    	this(n, e, r, t, WalkerAlgo.DependencyOrderWalker);
+
+    /**
+     * @param plan
+     *            pattern to look for
+     * @param t
+     *            Transformer to apply if the rule matches.
+     * @param al
+     *            Walker algorithm to find rule match within the plan.
+     */
+    public Rule(RulePlan plan, Transformer<O, P> t, String ruleName,
+            WalkerAlgo al) {
+        mRulePlan = plan;
+        mTransformer = t;
+        mRuleName = ruleName;
+        mWalkerAlgo = al;
     }
+
+    public RulePlan getPlan() {
+        return mRulePlan;
+    }
+
+    public Transformer<O, P> getTransformer() {
+        return mTransformer;
+    }
+
+    public String getRuleName() {
+        return mRuleName;
+    }
+
+    public WalkerAlgo getWalkerAlgo() {
+        return mWalkerAlgo;
+    }
+
 }

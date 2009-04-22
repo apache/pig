@@ -287,6 +287,17 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return ret;
     }
 
+    /**
+     * Reset internal state in an operator.  For use in nested pipelines
+     * where operators like limit and sort may need to reset their state.
+     * Limit needs it because it needs to know it's seeing a fresh set of
+     * input.  Blocking operators like sort and distinct need it because they
+     * may not have drained their previous input due to a limit and thus need
+     * to be told to drop their old input and start over.
+     */
+    public void reset() {
+    }
+
     public static void setReporter(PigProgressable reporter) {
         PhysicalOperator.reporter = reporter;
     }
