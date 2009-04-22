@@ -3405,6 +3405,18 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
                 } else {
                     item = new LOProject(lp, new OperatorKey(scope, getNextId()), op, -1);
                     ((LOProject)item).setStar(true);
+                    // This project is Project(*) introduced after a relational operator
+                    // to supply a bag as output (as an expression). This project is either
+                    // providing the bag as input to a successor expression operator or is 
+                    // itself the leaf in a inner plan
+                    // If the predecessor relational operator sends an EOP
+                    // then send an empty bag first to signal "empty" output
+                    // and then send an EOP
+                    
+                    // A query like:
+                    // a = load 'baginp.txt' as (b:bag{t:tuple()}); b = foreach a generate $0; dump b;
+                    /// will go through a regular project (without the following flag)
+                    ((LOProject)item).setSendEmptyBagOnEOP(true);
                     log.debug("Set star to true");
                     item.setAlias(t1.image);
                 }

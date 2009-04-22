@@ -56,11 +56,13 @@ public class POProject extends ExpressionOperator {
     private static final long serialVersionUID = 1L;
 
 	private static TupleFactory tupleFactory = TupleFactory.getInstance();
+	
+	protected static BagFactory bagFactory = BagFactory.getInstance();
 
 	private boolean resultSingleTupleBag = false;
 	
     //The column to project
-    ArrayList<Integer> columns;
+    protected ArrayList<Integer> columns;
     
     //True if we are in the middle of streaming tuples
     //in a bag
@@ -181,13 +183,21 @@ public class POProject extends ExpressionOperator {
         Result res = processInputBag();
         if(res.returnStatus!=POStatus.STATUS_OK)
             return res;
-        DataBag inpBag = (DataBag) res.result;
+        return(consumeInputBag(res));
+    }
 
+    /**
+     * @param input
+     * @throws ExecException 
+     */
+    protected Result consumeInputBag(Result input) throws ExecException {
+        DataBag inpBag = (DataBag) input.result;
+        Result retVal = new Result();
         if(isInputAttached() || star){
-            res.result = inpBag;
-            res.returnStatus = POStatus.STATUS_OK;
+            retVal.result = inpBag;
+            retVal.returnStatus = POStatus.STATUS_OK;
             detachInput();
-            return res;
+            return retVal;
         }
         
         DataBag outBag;
@@ -201,7 +211,7 @@ public class POProject extends ExpressionOperator {
                 tmpTuple.set(i, tuple.get(columns.get(i)));
             outBag = new SingleTupleBag(tmpTuple);
         } else {
-            outBag = BagFactory.getInstance().newDefaultBag();
+            outBag = bagFactory.newDefaultBag();
             for (Tuple tuple : inpBag) {
                 Tuple tmpTuple = tupleFactory.newTuple(columns.size());
                 for (int i = 0; i < columns.size(); i++)
@@ -209,9 +219,9 @@ public class POProject extends ExpressionOperator {
                 outBag.add(tmpTuple);
             }
         }
-        res.result = outBag;
-        res.returnStatus = POStatus.STATUS_OK;
-        return res;
+        retVal.result = outBag;
+        retVal.returnStatus = POStatus.STATUS_OK;
+        return retVal;
     }
 
     @Override
@@ -374,7 +384,7 @@ public class POProject extends ExpressionOperator {
         return clone;
     }
     
-    private Result processInputBag() throws ExecException {
+    protected Result processInputBag() throws ExecException {
         
         Result res = new Result();
         if (input==null && (inputs == null || inputs.size()==0)) {

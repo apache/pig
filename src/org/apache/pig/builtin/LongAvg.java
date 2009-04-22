@@ -80,8 +80,12 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to avg on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                t.set(0, (Long)(tp.get(0)));
+                Long l = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    l = (Long)(tp.get(0));
+                }
+                t.set(0, l);
                 t.set(1, 1L);
                 return t;
             } catch (ExecException ee) {

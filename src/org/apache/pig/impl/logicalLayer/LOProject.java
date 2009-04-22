@@ -68,6 +68,8 @@ public class LOProject extends ExpressionOperator {
     private boolean mSentinel;
     private boolean mOverloaded = false;
 
+    private boolean sendEmptyBagOnEOP = false;
+
     /**
      * 
      * @param plan
@@ -458,6 +460,20 @@ public class LOProject extends ExpressionOperator {
         }
         
         return clone;
+    }
+
+    /**
+     * @param sendEmptyBagOnEOP the sendEmptyBagOnEOP to set
+     */
+    public void setSendEmptyBagOnEOP(boolean sendEmptyBagOnEOP) {
+        this.sendEmptyBagOnEOP = sendEmptyBagOnEOP;
+    }
+
+    /**
+     * @return the sendEmptyBagOnEOP
+     */
+    public boolean isSendEmptyBagOnEOP() {
+        return sendEmptyBagOnEOP;
     }
 
 }

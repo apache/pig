@@ -69,8 +69,12 @@ public class FloatMax extends EvalFunc<Float> implements Algebraic {
                 // input is a bag with one tuple containing
                 // the column we are trying to max on
                 DataBag bg = (DataBag) input.get(0);
-                Tuple tp = bg.iterator().next();
-                return tfact.newTuple((Float)(tp.get(0)));
+                Float f = null;
+                if(bg.iterator().hasNext()) {
+                    Tuple tp = bg.iterator().next();
+                    f = (Float)(tp.get(0));
+                }
+                return tfact.newTuple(f);
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {
