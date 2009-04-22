@@ -17,16 +17,22 @@
  */
 package org.apache.pig.test;
 
+import static java.util.regex.Matcher.quoteReplacement;
+
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import static java.util.regex.Matcher.quoteReplacement;
+
 import junit.framework.Assert;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -38,13 +44,17 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.*;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.VisitorException;
 
 public class Util {
     private static BagFactory mBagFactory = BagFactory.getInstance();
@@ -254,6 +264,24 @@ public class Util {
 			Assert.assertEquals(expected, actual);
 		}
 	}
+
+	/**
+	 * Utility method to copy a file form local filesystem to the dfs on
+	 * the minicluster for testing in mapreduce mode
+	 * @param cluster a reference to the minicluster
+	 * @param localFileName the pathname of local file
+	 * @param fileNameOnCluster the name with which the file should be created on the minicluster
+	 * @throws IOException
+	 */
+	static public void copyFromLocalToCluster(MiniCluster cluster, String localFileName, String fileNameOnCluster) throws IOException {
+	    BufferedReader reader = new BufferedReader(new FileReader(localFileName));
+	    String line = null;
+	    List<String> contents = new ArrayList<String>();
+	    while((line = reader.readLine()) != null) {
+	        contents.add(line);
+	    }
+	    Util.createInputFile(cluster, fileNameOnCluster, contents.toArray(new String[0]));
+	}
 	
 	static public void printQueryOutput(Iterator<Tuple> actualResults, 
                Tuple[] expectedResults) {
@@ -342,9 +370,10 @@ public class Util {
     }
     
     public static void registerQuery(PigServer pigServer, String query) throws IOException {
-        String[] queryLines = query.split(";");
-        for (String line : queryLines) {
-            pigServer.registerQuery(line + ";");
-        }
+        File f = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(f);
+        pw.println(query);
+        pw.close();
+        pigServer.registerScript(f.getCanonicalPath());
     }
 }

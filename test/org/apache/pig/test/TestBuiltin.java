@@ -510,6 +510,132 @@ public class TestBuiltin extends TestCase {
         }
     
     }
+    
+    /**
+     * Test the case where an empty bag is given as input to 
+     * the Initial function and the output is fed to Intermediate
+     * function whose output is fed to the Final function
+     * @throws Exception
+     */
+    @Test
+    public void testAggEmptyBagWithCombiner() throws Exception {
+        
+        for (String[] aggGroup : aggs) {
+            String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
+            String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
+            String[] aggIntermediateTypes = null; // will contains AVGIntermediate, DoubleAvgIntermediate etc
+            for (String stage: stages) {
+                String[] aggTypesArray = null;
+                if(stage.equals("Initial")) {
+                    aggInitialTypes = new String[aggGroup.length];
+                    aggTypesArray = aggInitialTypes;
+                } else if (stage.equals("Intermediate")) {
+                    aggIntermediateTypes = new String[aggGroup.length];
+                    aggTypesArray = aggIntermediateTypes;
+                } else  {// final 
+                    aggFinalTypes = new String[aggGroup.length];
+                    aggTypesArray = aggFinalTypes;
+                }
+
+                for (int i = 0; i < aggTypesArray.length; i++) {
+                    aggTypesArray[i] = aggGroup[i] + stage;
+                }
+            }
+            for(int k = 0; k < aggFinalTypes.length; k++) {
+                EvalFunc<?> aggInitial = evalFuncMap.get(aggInitialTypes[k]);
+                // To test this case, first <Agg>Initial is called with an empty bag
+                // as input. This is done in two ierations of 5 calls.
+                // The output from <Agg>Initial for the first half of inputs is
+                // put into one bag and the next half into another. Then these two
+                // bags are provided as inputs to two separate calls of <Agg>Intermediate.
+                // The outputs from the two calls to <Agg>Intermediate are put into a bag 
+                // and sent as input to <Agg>Final
+                
+                DataBag  intermediateInputBg1 = bagFactory.newDefaultBag();
+                DataBag  intermediateInputBg2 = bagFactory.newDefaultBag();
+                Tuple outputTuple = null;
+                for(int i = 0; i < 10; i++) {
+                    // create empty bag input to be provided as input
+                    // argument to the "Initial" function
+                    DataBag initialInputBg = bagFactory.newDefaultBag();
+                    Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
+                    
+                    if(i < 5) {
+                        outputTuple = (Tuple)aggInitial.exec(initialInputTuple);
+                        // check that output is null for all aggs except COUNT
+                        // COUNT will give an output of 0 for empty bag input
+                        checkZeroOrNull(aggInitial, outputTuple.get(0));
+                        intermediateInputBg1.add(outputTuple);
+                    } else {
+                        outputTuple = (Tuple)aggInitial.exec(initialInputTuple);
+                        // check that output is null for all aggs except COUNT
+                        // COUNT will give an output of 0 for empty bag input
+                        checkZeroOrNull(aggInitial, outputTuple.get(0));
+                        intermediateInputBg2.add(outputTuple);
+                    }
+                }
+
+                EvalFunc<?> aggIntermediate = evalFuncMap.get(aggIntermediateTypes[k]);
+                DataBag finalInputBg = bagFactory.newDefaultBag();
+                Tuple intermediateInputTuple = tupleFactory.newTuple(intermediateInputBg1);
+                outputTuple = (Tuple)aggIntermediate.exec(intermediateInputTuple);
+                // check that output is null for all aggs except COUNT
+                // COUNT will give an output of 0 for empty bag input
+                checkZeroOrNull(aggIntermediate, outputTuple.get(0));
+                finalInputBg.add(outputTuple);
+                intermediateInputTuple = tupleFactory.newTuple(intermediateInputBg2);
+                outputTuple = (Tuple)aggIntermediate.exec(intermediateInputTuple);
+                // check that output is null for all aggs except COUNT
+                // COUNT will give an output of 0 for empty bag input
+                checkZeroOrNull(aggIntermediate, outputTuple.get(0));
+                finalInputBg.add(outputTuple);
+                
+                Tuple finalInputTuple = tupleFactory.newTuple(finalInputBg);
+                
+                EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
+                Object output = aggFinal.exec(finalInputTuple);
+                // check that output is null for all aggs except COUNT
+                // COUNT will give an output of 0 for empty bag input
+                checkZeroOrNull(aggFinal, output);
+            }    
+        }
+    
+    }
+
+    /**
+     * Test the case where an empty bag is given as input to the non
+     * combiner version of aggregate functions
+     * @throws Exception if there are issues executing the aggregate function
+     */
+    @Test
+    public void testAggEmptyBag() throws Exception {
+        
+        for (String[] aggGroup : aggs) {
+            
+            for(int k = 0; k < aggGroup.length; k++) {
+                EvalFunc<?> agg = evalFuncMap.get(aggGroup[k]);
+
+                // call agg with empty bag as input
+                DataBag inputBag = bagFactory.newDefaultBag();
+                Tuple inputTuple = tupleFactory.newTuple(inputBag);
+                
+                Object output = agg.exec(inputTuple);
+                // check that output is null for all aggs except COUNT
+                // COUNT will give an output of 0 for empty bag input
+                checkZeroOrNull(agg, output);
+            }    
+        }
+    
+    }
+
+    private void checkZeroOrNull(EvalFunc<?> func, Object output) {
+        if(func.getClass().getName().contains("COUNT")) {
+            assertEquals(new Long(0), output);
+        } else {
+            assertEquals(null, output);
+        }
+    }
+
 
     // Builtin MATH Functions
     // =======================
