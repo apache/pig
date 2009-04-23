@@ -32,7 +32,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LocalLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.local.executionengine.LocalPigLauncher;
+import org.apache.pig.backend.local.executionengine.LocalPOStoreImpl;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -130,7 +132,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         rmrf(outDir);
     }
     
-    private void generateInput(int numTuples) throws ExecException{
+    private void generateInput(int numTuples) throws Exception{
         
         DataBag inpDb = GenRandomData.genRandSmallTupDataBag(r, numTuples, 1000);
         
@@ -146,13 +148,18 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         inps.add(proj);
         
         POStore str = new POStore(new OperatorKey("", r.nextLong()));
-        str.setInputs(inps);
         
         FileSpec fSpec = new FileSpec(ldFile, new FuncSpec(PigStorage.class.getName()));
         
         str.setSFile(fSpec);
-        str.setPc(pc);
-        str.store();
+        str.setStoreImpl(new LocalPOStoreImpl(pc));
+
+        PhysicalPlan pp = new PhysicalPlan();
+        pp.add(proj);
+        pp.add(str);
+        pp.connect(proj,str);
+        
+        new LocalPigLauncher().launchPig(pp, "TestLocalJobSubmission", pc);
     }
     
     /*private void setUp1(boolean gen) throws Exception {
@@ -389,7 +396,6 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
         POStore st = new POStore(new OperatorKey("", r.nextLong()));
         ld.setPc(pc);
         ld.setLFile(LFSpec);
-        st.setPc(pc);
         st.setSFile(SFSpec);
         
         Tuple sample = new DefaultTuple();
@@ -449,7 +455,7 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
     
     private void submit() throws Exception{
         assertEquals(true, FileLocalizer.fileExists(ldFile, pc));
-        LocalLauncher ll = new LocalLauncher();
+        MapReduceLauncher ll = new MapReduceLauncher();
         ll.launchPig(php, grpName, pc);  
     }
 }

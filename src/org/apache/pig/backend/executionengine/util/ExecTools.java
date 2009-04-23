@@ -47,7 +47,6 @@ public class ExecTools {
                 String scope = leaf.getOperatorKey().getScope();
                 POStore str = new POStore(new OperatorKey(scope,
                     NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                str.setPc(pigContext);
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
                     pigContext).toString(),
                     new FuncSpec(BinStorage.class.getName()));

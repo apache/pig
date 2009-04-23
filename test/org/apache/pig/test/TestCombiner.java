@@ -36,6 +36,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
+import org.apache.pig.impl.io.FileLocalizer;
+
 public class TestCombiner extends TestCase {
 
     
@@ -52,7 +54,9 @@ public class TestCombiner extends TestCase {
     @Test
     public void testLocal() throws Exception {
         // run the test locally
+        FileLocalizer.deleteTempFiles();
         runTest(new PigServer(ExecType.LOCAL, new Properties()));
+        FileLocalizer.deleteTempFiles();
     }
 
     

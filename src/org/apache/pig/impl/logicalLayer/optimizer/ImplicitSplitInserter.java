@@ -28,6 +28,7 @@ import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOSplit;
+import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -53,6 +54,7 @@ public class ImplicitSplitInserter extends LogicalTransformer {
             List<LogicalOperator> succs = mPlan.getSuccessors(op);
             if (succs == null || succs.size() < 2) return false;
             if (op instanceof LOSplit) return false;
+            if (op instanceof LOStore) return false;
             return true;
         } catch (Exception e) {
             int errCode = 2048;

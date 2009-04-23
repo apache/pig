@@ -53,6 +53,8 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     
     PrintStream stream = System.out;
 
+    boolean isVerbose = true;
+
     public PlanPrinter(P plan) {
         super(plan, new DepthFirstWalker<O, P>(plan));
     }
@@ -60,6 +62,10 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     public PlanPrinter(P plan, PrintStream stream) {
         super(plan, new DepthFirstWalker<O, P>(plan));
         this.stream = stream;
+    }
+
+    public void setVerbose(boolean verbose) {
+        isVerbose = verbose;
     }
 
     @Override
@@ -122,7 +128,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         StringBuilder sb = new StringBuilder();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         if(pp!=null)
-            pp.explain(baos);
+            pp.explain(baos, isVerbose);
         else
             return "";
         sb.append(USep);
@@ -141,25 +147,30 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
 
     private String depthFirst(O node) throws VisitorException {
         StringBuilder sb = new StringBuilder(node.name() + "\n");
-        if(node instanceof POFilter){
+        if (isVerbose) {
+          if(node instanceof POFilter){
             sb.append(planString(((POFilter)node).getPlan()));
-        }
-        else if(node instanceof POLocalRearrange){
+          }
+          else if(node instanceof POLocalRearrange){
             sb.append(planString(((POLocalRearrange)node).getPlans()));
-        }
-        else if(node instanceof POSort){
+          }
+          else if(node instanceof POSort){
             sb.append(planString(((POSort)node).getSortPlans())); 
-        }
-        else if(node instanceof POForEach){
+          }
+          else if(node instanceof POForEach){
             sb.append(planString(((POForEach)node).getInputPlans()));
-        }
-        else if(node instanceof POFRJoin){
+          }
+          else if (node instanceof POSplit) {
+              sb.append(planString(((POSplit)node).getPlans()));
+          }
+          else if(node instanceof POFRJoin){
             POFRJoin frj = (POFRJoin)node;
             List<List<PhysicalPlan>> joinPlans = frj.getJoinPlans();
             if(joinPlans!=null)
-                for (List<PhysicalPlan> list : joinPlans) {
-                    sb.append(planString(list));
-                }
+              for (List<PhysicalPlan> list : joinPlans) {
+                sb.append(planString(list));
+              }
+          }
         }
         
         List<O> originalPredecessors = mPlan.getPredecessors(node);

@@ -69,7 +69,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     
     Random r = new Random();
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    
+
     private boolean generate = false;
     
     
@@ -114,6 +114,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/ComplexForeach.gld");
@@ -125,6 +126,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -143,7 +145,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Sort.gld");
             fos.write(baos.toByteArray());
@@ -154,7 +157,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -174,6 +177,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Distinct.gld");
@@ -185,7 +189,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -206,6 +210,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Cogroup.gld");
@@ -217,7 +222,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -242,7 +247,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Arithmetic.gld");
             fos.write(baos.toByteArray());
@@ -253,7 +259,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -275,6 +281,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Comparison.gld");
@@ -286,7 +293,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -308,7 +315,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/BinCond.gld");
             fos.write(baos.toByteArray());
@@ -319,7 +327,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -342,7 +350,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Generate.gld");
             fos.write(baos.toByteArray());
@@ -353,7 +362,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -373,7 +382,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Union.gld");
             fos.write(baos.toByteArray());
@@ -384,7 +394,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -405,7 +415,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Split1.gld");
             fos.write(baos.toByteArray());
@@ -421,7 +432,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         //System.out.println("Length of first plan = " + len + " of second = " + test);
         String goldenPlan1 = new String(b1, 0, len);
         String goldenPlan2 = new String(b2, 0, len);
-
+        goldenPlan1 = goldenPlan1.replaceAll("Load(.*)","Load()");
+        goldenPlan2 = goldenPlan2.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -458,7 +470,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull1.gld");
             fos.write(baos.toByteArray());
@@ -474,7 +487,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         //System.out.println("Length of first plan = " + len + " of second = " + test + " Length of compiled plan = " + compiledPlan.length());
         String goldenPlan1 = new String(b1, 0, len);
         String goldenPlan2 = new String(b2, 0, len);
-
+        goldenPlan1 = goldenPlan1.replaceAll("Load(.*)","Load()");
+        goldenPlan2 = goldenPlan2.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -507,6 +521,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Limit.gld");
@@ -518,7 +533,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
-
+        goldenPlan = goldenPlan.replaceAll("Load(.*)","Load()");
 
         System.out.println();
         System.out.println(compiledPlan);
@@ -622,14 +637,19 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     public LogicalPlan buildPlan(String query, ClassLoader cldr) {
         LogicalPlanBuilder.classloader = cldr;
         PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
-        LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
-
         try {
+
+            pigContext.connect();
+            
+            LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
+
+
             LogicalPlan lp = builder.parse("Test-Plan-Builder",
                                            query,
                                            aliases,
                                            logicalOpTable,
-                                           aliasOp);
+                                           aliasOp,
+                                           fileNameMap);
             List<LogicalOperator> roots = lp.getRoots();
             
             
@@ -679,4 +699,5 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+    Map<String, String> fileNameMap = new HashMap<String, String>();
 }

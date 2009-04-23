@@ -43,20 +43,23 @@ public class LogicalPlanBuilder {
                              String query, 
                              Map<LogicalOperator, LogicalPlan> aliases,
                              Map<OperatorKey, LogicalOperator> opTable,
-                             Map<String, LogicalOperator> aliasOp)
+                             Map<String, LogicalOperator> aliasOp,
+                             Map<String, String> fileNameMap)
         throws IOException, ParseException {
-        return parse(scope, query, aliases, opTable, aliasOp, 1);
+        return parse(scope, query, aliases, opTable, aliasOp, 1, fileNameMap);
    }
     
     public LogicalPlan parse(String scope, 
-            String query, 
-            Map<LogicalOperator, LogicalPlan> aliases,
-            Map<OperatorKey, LogicalOperator> opTable,
-            Map<String, LogicalOperator> aliasOp, int start)
+                             String query, 
+                             Map<LogicalOperator, LogicalPlan> aliases,
+                             Map<OperatorKey, LogicalOperator> opTable,
+                             Map<String, LogicalOperator> aliasOp, 
+                             int start,
+                             Map<String, String> fileNameMap)
         throws IOException, ParseException {
         ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes());        
-        //QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable);
-        QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable, aliasOp, start);
+        QueryParser parser = new QueryParser(in, pigContext, scope, aliases, opTable, 
+                                             aliasOp, start, fileNameMap);
         return parser.Parse();        
     }
 

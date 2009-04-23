@@ -54,6 +54,7 @@ public class LogicalPlanTester {
     private Map<LogicalOperator, LogicalPlan> aliases  = null ;
     private Map<OperatorKey, LogicalOperator> logicalOpTable = null ;
     private Map<String, LogicalOperator> aliasOp = null ;
+    private Map<String, String> fileNameMap = null ;
 
     public LogicalPlanTester() {
         reset() ;
@@ -66,6 +67,7 @@ public class LogicalPlanTester {
         aliases = new HashMap<LogicalOperator, LogicalPlan>();
         logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
         aliasOp = new HashMap<String, LogicalOperator>();
+        fileNameMap = new HashMap<String, String>();
         NodeIdGenerator.reset(SCOPE);
     }
 
@@ -206,7 +208,8 @@ public class LogicalPlanTester {
                                            query,
                                            aliases,
                                            logicalOpTable,
-                                           aliasOp);
+                                           aliasOp,
+                                           fileNameMap);
 
             List<LogicalOperator> roots = lp.getRoots();
 

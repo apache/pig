@@ -27,14 +27,17 @@ import java.io.OutputStreamWriter;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.Date;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.PrintStream;
@@ -88,44 +91,76 @@ public class GruntParser extends PigScriptParser {
     }
 
     private void init() {
-        // nothing, for now.
+        mDone = false;
+        mLoadOnly = false;
+        mExplain = null;
     }
-    
+
+    private void setBatchOn() {
+        mPigServer.setBatchOn();
+    }
+
+    private void executeBatch() throws IOException {
+        if (mPigServer.isBatchOn()) {
+            if (mExplain != null) {
+                explainCurrentBatch();
+            }
+
+            if (!mLoadOnly) {
+                mPigServer.executeBatch();
+            }
+        }
+    }
+
+    private void discardBatch() throws IOException {
+        if (mPigServer.isBatchOn()) {
+            mPigServer.discardBatch();
+        }
+    }
+
     public void parseStopOnError() throws IOException, ParseException
     {
-        prompt();
-        mDone = false;
-        while(!mDone) {
-            parse();
+	parseStopOnError(false);
+    }
+    
+    /** 
+     * Parses Pig commands in either interactive mode or batch mode. 
+     * In interactive mode, executes the plan right away whenever a 
+     * STORE command is encountered.
+     *
+     * @throws IOException, ParseException
+     */
+    public void parseStopOnError(boolean sameBatch) throws IOException, ParseException
+    {
+        if (mPigServer == null) {
+            throw new IllegalStateException();
+        }
+
+        if (!mInteractive && !sameBatch) {
+            setBatchOn();
+        }
+
+        try {
+            prompt();
+            mDone = false;
+            while(!mDone) {
+                parse();
+            }
+            
+	    if (!sameBatch) {
+		executeBatch();
+	    }
+        } 
+        finally {
+	    if (!sameBatch) {
+		discardBatch();
+	    }
         }
     }
 
-    public void parseContOnError()
+    public void setLoadOnly(boolean loadOnly) 
     {
-        prompt();
-        mDone = false;
-        while(!mDone) {
-            try
-            {
-                parse();
-            }
-            catch(Exception e)
-            {
-                Exception pe = LogUtils.getPermissionException(e);
-                if (pe != null)
-                    log.error("You don't have permission to perform the operation. Error from the server: " + pe.getMessage());
-                else {
-                    ByteArrayOutputStream bs = new ByteArrayOutputStream();
-                    e.printStackTrace(new PrintStream(bs));
-                    log.error(bs.toString());
-                    //log.error(e.getMessage());
-                    //log.error(e);
-               }
-
-            } catch (Error e) {
-                log.error(e);
-            }
-        }
+        mLoadOnly = loadOnly;
     }
 
     public void setParams(PigServer pigServer)
@@ -153,10 +188,7 @@ public class GruntParser extends PigScriptParser {
 
     public void prompt()
     {
-        if (mInteractive)
-        {
-            /*System.err.print("grunt> ");
-            System.err.flush();*/
+        if (mInteractive) {
             mConsoleReader.setDefaultPrompt("grunt> ");
         }
     }
@@ -164,6 +196,10 @@ public class GruntParser extends PigScriptParser {
     protected void quit()
     {
         mDone = true;
+    }
+
+    public boolean isDone() {
+        return mDone;
     }
     
     protected void processDescribe(String alias) throws IOException {
@@ -173,21 +209,100 @@ public class GruntParser extends PigScriptParser {
         mPigServer.dumpSchema(alias);
     }
 
-    protected void printAliases() throws IOException {
-        mPigServer.printAliases();
+    protected void processExplain(String alias, String script, boolean isVerbose, 
+                                  String format, String target, 
+                                  List<String> params, List<String> files) 
+        throws IOException, ParseException {
+        
+        if (null != mExplain) {
+            return;
+        }
+
+        try {
+            mExplain = new ExplainState(alias, target, script, isVerbose, format);
+            
+            if (script != null) {
+                if (!"true".equalsIgnoreCase(mPigServer.
+                                             getPigContext()
+                                             .getProperties().
+                                             getProperty("opt.multiquery","true"))) {
+                    throw new ParseException("Cannot explain script if multiquery is disabled.");
+                }
+                setBatchOn();
+                try {
+                    loadScript(script, true, true, params, files);
+                } catch(IOException e) {
+                    discardBatch();
+                    throw e;
+            } catch (ParseException e) {
+                    discardBatch();
+                    throw e;
+                }
+            }
+
+            mExplain.mLast = true;
+            explainCurrentBatch();
+
+        } finally {
+            if (script != null) {
+                discardBatch();
+            }
+            mExplain = null;
+        }
     }
 
+    protected void explainCurrentBatch() throws IOException {
+        PrintStream lp = System.out;
+        PrintStream pp = System.out;
+        PrintStream ep = System.out;
+        
+        if (!(mExplain.mLast && mExplain.mCount == 0)) {
+            if (mPigServer.isBatchEmpty()) {
+                return;
+            }
+        }
 
-    protected void processExplain(String alias) throws IOException {
-        mPigServer.explain(alias, System.out);
+        mExplain.mCount++;
+        boolean markAsExecuted = (mExplain.mScript != null);
+
+        if (mExplain.mTarget != null) {
+            File file = new File(mExplain.mTarget);
+            
+            if (file.isDirectory()) {
+                String sCount = (mExplain.mLast && mExplain.mCount == 1)?"":"_"+mExplain.mCount;
+                lp = new PrintStream(new File(file, "logical_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                pp = new PrintStream(new File(file, "physical_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                ep = new PrintStream(new File(file, "exec_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                mPigServer.explain(mExplain.mAlias, mExplain.mFormat, 
+                                   mExplain.mVerbose, markAsExecuted, lp, pp, ep);
+                lp.close();
+                pp.close();
+                ep.close();
+            }
+            else {
+                boolean append = !(mExplain.mCount==1);
+                lp = pp = ep = new PrintStream(new FileOutputStream(mExplain.mTarget, append));
+                mPigServer.explain(mExplain.mAlias, mExplain.mFormat, 
+                                   mExplain.mVerbose, markAsExecuted, lp, pp, ep);
+                lp.close();
+            }
+        }
+        else {
+            mPigServer.explain(mExplain.mAlias, mExplain.mFormat, 
+                               mExplain.mVerbose, markAsExecuted, lp, pp, ep);
+        }
+    }
+
+    protected void printAliases() throws IOException {
+        mPigServer.printAliases();
     }
     
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
     }
 
-    private String runPreprocessor(String script, ArrayList<String> params, 
-                                   ArrayList<String> files) 
+    private String runPreprocessor(String script, List<String> params, 
+                                   List<String> files) 
         throws IOException, ParseException {
 
         ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
@@ -206,7 +321,30 @@ public class GruntParser extends PigScriptParser {
     }
 
     protected void processScript(String script, boolean batch, 
-                                 ArrayList<String> params, ArrayList<String> files) 
+                                 List<String> params, List<String> files) 
+        throws IOException, ParseException {
+        
+        if (script == null) {
+            executeBatch();
+            return;
+        }
+        
+        if (batch) {
+            setBatchOn();
+            mPigServer.setJobName(script);
+            try {
+                loadScript(script, true, mLoadOnly, params, files);
+                executeBatch();
+            } finally {
+                discardBatch();
+            }
+        } else {
+            loadScript(script, false, mLoadOnly, params, files);
+        }
+    }
+
+    private void loadScript(String script, boolean batch, boolean loadOnly,
+                            List<String> params, List<String> files) 
         throws IOException, ParseException {
         
         Reader inputReader;
@@ -217,6 +355,9 @@ public class GruntParser extends PigScriptParser {
             String cmds = runPreprocessor(script, params, files);
 
             if (mInteractive && !batch) { // Write prompt and echo commands
+                // Console reader treats tabs in a special way
+                cmds = cmds.replaceAll("\t","    ");
+
                 reader = new ConsoleReader(new ByteArrayInputStream(cmds.getBytes()),
                                            new OutputStreamWriter(System.out));
                 reader.setHistory(mConsoleReader.getHistory());
@@ -234,16 +375,18 @@ public class GruntParser extends PigScriptParser {
             throw new ParseException("Cannot access file: " + script);
         }
 
-        // In batch mode: Use a new server to avoid side-effects (handles, etc)
-        PigServer pigServer = batch ? 
-            new PigServer(mPigServer.getPigContext(), false) : mPigServer;
-            
         GruntParser parser = new GruntParser(inputReader);
-        parser.setParams(pigServer);
+        parser.setParams(mPigServer);
         parser.setConsoleReader(reader);
         parser.setInteractive(interactive);
+        parser.setLoadOnly(loadOnly);
+        parser.mExplain = mExplain;
         
-        parser.parseStopOnError();
+        parser.prompt();
+        while(!parser.isDone()) {
+            parser.parse();
+        }
+
         if (interactive) {
             System.out.println("");
         }
@@ -261,7 +404,6 @@ public class GruntParser extends PigScriptParser {
         }
         else if (key.equals("job.name"))
         {
-            //mPigServer.setJobName(unquote(value));
             mPigServer.setJobName(value);
         }
         else if (key.equals("stream.skippath")) {
@@ -284,6 +426,8 @@ public class GruntParser extends PigScriptParser {
     
     protected void processCat(String path) throws IOException
     {
+        executeBatch();
+
         try {
             byte buffer[] = new byte[65536];
             ElementDescriptor dfsPath = mDfs.asElement(path);
@@ -356,10 +500,10 @@ public class GruntParser extends PigScriptParser {
 
     protected void processDump(String alias) throws IOException
     {
-        Iterator result = mPigServer.openIterator(alias);
+        Iterator<Tuple> result = mPigServer.openIterator(alias);
         while (result.hasNext())
         {
-            Tuple t = (Tuple) result.next();
+            Tuple t = result.next();
             System.out.println(t);
         }
     }
@@ -379,7 +523,7 @@ public class GruntParser extends PigScriptParser {
             else
             {    
                 job.killJob();
-                log.error("kill submited.");
+                log.error("kill submitted.");
             }
         }
     }
@@ -458,6 +602,8 @@ public class GruntParser extends PigScriptParser {
 
     protected void processMove(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mDfs.asElement(src);
             ElementDescriptor dstPath = mDfs.asElement(dst);
@@ -475,6 +621,8 @@ public class GruntParser extends PigScriptParser {
     
     protected void processCopy(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mDfs.asElement(src);
             ElementDescriptor dstPath = mDfs.asElement(dst);
@@ -488,6 +636,8 @@ public class GruntParser extends PigScriptParser {
     
     protected void processCopyToLocal(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mDfs.asElement(src);
             ElementDescriptor dstPath = mLfs.asElement(dst);
@@ -501,6 +651,8 @@ public class GruntParser extends PigScriptParser {
 
     protected void processCopyFromLocal(String src, String dst) throws IOException
     {
+        executeBatch();
+
         try {
             ElementDescriptor srcPath = mLfs.asElement(src);
             ElementDescriptor dstPath = mDfs.asElement(dst);
@@ -521,17 +673,23 @@ public class GruntParser extends PigScriptParser {
     protected void processPig(String cmd) throws IOException
     {
         int start = 1;
-        if (!mInteractive)
+        if (!mInteractive) {
             start = getLineNumber();
-        if (cmd.charAt(cmd.length() - 1) != ';')
-            mPigServer.registerQuery(cmd + ";", start); 
-        else 
+        }
+        
+        if (cmd.charAt(cmd.length() - 1) != ';') {
+            mPigServer.registerQuery(cmd + ";", start);
+        }
+        else { 
             mPigServer.registerQuery(cmd, start);
+        }
     }
 
     protected void processRemove(String path, String options ) throws IOException
     {
         ElementDescriptor dfsPath = mDfs.asElement(path);
+
+        executeBatch();
         
         if (!dfsPath.exists()) {
             if (options == null || !options.equalsIgnoreCase("force")) {
@@ -544,11 +702,35 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    private class ExplainState {
+        public long mTime;
+        public int mCount;
+        public String mAlias;
+        public String mTarget;
+        public String mScript;
+        public boolean mVerbose;
+        public String mFormat;
+        public boolean mLast;
+
+        public ExplainState(String alias, String target, String script,
+                            boolean verbose, String format) {
+            mTime = new Date().getTime();
+            mCount = 0;
+            mAlias = alias;
+            mTarget = target;
+            mScript = script;
+            mVerbose = verbose;
+            mFormat = format;
+            mLast = false;
+        }
+    }        
+
     private PigServer mPigServer;
     private DataStorage mDfs;
     private DataStorage mLfs;
     private Properties mConf;
     private JobClient mJobClient;
     private boolean mDone;
-
+    private boolean mLoadOnly;
+    private ExplainState mExplain;
 }

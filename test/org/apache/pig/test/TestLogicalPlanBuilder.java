@@ -1954,14 +1954,17 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     public LogicalPlan buildPlan(String query, ClassLoader cldr) {
         LogicalPlanBuilder.classloader = cldr;
-        LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
 
         try {
+            pigContext.connect();
+            LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
+
             LogicalPlan lp = builder.parse("Test-Plan-Builder",
                                            query,
                                            aliases,
                                            logicalOpTable,
-                                           aliasOp);
+                                           aliasOp,
+                                           fileNameMap);
             List<LogicalOperator> roots = lp.getRoots();
             
             if(roots.size() > 0) {
@@ -1995,5 +1998,6 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+    Map<String, String> fileNameMap = new HashMap<String, String>();
     PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
 }

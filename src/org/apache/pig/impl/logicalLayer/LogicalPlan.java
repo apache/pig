@@ -58,6 +58,24 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
 
         lpp.print(out);
     }
+
+    public void explain(PrintStream ps, String format, boolean verbose) 
+        throws VisitorException, IOException {
+        ps.println("#-----------------------------------------------");
+        ps.println("# Logical Plan:");
+        ps.println("#-----------------------------------------------");
+                
+        if (format.equals("text")) {
+            LOPrinter lpp = new LOPrinter(ps, this);
+            lpp.setVerbose(verbose);
+            lpp.visit();
+        } else if (format.equals("dot")) {
+            DotLOPrinter lpp = new DotLOPrinter(this, ps);
+            lpp.setVerbose(verbose);
+            lpp.dump();
+            ps.println("");
+        }
+    }
     
 //    public String toString() {
 //        if(mOps.size() == 0)

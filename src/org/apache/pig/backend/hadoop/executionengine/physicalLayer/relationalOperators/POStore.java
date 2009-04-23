@@ -46,20 +46,21 @@ import org.apache.pig.impl.plan.VisitorException;
  *
  */
 public class POStore extends PhysicalOperator {
-    /**
-     * 
-     */
+
     private static final long serialVersionUID = 1L;
-    // The user defined load function or a default load function
-    private StoreFunc storer;
-    // The filespec on which the operator is based
-    FileSpec sFile;
-    // The stream used to bind to by the loader
-    OutputStream os;
-    // PigContext passed to us by the operator creator
-    PigContext pc;
-    
+    private static Result empty = new Result(POStatus.STATUS_NULL, null);
+    private StoreFunc storer;    
     private final Log log = LogFactory.getLog(getClass());
+    private POStoreImpl impl;
+    private FileSpec sFile;
+
+    // flag to distinguish user stores from MRCompiler stores.
+    private boolean isTmpStore;
+    
+    // If we know how to reload the store, here's how. The lFile
+    // FileSpec is set in PigServer.postProcess. It can be used to
+    // reload this store, if the optimizer has the need.
+    private FileSpec lFile;
     
     public POStore(OperatorKey k) {
         this(k, -1, null);
@@ -74,87 +75,63 @@ public class POStore extends PhysicalOperator {
     }
     
     /**
-     * Set up the storer by 
-     * 1) Instantiating the store func
-     * 2) Opening an output stream to the specified file and
-     * 3) Binding to the output stream
+     * Set up the storer
      * @throws IOException
      */
-    private void setUp() throws IOException{
-        storer = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
-        os = FileLocalizer.create(sFile.getFileName(), pc);
-        storer.bindTo(os);
+    public void setUp() throws IOException{
+        if (impl != null) {
+            try{
+                storer = impl.createStoreFunc(sFile);
+            }catch (IOException ioe) {
+                int errCode = 2081;
+                String msg = "Unable to setup the store function.";            
+                throw new ExecException(msg, errCode, PigException.BUG, ioe);
+            }
+        }
     }
     
     /**
-     * At the end of processing, the outputstream is closed
-     * using this method
+     * Called at the end of processing for clean up.
      * @throws IOException
      */
-    private void tearDown() throws IOException{
-        os.close();
-    }
+    public void tearDown() throws IOException{
+        if (impl != null) {
+            impl.tearDown();
+        }
+   }
     
     /**
      * To perform cleanup when there is an error.
-     * Uses the FileLocalizer method which only 
-     * deletes the file but not the dirs created
-     * with it.
      * @throws IOException
      */
-    private void cleanUp() throws IOException{
-        String fName = sFile.getFileName();
-        os.flush();
-        if(FileLocalizer.fileExists(fName,pc))
-            FileLocalizer.delete(fName,pc);
+    public void cleanUp() throws IOException{
+        if (impl != null) {
+            impl.cleanUp();
+        }
     }
     
-    /**
-     * The main method used by the local execution engine
-     * to store tuples into the specified file using the
-     * specified store function. One call to this method
-     * retrieves all tuples from its predecessor operator
-     * and stores it into the file till it recieves an EOP.
-     * 
-     * If there is an error, the cleanUp routine is called
-     * and then the tearDown is called to close the OutputStream
-     * 
-     * @return Whatever the predecessor returns
-     *          A null from the predecessor is ignored
-     *          and processing of further tuples continued
-     */
-    public Result store() throws ExecException{
-        try{
-            setUp();
-        }catch (IOException ioe) {
-            int errCode = 2081;
-            String msg = "Unable to setup the store function.";            
-            throw new ExecException(msg, errCode, PigException.BUG, ioe);
+    @Override
+    public Result getNext(Tuple t) throws ExecException {
+        Result res = processInput();
+        try {
+            switch (res.returnStatus) {
+            case POStatus.STATUS_OK:
+                storer.putNext((Tuple)res.result);
+                res = empty;
+                break;
+            case POStatus.STATUS_EOP:
+                break;
+            case POStatus.STATUS_ERR:
+            case POStatus.STATUS_NULL:
+            default:
+                break;
+            }
+        } catch (IOException ioe) {
+            int errCode = 2135;
+            String msg = "Received error from store function." + ioe.getMessage();
+            throw new ExecException(msg, errCode, ioe);
         }
-        try{
-            Result res;
-            Tuple inpValue = null;
-            while(true){
-                res = processInput();
-                if(res.returnStatus==POStatus.STATUS_OK)
-                    storer.putNext((Tuple)res.result);
-                else if(res.returnStatus==POStatus.STATUS_NULL)
-                    continue;
-                else
-                    break;
-            }
-            if(res.returnStatus==POStatus.STATUS_EOP){
-                storer.finish();
-            }
-            else{
-                cleanUp();
-            }
-            tearDown();
-            return res;
-        }catch(IOException e){
-            log.error("Received error from storer function: " + e);
-            return new Result();
-        }
+        return res;
     }
 
     @Override
@@ -172,14 +149,8 @@ public class POStore extends PhysicalOperator {
 
     @Override
     public boolean supportsMultipleOutputs() {
-        return false;
+        return true;
     }
-
-    public StoreFunc getStorer() {
-        return storer;
-    }
-
-    
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
@@ -190,16 +161,27 @@ public class POStore extends PhysicalOperator {
         return sFile;
     }
 
-    public void setSFile(FileSpec file) {
-        sFile = file;
+    public void setSFile(FileSpec sFile) {
+        this.sFile = sFile;
     }
 
-    public PigContext getPc() {
-        return pc;
+    public void setInputSpec(FileSpec lFile) {
+        this.lFile = lFile;
     }
 
-    public void setPc(PigContext pc) {
-        this.pc = pc;
+    public FileSpec getInputSpec() {
+        return lFile;
+    }
+    
+    public void setIsTmpStore(boolean tmp) {
+        isTmpStore = tmp;
+    }
+    
+    public boolean isTmpStore() {
+        return isTmpStore;
     }
 
+    public void setStoreImpl(POStoreImpl impl) {
+        this.impl = impl;
+    }
 }

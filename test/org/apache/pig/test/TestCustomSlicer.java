@@ -77,9 +77,9 @@ protected final Log log = LogFactory.getLog(getClass());
         if(execType == ExecType.LOCAL)
             return;
         int numvals = 50;
-        String query = "vals = foreach (group (load '"
+        String query = "vals = foreach (group (load '/tmp/foo"
                 + numvals
-                + "'using org.apache.pig.test.RangeSlicer()) all) generate COUNT($1);";
+                + "'using org.apache.pig.test.RangeSlicer('50')) all) generate COUNT($1);";
         pigServer.registerQuery(query);
         Iterator<Tuple> it = pigServer.openIterator("vals");
         Tuple cur = it.next();
