@@ -1163,8 +1163,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     @Override
     public void visit(LOLoad loLoad) throws VisitorException {
         String scope = loLoad.getOperatorKey().scope;
-        // This would be a root operator. We don't need to worry about finding
-        // its predecessors
         POLoad load = new POLoad(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), loLoad.isSplittable());
         load.setLFile(loLoad.getInputFile());
@@ -1173,6 +1171,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         currentPlan.add(load);
         LogToPhyMap.put(loLoad, load);
         this.load = loLoad.getLoadFunc();
+
+        // Load is typically a root operator, but in the multiquery
+        // case it might have a store as a predecessor.
+        List<LogicalOperator> op = loLoad.getPlan().getPredecessors(loLoad); 
+        PhysicalOperator from;
+        
+        if(op != null) {
+            from = LogToPhyMap.get(op.get(0));
+
+            try {
+                currentPlan.connect(from, load);
+            } catch (PlanException e) {
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
+        }
     }
 
     @Override
@@ -1181,7 +1196,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         POStore store = new POStore(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)));
         store.setSFile(loStore.getOutputFile());
-        store.setPc(pc);
+        store.setInputSpec(loStore.getInputSpec());
         currentPlan.add(store);
         
         List<LogicalOperator> op = loStore.getPlan().getPredecessors(loStore); 

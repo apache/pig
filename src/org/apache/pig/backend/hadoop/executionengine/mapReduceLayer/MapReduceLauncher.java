@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -44,6 +45,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.DotMRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStreamHandler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -75,7 +77,7 @@ public class MapReduceLauncher extends Launcher{
                                                    ExecException,
                                                    JobCreationException,
                                                    Exception {
-        long sleepTime = 5000;
+        long sleepTime = 500;
         aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
         
@@ -84,70 +86,79 @@ public class MapReduceLauncher extends Launcher{
         Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
         JobClient jobClient = ((HExecutionEngine)exe).getJobClient();
 
-        JobControlCompiler jcc = new JobControlCompiler();
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
-        JobControl jc = jcc.compile(mrp, grpName, conf, pc);
-        
-        int numMRJobs = jc.getWaitingJobs().size();
+        List<Job> failedJobs = new LinkedList<Job>();
+        List<Job> succJobs = new LinkedList<Job>();
+        JobControl jc;
+        int totalMRJobs = mrp.size();
+        int numMRJobsCompl = 0;
+        int numMRJobsCurrent = 0;
+        double lastProg = -1;
         
         //create the exception handler for the job control thread
         //and register the handler with the job control thread
         JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
-        Thread jcThread = new Thread(jc);
-        jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
-        jcThread.start();
 
-        double lastProg = -1;
-        int perCom = 0;
-        while(!jc.allFinished()){
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {}
-            double prog = calculateProgress(jc, jobClient)/numMRJobs;
-            if(prog>=(lastProg+0.01)){
-                perCom = (int)(prog * 100);
-                if(perCom!=100)
-                    log.info( perCom + "% complete");
+        while((jc = jcc.compile(mrp, grpName)) != null) {
+            numMRJobsCurrent = jc.getWaitingJobs().size();
+
+            Thread jcThread = new Thread(jc);
+            jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
+            jcThread.start();
+
+            while(!jc.allFinished()){
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {}
+                double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
+                if(prog>=(lastProg+0.01)){
+                    int perCom = (int)(prog * 100);
+                    if(perCom!=100)
+                        log.info( perCom + "% complete");
+                }
+                lastProg = prog;
             }
-            lastProg = prog;
-        }
-        
-        //check for the jobControlException first
-        //if the job controller fails before launching the jobs then there are
-        //no jobs to check for failure
-        if(jobControlException != null) {
+
+            //check for the jobControlException first
+            //if the job controller fails before launching the jobs then there are
+            //no jobs to check for failure
+            if(jobControlException != null) {
         	if(jobControlException instanceof PigException) {
-        		throw jobControlException;
+                    throw jobControlException;
         	} else {
-	        	int errCode = 2117;
-	        	String msg = "Unexpected error when launching map reduce job.";        	
-	    		throw new ExecException(msg, errCode, PigException.BUG, jobControlException);
+                    int errCode = 2117;
+                    String msg = "Unexpected error when launching map reduce job.";        	
+                    throw new ExecException(msg, errCode, PigException.BUG, jobControlException);
         	}
+            }
+
+            numMRJobsCompl += numMRJobsCurrent;
+            failedJobs.addAll(jc.getFailedJobs());
+            succJobs.addAll(jc.getSuccessfulJobs());
+            jcc.moveResults();
+            jc.stop(); 
         }
-        
+
         // Look to see if any jobs failed.  If so, we need to report that.
-        List<Job> failedJobs = jc.getFailedJobs();
         if (failedJobs != null && failedJobs.size() > 0) {
             log.error("Map reduce job failed");
             for (Job fj : failedJobs) {
                 getStats(fj, jobClient, true, pc);
             }
-            jc.stop(); 
             return false;
         }
 
         Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
                 
-        List<Job> succJobs = jc.getSuccessfulJobs();
-        if(succJobs!=null)
+        if(succJobs!=null) {
             for(Job job : succJobs){
                 getStats(job,jobClient, false, pc);
                 if(aggregateWarning) {
                 	computeWarningAggregate(job, jobClient, warningAggMap);
                 }
             }
-
-        jc.stop();
+        }
         
         if(aggregateWarning) {
         	CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
@@ -162,13 +173,27 @@ public class MapReduceLauncher extends Launcher{
     public void explain(
             PhysicalPlan php,
             PigContext pc,
-            PrintStream ps) throws PlanException, VisitorException,
+            PrintStream ps,
+            String format,
+            boolean verbose) throws PlanException, VisitorException,
                                    IOException {
         log.trace("Entering MapReduceLauncher.explain");
         MROperPlan mrp = compile(php, pc);
 
-        MRPrinter printer = new MRPrinter(ps, mrp);
-        printer.visit();
+        if (format.equals("text")) {
+            MRPrinter printer = new MRPrinter(ps, mrp);
+            printer.setVerbose(verbose);
+            printer.visit();
+        } else {
+            ps.println("#--------------------------------------------------");
+            ps.println("# Map Reduce Plan                                  ");
+            ps.println("#--------------------------------------------------");
+            
+            DotMRPrinter printer =new DotMRPrinter(mrp, ps);
+            printer.setVerbose(verbose);
+            printer.dump();
+            ps.println("");
+        }
     }
 
     private MROperPlan compile(
@@ -197,10 +222,6 @@ public class MapReduceLauncher extends Launcher{
         POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);
         pkgAnnotator.visit();
         
-        // check whether stream operator is present
-        MRStreamHandler checker = new MRStreamHandler(plan);
-        checker.visit();
-        
         // optimize joins
         LastInputStreamingOptimizer liso = 
             new MRCompiler.LastInputStreamingOptimizer(plan, lastInputChunkSize);
@@ -211,6 +232,27 @@ public class MapReduceLauncher extends Launcher{
         // an appropriate NullableXXXWritable object
         KeyTypeDiscoveryVisitor kdv = new KeyTypeDiscoveryVisitor(plan);
         kdv.visit();
+
+        // removes the filter(constant(true)) operators introduced by
+        // splits.
+        NoopFilterRemover fRem = new NoopFilterRemover(plan);
+        fRem.visit();
+        
+        MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
+        mqOptimizer.visit();
+
+        // removes unnecessary stores (as can happen with splits in
+        // some cases.). This has to run after the MultiQuery and
+        // NoopFilterRemover.
+        NoopStoreRemover sRem = new NoopStoreRemover(plan);
+        sRem.visit();
+
+        // check whether stream operator is present
+        // after MultiQueryOptimizer because it can shift streams from
+        // map to reduce, etc.
+        MRStreamHandler checker = new MRStreamHandler(plan);
+        checker.visit();
+        
         return plan;
     }
     

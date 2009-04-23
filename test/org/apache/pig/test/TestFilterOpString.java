@@ -32,6 +32,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
+import org.apache.pig.impl.io.FileLocalizer;
+
 import junit.framework.TestCase;
 
 public class TestFilterOpString extends TestCase {
@@ -46,6 +48,7 @@ public class TestFilterOpString extends TestCase {
     @Before
     @Override
     protected void setUp() throws Exception {
+        FileLocalizer.deleteTempFiles();
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 

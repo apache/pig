@@ -34,6 +34,7 @@ public class MRPrinter extends MROpPlanVisitor {
 
     private PrintStream mStream = null;
     private int mIndent = 0;
+    private boolean isVerbose = true;
 
     /**
      * @param ps PrintStream to output plan information to
@@ -42,9 +43,13 @@ public class MRPrinter extends MROpPlanVisitor {
     public MRPrinter(PrintStream ps, MROperPlan plan) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
         mStream = ps;
-        mStream.println("--------------------------------------------------");
-        mStream.println("| Map Reduce Plan                                |");
-        mStream.println("--------------------------------------------------");
+        mStream.println("#--------------------------------------------------");
+        mStream.println("# Map Reduce Plan                                  ");
+        mStream.println("#--------------------------------------------------");
+    }
+
+    public void setVerbose(boolean verbose) {
+        isVerbose = verbose;
     }
 
     @Override
@@ -53,18 +58,21 @@ public class MRPrinter extends MROpPlanVisitor {
         if (mr.mapPlan != null && mr.mapPlan.size() > 0) {
             mStream.println("Map Plan");
             PlanPrinter printer = new PlanPrinter(mr.mapPlan, mStream);
+            printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println("--------");
         }
         if (mr.combinePlan != null && mr.combinePlan.size() > 0) {
             mStream.println("Combine Plan");
             PlanPrinter printer = new PlanPrinter(mr.combinePlan, mStream);
+            printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println("--------");
         }
         if (mr.reducePlan != null && mr.reducePlan.size() > 0) {
             mStream.println("Reduce Plan");
             PlanPrinter printer = new PlanPrinter(mr.reducePlan, mStream);
+            printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println("--------");
         }
@@ -73,6 +81,7 @@ public class MRPrinter extends MROpPlanVisitor {
             mStream.println("Quantile file: " + mr.getQuantFile());
         }
         mStream.println("----------------");
+        mStream.println("");
     }
 }
 

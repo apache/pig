@@ -102,6 +102,41 @@ public class HBaseStorage extends Utf8StorageConverter implements Slicer,
     }
 
     private void ensureTable(String tablename) throws IOException {
+        LOG.info("tablename: "+tablename);
+
+        // We're looking for the right scheme here (actually, we don't
+        // care what the scheme is as long as it is one and it's
+        // different from hdfs and file. If the user specified to use
+        // the multiquery feature and did not specify a scheme we will
+        // have transformed it to an absolute path. In that case we'll
+        // take the last component and guess that's what was
+        // meant. We'll print a warning in that case.
+        int index;
+        if(-1 != (index = tablename.indexOf("://"))) {
+            if (tablename.startsWith("hdfs:") 
+                || tablename.startsWith("file:")) {
+                index = tablename.lastIndexOf("/");
+                if (-1 == index) {
+                    index = tablename.lastIndexOf("\\");
+                }
+
+                if (-1 == index) {
+                    throw new IOException("Got tablename: "+tablename
+                        +". Either turn off multiquery (-no_multiquery)"
+                        +" or specify load path as \"hbase://<tablename>\".");
+                } else {
+                    String in = tablename;
+                    tablename = tablename.substring(index+1);
+                    LOG.warn("Got tablename: "+in+" Assuming you meant table: "
+                             +tablename+". Either turn off multiquery (-no_multiquery) "
+                             +"or specify load path as \"hbase://<tablename>\" "
+                             +"to avoid this warning.");
+                }
+            } else {
+                tablename = tablename.substring(index+3);
+            }
+        }
+
         if (m_table == null) {
             m_table = new HTable(m_conf, tablename);
         }

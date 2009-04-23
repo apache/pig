@@ -51,7 +51,7 @@ import org.apache.commons.logging.LogFactory;
  * for graph manipulators (such as the validators and optimizers) to
  * understand the internals of various nodes.
  */
-public abstract class OperatorPlan<E extends Operator> implements Iterable, Serializable, Cloneable {
+public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, Serializable, Cloneable {
     protected Map<E, OperatorKey> mOps;
     protected Map<OperatorKey, E> mKeys;
     protected MultiMap<E, E> mFromEdges;
@@ -323,66 +323,95 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable, Seri
      * @throws PlanException
      */
     public OperatorPlan<E> merge(OperatorPlan<E> inpPlan) throws PlanException {
+       return doMerge(inpPlan, false);
+    }
+
+    /**
+     * Merges the operators in the incoming plan with this plan's operators.
+     * The plans can have shared components. 
+     *
+     * @param inpPlan
+     * @return this pointer
+     * @throws PlanException
+     */
+    public OperatorPlan<E> mergeSharedPlan(OperatorPlan<E> inpPlan) throws PlanException {
+        return doMerge(inpPlan, true);
+    }
+
+    private OperatorPlan<E> doMerge(OperatorPlan<E> inpPlan, boolean allowSharedPlan) throws PlanException {
         Map<E, OperatorKey> inpOps = inpPlan.mOps;
         Set<E> curOpsKeySet = mOps.keySet();
         for (Map.Entry<E, OperatorKey> mapEnt : inpOps.entrySet()) {
             if (curOpsKeySet.contains(mapEnt.getKey())) {
-                PlanException pe = new PlanException(
+                if (!allowSharedPlan) {
+                    PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
-                                + "mutually exclusive plans is the only supported merge.");
-                log.error(pe.getMessage());
-                throw pe;
+                            + "mutually exclusive plans is the only supported merge.");
+                    log.error(pe.getMessage());
+                    throw pe;
+                }
+            } else {
+                mOps.put(mapEnt.getKey(), mapEnt.getValue());
             }
-            mOps.put(mapEnt.getKey(), mapEnt.getValue());
         }
 
         Map<OperatorKey, E> inpKeys = inpPlan.mKeys;
         Set<OperatorKey> curOKKeySet = mKeys.keySet();
         for (Map.Entry<OperatorKey, E> mapEnt : inpKeys.entrySet()) {
             if (curOKKeySet.contains(mapEnt.getKey())) {
-                PlanException pe = new PlanException(
+                if (!allowSharedPlan) {
+                    PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
-                                + "mutually exclusive plans is the only supported merge.");
-                log.error(pe.getMessage());
-                throw pe;
+                            + "mutually exclusive plans is the only supported merge.");
+                    log.error(pe.getMessage());
+                    throw pe;
+                }
+            } else {
+                mKeys.put(mapEnt.getKey(), mapEnt.getValue());
             }
-            mKeys.put(mapEnt.getKey(), mapEnt.getValue());
         }
 
         MultiMap<E, E> inpFromEdges = inpPlan.mFromEdges;
         Set<E> curFEKeySet = mFromEdges.keySet();
         for (E fromEdg : inpFromEdges.keySet()) {
-            if (curFEKeySet.contains(fromEdg)) {
-                PlanException pe = new PlanException(
+            if (curFEKeySet.contains(fromEdg) && !allowSharedPlan) {
+            	PlanException pe = new PlanException(
                         "There are operators that are shared across the plans. Merge of "
-                                + "mutually exclusive plans is the only supported merge.");
+                            + "mutually exclusive plans is the only supported merge.");
                 log.error(pe.getMessage());
                 throw pe;
             }
+            
             for (E e : inpFromEdges.get(fromEdg)) {
-                mFromEdges.put(fromEdg, e);
+                if (mFromEdges.get(fromEdg) == null || !mFromEdges.get(fromEdg).contains(e)) {
+                    mFromEdges.put(fromEdg, e);
+                }
             }
         }
 
         MultiMap<E, E> inpToEdges = inpPlan.mToEdges;
         Set<E> curTEKeySet = mToEdges.keySet();
         for (E toEdg : inpToEdges.keySet()) {
-            if (curTEKeySet.contains(toEdg)) {
+            if (curTEKeySet.contains(toEdg) && !allowSharedPlan) {  
                 PlanException pe = new PlanException(
-                        "There are operators that are shared across the plans. Merge of "
-                                + "mutually exclusive plans is the only supported merge.");
+                    "There are operators that are shared across the plans. Merge of "
+                        + "mutually exclusive plans is the only supported merge.");
                 log.error(pe.getMessage());
-                throw pe;
+                throw pe;                
             }
+            
             for (E e : inpToEdges.get(toEdg)) {
-                mToEdges.put(toEdg, e);
+                if (mToEdges.get(toEdg) == null || !mToEdges.get(toEdg).contains(e)) {
+                    mToEdges.put(toEdg, e);
+                }
             }
         }
 
         markDirty();
         return this;
     }
-    
+
+
     /**
      * Utility method heavily used in the MRCompiler
      * Adds the leaf operator to the plan and connects

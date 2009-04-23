@@ -43,6 +43,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
@@ -144,6 +146,9 @@ public class PigMapReduce {
         
         //The reduce plan
         protected PhysicalPlan rp;
+
+        // Store operators
+        protected List<POStore> stores;
         
         //The POPackage operator which is the
         //root of every Map Reduce plan is
@@ -159,6 +164,7 @@ public class PigMapReduce {
         protected boolean errorInReduce = false;
         
         PhysicalOperator[] roots;
+
         private PhysicalOperator leaf;
         
         PigContext pigContext = null;
@@ -176,6 +182,8 @@ public class PigMapReduce {
             try {
                 rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.reducePlan"));
+                stores = PlanHelper.getStores(rp);
+
                 pack = (POPackage)ObjectSerializer.deserialize(jConf.get("pig.reduce.package"));
                 // To be removed
                 if(rp.isEmpty())
@@ -212,22 +220,31 @@ public class PigMapReduce {
         public void reduce(PigNullableWritable key,
                 Iterator<NullableTuple> tupIter,
                 OutputCollector<PigNullableWritable, Writable> oc,
-                Reporter reporter) throws IOException {            
-
-            if(!initialized) {
-                initialized  = true;
-                // cache the collector for use in runPipeline() which
-                // can be called from close()
+                Reporter reporter) throws IOException {
+            
+            if (!initialized) {
+                initialized = true;
+                
+                // cache the collector for use in runPipeline()
+                // which could additionally be called from close()
                 this.outputCollector = oc;
-	            pigReporter.setRep(reporter);
-	            PhysicalOperator.setReporter(pigReporter);
-	            
-	            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-	            
-	            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
-	            pigHadoopLogger.setAggregate(aggregateWarning);
-	            pigHadoopLogger.setReporter(reporter);
-	            PhysicalOperator.setPigLogger(pigHadoopLogger);
+                pigReporter.setRep(reporter);
+                PhysicalOperator.setReporter(pigReporter);
+
+                boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+	        
+                PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                pigHadoopLogger.setAggregate(aggregateWarning);
+                pigHadoopLogger.setReporter(reporter);
+                PhysicalOperator.setPigLogger(pigHadoopLogger);
+
+                for (POStore store: stores) {
+                    MapReducePOStoreImpl impl 
+                        = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                    impl.setReporter(reporter);
+                    store.setStoreImpl(impl);
+                    store.setUp();
+                }
             }
 
             // In the case we optimize the join, we combine
@@ -341,9 +358,6 @@ public class PigMapReduce {
         @Override
         public void close() throws IOException {
             super.close();
-            /*if(runnableReporter!=null)
-                runnableReporter.setDone(true);*/
-            PhysicalOperator.setReporter(null);
             
             if(errorInReduce) {
                 // there was an error in reduce - just return
@@ -364,7 +378,17 @@ public class PigMapReduce {
                      throw e;
                 }
             }
-            
+
+            for (POStore store: stores) {
+                if (!initialized) {
+                    MapReducePOStoreImpl impl 
+                        = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                    store.setStoreImpl(impl);
+                    store.setUp();
+                }
+                store.tearDown();
+            }
+                        
             //Calling EvalFunc.finish()
             UDFFinishVisitor finisher = new UDFFinishVisitor(rp, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(rp));
             try {
@@ -372,6 +396,9 @@ public class PigMapReduce {
             } catch (VisitorException e) {
                 throw new IOException("Error trying to finish UDFs",e);
             }
+            
+            PhysicalOperator.setReporter(null);
+            initialized = false;
         }
     }
     
@@ -409,20 +436,29 @@ public class PigMapReduce {
                 OutputCollector<PigNullableWritable, Writable> oc,
                 Reporter reporter) throws IOException {
             
-            if(!initialized) {
-                initialized  = true;
-	            // cache the collector for use in runPipeline()
-	            // which could additionally be called from close()
-	            this.outputCollector = oc;
-	            pigReporter.setRep(reporter);	            
-	            PhysicalOperator.setReporter(pigReporter);
-	            
-	            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+            if (!initialized) {
+                initialized = true;
+                
+                // cache the collector for use in runPipeline()
+                // which could additionally be called from close()
+                this.outputCollector = oc;
+                pigReporter.setRep(reporter);
+                PhysicalOperator.setReporter(pigReporter);
 
-	            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
-	            pigHadoopLogger.setAggregate(aggregateWarning);
-	            pigHadoopLogger.setReporter(reporter);
-	            PhysicalOperator.setPigLogger(pigHadoopLogger);
+                boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+                
+                PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                pigHadoopLogger.setAggregate(aggregateWarning);
+                pigHadoopLogger.setReporter(reporter);
+                PhysicalOperator.setPigLogger(pigHadoopLogger);
+                
+                for (POStore store: stores) {
+                    MapReducePOStoreImpl impl 
+                        = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                    impl.setReporter(reporter);
+                    store.setStoreImpl(impl);
+                    store.setUp();
+                }
             }
             
             // If the keyType is not a tuple, the MapWithComparator.collect()

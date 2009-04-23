@@ -57,7 +57,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 
 public class PigInputFormat implements InputFormat<Text, Tuple>,
-        JobConfigurable {
+       JobConfigurable {
 
     public static final Log LOG = LogFactory
             .getLog(PigInputFormat.class);
@@ -200,11 +200,25 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
         for (int i = 0; i < inputs.size(); i++) {
             try {
 				Path path = new Path(inputs.get(i).first.getFileName());
-				FileSystem fs = path.getFileSystem(job);
+                                
+                                FileSystem fs;
+                                
+                                try {
+                                    fs = path.getFileSystem(job);
+                                } catch (Exception e) {
+                                    // If an application specific
+                                    // scheme was used
+                                    // (e.g.: "hbase://table") we will fail
+                                    // getting the file system. That's
+                                    // ok, we just use the dfs in that case.
+                                    fs = new Path("/").getFileSystem(job);
+                                }
+
 				// if the execution is against Mapred DFS, set
 				// working dir to /user/<userid>
-				if(pigContext.getExecType() == ExecType.MAPREDUCE)
+				if(pigContext.getExecType() == ExecType.MAPREDUCE) {
 				    fs.setWorkingDirectory(new Path("/user", job.getUser()));
+                                }
 				
 				DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
 				ValidatingInputFileSpec spec;

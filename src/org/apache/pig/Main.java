@@ -99,6 +99,7 @@ public static void main(String args[])
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('o', "hod", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
+        opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('t', "optimizer_off", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('v', "verbose", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -120,6 +121,8 @@ public static void main(String args[])
         
         //by default warning aggregation is on
         properties.setProperty("aggregate.warning", ""+true);
+
+        properties.setProperty("opt.multiquery", ""+true);
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
@@ -190,6 +193,11 @@ public static void main(String args[])
 
             case 'm':
                 paramFiles.add(opts.getValStr());
+                break;
+
+            case 'M':
+                // turns off multiquery optimization
+                properties.setProperty("opt.multiquery",""+false);
                 break;
                             
             case 'o': 
@@ -510,6 +518,7 @@ public static void usage()
     System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
     System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
 
+    System.out.println("    -M, -no_multiquery turn multiquery optimization off; Multiquery is on by default");
 }
 
 private static String validateLogFile(String logFileName, String scriptName) {
