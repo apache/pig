@@ -31,6 +31,7 @@ package org.apache.pig.tools.pigscript.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Stack;
+import java.util.List;
 import java.util.ArrayList;
 
 import jline.ConsoleReader;
@@ -65,7 +66,7 @@ public abstract class PigScriptParser
 
 	abstract protected void processDescribe(String alias) throws IOException;
 
-	abstract protected void processExplain(String alias) throws IOException;
+	abstract protected void processExplain(String alias, String script, boolean isVerbose, String format, String target, List<String> params, List<String> files) throws IOException, ParseException;
 	
 	abstract protected void processRegister(String jar) throws IOException;
 
@@ -101,7 +102,7 @@ public abstract class PigScriptParser
 	
 	abstract protected void processIllustrate(String alias) throws IOException;
 
-	abstract protected void processScript(String script, boolean batch, ArrayList<String> params, ArrayList<String> files) throws IOException, ParseException;
+	abstract protected void processScript(String script, boolean batch, List<String> params, List<String> files) throws IOException, ParseException;
 
 	static String unquote(String s)
 	{
@@ -152,6 +153,10 @@ TOKEN: {<RUN: "run">}
 TOKEN: {<EXEC: "exec">}
 TOKEN: {<PARAM: "-param">}
 TOKEN: {<PARAM_FILE: "-param_file">}
+TOKEN: {<SCRIPT: "-script">}
+TOKEN: {<DOT: "-dot">}
+TOKEN: {<OUT: "-out">}
+TOKEN: {<BRIEF: "-brief">}
 
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
@@ -409,9 +414,7 @@ void parse() throws IOException:
 	<ALIASES>
 	{printAliases();}
 	|
-    <EXPLAIN>
-	t1 = <IDENTIFIER>
-	{processExplain(t1.image);}
+	Explain()
 	|
 	<HELP>
 	{printHelp();}
@@ -486,10 +489,58 @@ void parse() throws IOException:
 	)
 }
 
+void Explain() throws IOException:
+{
+	Token t;
+	String alias = null;
+        String script = null;
+	String format="text";
+	String target=null;
+	boolean isVerbose = true;
+	ArrayList<String> params;
+	ArrayList<String> files;
+
+}
+{
+	<EXPLAIN>
+	{
+		params = new ArrayList<String>(); 
+		files = new ArrayList<String>();
+	}
+	(
+		<BRIEF>
+		{isVerbose = false;}
+         	|
+         	<DOT>
+        	{format = "dot";}
+         	|
+		<OUT>
+		t = GetPath()
+		{target = t.image;}
+		|
+		<SCRIPT>
+		t = GetPath()
+		{script = t.image;}
+		|
+		<PARAM>
+		t = GetPath()
+		{params.add(t.image);}
+		|
+		<PARAM_FILE>
+		t = GetPath()
+		{files.add(t.image);}
+	)*
+	(
+		t = <IDENTIFIER>
+		{alias = t.image;}
+	)?
+	{processExplain(alias, script, isVerbose, format, target, params, files);}
+}
+
 void Script() throws IOException:
 {
     Token t;
-    String script;
+    String script = null;
     boolean batch = false;
     ArrayList<String> params;
     ArrayList<String> files;
@@ -515,8 +566,10 @@ void Script() throws IOException:
 		t = GetPath()
 		{files.add(t.image);}
 	)*
-	t = GetPath()
-	{script = t.image;}
+	(
+		t = GetPath()
+		{script = t.image;}
+	)?
 	{processScript(script, batch, params, files);}
 }
 
@@ -607,6 +660,14 @@ Token GetReserved () :
 	t = <RUN>
 	|
 	t = <EXEC>
+	|
+	t = <OUT>
+	|
+	t = <SCRIPT>
+	|
+	t = <DOT>
+	|
+	t = <BRIEF>
 	|
 	t = <PARAM>
 	|

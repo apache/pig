@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,9 +68,20 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
      * into the given output stream
      * @param out : OutputStream to which the visual representation is written
      */
-    public void explain(OutputStream out){
+    public void explain(OutputStream out) {
+        explain(out, true);
+    }
+
+    /**
+     * Write a visual representation of the Physical Plan
+     * into the given output stream
+     * @param out : OutputStream to which the visual representation is written
+     * @param verbose : Amount of information to print
+     */
+    public void explain(OutputStream out, boolean verbose){
         PlanPrinter<PhysicalOperator, PhysicalPlan> mpp = new PlanPrinter<PhysicalOperator, PhysicalPlan>(
                 this);
+        mpp.setVerbose(verbose);
 
         try {
             mpp.print(out);
@@ -81,6 +93,29 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             e.printStackTrace();
         }
     }
+
+    /**
+     * Write a visual representation of the Physical Plan
+     * into the given printstream
+     * @param ps : PrintStream to which the visual representation is written
+     * @param format : Format to print in
+     * @param verbose : Amount of information to print
+     */
+    public void explain(PrintStream ps, String format, boolean verbose) {
+        ps.println("#-----------------------------------------------");
+        ps.println("# Physical Plan:");
+        ps.println("#-----------------------------------------------");
+
+        if (format.equals("text")) {
+            explain((OutputStream)ps, verbose);
+            ps.println("");
+        } else if (format.equals("dot")) {
+            DotPOPrinter pp = new DotPOPrinter(this, ps);
+            pp.setVerbose(verbose);
+            pp.dump();
+        }
+        ps.println("");
+  }
     
     @Override
     public void connect(PhysicalOperator from, PhysicalOperator to)
@@ -162,7 +197,7 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
             return "Empty Plan!";
         else{
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            explain(baos);
+            explain(baos, true);
             return baos.toString();
         }
     }

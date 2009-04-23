@@ -65,6 +65,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         for (PhysicalPlan plan : inpPlans) {
             pushWalker(mCurrentWalker.spawnChildWalker(plan));
             visit();
+            popWalker();
         }
     }
 
@@ -94,7 +95,12 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     }
     
     public void visitSplit(POSplit spl) throws VisitorException{
-        //do nothing
+        List<PhysicalPlan> plans = spl.getPlans();
+        for (PhysicalPlan plan : plans) {
+            pushWalker(mCurrentWalker.spawnChildWalker(plan));
+            visit();
+            popWalker();
+        }
     }
 
 	public void visitDistinct(PODistinct distinct) throws VisitorException {
@@ -110,6 +116,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         for (PhysicalPlan plan : inpPlans) {
             pushWalker(mCurrentWalker.spawnChildWalker(plan));
             visit();
+            popWalker();
         }
 	}
     
@@ -253,6 +260,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         for (PhysicalPlan plan : inpPlans) {
             pushWalker(mCurrentWalker.spawnChildWalker(plan));
             visit();
+            popWalker();
         }
         
     }

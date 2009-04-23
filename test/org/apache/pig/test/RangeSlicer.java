@@ -39,16 +39,19 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class RangeSlicer
     implements Slicer, LoadFunc
 {
+    int numslices = 0;
+
+    public RangeSlicer(String num) {
+        numslices = Integer.parseInt(num);
+    }
 
     /**
-     * Expects location to be a Stringified integer, and makes
-     * Integer.parseInt(location) slices. Each slice generates a single value,
+     * Each slice generates a single value,
      * its index in the sequence of slices.
      */
     public Slice[] slice (DataStorage store, String location)
         throws IOException
     {
-        int numslices = Integer.parseInt(location);
         Slice[] slices = new Slice[numslices];
         for (int i = 0; i < slices.length; i++) {
             slices[i] = new SingleValueSlice(i);
@@ -57,10 +60,8 @@ public class RangeSlicer
     }
 
     public void validate(DataStorage store, String location) throws IOException {
-        try {
-            Integer.parseInt(location);
-        } catch (NumberFormatException nfe) {
-            throw new IOException(nfe.getMessage());
+        if (!location.matches(".*/tmp/foo.*")) {
+            throw new IOException("Wrong Path");
         }
     }
 

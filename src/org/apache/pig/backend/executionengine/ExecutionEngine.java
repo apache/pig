@@ -123,8 +123,11 @@ public interface ExecutionEngine {
      *
      * @param plan PhysicalPlan to explain
      * @param stream Stream to print output to
+     * @param format Format to print in
+     * @param verbose Amount of information to print
      */
-    public void explain(PhysicalPlan plan, PrintStream stream);
+    public void explain(PhysicalPlan plan, PrintStream stream, 
+                        String format, boolean verbose);
 
     /**
      * Return currently running jobs (can be useful for admin purposes)

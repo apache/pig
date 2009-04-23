@@ -34,7 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
+import java.util.Stack;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -50,10 +51,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOCogroup;
+import org.apache.pig.impl.logicalLayer.LOFRJoin;
+import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -65,6 +68,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -99,24 +103,42 @@ public class PigServer {
         throw new PigException(msg, errCode, PigException.BUG);
     }
 
-
-    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-    Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
-    Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-    PigContext pigContext;
+    /*
+     * The data structure to support grunt shell operations. 
+     * The grunt shell can only work on one graph at a time. 
+     * If a script is contained inside another script, the grunt
+     * shell first saves the current graph on the stack and works 
+     * on a new graph. After the nested script is done, the grunt 
+     * shell pops up the saved graph and continues working on it.
+     */
+    private Stack<Graph> graphs = new Stack<Graph>();
     
+    /*
+     * The current Graph the grunt shell is working on.
+     */
+    private Graph currDAG;
+ 
+    private PigContext pigContext;
+    
+    private static int scopeCounter = 0;
     private String scope = constructScope();
+
     private ArrayList<String> cachedScript = new ArrayList<String>();
     private boolean aggregateWarning = true;
+    private boolean isMultiQuery = true;
     
     private String constructScope() {
         // scope servers for now as a session id
-        // scope = user_id + "-" + time_stamp;
         
-        String user = System.getProperty("user.name", "DEFAULT_USER_ID");
-        String date = (new Date()).toString();
-       
-        return user + "-" + date;
+        // String user = System.getProperty("user.name", "DEFAULT_USER_ID");
+        // String date = (new Date()).toString();
+
+        // scope is not really used in the system right now. It will
+        // however make your explain statements look lengthy if set to
+        // username-date. For now let's simplify the scope, if a real
+        // scope is needed again, we might need to update all the
+        // operators to not include scope in their name().
+        return ""+(++scopeCounter);
     }
     
     public PigServer(String execTypeString) throws ExecException, IOException {
@@ -128,7 +150,7 @@ public class PigServer {
     }
 
     public PigServer(ExecType execType, Properties properties) throws ExecException {
-        this(new PigContext(execType, properties), true);
+        this(new PigContext(execType, properties));
     }
   
     public PigServer(PigContext context) throws ExecException {
@@ -137,17 +159,16 @@ public class PigServer {
     
     public PigServer(PigContext context, boolean connect) throws ExecException {
         this.pigContext = context;
-        if (this.pigContext.getProperties().getProperty(PigContext.JOB_NAME) == null) {
-            setJobName("DefaultJobName") ;
-        }
+        currDAG = new Graph(false);
         
         aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-        
+        isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
+
         if (connect) {
             pigContext.connect();
         }
     }
-
+    
     public PigContext getPigContext(){
         return pigContext;
     }
@@ -159,7 +180,84 @@ public class PigServer {
     public void debugOff() {
         pigContext.debug = false;
     }
-    
+ 
+    /**
+     * Starts batch execution mode.
+     */
+    public void setBatchOn() {
+        log.info("Create a new graph.");
+        
+        if (currDAG != null) {
+            graphs.push(currDAG);
+        }
+        currDAG = new Graph(isMultiQuery);
+    }
+
+    /**
+     * Retrieve the current execution mode.
+     * 
+     * @return true if the execution mode is batch; false otherwise.
+     */
+    public boolean isBatchOn() {
+        // Batch is on when there are multiple graphs on the
+        // stack. That gives the right response even if multiquery was
+        // turned off.
+        return graphs.size() > 0;
+    }
+
+    /**
+     * Returns whether there is anything to process in the current batch.
+     * @throws FrontendException
+     * @return true if there are no stores to process in the current
+     * batch, false otherwise.
+     */
+    public boolean isBatchEmpty() throws FrontendException {
+        if (currDAG == null) {
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
+        }
+
+        return currDAG.isBatchEmpty();
+    }
+
+    /**
+     * Submits a batch of Pig commands for execution. 
+     * 
+     * @throws FrontendException
+     * @throws ExecException
+     */
+    public void executeBatch() throws FrontendException, ExecException {
+        if (!isMultiQuery) {
+            // ignore if multiquery is off
+            return;
+        }
+
+        if (currDAG == null || !isBatchOn()) {
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
+        }
+        
+        currDAG.execute();
+    }
+
+    /**
+     * Discards a batch of Pig commands.
+     * 
+     * @throws FrontendException
+     * @throws ExecException
+     */
+    public void discardBatch() throws FrontendException {
+        if (currDAG == null || !isBatchOn()) {
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
+        }
+        
+        currDAG = graphs.pop();
+    }
+       
     /**
      * Add a path to be skipped while automatically shipping binaries for 
      * streaming.
@@ -274,99 +372,20 @@ public class PigServer {
      *            line number of the query within the whold script
      * @throws IOException
      */    
-    public void registerQuery(String query, int startLine) throws IOException {
-            
-        LogicalPlan lp = parseQuery(query, startLine, aliases, opTable, aliasOp);
-        // store away the query for use in cloning later
-        cachedScript .add(query);
-        
-        if (lp.getLeaves().size() == 1)
-        {
-            LogicalOperator op = lp.getSingleLeafPlanOutputOp();
-            // No need to do anything about DEFINE 
-            if (op instanceof LODefine) {
-                return;
-            }
-        
-            // Check if we just processed a LOStore i.e. STORE
-            if (op instanceof LOStore) {
-                try{
-                    execute(null);
-                } catch (Exception e) {
-                    int errCode = 1002;
-                    String msg = "Unable to store alias " + op.getOperatorKey().getId();
-                    throw new FrontendException(msg, errCode, PigException.INPUT, e);
-                }
-            }
-        }
+    public void registerQuery(String query, int startLine) throws IOException {            
+    	currDAG.registerQuery(query, startLine);
     }
-    
-    private LogicalPlan parseQuery(String query, int startLine, Map<LogicalOperator, LogicalPlan> aliasesMap, 
-            Map<OperatorKey, LogicalOperator> opTableMap, Map<String, LogicalOperator> aliasOpMap) throws IOException {
-        if(query != null) {
-            query = query.trim();
-            if(query.length() == 0) return null;
-        }else {
-            return null;
-        }
-        try {
-            return new LogicalPlanBuilder(pigContext).parse(scope, query,
-                    aliasesMap, opTableMap, aliasOpMap, startLine);
-        } catch (ParseException e) {
-            //throw (IOException) new IOException(e.getMessage()).initCause(e);
-            PigException pe = LogUtils.getPigException(e);
-            int errCode = 1000;
-            String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
-            throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
-        }
-    }
-
+ 
     public LogicalPlan clonePlan(String alias) throws IOException {
-        // There are two choices on how we clone the logical plan
-        // 1 - we really clone each operator and connect up the cloned operators
-        // 2 - we cache away the script till the point we need to clone
-        // and then simply re-parse the script. 
-        // The latter approach is used here
-        // FIXME: There is one open issue with this now:
-        // Consider the following script:
-        // A = load 'file:/somefile';
-        // B = filter A by $0 > 10;
-        // store B into 'bla';
-        // rm 'file:/somefile';
-        // A = load 'file:/someotherfile'
-        // when we try to clone - we try to reparse
-        // from the beginning and currently the parser
-        // checks for file existence of files in the load
-        // in the case where the file is a local one -i.e. with file: prefix
-        // This will be a known issue now and we will need to revisit later
-        
-        // parse each line of the cached script and the
-        // final logical plan is the clone that we want
-        LogicalPlan lp = null;
-        int lineNumber = 1;
-        // create data structures needed for parsing
-        Map<LogicalOperator, LogicalPlan> cloneAliases = new HashMap<LogicalOperator, LogicalPlan>();
-        Map<OperatorKey, LogicalOperator> cloneOpTable = new HashMap<OperatorKey, LogicalOperator>();
-        Map<String, LogicalOperator> cloneAliasOp = new HashMap<String, LogicalOperator>();
-        for (Iterator<String> it = cachedScript.iterator(); it.hasNext(); lineNumber++) {
-            lp = parseQuery(it.next(), lineNumber, cloneAliases, cloneOpTable, cloneAliasOp);
+        Graph graph = currDAG.clone();
+
+        if (graph == null) {
+            int errCode = 2127;
+            String msg = "Cloning of plan failed.";
+            throw new FrontendException(msg, errCode, PigException.BUG);
         }
-        
-        if(alias == null) {
-            // a store prompted the execution - so return
-            // the entire logical plan
-            return lp;
-        } else {
-            // return the logical plan corresponding to the 
-            // alias supplied
-            LogicalOperator op = cloneAliasOp.get(alias);
-            if(op == null) {
-                int errCode = 1003;
-                String msg = "Unable to find an operator for alias " + alias;
-                throw new FrontendException(msg, errCode, PigException.INPUT);
-            }
-            return cloneAliases.get(op);
-        }
+
+        return graph.getPlan(alias);
     }
     
     public void registerQuery(String query) throws IOException {
@@ -378,7 +397,7 @@ public class PigServer {
             GruntParser grunt = new GruntParser(new FileReader(new File(fileName)));
             grunt.setInteractive(false);
             grunt.setParams(this);
-            grunt.parseStopOnError();
+            grunt.parseStopOnError(true);
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -391,7 +410,7 @@ public class PigServer {
     }
 
     public void printAliases () throws FrontendException {
-        System.out.println("aliases: " + aliasOp.keySet());
+        System.out.println("aliases: " + currDAG.getAliasOp().keySet());
     }
 
     public Schema dumpSchema(String alias) throws IOException{
@@ -410,7 +429,7 @@ public class PigServer {
     }
 
     public void setJobName(String name){
-        pigContext.getProperties().setProperty(PigContext.JOB_NAME, PigContext.JOB_NAME_PREFIX + ":" + name);
+        currDAG.setJobName(name);
     }
     
     /**
@@ -419,14 +438,15 @@ public class PigServer {
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
         try {
-            LogicalOperator op = aliasOp.get(id);
+            LogicalOperator op = currDAG.getAliasOp().get(id);
             if(null == op) {
                 int errCode = 1003;
                 String msg = "Unable to find an operator for alias " + id;
                 throw new FrontendException(msg, errCode, PigException.INPUT);
             }
-//            ExecJob job = execute(getPlanFromAlias(id, op.getClass().getName()));
+
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
+            
             // invocation of "execute" is synchronous!
 
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
@@ -460,7 +480,7 @@ public class PigServer {
             String id,
             String filename,
             String func) throws IOException{
-        if (!aliasOp.containsKey(id))
+        if (!currDAG.getAliasOp().containsKey(id))
             throw new IOException("Invalid alias: " + id);
         
         try {
@@ -517,42 +537,51 @@ public class PigServer {
      */
     public void explain(String alias,
                         PrintStream stream) throws IOException {
+        explain(alias, "text", true, false, stream, stream, stream);
+    }
+
+    /**
+     * Provide information on how a pig query will be executed.
+     * @param alias Name of alias to explain.
+     * @param format Format in which the explain should be printed
+     * @param verbose Controls the amount of information printed
+     * @param markAsExecute When set will treat the explain like a
+     * call to execute in the respoect that all the pending stores are
+     * marked as complete.
+     * @param lps Stream to print the logical tree
+     * @param pps Stream to print the physical tree
+     * @param eps Stream to print the execution tree
+     * @throws IOException if the requested alias cannot be found.
+     */
+    public void explain(String alias,
+                        String format,
+                        boolean verbose,
+                        boolean markAsExecute,
+                        PrintStream lps,
+                        PrintStream pps,
+                        PrintStream eps) throws IOException {
         try {
-            LogicalPlan lp = compileLp(alias);
-            
-            // MRCompiler needs a store to be the leaf - hence
-            // add a store to the plan to explain
-            
-            // figure out the leaf to which the store needs to be added
-            List<LogicalOperator> leaves = lp.getLeaves();
-            LogicalOperator leaf = null;
-            if(leaves.size() == 1) {
-                leaf = leaves.get(0);
-            } else {
-                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
-                    LogicalOperator leafOp = it.next();
-                    if(leafOp.getAlias().equals(alias))
-                        leaf = leafOp;
-                }
+            pigContext.inExplain = true;
+            LogicalPlan lp = getStorePlan(alias);
+            if (lp.size() == 0) {
+                lps.println("Logical plan is empty.");
+                pps.println("Physical plan is empty.");
+                eps.println("Execution plan is empty.");
+                return;
             }
-            
-            LogicalPlan storePlan = QueryParser.generateStorePlan(
-                scope, lp, "fakefile", PigStorage.class.getName(), leaf);
-            stream.println("Logical Plan:");
-            LOPrinter lv = new LOPrinter(stream, storePlan);
-            lv.visit();
-
-            PhysicalPlan pp = compilePp(storePlan);
-            stream.println("-----------------------------------------------");
-            stream.println("Physical Plan:");
-
-            stream.println("-----------------------------------------------");
-            pigContext.getExecutionEngine().explain(pp, stream);
-      
+            PhysicalPlan pp = compilePp(lp);
+            lp.explain(lps, format, verbose);
+            pp.explain(pps, format, verbose);
+            pigContext.getExecutionEngine().explain(pp, eps, format, verbose);
+            if (markAsExecute) {
+                currDAG.markAsExecuted();
+            }
         } catch (Exception e) {
             int errCode = 1067;
             String msg = "Unable to explain alias " + alias;
             throw new FrontendException(msg, errCode, PigException.INPUT, e);
+        } finally {
+            pigContext.inExplain = false;
         }
     }
 
@@ -648,10 +677,10 @@ public class PigServer {
   
     public Map<String, LogicalPlan> getAliases() {
         Map<String, LogicalPlan> aliasPlans = new HashMap<String, LogicalPlan>();
-        for(LogicalOperator op: this.aliases.keySet()) {
+        for(LogicalOperator op:  currDAG.getAliases().keySet()) {
             String alias = op.getAlias();
             if(null != alias) {
-                aliasPlans.put(alias, this.aliases.get(op));
+                aliasPlans.put(alias, currDAG.getAliases().get(op));
             }
         }
         return aliasPlans;
@@ -667,11 +696,10 @@ public class PigServer {
     }
 
     public Set<String> getAliasKeySet() {
-        return aliasOp.keySet();
+        return currDAG.getAliasOp().keySet();
     }
 
     public Map<LogicalOperator, DataBag> getExamples(String alias) {
-        //LogicalPlan plan = aliases.get(aliasOp.get(alias));
         LogicalPlan plan = null;
         try {
             plan = clonePlan(alias);
@@ -684,15 +712,48 @@ public class PigServer {
         ExampleGenerator exgen = new ExampleGenerator(plan, pigContext);
         return exgen.getExamples();
     }
+
+    private LogicalPlan getStorePlan(String alias) throws IOException {
+        LogicalPlan lp = compileLp(alias);
+        
+        if (!isBatchOn() || alias != null) {
+            // MRCompiler needs a store to be the leaf - hence
+            // add a store to the plan to explain
+            
+            // figure out the leaves to which stores need to be added
+            List<LogicalOperator> leaves = lp.getLeaves();
+            LogicalOperator leaf = null;
+            if(leaves.size() == 1) {
+                leaf = leaves.get(0);
+            } else {
+                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
+                    LogicalOperator leafOp = it.next();
+                    if(leafOp.getAlias().equals(alias))
+                        leaf = leafOp;
+                }
+            }
+            
+            lp = QueryParser.generateStorePlan(scope, lp, "fakefile", 
+                                               PigStorage.class.getName(), leaf);
+        }
+
+        return lp;
+    }
     
     private ExecJob execute(String alias) throws FrontendException, ExecException {
-        ExecJob job = null;
-//        lp.explain(System.out, System.err);
         LogicalPlan typeCheckedLp = compileLp(alias);
-        
+
+        if (typeCheckedLp.size() == 0) {
+            return null;
+        }
+
+        LogicalOperator op = typeCheckedLp.getLeaves().get(0);
+        if (op instanceof LODefine) {
+            log.info("Skip execution of DEFINE only logical plan.");
+            return null;
+        }
+
         return executeCompiledLogicalPlan(typeCheckedLp);
-//        typeCheckedLp.explain(System.out, System.err);
-        
     }
     
     private ExecJob executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
@@ -717,14 +778,14 @@ public class PigServer {
         // create a clone of the logical plan and give it
         // to the operations below
         LogicalPlan lpClone;
+ 
         try {
-             lpClone = clonePlan(alias);
+            lpClone = clonePlan(alias);
         } catch (IOException e) {
             int errCode = 2001;
             String msg = "Unable to clone plan before compiling";
             throw new FrontendException(msg, errCode, PigException.BUG, e);
         }
-
         
         // Set the logical plan values correctly in all the operators
         PlanSetter ps = new PlanSetter(lpClone);
@@ -788,13 +849,13 @@ public class PigServer {
     private LogicalPlan getPlanFromAlias(
             String alias,
             String operation) throws FrontendException {
-        LogicalOperator lo = aliasOp.get(alias);
+        LogicalOperator lo = currDAG.getAliasOp().get(alias);
         if (lo == null) {
             int errCode = 1004;
             String msg = "No alias " + alias + " to " + operation;
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
-        LogicalPlan lp = aliases.get(lo);
+        LogicalPlan lp = currDAG.getAliases().get(lo);
         if (lp == null) {
             int errCode = 1005;
             String msg = "No plan for " + alias + " to " + operation;
@@ -803,5 +864,266 @@ public class PigServer {
         return lp;
     }
 
+    /*
+     * This class holds the internal states of a grunt shell session.
+     */
+    private class Graph {
+    	
+        private Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
+        
+        private Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
+        
+        private Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+       
+        private List<String> scriptCache = new ArrayList<String>();	
 
+        // the fileNameMap contains filename to canonical filename
+        // mappings. This is done so we can reparse the cached script
+        // and remember the translation (current directory might only
+        // be correct during the first parse
+        private Map<String, String> fileNameMap = new HashMap<String, String>();
+    
+        private Map<LOStore, LogicalPlan> storeOpTable = new HashMap<LOStore, LogicalPlan>();
+        
+        private Set<LOLoad> loadOps = new HashSet<LOLoad>();
+
+        private String jobName;
+        
+        private boolean batchMode;
+
+        private int processedStores;
+
+        private int ignoreNumStores;
+        
+        private LogicalPlan lp;
+        
+        Graph(boolean batchMode) { 
+            this.batchMode = batchMode;
+            this.processedStores = 0;
+            this.ignoreNumStores = 0;
+            this.jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME,
+                                                                  PigContext.JOB_NAME_PREFIX+":DefaultJobName");
+            this.lp = new LogicalPlan();
+        };
+        
+        Map<LogicalOperator, LogicalPlan> getAliases() { return aliases; }
+        
+        Map<OperatorKey, LogicalOperator> getOpTable() { return opTable; }
+        
+        Map<String, LogicalOperator> getAliasOp() { return aliasOp; }
+        
+        List<String> getScriptCache() { return scriptCache; }
+        
+        boolean isBatchOn() { return batchMode; };
+
+        boolean isBatchEmpty() { return processedStores == storeOpTable.keySet().size(); }
+        
+        void execute() throws ExecException, FrontendException {
+            pigContext.getProperties().setProperty(PigContext.JOB_NAME, jobName);
+            PigServer.this.execute(null);
+            processedStores = storeOpTable.keySet().size();
+        }
+
+        void markAsExecuted() {
+            processedStores = storeOpTable.keySet().size();
+        }
+
+        void setJobName(String name) {
+            jobName = PigContext.JOB_NAME_PREFIX+":"+name;
+        }
+
+        LogicalPlan getPlan(String alias) throws IOException {
+            LogicalPlan plan = lp;
+                
+            if (alias != null) {
+                LogicalOperator op = aliasOp.get(alias);
+                if(op == null) {
+                    int errCode = 1003;
+                    String msg = "Unable to find an operator for alias " + alias;
+                    throw new FrontendException(msg, errCode, PigException.INPUT);
+                }
+                plan = aliases.get(op);
+            }
+            return plan;
+        }
+
+        void registerQuery(String query, int startLine) throws IOException {
+            
+            LogicalPlan tmpLp = parseQuery(query, startLine);
+            
+            // store away the query for use in cloning later
+            scriptCache.add(query);
+            if (tmpLp.getLeaves().size() == 1) {
+                LogicalOperator op = tmpLp.getSingleLeafPlanOutputOp();
+                
+                // Check if we just processed a LOStore i.e. STORE
+                if (op instanceof LOStore) {
+
+                    if (!batchMode) {
+                        lp = tmpLp;
+                        try {
+                            execute();
+                        } catch (Exception e) {
+                            int errCode = 1002;
+                            String msg = "Unable to store alias "
+                                    + op.getOperatorKey().getId();
+                            throw new FrontendException(msg, errCode,
+                                    PigException.INPUT, e);
+                        }
+                    } else {
+                        if (0 == ignoreNumStores) {
+                            storeOpTable.put((LOStore)op, tmpLp);
+                            lp.mergeSharedPlan(tmpLp);
+                            List<LogicalOperator> roots = tmpLp.getRoots();
+                            for (LogicalOperator root : roots) {
+                                if (root instanceof LOLoad) {
+                                    loadOps.add((LOLoad)root);
+                                }
+                            }
+
+                        } else {
+                            --ignoreNumStores;
+                        }
+                    }
+                }
+            }
+        }        
+    
+        LogicalPlan parseQuery(String query, int startLine) throws IOException {        
+            if (query == null || query.length() == 0) { 
+                int errCode = 1084;
+                String msg = "Invalid Query: Query is null or of size 0";
+                throw new FrontendException(msg, errCode, PigException.INPUT);
+            }
+
+            query = query.trim();
+        
+            try {
+                return new LogicalPlanBuilder(PigServer.this.pigContext).parse(scope, query,
+                                              aliases, opTable, aliasOp, startLine, fileNameMap);
+            } catch (ParseException e) {
+                PigException pe = LogUtils.getPigException(e);
+                int errCode = 1000;
+                String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
+                throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
+            }
+        }
+
+        protected Graph clone() {
+            // There are two choices on how we clone the logical plan
+            // 1 - we really clone each operator and connect up the cloned operators
+            // 2 - we cache away the script till the point we need to clone
+            // and then simply re-parse the script. 
+            // The latter approach is used here
+            // FIXME: There is one open issue with this now:
+            // Consider the following script:
+            // A = load 'file:/somefile';
+            // B = filter A by $0 > 10;
+            // store B into 'bla';
+            // rm 'file:/somefile';
+            // A = load 'file:/someotherfile'
+            // when we try to clone - we try to reparse
+            // from the beginning and currently the parser
+            // checks for file existence of files in the load
+            // in the case where the file is a local one -i.e. with file: prefix
+            // This will be a known issue now and we will need to revisit later
+            
+            // parse each line of the cached script
+            int lineNumber = 1;
+            
+            // create data structures needed for parsing        
+            Graph graph = new Graph(isBatchOn());
+            graph.ignoreNumStores = processedStores;
+            graph.processedStores = processedStores;
+            graph.fileNameMap = fileNameMap;
+            
+            try {
+                for (Iterator<String> it = getScriptCache().iterator(); it.hasNext(); lineNumber++) {
+                    if (isBatchOn()) {
+                        graph.registerQuery(it.next(), lineNumber);
+                    } else {
+                        graph.lp = graph.parseQuery(it.next(), lineNumber);
+                    }
+                }
+                graph.postProcess();
+            } catch (IOException ioe) {
+                graph = null;
+            }          
+            return graph;
+        }
+        
+        private void postProcess() throws IOException {
+            
+            // Set the logical plan values correctly in all the operators
+            PlanSetter ps = new PlanSetter(lp);
+            ps.visit();
+
+            // The following code deals with store/load combination of 
+            // intermediate files. In this case we will replace the load operator
+            // with a (implicit) split operator, iff the load/store
+            // func is reversible (because that's when we can safely
+            // skip the load and keep going with the split output). If
+            // the load/store func is not reversible (or they are
+            // different functions), we connect the store and the load
+            // to remember the dependency.
+            for (LOLoad load : loadOps) {
+                for (LOStore store : storeOpTable.keySet()) {
+                    String ifile = load.getInputFile().getFileName();
+                    String ofile = store.getOutputFile().getFileName();
+                    if (ofile.compareTo(ifile) == 0) {
+                        LoadFunc lFunc = (LoadFunc) pigContext.instantiateFuncFromSpec(load.getInputFile().getFuncSpec());
+                        StoreFunc sFunc = (StoreFunc) pigContext.instantiateFuncFromSpec(store.getOutputFile().getFuncSpec());
+                        if (lFunc.getClass() == sFunc.getClass() && lFunc instanceof ReversibleLoadStoreFunc) {
+                        
+                        // In this case we remember the input file
+                        // spec in the store. We might have to use it
+                        // in the MR compiler to recreate the load, if
+                        // the store happens on a job boundary.
+                        store.setInputSpec(load.getInputFile());
+
+                            LogicalOperator storePred = lp.getPredecessors(store).get(0);
+                            
+                            // In this case we remember the input file
+                            // spec in the store. We might have to use it
+                            // in the MR compiler to recreate the load, if
+                            // the store happens on a job boundary.
+                            store.setInputSpec(load.getInputFile());
+                            
+                            lp.disconnect(store, load);
+                            lp.replace(load, storePred);
+
+                            List<LogicalOperator> succs = lp.getSuccessors(storePred);
+                            
+                            for (LogicalOperator succ : succs) {
+                                MultiMap<LogicalOperator, LogicalPlan> innerPls = null;
+                                
+                                // fix inner plans for cogroup and frjoin operators
+                                if (succ instanceof LOCogroup) {
+                                    innerPls = ((LOCogroup)succ).getGroupByPlans();
+                                } else if (succ instanceof LOFRJoin) {
+                                    innerPls = ((LOFRJoin)succ).getJoinColPlans();
+                                }
+                                
+                                if (innerPls != null) {
+                                    if (innerPls.containsKey(load)) {
+                                        Collection<LogicalPlan> pls = innerPls.get(load);
+                                        innerPls.removeKey(load);
+                                        innerPls.put(storePred, pls);
+                                    }
+                                }
+                            }
+                        } else {
+                            try {
+                                store.getPlan().connect(store, load);
+                            } catch (PlanException ex) {
+                                int errCode = 2128;
+                                String msg = "Failed to connect store with dependent load.";
+                                throw new FrontendException(msg, errCode, ex);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

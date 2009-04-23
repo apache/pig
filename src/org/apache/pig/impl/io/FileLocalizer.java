@@ -378,6 +378,7 @@ public class FileLocalizer {
                 log.error(e);
             }
         }
+        initialized = false;
     }
 
     public static synchronized ElementDescriptor 

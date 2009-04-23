@@ -122,6 +122,37 @@ public class TestHBaseStorage extends TestCase {
     @Test
     public void testLoadFromHBase() throws IOException, ExecException {
         prepareTable();
+        pig.registerQuery("a = load 'hbase://" + TESTTABLE + "' using " +
+            "org.apache.pig.backend.hadoop.hbase.HBaseStorage('" + TESTCOLUMN_A + 
+            " " + TESTCOLUMN_B + " " + TESTCOLUMN_C + "') as (col_a, col_b:int, col_c);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while(it.hasNext()){
+            Tuple t = it.next();
+            LOG.info("LoadFromHBase "+ t);
+            String col_a = ((DataByteArray)t.get(0)).toString();
+            int col_b = (Integer)t.get(1);
+            String col_c = ((DataByteArray)t.get(2)).toString();
+            
+            assertEquals(String.valueOf(count), col_a);
+            assertEquals(count, col_b);
+            assertEquals("TEXT" + count, col_c);
+            
+            count++;
+        }
+        assertEquals(TEST_ROW_COUNT, count);
+        System.err.println("LoadFromHBase done");
+    }
+
+    /**
+     * load from hbase test w/o hbase:// prefix
+     * @throws IOException
+     * @throws ExecException
+     */
+    @Test
+    public void testBackwardsCompatibility() throws IOException, ExecException {
+        prepareTable();
         pig.registerQuery("a = load '" + TESTTABLE + "' using " +
             "org.apache.pig.backend.hadoop.hbase.HBaseStorage('" + TESTCOLUMN_A + 
             " " + TESTCOLUMN_B + " " + TESTCOLUMN_C + "') as (col_a, col_b:int, col_c);");

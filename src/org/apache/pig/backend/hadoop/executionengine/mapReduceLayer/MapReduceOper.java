@@ -109,6 +109,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
 
+    // Indicates that this MROper is a splitter MROper. 
+    // That is, this MROper ends due to a POSPlit operator.
+    private boolean splitter = false;
+
     public MapReduceOper(OperatorKey k) {
         super(k);
         mapPlan = new PhysicalPlan();
@@ -322,5 +326,17 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public void setReplFiles(FileSpec[] replFiles) {
         this.replFiles = replFiles;
+    }
+
+    public int getRequestedParallelism() {
+        return requestedParallelism;
+    }
+
+    public void setSplitter(boolean spl) {
+        splitter = spl;
+    }
+
+    public boolean isSplitter() {
+        return splitter;
     }
 }

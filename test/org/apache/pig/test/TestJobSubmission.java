@@ -468,11 +468,11 @@ public class TestJobSubmission extends junit.framework.TestCase{
         ExecutionEngine exe = pc.getExecutionEngine();
         ConfigurationValidator.validatePigProperties(exe.getConfiguration());
         Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
-        JobControlCompiler jcc = new JobControlCompiler();
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         try {
-        	jcc.compile(mrPlan, "Test", conf, pc);
+        	jcc.compile(mrPlan, "Test");
         } catch (JobCreationException jce) {
-        	assertTrue(jce.getErrorCode() == 1068);
+            assertTrue(jce.getErrorCode() == 1068);
         }
     }
     

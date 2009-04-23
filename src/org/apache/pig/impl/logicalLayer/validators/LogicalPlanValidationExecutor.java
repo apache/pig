@@ -59,7 +59,11 @@ public class LogicalPlanValidationExecutor
                                          PigContext pigContext) {
    
         // Default validations
-        validatorList.add(new InputOutputFileValidator(pigContext)) ;
+        if (!pigContext.inExplain) {
+            // When running explain we don't want to check for input
+            // files.
+            validatorList.add(new InputOutputFileValidator(pigContext)) ;
+        }
         // This one has to be done before the type checker.
         //validatorList.add(new TypeCastInserterValidator()) ;
         validatorList.add(new TypeCheckingValidator()) ;
