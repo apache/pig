@@ -25,6 +25,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -109,7 +110,7 @@ public class PORelationToExprProject extends POProject {
                 // we received an EOP from the predecessor
                 // since the successor in the pipeline is
                 // expecting a bag, send an empty bag
-                input.result = bagFactory.newDefaultBag();
+                input.result = new NonSpillableDataBag();
                 input.returnStatus = POStatus.STATUS_OK;
                 // we should send EOP the next time we are called
                 // if the foreach in which this operator is present
