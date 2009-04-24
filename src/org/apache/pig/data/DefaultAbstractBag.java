@@ -188,7 +188,7 @@ public abstract class DefaultAbstractBag implements DataBag {
                 while (i.hasNext()) thisClone.add(i.next());
             }
             if (other instanceof SortedDataBag ||
-                    this instanceof DistinctDataBag) {
+                    other instanceof DistinctDataBag) {
                 otherClone = bOther;
             } else {
                 otherClone = new SortedDataBag(null);
