@@ -42,7 +42,7 @@ public class SchemaUtil {
      * @param tupleName
      * @param fieldNames
      * @param dataTypes
-     * @return
+     * @return tuple schema
      * @throws FrontendException
      */
     public static Schema newTupleSchema(String tupleName,
@@ -71,7 +71,7 @@ public class SchemaUtil {
      * @param tupleName
      * @param fieldNames
      * @param dataTypes
-     * @return
+     * @return tuple schema
      * @throws FrontendException
      */
     public static Schema newTupleSchema(String tupleName, String[] fieldNames,
@@ -84,9 +84,9 @@ public class SchemaUtil {
      * Create a new tuple schema according the two list: names of fields, types
      * of fields, the default tuple name is t.
      * 
-     * @param names
+     * @param fieldNames
      * @param dataTypes
-     * @return
+     * @return tuple schema
      * @throws FrontendException
      */
     public static Schema newTupleSchema(List<String> fieldNames,
@@ -99,7 +99,7 @@ public class SchemaUtil {
      * default names of fields are f0,f1,f2..., and the tuple name is t.
      * 
      * @param dataTypes
-     * @return
+     * @return tuple schema
      * @throws FrontendException
      */
     public static Schema newTupleSchema(List<Byte> dataTypes)
@@ -114,7 +114,7 @@ public class SchemaUtil {
      * 
      * @param names
      * @param dataTypes
-     * @return
+     * @return tuple schema
      * @throws FrontendException
      */
     public static Schema newTupleSchema(String[] names, Byte[] dataTypes)
@@ -128,7 +128,7 @@ public class SchemaUtil {
      * default names of fields are f0,f1,f2..., and the tuple name is t.
      * 
      * @param dataTypes
-     * @return
+     * @return tuple schema
      * @throws FrontendException
      */
     public static Schema newTupleSchema(Byte[] dataTypes)
@@ -152,7 +152,7 @@ public class SchemaUtil {
      * @param tupleName
      * @param fieldNames
      * @param dataTypes
-     * @return
+     * @return bag schema
      * @throws FrontendException
      */
     public static Schema newBagSchema(String bagName, String tupleName,
@@ -179,7 +179,7 @@ public class SchemaUtil {
      * 
      * @param names
      * @param dataTypes
-     * @return
+     * @return bag schema
      * @throws FrontendException
      */
     public static Schema newBagSchema(List<String> names, List<Byte> dataTypes)
@@ -199,7 +199,7 @@ public class SchemaUtil {
      * is b.
      * 
      * @param dataTypes
-     * @return
+     * @return bag schema
      * @throws FrontendException
      */
     public static Schema newBagSchema(List<Byte> dataTypes)
@@ -214,7 +214,7 @@ public class SchemaUtil {
      * 
      * @param names
      * @param dataTypes
-     * @return
+     * @return bag schema
      * @throws FrontendException
      */
     public static Schema newBagSchema(String[] names, Byte[] dataTypes)
@@ -227,7 +227,7 @@ public class SchemaUtil {
      * tuple name is t, and the bag name is b.
      * 
      * @param dataTypes
-     * @return
+     * @return bag schema
      * @throws FrontendException
      */
     public static Schema newBagSchema(Byte[] dataTypes)
