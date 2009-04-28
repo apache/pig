@@ -32,11 +32,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * The MapReduce Split operator.
+ * <p>
  * The assumption here is that
  * the logical to physical translation
  * will create this dummy operator with
@@ -56,7 +56,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * This is different than the existing implementation
  * where the POSplit writes to sidefiles after filtering
  * and then loads the appropriate file.
- * 
+ * <p>
  * The approach followed here is as good as the old
  * approach if not better in many cases because
  * of the availability of attachinInputs. An optimization
@@ -185,7 +185,7 @@ public class POSplit extends PhysicalOperator {
      * the nested input plan list
      * @param inPlan plan to be appended to the list
      */
-    public void addPlan(PhysicalPlan inPlan) throws PlanException {        
+    public void addPlan(PhysicalPlan inPlan) {        
         myPlans.add(inPlan);
         processedSet.set(myPlans.size()-1);
     }
