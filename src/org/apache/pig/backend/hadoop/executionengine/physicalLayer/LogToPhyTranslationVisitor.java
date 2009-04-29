@@ -46,6 +46,7 @@ import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.*;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalkerWOSeenChk;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -1197,6 +1198,20 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 .getNextNodeId(scope)));
         store.setSFile(loStore.getOutputFile());
         store.setInputSpec(loStore.getInputSpec());
+        try {
+            // create a new schema for ourselves so that when
+            // we serialize we are not serializing objects that
+            // contain the schema - apparently Java tries to
+            // serialize the object containing the schema if
+            // we are trying to serialize the schema reference in
+            // the containing object. The schema here will be serialized
+            // in JobControlCompiler
+            store.setSchema(new Schema(loStore.getSchema()));
+        } catch (FrontendException e1) {
+            int errorCode = 1060;
+            String message = "Cannot resolve Store output schema";  
+            throw new VisitorException(message, errorCode, PigException.BUG, e1);    
+        }
         currentPlan.add(store);
         
         List<LogicalOperator> op = loStore.getPlan().getPredecessors(loStore); 

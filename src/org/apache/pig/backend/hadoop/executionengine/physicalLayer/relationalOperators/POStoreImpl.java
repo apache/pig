@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * This class is used to specify the actual behavior of the store
@@ -31,7 +32,8 @@ public abstract class POStoreImpl {
      * @param sFile - The file the store should write to
      * @throws IOException
      */
-    public abstract StoreFunc createStoreFunc(FileSpec sFile) throws IOException;
+    public abstract StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+        throws IOException;
     
     /**
      * At the end of processing, the outputstream is closed

@@ -36,12 +36,15 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.StoreConfig;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
@@ -100,6 +103,8 @@ public class JobControlCompiler{
     PigContext pigContext;
     
     private final Log log = LogFactory.getLog(getClass());
+    
+    public static final String PIG_STORE_CONFIG = "pig.store.config";
 
     public static final String LOG_DIR = "_logs";
 
@@ -310,7 +315,6 @@ public class JobControlCompiler{
                                   "pig.streaming.cache.files", false);
 
             jobConf.setInputFormat(PigInputFormat.class);
-            jobConf.setOutputFormat(PigOutputFormat.class);
             
             //Process POStore and remove it from the plan
             List<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
@@ -328,11 +332,37 @@ public class JobControlCompiler{
                     st = reduceStores.remove(0);
                     mro.reducePlan.remove(st);
                 }
+
+                // If the StoreFunc associate with the POStore is implements
+                // getStorePreparationClass() and returns a non null value,
+                // then it could be wanting to implement OutputFormat for writing out to hadoop
+                // Check if this is the case, if so, use the OutputFormat class the 
+                // StoreFunc gives us else use our default PigOutputFormat
+                Object storeFunc = PigContext.instantiateFuncFromSpec(st.getSFile().getFuncSpec());
+                Class sPrepClass = null;
+                try {
+                    sPrepClass = ((StoreFunc)storeFunc).getStorePreparationClass();
+                } catch(AbstractMethodError e) {
+                    // this is for backward compatibility wherein some old StoreFunc
+                    // which does not implement getStorePreparationClass() is being
+                    // used. In this case, we want to just use PigOutputFormat
+                    sPrepClass = null;
+                }
+                if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
+                    jobConf.setOutputFormat(sPrepClass);
+                } else {
+                    jobConf.setOutputFormat(PigOutputFormat.class);
+                }
+                
+                //set out filespecs
                 String outputPath = st.getSFile().getFileName();
                 FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
                 FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
+             
                 jobConf.set("pig.storeFunc", outputFuncSpec.toString());
-                
+                jobConf.set(PIG_STORE_CONFIG, 
+                            ObjectSerializer.serialize(new StoreConfig(outputPath, st.getSchema())));
+
                 jobConf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
                 jobConf.set("pig.streaming.task.output.dir", outputPath);
@@ -349,6 +379,7 @@ public class JobControlCompiler{
                     fs.mkdirs(tmpOut);
                 }
 
+                jobConf.setOutputFormat(PigOutputFormat.class);
                 FileOutputFormat.setOutputPath(jobConf, curTmpPath);
 
                 jobConf.set("pig.streaming.log.dir", 

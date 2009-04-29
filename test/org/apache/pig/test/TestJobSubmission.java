@@ -451,7 +451,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
     	planTester.buildPlan("a = load 'input';");
     	LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
     	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-    	POStore store = GenPhyOp.topStoreOp();
+    	POStore store = GenPhyOp.dummyPigStorageOp();
     	pp.addAsLeaf(store);
     	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
     	

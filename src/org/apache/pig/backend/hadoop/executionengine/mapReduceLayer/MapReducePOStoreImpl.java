@@ -36,10 +36,13 @@ import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
+import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
@@ -65,6 +68,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     private JobConf job;
 
     private final Log log = LogFactory.getLog(getClass());
+    public static final String PIG_STORE_CONFIG = "pig.store.config";
     
     public MapReducePOStoreImpl(JobConf job) {
         this.job = job;
@@ -75,14 +79,33 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     }
 
     @Override
-    public StoreFunc createStoreFunc(FileSpec sFile) throws IOException {
+    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+        throws IOException {
 
         // set up a new job conf
         JobConf outputConf = new JobConf(job);
         String tmpPath = PlanHelper.makeStoreTmpPath(sFile.getFileName());
 
-        // Right now we're always using PigOutputFormat.
-        outputConf.setOutputFormat(PigOutputFormat.class);
+        // If the StoreFunc associate with the POStore is implements
+        // getStorePreparationClass() and returns a non null value,
+        // then it could be wanting to implement OutputFormat for writing out to hadoop
+        // Check if this is the case, if so, use the OutputFormat class the 
+        // StoreFunc gives us else use our default PigOutputFormat
+        Object storeFunc = PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+        Class sPrepClass = null;
+        try {
+            sPrepClass = ((StoreFunc)storeFunc).getStorePreparationClass();
+        } catch(AbstractMethodError e) {
+            // this is for backward compatibility wherein some old StoreFunc
+            // which does not implement getStorePreparationClass() is being
+            // used. In this case, we want to just use PigOutputFormat
+            sPrepClass = null;
+        }
+        if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
+            outputConf.setOutputFormat(sPrepClass);
+        } else {
+            outputConf.setOutputFormat(PigOutputFormat.class);
+        }
 
         // PigOuputFormat will look for pig.storeFunc to actually
         // write stuff out.
@@ -93,6 +116,10 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // temp location for the multi store.
         Path outputDir = new Path(sFile.getFileName()).makeQualified(FileSystem.get(outputConf));
         outputConf.set("mapred.output.dir", outputDir.toString());
+
+        // Set the schema
+        outputConf.set(PIG_STORE_CONFIG, 
+                       ObjectSerializer.serialize(new StoreConfig(outputDir.toString(), schema)));
 
         // The workpath is set to a unique-per-store subdirectory of
         // the current working directory.
@@ -167,6 +194,11 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         
         @Override
         public void finish() throws IOException {
+        }
+
+        @Override
+        public Class getStorePreparationClass() throws IOException {
+            return null;
         }
     }
 }

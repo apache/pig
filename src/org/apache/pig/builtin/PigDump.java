@@ -43,4 +43,13 @@ public class PigDump implements StoreFunc {
         os.write((f.toString() + recordDelimiter).getBytes());
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     */
+    @Override
+    public Class getStorePreparationClass() throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

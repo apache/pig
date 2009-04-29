@@ -30,6 +30,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -53,6 +54,7 @@ public class POStore extends PhysicalOperator {
     private final Log log = LogFactory.getLog(getClass());
     private POStoreImpl impl;
     private FileSpec sFile;
+    private Schema schema;
 
     // flag to distinguish user stores from MRCompiler stores.
     private boolean isTmpStore;
@@ -81,7 +83,7 @@ public class POStore extends PhysicalOperator {
     public void setUp() throws IOException{
         if (impl != null) {
             try{
-                storer = impl.createStoreFunc(sFile);
+                storer = impl.createStoreFunc(sFile, schema);
             }catch (IOException ioe) {
                 int errCode = 2081;
                 String msg = "Unable to setup the store function.";            
@@ -183,5 +185,13 @@ public class POStore extends PhysicalOperator {
 
     public void setStoreImpl(POStoreImpl impl) {
         this.impl = impl;
+    }
+
+    public void setSchema(Schema schema) {
+        this.schema = schema;
+    }
+    
+    public Schema getSchema() {
+        return schema;
     }
 }
