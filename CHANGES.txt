@@ -28,6 +28,14 @@ PIG-693: Proposed improvements to pig's optimizer (sms)
 
 PIG-700: To automate the pig patch test process (gkesavan via sms)
 
+PIG-712: Added utility functions to create schemas for tuples and bags (zjffdu
+via gates).
+
+PIG-775: PORelationToExprProject should create a NonSpillableDataBag to create
+empty bags (pradeepkth)
+
+PIG-743: To implement clover (gkesavan)
+
 BUG FIXES
 
 PIG-733: Order by sampling dumps entire sample to hdfs which causes dfs

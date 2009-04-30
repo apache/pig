@@ -203,8 +203,26 @@ public class NonSpillableDataBag implements DataBag {
                 else return -1;
             }
 
-            Iterator<Tuple> thisIt = this.iterator();
-            Iterator<Tuple> otherIt = bOther.iterator();
+            // Ugh, this is bogus.  But I have to know if two bags have the
+            // same tuples, regardless of order.  Hopefully most of the
+            // time the size check above will prevent this.
+            // If either bag isn't already sorted, create a sorted bag out
+            // of it so I can guarantee order.
+            DataBag thisClone;
+            DataBag otherClone;
+            thisClone = new SortedDataBag(null);
+            Iterator<Tuple> i = iterator();
+            while (i.hasNext()) thisClone.add(i.next());
+            if (other instanceof SortedDataBag ||
+                    other instanceof DistinctDataBag) {
+                otherClone = bOther;
+            } else {
+                otherClone = new SortedDataBag(null);
+                i = bOther.iterator();
+                while (i.hasNext()) otherClone.add(i.next());
+            }
+            Iterator<Tuple> thisIt = thisClone.iterator();
+            Iterator<Tuple> otherIt = otherClone.iterator();
             while (thisIt.hasNext() && otherIt.hasNext()) {
                 Tuple thisT = thisIt.next();
                 Tuple otherT = otherIt.next();
