@@ -159,4 +159,13 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
         // TODO Auto-generated method stub
         
     }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     */
+    @Override
+    public Class getStorePreparationClass() throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

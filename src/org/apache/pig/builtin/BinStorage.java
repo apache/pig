@@ -393,4 +393,13 @@ public class BinStorage implements ReversibleLoadStoreFunc {
     public boolean equals(Object obj) {
         return true;
     }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     */
+    @Override
+    public Class getStorePreparationClass() throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

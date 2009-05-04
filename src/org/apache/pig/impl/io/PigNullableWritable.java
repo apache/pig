@@ -36,12 +36,16 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public abstract class PigNullableWritable implements WritableComparable {
 
+    private static byte mqFlag = (byte)0x80;
+    
+    private static byte idxSpace = (byte)0x7F;
+    
     private boolean mNull;
 
     protected WritableComparable mValue;
 
     private byte mIndex;
-
+       
     /**
      * Compare two nullable objects.  Step one is to check if either or both
      * are null.  If one is null and the other is not, then the one that is
@@ -54,12 +58,19 @@ public abstract class PigNullableWritable implements WritableComparable {
      */
     public int compareTo(Object o) {
         PigNullableWritable w = (PigNullableWritable)o;
+
+        if ((mIndex & mqFlag) != 0) { // this is a multi-query index
+            
+            if ((mIndex & idxSpace) < (w.mIndex & idxSpace)) return -1;
+            else if ((mIndex & idxSpace) > (w.mIndex & idxSpace)) return 1;
+        }
+        
         if (!mNull && !w.mNull) {
             return mValue.compareTo(w.mValue);
         } else if (mNull && w.mNull) {
             // If they're both null, compare the indicies
-            if (mIndex < w.mIndex) return -1;
-            else if (mIndex > w.mIndex) return 1;
+            if ((mIndex & idxSpace) < (w.mIndex & idxSpace)) return -1;
+            else if ((mIndex & idxSpace) > (w.mIndex & idxSpace)) return 1;
             else return 0;
         }
         else if (mNull) return -1; 

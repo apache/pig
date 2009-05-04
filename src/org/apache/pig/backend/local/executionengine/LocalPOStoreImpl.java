@@ -24,6 +24,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 
 /**
@@ -43,7 +44,8 @@ public class LocalPOStoreImpl extends POStoreImpl {
     }
 
     @Override
-    public StoreFunc createStoreFunc(FileSpec sFile) throws IOException {
+    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+        throws IOException {
         this.sFile = sFile;
         storer = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
         os = FileLocalizer.create(sFile.getFileName(), pc);
