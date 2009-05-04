@@ -15,8 +15,7 @@
    limitations under the License.
 -->
 
-<project name="Pig" default="jar">
-
+<project name="Pig" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
     <!-- to contribute (without having to type -D or edit this file -->
     <property file="${user.home}/build.properties" />
@@ -91,10 +90,8 @@
     <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
     <property name="src.gen.textdata.parser.dir" value="${src.gen.dir}/org/apache/pig/data/parser" />
-    <property name="javacc.home" value="${basedir}/lib" />
     
     <!-- rats properties -->
-    <property name="rats_url" value="http://arat.googlecode.com/files/rat-lib-all-0.5.1.jar" />
     <property name="rat.reporting.classname" value="rat.Report"/>
 
     <!-- javadoc properties  -->
@@ -120,38 +117,59 @@
         </and>
     </condition>
 
+    <!-- IVY properteis set here -->
+    <property name="ivy.dir" location="ivy" />
+    <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
+    <property name="ivy.jar" location="${ivy.dir}/ivy-${ivy.version}.jar"/>
+    <property name="ivy_repo_url" value="http://repo2.maven.org/maven2/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"/>
+    <property name="ivysettings.xml" location="${ivy.dir}/ivysettings.xml" />
+    <property name="ivy.org" value="org.apache.pig"/>
+    <property name="build.dir" location="build" />
+    <property name="dist.dir" value="${build.dir}/${final.name}"/>
+    <property name="build.ivy.dir" location="${build.dir}/ivy" />
+    <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
+    <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/${ant.project.name}"/>
+    <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
+    <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
+    <property name="build.ivy.maven.pom" location="${build.ivy.maven.dir}/pig-${version}.pom" />
+    <property name="build.ivy.maven.jar" location="${build.ivy.maven.dir}/pig-${version}.jar" />
+    <property name="javacc.home" location="${ivy.lib.dir}" />
+
+    <!--this is the naming policy for artifacts we want pulled down-->
+    <property name="ivy.artifact.retrieve.pattern" value="${ant.project.name}/[artifact]-[revision].[ext]"/>
+
+    <!--this is how artifacts that get built are named-->
+    <property name="ivy.publish.pattern" value="pig-[revision].[ext]"/>
+    <property name="pig.jar" value="${output.jarfile.core}"/>	
+   
+
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
+	<fileset dir="${ivy.lib.dir}">
+	    <include name="**/*.jar"/>
+        </fileset>   	
         <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
-        <fileset file="${lib.dir}/javacc.jar" />
-        <fileset file="${lib.dir}/jsch-0.1.33.jar" />
-        <fileset file="${lib.dir}/junit-4.1.jar" />
-        <fileset file="${lib.dir}/jline-0.9.94.jar" />
-        <fileset file="${lib.dir}/commons-collections-3.2.jar" />
+   <!--     <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
     </path>
 
     <!-- javadoc-classpath -->
-    <!-- This is going to stay back until we use a mechanism for automatic dependency management -->
     <path id="javadoc-classpath">
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
-        <fileset file="${lib.dir}/javacc.jar" />
-        <fileset file="${lib.dir}/jsch-0.1.33.jar" />
-        <fileset file="${lib.dir}/junit-4.1.jar" />
-        <fileset file="${lib.dir}/jline-0.9.94.jar" />
-    </path>
+	<path refid="javadoc.classpath"/>	
+    </path> 
 
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
+        <fileset file="${lib.dir}/${junit.jar}" />
         <path refid="classpath"/>
     </path>
-
 
     <target name="init">
         <mkdir dir="${src.gen.query.parser.dir}" />
@@ -202,7 +220,8 @@
     <!-- ================================================================== -->
     <!-- Java Compiler Compiler, generate Parsers                           -->
     <!-- ================================================================== -->
-    <target name="cc-compile" depends="init" description="Create and Compile Parser">
+    <target name="cc-compile" depends="init, ivy-compile" description="Create and Compile Parser">
+	<move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
         <jjtree target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.query.parser.dir}/QueryParser.jj" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
@@ -217,7 +236,7 @@
     <!-- ================================================================== -->
     <!-- Build sources                                          -->
     <!-- ================================================================== -->
-    <target name="compile" depends="init, cc-compile" description="Compile all artifacts">
+    <target name="compile" depends="cc-compile" description="Compile all artifacts">
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
@@ -237,7 +256,7 @@
 
     </target>
 
-    <target name="compile-test" depends="compile">
+    <target name="compile-test" depends="compile, ivy-test">
         <echo>*** Building Test Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
@@ -284,7 +303,7 @@
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
     <!-- ================================================================== -->
-    <target name="javadoc" depends="jar" description="Create documentation">
+    <target name="javadoc" depends="jar, ivy-javadoc" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -358,7 +377,7 @@
         </antcall>
     </target>
     
-    <target name="buildJar">
+    <target name="buildJar" depends="ivy-buildJar">
         <echo>svnString ${svnString}</echo>
         <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
             <manifest>
@@ -384,10 +403,10 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${lib.dir}/junit-4.1.jar" />
             <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
-            <zipfileset src="${lib.dir}/jsch-0.1.33.jar" />
-            <zipfileset src="${lib.dir}/jline-0.9.94.jar" />
+            <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
         </jar>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
@@ -465,11 +484,17 @@
         <mkdir dir="${dist.dir}/docs/api" />
 
         <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
-            <fileset dir="${lib.dir}">
-            </fileset>
+            <fileset dir="${ivy.lib.dir}"/>
+            <fileset dir="${lib.dir}"/>
         </copy>
 
         <copy file="${output.jarfile.core}" todir="${dist.dir}" />
+
+        <copy todir="${dist.dir}/" file="ivy.xml" />
+
+        <copy todir="${dist.dir}/ivy">
+            <fileset dir="ivy" />
+        </copy>
 
         <copy todir="${dist.dir}/bin">
             <fileset dir="bin" />
@@ -561,21 +586,18 @@
     <!-- ================================================================== -->
     <!-- Perform audit activities for the release                           -->
     <!-- ================================================================== -->
-    <target name="get-rats" description="Downloads the release audit tool">
-    	<get src="${rats_url}" dest="${lib.dir}/rats.jar" usetimestamp="false" />
-    </target>
-   
-    <target name="releaseaudit" depends="get-rats ,package" description="Release Audit activities">
-    	<java classname="${rat.reporting.classname}" fork="true" classpath="${lib.dir}/rats.jar">
-      		<arg value="${build.dir}/${final.name}"/>
-    	</java>
+    <target name="releaseaudit" depends="ivy-releaseaudit, package" description="Release Audit activities">
+	<java classname="${rat.reporting.classname}" fork="true">
+            <classpath refid="releaseaudit.classpath"/>
+            <arg value="${build.dir}/${final.name}"/>
+        </java>
     </target>
 
-    <target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home" 
-			description="Run optional third-party tool targets">
+    <!--target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"  -->
+    <target name="checkstyle" depends="ivy-checkstyle" description="Run optional third-party tool targets">
     	<taskdef resource="checkstyletask.properties">
-       		<classpath refid="classpath"/>
-        	<classpath refid="checkstyle-classpath"/>
+       		<classpath refid="checkstyle.classpath"/>
+       <!-- 	<classpath refid="checkstyle-classpath"/> -->
         </taskdef>
         <mkdir dir="${test.build.dir}"/>
         <checkstyle config="${test.src.dir}/checkstyle.xml" failOnViolation="false">
@@ -692,4 +714,150 @@
           	</current>
         </clover-report>
      </target>
+
+     <target name="ivy-init-dirs">
+        <mkdir dir="${build.ivy.dir}" />
+        <mkdir dir="${build.ivy.lib.dir}" />
+        <mkdir dir="${build.ivy.report.dir}" />
+        <mkdir dir="${build.ivy.maven.dir}" />
+     </target>
+
+     <target name="ivy-probe-antlib" >
+        <condition property="ivy.found">
+      	   <typefound uri="antlib:org.apache.ivy.ant" name="cleancache"/>
+        </condition>
+     </target>
+
+     <target name="ivy-download" description="To download ivy">
+        <get src="${ivy_repo_url}" dest="${ivy.jar}" usetimestamp="true"/>
+     </target>
+
+     <!--
+     To avoid Ivy leaking things across big projects, always load Ivy in the same classloader.
+     Also note how we skip loading Ivy if it is already there, just to make sure all is well.
+     -->
+     <target name="ivy-init-antlib" depends="ivy-download,ivy-init-dirs,ivy-probe-antlib" unless="ivy.found">
+       <typedef uri="antlib:org.apache.ivy.ant" onerror="fail" loaderRef="ivyLoader">
+         <classpath>
+            <pathelement location="${ivy.jar}"/>
+         </classpath>
+       </typedef>
+       <fail>
+         <condition >
+           <not>
+             <typefound uri="antlib:org.apache.ivy.ant" name="cleancache"/>
+           </not>
+         </condition>
+         You need Apache Ivy 2.0 or later from http://ant.apache.org/
+         It could not be loaded from ${ivy_repo_url}
+       </fail>
+     </target>
+
+     <target name="ivy-init" depends="ivy-init-antlib" >
+     <!--Configure Ivy by reading in the settings file
+        If anyone has already read in a settings file into this settings ID, it gets priority
+     -->
+       <ivy:configure settingsid="${ant.project.name}.ivy.settings" file="${ivysettings.xml}" override='false'/>
+     </target>
+
+     <target name="ivy-compile" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for compile configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="compile"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
+       <ivy:cachepath pathid="compile.classpath" conf="compile"/> 		
+     </target>
+
+     <target name="ivy-test" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for test configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="test"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="test"/>
+       <ivy:cachepath pathid="test.classpath" conf="test"/> 		
+     </target>
+
+     <target name="ivy-javadoc" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for javadoc configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="javadoc"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="javadoc"/>
+       <ivy:cachepath pathid="javadoc.classpath" conf="javadoc"/> 		
+     </target>
+
+     <target name="ivy-releaseaudit" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for releaseaudit configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="releaseaudit"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="releaseaudit"/>
+       <ivy:cachepath pathid="releaseaudit.classpath" conf="releaseaudit"/> 		
+     </target>
+
+     <target name="ivy-checkstyle" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for checkstyle configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="checkstyle"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="checkstyle"/>
+       <ivy:cachepath pathid="checkstyle.classpath" conf="checkstyle"/> 		
+     </target>
+     
+     <target name="ivy-buildJar" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for buildJar configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="buildJar"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="buildJar"/>
+       <ivy:cachepath pathid="buildJar.classpath" conf="buildJar"/> 		
+     </target>
+
+     <target name="ivy-resolve" depends="ivy-init">
+         <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="runtime"/>
+     </target>	
+
+     <target name="assert-pig-jar-exists" depends="ivy-init">
+         <fail>
+             <condition >
+                 <not>
+                     <available file="${pig.jar}" />
+                 </not>
+             </condition>
+                 Not found: ${pig.jar}
+                 Please run the target "jar" in the main build file
+         </fail>
+     </target>
+
+     <target name="ready-to-publish" depends="jar, assert-pig-jar-exists, ivy-resolve"/>	
+
+     <target name="ivy-publish-local" depends="ready-to-publish,ivy-resolve">
+        <ivy:publish settingsRef="${ant.project.name}.ivy.settings"
+           resolver="local" pubrevision="${version}" overwrite="true"
+           artifactspattern="${build.dir}/${ivy.publish.pattern}"/>
+     </target>
+  
+     <!-- this is here for curiosity, to see how well the makepom task works
+     Answer: it depends whether you want transitive dependencies excluded or not
+     -->
+     <target name="makepom" depends="ivy-resolve">
+        <ivy:makepom settingsRef="${ant.project.name}.ivy.settings"
+           ivyfile="ivy.xml"
+           pomfile="${build.ivy.maven.dir}/generated.pom">
+        <ivy:mapping conf="default" scope="default"/>
+        <ivy:mapping conf="master" scope="master"/> 
+        <ivy:mapping conf="runtime" scope="runtime"/>
+        </ivy:makepom>
+     </target>
+
+     <target name="copy-jar-to-maven" depends="ready-to-publish">
+        <copy file="${pig.jar}" tofile="${build.ivy.maven.jar}"/>
+        <checksum file="${build.ivy.maven.jar}" algorithm="md5"/>
+     </target>
+
+     <target name="copypom" depends="ivy-init-dirs">
+        <presetdef name="expandingcopy">
+           <copy overwrite="true">
+              <filterchain>
+                 <expandproperties/>
+              </filterchain>
+           </copy>
+        </presetdef>
+        <expandingcopy file="ivy/pig.pom" tofile="${build.ivy.maven.pom}"/>
+        <checksum file="${build.ivy.maven.pom}" algorithm="md5"/>
+     </target>
+
+     <target name="maven-artifacts" depends="copy-jar-to-maven, copypom" />
+
+     <target name="published" depends="ivy-publish-local, maven-artifacts"/>
+
 </project>
