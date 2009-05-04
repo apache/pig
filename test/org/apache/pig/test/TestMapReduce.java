@@ -313,6 +313,15 @@ public class TestMapReduce extends TestCase {
             return null;
         }
 
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+         */
+        @Override
+        public Class getStorePreparationClass() throws IOException {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
     }
 
 

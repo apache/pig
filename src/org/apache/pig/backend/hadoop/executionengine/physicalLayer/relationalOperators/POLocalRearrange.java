@@ -154,18 +154,41 @@ public class POLocalRearrange extends PhysicalOperator {
         return index;
     }
 
+    /**
+     * Sets the co-group index of this operator
+     * 
+     * @param index the position of this operator in 
+     * a co-group operation 
+     * @throws ExecException if the index value is bigger then 0x7F
+     */
     public void setIndex(int index) throws ExecException {
-        if (index > 0x7F) {
-            int errCode = 1082;
-            String msg = "Cogroups with more than 127 inputs "
-                + " not supported.";
-            throw new ExecException(msg, errCode, PigException.INPUT);
-        } else {
-            this.index = (byte)index;
-        }
-        lrOutput.set(0, new Byte(this.index));
+        setIndex(index, false);
     }
 
+    /**
+     * Sets the multi-query index of this operator
+     * 
+     * @param index the position of the parent plan of this operator
+     * in the enclosed split operator
+     * @throws ExecException if the index value is bigger then 0x7F
+     */
+    public void setMultiQueryIndex(int index) throws ExecException {
+        setIndex(index, true);
+    }
+    
+    private void setIndex(int index, boolean multiQuery) throws ExecException {
+        if (index > 0x7F) {
+            int errCode = 1082;
+            String msg = multiQuery? 
+                    "Merge more than 127 map-reduce jobs not supported."
+                  : "Cogroups with more than 127 inputs not supported.";
+            throw new ExecException(msg, errCode, PigException.INPUT);
+        } else {
+            this.index = multiQuery ? (byte)(index | 0x80) : (byte)index;
+        }            
+        lrOutput.set(0, new Byte(this.index));
+    }
+    
     public boolean isDistinct() { 
         return mIsDistinct;
     }
@@ -255,12 +278,26 @@ public class POLocalRearrange extends PhysicalOperator {
     protected Tuple constructLROutput(List<Result> resLst, Tuple value) throws ExecException{
         //Construct key
         Object key;
+        
         if(resLst.size()>1){
             Tuple t = mTupleFactory.newTuple(resLst.size());
             int i=-1;
             for(Result res : resLst)
                 t.set(++i, res.result);
-            key = t;
+            key = t;           
+        } else if (resLst.size() == 1 && keyType == DataType.TUPLE) {
+            
+            // We get here after merging multiple jobs that have different
+            // map key types into a single job during multi-query optimization.
+            // If the key isn't a tuple, it must be wrapped in a tuple.
+            Object obj = resLst.get(0).result;
+            if (obj instanceof Tuple) {
+                key = (Tuple)obj;
+            } else {
+                Tuple t = mTupleFactory.newTuple(1);
+                t.set(0, resLst.get(0).result);
+                key = t;
+            }        
         }
         else{
             key = resLst.get(0).result;

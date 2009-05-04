@@ -93,6 +93,12 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         super.visitSplit(spl);
         spl.setParentPlan(parent);
     }
+    
+    @Override
+    public void visitDemux(PODemux demux) throws VisitorException{
+        super.visitDemux(demux);
+        demux.setParentPlan(parent);
+    }
 
     @Override
     public void visitDistinct(PODistinct distinct) throws VisitorException {

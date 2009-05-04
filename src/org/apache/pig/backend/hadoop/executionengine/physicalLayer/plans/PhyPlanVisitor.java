@@ -80,6 +80,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     public void visitCombinerPackage(POCombinerPackage pkg) throws VisitorException{
         //do nothing
     }
+ 
+    public void visitMultiQueryPackage(POMultiQueryPackage pkg) throws VisitorException{
+        //do nothing
+    }
     
     public void visitPOForEach(POForEach nfe) throws VisitorException {
         List<PhysicalPlan> inpPlans = nfe.getInputPlans();
@@ -103,6 +107,15 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         }
     }
 
+    public void visitDemux(PODemux demux) throws VisitorException{
+        List<PhysicalPlan> plans = demux.getPlans();
+        for (PhysicalPlan plan : plans) {
+            pushWalker(mCurrentWalker.spawnChildWalker(plan));
+            visit();
+            popWalker();
+        }
+    }
+    
 	public void visitDistinct(PODistinct distinct) throws VisitorException {
         //do nothing		
 	}

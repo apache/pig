@@ -33,6 +33,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -47,6 +48,24 @@ import org.apache.tools.bzip2r.CBZip2OutputStream;
 public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> {
     public static final String PIG_OUTPUT_FUNC = "pig.output.func";
 
+    /**
+     * In general, the mechanism for an OutputFormat in Pig to get hold of the storeFunc
+     * and the metadata information (for now schema and location provided for the store in
+     * the pig script) is through the following Utility static methods:
+     * {@link org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil#getStoreFunc(JobConf)} 
+     * - this will get the {@link org.apache.pig.StoreFunc} reference to use in the RecordWriter.write()
+     * {@link MapRedUtil#getStoreConfig(JobConf)} - this will get the {@link org.apache.pig.StoreConfig}
+     * reference which has metadata like the location (the string supplied with store statement in the script)
+     * and the {@link org.apache.pig.impl.logicalLayer.schema.Schema} of the data. The OutputFormat
+     * should NOT use the location in the StoreConfig to write the output if the location represents a 
+     * Hadoop dfs path. This is because when "speculative execution" is turned on in Hadoop, multiple
+     * attempts for the same task (for a given partition) may be running at the same time. So using the
+     * location will mean that these different attempts will over-write each other's output.
+     * The OutputFormat should use 
+     * {@link org.apache.hadoop.mapred.FileOutputFormat#getWorkOutputPath(JobConf)}
+     * which will provide a safe output directory into which the OutputFormat should write
+     * the part file (given by the name argument in the getRecordWriter() call).
+     */
     public RecordWriter<WritableComparable, Tuple> getRecordWriter(FileSystem fs, JobConf job,
             String name, Progressable progress) throws IOException {
         Path outputDir = FileOutputFormat.getWorkOutputPath(job);
@@ -56,20 +75,7 @@ public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> 
     public PigRecordWriter getRecordWriter(FileSystem fs, JobConf job,
             Path outputDir, String name, Progressable progress)
             throws IOException {
-        StoreFunc store;
-        String storeFunc = job.get("pig.storeFunc", "");
-        if (storeFunc.length() == 0) {
-            store = new PigStorage();
-        } else {
-            try {
-                store = (StoreFunc) PigContext
-                        .instantiateFuncFromSpec(storeFunc);
-            } catch (Exception e) {
-                int errCode = 2081;
-                String msg = "Unable to setup the store function.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
-            }
-        }
+        StoreFunc store = MapRedUtil.getStoreFunc(job);
 
         String parentName = FileOutputFormat.getOutputPath(job).getName();
         int suffixStart = parentName.lastIndexOf('.');

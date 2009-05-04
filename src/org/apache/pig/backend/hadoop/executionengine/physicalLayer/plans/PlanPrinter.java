@@ -163,6 +163,15 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
           else if (node instanceof POSplit) {
               sb.append(planString(((POSplit)node).getPlans()));
           }
+          else if (node instanceof PODemux) {
+              sb.append(planString(((PODemux)node).getPlans()));
+          }
+          else if (node instanceof POMultiQueryPackage) {
+              List<POPackage> pkgs = ((POMultiQueryPackage)node).getPackages();
+              for (POPackage pkg : pkgs) {
+                  sb.append(LSep + pkg.name() + "\n");
+              }
+          }
           else if(node instanceof POFRJoin){
             POFRJoin frj = (POFRJoin)node;
             List<List<PhysicalPlan>> joinPlans = frj.getJoinPlans();

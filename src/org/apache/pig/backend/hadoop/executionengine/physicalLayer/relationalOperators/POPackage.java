@@ -206,8 +206,18 @@ public class POPackage extends PhysicalOperator {
             while (tupIter.hasNext()) {
                 NullableTuple ntup = tupIter.next();
                 int index = ntup.getIndex();
-                Tuple copy = getValueTuple(ntup, index);            
-                dbs[index].add(copy);
+                Tuple copy = getValueTuple(ntup, index);  
+                
+                if (numInputs == 1) {
+                    
+                    // this is for multi-query merge where 
+                    // the numInputs is always 1, but the index
+                    // (the position of the inner plan in the 
+                    // enclosed operator) may not be 1.
+                    dbs[0].add(copy);
+                } else {
+                    dbs[index].add(copy);
+                }
                 if(reporter!=null) reporter.progress();
             }
             
@@ -240,21 +250,15 @@ public class POPackage extends PhysicalOperator {
      // Need to make a copy of the value, as hadoop uses the same ntup
         // to represent each value.
         Tuple val = (Tuple)ntup.getValueAsPigType();
-        /*
-        Tuple copy = mTupleFactory.newTuple(val.size());
-        for (int i = 0; i < val.size(); i++) {
-            copy.set(i, val.get(i));
-        }
-        */
         
         Tuple copy = null;
         // The "value (val)" that we just got may not
         // be the complete "value". It may have some portions
         // in the "key" (look in POLocalRearrange for more comments)
         // If this is the case we need to stitch
-        // the "value" together.
-        Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
-            keyInfo.get(index);
+        // the "value" together.        
+        Pair<Boolean, Map<Integer, Integer>> lrKeyInfo = 
+            keyInfo.get(index);           
         boolean isProjectStar = lrKeyInfo.first;
         Map<Integer, Integer> keyLookup = lrKeyInfo.second;
         int keyLookupSize = keyLookup.size();
@@ -363,6 +367,5 @@ public class POPackage extends PhysicalOperator {
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
-
 
 }
