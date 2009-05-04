@@ -610,3 +610,5 @@ Release 0.1.0 - 2008-09-11
     PIG-652: Adapt changes in store interface to multi-query changes (hagleitn via gates).
 
     PIG-627: multiquery support phase 3 (hagleitn and Richard Ding via olgan)
+
+    PIG-795: support for SAMPLE command (ericg via olgan)
