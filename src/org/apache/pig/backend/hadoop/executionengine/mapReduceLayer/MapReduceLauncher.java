@@ -238,6 +238,8 @@ public class MapReduceLauncher extends Launcher{
         NoopFilterRemover fRem = new NoopFilterRemover(plan);
         fRem.visit();
         
+        // reduces the number of MROpers in the MR plan generated 
+        // by multi-query (multi-store) script.
         MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
         mqOptimizer.visit();
 
@@ -246,7 +248,7 @@ public class MapReduceLauncher extends Launcher{
         // NoopFilterRemover.
         NoopStoreRemover sRem = new NoopStoreRemover(plan);
         sRem.visit();
-
+      
         // check whether stream operator is present
         // after MultiQueryOptimizer because it can shift streams from
         // map to reduce, etc.

@@ -59,6 +59,23 @@ public interface StoreFunc {
      * @throws IOException
      */
     public abstract void finish() throws IOException;
+    
+    /**
+     * Specify a backend specific class to use to prepare for
+     * storing output.  In the Hadoop case, this can return an
+     * OutputFormat that will be used instead of PigOutputFormat.  The 
+     * framework will call this function and if a Class is returned
+     * that implements OutputFormat it will be used. For more details on how
+     * the OutputFormat should interact with Pig, see 
+     * {@link org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat#getRecordWriter(org.apache.hadoop.fs.FileSystem, org.apache.hadoop.mapred.JobConf, String, org.apache.hadoop.util.Progressable)}
+     * @return Backend specific class used to prepare for storing output.
+     * If the {@link StoreFunc} implementation does not have a class to prepare
+     * for storing output, it can return null and a default Pig implementation
+     * will be used to prepare for storing output.
+     * @throws IOException if the class does not implement the expected
+     * interface(s).
+     */
+    public Class getStorePreparationClass() throws IOException;
 
     
 }
