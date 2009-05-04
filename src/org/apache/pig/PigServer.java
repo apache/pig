@@ -445,6 +445,9 @@ public class PigServer {
                 throw new FrontendException(msg, errCode, PigException.INPUT);
             }
 
+            if (currDAG.isBatchOn()) {
+                currDAG.execute();
+            }
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
             
             // invocation of "execute" is synchronous!
@@ -475,32 +478,18 @@ public class PigServer {
         
     /**
      *  forces execution of query (and all queries from which it reads), in order to store result in file
-     */
+     */        
     public ExecJob store(
             String id,
-            String filename,
-            String func) throws IOException{
-        if (!currDAG.getAliasOp().containsKey(id))
-            throw new IOException("Invalid alias: " + id);
-        
-        try {
-            LogicalPlan readFrom = getPlanFromAlias(id, "store");
-            return store(id, readFrom, filename, func);
-        } catch (FrontendException fe) {
-            int errCode = 1002;
-            String msg = "Unable to store alias " + id;
-            throw new FrontendException(msg, errCode, PigException.INPUT, fe);
-        }
-    }
-        
-    public ExecJob store(
-            String id,
-            LogicalPlan readFrom,
             String filename,
             String func) throws IOException {
+
+        if (!currDAG.getAliasOp().containsKey(id))
+            throw new IOException("Invalid alias: " + id);
+
         try {
             LogicalPlan lp = compileLp(id);
-            
+
             // MRCompiler needs a store to be the leaf - hence
             // add a store to the plan to explain
             
@@ -701,7 +690,12 @@ public class PigServer {
 
     public Map<LogicalOperator, DataBag> getExamples(String alias) {
         LogicalPlan plan = null;
-        try {
+
+        try {        
+            if (currDAG.isBatchOn()) {
+                currDAG.execute();
+            }
+            
             plan = clonePlan(alias);
         } catch (IOException e) {
             //Since the original script is parsed anyway, there should not be an
