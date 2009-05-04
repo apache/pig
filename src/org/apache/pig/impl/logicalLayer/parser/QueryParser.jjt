@@ -41,6 +41,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.impl.io.*;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.RANDOM;
 import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.commons.logging.Log;
@@ -842,6 +843,7 @@ TOKEN : { <ERROR: "stderr"> }
 TOKEN : { <STDIN: "stdin"> }
 TOKEN : { <STDOUT: "stdout"> }
 TOKEN : { <LIMIT: "limit"> }
+TOKEN : { <SAMPLE: "sample"> }
 
 TOKEN:
 {
@@ -1080,6 +1082,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |	((<GROUP> | <COGROUP>) op = CogroupClause(lp))
 |	(<FILTER> op = FilterClause(lp))
 |   (<LIMIT> op = LimitClause(lp))
+|   (<SAMPLE> op = SampleClause(lp))
 |   (<ORDER> op = OrderClause(lp))
 |	(<DISTINCT> op = NestedExpr(lp) 
 	{
@@ -1222,6 +1225,48 @@ LogicalOperator FilterClause(LogicalPlan lp):
 		log.trace("Exiting FilterClause");
 		return filter;
 	}
+}
+
+/*
+ * "SAMPLE a x" is translated to "FILTER a BY RANDOM()<x"
+ */
+LogicalOperator SampleClause(LogicalPlan lp) :
+{
+    ExpressionOperator cond;
+    LogicalOperator input;
+    Token t;
+    LogicalPlan conditionPlan = new LogicalPlan();
+    log.trace("Entering SampleClause");
+}
+{
+    (
+    input = NestedExpr(lp) {log.debug("Filter input: " + input);}
+    t = <DOUBLENUMBER>
+    )
+    {
+        LOUserFunc rand = new LOUserFunc(conditionPlan, new OperatorKey(scope, getNextId()), new FuncSpec(RANDOM.class.getName()), DataType.DOUBLE);
+        conditionPlan.add(rand);
+
+        double l = Double.parseDouble(t.image);
+        LOConst prob = new LOConst(conditionPlan, new OperatorKey(scope, getNextId()), l);
+        conditionPlan.add(prob);
+
+        cond = new LOLesserThanEqual(conditionPlan, new OperatorKey(scope, getNextId()));
+        conditionPlan.add(cond);
+        conditionPlan.connect(rand, cond);
+        conditionPlan.connect(prob, cond);
+
+        LogicalOperator filter = new LOFilter(lp, new OperatorKey(scope, getNextId()), conditionPlan);
+        addAlias(input.getAlias(), input);
+        lp.add(filter);
+        log.debug("Added operator " + filter.getClass().getName() + " to the logical plan");
+
+        lp.connect(input, filter);
+        log.debug("Connected alias " + input.getAlias() + " operator " + input.getClass().getName() + " to operator " + filter.getClass().getName() +" in the logical plan");
+
+        log.trace("Exiting SampleClause");
+        return filter;
+    }
 }
 
 LogicalOperator LimitClause(LogicalPlan lp):
