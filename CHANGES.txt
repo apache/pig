@@ -55,7 +55,11 @@ for UDFs that want to handle all simple types as strings (ciemo via gates).
 PIG-514: COUNT returns no results as a result of two filter statements in
 FOREACH (pradeepkth)
 
-Release 0.2.0 - Unreleased
+PIG-789: Fix dump and illustrate to work with new multi-query feature 
+(hagleitn via gates).
+
+
+Release 0.2.0
 
 INCOMPATIBLE CHANGES
 

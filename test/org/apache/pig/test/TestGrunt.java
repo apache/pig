@@ -543,4 +543,50 @@ public class TestGrunt extends TestCase {
     
         grunt.exec();
     }
+    
+    @Test
+    public void testDump() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = 
+            "rmf bla;"
+            +"a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"e = group a by $0;"
+            +"f = foreach e generate group, COUNT($1);"
+            +"store f into 'bla';"
+            +"f1 = load 'bla';"
+            +"g = order f1 by $1;"
+            +"dump g;";
+
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testIllustrate() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = 
+            "rmf bla;"
+            +"a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"e = group a by $0;"
+            +"f = foreach e generate group, COUNT($1);"
+            +"store f into 'bla';"
+            +"f1 = load 'bla' as (f:chararray);"
+            +"g = order f1 by $1;"
+            +"illustrate g;";
+
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
 }
