@@ -94,9 +94,7 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
         res.result = it.next();
         if (res.result == null){
             res.returnStatus = POStatus.STATUS_EOP;
-            inputsAccumulated = false;
-            distinctBag = null;
-            it = null;
+            reset();
         } else {
             res.returnStatus = POStatus.STATUS_OK;
         }
@@ -116,6 +114,13 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
+    }
+
+    @Override
+    public void reset() {
+        inputsAccumulated = false;
+        distinctBag = null;
+        it = null;
     }
 
     @Override

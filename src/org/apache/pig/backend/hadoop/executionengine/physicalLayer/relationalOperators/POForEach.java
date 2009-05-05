@@ -201,7 +201,6 @@ public class POForEach extends PhysicalOperator {
             for (PhysicalOperator po : opsToBeReset) {
                 po.reset();
             }
-
             res = processPlan();
             
             processingPlan = true;
