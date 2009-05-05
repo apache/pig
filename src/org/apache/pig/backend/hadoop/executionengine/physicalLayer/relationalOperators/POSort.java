@@ -282,9 +282,7 @@ public class POSort extends PhysicalOperator {
             res.returnStatus = POStatus.STATUS_OK;
         } else {
             res.returnStatus = POStatus.STATUS_EOP;
-            inputsAccumulated = false;
-            sortedBag = null;
-            it = null;
+            reset();
         }
 		return res;
 	}
@@ -306,6 +304,13 @@ public class POSort extends PhysicalOperator {
 
 		v.visitSort(this);
 	}
+
+    @Override
+    public void reset() {
+        inputsAccumulated = false;
+        sortedBag = null;
+        it = null;
+    }
 
     public List<PhysicalPlan> getSortPlans() {
         return sortPlans;

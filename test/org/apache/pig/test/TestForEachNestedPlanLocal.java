@@ -27,8 +27,7 @@ import junit.framework.Assert;
 
 import java.util.Iterator;
 import java.util.Random;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.text.DecimalFormat;
 
 public class TestForEachNestedPlanLocal extends TestCase {
@@ -64,6 +63,30 @@ public class TestForEachNestedPlanLocal extends TestCase {
             Assert.assertEquals(count, 30);
         }
     }
+
+    @Test
+    public void testInnerLimit() throws Exception {
+        File tmpFile = genDataSetFileOneGroup();
+        pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString()) + "'; ");
+        pig.registerQuery("b = group a by $0; ");
+        pig.registerQuery("c = foreach b { " + "     c1 = limit $1 5; "
+                + "    generate COUNT(c1); " + "};");
+        Iterator<Tuple> it = pig.openIterator("c");
+        Tuple t = null;
+        long count[] = new long[3];
+        for (int i = 0; i < 3 && it.hasNext(); i++) {
+            t = it.next();
+            count[i] = (Long)t.get(0);
+        }
+
+        Assert.assertFalse(it.hasNext());
+
+        Assert.assertEquals(3L, count[0]);
+        Assert.assertEquals(5L, count[1]);
+        Assert.assertEquals(5L, count[2]);
+    }
+
+
 
 
     /*
@@ -113,4 +136,34 @@ public class TestForEachNestedPlanLocal extends TestCase {
 
         return TestHelper.createTempFile(data) ;
     }
+
+    private File genDataSetFileOneGroup() throws IOException {
+
+        File fp1 = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+
+        ps.println("lost\tjack");
+        ps.println("lost\tkate");
+        ps.println("lost\tsawyer");
+        ps.println("lost\tdesmond");
+        ps.println("lost\thurley");
+        ps.println("lost\tlocke");
+        ps.println("lost\tsun");
+        ps.println("lost\tcharlie");
+        ps.println("lost\tjin");
+        ps.println("lost\tben");
+        ps.println("lotr\tfrodo");
+        ps.println("lotr\tsam");
+        ps.println("lotr\tmerry");
+        ps.println("lotr\tpippen");
+        ps.println("lotr\tbilbo");
+        ps.println("3stooges\tlarry");
+        ps.println("3stooges\tmoe");
+        ps.println("3stooges\tcurly");
+
+        ps.close();
+
+        return fp1;
+    }
+
 }

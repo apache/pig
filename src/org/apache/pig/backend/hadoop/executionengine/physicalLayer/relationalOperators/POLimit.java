@@ -29,6 +29,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ComparisonOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -114,5 +115,19 @@ public class POLimit extends PhysicalOperator {
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitLimit(this);
+    }
+
+    @Override
+    public void reset() {
+        soFar = 0;
+    }
+
+    @Override
+    public POLimit clone() throws CloneNotSupportedException {
+        POLimit newLimit = new POLimit(new OperatorKey(this.mKey.scope,
+            NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)),
+            this.requestedParallelism, this.inputs);
+        newLimit.mLimit = this.mLimit;
+        return newLimit;
     }
 }

@@ -1278,7 +1278,7 @@ LogicalOperator LimitClause(LogicalPlan lp):
 }
 {
         (
-        input = NestedExpr(lp) {log.debug("Filter input: " + input);}
+        input = NestedExpr(lp) {log.debug("Limit input: " + input);}
          t = <INTEGER>
          )
         {
@@ -2184,6 +2184,7 @@ void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<Logical
 |	item = NestedFilter(over,specs,lp, input)	 
 | 	item = NestedSortOrArrange(over,specs,lp, input)
 |	item = NestedDistinct(over,specs,lp, input)	
+|	item = NestedLimit(over,specs,lp, input)	
 	)
 	)	
 	{
@@ -2411,7 +2412,40 @@ LogicalOperator NestedDistinct(Schema over, Map<String, LogicalOperator> specs, 
 	}
 }
 	
-	
+LogicalOperator NestedLimit(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
+{
+    LogicalOperator eOp;
+    Schema subSchema = null; 
+    Token t;
+    log.trace("Entering LimitClause");
+}
+{
+    (
+    <LIMIT>
+    (
+    LOOKAHEAD(NestedProject(over, specs, lp, input)) eOp = NestedProject(over, specs, lp, input)
+|   LOOKAHEAD({ null != specs.get(getToken(1).image) }) t = <IDENTIFIER> {eOp = specs.get(t.image);}
+|   eOp = BaseEvalSpec(over, specs, lp, input)
+    )
+    {subSchema = eOp.getSchema();}
+    t = <INTEGER>
+    )
+    {
+        lp.add(eOp);
+        log.debug("Added " + eOp.getAlias() + " to the logical plan");
+        long l = Integer.parseInt(t.image);
+        LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l);
+        lp.add(limit);
+        log.debug("Added operator " + limit.getClass().getName() + " to the logical plan");
+
+        lp.connect(eOp, limit);
+        log.debug("Connected the limit input to the limit");
+
+        log.trace("Exiting NestedLimit");
+        return limit;
+    }
+}
+
 LogicalOperator GenerateStatement(Schema over, Map<String, LogicalOperator> specs, LogicalPlan lp, LogicalOperator input):
 {
 	LogicalOperator spec = null; 
