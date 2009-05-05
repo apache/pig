@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
@@ -762,6 +763,10 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             sawNonAlgebraic = true;
         }
         
+        public void visitLimit(POLimit limit) throws VisitorException {
+            sawNonAlgebraic = true;
+        }
+
         private boolean checkSuccessorIsLeaf(PhysicalOperator leaf, PhysicalOperator opToCheck) {
             List<PhysicalOperator> succs = mPlan.getSuccessors(opToCheck);
             if(succs.size() == 1) {

@@ -185,7 +185,7 @@ public class PigServer {
      * Starts batch execution mode.
      */
     public void setBatchOn() {
-        log.info("Create a new graph.");
+        log.debug("Create a new graph.");
         
         if (currDAG != null) {
             graphs.push(currDAG);

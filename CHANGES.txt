@@ -34,6 +34,8 @@ via gates).
 PIG-775: PORelationToExprProject should create a NonSpillableDataBag to create
 empty bags (pradeepkth)
 
+PIG-741: Allow limit to be nested in a foreach.
+
 PIG-743: To implement clover (gkesavan)
 
 PIG-701: Implement IVY for resolving pig dependencies (gkesavan)
