@@ -58,6 +58,8 @@ FOREACH (pradeepkth)
 PIG-789: Fix dump and illustrate to work with new multi-query feature 
 (hagleitn via gates).
 
+PIG-774: Pig does not handle Chinese characters (in both the parameter subsitution
+using -param_file or embedded in the Pig script) correctly (daijy)
 
 Release 0.2.0
 
