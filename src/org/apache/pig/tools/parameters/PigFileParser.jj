@@ -25,6 +25,7 @@ options {
     // Generate non-static functions
     STATIC = false;
   	IGNORE_CASE = true;
+    JAVA_UNICODE_ESCAPE = true;
 }
 PARSER_BEGIN(PigFileParser)
 package org.apache.pig.tools.parameters;

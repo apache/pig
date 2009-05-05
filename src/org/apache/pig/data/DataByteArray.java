@@ -19,6 +19,7 @@ package org.apache.pig.data;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,7 +97,12 @@ public class DataByteArray implements Comparable, Serializable {
      * @param s String to make a byte array out of.
      */
     public DataByteArray(String s) {
-        mData = s.getBytes();
+        try {
+			mData = s.getBytes("UTF8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     /**
@@ -137,7 +143,13 @@ public class DataByteArray implements Comparable, Serializable {
 
     @Override
     public String toString() {
-        return new String(mData);
+        String r=null;
+    	try {
+			r = new String(mData, "UTF8");
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return r;
     }
 
     /**

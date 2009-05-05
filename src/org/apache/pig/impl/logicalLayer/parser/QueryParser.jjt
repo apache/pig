@@ -25,6 +25,7 @@ options {
   STATIC = false;
   // Case is ignored in keywords
   IGNORE_CASE = true;
+  JAVA_UNICODE_ESCAPE = true;
 }
 
 PARSER_BEGIN(QueryParser)
