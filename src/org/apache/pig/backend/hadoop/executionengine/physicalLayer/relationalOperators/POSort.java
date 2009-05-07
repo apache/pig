@@ -258,8 +258,11 @@ public class POSort extends PhysicalOperator {
 			while (res.returnStatus != POStatus.STATUS_EOP) {
 				if (res.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");
-					continue;
+					return res;
+					//continue;
 				} else if (res.returnStatus == POStatus.STATUS_NULL) {
+                    // ignore the null, read the next tuple.
+                    res = processInput();
 					continue;
 				}
 				sortedBag.add((Tuple) res.result);

@@ -79,8 +79,14 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
             while (in.returnStatus != POStatus.STATUS_EOP) {
                 if (in.returnStatus == POStatus.STATUS_ERR) {
                     log.error("Error in reading from inputs");
-                    continue;
+                    return in;
+                    //continue;
                 } else if (in.returnStatus == POStatus.STATUS_NULL) {
+                    // Ignore the null, read the next tuple.  It's not clear
+                    // to me that we should ever get this, or if we should, 
+                    // how it differs from EOP.  But ignoring it here seems
+                    // to work.
+                    in = processInput();
                     continue;
                 }
                 distinctBag.add((Tuple) in.result);
