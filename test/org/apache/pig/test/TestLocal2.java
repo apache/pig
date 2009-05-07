@@ -20,13 +20,19 @@ package org.apache.pig.test;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
+import org.apache.pig.EvalFunc;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 
@@ -90,6 +96,53 @@ public class TestLocal2 extends TestCase {
         pig.registerQuery("c = union a1, b1; ") ;
 
         verifyUnion( "c", 30 + 50 );
+    }
+    
+    @Test
+    public void testPig800Distinct() throws Exception {
+        // Regression test for Pig-800
+        File fp1 = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+        
+        ps.println("1\t1}");
+        ps.close();
+        
+        pig.registerQuery("A = load '" + Util.generateURI(fp1.toString()) + "'; ");
+        pig.registerQuery("B = foreach A generate flatten(" + Pig800Udf.class.getName() + "($0));");
+        pig.registerQuery("C = distinct B;");
+        
+        Iterator<Tuple> iter = pig.openIterator("C");
+        // Before PIG-800 was fixed this went into an infinite loop, so just
+        // managing to open the iterator is sufficient.
+        
+    }
+    
+    @Test
+    public void testPig800Sort() throws Exception {
+        // Regression test for Pig-800
+        File fp1 = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+        
+        ps.println("1\t1}");
+        ps.close();
+        
+        pig.registerQuery("A = load '" + Util.generateURI(fp1.toString()) + "'; ");
+        pig.registerQuery("B = foreach A generate flatten(" + Pig800Udf.class.getName() + "($0));");
+        pig.registerQuery("C = order B by $0;");
+        
+        Iterator<Tuple> iter = pig.openIterator("C");
+        // Before PIG-800 was fixed this went into an infinite loop, so just
+        // managing to open the iterator is sufficient.
+        
+    }
+    
+    static public class Pig800Udf extends EvalFunc<DataBag> {
+        
+        @Override
+        public DataBag exec(Tuple input) throws IOException {
+            DataBag output = BagFactory.getInstance().newDefaultBag();
+            return output;
+        }
     }
 
     //verifies results
