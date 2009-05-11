@@ -85,7 +85,7 @@ public class TestMultiQueryLocal extends TestCase {
             LogicalPlan lp = checkLogicalPlan(1, 2, 9);
 
             // XXX Physical plan has one less node in the local case
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 10);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 12);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -142,7 +142,7 @@ public class TestMultiQueryLocal extends TestCase {
     public void testMultiQueryWithTwoStores2Execs() {
 
         System.out.println("===== test multi-query with 2 stores (2) =====");
-
+        
         try {
             myPig.setBatchOn();
 
@@ -185,7 +185,7 @@ public class TestMultiQueryLocal extends TestCase {
 
             LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 17);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -247,7 +247,7 @@ public class TestMultiQueryLocal extends TestCase {
             LogicalPlan lp = checkLogicalPlan(2, 3, 16);
 
             // XXX the total number of ops is one less in the local case
-            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 18);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 21);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -458,7 +458,7 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("store c into '/tmp/output5';");
 
             LogicalPlan lp = checkLogicalPlan(1, 3, 14);
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 16);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 21);
 
             myPig.executeBatch();
             myPig.discardBatch(); 

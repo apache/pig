@@ -35,6 +35,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.tools.pigstats.PigStats;
 
 
 public class HJob implements ExecJob {
@@ -44,6 +45,7 @@ public class HJob implements ExecJob {
     protected JOB_STATUS status;
     protected PigContext pigContext;
     protected FileSpec outFileSpec;
+    private PigStats stats;
     
     public HJob(JOB_STATUS status,
                 PigContext pigContext,
@@ -51,6 +53,16 @@ public class HJob implements ExecJob {
         this.status = status;
         this.pigContext = pigContext;
         this.outFileSpec = outFileSpec;
+    }
+    
+    public HJob(JOB_STATUS status,
+            PigContext pigContext,
+            FileSpec outFileSpec,
+            PigStats stats) {
+        this.status = status;
+        this.pigContext = pigContext;
+        this.outFileSpec = outFileSpec;
+        this.stats = stats;
     }
     
     public JOB_STATUS getStatus() {
@@ -125,8 +137,9 @@ public class HJob implements ExecJob {
         return props;
     }
 
-    public Map<String, Object> getStatistics() {
-        throw new UnsupportedOperationException();
+    public PigStats getStatistics() {
+        //throw new UnsupportedOperationException();
+        return stats;
     }
 
     public void completionNotification(Object cookie) {

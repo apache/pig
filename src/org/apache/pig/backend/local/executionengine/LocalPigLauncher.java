@@ -42,6 +42,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
 public class LocalPigLauncher extends Launcher {
@@ -58,7 +59,7 @@ public class LocalPigLauncher extends Launcher {
     }
 
     @Override
-    public boolean launchPig(PhysicalPlan php, String grpName, PigContext pc)
+    public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc)
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException {
 
@@ -69,6 +70,10 @@ public class LocalPigLauncher extends Launcher {
 
         int noJobs = stores.size();
         int failedJobs = 0;
+        
+        PigStats stats = new PigStats();
+        stats.setPhysicalPlan(php);
+        stats.setExecType(pc.getExecType());
 
         for (POStore op : stores) {
             op.setStoreImpl(new LocalPOStoreImpl(pc));
@@ -100,22 +105,25 @@ public class LocalPigLauncher extends Launcher {
                 
         // The remaining stores can be run together.
         failedJobs += runPipeline(stores.toArray(new POStore[0]));
+        
+        stats.accumulateStats();
 
         UDFFinishVisitor finisher = new UDFFinishVisitor(php, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(php));
         finisher.visit();
 
         if (failedJobs == 0) {
+            log.info("Records written : " + stats.getRecordsWritten());
+            log.info("Bytes written : " + stats.getBytesWritten());
             log.info("100% complete!");
             log.info("Success!!");
-            return true;
+            return stats;
         } else {
             log.info("Failed jobs!!");
             log.info(failedJobs + " out of " + noJobs + " failed!");
         }
-        return false;
+        return null;
 
     }
-    
     
 
     private int runPipeline(POStore[] leaves) throws IOException, ExecException {
