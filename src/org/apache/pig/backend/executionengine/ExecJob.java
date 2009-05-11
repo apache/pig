@@ -24,6 +24,7 @@ import java.util.Map;
 import java.io.OutputStream;
 
 import org.apache.pig.data.Tuple;
+import org.apache.pig.tools.pigstats.PigStats;
 
 /**
  * Abstraction on a job that the execution engine runs. It allows the front-end to
@@ -78,7 +79,7 @@ public interface ExecJob {
      * 
      * @return statistics relevant to the execution engine
      */
-    public Map<String, Object> getStatistics();
+    public PigStats getStatistics();
 
     /**
      * hook for asynchronous notification of job completion pushed from the back-end

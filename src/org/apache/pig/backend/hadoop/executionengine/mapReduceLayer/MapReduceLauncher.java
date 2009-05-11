@@ -56,6 +56,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
+import org.apache.pig.tools.pigstats.PigStats;
 
 /**
  * Main class that launches pig for Map Reduce
@@ -69,7 +70,7 @@ public class MapReduceLauncher extends Launcher{
     private boolean aggregateWarning = false;
     
     @Override
-    public boolean launchPig(PhysicalPlan php,
+    public PigStats launchPig(PhysicalPlan php,
                              String grpName,
                              PigContext pc) throws PlanException,
                                                    VisitorException,
@@ -80,6 +81,10 @@ public class MapReduceLauncher extends Launcher{
         long sleepTime = 500;
         aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
+        PigStats stats = new PigStats();
+        stats.setMROperatorPlan(mrp);
+        stats.setExecType(pc.getExecType());
+        stats.setPhysicalPlan(php);
         
         ExecutionEngine exe = pc.getExecutionEngine();
         ConfigurationValidator.validatePigProperties(exe.getConfiguration());
@@ -137,6 +142,11 @@ public class MapReduceLauncher extends Launcher{
             failedJobs.addAll(jc.getFailedJobs());
             succJobs.addAll(jc.getSuccessfulJobs());
             jcc.moveResults();
+            
+            stats.setJobClient(jobClient);
+            stats.setJobControl(jc);
+            stats.accumulateStats();
+            
             jc.stop(); 
         }
 
@@ -146,7 +156,7 @@ public class MapReduceLauncher extends Launcher{
             for (Job fj : failedJobs) {
                 getStats(fj, jobClient, true, pc);
             }
-            return false;
+            return null;
         }
 
         Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
@@ -163,10 +173,18 @@ public class MapReduceLauncher extends Launcher{
         if(aggregateWarning) {
         	CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
         }
+        
+        if(stats.getPigStats().get(stats.getLastJobID()) == null)
+            log
+                    .warn("Jobs not found in the JobClient. Please try to use Local, Hadoop Distributed or Hadoop MiniCluster modes instead of Hadoop LocalExecution");
+        else {
+            log.info("Records written : " + stats.getRecordsWritten());
+            log.info("Bytes written : " + stats.getBytesWritten());
+        }
 
         log.info( "100% complete");
         log.info("Success!");
-        return true;
+        return stats;
     }
 
     @Override

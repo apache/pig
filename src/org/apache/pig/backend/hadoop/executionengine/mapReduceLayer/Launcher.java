@@ -48,6 +48,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.tools.pigstats.PigStats;
 
 public abstract class Launcher {
     private static final Log log = LogFactory.getLog(Launcher.class);
@@ -94,7 +95,7 @@ public abstract class Launcher {
      * @throws ExecException
      * @throws JobCreationException
      */
-    public abstract boolean launchPig(PhysicalPlan php, String grpName, PigContext pc)
+    public abstract PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc)
             throws PlanException, VisitorException, IOException, ExecException,
             JobCreationException, Exception;
 

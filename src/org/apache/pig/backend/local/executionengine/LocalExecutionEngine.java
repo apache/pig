@@ -55,6 +55,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPri
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.local.executionengine.physicalLayer.LocalLogToPhyTranslationVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.tools.pigstats.PigStats;
+
 import java.util.Iterator;
 
 public class LocalExecutionEngine implements ExecutionEngine {
@@ -160,10 +162,10 @@ public class LocalExecutionEngine implements ExecutionEngine {
             }
 
             LocalPigLauncher launcher = new LocalPigLauncher();
-            boolean success = launcher.launchPig(plan, jobName, pigContext);
-            if (success)
+            PigStats stats = launcher.launchPig(plan, jobName, pigContext);
+            if (stats != null)
                 return new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext,
-                        spec);
+                        spec, stats);
             else
                 return new LocalJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
         } catch (Exception e) {
