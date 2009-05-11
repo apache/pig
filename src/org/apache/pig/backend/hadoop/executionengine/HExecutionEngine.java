@@ -72,6 +72,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPri
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.shock.SSHSocketImplFactory;
+import org.apache.pig.tools.pigstats.PigStats;
 
 
 public class HExecutionEngine implements ExecutionEngine {
@@ -258,9 +259,9 @@ public class HExecutionEngine implements ExecutionEngine {
             FileSpec spec = ExecTools.checkLeafIsStore(plan, pigContext);
 
             MapReduceLauncher launcher = new MapReduceLauncher();
-            boolean success = launcher.launchPig(plan, jobName, pigContext);
-            if(success)
-                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec);
+            PigStats stats = launcher.launchPig(plan, jobName, pigContext);
+            if(stats != null)
+                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec, stats);
             else
                 return new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
 

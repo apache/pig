@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -234,6 +235,28 @@ public class Util {
             pw.println(inputData[i]);
         }
         pw.close();
+    }
+    
+    /**
+     * Helper to create a dfs file on the MiniCluster dfs. This returns an
+     * outputstream that can be used in test cases to write data.
+     * 
+     * @param cluster
+     *            reference to the MiniCluster where the file should be created
+     * @param fileName
+     *            pathname of the file to be created
+     * @return OutputStream to write any data to the file created on the
+     *         MiniCluster.
+     * @throws IOException
+     */
+    static public OutputStream createInputFile(MiniCluster cluster,
+            String fileName) throws IOException {
+        FileSystem fs = cluster.getFileSystem();
+        if (fs.exists(new Path(fileName))) {
+            throw new IOException("File " + fileName
+                    + " already exists on the minicluster");
+        }
+        return fs.create(new Path(fileName));
     }
     
     /**

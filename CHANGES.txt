@@ -40,6 +40,8 @@ PIG-743: To implement clover (gkesavan)
 
 PIG-701: Implement IVY for resolving pig dependencies (gkesavan)
 
+PIG-626: Add access to hadoop counters (shubhamc via gates).
+
 BUG FIXES
 
 PIG-733: Order by sampling dumps entire sample to hdfs which causes dfs

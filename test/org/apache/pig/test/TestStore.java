@@ -49,6 +49,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.backend.local.executionengine.LocalPigLauncher;
 import org.apache.pig.backend.local.executionengine.LocalPOStoreImpl;
+import org.apache.pig.backend.local.executionengine.physicalLayer.counters.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -59,6 +60,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -79,10 +81,12 @@ public class TestStore extends junit.framework.TestCase {
     PigContext pc;
     POProject proj;
     PigServer pig;
+    POCounter pcount;
     
     @Before
     public void setUp() throws Exception {
         st = GenPhyOp.topStoreOp();
+        pcount = new POCounter(new OperatorKey("", (new Random()).nextLong()));
         fSpec = new FileSpec("file:/tmp/storeTest.txt",
                       new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
         st.setSFile(fSpec);
@@ -104,11 +108,15 @@ public class TestStore extends junit.framework.TestCase {
     public void tearDown() throws Exception {
     }
 
-    private boolean store() throws Exception {
+    private PigStats store() throws Exception {
         PhysicalPlan pp = new PhysicalPlan();
         pp.add(proj);
         pp.add(st);
-        pp.connect(proj, st);
+        pp.add(pcount);
+        //pp.connect(proj, st);
+        pp.connect(proj, pcount);
+        pp.connect(pcount, st);
+        pc.setExecType(ExecType.LOCAL);
         return new LocalPigLauncher().launchPig(pp, "TestStore", pc);
     }
 
@@ -118,7 +126,7 @@ public class TestStore extends junit.framework.TestCase {
         Tuple t = new DefaultTuple();
         t.append(inpDB);
         proj.attachInput(t);
-        assertTrue(store());
+        assertTrue(store() != null);
         
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader("/tmp/storeTest.txt"));
@@ -145,7 +153,7 @@ public class TestStore extends junit.framework.TestCase {
         Tuple t = new DefaultTuple();
         t.append(inpDB);
         proj.attachInput(t);
-        assertTrue(store());
+        assertTrue(store() != null);
         PigStorage ps = new PigStorage(":");
         
         int size = 0;
@@ -178,7 +186,7 @@ public class TestStore extends junit.framework.TestCase {
         Tuple t = new DefaultTuple();
         t.append(inpDB);
         proj.attachInput(t);
-        assertTrue(store());
+        assertTrue(store() != null);
         PigStorage ps = new PigStorage(":");
         
         int size = 0;
