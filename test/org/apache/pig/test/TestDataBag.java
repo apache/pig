@@ -729,6 +729,68 @@ public class TestDataBag extends junit.framework.TestCase {
 
         BagFactory.resetSelf();
     }
+    
+    @Test
+    public void testNonSpillableDataBagEquals1() throws Exception {
+        String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
+        NonSpillableDataBag bg1 = new NonSpillableDataBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg1.add(Util.createTuple(tupleContents[i]));
+        }
+        NonSpillableDataBag bg2 = new NonSpillableDataBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg2.add(Util.createTuple(tupleContents[i]));
+        }
+        assertEquals(bg1, bg2);
+    }
+    
+    @Test
+    public void testNonSpillableDataBagEquals2() throws Exception {
+        String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
+        NonSpillableDataBag bg1 = new NonSpillableDataBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg1.add(Util.createTuple(tupleContents[i]));
+        }
+        tupleContents = new String[][] {{"c", "d" }, {"a", "b"},{ "e", "f"} };
+        NonSpillableDataBag bg2 = new NonSpillableDataBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg2.add(Util.createTuple(tupleContents[i]));
+        }
+        assertEquals(bg1, bg2);
+    }
+    
+    @Test
+    public void testDefaultDataBagEquals1() throws Exception {
+        String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag bg1 = factory.newDefaultBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg1.add(Util.createTuple(tupleContents[i]));
+        }
+        DataBag bg2 = factory.newDefaultBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg2.add(Util.createTuple(tupleContents[i]));
+        }
+        assertEquals(bg1, bg2);
+    }
+    
+    @Test
+    public void testDefaultDataBagEquals2() throws Exception {
+        String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag bg1 = factory.newDefaultBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg1.add(Util.createTuple(tupleContents[i]));
+        }
+        tupleContents = new String[][] {{"c", "d" }, {"a", "b"},{ "e", "f"} };
+        DataBag bg2 = factory.newDefaultBag();
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg2.add(Util.createTuple(tupleContents[i]));
+        }
+        assertEquals(bg1, bg2);
+    }
 }
 
 
