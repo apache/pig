@@ -44,7 +44,6 @@ import org.apache.pig.pen.util.ExampleTuple;
  * SortedDataBags. They are sorted on the keys. We then start pulling
  * tuple out of these bags and start constructing output.
  * 
- * @author shubhamc
  *
  */
 public class POCogroup extends PhysicalOperator {

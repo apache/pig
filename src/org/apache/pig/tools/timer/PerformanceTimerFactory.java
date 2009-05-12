@@ -17,7 +17,6 @@
  * 
  * Performance timer factory.
  *
- * Author:  Alan F. Gates (gates@)
  * $Header:$
  */
 
