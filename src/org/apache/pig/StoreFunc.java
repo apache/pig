@@ -27,7 +27,6 @@ import org.apache.pig.data.Tuple;
 * This interface is used to implement functions to write records
 * from a dataset.
 * 
-* @author database-systems@research.yahoo
 *
 */
 

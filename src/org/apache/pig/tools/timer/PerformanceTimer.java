@@ -17,7 +17,6 @@
  * 
  * Performance timers.
  *
- * Author:  Alan F. Gates (gates@)
  * $Header:$
  */
 

@@ -25,7 +25,6 @@ import org.apache.pig.impl.PigContext;
 
 /**
  * A simple class that specifies a file name and storage function which is used to read/write it
- * @author utkarsh
  *
  */
 public class FileSpec implements Serializable {
