@@ -24,7 +24,6 @@
  * form of the argument.  The caller can then obtain the value by calling one of the
  * getVal functions.  
  *
- * Author:  Alan F. Gates (gates@)
  * $Header:$
  */
 

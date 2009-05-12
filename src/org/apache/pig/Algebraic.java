@@ -31,7 +31,6 @@ package org.apache.pig;
  * 
  * When eval functions implement this interface, it is a hint to the system to try and compute
  * partial results early which causes queries to run faster. 
- * @author utkarsh
  *
  */
 public interface Algebraic{

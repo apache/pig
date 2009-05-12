@@ -38,7 +38,6 @@ import org.apache.pig.pen.util.ExampleTuple;
  * It accumulates inputs into databags and then applies logic similar to 
  * foreach flatten(*) to get the output tuples
  * 
- * @author shubhamc
  *
  */
 public class POCross extends PhysicalOperator {
