@@ -68,6 +68,8 @@ using -param_file or embedded in the Pig script) correctly (daijy)
 PIG-800: Fix distinct and order in local mode to not go into an infinite loop
 (gates).
 
+PIG-806: to remove author tags in the pig source code (sms).
+
 Release 0.2.0
 
 INCOMPATIBLE CHANGES
