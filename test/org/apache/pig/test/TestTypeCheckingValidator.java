@@ -31,8 +31,10 @@ import org.apache.pig.impl.logicalLayer.validators.*;
 import org.apache.pig.impl.logicalLayer.* ;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema ;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileSpec;
@@ -5533,6 +5535,52 @@ public class TestTypeCheckingValidator extends TestCase {
 
     }
 
+    @Test
+    public void testMapLookupLineage3() throws Throwable {
+        planTester.buildPlan("a = load 'a' as (s, m, l);") ;
+        planTester.buildPlan("b = foreach a generate s#'src_spaceid' AS vspaceid, flatten(l#'viewinfo') as viewinfo ;") ;
+        LogicalPlan plan = planTester.buildPlan("c = foreach b generate (chararray)vspaceid#'foo', (chararray)viewinfo#'pos' as position;") ;
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        CastFinder cf = new CastFinder(plan);
+        cf.visit();
+        List<LOCast> casts = cf.casts;
+        for (LOCast cast : casts) {
+            assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));    
+        }
+    }
+    
+    class CastFinder extends LOVisitor {
+        List<LOCast> casts = new ArrayList<LOCast>();
+        /**
+         * 
+         */
+        public CastFinder(LogicalPlan lp) {
+            // TODO Auto-generated constructor stub
+            super(lp, new DepthFirstWalker<LogicalOperator, LogicalPlan>(lp));
+        }
+        
+        /* (non-Javadoc)
+         * @see org.apache.pig.impl.logicalLayer.LOVisitor#visit(org.apache.pig.impl.logicalLayer.LOCast)
+         */
+        @Override
+        protected void visit(LOCast cast) throws VisitorException {
+            casts.add(cast);
+        }
+    }
+    
     @Test
     public void testBincond() throws Throwable {
         planTester.buildPlan("a = load 'a' as (name: chararray, age: int, gpa: float);") ;
