@@ -175,17 +175,13 @@ public class QueryParser {
 	
 
     String massageFilename(String filename, PigContext pigContext, boolean isLoad) throws IOException, ParseException {
-        boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
-
+        if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)&&isLoad) {
+            filename = FileLocalizer.hadoopify(filename, pigContext);
+        } 
+    	boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
         if (!isMultiQuery) {
             if(!isLoad) {
                 return filename;
-            }
-
-            if (pigContext.getExecType() != ExecType.LOCAL) {
-                if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-                    filename = FileLocalizer.hadoopify(filename, pigContext);
-                } 
             }
             return filename;
         }

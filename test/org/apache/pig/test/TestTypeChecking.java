@@ -252,7 +252,7 @@ public class TestTypeChecking extends TestCase {
 
     public void testSUM2() throws Throwable {
         TypeCheckingTestUtil.printCurrentMethodName() ;
-        planTester.buildPlan("a = group (load 'file:\" + tmpFile + \"') by ($0,$1);") ;
+        planTester.buildPlan("a = group (load '\" + tmpFile + \"') by ($0,$1);") ;
         LogicalPlan plan1 = planTester.buildPlan("b = foreach a generate flatten(group), SUM($1.$2);") ;
         planTester.typeCheckPlan(plan1);
     }

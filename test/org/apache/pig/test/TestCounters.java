@@ -540,7 +540,7 @@ public class TestCounters extends TestCase {
         File out = File.createTempFile("output", ".txt");
         out.delete();
         PigServer pigServer = new PigServer("local");
-        pigServer.registerQuery("a = load '" + file + "';");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(file.toString()) + "';");
         pigServer.registerQuery("b = order a by $0;");
         pigServer.registerQuery("c = group b by $0;");
         pigServer.registerQuery("d = foreach c generate group, SUM(b.$1);");
