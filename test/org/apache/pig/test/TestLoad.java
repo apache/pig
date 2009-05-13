@@ -70,6 +70,8 @@ public class TestLoad extends junit.framework.TestCase {
     public void setUp() throws Exception {
         curDir = System.getProperty("user.dir");
         inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+            inpDir="/"+FileLocalizer.parseCygPath(inpDir, FileLocalizer.STYLE_WINDOWS);
         inpFSpec = new FileSpec("file:" + inpDir + "passwd", new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
 
         FileLocalizer.deleteTempFiles();
@@ -117,7 +119,13 @@ public class TestLoad extends junit.framework.TestCase {
 
     @Test
     public void testLoadLocalAbs() throws Exception {
-        checkLoadPath("file:"+curDir + File.separatorChar+"test/org/apache/pig/test/data/passwd", "", true);
+    	String filename = curDir + File.separatorChar+"test/org/apache/pig/test/data/passwd";
+        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
+        {
+            filename="/"+FileLocalizer.parseCygPath(filename, FileLocalizer.STYLE_WINDOWS);
+            filename=Util.encodeEscape(filename);
+        }
+        checkLoadPath("file:"+filename, "", true);
     }
 
     @Test
