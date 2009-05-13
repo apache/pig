@@ -32,6 +32,8 @@ PIG-775: PORelationToExprProject should create a NonSpillableDataBag to create e
 
 BUG FIXES
 
+PIG-804: problem with lineage with double map redirection (pradeepkth)
+
 PIG-733: Order by sampling dumps entire sample to hdfs which causes dfs
 "FileSystem closed" error on large input (pradeepkth)
 

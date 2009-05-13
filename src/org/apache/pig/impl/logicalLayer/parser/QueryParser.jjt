@@ -2502,6 +2502,13 @@ ExpressionOperator CastExpr(Schema over, Map<String, LogicalOperator> specs,Logi
         if(castRequired) {
             cast = new LOCast(lp, new OperatorKey(scope, getNextId()), fs.type);
             fs.alias = exprOp.getFieldSchema().alias;
+            // unset the field schema computed above since it should
+            // be recomputed later from the TypeCheckingVisitor
+            // This is because operators might be added/removed
+            // from the plan which might affect the field schema. So
+            // the TypeCheckingVisitor would be right place to
+            // compute the field schema
+            exprOp.unsetFieldSchema();
             cast.setFieldSchema(fs);
             lp.add(cast);
 		    log.debug("Added operator " + cast.getClass().getName() + " " + cast + " to logical plan " + lp);
