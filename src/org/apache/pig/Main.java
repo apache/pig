@@ -99,12 +99,13 @@ public static void main(String args[])
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('o', "hod", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
-        opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('t', "optimizer_off", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('v', "verbose", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('w', "warning", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('F', "stop_on_failure", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+        opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.NOT_ACCEPTED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -122,7 +123,11 @@ public static void main(String args[])
         //by default warning aggregation is on
         properties.setProperty("aggregate.warning", ""+true);
 
+        //by default multiquery optimization is on
         properties.setProperty("opt.multiquery", ""+true);
+
+        //by default we keep going on error on the backend
+        properties.setProperty("stop.on.failure", ""+false);
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {
@@ -162,6 +167,10 @@ public static void main(String args[])
             case 'f':
                 mode = ExecMode.FILE;
                 file = opts.getValStr();
+                break;
+
+            case 'F':
+                properties.setProperty("stop.on.failure", ""+true);
                 break;
 
             case 'h':
@@ -359,8 +368,9 @@ public static void main(String args[])
             logFileName = validateLogFile(logFileName, remainders[0]);
             pigContext.getProperties().setProperty("pig.logfile", logFileName);
 
-            if (!debug)
+            if (!debug) {
                 new File(substFile).deleteOnExit();
+            }
 
             // Set job name based on name of the script
             pigContext.getProperties().setProperty(PigContext.JOB_NAME, 
@@ -369,8 +379,21 @@ public static void main(String args[])
 
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
-            grunt.exec();
-            rc = 0;
+            int[] results = grunt.exec();
+            if (results[1] == 0) {
+                // no failed jobs
+                rc = 0;
+            }
+            else {
+                if (results[0] == 0) {
+                    // no succeeded jobs
+                    rc = 2;
+                }
+                else {
+                    // some jobs have failed
+                    rc = 3;
+                }
+            }
             return;
         }
 
@@ -387,6 +410,7 @@ public static void main(String args[])
         } else {
             rc = 2;
         }
+
         if(!gruntCalled) {
         	LogUtils.writeLog(pe, logFileName, log, verbose);
         }
@@ -495,30 +519,31 @@ private static String getVersionString() {
 public static void usage()
 {
 	System.out.println("\n"+getVersionString()+"\n");
-    System.out.println("USAGE: Pig [options] [-] : Run interactively in grunt shell.");
-    System.out.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
-    System.out.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
-    System.out.println("  options include:");
-    System.out.println("    -4, -log4jconf log4j configuration file, overrides log conf");
-    System.out.println("    -b, -brief brief logging (no timestamps)");
-    System.out.println("    -c, -cluster clustername, kryptonite is default");
-    System.out.println("    -d, -debug debug level, INFO is default");
-    System.out.println("    -e, -execute commands to execute (within quotes)");
-    System.out.println("    -f, -file path to the script to execute");
-    System.out.println("    -h, -help display this message");
-    System.out.println("    -i, -version display version information");
-    System.out.println("    -j, -jar jarfile load jarfile"); 
-    System.out.println("    -l, -logfile path to client side log file; current working directory is default");
-    System.out.println("    -m, -param_file path to the parameter file");
-    System.out.println("    -o, -hod read hod server from system property ssh.gateway");
-    System.out.println("    -p, -param key value pair of the form param=val");
-    System.out.println("    -r, -dryrun CmdLineParser.ValueExpected.NOT_ACCEPTED");
-    System.out.println("    -t, -optimizer_off optimizer rule name, turn optimizer off for this rule; use all to turn all rules off, optimizer is turned on by default");
-    System.out.println("    -v, -verbose print all error messages to screen");
-    System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
-    System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
+        System.out.println("USAGE: Pig [options] [-] : Run interactively in grunt shell.");
+        System.out.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
+        System.out.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
+        System.out.println("  options include:");
+        System.out.println("    -4, -log4jconf log4j configuration file, overrides log conf");
+        System.out.println("    -b, -brief brief logging (no timestamps)");
+        System.out.println("    -c, -cluster clustername, kryptonite is default");
+        System.out.println("    -d, -debug debug level, INFO is default");
+        System.out.println("    -e, -execute commands to execute (within quotes)");
+        System.out.println("    -f, -file path to the script to execute");
+        System.out.println("    -h, -help display this message");
+        System.out.println("    -i, -version display version information");
+        System.out.println("    -j, -jar jarfile load jarfile"); 
+        System.out.println("    -l, -logfile path to client side log file; current working directory is default");
+        System.out.println("    -m, -param_file path to the parameter file");
+        System.out.println("    -o, -hod read hod server from system property ssh.gateway");
+        System.out.println("    -p, -param key value pair of the form param=val");
+        System.out.println("    -r, -dryrun CmdLineParser.ValueExpected.NOT_ACCEPTED");
+        System.out.println("    -t, -optimizer_off optimizer rule name, turn optimizer off for this rule; use all to turn all rules off, optimizer is turned on by default");
+        System.out.println("    -v, -verbose print all error messages to screen");
+        System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
+        System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
 
-    System.out.println("    -M, -no_multiquery turn multiquery optimization off; Multiquery is on by default");
+        System.out.println("    -F, -stop_on_failure aborts execution on the first failed job; off by default");
+        System.out.println("    -M, -no_multiquery turn multiquery optimization off; Multiquery is on by default");
 }
 
 private static String validateLogFile(String logFileName, String scriptName) {

@@ -229,7 +229,6 @@ public class MRCompiler extends PhyPlanVisitor {
 
         List<POStore> stores = PlanHelper.getStores(plan);
         for (POStore store: stores) {
-            FileLocalizer.registerDeleteOnFail(store.getSFile().getFileName(), pigContext);
             compile(store);
         }
 

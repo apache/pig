@@ -158,4 +158,8 @@ public class LocalJob implements ExecJob {
     public void getSTDError(OutputStream error) throws ExecException {
         throw new UnsupportedOperationException();
     }
+
+    public Exception getException() {
+        return null;
+    }
 }

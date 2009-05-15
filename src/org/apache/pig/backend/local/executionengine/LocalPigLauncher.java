@@ -39,9 +39,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.PigException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
@@ -95,7 +97,7 @@ public class LocalPigLauncher extends Launcher {
                 log.info("running store with dependencies");
                 POStore[] st = new POStore[1];
                 st[0] = op;
-                failedJobs += runPipeline(st);
+                failedJobs += runPipeline(st, pc);
                 for (PhysicalOperator suc: sucs) {
                     php.disconnect(op, suc);
                 }
@@ -104,12 +106,20 @@ public class LocalPigLauncher extends Launcher {
         }
                 
         // The remaining stores can be run together.
-        failedJobs += runPipeline(stores.toArray(new POStore[0]));
+        failedJobs += runPipeline(stores.toArray(new POStore[0]), pc);
         
         stats.accumulateStats();
 
         UDFFinishVisitor finisher = new UDFFinishVisitor(php, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(php));
         finisher.visit();
+
+        for (FileSpec spec: failedStores) {
+            log.info("Failed to produce result in: \""+spec.getFileName()+"\"");
+        }
+
+        for (FileSpec spec: succeededStores) {
+            log.info("Successfully stored result in: \""+spec.getFileName()+"\"");
+        }
 
         if (failedJobs == 0) {
             log.info("Records written : " + stats.getRecordsWritten());
@@ -124,9 +134,8 @@ public class LocalPigLauncher extends Launcher {
         return null;
 
     }
-    
 
-    private int runPipeline(POStore[] leaves) throws IOException, ExecException {
+    private int runPipeline(POStore[] leaves, PigContext pc) throws IOException, ExecException {
         BitSet bs = new BitSet(leaves.length);
         int failed = 0;
         while(true) {
@@ -146,9 +155,20 @@ public class LocalPigLauncher extends Launcher {
                     leaves[i].cleanUp();
                     leaves[i].tearDown();
                     failed++;
-                    // fallthrough
+                    failedStores.add(leaves[i].getSFile());
+                    if ("true".equalsIgnoreCase(
+                        pc.getProperties().getProperty("stop.on.failure","false"))) {
+                        int errCode = 6017;
+                        String msg = "Execution failed, while processing "
+                            + leaves[i].getSFile().getFileName();
+                        
+                        throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT);
+                    }
+                    bs.set(i);
+                    break;
                 case POStatus.STATUS_EOP:
                     leaves[i].tearDown();
+                    succeededStores.add(leaves[i].getSFile());
                     // fallthrough
                 default:
                     bs.set(i);

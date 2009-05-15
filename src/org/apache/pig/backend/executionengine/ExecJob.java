@@ -101,4 +101,9 @@ public interface ExecJob {
     public void getSTDOut(OutputStream out) throws ExecException;
     
     public void getSTDError(OutputStream error) throws ExecException;
+
+    /**
+     * Get exceptions that happened during execution
+     */
+    public Exception getException();
 }

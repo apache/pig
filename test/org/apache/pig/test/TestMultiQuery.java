@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -30,6 +31,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.util.ExecTools;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
@@ -116,14 +118,15 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("c = group b by gid;");
             myPig.registerQuery("store c into '/tmp/output2';");
 
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertTrue(jobs.size() == 2);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
         } 
     }
-    
+
     @Test
     public void testMultiQueryWithTwoLoads2() {
 
@@ -1665,5 +1668,4 @@ public class TestMultiQuery extends TestCase {
             Assert.fail();
         }
     }
-
 }

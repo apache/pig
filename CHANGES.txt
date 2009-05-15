@@ -76,6 +76,8 @@ PIG-806: to remove author tags in the pig source code (sms).
 
 PIG-799: Unit tests on windows are failing after multiquery commit (daijy)
 
+PIG-781: Error reporting for failed MR jobs (hagleitn via olgan)
+
 Release 0.2.0
 
 INCOMPATIBLE CHANGES

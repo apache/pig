@@ -50,12 +50,15 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRStre
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
 
 /**
@@ -68,16 +71,31 @@ public class MapReduceLauncher extends Launcher{
     //used to track the exception thrown by the job control which is run in a separate thread
     private Exception jobControlException = null;
     private boolean aggregateWarning = false;
-    
+    private Map<FileSpec, Exception> failureMap;
+
+    /**
+     * Get the exception that caused a failure on the backend for a
+     * store location (if any).
+     */
+    public Exception getError(FileSpec spec) {
+        return failureMap.get(spec);
+    }
+
+    @Override
+    public void reset() {
+        failureMap = new HashMap<FileSpec, Exception>();
+        super.reset();
+    }
+
     @Override
     public PigStats launchPig(PhysicalPlan php,
-                             String grpName,
-                             PigContext pc) throws PlanException,
-                                                   VisitorException,
-                                                   IOException,
-                                                   ExecException,
-                                                   JobCreationException,
-                                                   Exception {
+                              String grpName,
+                              PigContext pc) throws PlanException,
+                                                    VisitorException,
+                                                    IOException,
+                                                    ExecException,
+                                                    JobCreationException,
+                                                    Exception {
         long sleepTime = 500;
         aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
@@ -140,8 +158,29 @@ public class MapReduceLauncher extends Launcher{
 
             numMRJobsCompl += numMRJobsCurrent;
             failedJobs.addAll(jc.getFailedJobs());
-            succJobs.addAll(jc.getSuccessfulJobs());
-            jcc.moveResults();
+
+            if (!failedJobs.isEmpty() 
+                && "true".equalsIgnoreCase(
+                  pc.getProperties().getProperty("stop.on.failure","false"))) {
+                int errCode = 6017;
+                StringBuilder msg = new StringBuilder("Execution failed, while processing ");
+                
+                for (Job j: failedJobs) {
+                    List<POStore> sts = jcc.getStores(j);
+                    for (POStore st: sts) {
+                        msg.append(st.getSFile().getFileName());
+                        msg.append(", ");
+                    }
+                }
+                
+                throw new ExecException(msg.substring(0,msg.length()-2), 
+                                        errCode, PigException.REMOTE_ENVIRONMENT);
+            }
+
+            List<Job> jobs = jc.getSuccessfulJobs();
+            jcc.moveResults(jobs);
+            succJobs.addAll(jobs);
+            
             
             stats.setJobClient(jobClient);
             stats.setJobControl(jc);
@@ -150,40 +189,76 @@ public class MapReduceLauncher extends Launcher{
             jc.stop(); 
         }
 
+        log.info( "100% complete");
+
+        boolean failed = false;
         // Look to see if any jobs failed.  If so, we need to report that.
         if (failedJobs != null && failedJobs.size() > 0) {
-            log.error("Map reduce job failed");
+            log.error(failedJobs.size()+" map reduce job(s) failed!");
+            Exception backendException = null;
+
             for (Job fj : failedJobs) {
-                getStats(fj, jobClient, true, pc);
+                
+                try {
+                    getStats(fj, jobClient, true, pc);
+                } catch (Exception e) {
+                    backendException = e;
+                }
+
+                List<POStore> sts = jcc.getStores(fj);
+                for (POStore st: sts) {
+                    if (!st.isTmpStore()) {
+                        failedStores.add(st.getSFile());
+                        failureMap.put(st.getSFile(), backendException);
+                    }
+
+                    FileLocalizer.registerDeleteOnFail(st.getSFile().getFileName(), pc);
+                    log.error("Failed to produce result in: \""+st.getSFile().getFileName()+"\"");
+                }
             }
-            return null;
+            failed = true;
         }
 
         Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
                 
         if(succJobs!=null) {
             for(Job job : succJobs){
+                List<POStore> sts = jcc.getStores(job);
+                for (POStore st: sts) {
+                    if (!st.isTmpStore()) {
+                        succeededStores.add(st.getSFile());
+                    }
+                    log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
+                }
                 getStats(job,jobClient, false, pc);
                 if(aggregateWarning) {
-                	computeWarningAggregate(job, jobClient, warningAggMap);
+                    computeWarningAggregate(job, jobClient, warningAggMap);
                 }
             }
         }
         
         if(aggregateWarning) {
-        	CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
+            CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
         }
         
         if(stats.getPigStats().get(stats.getLastJobID()) == null)
-            log
-                    .warn("Jobs not found in the JobClient. Please try to use Local, Hadoop Distributed or Hadoop MiniCluster modes instead of Hadoop LocalExecution");
+            log.warn("Jobs not found in the JobClient. Please try to use Local, Hadoop Distributed or Hadoop MiniCluster modes instead of Hadoop LocalExecution");
         else {
             log.info("Records written : " + stats.getRecordsWritten());
             log.info("Bytes written : " + stats.getBytesWritten());
         }
 
-        log.info( "100% complete");
-        log.info("Success!");
+        if (!failed) {
+            log.info("Success!");
+        } else {
+            if (succJobs != null && succJobs.size() > 0) {
+                log.info("Some jobs have failed!");
+            } else {
+                log.info("Failed!");
+            }
+        }
+        jcc.reset();
+
         return stats;
     }
 
