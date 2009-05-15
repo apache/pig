@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
@@ -227,10 +228,10 @@ public class PigServer {
      * @throws FrontendException
      * @throws ExecException
      */
-    public void executeBatch() throws FrontendException, ExecException {
+    public List<ExecJob> executeBatch() throws FrontendException, ExecException {
         if (!isMultiQuery) {
             // ignore if multiquery is off
-            return;
+            return new LinkedList<ExecJob>();
         }
 
         if (currDAG == null || !isBatchOn()) {
@@ -239,7 +240,7 @@ public class PigServer {
             throw new FrontendException(msg, errCode, PigException.INPUT);
         }
         
-        currDAG.execute();
+        return currDAG.execute();
     }
 
     /**
@@ -453,7 +454,11 @@ public class PigServer {
             // invocation of "execute" is synchronous!
 
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
-                    return job.getResults();
+                return job.getResults();
+            } else if (job.getStatus() == JOB_STATUS.FAILED
+                       && job.getException() != null) {
+                // throw the backend exception in the failed case
+                throw job.getException();
             } else {
                 throw new IOException("Job terminated with anomalous status "
                     + job.getStatus().toString());
@@ -484,8 +489,9 @@ public class PigServer {
             String filename,
             String func) throws IOException {
 
-        if (!currDAG.getAliasOp().containsKey(id))
+        if (!currDAG.getAliasOp().containsKey(id)) {
             throw new IOException("Invalid alias: " + id);
+        }
 
         try {
             LogicalPlan lp = compileLp(id);
@@ -507,7 +513,11 @@ public class PigServer {
             }
             
             LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf);
-            return executeCompiledLogicalPlan(storePlan);
+            List<ExecJob> jobs = executeCompiledLogicalPlan(storePlan);
+            if (jobs.size() < 1) {
+                throw new IOException("Couldn't retrieve job.");
+            }
+            return jobs.get(0);
         } catch (Exception e) {
             int errCode = 1002;
             String msg = "Unable to store alias " + id;
@@ -734,30 +744,34 @@ public class PigServer {
         return lp;
     }
     
-    private ExecJob execute(String alias) throws FrontendException, ExecException {
+    private List<ExecJob> execute(String alias) throws FrontendException, ExecException {
         LogicalPlan typeCheckedLp = compileLp(alias);
 
         if (typeCheckedLp.size() == 0) {
-            return null;
+            return new LinkedList<ExecJob>();
         }
 
         LogicalOperator op = typeCheckedLp.getLeaves().get(0);
         if (op instanceof LODefine) {
             log.info("Skip execution of DEFINE only logical plan.");
-            return null;
+            return new LinkedList<ExecJob>();
         }
 
         return executeCompiledLogicalPlan(typeCheckedLp);
     }
     
-    private ExecJob executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
+    private List<ExecJob> executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
         PhysicalPlan pp = compilePp(compiledLp);
         // execute using appropriate engine
         FileLocalizer.clearDeleteOnFail();
-        ExecJob execJob = pigContext.getExecutionEngine().execute(pp, "execute");
-        if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED)
-            FileLocalizer.triggerDeleteOnFail();
-        return execJob;
+        List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "execute");
+        for (ExecJob execJob: execJobs) {
+            if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED) {
+                FileLocalizer.triggerDeleteOnFail();
+                break;
+            }
+        }
+        return execJobs;
     }
 
     private LogicalPlan compileLp(
@@ -912,10 +926,11 @@ public class PigServer {
 
         boolean isBatchEmpty() { return processedStores == storeOpTable.keySet().size(); }
         
-        void execute() throws ExecException, FrontendException {
+        List<ExecJob> execute() throws ExecException, FrontendException {
             pigContext.getProperties().setProperty(PigContext.JOB_NAME, jobName);
-            PigServer.this.execute(null);
+            List<ExecJob> jobs = PigServer.this.execute(null);
             processedStores = storeOpTable.keySet().size();
+            return jobs;
         }
 
         void markAsExecuted() {

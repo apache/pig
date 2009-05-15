@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import java.io.StringReader;
 import java.io.IOException;
 import java.io.File;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
@@ -550,11 +551,15 @@ public class TestMultiQueryLocal extends TestCase {
     }
 
     private boolean executePlan(PhysicalPlan pp) throws IOException {
+        boolean failed = true;
         FileLocalizer.clearDeleteOnFail();
-        ExecJob job = myPig.getPigContext().getExecutionEngine().execute(pp, "execute");
-        boolean failed = (job.getStatus() == ExecJob.JOB_STATUS.FAILED);
-        if (failed) {
-            FileLocalizer.triggerDeleteOnFail();
+        List<ExecJob> jobs = myPig.getPigContext().getExecutionEngine().execute(pp, "execute");
+        for (ExecJob job: jobs) {
+            failed = (job.getStatus() == ExecJob.JOB_STATUS.FAILED);
+            if (failed) {
+                FileLocalizer.triggerDeleteOnFail();
+                break;
+            }
         }
         return !failed;
     }
