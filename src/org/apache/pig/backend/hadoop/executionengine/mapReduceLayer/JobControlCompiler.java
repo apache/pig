@@ -108,13 +108,32 @@ public class JobControlCompiler{
 
     public static final String LOG_DIR = "_logs";
 
-    private List<Path> tmpPath;
-    private Path curTmpPath;
+    // A mapping of job to pair of store locations and tmp locations for that job
+    private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
 
     public JobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
         this.conf = conf;
-        tmpPath = new LinkedList<Path>();
+        jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
+    }
+
+    /**
+     * Returns all store locations of a previously compiled job
+     */
+    public List<POStore> getStores(Job job) {
+        Pair<List<POStore>, Path> pair = jobStoreMap.get(job);
+        if (pair != null && pair.first != null) {
+            return pair.first;
+        } else {
+            return new ArrayList<POStore>();
+        }
+    }
+
+    /**
+     * Resets the state
+     */
+    public void reset() {
+        jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
     }
 
     /**
@@ -126,26 +145,24 @@ public class JobControlCompiler{
      * This method should always be called after the job execution
      * completes.
      */
-    public void moveResults() throws IOException {
-        if (curTmpPath != null) {
-            tmpPath.add(curTmpPath);
-            curTmpPath = null;
-        }
+    public void moveResults(List<Job> completedJobs) throws IOException {
+        for (Job job: completedJobs) {
+            Pair<List<POStore>, Path> pair = jobStoreMap.get(job);
+            if (pair != null && pair.second != null) {
+                Path tmp = pair.second;
+                Path abs = new Path(tmp, "abs");
+                Path rel = new Path(tmp, "rel");
+                FileSystem fs = tmp.getFileSystem(conf);
 
-        for (Path tmp: tmpPath) {
-            Path abs = new Path(tmp, "abs");
-            Path rel = new Path(tmp, "rel");
-            FileSystem fs = tmp.getFileSystem(conf);
-
-            if (fs.exists(abs)) {
-                moveResults(abs, abs.toUri().getPath(), fs);
-            }
-            
-            if (fs.exists(rel)) {        
-                moveResults(rel, rel.toUri().getPath()+"/", fs);
+                if (fs.exists(abs)) {
+                    moveResults(abs, abs.toUri().getPath(), fs);
+                }
+                
+                if (fs.exists(rel)) {        
+                    moveResults(rel, rel.toUri().getPath()+"/", fs);
+                }
             }
         }
-        tmpPath = new LinkedList<Path>();
     }
 
     /**
@@ -171,19 +188,16 @@ public class JobControlCompiler{
         return new Path(pathStr);
     }
 
-    private void makeTmpPath() throws IOException {
-        if (curTmpPath != null) {
-            tmpPath.add(curTmpPath);
-        }
-
+    private Path makeTmpPath() throws IOException {
+        Path tmpPath = null;
         for (int tries = 0;;) {
             try {
-                curTmpPath = 
+                tmpPath = 
                     new Path(FileLocalizer
                              .getTemporaryPath(null, pigContext).toString());
-                FileSystem fs = curTmpPath.getFileSystem(conf);
-                curTmpPath = curTmpPath.makeQualified(fs);
-                fs.mkdirs(curTmpPath);
+                FileSystem fs = tmpPath.getFileSystem(conf);
+                tmpPath = tmpPath.makeQualified(fs);
+                fs.mkdirs(tmpPath);
                 break;
             } catch (IOException ioe) {
                 if (++tries==100) {
@@ -191,6 +205,7 @@ public class JobControlCompiler{
                 }
             }
         }
+        return tmpPath;
     }
 
     /**
@@ -220,7 +235,7 @@ public class JobControlCompiler{
             List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
             roots.addAll(plan.getRoots());
             for (MapReduceOper mro: roots) {
-                jobCtrl.addJob(new Job(getJobConf(mro, conf, pigContext)));
+                jobCtrl.addJob(getJob(mro, conf, pigContext));
                 plan.remove(mro);
             }
         } catch (JobCreationException jce) {
@@ -235,7 +250,7 @@ public class JobControlCompiler{
     }
         
     /**
-     * The method that creates the JobConf corresponding to a MapReduceOper.
+     * The method that creates the Job corresponding to a MapReduceOper.
      * The assumption is that
      * every MapReduceOper will have a load and a store. The JobConf removes
      * the load operator and serializes the input filespec so that PigInputFormat can
@@ -253,13 +268,15 @@ public class JobControlCompiler{
      * @param mro - The MapReduceOper for which the JobConf is required
      * @param conf - the Configuration object from which JobConf is built
      * @param pigContext - The PigContext passed on from execution engine
-     * @return JobConf corresponding to mro
+     * @return Job corresponding to mro
      * @throws JobCreationException
      */
-    private JobConf getJobConf(MapReduceOper mro, Configuration conf, PigContext pigContext) throws JobCreationException{
+    private Job getJob(MapReduceOper mro, Configuration conf, PigContext pigContext) throws JobCreationException{
         JobConf jobConf = new JobConf(conf);
         ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
+        ArrayList<POStore> storeLocations = new ArrayList<POStore>();
+        Path tmpLocation = null;
         
         //Set the User Name for this job. This will be
         //used as the working directory
@@ -320,6 +337,14 @@ public class JobControlCompiler{
             List<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
             List<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
 
+            for (POStore st: mapStores) {
+                storeLocations.add(st);
+            }
+
+            for (POStore st: reduceStores) {
+                storeLocations.add(st);
+            }
+
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
                 
@@ -370,21 +395,22 @@ public class JobControlCompiler{
            else { // multi store case
                 log.info("Setting up multi store job");
 
-                makeTmpPath();
-                FileSystem fs = curTmpPath.getFileSystem(conf);
+                tmpLocation = makeTmpPath();
+
+                FileSystem fs = tmpLocation.getFileSystem(conf);
                 for (POStore st: mapStores) {
                     Path tmpOut = new Path(
-                        curTmpPath,
+                        tmpLocation,
                         PlanHelper.makeStoreTmpPath(st.getSFile().getFileName()));
                     fs.mkdirs(tmpOut);
                 }
 
                 jobConf.setOutputFormat(PigOutputFormat.class);
-                FileOutputFormat.setOutputPath(jobConf, curTmpPath);
+                FileOutputFormat.setOutputPath(jobConf, tmpLocation);
 
                 jobConf.set("pig.streaming.log.dir", 
-                            new Path(curTmpPath, LOG_DIR).toString());
-                jobConf.set("pig.streaming.task.output.dir", curTmpPath.toString());
+                            new Path(tmpLocation, LOG_DIR).toString());
+                jobConf.set("pig.streaming.task.output.dir", tmpLocation.toString());
            }
 
             // store map key type
@@ -475,7 +501,10 @@ public class JobControlCompiler{
                         ObjectSerializer.serialize(mro.getSortOrder()));
                 }
             }
-            return jobConf;
+            
+            Job job = new Job(jobConf);
+            jobStoreMap.put(job,new Pair(storeLocations, tmpLocation));
+            return job;
         } catch (JobCreationException jce) {
         	throw jce;
         } catch(Exception e) {

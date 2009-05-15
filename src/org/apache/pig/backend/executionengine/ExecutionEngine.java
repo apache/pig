@@ -19,6 +19,7 @@
 package org.apache.pig.backend.executionengine;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.Map;
@@ -105,8 +106,8 @@ public interface ExecutionEngine {
      * @param jobName Name of this plan, will be used to identify the plan
      * @throws ExecException
      */
-    public ExecJob execute(PhysicalPlan plan,
-                           String jobName) throws ExecException;
+    public List<ExecJob> execute(PhysicalPlan plan,
+                                 String jobName) throws ExecException;
 
     /**
      * Execute the physical plan in non-blocking mode
@@ -115,8 +116,8 @@ public interface ExecutionEngine {
      * @param jobName Name of this plan, will be used to identify the plan
      * @throws ExecException
      */
-    public ExecJob submit(PhysicalPlan plan,
-                          String jobName) throws ExecException;
+    public List<ExecJob> submit(PhysicalPlan plan,
+                                      String jobName) throws ExecException;
 
     /**
      * Explain executor specific information.

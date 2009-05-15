@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -143,31 +144,37 @@ public class LocalExecutionEngine implements ExecutionEngine {
         }
     }
 
-    public ExecJob execute(PhysicalPlan plan, String jobName)
-            throws ExecException {
+    public List<ExecJob> execute(PhysicalPlan plan, String jobName)
+        throws ExecException {
         try {
             PhysicalOperator leaf = (PhysicalOperator) plan.getLeaves().get(0);
-            FileSpec spec = null;
             if (!(leaf instanceof POStore)) {
                 String scope = leaf.getOperatorKey().getScope();
                 POStore str = new POStore(new OperatorKey(scope,
                         NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
-                        pigContext).toString(), new FuncSpec(BinStorage.class
-                        .getName()));
+                FileSpec spec = new FileSpec(FileLocalizer.getTemporaryPath(null,pigContext).toString(), 
+                                             new FuncSpec(BinStorage.class.getName()));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
-            } else {
-                spec = ((POStore) leaf).getSFile();
             }
 
             LocalPigLauncher launcher = new LocalPigLauncher();
+
+            List<ExecJob> jobs = new ArrayList<ExecJob>();
+                    
             PigStats stats = launcher.launchPig(plan, jobName, pigContext);
-            if (stats != null)
-                return new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext,
-                        spec, stats);
-            else
-                return new LocalJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
+            for (FileSpec fspec: launcher.getSucceededFiles()) {
+                jobs.add(new LocalJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, fspec, stats));
+            }
+            
+            for (FileSpec fspec: launcher.getFailedFiles()) {
+                jobs.add(new LocalJob(ExecJob.JOB_STATUS.FAILED, pigContext, fspec, stats));
+            }
+
+            launcher.reset();
+
+            return jobs;
+
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher. If this
             // is an ExecException, just let it through. Else wrap it.
@@ -178,7 +185,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
         }
     }
 
-    public LocalJob submit(PhysicalPlan plan, String jobName)
+    public List<ExecJob> submit(PhysicalPlan plan, String jobName)
             throws ExecException {
         throw new UnsupportedOperationException();
     }

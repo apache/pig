@@ -34,6 +34,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -72,8 +75,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPri
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.shock.SSHSocketImplFactory;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
-
 
 public class HExecutionEngine implements ExecutionEngine {
     
@@ -253,18 +256,25 @@ public class HExecutionEngine implements ExecutionEngine {
         }
     }
 
-    public ExecJob execute(PhysicalPlan plan,
-                           String jobName) throws ExecException {
+    public List<ExecJob> execute(PhysicalPlan plan,
+                                 String jobName) throws ExecException {
+        MapReduceLauncher launcher = new MapReduceLauncher();
+        List<ExecJob> jobs = new ArrayList<ExecJob>();
+
         try {
-            FileSpec spec = ExecTools.checkLeafIsStore(plan, pigContext);
-
-            MapReduceLauncher launcher = new MapReduceLauncher();
             PigStats stats = launcher.launchPig(plan, jobName, pigContext);
-            if(stats != null)
-                return new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec, stats);
-            else
-                return new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, null);
 
+            for (FileSpec spec: launcher.getSucceededFiles()) {
+                jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec, stats));
+            }
+
+            for (FileSpec spec: launcher.getFailedFiles()) {
+                HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, spec, stats);
+                j.setException(launcher.getError(spec));
+                jobs.add(j);
+            }
+
+            return jobs;
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
@@ -274,11 +284,13 @@ public class HExecutionEngine implements ExecutionEngine {
                 String msg = "Unexpected error during execution.";
                 throw new ExecException(msg, errCode, PigException.BUG, e);
             }
+        } finally {
+            launcher.reset();
         }
 
     }
 
-    public ExecJob submit(PhysicalPlan plan,
+    public List<ExecJob> submit(PhysicalPlan plan,
                           String jobName) throws ExecException {
         throw new UnsupportedOperationException();
     }

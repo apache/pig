@@ -81,11 +81,11 @@ public class Grunt
         }
     }
 
-    public void exec() throws Throwable {
+    public int[] exec() throws Throwable {
         boolean verbose = "true".equalsIgnoreCase(pig.getPigContext().getProperties().getProperty("verbose"));
         try {
             parser.setInteractive(false);
-            parser.parseStopOnError();
+            return parser.parseStopOnError();
         } catch (Throwable t) {
             LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
             throw (t);

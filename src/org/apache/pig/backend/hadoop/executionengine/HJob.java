@@ -45,6 +45,7 @@ public class HJob implements ExecJob {
     protected JOB_STATUS status;
     protected PigContext pigContext;
     protected FileSpec outFileSpec;
+    protected Exception backendException;
     private PigStats stats;
     
     public HJob(JOB_STATUS status,
@@ -160,5 +161,13 @@ public class HJob implements ExecJob {
     
     public void getSTDError(OutputStream error) throws ExecException {
         throw new UnsupportedOperationException();
+    }
+
+    public void setException(Exception e) {
+        backendException = e;
+    }
+
+    public Exception getException() {
+        return backendException;
     }
 }

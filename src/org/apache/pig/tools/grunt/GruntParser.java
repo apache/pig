@@ -58,6 +58,8 @@ import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
+import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.tools.pigscript.parser.ParseException;
@@ -107,7 +109,22 @@ public class GruntParser extends PigScriptParser {
             }
 
             if (!mLoadOnly) {
-                mPigServer.executeBatch();
+                List<ExecJob> jobs = mPigServer.executeBatch();
+                for(ExecJob job: jobs) {
+                    if (job.getStatus() == ExecJob.JOB_STATUS.FAILED) {
+                        mNumFailedJobs++;
+                        if (job.getException() != null) {
+                            LogUtils.writeLog(
+                              job.getException(), 
+                              mPigServer.getPigContext().getProperties().getProperty("pig.logfile"), 
+                              log, 
+                              "true".equalsIgnoreCase(mPigServer.getPigContext().getProperties().getProperty("verbose")));
+                        }
+                    }
+                    else {
+                        mNumSucceededJobs++;
+                    }
+                }
             }
         }
     }
@@ -118,9 +135,9 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
-    public void parseStopOnError() throws IOException, ParseException
+    public int[] parseStopOnError() throws IOException, ParseException
     {
-	parseStopOnError(false);
+	return parseStopOnError(false);
     }
     
     /** 
@@ -130,7 +147,7 @@ public class GruntParser extends PigScriptParser {
      *
      * @throws IOException, ParseException
      */
-    public void parseStopOnError(boolean sameBatch) throws IOException, ParseException
+    public int[] parseStopOnError(boolean sameBatch) throws IOException, ParseException
     {
         if (mPigServer == null) {
             throw new IllegalStateException();
@@ -156,6 +173,8 @@ public class GruntParser extends PigScriptParser {
 		discardBatch();
 	    }
         }
+        int [] res = { mNumSucceededJobs, mNumFailedJobs };
+        return res;
     }
 
     public void setLoadOnly(boolean loadOnly) 
@@ -733,4 +752,6 @@ public class GruntParser extends PigScriptParser {
     private boolean mDone;
     private boolean mLoadOnly;
     private ExplainState mExplain;
+    private int mNumFailedJobs;
+    private int mNumSucceededJobs;
 }

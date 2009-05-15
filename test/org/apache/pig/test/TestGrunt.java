@@ -589,4 +589,100 @@ public class TestGrunt extends TestCase {
     
         grunt.exec();
     }
+
+    @Test
+    public void testKeepGoing() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = 
+            "rmf bar;"
+            +"rmf foo;"
+            +"rmf baz;"
+            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"B = foreach A generate 1;"
+            +"C = foreach A generate 0/0;"
+            +"store B into 'foo';"
+            +"store C into 'bar';"
+            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"B = stream A through `false`;"
+            +"store B into 'baz';"
+            +"cat bar;";
+            
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testKeepGoigFailed() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = 
+            "rmf bar;"
+            +"rmf foo;"
+            +"rmf baz;"
+            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"B = foreach A generate 1;"
+            +"C = foreach A generate 0/0;"
+            +"store B into 'foo';"
+            +"store C into 'bar';"
+            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"B = stream A through `false`;"
+            +"store B into 'baz';"
+            +"cat baz;";
+            
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        boolean caught = false;
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            caught = true;
+            assertTrue(e.getMessage().contains("baz does not exist"));
+        }
+        assertTrue(caught);
+    }
+
+    @Test
+    public void testStopOnFailure() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        context.getProperties().setProperty("stop.on.failure", ""+true);
+        
+        String strCmd = 
+            "rmf bar;\n"
+            +"rmf foo;\n"
+            +"rmf baz;\n"
+            +"copyFromLocal test/org/apache/pig/test/data/passwd pre;\n"
+            +"A = load 'file:test/org/apache/pig/test/data/passwd';\n"
+            +"B = stream A through `false`;\n"
+            +"store B into 'bar' using BinStorage();\n"
+            +"A = load 'bar';\n"
+            +"store A into 'foo';\n"
+            +"cp pre done;\n";
+            
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        boolean caught = false;
+        try {
+            grunt.exec();
+        } catch (PigException e) {
+            caught = true;
+            assertTrue(e.getErrorCode() == 6017);
+        }
+
+        assertFalse(server.existsFile("done"));
+        assertTrue(caught);
+    }
 }
