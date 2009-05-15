@@ -100,6 +100,12 @@ public class PigSlicer implements Slicer {
                 // Anything that ends with a ".gz" we must process as a complete
                 // file
                 slices.add(new PigSlice(name, funcSpec, 0, size));
+            } else if (size == 0) {
+                // add one empty slice.  This is a total hack to deal with the
+				// case where hadoop isn't starting maps for empty arrays of
+				// InputSplits.  See PIG-619.  This should be removed
+				// once we determine why this is.
+                slices.add(new PigSlice(name, funcSpec, 0, bs));
             } else {
                 while (pos < size) {
                     if (pos + bs > size) {
