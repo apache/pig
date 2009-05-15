@@ -172,7 +172,7 @@ public class PigStats {
             
         }
         
-        lastJobID = lastJob.getAssignedJobID().toString();
+        if (lastJob != null) lastJobID = lastJob.getAssignedJobID().toString();
         return stats;
     }
     
