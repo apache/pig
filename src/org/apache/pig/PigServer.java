@@ -1083,12 +1083,14 @@ public class PigServer {
                         LoadFunc lFunc = (LoadFunc) pigContext.instantiateFuncFromSpec(load.getInputFile().getFuncSpec());
                         StoreFunc sFunc = (StoreFunc) pigContext.instantiateFuncFromSpec(store.getOutputFile().getFuncSpec());
                         if (lFunc.getClass() == sFunc.getClass() && lFunc instanceof ReversibleLoadStoreFunc) {
-                        
-                        // In this case we remember the input file
-                        // spec in the store. We might have to use it
-                        // in the MR compiler to recreate the load, if
-                        // the store happens on a job boundary.
-                        store.setInputSpec(load.getInputFile());
+                            
+                            log.info("Removing unnecessary load operation from location: "+ifile);
+                            
+                            // In this case we remember the input file
+                            // spec in the store. We might have to use it
+                            // in the MR compiler to recreate the load, if
+                            // the store happens on a job boundary.
+                            store.setInputSpec(load.getInputFile());
 
                             LogicalOperator storePred = lp.getPredecessors(store).get(0);
                             
