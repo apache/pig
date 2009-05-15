@@ -44,6 +44,8 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 
 BUG FIXES
 
+PIG-810: Fixed NPE in PigStats (gates)
+
 PIG-804: problem with lineage with double map redirection (pradeepkth)
 
 PIG-733: Order by sampling dumps entire sample to hdfs which causes dfs
