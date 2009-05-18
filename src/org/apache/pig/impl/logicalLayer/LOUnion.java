@@ -18,15 +18,20 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -69,7 +74,8 @@ public class LOUnion extends LogicalOperator {
                     if(null != mSchema) {
                         mSchema = mSchema.merge(op.getSchema(), false);
                     } else {
-                        mSchema = op.getSchema();
+                        mSchema = null;
+                        break;
                     }
                 }
                 if(null != mSchema) {
@@ -78,7 +84,7 @@ public class LOUnion extends LogicalOperator {
                         while(iter.hasNext()) {
                             op = iter.next();
                             Schema opSchema = op.getSchema();
-                            if(null != s) {
+                            if(null != opSchema) {
                                 for(Schema.FieldSchema opFs: opSchema.getFields()) {
                                     fs.setParent(opFs.canonicalName, op);
                                 }
@@ -126,6 +132,50 @@ public class LOUnion extends LogicalOperator {
     protected Object clone() throws CloneNotSupportedException {
         LOUnion unionClone = (LOUnion)super.clone();
         return unionClone;
+    }
+    
+    @Override
+    public ProjectionMap getProjectionMap() {
+        Schema outputSchema;
+        
+        try {
+            outputSchema = getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        if(outputSchema == null) {
+            return null;
+        }
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors == null) {
+            return null;
+        }
+        
+        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            LogicalOperator predecessor = predecessors.get(inputNum);
+            Schema inputSchema = null;        
+            
+            try {
+                inputSchema = predecessor.getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+            
+            if(inputSchema == null) {
+                return null;
+            } else {
+                for(int inputColumn = 0; inputColumn < inputSchema.size(); ++inputColumn) {
+                    mapFields.put(inputColumn, new Pair<Integer, Integer>(inputNum, inputColumn));
+                    //removedFields.add(new Pair<Integer, Integer>(inputNum, inputColumn));
+                }
+            }
+        }
+        
+        return new ProjectionMap(mapFields, null, null);
     }
 
 }

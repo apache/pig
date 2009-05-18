@@ -19,6 +19,10 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
@@ -28,7 +32,10 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -130,9 +137,6 @@ public class LOLoad extends LogicalOperator {
         if (!mIsSchemaComputed) {
             // get the schema of the load function
             try {
-                //DEBUG
-                //System.out.println("Schema file: " + mSchema);
-                
                 if (mEnforcedSchema != null) {
                     mSchema = mEnforcedSchema ;
                     return mSchema ;
@@ -219,6 +223,54 @@ public class LOLoad extends LogicalOperator {
      */
     public Schema getDeterminedSchema() {
         return mDeterminedSchema;
+    }
+    
+    @Override
+    public ProjectionMap getProjectionMap() {
+        Schema outputSchema;
+        
+        try {
+            outputSchema = getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        if(outputSchema == null) {
+            return null;
+        }
+        
+        Schema inputSchema = null;        
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors != null) {
+            try {
+                inputSchema = predecessors.get(0).getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+        } else {
+            try {
+                inputSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
+            } catch (IOException ioe) {
+                return null;
+            }
+        }
+        
+        if(inputSchema == null) {
+            return null;
+        }
+        
+        if(Schema.equals(inputSchema, outputSchema, false, true)) {
+            //there is a one is to one mapping between input and output schemas
+            return new ProjectionMap(false);
+        } else {
+            MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+            //compute the mapping assuming its a prefix projection
+            for(int i = 0; i < inputSchema.size(); ++i) {
+                mapFields.put(i, new Pair<Integer, Integer>(0, i));
+            }
+            return new ProjectionMap(mapFields, null, null);
+        }
     }
 
 }
