@@ -150,4 +150,52 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
         return clone;
     }
     
+    /**
+     * A utility method to check if a plan contains a chain of projection
+     * operators
+     * 
+     * @param plan
+     *            input plan
+     * @return true if there is a chain of projection operators; false otherwise
+     */
+    public static boolean chainOfProjects(LogicalPlan plan) {
+        
+        if (plan == null) {
+            return false;
+        }
+        
+        List<LogicalOperator> leaves = plan.getLeaves();
+
+        if (leaves == null) {
+            return false;
+        }
+
+        if (leaves.size() > 1) {
+            return false;
+        }
+
+        LogicalOperator node = leaves.get(0);
+
+        while (true) {
+            if ((node == null) || !(node instanceof LOProject)) {
+                //not a projection operator
+                return false;
+            }
+
+            List<LogicalOperator> predecessors = plan.getPredecessors(node);
+
+            if (predecessors == null) {
+                //we have reached the root
+                return true;
+            }
+
+            if (predecessors.size() > 1) {
+                //a project cannot have multiple inputs
+                return false;
+            }
+
+            node = predecessors.get(0);
+        }
+    }
+    
 }

@@ -28,7 +28,7 @@ PIG-619: Create one InputSplit even when the input file is zero length
          so that hadoop runs maps and creates output for the next
 		 job (gates).
 
-PIG-693: Proposed improvements to pig's optimizer (sms)
+PIG-697: Proposed improvements to pig's optimizer (sms)
 
 PIG-700: To automate the pig patch test process (gkesavan via sms)
 

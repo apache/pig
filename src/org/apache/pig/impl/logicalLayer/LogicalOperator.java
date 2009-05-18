@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.io.IOException;
 
 import org.apache.pig.data.DataType;
@@ -27,7 +28,9 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -69,12 +72,6 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      */
     protected LogicalPlan mPlan;
 
-    /**
-     * A boolean variable to remember if input has to be flattened Used only in
-     * the context of generate
-     */
-    //private boolean mIsFlatten = false;
-    
     private static Log log = LogFactory.getLog(LogicalOperator.class);
 
     /**
@@ -128,11 +125,8 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
             // It's fine, it just means we don't have a schema yet.
         }
         if (mSchema == null) {
-            log.debug("Operator schema is null; Setting it to new schema");
             mSchema = schema;
         } else {
-            log.debug("Reconciling schema");
-            log.debug("mSchema: " + mSchema + " schema: " + schema);
             mSchema.reconcile(schema);
         }
     }
@@ -284,6 +278,29 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         if(mSchema != null)
             loClone.mSchema = this.mSchema.clone();
         return loClone;
+    }    
+
+
+    /**
+     * Produce a map describing how this operator modifies its projection.
+     * @return ProjectionMap null indicates it does not know how the projection
+     * changes, for example a join of two inputs where one input does not have
+     * a schema.
+     */
+    public ProjectionMap getProjectionMap() {
+        return null;
+    };
+
+    /**
+     * Get a list of fields that this operator requires.  This is not necessarily
+     * equivalent to the list of fields the operator projects.  For example,
+     * a filter will project anything passed to it, but requires only the fields
+     * explicitly referenced in its filter expression.
+     * @return list of fields, numbered from 0.
+     */
+    public List<Pair<Integer, Integer>> getRequiredFields()
+    {
+        return null;
     }
 
 }
