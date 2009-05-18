@@ -32,7 +32,10 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -182,6 +185,74 @@ public class LOCross extends LogicalOperator {
     @Override
     public byte getType() {
         return DataType.BAG ;
+    }
+    
+    @Override
+    public ProjectionMap getProjectionMap() {
+        Schema outputSchema;
+        
+        try {
+            outputSchema = getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        if(outputSchema == null) {
+            return null;
+        }
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors == null) {
+            return null;
+        }
+        
+        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        List<Integer> addedFields = new ArrayList<Integer>();
+        boolean[] unknownSchema = new boolean[predecessors.size()];
+        boolean anyUnknownInputSchema = false;
+        int outputColumnNum = 0;
+        
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            LogicalOperator predecessor = predecessors.get(inputNum);
+            Schema inputSchema = null;        
+            
+            try {
+                inputSchema = predecessor.getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+            
+            if(inputSchema == null) {
+                unknownSchema[inputNum] = true;
+                outputColumnNum++;
+                addedFields.add(inputNum);
+                anyUnknownInputSchema = true;
+            } else {
+                unknownSchema[inputNum] = false;
+                for(int inputColumn = 0; inputColumn < inputSchema.size(); ++inputColumn) {
+                    mapFields.put(outputColumnNum++, new Pair<Integer, Integer>(inputNum, inputColumn));
+                }
+            }
+        }
+        
+        //TODO
+        /*
+         * For now, if there is any input that has an unknown schema
+         * flag it and return a null ProjectionMap.
+         * In the future, when unknown schemas are handled
+         * mark inputs that have unknown schemas as output columns
+         * that have been added.
+         */
+
+        if(anyUnknownInputSchema) {
+            return null;
+        }
+        
+        if(addedFields.size() == 0) {
+            addedFields = null;
+        }
+
+        return new ProjectionMap(mapFields, null, addedFields);
     }
 
 }

@@ -18,6 +18,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -30,7 +31,10 @@ import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.data.DataType;
@@ -174,7 +178,7 @@ public class LOForEach extends LogicalOperator {
                     //In the above script, the generate a1, will translate to 
                     //project(a1) -> project(*) and will not be translated to a sequence of projects
                     //As a result the project(*) will remain but the return type is a bag
-                    //project*) with a data type set to tuple indicataes a project(*) from an input
+                    //project(*) with a data type set to tuple indicates a project(*) from an input
                     //that has no schema
                     if( (((LOProject)op).isStar() ) && (((LOProject)op).getType() == DataType.TUPLE) ) {
                         mSchema = null;
@@ -445,6 +449,199 @@ public class LOForEach extends LogicalOperator {
             }
         }
         return forEachClone;
+    }
+
+    @Override
+    public ProjectionMap getProjectionMap() {
+        Schema outputSchema;
+        
+        try {
+            outputSchema = getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        if(outputSchema == null) {
+            return null;
+        }
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors == null) {
+            return null;
+        }
+        
+        LogicalOperator predecessor = predecessors.get(0);
+        
+        Schema inputSchema;
+        
+        try {
+            inputSchema = predecessor.getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        List<LogicalPlan> foreachPlans = getForEachPlans();
+        List<Boolean> flattenList = getFlatten();
+        
+        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        List<Integer> addedFields = new ArrayList<Integer>();
+        int outputColumn = 0;
+        
+        for(int i = 0; i < foreachPlans.size(); ++i) {
+            LogicalPlan foreachPlan = foreachPlans.get(i);
+            List<LogicalOperator> leaves = foreachPlan.getLeaves();
+            if(leaves == null || leaves.size() > 1) {
+                return null;
+            }
+            
+            int inputColumn = -1;
+            boolean mapped = false;
+            
+            if(leaves.get(0) instanceof LOProject) {
+                //find out if this project is a chain of projects
+                if(LogicalPlan.chainOfProjects(foreachPlan)) {
+                    LOProject rootProject = (LOProject)foreachPlan.getRoots().get(0);
+                    inputColumn = rootProject.getCol();
+                    if(inputSchema != null) {
+                        mapped = true;
+                    }
+                }
+            }
+            
+            Schema.FieldSchema leafFS;
+            try {
+                leafFS = ((ExpressionOperator)leaves.get(0)).getFieldSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+            
+            if(leafFS == null) {
+                return null;
+            }
+            
+            if(flattenList.get(i)) {
+                Schema innerSchema = leafFS.schema;
+                
+                if(innerSchema != null) {                    
+                    if(innerSchema.isTwoLevelAccessRequired()) {
+                        // this is the case where the schema is that of
+                        // a bag which has just one tuple fieldschema which
+                        // in turn has a list of fieldschemas. The schema
+                        // after flattening would consist of the fieldSchemas
+                        // present in the tuple
+                        
+                        // check that indeed we only have one field schema
+                        // which is that of a tuple
+                        if(innerSchema.getFields().size() != 1) {
+                            return null;
+                        }
+                        Schema.FieldSchema tupleFS;
+                        try {
+                            tupleFS = innerSchema.getField(0);
+                        } catch (FrontendException fee) {
+                            return null;
+                        }
+                        
+                        if(tupleFS.type != DataType.TUPLE) {
+                            return null;
+                        }
+                        innerSchema = tupleFS.schema;
+                    }
+                    
+                    //innerSchema could be modified and hence the second check
+                    if(innerSchema != null) {
+                        for(int j = 0; j < innerSchema.size(); ++j) {
+                            if(mapped) {
+                                //map each flattened column to the original column
+                                mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                            } else {
+                                addedFields.add(outputColumn++);
+                            }
+                        }
+                    } else {
+                        //innerSchema is null; check for schema type
+                        if(DataType.isSchemaType(leafFS.type)) {
+                            //flattening a null schema results in a bytearray
+                            if(mapped) {
+                                //map each flattened column to the original column
+                                mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                            } else {
+                                addedFields.add(outputColumn++);
+                            }
+                        } else {
+                            mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                        }
+                    }
+                } else {
+                    //innerSchema is null; check for schema type
+                    if(DataType.isSchemaType(leafFS.type)) {
+                        //flattening a null schema results in a bytearray
+                        if(mapped) {
+                            //map each flattened column to the original column
+                            mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                        } else {
+                            addedFields.add(outputColumn++);
+                        }
+                    } else {
+                        mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                    }
+                }
+            } else {
+                //not a flattened column
+                if(mapped) {
+                    mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                } else {
+                    addedFields.add(outputColumn++);
+                }
+            }
+        }
+        
+        List<Pair<Integer, Integer>> removedFields = new ArrayList<Pair<Integer, Integer>>();
+       
+        if(inputSchema == null) {
+            //if input schema is null then there are no mappedFields and removedFields
+            mapFields = null;
+            removedFields = null;
+        } else {
+            
+            //if the size of the map is zero then set it to null
+            if(mapFields.size() == 0) {
+                mapFields = null;
+            }
+            
+            if(addedFields.size() == 0) {
+                addedFields = null;
+            }
+            
+            //input schema is not null. Need to compute the removedFields
+            //compute the set difference between the input schema and mapped fields
+            
+            Set<Integer> removedSet = new HashSet<Integer>();
+            for(int i = 0; i < inputSchema.size(); ++i) {
+                removedSet.add(i);
+            }
+            
+            if(mapFields != null) {
+                Set<Integer> mappedSet = new HashSet<Integer>();
+                for(Integer key: mapFields.keySet()) {
+                    List<Pair<Integer, Integer>> values = (ArrayList<Pair<Integer, Integer>>)mapFields.get(key);
+                    for(Pair<Integer, Integer> value: values) {
+                        mappedSet.add(value.second);
+                    }
+                }
+                removedSet.removeAll(mappedSet);
+            }
+            
+            if(removedSet.size() == 0) {
+                removedFields = null;
+            } else {
+                for(Integer i: removedSet) {
+                    removedFields.add(new Pair<Integer, Integer>(0, i));
+                }
+            }
+        }
+
+        return new ProjectionMap(mapFields, removedFields, addedFields);
     }
 
 }
