@@ -175,50 +175,58 @@ public class QueryParser {
 	
 
     String massageFilename(String filename, PigContext pigContext, boolean isLoad) throws IOException, ParseException {
-        if (filename.startsWith(FileLocalizer.LOCAL_PREFIX)&&isLoad) {
-            filename = FileLocalizer.hadoopify(filename, pigContext);
-        } 
+
+        // If multiquery is off we revert to the old behavior, which
+        // did not try to convert paths to their absolute location.
     	boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
         if (!isMultiQuery) {
-            if(!isLoad) {
+            if (!isLoad) { // stores do not require any change
                 return filename;
+            }
+
+            // Local loads in the hadoop context require copying the
+            // file to dfs first.
+            if (pigContext.getExecType() != ExecType.LOCAL 
+                && filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+                    filename = FileLocalizer.hadoopify(filename, pigContext);
             }
             return filename;
         }
 
         String fname;
 
+        // If we converted the file name before, we return the old
+        // result. This is not done for performance but to make sure
+        // we return the same result for relative paths when
+        // re-parsing the same script for execution.
         if (null != (fname = fileNameMap.get(filename))) {
             return fname;
         } else {
             fname = filename;
         }
 
-        URI uri = null;
-        try {
-            uri = new URI(fname);
-        } catch (URISyntaxException ue) {
-            log.info(fname + " is not a valid URI.");
-            return fname;
-        }
-        String scheme = uri.getScheme();
-        if (scheme != null) {
-            scheme = scheme.toLowerCase();
+        String scheme, path;
+
+        if (fname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+            // We don't use hadoop path class to do the parsing,
+            // because our syntax of saying 'file:foo' for relative
+            // paths on the local FS is not a valid URL.
+            scheme = "file";
+            path = fname.substring(FileLocalizer.LOCAL_PREFIX.length());
+        } else {
+            // Path implements a custom uri parsing that takes care of
+            // unescaped characters (think globs). Using "new
+            // URI(fname)" would break.
+            URI uri = new Path(fname).toUri();
+            
+            scheme = uri.getScheme();
+            if (scheme != null) {
+                scheme = scheme.toLowerCase();
+            }
+            
+            path = uri.getPath();
         }
         
-        String path = uri.getPath();
-        if (path == null) {
-            // file:foo is not a valid uri. So the path ends up in the scheme specific part...
-            path = uri.getSchemeSpecificPart();
-        }
-
-        if ((scheme == null && pigContext.getExecType() == ExecType.MAPREDUCE) ||
-            "hdfs".equalsIgnoreCase(scheme)) {
-            // We need to get the path from a hadoop path object,
-            // otherwise special glob characters could get removed.
-            path = new Path(fname).toUri().getPath();
-        }
-
         if (scheme == null || scheme.equals("file") || scheme.equals("hdfs")) {
             if (pigContext.getExecType() != ExecType.LOCAL) {
                 if (fname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
@@ -233,6 +241,7 @@ public class QueryParser {
             ElementDescriptor el = dfs.asElement(desc, path);
             fname = el.toString();
         }
+
         if (!fname.equals(filename)) {
             fileNameMap.put(filename, fname);
         }
