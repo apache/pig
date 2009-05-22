@@ -19,8 +19,10 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
@@ -32,6 +34,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
@@ -337,6 +340,56 @@ public class LOFRJoin extends LogicalOperator {
         }
 
         return new ProjectionMap(mapFields, null, addedFields);
+    }
+
+    @Override
+    public List<RequiredFields> getRequiredFields() {        
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(this);
+        
+        if(predecessors == null) {
+            return null;
+        }
+        
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            Set<Pair<Integer, Integer>> fields = new HashSet<Pair<Integer, Integer>>();
+            Set<LOProject> projectSet = new HashSet<LOProject>();
+            boolean groupByStar = false;
+
+            for (LogicalPlan plan : this.getJoinColPlans().get(predecessors.get(inputNum))) {
+                TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(plan);
+                try {
+                    projectFinder.visit();
+                } catch (VisitorException ve) {
+                    requiredFields.clear();
+                    requiredFields.add(null);
+                    return requiredFields;
+                }
+                projectSet.addAll(projectFinder.getProjectSet());
+                if(projectFinder.getProjectStarSet() != null) {
+                    groupByStar = true;
+                }
+            }
+
+            if(groupByStar) {
+                requiredFields.add(new RequiredFields(true));
+            } else {                
+                for (LOProject project : projectSet) {
+                    for (int inputColumn : project.getProjection()) {
+                        fields.add(new Pair<Integer, Integer>(inputNum, inputColumn));
+                    }
+                }
+        
+                if(fields.size() == 0) {
+                    requiredFields.add(new RequiredFields(false, true));
+                } else {                
+                    requiredFields.add(new RequiredFields(new ArrayList<Pair<Integer, Integer>>(fields)));
+                }
+            }
+        }
+        
+        return (requiredFields.size() == 0? null: requiredFields);
     }
 
 }
