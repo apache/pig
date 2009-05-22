@@ -17,11 +17,16 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class LOLimit extends LogicalOperator {
@@ -109,4 +114,51 @@ public class LOLimit extends LogicalOperator {
         LOLimit limitClone = (LOLimit)super.clone();
         return limitClone;
     }
+    
+    @Override
+    public ProjectionMap getProjectionMap() {
+        Schema outputSchema;
+        try {
+            outputSchema = getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        if(outputSchema == null) {
+            return null;
+        }
+        
+        Schema inputSchema = null;        
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors != null) {
+            try {
+                inputSchema = predecessors.get(0).getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+        } else {
+            return null;
+        }
+        
+        if(inputSchema == null) {
+            return null;
+        }
+        
+        if(Schema.equals(inputSchema, outputSchema, false, true)) {
+            //there is a one is to one mapping between input and output schemas
+            return new ProjectionMap(false);
+        } else {
+            //problem - input and output schemas for a distinct have to match!
+            return null;
+        }
+    }
+    
+    @Override
+    public List<RequiredFields> getRequiredFields() {
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        requiredFields.add(new RequiredFields(false, true));
+        return requiredFields;
+    }
+
 }

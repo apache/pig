@@ -29,6 +29,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.commons.logging.Log;
@@ -292,15 +293,16 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     };
 
     /**
-     * Get a list of fields that this operator requires.  This is not necessarily
-     * equivalent to the list of fields the operator projects.  For example,
-     * a filter will project anything passed to it, but requires only the fields
-     * explicitly referenced in its filter expression.
-     * @return list of fields, numbered from 0.
-     */
-    public List<Pair<Integer, Integer>> getRequiredFields()
-    {
-        return null;
-    }
+	 * Get a list of fields that this operator requires. This is not necessarily
+	 * equivalent to the list of fields the operator projects. For example, a
+	 * filter will project anything passed to it, but requires only the fields
+	 * explicitly referenced in its filter expression.
+	 * 
+	 * @return list of RequiredFields null indicates that the operator does not need any
+	 *         fields from its input.
+	 */
+	public List<RequiredFields> getRequiredFields() {
+		return null;
+	}
 
 }

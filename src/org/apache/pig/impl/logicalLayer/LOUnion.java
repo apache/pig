@@ -29,6 +29,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
@@ -176,6 +177,23 @@ public class LOUnion extends LogicalOperator {
         }
         
         return new ProjectionMap(mapFields, null, null);
+    }
+
+    @Override
+    public List<RequiredFields> getRequiredFields() {
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(this);
+        
+        if(predecessors == null) {
+            return null;
+        }
+
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            requiredFields.add(new RequiredFields(true));
+        }
+        
+        return (requiredFields.size() == 0? null: requiredFields);
     }
 
 }

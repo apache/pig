@@ -19,17 +19,21 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanVisitor;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -240,6 +244,48 @@ public class LOSort extends LogicalOperator {
         } else {
             //problem - input and output schemas for a sort have to match!
             return null;
+        }
+    }
+    
+    @Override
+    public List<RequiredFields> getRequiredFields() {
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        Set<Pair<Integer, Integer>> fields = new HashSet<Pair<Integer, Integer>>();
+        Set<LOProject> projectSet = new HashSet<LOProject>();
+        boolean orderByStar = false;
+
+        for (LogicalPlan plan : getSortColPlans()) {
+            TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(
+                    plan);
+            try {
+                projectFinder.visit();
+            } catch (VisitorException ve) {
+                requiredFields.clear();
+                requiredFields.add(null);
+                return requiredFields;
+            }
+            projectSet.addAll(projectFinder.getProjectSet());
+            if(projectFinder.getProjectStarSet() != null) {
+                orderByStar = true;
+            }
+        }
+
+        if(orderByStar) {
+            requiredFields.add(new RequiredFields(true));
+            return requiredFields;
+        } else {
+            for (LOProject project : projectSet) {
+                for (int inputColumn : project.getProjection()) {
+                    fields.add(new Pair<Integer, Integer>(0, inputColumn));
+                }
+            }
+    
+            if(fields.size() == 0) {
+                requiredFields.add(new RequiredFields(false, true));
+            } else {                
+                requiredFields.add(new RequiredFields(new ArrayList<Pair<Integer, Integer>>(fields)));
+            }
+            return (requiredFields.size() == 0? null: requiredFields);
         }
     }
 
