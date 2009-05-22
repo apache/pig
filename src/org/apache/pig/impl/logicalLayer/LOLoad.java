@@ -21,9 +21,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
@@ -33,6 +34,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
@@ -271,6 +273,13 @@ public class LOLoad extends LogicalOperator {
             }
             return new ProjectionMap(mapFields, null, null);
         }
+    }
+
+    @Override
+    public List<RequiredFields> getRequiredFields() {
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        requiredFields.add(new RequiredFields(false, true));
+        return requiredFields;
     }
 
 }

@@ -18,13 +18,9 @@
 
 package org.apache.pig.impl.plan;
 
-import java.io.Serializable;
 import java.lang.StringBuilder;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 
@@ -107,7 +103,7 @@ public class ProjectionMap {
      * 
      * @return the mapping of input column to output column
      */
-    public MultiMap<Integer, Pair<Integer, Integer>> getMappedFileds() {
+    public MultiMap<Integer, Pair<Integer, Integer>> getMappedFields() {
         return mMappedFields;
     }
 
@@ -116,7 +112,7 @@ public class ProjectionMap {
      * @param fields
      *            the mapping of input column to output column
      */
-    public void setMappedFileds(MultiMap<Integer, Pair<Integer, Integer>> fields) {
+    public void setMappedFields(MultiMap<Integer, Pair<Integer, Integer>> fields) {
         mMappedFields = fields;
     }
 
@@ -124,7 +120,7 @@ public class ProjectionMap {
      * 
      * @return the list of input columns that are removed
      */
-    public List<Pair<Integer, Integer>> getRemovedFileds() {
+    public List<Pair<Integer, Integer>> getRemovedFields() {
         return mRemovedFields;
     }
 
@@ -133,7 +129,7 @@ public class ProjectionMap {
      * @param fields
      *            the list of input columns that are removed
      */
-    public void setRemovedFileds(List<Pair<Integer, Integer>> fields) {
+    public void setRemovedFields(List<Pair<Integer, Integer>> fields) {
         mRemovedFields = fields;
     }
 
@@ -141,7 +137,7 @@ public class ProjectionMap {
      * 
      * @return the list of columns that are added to the output
      */
-    public List<Integer> getAddedFileds() {
+    public List<Integer> getAddedFields() {
         return mAddedFields;
     }
 
@@ -150,7 +146,7 @@ public class ProjectionMap {
      * @param fields
      *            the list of columns that are added to the output
      */
-    public void setAddedFileds(List<Integer> fields) {
+    public void setAddedFields(List<Integer> fields) {
         mAddedFields = fields;
     }
 

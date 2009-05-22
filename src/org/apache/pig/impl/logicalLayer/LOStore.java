@@ -29,6 +29,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanVisitor;
@@ -164,6 +165,13 @@ public class LOStore extends LogicalOperator {
             //problem - input and output schemas for a store have to match!
             return null;
         }
+    }
+
+    @Override
+    public List<RequiredFields> getRequiredFields() {
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        requiredFields.add(new RequiredFields(false, true));
+        return requiredFields;
     }
 
 }

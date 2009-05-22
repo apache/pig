@@ -20,13 +20,21 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.ProjectionMap;
+import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * {@link LOStream} represents the specification of an external
@@ -167,6 +175,57 @@ public class LOStream extends LogicalOperator {
      */
     public ExecutableManager getExecutableManager() {
         return executableManager;
+    }
+
+    @Override
+    public ProjectionMap getProjectionMap() {
+        Schema outputSchema;
+        
+        try {
+            outputSchema = getSchema();
+        } catch (FrontendException fee) {
+            return null;
+        }
+        
+        if(outputSchema == null) {
+            return null;
+        }
+        
+        Schema inputSchema = null;        
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors != null) {
+            try {
+                inputSchema = predecessors.get(0).getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+        } else {
+                return null;
+        }
+        
+        List<Integer> addedFields = new ArrayList<Integer>();
+        List<Pair<Integer, Integer>> removedFields = new ArrayList<Pair<Integer, Integer>>();
+        
+        for(int i = 0; i < outputSchema.size(); ++i) {
+            //add all the elements of the output schema to the added fields
+            addedFields.add(i);
+        }
+        
+        if(inputSchema != null) {
+            //add all the elements of the input schema to the removed fields
+            for(int i = 0; i < inputSchema.size(); ++i) {
+                removedFields.add(new Pair<Integer, Integer>(0, i));
+            }
+        }
+        return new ProjectionMap(null, (removedFields.size() == 0? null: removedFields), addedFields);
+    }
+
+    @Override
+    public List<RequiredFields> getRequiredFields() {
+        List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
+        requiredFields.add(new RequiredFields(true, false));
+        return requiredFields;
     }
 
 }
