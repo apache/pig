@@ -158,6 +158,11 @@ public class TestLoad extends junit.framework.TestCase {
         checkLoadPath("/tmp/foo/../././","/tmp");
     }
 
+    @Test
+    public void testGlobChars() throws Exception {
+        checkLoadPath("t?s*","/tmp/t?s*");
+    }
+
     private void checkLoadPath(String orig, String expected) throws Exception {
         checkLoadPath(orig, expected, false);
     }
