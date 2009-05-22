@@ -88,11 +88,14 @@ public class DataReaderWriter {
         return new String(ba, DataReaderWriter.UTF8);
     }
     
-        
     public static Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
         byte b = in.readByte();
-        switch (b) {
+        return readDatum(in, b);
+    }
+        
+    public static Object readDatum(DataInput in, byte type) throws IOException, ExecException {
+        switch (type) {
             case DataType.TUPLE: 
                 return bytesToTuple(in);
             
@@ -138,7 +141,7 @@ public class DataReaderWriter {
                 return null;
 
             default:
-                throw new RuntimeException("Unexpected data type " + b +
+                throw new RuntimeException("Unexpected data type " + type +
                     " found in stream.");
         }
     }

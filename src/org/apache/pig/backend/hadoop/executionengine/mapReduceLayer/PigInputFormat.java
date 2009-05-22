@@ -228,7 +228,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
 				    spec = new ValidatingInputFileSpec(inputs.get(i).first, store);
 				}
 				boolean isSplittable = inputs.get(i).second;
-				if (isSplittable && (spec.getSlicer() instanceof PigSlicer)) {
+				if ((spec.getSlicer() instanceof PigSlicer)) {
 				    ((PigSlicer)spec.getSlicer()).setSplittable(isSplittable);
 				}
 				Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());

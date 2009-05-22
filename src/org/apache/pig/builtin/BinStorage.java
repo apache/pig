@@ -98,10 +98,17 @@ public class BinStorage implements ReversibleLoadStoreFunc {
                 continue;
             }
             if(b == -1) return null;
+            b = (byte) in.read();
+            if(b != DataType.TUPLE && b != -1) {
+                continue;
+            }
+            if(b == -1) return null;
             break;
         }
         try {
-            return (Tuple)DataReaderWriter.readDatum(inData);
+            // if we got here, we have seen RECORD_1-RECORD_2-RECORD_3-TUPLE_MARKER
+            // sequence - lets now read the contents of the tuple 
+            return (Tuple)DataReaderWriter.readDatum(inData, DataType.TUPLE);
         } catch (ExecException ee) {
             throw ee;
         }
