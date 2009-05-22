@@ -48,6 +48,9 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 
 BUG FIXES
 
+PIG-811: Globs with "?" in the pattern are broken in local mode (hagleitn via
+olgan)
+
 PIG-810: Fixed NPE in PigStats (gates)
 
 PIG-804: problem with lineage with double map redirection (pradeepkth)
