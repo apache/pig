@@ -1893,6 +1893,15 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("c = group b by $0;");
     }
 
+    @Test
+    public void testReservedWordsInFunctionNames() {
+        // test that define can contain reserved words are later parts of
+        // fully qualified function name
+        String query = "define FUNC org.apache.iterators.foreach();";
+        LogicalOperator lo = buildPlan(query).getRoots().get(0);
+        assertTrue(lo instanceof LODefine);
+    }
+
 
     @Test
     public void testTokenizeSchema()  throws FrontendException, ParseException {
