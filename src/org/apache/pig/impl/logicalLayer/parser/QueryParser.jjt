@@ -1028,6 +1028,77 @@ LogicalOperator NestedExpr(LogicalPlan lp) :
 	{log.trace("Exiting NestedExpr"); return op;}
 }
 
+// A keyword or an identifier
+
+Token IdentifierOrReserved() :
+{
+  Token t1; 
+  log.trace("Entering IdentifierOrReserved");
+}
+{
+  (
+  ( t1 = <DEFINE> )
+| (t1 = <LOAD> )
+| (t1 =<FILTER> )
+| (t1 =<FOREACH> )
+| (t1 =<MATCHES> )
+| (t1 =<ORDER> )
+| (t1 =<ARRANGE> )
+| (t1 =<DISTINCT> )
+| (t1 =<COGROUP> )
+| (t1 =<JOIN> )
+| (t1 =<CROSS> )
+| (t1 =<UNION> )
+| (t1 =<SPLIT> )
+| (t1 =<INTO> )
+| (t1 =<IF> )
+| (t1 =<ALL> )
+| (t1 =<ANY> )
+| (t1 =<AS> )
+| (t1 =<BY> )
+| (t1 =<USING> )
+| (t1 =<INNER> )
+| (t1 =<OUTER> )
+| (t1 =<PARALLEL> )
+| (t1 =<GROUP> )
+| (t1 =<AND> )
+| (t1 =<OR> )
+| (t1 =<NOT> )
+| (t1 =<GENERATE> )
+| (t1 =<FLATTEN> )
+| (t1 =<EVAL> )
+| (t1 =<ASC> )
+| (t1 =<DESC> )
+| (t1 =<INT> )
+| (t1 =<LONG> )
+| (t1 =<FLOAT> )
+| (t1 =<DOUBLE> )
+| (t1 =<CHARARRAY> )
+| (t1 =<BYTEARRAY> )
+| (t1 =<BAG> )
+| (t1 =<TUPLE> )
+| (t1 =<MAP> )
+| (t1 =<IS> )
+| (t1 =<NULL> )
+| (t1 =<STREAM> )
+| (t1 =<THROUGH> )
+| (t1 =<STORE> )
+| (t1 =<SHIP> )
+| (t1 =<CACHE> )
+| (t1 =<INPUT> )
+| (t1 =<OUTPUT> )
+| (t1 =<ERROR> )
+| (t1 =<STDIN> )
+| (t1 =<STDOUT> )
+| (t1 =<LIMIT> )
+| (t1 =<SAMPLE> )
+| (t1 =<IDENTIFIER>)
+)
+    {
+      return t1;
+    }
+}
+
 // A reference to an alias
 LogicalOperator Alias(LogicalPlan lp) : 
 {
@@ -2186,7 +2257,7 @@ void NestedCommand(Schema over, Map<String, LogicalOperator> specs, List<Logical
     {
         lp.add(item);
     }
-|	item = NestedFilter(over,specs,lp, input)	 
+|	item = NestedFilter(over,specs,lp, input)
 | 	item = NestedSortOrArrange(over,specs,lp, input)
 |	item = NestedDistinct(over,specs,lp, input)	
 |	item = NestedLimit(over,specs,lp, input)	
@@ -3299,8 +3370,8 @@ void ClassName() #void : {} { <IDENTIFIER> (("."  <IDENTIFIER>)|("$"  <IDENTIFIE
 String QualifiedFunction() #void : {Token t1;StringBuffer s=new StringBuffer(); log.trace("Entering QualifiedFunction");}
 {
 	((t1=<IDENTIFIER> { s.append(t1.image);}
-	 (("." t1=<IDENTIFIER> {s.append("." + t1.image);})| 
-	  ("$" t1=<IDENTIFIER> {s.append("$" + t1.image);}))*)) 
+	 (("." t1=IdentifierOrReserved() {s.append("." + t1.image);})| 
+	  ("$" t1=IdentifierOrReserved() {s.append("$" + t1.image);}))*)) 
 	 {
 	 	log.debug("QualifiedFunction: " + s.toString());
 	 	log.trace("Exiting QualifiedFunction"); 

@@ -48,6 +48,9 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 
 BUG FIXES
 
+PIG-656: Use of eval or any other keyword in the package hierarchy of a UDF causes
+parse exception (milindb via sms)
+
 PIG-814: Make Binstorage more robust when data contains record markers (pradeepkth)
 
 PIG-811: Globs with "?" in the pattern are broken in local mode (hagleitn via
