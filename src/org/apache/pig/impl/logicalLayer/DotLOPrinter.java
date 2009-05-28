@@ -37,19 +37,23 @@ public class DotLOPrinter extends DotPlanDumper<LogicalOperator, LogicalPlan,
                                   LogicalOperator, LogicalPlan> {
 
     public DotLOPrinter(LogicalPlan plan, PrintStream ps) {
-        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>());
+        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>(),
+             new HashSet<Operator>());
     }
 
     private DotLOPrinter(LogicalPlan plan, PrintStream ps, boolean isSubGraph,
                          Set<Operator> subgraphs, 
-                         Set<Operator> multiInSubgraphs) {
-        super(plan, ps, isSubGraph, subgraphs, multiInSubgraphs);
+                         Set<Operator> multiInSubgraphs,
+                         Set<Operator> multiOutSubgraphs) {
+        super(plan, ps, isSubGraph, subgraphs, 
+              multiInSubgraphs, multiOutSubgraphs);
     }
 
     @Override
     protected DotPlanDumper makeDumper(LogicalPlan plan, PrintStream ps) {
         return new DotLOPrinter(plan, ps, true, mSubgraphs, 
-                                mMultiInputSubgraphs);
+                                mMultiInputSubgraphs,
+                                mMultiOutputSubgraphs);
     }
 
     @Override

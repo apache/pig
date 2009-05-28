@@ -160,12 +160,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
           else if(node instanceof POForEach){
             sb.append(planString(((POForEach)node).getInputPlans()));
           }
-          else if (node instanceof POSplit) {
-              sb.append(planString(((POSplit)node).getPlans()));
-          }
-          else if (node instanceof PODemux) {
-              sb.append(planString(((PODemux)node).getPlans()));
-          }
           else if (node instanceof POMultiQueryPackage) {
               List<POPackage> pkgs = ((POMultiQueryPackage)node).getPackages();
               for (POPackage pkg : pkgs) {
@@ -180,6 +174,17 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
                 sb.append(planString(list));
               }
           }
+        }
+        
+        if (node instanceof POSplit) {
+            sb.append(planString(((POSplit)node).getPlans()));
+        }
+        else if (node instanceof PODemux) {
+            List<PhysicalPlan> plans = new ArrayList<PhysicalPlan>();
+            Set<PhysicalPlan> pl = new HashSet<PhysicalPlan>();
+            pl.addAll(((PODemux)node).getPlans());
+            plans.addAll(pl);
+            sb.append(planString(plans));
         }
         
         List<O> originalPredecessors = mPlan.getPredecessors(node);

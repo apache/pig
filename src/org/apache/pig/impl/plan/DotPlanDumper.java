@@ -36,19 +36,23 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
 
     protected Set<Operator> mSubgraphs;
     protected Set<Operator> mMultiInputSubgraphs;    
+    protected Set<Operator> mMultiOutputSubgraphs;
     private boolean isSubGraph = false;
   
     public DotPlanDumper(P plan, PrintStream ps) {
-        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>());
+        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>(),
+             new HashSet<Operator>());
     }
 
     protected DotPlanDumper(P plan, PrintStream ps, boolean isSubGraph, 
                             Set<Operator> mSubgraphs, 
-                            Set<Operator> mMultiInputSubgraphs) {
+                            Set<Operator> mMultiInputSubgraphs,
+                            Set<Operator> mMultiOutputSubgraphs) {
         super(plan, ps);
         this.isSubGraph = isSubGraph;
         this.mSubgraphs = mSubgraphs;
         this.mMultiInputSubgraphs = mMultiInputSubgraphs;
+        this.mMultiOutputSubgraphs = mMultiOutputSubgraphs;
     }
 
     @Override
@@ -98,6 +102,18 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
         }
     }
 
+    @Override 
+    protected void dumpMultiOutputNestedOperator(E op, Collection<S> plans) {
+        super.dumpMultiOutputNestedOperator(op, plans);
+
+        mMultiOutputSubgraphs.add(op);
+        
+        dumpInvisibleOutput(op);
+        for (S plan: plans) {
+            connectInvisibleOutput(op, plan);
+        }
+    }
+
     @Override
     protected void dumpNestedOperator(E op, Collection<S> plans) {
         dumpInvisibleOperators(op);
@@ -130,12 +146,14 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
     }
 
     @Override
-    protected void dumpEdge(E op, E suc) {
+    protected void dumpEdge(Operator op, Operator suc) {
         String in = getID(op);
         String out = getID(suc);
         String attributes = "";
 
-        if (mMultiInputSubgraphs.contains(op) || mSubgraphs.contains(op)) {
+        if (mMultiInputSubgraphs.contains(op) 
+            || mSubgraphs.contains(op) 
+            || mMultiOutputSubgraphs.contains(op)) {
             in = getSubgraphID(op, false);
         }
 
@@ -159,7 +177,8 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
     @Override
     protected PlanDumper makeDumper(S plan, PrintStream ps) {
         return new DotPlanDumper(plan, ps, true, 
-                                 mSubgraphs, mMultiInputSubgraphs);
+                                 mSubgraphs, mMultiInputSubgraphs, 
+                                 mMultiOutputSubgraphs);
     }
 
     /**
@@ -204,12 +223,15 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
         }
     }
 
-    private void connectInvisibleOutput(E op, S plan) {
+    private void connectInvisibleOutput(E op, 
+                                        OperatorPlan<? extends Operator> plan) {
         String out = getSubgraphID(op, false);
 
-        for (N l: plan.getLeaves()) {
+        for (Operator l: plan.getLeaves()) {
             String in;
-            if (mSubgraphs.contains(l) || mMultiInputSubgraphs.contains(l)) {
+            if (mSubgraphs.contains(l) 
+                || mMultiInputSubgraphs.contains(l)
+                || mMultiOutputSubgraphs.contains(l)) {
                 in = getSubgraphID(l, false);
             } else {
                 in = getID(l);
