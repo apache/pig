@@ -28,6 +28,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.impl.util.LogUtils;
 
 import java.io.ByteArrayInputStream;
@@ -647,6 +648,29 @@ public class TestGrunt extends TestCase {
         } catch (Exception e) {
             caught = true;
             assertTrue(e.getMessage().contains("baz does not exist"));
+        }
+        assertTrue(caught);
+    }
+
+    @Test
+    public void testInvalidParam() throws Throwable {
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = 
+            "run -param -param;";
+            
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        boolean caught = false;
+        try {
+            grunt.exec();
+        } catch (ParseException e) {
+            caught = true;
+            assertTrue(e.getMessage().contains("Encountered"));
         }
         assertTrue(caught);
     }
