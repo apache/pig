@@ -31,7 +31,7 @@ import org.apache.pig.impl.util.MultiMap;
  */
 public class PlanDumper<E extends Operator, 
                         P extends OperatorPlan<E>, 
-                        S extends OperatorPlan> {
+                        S extends OperatorPlan<? extends Operator>> {
     
     protected PrintStream ps;
     protected P plan;
@@ -61,8 +61,14 @@ public class PlanDumper<E extends Operator,
                 dumpMultiInputNestedOperator(op, map);
                 continue;
             }
+
+            Collection<S> plans = getMultiOutputNestedPlans(op);
+            if (plans.size() > 0) {
+                dumpMultiOutputNestedOperator(op, plans);
+                continue;
+            }
             
-            Collection<S> plans = getNestedPlans(op);
+            plans = getNestedPlans(op);
             if (isVerbose && plans.size() > 0) {
                 dumpNestedOperator(op, plans);
                 continue;
@@ -85,7 +91,7 @@ public class PlanDumper<E extends Operator,
      * makeDumper is a factory method. Used by subclasses to specify
      * what dumper should handle the nested plan.
      * @param plan Plan that the new dumper should handle
-     * @return the dumper for S
+     * @return the dumper for plan
      */
     protected PlanDumper makeDumper(S plan, PrintStream ps) {
         return new PlanDumper(plan, ps);
@@ -109,8 +115,25 @@ public class PlanDumper<E extends Operator,
         dumpOperator(op);
         for (E aop: plans.keySet()) {
             for (S plan: plans.get(aop)) {
-                PlanDumper dumper = new PlanDumper(plan, ps);
+                PlanDumper dumper = makeDumper(plan, ps);
                 dumper.dump();
+            }
+        }
+    }
+
+    /**
+     * Will be called for nested operators, where the plans represent
+     * how the output of the operator is processed. 
+     * @param op the nested operator
+     * @param plans a collection of sub plans.
+     */
+    protected void dumpMultiOutputNestedOperator(E op, Collection<S> plans) {
+        dumpOperator(op);
+        for (S plan: plans) {
+            PlanDumper  dumper = makeDumper(plan, ps);
+            dumper.dump();
+            for (Operator p: plan.getRoots()) {
+                dumpEdge(op, p);
             }
         }
     }
@@ -124,7 +147,7 @@ public class PlanDumper<E extends Operator,
     protected void dumpNestedOperator(E op, Collection<S> plans) {
         dumpOperator(op);
         for (S plan: plans) {
-            PlanDumper  dumper = new PlanDumper(plan, ps);
+            PlanDumper  dumper = makeDumper(plan, ps);
             dumper.dump();
         }
     }
@@ -135,7 +158,7 @@ public class PlanDumper<E extends Operator,
      * @param op tail of the edge
      * @param suc head of the edge
      */
-    protected void dumpEdge(E op, E suc) {
+    protected void dumpEdge(Operator op, Operator suc) {
         ps.println(op.name()+" -> "+suc.name());
     }
 
@@ -147,6 +170,16 @@ public class PlanDumper<E extends Operator,
      */
     protected MultiMap<E, S> getMultiInputNestedPlans(E op) {
         return new MultiMap<E, S>();
+    }
+
+    /**
+     * Used to determine if an operator has nested output plans
+     *
+     * @param op operator
+     * @return Map describing the input to nested plan relationship.
+     */
+    protected Collection<S> getMultiOutputNestedPlans(E op) {
+        return new LinkedList<S>();
     }
 
     /**

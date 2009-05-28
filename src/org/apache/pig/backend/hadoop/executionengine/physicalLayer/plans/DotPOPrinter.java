@@ -40,19 +40,25 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
                                   PhysicalOperator, PhysicalPlan> {
 
     public DotPOPrinter(PhysicalPlan plan, PrintStream ps) {
-        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>());
+        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>(),
+             new HashSet<Operator>());
     }
 
     public DotPOPrinter(PhysicalPlan plan, PrintStream ps, boolean isSubGraph,
                         Set<Operator> subgraphs, 
-                        Set<Operator> multiInputSubgraphs) {
-        super(plan, ps, isSubGraph, subgraphs, multiInputSubgraphs);
+                        Set<Operator> multiInputSubgraphs,
+                        Set<Operator> multiOutputSubgraphs) {
+        super(plan, ps, isSubGraph, subgraphs, multiInputSubgraphs,
+              multiOutputSubgraphs);
     }
 
     @Override
     protected DotPlanDumper makeDumper(PhysicalPlan plan, PrintStream ps) {
-        return new DotPOPrinter(plan, ps, true, mSubgraphs, 
-                                mMultiInputSubgraphs);
+        DotPOPrinter dumper = new DotPOPrinter(plan, ps, true, mSubgraphs, 
+                                               mMultiInputSubgraphs,
+                                               mMultiOutputSubgraphs);
+        dumper.setVerbose(this.isVerbose());
+        return dumper;
     }
 
     @Override
@@ -83,6 +89,22 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
     }
 
     @Override
+    protected Collection<PhysicalPlan> getMultiOutputNestedPlans(PhysicalOperator op) {
+        Collection<PhysicalPlan> plans = new LinkedList<PhysicalPlan>();
+        
+        if (op instanceof POSplit) {
+            plans.addAll(((POSplit)op).getPlans());
+        }
+        else if(op instanceof PODemux) {
+            Set<PhysicalPlan> pl = new HashSet<PhysicalPlan>();
+            pl.addAll(((PODemux)op).getPlans());
+            plans.addAll(pl);
+        }
+        
+        return plans;
+    }
+
+    @Override
     protected Collection<PhysicalPlan> getNestedPlans(PhysicalOperator op) {
         Collection<PhysicalPlan> plans = new LinkedList<PhysicalPlan>();
 
@@ -106,9 +128,6 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
                     plans.addAll(list);
                 }
             }
-        }
-        else if(op instanceof POSplit) {
-            plans.addAll(((POSplit)op).getPlans());
         }
 
         return plans;
