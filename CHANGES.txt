@@ -48,6 +48,8 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 
 BUG FIXES
 
+PIG-819: run -param -param; is a valid grunt command (milindb via olgan)
+
 PIG-656: Use of eval or any other keyword in the package hierarchy of a UDF causes
 parse exception (milindb via sms)
 

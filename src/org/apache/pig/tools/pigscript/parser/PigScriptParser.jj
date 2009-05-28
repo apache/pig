@@ -661,18 +661,6 @@ Token GetReserved () :
 	t = <RUN>
 	|
 	t = <EXEC>
-	|
-	t = <OUT>
-	|
-	t = <SCRIPT>
-	|
-	t = <DOT>
-	|
-	t = <BRIEF>
-	|
-	t = <PARAM>
-	|
-	t = <PARAM_FILE>
 	)
 
 	{return t;}
