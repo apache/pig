@@ -49,13 +49,16 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
     boolean isVerboseNesting = true;
 
     public DotMRPrinter(MROperPlan plan, PrintStream ps) {
-        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>());
+        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>(),
+             new HashSet<Operator>());
     }
 
     private DotMRPrinter(MROperPlan plan, PrintStream ps, boolean isSubGraph,
                          Set<Operator> subgraphs, 
-                         Set<Operator> multiInputSubgraphs) {
-        super(plan, ps, isSubGraph, subgraphs, multiInputSubgraphs);
+                         Set<Operator> multiInputSubgraphs,
+                         Set<Operator> multiOutputSubgraphs) {
+        super(plan, ps, isSubGraph, subgraphs, 
+              multiInputSubgraphs, multiOutputSubgraphs);
     }
 
     @Override
@@ -66,7 +69,8 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
 
     @Override
     protected DotPlanDumper makeDumper(InnerPlan plan, PrintStream ps) {
-        return new InnerPrinter(plan, ps, mSubgraphs, mMultiInputSubgraphs);
+        return new InnerPrinter(plan, ps, mSubgraphs, mMultiInputSubgraphs, 
+                                mMultiOutputSubgraphs);
     }
 
     @Override
@@ -169,8 +173,10 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
 
         public InnerPrinter(InnerPlan plan, PrintStream ps,
                             Set<Operator> subgraphs, 
-                            Set<Operator> multiInputSubgraphs) {
-            super(plan, ps, true, subgraphs, multiInputSubgraphs);
+                            Set<Operator> multiInputSubgraphs,
+                            Set<Operator> multiOutputSubgraphs) {
+            super(plan, ps, true, subgraphs, multiInputSubgraphs,
+                  multiOutputSubgraphs);
         }
 
         @Override
@@ -193,7 +199,8 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
         protected DotPOPrinter makeDumper(PhysicalPlan plan, PrintStream ps) {
             DotPOPrinter printer = new DotPOPrinter(plan, ps, true, 
                                                     mSubgraphs, 
-                                                    mMultiInputSubgraphs);
+                                                    mMultiInputSubgraphs,
+                                                    mMultiOutputSubgraphs);
             printer.setVerbose(isVerboseNesting);
             return printer;
         }
