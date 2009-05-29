@@ -109,7 +109,13 @@ public class MapReducePOStoreImpl extends POStoreImpl {
 
         // PigOuputFormat will look for pig.storeFunc to actually
         // write stuff out.
-        outputConf.set("pig.storeFunc", sFile.getFuncSpec().toString());
+        // serialize the store func spec using ObjectSerializer
+        // ObjectSerializer.serialize() uses default java serialization
+        // and then further encodes the output so that control characters
+        // get encoded as regular characters. Otherwise any control characters
+        // in the store funcspec would break the job.xml which is created by
+        // hadoop from the jobconf.
+        outputConf.set("pig.storeFunc", ObjectSerializer.serialize(sFile.getFuncSpec().toString()));
 
         // We set the output dir to the final location of the output,
         // the output dir set in the original job config points to the

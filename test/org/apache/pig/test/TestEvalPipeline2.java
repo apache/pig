@@ -290,5 +290,33 @@ public class TestEvalPipeline2 extends TestCase {
 
         Util.deleteFile(cluster, "table_bs_ac_clxt");
     }
+    
+    @Test
+    public void testPigStorageWithCtrlChars() throws Exception {
+        String[] inputData = { "hello\u0001world", "good\u0001morning", "nice\u0001day" };
+        Util.createInputFile(cluster, "testPigStorageWithCtrlCharsInput.txt", inputData);
+        String script = "a = load 'testPigStorageWithCtrlCharsInput.txt' using PigStorage('\u0001');" +
+        		"b = foreach a generate $0, CONCAT($0, '\u0005'), $1; " +
+        		"store b into 'testPigStorageWithCtrlCharsOutput.txt' using PigStorage('\u0001');" +
+        		"c = load 'testPigStorageWithCtrlCharsOutput.txt' using PigStorage('\u0001') as (f1:chararray, f2:chararray, f3:chararray);";
+        Util.registerQuery(pigServer, script);
+        Iterator<Tuple> it  = pigServer.openIterator("c");
+        HashMap<String, Tuple> expectedResults = new HashMap<String, Tuple>();
+        expectedResults.put("hello", (Tuple) Util.getPigConstant("('hello','hello\u0005','world')"));
+        expectedResults.put("good", (Tuple) Util.getPigConstant("('good','good\u0005','morning')"));
+        expectedResults.put("nice", (Tuple) Util.getPigConstant("('nice','nice\u0005','day')"));
+        HashMap<String, Boolean> seen = new HashMap<String, Boolean>();
+        int numRows = 0;
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            String firstCol = (String) t.get(0);
+            assertFalse(seen.containsKey(firstCol));
+            seen.put(firstCol, true);
+            assertEquals(expectedResults.get(firstCol), t);
+            numRows++;
+        }
+        assertEquals(3, numRows);
+        
+    }
 
 }

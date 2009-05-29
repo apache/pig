@@ -383,8 +383,14 @@ public class JobControlCompiler{
                 String outputPath = st.getSFile().getFileName();
                 FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
                 FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
-             
-                jobConf.set("pig.storeFunc", outputFuncSpec.toString());
+                
+                // serialize the store func spec using ObjectSerializer
+                // ObjectSerializer.serialize() uses default java serialization
+                // and then further encodes the output so that control characters
+                // get encoded as regular characters. Otherwise any control characters
+                // in the store funcspec would break the job.xml which is created by
+                // hadoop from the jobconf.
+                jobConf.set("pig.storeFunc", ObjectSerializer.serialize(outputFuncSpec.toString()));
                 jobConf.set(PIG_STORE_CONFIG, 
                             ObjectSerializer.serialize(new StoreConfig(outputPath, st.getSchema())));
 

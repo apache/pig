@@ -34,18 +34,19 @@ public class MapRedUtil {
      */
     public static StoreFunc getStoreFunc(JobConf conf) throws ExecException {
         StoreFunc store;
-        String storeFunc = conf.get("pig.storeFunc", "");
-        if (storeFunc.length() == 0) {
-            store = new PigStorage();
-        } else {
-            try {
+        try {
+            String storeFunc = conf.get("pig.storeFunc", "");
+            if (storeFunc.length() == 0) {
+                store = new PigStorage();
+            } else {
+                storeFunc = (String) ObjectSerializer.deserialize(storeFunc);
                 store = (StoreFunc) PigContext
                         .instantiateFuncFromSpec(storeFunc);
-            } catch (Exception e) {
-                int errCode = 2081;
-                String msg = "Unable to setup the store function.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
             }
+        } catch (Exception e) {
+            int errCode = 2081;
+            String msg = "Unable to setup the store function.";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
         return store;
     }

@@ -48,6 +48,8 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 
 BUG FIXES
 
+PIG-816: PigStorage() does not accept Unicode characters in its contructor (pradeepkth)
+
 PIG-818: Explain doesn't handle PODemux properly (hagleitn via olgan)
 
 PIG-819: run -param -param; is a valid grunt command (milindb via olgan)
