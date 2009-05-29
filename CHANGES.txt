@@ -48,6 +48,8 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 
 BUG FIXES
 
+PIG-802: PERFORMANCE: not creating bags for ORDER BY (serakesh via olgan)
+
 PIG-816: PigStorage() does not accept Unicode characters in its contructor (pradeepkth)
 
 PIG-818: Explain doesn't handle PODemux properly (hagleitn via olgan)

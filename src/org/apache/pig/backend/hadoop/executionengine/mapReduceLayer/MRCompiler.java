@@ -62,6 +62,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -1124,12 +1125,10 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.setMapDone(true);
         
         if (limit!=-1) {
-        	POPackage pkg_c = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        	pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
+       	    POPackageLite pkg_c = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
+       	    pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
             pkg_c.setNumInps(1);
             //pkg.setResultType(DataType.TUPLE);
-            boolean[] inner = {false};
-            pkg_c.setInner(inner);
             mro.combinePlan.add(pkg_c);
         	
             List<PhysicalPlan> eps_c1 = new ArrayList<PhysicalPlan>();
@@ -1168,12 +1167,10 @@ public class MRCompiler extends PhyPlanVisitor {
 	        mro.combinePlan.addAsLeaf(lr_c2);
         }
         
-        POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        POPackageLite pkg = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
         pkg.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
             keyType);
         pkg.setNumInps(1);
-        boolean[] inner = {false}; 
-        pkg.setInner(inner);
         mro.reducePlan.add(pkg);
         
         PhysicalPlan ep = new PhysicalPlan();
