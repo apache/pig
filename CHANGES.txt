@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-825: PIG_HADOOP_VERSION should be set to 18 (dvryaboy via gates).
+
 PIG-619: Create one InputSplit even when the input file is zero length
          so that hadoop runs maps and creates output for the next
 		 job (gates).
