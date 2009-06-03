@@ -74,7 +74,7 @@ TOKEN :
 //    <IDENTIFIER: (<LETTER> | <SPECIALCHAR>) (<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
     <IDENTIFIER: (<SPECIALCHAR>)*<LETTER>(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>
     |
-    <ORD_LINE: ~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r"] (~["\n","\r"])* >
+    <OTHER: ~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r"] (~["\n","\r"])* >
     |
     <LITERAL: ("\"" ((~["\""])*("\\\"")?)* "\"")|("'" ((~["'"])*("\\\'")?)* "'") >
     |
@@ -100,11 +100,17 @@ boolean Parse() throws IOException  :
             id=<IDENTIFIER>
             <EQUALS>
             (
-                val=<IDENTIFIER> {pc.processOrdLine(id.image , val.image);}
+                val=<OTHER> { pc.processOrdLine(id.image , val.image);}
                 |
-                val=<ORD_LINE> {pc.processOrdLine(id.image , val.image);}
+                val=<IDENTIFIER> 
+                {s = val.image;}
+                (
+                    val =<OTHER>
+                    {s += val.image;}
+                )?
+                {pc.processOrdLine(id.image , s);}
                 |
-                val=<SHELLCMD>  { pc.processShellCmd(id.image , val.image); }
+                val=<SHELLCMD>  { pc.processShellCmd(id.image , val.image);}
                 |
                 val=<LITERAL> { s = unquote(val.image); pc.processOrdLine(id.image , s); }
             )
