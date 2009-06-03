@@ -1,0 +1,1 @@
+storefile = /user/pig/tests/results/DefineClause_4.out
