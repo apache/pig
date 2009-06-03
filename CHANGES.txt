@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+
+
 Pig Change Log
 
 Trunk (unreleased changes)
@@ -25,6 +27,8 @@ INCOMPATIBLE CHANGES
 IMPROVEMENTS
 
 PIG-825: PIG_HADOOP_VERSION should be set to 18 (dvryaboy via gates).
+
+PIG-795: support for SAMPLE command (ericg via olgan)
 
 PIG-619: Create one InputSplit even when the input file is zero length
          so that hadoop runs maps and creates output for the next
@@ -37,10 +41,14 @@ PIG-700: To automate the pig patch test process (gkesavan via sms)
 PIG-712: Added utility functions to create schemas for tuples and bags (zjffdu
 via gates).
 
+PIG-652: Adapt changes in store interface to multi-query changes (hagleitn via gates).
+
 PIG-775: PORelationToExprProject should create a NonSpillableDataBag to create
 empty bags (pradeepkth)
 
 PIG-741: Allow limit to be nested in a foreach.
+
+PIG-627: multiquery support phase 3 (hagleitn and Richard Ding via olgan)
 
 PIG-743: To implement clover (gkesavan)
 
@@ -48,7 +56,11 @@ PIG-701: Implement IVY for resolving pig dependencies (gkesavan)
 
 PIG-626: Add access to hadoop counters (shubhamc via gates).
 
+PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via pradeepkth)
+
 BUG FIXES
+
+PIG-564: problem with parameter substitution and special charachters (olgan)
 
 PIG-802: PERFORMANCE: not creating bags for ORDER BY (serakesh via olgan)
 
@@ -650,10 +662,3 @@ Release 0.1.0 - 2008-09-11
 
     PIG-284: target for building source jar (oae via olgan)
 
-    PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via pradeepkth)
-
-    PIG-652: Adapt changes in store interface to multi-query changes (hagleitn via gates).
-
-    PIG-627: multiquery support phase 3 (hagleitn and Richard Ding via olgan)
-
-    PIG-795: support for SAMPLE command (ericg via olgan)

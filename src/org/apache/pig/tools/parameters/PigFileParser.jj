@@ -85,7 +85,7 @@ TOKEN :
     |
     <SHELLCMD: "`" (~["`"])* "`" >
     |
-    <ORD_LINE: ~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r", "%"] (~["\n","\r"])* >
+    <OTHER: ~["\"" , "'" , "`" , "a"-"z" , "A"-"Z" , "_" , "#" , "=" , " " , "\n" , "\t" , "\r", "%"] (~["\n","\r"])* >
 }
 
 
@@ -102,9 +102,15 @@ void Parse() throws IOException  :
     (
         id=<IDENTIFIER>
         (
-            val=<IDENTIFIER> {pc.processOrdLine(id.image , val.image, overwrite);}
+            val=<OTHER> { pc.processOrdLine(id.image , val.image);}
             |
-            val=<ORD_LINE> {pc.processOrdLine(id.image , val.image, overwrite);}
+            val=<IDENTIFIER>
+            {s = val.image;}
+            ( 
+                val =<OTHER>
+                {s += val.image;}
+            )?
+            {pc.processOrdLine(id.image , s, overwrite);}
             |
             val=<SHELLCMD>  { pc.processShellCmd(id.image , val.image, overwrite); }
             |
@@ -117,9 +123,15 @@ void Parse() throws IOException  :
     (
         id=<IDENTIFIER>
         (
-            val=<IDENTIFIER> {pc.processOrdLine(id.image , val.image, overwrite);}
+            val=<OTHER> { pc.processOrdLine(id.image , val.image);}
             |
-            val=<ORD_LINE> {pc.processOrdLine(id.image , val.image, overwrite);}
+            val=<IDENTIFIER>
+            {s = val.image;}
+            ( 
+                val =<OTHER>
+                {s += val.image;}
+            )?
+            {pc.processOrdLine(id.image , s, overwrite);}
             |
             val=<SHELLCMD>  { pc.processShellCmd(id.image , val.image , overwrite); }
             |
