@@ -50,6 +50,7 @@ public class POCast extends ExpressionOperator {
     transient private LoadFunc load;
     private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
+    private Byte realType = null;
 
     private static final long serialVersionUID = 1L;
 
@@ -98,7 +99,6 @@ public class POCast extends ExpressionOperator {
     @Override
     public Result getNext(Integer i) throws ExecException {
         PhysicalOperator in = inputs.get(0);
-        Byte castToType = DataType.INTEGER;
         Byte resultType = in.getResultType();
         switch (resultType) {
         case DataType.BAG: {
@@ -117,33 +117,21 @@ public class POCast extends ExpressionOperator {
             DataByteArray dba = null;
             Result res = in.getNext(dba);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                // res.result = new
-                // Integer(Integer.valueOf((((DataByteArray)res.result).toString())));
-                if (castNotNeeded) {
-                    // we examined the data once before and
-                    // determined that the input is the same
-                    // type as the type we are casting to
-                    // so just send the input out as output
-                    return res;
-                }
                 try {
                     dba = (DataByteArray) res.result;
                 } catch (ClassCastException e) {
-                    // check if the type of res.result is
-                    // same as the type we are trying to cast to
-                    if (DataType.findType(res.result) == castToType) {
-                        // remember this for future calls
-                        castNotNeeded = true;
-                        // just return the output
-                        return res;
-                    } else {
-                        // the input is a differen type
-                        // rethrow the exception
-                        int errCode = 1081;
-                        String msg = "Cannot cast to int. Expected bytearray but received: " + DataType.findTypeName(res.result);
-                        throw new ExecException(msg, errCode, PigException.INPUT, e);
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toInteger(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toInteger(res.result, realType);
                     }
-
+                    return res;
                 }
                 try {
                     if (null != load) {
@@ -232,7 +220,6 @@ public class POCast extends ExpressionOperator {
     @Override
     public Result getNext(Long l) throws ExecException {
         PhysicalOperator in = inputs.get(0);
-        Byte castToType = DataType.LONG;
         Byte resultType = in.getResultType();
         switch (resultType) {
         case DataType.BAG: {
@@ -257,33 +244,21 @@ public class POCast extends ExpressionOperator {
             DataByteArray dba = null;
             Result res = in.getNext(dba);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                if (castNotNeeded) {
-                    // we examined the data once before and
-                    // determined that the input is the same
-                    // type as the type we are casting to
-                    // so just send the input out as output
-                    return res;
-                }
-                // res.result = new
-                // Long(Long.valueOf((((DataByteArray)res.result).toString())));
                 try {
                     dba = (DataByteArray) res.result;
                 } catch (ClassCastException e) {
-                    // check if the type of res.result is
-                    // same as the type we are trying to cast to
-                    if (DataType.findType(res.result) == castToType) {
-                        // remember this for future calls
-                        castNotNeeded = true;
-                        // just return the output
-                        return res;
-                    } else {
-                        // the input is a differen type
-                        // rethrow the exception
-                        int errCode = 1081;
-                        String msg = "Cannot cast to long. Expected bytearray but received: " + DataType.findTypeName(res.result);
-                        throw new ExecException(msg, errCode, PigException.INPUT, e);
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type in first call and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toLong(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toLong(res.result, realType);
                     }
-
+                    return res;
                 }
                 try {
                     if (null != load) {
@@ -367,7 +342,6 @@ public class POCast extends ExpressionOperator {
     @Override
     public Result getNext(Double d) throws ExecException {
         PhysicalOperator in = inputs.get(0);
-        Byte castToType = DataType.DOUBLE;
         Byte resultType = in.getResultType();
         switch (resultType) {
         case DataType.BAG: {
@@ -392,33 +366,21 @@ public class POCast extends ExpressionOperator {
             DataByteArray dba = null;
             Result res = in.getNext(dba);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                // res.result = new
-                // Double(Double.valueOf((((DataByteArray)res.result).toString())));
-                if (castNotNeeded) {
-                    // we examined the data once before and
-                    // determined that the input is the same
-                    // type as the type we are casting to
-                    // so just send the input out as output
-                    return res;
-                }
                 try {
                     dba = (DataByteArray) res.result;
                 } catch (ClassCastException e) {
-                    // check if the type of res.result is
-                    // same as the type we are trying to cast to
-                    if (DataType.findType(res.result) == castToType) {
-                        // remember this for future calls
-                        castNotNeeded = true;
-                        // just return the output
-                        return res;
-                    } else {
-                        // the input is a differen type
-                        // rethrow the exception
-                        int errCode = 1081;
-                        String msg = "Cannot cast to double. Expected bytearray but received: " + DataType.findTypeName(res.result);
-                        throw new ExecException(msg, errCode, PigException.INPUT, e);
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type in first call and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toDouble(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toDouble(res.result, realType);
                     }
-
+                    return res;
                 }
                 try {
                     if (null != load) {
@@ -501,7 +463,6 @@ public class POCast extends ExpressionOperator {
     @Override
     public Result getNext(Float f) throws ExecException {
         PhysicalOperator in = inputs.get(0);
-        Byte castToType = DataType.FLOAT;
         Byte resultType = in.getResultType();
         switch (resultType) {
         case DataType.BAG: {
@@ -526,33 +487,21 @@ public class POCast extends ExpressionOperator {
             DataByteArray dba = null;
             Result res = in.getNext(dba);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                // res.result = new
-                // Float(Float.valueOf((((DataByteArray)res.result).toString())));
-                if (castNotNeeded) {
-                    // we examined the data once before and
-                    // determined that the input is the same
-                    // type as the type we are casting to
-                    // so just send the input out as output
-                    return res;
-                }
                 try {
                     dba = (DataByteArray) res.result;
                 } catch (ClassCastException e) {
-                    // check if the type of res.result is
-                    // same as the type we are trying to cast to
-                    if (DataType.findType(res.result) == castToType) {
-                        // remember this for future calls
-                        castNotNeeded = true;
-                        // just return the output
-                        return res;
-                    } else {
-                        // the input is a differen type
-                        // rethrow the exception
-                        int errCode = 1081;
-                        String msg = "Cannot cast to float. Expected bytearray but received: " + DataType.findTypeName(res.result);
-                        throw new ExecException(msg, errCode, PigException.INPUT, e);
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type in first call and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toFloat(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toFloat(res.result, realType);
                     }
-
+                    return res;
                 }
                 try {
                     if (null != load) {
@@ -637,7 +586,6 @@ public class POCast extends ExpressionOperator {
     @Override
     public Result getNext(String str) throws ExecException {
         PhysicalOperator in = inputs.get(0);
-        Byte castToType = DataType.CHARARRAY;
         Byte resultType = in.getResultType();
         switch (resultType) {
         case DataType.BAG: {
@@ -662,33 +610,21 @@ public class POCast extends ExpressionOperator {
             DataByteArray dba = null;
             Result res = in.getNext(dba);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                // res.result = new
-                // String(((DataByteArray)res.result).toString());
-                if (castNotNeeded) {
-                    // we examined the data once before and
-                    // determined that the input is the same
-                    // type as the type we are casting to
-                    // so just send the input out as output
-                    return res;
-                }
                 try {
                     dba = (DataByteArray) res.result;
                 } catch (ClassCastException e) {
-                    // check if the type of res.result is
-                    // same as the type we are trying to cast to
-                    if (DataType.findType(res.result) == castToType) {
-                        // remember this for future calls
-                        castNotNeeded = true;
-                        // just return the output
-                        return res;
-                    } else {
-                        // the input is a differen type
-                        // rethrow the exception
-                        int errCode = 1081;
-                        String msg = "Cannot cast to chararray. Expected bytearray but received: " + DataType.findTypeName(res.result);
-                        throw new ExecException(msg, errCode, PigException.INPUT, e);
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type in first call and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toString(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toString(res.result, realType);
                     }
-
+                    return res;
                 }
                 try {
                     if (null != load) {

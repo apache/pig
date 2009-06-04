@@ -60,6 +60,9 @@ PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via p
 
 BUG FIXES
 
+PIG-796: support conversion from numeric types to chararray (Ashutosh Chauhan
+via pradeepkth)
+
 PIG-564: problem with parameter substitution and special charachters (olgan)
 
 PIG-802: PERFORMANCE: not creating bags for ORDER BY (serakesh via olgan)
