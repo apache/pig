@@ -27,10 +27,10 @@
         The Pig Documentation provides the information you need to get started using Pig.
       </p>
       <p>
-        Begin with the <a href="quickstart.html"> Pig Quick Start</a> which shows you how to build and run Pig. 
+        Begin with the <a href="getstarted.html"> Pig Getting Started Guide</a> which shows you how to download and run Pig. 
         Then try out the <a href="tutorial.html">Pig Tutorial</a> to get an idea of how easy it us to use Pig. 
         When you are ready to start writing your own scripts, read through the <a href="piglatin.html">Pig Latin Manual </a>to become familiar with Pig's features. 
-        Also review the <a href="cookbook.html">Pig Cookbook</a> to learn how to tweak your scripts for optimal performance.
+        Also review the <a href="cookbook.html">Pig Cookbook</a> to learn how to tweak your code for optimal performance.
       </p>
       <p>
 		If you have more questions, you can ask on the <a href="http://hadoop.apache.org/pig/mailing_lists.html">Pig Mailing Lists</a>.

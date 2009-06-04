@@ -22,122 +22,22 @@
 <article>
 <title>Pig Latin Manual</title>
 
-  <!-- OVERVIEW -->
-<section><title>Conventions</title>
-   <para>Conventions for the syntax and code examples included in the Pig Latin Reference Manual are described here.</para>
-   <informaltable frame="all">
-      <tgroup cols="3"><tbody><row>
-            <entry>
-               <para>Convention</para>
-            </entry>
-            <entry>
-               <para>Description</para>
-            </entry>
-            <entry>
-               <para>Example</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>( )</para>
-            </entry>
-            <entry>
-               <para>Parentheses enclose one or more items.</para>
-               <para>Parentheses are also used to indicate the tuple data type.</para>
-            </entry>
-            <entry>
-               <para>Multiple items:</para>
-               <para>(1, abc, (2,4,6) )</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>[ ]</para>
-            </entry>
-            <entry>
-               <para>Straight brackets enclose one or more optional items.</para>
-               <para>Straight brackets are also used to indicate the map data type. In this case &lt;&gt; is used to indicate optional items.</para>
-            </entry>
-            <entry>
-               <para>Optional items:</para>
-               <para>[INNER | OUTER]</para>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>{ }</para>
-            </entry>
-            <entry>
-               <para>Curly brackets enclose two or more items, one of which is required. </para>
-               <para>Curly brackets also used to indicate the bag data type. In this case &lt;&gt; is used to indicate required items.</para>
-            </entry>
-            <entry>
-               <para>Two items, one required:</para>
-               <para>{ gen_blk | nested_gen_blk }</para>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>…</para>
-            </entry>
-            <entry>
-               <para>Horizontal ellipsis points indicate that you can repeat a portion of the code.</para>
-            </entry>
-            <entry>
-               <para>Pig Latin syntax statement:</para>
-               <para>cat path [path …]</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>UPPERCASE</para>
-               <para/>
-               <para>lowercase</para>
-            </entry>
-            <entry>
-               <para>In general, uppercase type indicates elements the system supplies.</para>
-               <para>In general, lowercase type indicates elements that you supply.</para>
-               <para>Note: The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. All other Pig Latin keywords are case insensitive.</para>
-            </entry>
-            <entry>
-               <para>Pig Latin statement:</para>
-               <para>A = LOAD 'data' AS (f1:int);</para>
-               <para/>
-               <orderedlist>
-                  <listitem>
-                     <para>LOAD, AS supplied BY system</para>
-                  </listitem>
-                  <listitem>
-                     <para>A, f1 are names (aliases)</para>
-                  </listitem>
-                  <listitem>
-                     <para>data supplied by you</para>
-                  </listitem>
-               </orderedlist>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>italics</para>
-            </entry>
-            <entry>
-               <para>Italic type indicates placeholders or variables for which you must supply values.</para>
-            </entry>
-            <entry>
-               <para>Pig Latin syntax:</para>
-               <para>alias = LIMIT alias  n;</para>
-               <para/>
-               <para>You supply the values for placeholder alias and variable n.</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+
+   
+ 
+   
+   
+   
+   <!-- ABOUT PIG LATIN -->
+   <section>
+   <title>About Pig Latin </title>
    
    <section>
-   <title>Pig Latin Statements</title>
-   <para>A Pig Latin statement is an operator that takes a relation as input and produces another relation as output. (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.) Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ). Pig Latin statements are generally organized in the following manner. </para>
-   <orderedlist>
+	<title>Pig Latin Statements</title>	
+   <para>A Pig Latin statement is an operator that takes a relation as input and produces another relation as output. 
+   (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.) 
+   Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ). Pig Latin statements are generally organized in the following manner: </para>
+   <itemizedlist>
       <listitem>
          <para>A LOAD statement reads data from the file system. </para>
       </listitem>
@@ -147,71 +47,493 @@
       <listitem>
          <para>A STORE statement writes output to the file system; or, a DUMP statement displays output to the screen.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
+  
+   <section>
+   <title>Running Pig Latin </title>
+   <para>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the EXEC and RUN operators).</para>
+   
+   <para>Grunt Shell, Interactive or Batch Mode</para>
+   <programlisting>
+$ pig 
+... - Connecting to ...
+grunt> A = load 'data';
+grunt> B = ... ;
+or
+grunt> exec myscript.pig;
+or
+grunt> run myscript.pig;
+</programlisting> 
+
+<para>Command Line, Batch Mode</para>
+   <programlisting>
+$ pig myscript.pig
+</programlisting> 
+
+<para></para>
+   <para><emphasis>In general</emphasis>, Pig processes Pig Latin statements as follows:</para>
+   <itemizedlist>
+      <listitem>
+         <para>First, Pig validates the syntax and semantics of all statements.</para>
+      </listitem>
+      <listitem>
+         <para>Next, if Pig encounters a DUMP or STORE, Pig will execute the statements.</para>
+      </listitem>
+   </itemizedlist>  
+   <para></para>
+   <para>In this example Pig will validate, but not execute, the LOAD and FOREACH statements.</para>
+
+<programlisting>
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+B = FOREACH A GENERATE name;
+</programlisting>   
+
+   <para>In this example, Pig will validate and then execute the LOAD, FOREACH, and DUMP statements.</para>
+   
+<programlisting>
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+B = FOREACH A GENERATE name;
+DUMP B;
+(John)
+(Mary)
+(Bill)
+(Joe)
+</programlisting>   
+   
+   <para> </para>
+   <para>Note: See Multi-Query Optimization for more information on how Pig Latin statements are processed.</para> 
+   </section>
    
    <section>
-   <title>Processing Pig Latin Statements</title>
-   <para>You can execute Pig Latin statements interactively using the Grunt shell or you can place Pig Latin statements in a script and run the script. Either way, Pig processes Pig Latin statements as follows:</para>
-   <orderedlist>
+   <title>Retrieving Pig Latin Results</title>
+   <para>Pig Latin includes operators you can use to retrieve the results of your Pig Latin statements: </para>
+   <itemizedlist>
       <listitem>
-         <para>First, Pig validates the syntax and semantics of all statements. </para>
+         <para>Use the DUMP operator to display results to a screen. </para>
       </listitem>
       <listitem>
-         <para>Next, if Pig has encountered a DUMP or STORE, Pig will execute all statements connected to the specified DUMP or STORE.</para>
+         <para>Use the STORE operator to write results to a file on the file system.</para>
       </listitem>
-   </orderedlist>
-   <para>In this example Pig will validate, but not execute, the LOAD and FOREACH statements.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);</para>
-               <para>B = FOREACH A GENERATE name;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example, Pig will validate the LOAD, FOREACH, and DUMP statements. Then, if there are no errors, Pig will execute these statements.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);</para>
-               <para>B = FOREACH A GENERATE name;</para>
-               <para>DUMP B;</para>
-               <para>(John)</para>
-               <para>(Mary)</para>
-               <para>(Bill)</para>
-               <para>(Joe)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+   </itemizedlist>
+   </section>   
+   
+   
+   <section>
+   <title>Debugging Pig Latin</title>
+   <para>Pig Latin includes operators that can help you debug your Pig Latin statements:</para>
+   <itemizedlist>
+      <listitem>
+         <para>Use the DESCRIBE operator to review the schema of a relation.</para>
+      </listitem>
+      <listitem>
+         <para>Use the EXPLAIN operator to view the logical, physical, or map reduce execution plans to compute a relation.</para>
+      </listitem>
+      <listitem>
+         <para>Use the ILLUSTRATE operator to view the step-by-step execution of a series of statements.</para>
+      </listitem>
+   </itemizedlist>
+   </section>
+      
+   
+   <section>
+   <title>Working with Data</title>
+   <para>Pig Latin allows you to work with data in many ways. In general, and as a starting point:</para>
+   <itemizedlist>
+      <listitem>
+         <para>Use the FILTER operator to work with tuples or rows of data. Use the FOREACH operator to work with columns of data.</para>
+      </listitem>
+      <listitem>
+         <para>Use the GROUP operator to group data in a single relation. Use the COGROUP and JOIN operators to group or join data in two or more relations.</para>
+      </listitem>
+      <listitem>
+         <para>Use the UNION operator to merge the contents of two or more relations. Use the SPLIT operator to partition the contents of a relation into multiple relations.</para>
+      </listitem>
+   </itemizedlist>
+   </section>
+   
+   <section>
+   <title>Increasing Parallelism</title>
+   <para>To increase the parallelism of a job, include the PARALLEL clause with the COGROUP, CROSS, DISTINCT, GROUP, JOIN and ORDER operators. PARALLEL controls the number of reducers only; the number of maps is determined by the input data (see the <ulink url="http://wiki.apache.org/pig/PigUserCookbook">Pig User Cookbook</ulink>).</para>
+   </section>
+   
+   <section><title>Increasing Performance</title>
+   <para>You can increase or optimize the performance of your Pig Latin scripts by following a few simple rules (see the <ulink url="http://wiki.apache.org/pig/PigUserCookbook">Pig User Cookbook</ulink>).</para>
+   </section>
    
    <section>
    <title>Using Comments in Scripts</title>
    <para>If you place Pig Latin statements in a script, the script can include comments. </para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>For multi-line comments use /* …. */</para>
       </listitem>
       <listitem>
          <para>For single line comments use --</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
+<programlisting>
+/* myscript.pig
+My script includes three simple Pig Latin Statements.
+*/
+
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float); -- load statement
+B = FOREACH A GENERATE name;  -- foreach statement
+DUMP B;  --dump statement
+</programlisting>   
+</section>
+
+ <section>
+   <title>Case Sensitivity</title>
+   <para>The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. The names of parameters (see Parameter Substitution) and all other Pig Latin keywords are case insensitive.</para>
+   <para>In the example below, note the following:</para>
+   <itemizedlist>
+      <listitem>
+         <para>The names (aliases) of relations A, B, and C are case sensitive.</para>
+      </listitem>
+      <listitem>
+         <para>The names (aliases) of fields f1, f2, and f3 are case sensitive.</para>
+      </listitem>
+      <listitem>
+         <para>Function names PigStorage and COUNT are case sensitive.</para>
+      </listitem>
+      <listitem>
+         <para>Keywords LOAD, USING, AS, GROUP, BY, FOREACH, GENERATE, and DUMP are case insensitive. They can also be written as load, using, as, group, by, etc.</para>
+      </listitem>
+      <listitem>
+         <para>In the FOREACH statement, the field in relation B is referred to by positional notation ($0).</para>
+      </listitem>
+   </itemizedlist>
+   <para/>
+
+<programlisting>
+grunt> A = LOAD 'data' USING PigStorage() AS (f1:int, f2:int, f3:int);
+grunt> B = GROUP A BY f1;
+grunt> C = FOREACH B GENERATE COUNT ($0);
+grunt> DUMP C;
+</programlisting>
+</section>      
+</section>
+
+<!-- MULTI-QUERY OPTIMIZATION-->
+<section>
+	<title>Multi-Query Optimization</title>
+<para>With multi-query optimization Pig processes an entire script or a batch of statements at once 
+(as opposed to processing statements when a DUMP or STORE is encountered). Multi-query optimization introduces some changes:</para>
+
+<itemizedlist>
+<listitem>
+<para>For batch mode execution, the entire script is first parsed to determine if intermediate tasks 
+can be combined to reduce the overall amount of work that needs to be done; execution starts only after the parsing is completed 
+(see the EXPLAIN operator and the EXEC and RUN commands). </para>
+</listitem>
+<listitem>
+<para>Two run scenarios are optimized, as explained below: explicit and implicit splits, and storing intermediate results.</para>
+</listitem>
+</itemizedlist>
+
+<section>
+	<title> </title>
+<section>
+	<title>Explicit and Implicit Splits</title>
+<para>There might be cases in which you want different processing on separate parts of the same data stream.</para>
+<para>Example 1:</para>
+<programlisting>
+A = LOAD ...
+...
+SPLIT A' INTO B IF ..., C IF ...
+...
+STORE B' ...
+STORE C' ...
+</programlisting>
+<para>Example 2:</para>
+<programlisting>
+A = LOAD ...
+...
+B = FILTER A' ...
+C = FILTER A' ...
+...
+STORE B' ...
+STORE C' ...
+</programlisting>
+<para>In prior Pig releases, Example 1 will dump A' to disk and then start jobs for B' and C'. 
+Example 2 will execute all the dependencies of B' and store it and then execute all the dependencies of C' and store it. 
+Both are equivalent, but the performance will be different. </para>
+<para>Here's what the multi-query optimization does to increase the performance: </para>
+	<itemizedlist>
+		<listitem><para>For Example 2, adds an implicit split to transform the query to Example 1. This eliminates the processing of A' multiple times.</para></listitem>
+		<listitem><para>Makes the split non-blocking and allows processing to continue. This helps reduce the amount of data that has to be stored right at the split.  </para></listitem>
+		<listitem><para>Allows multiple outputs from a job. This way some results can be stored as a side-effect of the main job. This is also necessary to make the previous item work.  </para></listitem>
+		<listitem><para>Allows multiple split branches to be carried on to the combiner/reducer. This reduces the amount of IO again in the case where multiple branches in the split can benefit from a combiner run. </para></listitem>
+	</itemizedlist>
+</section>
+
+<section>
+	<title>Storing Intermediate Results</title>
+<para>Sometimes it is necessary to store intermediate results. </para>
+
+<programlisting>
+A = LOAD ...
+...
+STORE A'
+...
+STORE A''
+</programlisting>
+
+<para>If the script doesn't re-load A' for the processing of A the steps above A' will be duplicated. 
+This is a special case of Example 2 above, so the same steps are recommended. 
+With multi-query optimization, the script will process A and dump A' as a side-effect.</para>
+</section>
+</section>
+
+
+<section>
+	<title>Turning Multi-Query Optimization On or Off</title>	
+	<para>By default multi-query optimization is enabled. 
+	To turn off the optimization and revert to "execute-on-store" behavior, use the "-M" or "-no_multiquery" options. </para>
+	<para>To run script "myscript.pig" without the optimization, execute Pig as follows: </para>
+
+<programlisting>
+$ pig -M myscript.pig
+or
+$ pig -no_multiquery myscript.pig
+</programlisting>
+
+</section>
+
+<section>
+	<title>Error Handling</title>
+	<para>With multi-query optimization Pig processes an entire script or a batch of statements at once. 
+	By default Pig tries to run all the jobs that result from that, regardless of whether some jobs fail during execution. 
+	To check which jobs have succeeded or failed use one of these options. </para>
+	
+	<para>First, Pig logs all successful and failed store commands. Store commands are identified by output path. 
+	At the end of execution a summary line indicates success, partial failure or failure of all store commands. </para>	
+	
+	<para>Second, Pig returns different code upon completion for these scenarios:</para>
+	<itemizedlist>
+		<listitem><para>Return code 0: All jobs succeeded</para></listitem>
+		<listitem><para>Return code 1: <emphasis>Used for retrievable errors</emphasis> </para></listitem>
+		<listitem><para>Return code 2: All jobs have failed </para></listitem>
+		<listitem><para>Return code 3: Some jobs have failed  </para></listitem>
+	</itemizedlist>
+	<para></para>
+	<para>In some cases it might be desirable to fail the entire script upon detecting the first failed job. 
+	This can be achieved with the "-F" or "-stop_on_failure" command line flag. 
+	If used, Pig will stop execution when the first failed job is detected and discontinue further processing. 
+	This also means that file commands that come after a failed store in the script will not be executed (this can be used to create "done" files). </para>
+	
+	<para>This is how the flag is used: </para>
+<programlisting>
+$ pig -F myscript.pig
+or
+$ pig -stop_on_failure myscript.pig
+</programlisting>
+
+</section>
+
+<section>
+	<title>Backward Compatibility</title>
+	
+	<para>Most existing Pig scripts will produce the same result with or without the multi-query optimization. 
+	There are cases though were this is not true. Path names and schemes are discussed here.</para>
+	
+	<para>Any script is parsed in it's entirety before it is sent to execution. Since the current directory can change 
+	throughout the script any path used in load or store is translated to a fully qualified and absolute path.</para>
+		
+	<para>In map-reduce mode, the following script will load from "hdfs://&lt;host&gt;:&lt;port&gt;/data1" and store into "hdfs://&lt;host&gt;:&lt;port&gt;/tmp/out1". </para>
+<programlisting>
+cd /;
+A = LOAD 'data1';
+cd tmp;
+STORE A INTO 'out1';
+</programlisting>
+
+	<para>These expanded paths will be passed to any LoadFunc or Slicer implementation. 
+	In some cases this can cause problems, especially when a LoadFunc/Slicer is not used to read from a dfs file or path 
+	(for example, loading from an SQL database). </para>
+	
+	<para>Solutions are to either: </para>
+	<itemizedlist>
+		<listitem><para>Specify "-M" or "-no_multiquery" to revert to the old names</para></listitem>
+		<listitem><para>Specify a custom scheme for the LoadFunc/Slicer </para></listitem>
+	</itemizedlist>	
+	
+	<para>Arguments used in a load statement that have a scheme other than "hdfs" or "file" will not be expanded and passed to the LoadFunc/Slicer unchanged.</para>
+	<para>In the SQL case, the SQLLoader function is invoked with "sql://mytable". </para>
+
+<programlisting>
+A = LOAD "sql://mytable" USING SQLLoader();
+</programlisting>
+</section>
+
+<section>
+	<title>Implicit Dependencies</title>
+<para>If a script has dependencies on the execution order outside of what Pig knows about, execution may fail. For instance, in this script
+MYUDF might try to read from out1, a file that A was just stored into. 
+However, Pig does not know that MYUDF depends on the out1 file and might submit the jobs 
+producing the out2 and out1 files at the same time.
+</para>
+<programlisting>
+...
+STORE A INTO 'out1';
+B = LOAD 'data2';
+C = FOREACH B GENERATE MYUDF($0,'out1');
+STORE C INTO 'out2';
+</programlisting>
+
+<para>To make the script work (to ensure that the right execution order is enforced) add the exec statement. 
+The exec statement will trigger the execution of the statements that produce the out1 file. </para>
+
+<programlisting>
+...
+STORE A INTO 'out1';
+EXEC;
+B = LOAD 'data2';
+C = FOREACH B GENERATE MYUDF($0,'out1');
+STORE C INTO 'out2';
+</programlisting>
+
+</section>
+
+</section>
+ <!-- KEYWORDS -->
+   <section>
+   <title>Keywords</title>
+   
    <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>/* myscript.pig</para>
-               <para>My script includes three simple Pig Latin Statements.</para>
-               <para>*/</para>
-               <para>A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float); -- load statement</para>
-               <para>B = FOREACH A GENERATE name;  -- foreach statement</para>
-               <para>DUMP B;  --dump statement</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+      <tgroup cols="2"><tbody>  
+    
+         <row>
+            <entry> <para>-- A </para> </entry>
+            <entry> <para>and, any, all, arrange, as, asc, AVG</para> </entry>
+         </row>      
+      
+         <row>
+            <entry> <para>-- B </para> </entry>
+            <entry> <para>bag, BinaryDeserializer, BinarySerializer, BinStorage, by, bytearray </para> </entry>
+         </row>   
+
+         <row>
+            <entry> <para>-- C </para> </entry>
+            <entry> <para>cache, cat, cd, chararray, cogroup, CONCAT, copyFromLocal, copyToLocal, COUNT, cp, cross</para> </entry>
+         </row>
+         
+         <row>
+            <entry> <para>-- D </para> </entry>
+            <entry> <para>%declare, %default, define, desc, describe, DIFF, distinct, double, du, dump</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- E </para> </entry>
+            <entry> <para>e, E, eval, exec, explain</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- F </para> </entry>
+            <entry> <para>f, F, filter, flatten, float, foreach</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- G </para> </entry>
+            <entry> <para>generate, group</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- H </para> </entry>
+            <entry> <para>help</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- I </para> </entry>
+            <entry> <para>if, illustrate, inner, input, int, into, is</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- J </para> </entry>
+            <entry> <para>join</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- K </para> </entry>
+            <entry> <para>kill</para> </entry>
+         </row>   
+         
+         <row>
+            <entry> <para>-- L </para> </entry>
+            <entry> <para>l, L, limit, load, long, ls</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- M </para> </entry>
+            <entry> <para>map, matches, MAX, MIN, mkdir, mv </para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- N </para> </entry>
+            <entry> <para>not, null</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- O </para> </entry>
+            <entry> <para>or, order, outer, output</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- P </para> </entry>
+            <entry> <para>parallel, pig, PigDump, PigStorage, pwd</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- Q </para> </entry>
+            <entry> <para>quit</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- R </para> </entry>
+            <entry> <para>register, rm, rmf, run</para> </entry>
+         </row>  
+
+         <row>
+            <entry> <para>-- S </para> </entry>
+            <entry> <para>sample, set, ship, SIZE, split, stderr, stdin, stdout, store, stream, SUM</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- T </para> </entry>
+            <entry> <para>TextLoader, TOKENIZE, through, tuple</para> </entry>
+         </row>  
+         
+         <row>
+            <entry> <para>-- U </para> </entry>
+            <entry> <para>union, using</para> </entry>
+         </row>  
+
+         <row>
+            <entry> <para>-- V, W, X, Y, Z </para> </entry>
+            <entry> <para> </para> </entry>
+         </row>  
+                    
+        <row>
+            <entry> <para>-- Symbols</para> </entry>
+            <entry> <para>= =   !=   &lt;  &gt;   &lt;=   &gt;=   +   -   *   /   %   ?   $   .   #   ( )   [ ]   { } </para> </entry>
+         </row> 
+            
+      </tbody></tgroup>
+   </informaltable>
+   </section>
+</section>
+   
+<!-- DATA TYPES AND MORE-->
+
+<section>
+	<title>Data Types and More</title>
+
+<!-- RELATIONS, BAGS, TUPLES, FIELDS-->
    
    <section>
-   <title>Relations, Bags, Tuples, and Fields</title>
-      <para>As noted, Pig Latin statements work with relations. A relation can be defined as follows:</para>
-   <orderedlist>
+   <title>Relations, Bags, Tuples, Fields</title>
+      <para>Pig Latin statements work with relations. A relation can be defined as follows:</para>
+   <itemizedlist>
       <listitem>
          <para>A relation is a bag (more specifically, an outer bag).</para>
       </listitem>
@@ -224,37 +546,35 @@
       <listitem>
          <para>A field is a piece of data.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para/>
    <para>A Pig relation is a bag of tuples. A Pig relation is similar to a table in a relational database, where the tuples in the bag correspond to the rows in a table. Unlike a relational table, however, Pig relations don't require that every tuple contain the same number of fields or that the fields in the same position (column) have the same type.</para>
    <para>Also note that relations are unordered which means there is no guarantee that tuples are processed in any particular order. Furthermore, processing may be parallelized in which case tuples are not processed according to any total ordering.</para>
    
    <section><title>Referencing Relations</title>
    <para>Relations are referred to by name (or alias). Names are assigned by you as part of the Pig Latin statement. In this example the name (alias) of the relation is A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);</para>
-               <para>DUMP A;</para>
-               <para>(John,18,4.0F)</para>
-               <para>(Mary,19,3.8F)</para>
-               <para>(Bill,20,3.9F)</para>
-               <para>(Joe,18,3.8F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+   
+   <programlisting>
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+DUMP A;
+(John,18,4.0F)
+(Mary,19,3.8F)
+(Bill,20,3.9F)
+(Joe,18,3.8F)
+</programlisting>
+   </section>
    
    <section>
    <title>Referencing Fields</title>
-   <para>Fields are referred to by positional notation or by name (or alias). </para>
-   <orderedlist>
+   <para>Fields are referred to by positional notation or by name (alias). </para>
+   <itemizedlist>
       <listitem>
          <para>Positional notation is generated by the system. Positional notation is indicated with the dollar sign ($) and begins with zero (0); for example, $0, $1, $2. </para>
       </listitem>
       <listitem>
          <para>Names are assigned by you using schemas (or, in the case of the GROUP operator and some functions, by the system). You can use any name that is not a Pig keyword; for example, f1, f2, f3 or a, b, c or name, age, gpa.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>Given relation A above, the three fields are separated out in this table. </para>
    <informaltable frame="all">
       <tgroup cols="4"><tbody><row>
@@ -329,159 +649,70 @@
          </row></tbody></tgroup>
    </informaltable>
    <para>As shown in this example when you assign names to fields you can still refer to the fields using positional notation. However, for debugging purposes and ease of comprehension, it is better to use names.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);</para>
-               <para>X = FOREACH A GENERATE name,$2;</para>
-               <para>DUMP X;</para>
-               <para>(John,4.0F)</para>
-               <para>(Mary,3.8F)</para>
-               <para>(Bill,3.9F)</para>
-               <para>(Joe,3.8F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+X = FOREACH A GENERATE name,$2;
+DUMP X;
+(John,4.0F)
+(Mary,3.8F)
+(Bill,3.9F)
+(Joe,3.8F)
+</programlisting>   
+   
    <para>In this example an error is generated because the requested column ($3) is outside of the declared schema (positional notation begins with $0). Note that the error is caught before the statements are executed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int);</para>
-               <para>B = FOREACH A GENERATE $3;</para>
-               <para>DUMP B;</para>
-               <para/>
-               <para>2009-01-21 23:03:46,715 [main] ERROR org.apache.pig.tools.grunt.GruntParser - java.io.IOException: Out of bound access. Trying to access non-existent  : 3. Schema {f1: bytearray,f2: bytearray,f3: bytearray} has 3 column(s). etc …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section><section><title>Referencing Fields that are Complex Data Types</title>
+   
+   <programlisting>
+A = LOAD 'data' AS (f1:int,f2:int,f3:int);
+B = FOREACH A GENERATE $3;
+DUMP B;
+2009-01-21 23:03:46,715 [main] ERROR org.apache.pig.tools.grunt.GruntParser - java.io.IOException: 
+Out of bound access. Trying to access non-existent  : 3. Schema {f1: bytearray,f2: bytearray,f3: bytearray} has 3 column(s). 
+<emphasis>etc ...</emphasis></programlisting>
+   </section>
+   
+   <section><title>Referencing Fields that are Complex Data Types</title>
    <para>As noted, the fields in a tuple can be any data type, including the complex data types: bags, tuples, and maps. </para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Use the schemas for complex data types to name fields that are complex data types. </para>
       </listitem>
       <listitem>
          <para>Use the dereference operators to reference and work with fields that are complex data types.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>In this example the data file contains tuples. A schema for complex data types (in this case, tuples) is used to load the data. Then, dereference operators (the dot in t1.t1a and t2.$0) are used to access the fields in the tuples. Note that when you assign names to fields you can still refer to these fields using positional notation.</para>
-   <orderedlist>
-      <listitem>
-         <para/>
-      </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data;</para>
-               <para>(3,8,9) (4,5,6)</para>
-               <para>(1,4,7) (3,7,5)</para>
-               <para>(2,5,8) (9,5,8)</para>
-               <para/>
-               <para>A = LOAD 'data' AS (t1:tuple(t1a:int, t1b:int,t1c:int),t2:tuple(t2a:int,t2b:int,t2c:int));</para>
-               <para>DUMP A;</para>
-               <para>((3,8,9),(4,5,6))</para>
-               <para>((1,4,7),(3,7,5))</para>
-               <para>((2,5,8),(9,5,8))</para>
-               <para/>
-               <para>X = FOREACH A GENERATE t1.t1a,t2.$0;</para>
-               <para>DUMP X;</para>
-               <para>(3,4)</para>
-               <para>(1,3)</para>
-               <para>(2,9)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <orderedlist>
-      <listitem>
-         <para/>
-      </listitem>
-   </orderedlist></section></section>
-   
-   <section>
-   <title>Case Sensitivity</title>
-   <para>The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. The names of parameters (see Parameter Substitution) and all other Pig Latin keywords are case insensitive.</para>
-   <para>In the example below, note the following:</para>
-   <orderedlist>
-      <listitem>
-         <para>The names (aliases) of relations A, B, and C are case sensitive.</para>
-      </listitem>
-      <listitem>
-         <para>The names (aliases) of fields f1, f2, and f3 are case sensitive.</para>
-      </listitem>
-      <listitem>
-         <para>Function names PigStorage and COUNT are case sensitive.</para>
-      </listitem>
-      <listitem>
-         <para>Keywords LOAD, USING, AS, GROUP, BY, FOREACH, GENERATE, and DUMP are case insensitive. They can also be written as load, using, as, group, by, etc.</para>
-      </listitem>
-      <listitem>
-         <para>In the FOREACH statement, the field in relation B is referred to by positional notation ($0).</para>
-      </listitem>
-   </orderedlist>
-   <para/>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; A = LOAD 'data' USING PigStorage() AS (f1:int, f2:int, f3:int);</para>
-               <para>grunt&gt; B = GROUP A BY f1;</para>
-               <para>grunt&gt; C = FOREACH B GENERATE COUNT ($0);</para>
-               <para>grunt&gt; DUMP C;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Working with Data</title>
-   <para>Pig Latin allows you to work with data in many ways. In general, and as a starting point:</para>
-   <orderedlist>
-      <listitem>
-         <para>Use the FILTER operator to work with tuples or rows of data. Use the FOREACH operator to work with columns of data.</para>
-      </listitem>
-      <listitem>
-         <para>Use the GROUP operator to group data in a single relation. Use the COGROUP and JOIN operators to group or join data in two or more relations.</para>
-      </listitem>
-      <listitem>
-         <para>Use the UNION operator to merge the contents of two or more relations. Use the SPLIT operator to partition the contents of a relation into multiple relations.</para>
-      </listitem>
-   </orderedlist></section>
-   
-   <section>
-   <title>Increasing Parallelism</title>
-   <para>To increase the parallelism of a job, include the PARALLEL clause with the COGROUP, CROSS, DISTINCT, GROUP, JOIN and ORDER operators. PARALLEL controls the number of reducers only; the number of maps is determined by the input data (see the <ulink url="http://wiki.apache.org/pig/PigUserCookbook">Pig User Cookbook</ulink>).</para></section><section><title>Increasing Performance</title>
-   <para>You can increase or optimize the performance of your Pig Latin scripts by following a few simple rules (see the Pig User Cookbook).</para>
-   </section>
-   
-   <section>
-   <title>Retrieving Results</title>
-   <para>Pig Latin includes operators you can use to retrieve the results of your Pig Latin statements: </para>
-   <orderedlist>
-      <listitem>
-         <para>Use the DUMP operator to display results to a screen. </para>
-      </listitem>
-      <listitem>
-         <para>Use the STORE operator to write results to a file on the file system.</para>
-      </listitem>
-   </orderedlist></section><section><title>Debugging Pig Latin Scripts</title>
-   <para>Pig Latin includes operators that can help you debug your Pig Latin statements:</para>
-   <orderedlist>
-      <listitem>
-         <para>Use the DESCRIBE operator to review the schema of a relation.</para>
-      </listitem>
-      <listitem>
-         <para>Use the EXPLAIN operator to view the logical, physical, or map reduce execution plans to compute a relation.</para>
-      </listitem>
-      <listitem>
-         <para>Use the ILLUSTRATE operator to view the step-by-step execution of a series of statements.</para>
-      </listitem>
-   </orderedlist>
-   
-   </section>
-   
 
-<!-- DATA TYPES -->
+   
+   <programlisting>
+cat data;
+(3,8,9) (4,5,6)
+(1,4,7) (3,7,5)
+(2,5,8) (9,5,8)
+
+A = LOAD 'data' AS (t1:tuple(t1a:int, t1b:int,t1c:int),t2:tuple(t2a:int,t2b:int,t2c:int));
+
+DUMP A;
+((3,8,9),(4,5,6))
+((1,4,7),(3,7,5))
+((2,5,8),(9,5,8))
+
+X = FOREACH A GENERATE t1.t1a,t2.$0;
+
+DUMP X;
+(3,4)
+(1,3)
+(2,9)
+</programlisting>
+</section>
+</section>   
 
 <section>
 <title>Data Types</title>
+
+<section>
+<title>Simple and Complex</title>
+<para></para>
+
    <informaltable frame="all">
       <tgroup cols="3"><tbody><row>
             <entry>
@@ -631,62 +862,49 @@
          </row></tbody></tgroup>
    </informaltable>
    <para>Note the following general observations about data types:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Use schemas to assign types to fields.  If you don't assign types, fields default to type bytearray and implicit conversions are applied to the data depending on the context in which that data is used. For example, in relation B, f1 is converted to integer because 5 is integer. In relation C, f1 and f2 are converted to double because we don't know the type of either f1 or f2.</para>
+      <programlisting>
+A = LOAD 'data' AS (f1,f2,f3);
+B = FOREACH A GENERATE f1 + 5;
+C = FOREACH A generate f1 + f2;
+</programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1,f2,f3);</para>
-               <para>B = FOREACH A GENERATE f1 + 5;</para>
-               <para>C = FOREACH A generate f1 + f2;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <orderedlist>
+   </itemizedlist>
+
+   <itemizedlist>
       <listitem>
          <para>If a schema is defined as part of a load statement, the load function will attempt to enforce the schema. If the data does not conform to the schema, the loader will generate a null value or an error.</para>
+      <programlisting>
+A = LOAD 'data' AS (name:chararray, age:int, gpa:float);
+</programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (name:chararray, age:int, gpa:float);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+   </itemizedlist>
    <para/>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>If an explicit cast is not supported, an error will occur. For example, you cannot cast a chararray to int.</para>
+         <programlisting>
+A = LOAD 'data' AS (name:chararray, age:int, gpa:float);
+B = FOREACH A GENERATE (int)name;
+
+<emphasis>This will cause an error …</emphasis></programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (name:chararray, age:int, gpa:float);</para>
-               <para>B = FOREACH A GENERATE (int)name;</para>
-               <para>This will cause an error …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+   </itemizedlist>
+
    <para/>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>If Pig cannot resolve incompatible types through implicit casts, an error will occur. For example, you cannot add chararray and float (see the Types Table for addition and subtraction).</para>
+      <programlisting>
+A = LOAD 'data' AS (name:chararray, age:int, gpa:float);
+B = FOREACH A GENERATE name + gpa;
+
+<emphasis>This will cause an error …</emphasis></programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (name:chararray, age:int, gpa:float);</para>
-               <para>B = FOREACH A GENERATE name + gpa;</para>
-               <para>This will cause an error …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+   </itemizedlist>
+   </section>
    
    <section>
    <title>Tuple</title>
@@ -726,25 +944,20 @@
    <section>
    <title>Usage</title>
    <para>You can think of a tuple as a row with one or more fields, where each field can be any data type and any field may or may not have data. If a field has no data, then the following happens:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>In a load statement, the loader will inject null into the tuple. The actual value that is substituted for null is loader specific; for example, PigStorage substitutes an empty field for null.</para>
       </listitem>
       <listitem>
          <para>In a non-load statement, if a requested field is missing from a tuple, Pig will inject null.</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
-   <title>Examples</title>
+   <title>Example</title>
    <para>In this example the tuple contains three fields.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>(John,18,4.0F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+   <programlisting>(John,18,4.0F)</programlisting>
+   </section></section>
    
    <section>
    <title>Bag</title>
@@ -783,7 +996,7 @@
    <section>
    <title>Usage </title>
    <para>Note the following about bags:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>A bag can have duplicate tuples.</para>
       </listitem>
@@ -795,39 +1008,33 @@
          <para/>
          <para>Bags have two forms: outer bag (or relation) and inner bag.</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Example: Outer Bag</title>
    <para>In this example A is a relation or bag of tuples. You can think of this bag as an outer bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' as (f1:int, f2:int, f3;int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' as (f1:int, f2:int, f3;int);
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+</programlisting>
+   </section>
    
    <section>
    <title>Example: Inner Bag</title>
    <para>Now, suppose we group relation A by the first field to form relation X. </para>
    <para>In this example X is a relation or bag of tuples. The tuples in relation X have two fields. The first field is type int. The second field is type bag; you can think of this bag as an inner bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = GROUP A BY f1;</para>
-               <para>DUMP X;</para>
-               <para>(1,{(1,2,3)})</para>
-               <para>(4,{(4,2,1),(4,3,3)})</para>
-               <para>(8,{(8,3,4)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = GROUP A BY f1;
+DUMP X;
+(1,{(1,2,3)})
+(4,{(4,2,1),(4,3,3)})
+(8,{(8,3,4)})
+</programlisting>
+   </section></section>
    
    <section>
    <title>Map</title>
@@ -887,13 +1094,9 @@
    <section>
    <title>Example</title>
    <para>In this example the map includes two key value pairs.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>[name#John,phone#5551212]</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section></section>
+<programlisting>[name#John,phone#5551212]</programlisting>
+   
+   </section></section></section>
    
    <section>
    <title>Nulls</title>
@@ -1016,87 +1219,68 @@
          </row></tbody></tgroup>
    </informaltable>
    <para>For Boolean sub-expressions, note the results when nulls are used with these operators:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>FILTER operator – If a filter expression results in null value, the filter does not pass them through (if X is null, !X is also null, and the filter will reject both).</para>
       </listitem>
       <listitem>
          <para>Bincond operator – If a Boolean sub-expression results in null value, the resulting expression is null (see the interactions above for Arithmetic operators)</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    
    <section>
    <title>Example: COUNT function</title>
    <para>As noted, the COUNT function counts all values, including nulls. If you don't want the function to count null values, you can use one of the methods shown here.</para>
    <para>In this example the is not null operator is used to filter (remove) all null values before subsequent operations, including the COUNT function, are applied.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>B = FILTER A BY $1 is not null;</para>
-               <para>C = GROUP A BY $0;</para>
-               <para>D = FOREACH B GENERATE GROUP, COUNT(B.$1);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data';
+B = FILTER A BY $1 is not null;
+C = GROUP A BY $0;
+D = FOREACH B GENERATE GROUP, COUNT(B.$1);
+</programlisting>
    <para>Suppose you have written a function, RemoveNulls, to filter null values. In this example RemoveNulls is used to filter nulls values for the COUNT function only. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>B = GROUP A BY $0;</para>
-               <para>D = FOREACH B GENERATE GROUP, COUNT(RemoveNulls($1));</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+A = LOAD 'data';
+B = GROUP A BY $0;
+D = FOREACH B GENERATE GROUP, COUNT(RemoveNulls($1));
+</programlisting>
+   </section></section>
    
    <section>
    <title>Nulls and Constants</title>
    <para>Nulls can be used as constant expressions in place of expressions of any type.</para>
    <para>In this example a and null are projected.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a, b, c).</para>
-               <para>B = FOREACH A GENERATE a, null;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a, b, c).
+B = FOREACH A GENERATE a, null;
+</programlisting>
+  
    <para>In this example of an outer join, if the join key is missing from a table it is replaced by null.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name: chararray, age: int, gpa: float);</para>
-               <para>B = LOAD 'votertab10k' AS (name: chararray, age: int, registration: chararray, donation: float);</para>
-               <para>C = COGROUP A BY name, B BY name;</para>
-               <para>D = FOREACH C GENERATE FLATTEN((IsEmpty(A) ? null : A)), FLATTEN((IsEmpty(B) ? null : B));</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'student' AS (name: chararray, age: int, gpa: float);
+B = LOAD 'votertab10k' AS (name: chararray, age: int, registration: chararray, donation: float);
+C = COGROUP A BY name, B BY name;
+D = FOREACH C GENERATE FLATTEN((IsEmpty(A) ? null : A)), FLATTEN((IsEmpty(B) ? null : B));
+</programlisting>
+   
    <para>Like any other expression, null constants can be implicitly or explicitly cast. </para>
    <para>In this example both a and null will be implicitly cast to double.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a, b, c).</para>
-               <para>B = FOREACH A GENERATE a + null;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a, b, c).
+B = FOREACH A GENERATE a + null;
+</programlisting>
+   
    <para>In this example  both a and null will be cast to int, a implicitly, and null explicitly.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a, b, c).</para>
-               <para>B = FOREACH A GENERATE a + (int)null;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' AS (a, b, c).
+B = FOREACH A GENERATE a + (int)null;
+</programlisting>
+   </section>
    
    <section>
    <title>Operations That Produce Nulls</title>
    <para>As noted, nulls can be the result of an operation. These operations can produce null values: </para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Division by zero</para>
       </listitem>
@@ -1112,33 +1296,33 @@
       <listitem>
          <para>Accessing a field that does not exist in a tuple. As a further explanation, see the examples below.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    
    <section>
    <title>Example: Accessing a field that does not exist in a tuple</title>
    <para>In this example nulls are injected if fields do not have data.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data;</para>
-               <para>    2   3</para>
-               <para>4   </para>
-               <para>7   8   9</para>
-               <para/>
-               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int)</para>
-               <para>DUMP A;</para>
-               <para>(,2,3)</para>
-               <para>(4,,)</para>
-               <para>(7,8,9)</para>
-               <para/>
-               <para>B = FOREACH A GENERATE f1,f2;</para>
-               <para>DUMP B;</para>
-               <para>(,2)</para>
-               <para>(4,)</para>
-               <para>(7,8)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+cat data;
+    2   3
+4   
+7   8   9
+
+A = LOAD 'data' AS (f1:int,f2:int,f3:int)
+
+DUMP A;
+(,2,3)
+(4,,)
+(7,8,9)
+
+B = FOREACH A GENERATE f1,f2;
+
+DUMP B;
+(,2)
+(4,)
+(7,8)
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>Nulls and Load Functions</title>
@@ -1146,14 +1330,12 @@
 As noted, nulls can occur naturally in the data. If nulls are part of the data, it is the responsibility of the load function to handle them correctly. Keep in mind that what is considered a null value is loader-specific; however, the load function should always communicate null values to Pig by producing Java nulls.</para>
    <para>The Pig Latin load functions (for example, PigStorage and TextLoader) produce null values wherever data is missing. For example, empty strings (chararrays) are not loaded; instead, they are replaced by nulls.</para>
    <para>PigStorage is the default load function for the LOAD operator. In this example the is not null operator is used to filter names with null values.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name, age, gpa); </para>
-               <para>B = FILTER A BY name is not null;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+ <programlisting>
+A = LOAD 'student' AS (name, age, gpa); 
+B = FILTER A BY name is not null;
+</programlisting>  
+   </section></section>
    
    <section>
    <title>Constants</title>
@@ -1315,7 +1497,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          </row></tbody></tgroup>
    </informaltable>
    <para>Please note the following:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>On UTF-8 systems you can specify string constants consisting of printable ASCII characters such as 'abc'; you can specify control characters such as '\t'; and, you can specify a character in Unicode by starting it with '\u', for instance, '\u0001' represents Ctrl-A in hexadecimal (see Wikipedia <ulink url="http://en.wikipedia.org/wiki/ASCII">ASCII</ulink>, <ulink url="http://en.wikipedia.org/wiki/Unicode">Unicode</ulink>, and <ulink url="http://en.wikipedia.org/wiki/UTF-8">UTF-8</ulink>). In theory, you should be able to specify non-UTF-8 constants on non-UTF-8 systems but as far as we know this has not been tested.</para>
       </listitem>
@@ -1325,9 +1507,9 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>Any numeric constant with decimal point (for example, 1.5) and/or exponent (for example, 5e+1) is treated as double unless it ends with f or F in which case it is assigned type float (for example,  1.5f). </para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>The data type definitions for tuples, bags, and maps apply to constants:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>A tuple can contain fields of any data type</para>
       </listitem>
@@ -1337,23 +1519,22 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>A map key must be a scalar; a map value can be any data type</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>Complex constants can be used in the same places scalar constants can be used, that is, in FILTER and GENERATE statements.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' USING MyStorage() AS (T: tuple(name:chararray, age: int));</para>
-               <para>B = FILTER A BY T == ('john', 25);</para>
-               <para>D = FOREACH B GENERATE T.name, [25#5.6], {(1, 5, 18)};</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+
+<programlisting>
+A = LOAD 'data' USING MyStorage() AS (T: tuple(name:chararray, age: int));
+B = FILTER A BY T == ('john', 25);
+D = FOREACH B GENERATE T.name, [25#5.6], {(1, 5, 18)};
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Expressions</title>
    <para>In Pig Latin, expressions are language constructs used with the FILTER, FOREACH, GROUP, and SPLIT operators as well as the eval functions.</para>
    <para>Expressions are written in conventional mathematical infix notation and are adapted to the UTF-8 character set. Depending on the context, expressions can include:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Any Pig data type (simple data types, complex data types)</para>
       </listitem>
@@ -1365,50 +1546,43 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       </listitem>
       <listitem>
          <para>Any user-defined function (UDF) written in Java. </para>
-         <para/>
-         <para>In a Pig Latin statement, an arithmetic expression could look like this:</para>
+       </listitem>
+        </itemizedlist>
+        <para></para>
+       <para>In Pig Latin,</para>
+        <itemizedlist>
+       <listitem>
+         <para>An arithmetic expression could look like this:</para>
+         <programlisting>
+X = GROUP A BY f2*f3;
+</programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = GROUP A BY f2*f3;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <orderedlist>
+
       <listitem>
          <para/>
          <para>A string expression could look like this, where a and b are both chararrays:</para>
+         <programlisting>
+X = FOREACH A GENERATE CONCAT(a,b);
+</programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE CONCAT(a,b);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <orderedlist>
+
       <listitem>
          <para/>
          <para>A boolean expression could look like this:</para>
+         <programlisting>
+X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
+</programlisting>
       </listitem>
-   </orderedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+   </itemizedlist>
+
+   </section>
    
    <section>
    <title>Schemas</title>
    <para>Schemas enable you to assign names to and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution. </para>
    <para>Schemas are defined using the AS keyword with the LOAD, STREAM, and FOREACH operators. If you define a schema using the LOAD operator, then it is the load function that enforces the schema (see the LOAD operator and the <ulink url="http://wiki.apache.org/pig/UDFManual">User-Defined Function Manual</ulink> for more information).</para>
    <para>Note the following:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>You can define a schema that includes both the field name and field type.</para>
       </listitem>
@@ -1418,7 +1592,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>You can choose not to define a schema; in this case, the field is un-named and the field type defaults to bytearray.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>If you assign a name to a field, you can refer to that field using the name or by positional notation. If you don't assign a name to a field (the field is un-named) you can only refer to the field using positional notation.</para>
    <para>If you assign a type to a field, you can subsequently change the type using the cast operators. If you don't assign a type to a field, the field defaults to bytearray; you can change the default type using the cast operators.</para>
    
@@ -1506,9 +1680,9 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <tgroup cols="1"><tbody><row>
             <entry>
                <para>cat student</para>
-               <para>John    18      4.0</para>
-               <para>Mary    19      3.8</para>
-               <para>Bill    20      3.9</para>
+               <para>John   18      4.0</para>
+               <para>Mary   19      3.8</para>
+               <para>Bill      20      3.9</para>
                <para>Joe     18      3.8</para>
                <para/>
                <para>A = LOAD 'student' AS (name:chararray, age:int, gpa:float);</para>
@@ -1531,8 +1705,8 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>cat student</para>
                <para>John    18      4.0</para>
                <para>Mary    19      3.8</para>
-               <para>Bill      20      3.9</para>
-               <para>Joe     18      3.8</para>
+               <para>Bill       20      3.9</para>
+               <para>Joe      18      3.8</para>
                <para/>
                <para>A = LOAD 'data' AS (name:chararray, age:int, gpa)</para>
                <para/>
@@ -1599,14 +1773,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>The constituents of the tuple, where the schema definition rules for the corresponding type applies to the constituents of the tuple:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>alias – the name assigned to the field</para>
                   </listitem>
                   <listitem>
                      <para>type (optional) – the simple or complex data type assigned to the field</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -1849,6 +2023,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>Keyword</para>
+               <para>Note: exec, run, and explain also support parameter substitution.</para>
             </entry>
          </row>
          <row>
@@ -1879,14 +2054,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             <entry>
                <para>The value of the parameter. </para>
                <para>A parameter value can take two forms:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>A sequence of characters enclosed in single or double quotes. In this case the unquoted version of the value is used during substitution. Quotes within the value can be escaped with the backslash character ( \ ). Single word values that don't use special characters such as % or = don't have to be quoted. </para>
                   </listitem>
                   <listitem>
                      <para>A command enclosed in back ticks. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
                <para>The value of a parameter, in either form, can be expressed in terms of other parameters as long as the values of the dependent parameters are already defined.</para>
             </entry>
          </row>
@@ -1931,7 +2106,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>A pig script. The pig script must be the last element in the Pig command line.</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>If parameters are specified in the Pig command line or in a parameter file, the script should include a $param_name for each para_name included in the command line or parameter file.</para>
                   </listitem>
@@ -1941,7 +2116,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                   <listitem>
                      <para>In the script, parameter names can be escaped with the backslash character ( \ ) in which case substitution does not take place.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row>
          <row>
@@ -1975,7 +2150,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Specifying Parameters </title>
    <para>You can specify parameter names and parameter values as follows:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>As part of a command line.</para>
       </listitem>
@@ -1988,12 +2163,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>With default statement, as part of a Pig script.</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Precedence</title>
    <para>Precedence for parameters is as follows:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Highest - parameters defined using the declare statement</para>
       </listitem>
@@ -2003,12 +2178,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>Lowest - parameters defined in a script</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Processing Order and Precedence</title>
    <para>Parameters are processed as follows:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Command line parameters are scanned in the order they are specified on the command line. </para>
       </listitem>
@@ -2018,16 +2193,16 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>Declare and default preprocessors statements are processed in the order they appear in the Pig script. </para>
       </listitem>
-   </orderedlist></section></section>
+   </itemizedlist></section></section>
    
    <section>
    <title>Example: Specifying parameters in the command line</title>
    <para>Suppose we have a data file called 'mydata' and a pig script called 'myscript.pig'.</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>mydata </para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -2037,11 +2212,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>myscript.pig</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -2107,7 +2282,8 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>etc …</para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Examples: Specifying parameter values as a sequence of characters</title>
@@ -2129,7 +2305,8 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>$ pig –param data=mydata myscript.pig</para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Example: Specifying parameter values as a command</title>
@@ -2143,563 +2320,17 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>etc …</para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section></section></section>
-   
-   <section>
-   <title>Keywords</title>
-   <informaltable frame="all">
-      <tgroup cols="4"><tbody><row>
-            <entry>
-               <para>A</para>
-            </entry>
-            <entry>
-               <para>F</para>
-            </entry>
-            <entry>
-               <para>M</para>
-            </entry>
-            <entry>
-               <para>Functions</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>and</para>
-            </entry>
-            <entry>
-               <para>f</para>
-            </entry>
-            <entry>
-               <para>map</para>
-            </entry>
-            <entry>
-               <para>AVG</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>all</para>
-            </entry>
-            <entry>
-               <para>F</para>
-            </entry>
-            <entry>
-               <para>matches</para>
-            </entry>
-            <entry>
-               <para>BinaryDeserializer</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>as</para>
-            </entry>
-            <entry>
-               <para>filter </para>
-            </entry>
-            <entry>
-               <para>mkdir</para>
-            </entry>
-            <entry>
-               <para>BinarySerializer</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>asc</para>
-            </entry>
-            <entry>
-               <para>flatten</para>
-            </entry>
-            <entry>
-               <para>mv</para>
-            </entry>
-            <entry>
-               <para>BinStorage</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>float</para>
-            </entry>
-            <entry>
-               <para>N</para>
-            </entry>
-            <entry>
-               <para>CONCAT</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>B</para>
-            </entry>
-            <entry>
-               <para>foreach</para>
-            </entry>
-            <entry>
-               <para>not</para>
-            </entry>
-            <entry>
-               <para>COUNT</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>bag</para>
-            </entry>
-            <entry>
-               <para>G</para>
-            </entry>
-            <entry>
-               <para>null</para>
-            </entry>
-            <entry>
-               <para>DIFF</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>by</para>
-            </entry>
-            <entry>
-               <para>generate</para>
-            </entry>
-            <entry>
-               <para>O</para>
-            </entry>
-            <entry>
-               <para>MIN</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>bytearray</para>
-            </entry>
-            <entry>
-               <para>group</para>
-            </entry>
-            <entry>
-               <para>or</para>
-            </entry>
-            <entry>
-               <para>MAX</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>C</para>
-            </entry>
-            <entry>
-               <para>H</para>
-            </entry>
-            <entry>
-               <para>order</para>
-            </entry>
-            <entry>
-               <para>PigDump</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>cache</para>
-            </entry>
-            <entry>
-               <para>help</para>
-            </entry>
-            <entry>
-               <para>outer</para>
-            </entry>
-            <entry>
-               <para>PigStorage</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>cat</para>
-            </entry>
-            <entry>
-               <para>I</para>
-            </entry>
-            <entry>
-               <para>output</para>
-            </entry>
-            <entry>
-               <para>SIZE</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>cd</para>
-            </entry>
-            <entry>
-               <para>if</para>
-            </entry>
-            <entry>
-               <para>P</para>
-            </entry>
-            <entry>
-               <para>SUM</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>chararray</para>
-            </entry>
-            <entry>
-               <para>illustrate</para>
-            </entry>
-            <entry>
-               <para>parallel</para>
-            </entry>
-            <entry>
-               <para>TextLoader</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>cogroup </para>
-            </entry>
-            <entry>
-               <para>inner</para>
-            </entry>
-            <entry>
-               <para>pig</para>
-            </entry>
-            <entry>
-               <para>TOKENIZE</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>copyFromLocal </para>
-            </entry>
-            <entry>
-               <para>input</para>
-            </entry>
-            <entry>
-               <para>pwd</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>copyToLocal </para>
-            </entry>
-            <entry>
-               <para>int</para>
-            </entry>
-            <entry>
-               <para>Q</para>
-            </entry>
-            <entry>
-               <para>Symbols</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>cp</para>
-            </entry>
-            <entry>
-               <para>into</para>
-            </entry>
-            <entry>
-               <para>quit</para>
-            </entry>
-            <entry>
-               <para>= =   !=   &lt;   &gt;   &lt;=   &gt;=</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>cross</para>
-            </entry>
-            <entry>
-               <para>is</para>
-            </entry>
-            <entry>
-               <para>R</para>
-            </entry>
-            <entry>
-               <para>+    -  *   /   %</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>D</para>
-            </entry>
-            <entry>
-               <para>J</para>
-            </entry>
-            <entry>
-               <para>register</para>
-            </entry>
-            <entry>
-               <para>? $  .  #  ( )  [ ]  { }</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>distinct</para>
-            </entry>
-            <entry>
-               <para>join</para>
-            </entry>
-            <entry>
-               <para>rm</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>define</para>
-            </entry>
-            <entry>
-               <para>K</para>
-            </entry>
-            <entry>
-               <para>rmf</para>
-            </entry>
-            <entry>
-               <para>Preprocessor Statements</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>desc</para>
-            </entry>
-            <entry>
-               <para>kill</para>
-            </entry>
-            <entry>
-               <para>run</para>
-            </entry>
-            <entry>
-               <para>%declare</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>describe</para>
-            </entry>
-            <entry>
-               <para>L</para>
-            </entry>
-            <entry>
-               <para>S</para>
-            </entry>
-            <entry>
-               <para>%default</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>double</para>
-            </entry>
-            <entry>
-               <para>l</para>
-            </entry>
-            <entry>
-               <para>set</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>du</para>
-            </entry>
-            <entry>
-               <para>L</para>
-            </entry>
-            <entry>
-               <para>ship</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>dump</para>
-            </entry>
-            <entry>
-               <para>limit</para>
-            </entry>
-            <entry>
-               <para>split</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>E</para>
-            </entry>
-            <entry>
-               <para>load</para>
-            </entry>
-            <entry>
-               <para>stderr</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>e</para>
-            </entry>
-            <entry>
-               <para>long</para>
-            </entry>
-            <entry>
-               <para>stdin</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>E</para>
-            </entry>
-            <entry>
-               <para>ls</para>
-            </entry>
-            <entry>
-               <para>stdout</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>exec</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>store</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>explain</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>stream </para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>T</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>through</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>tuple</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>U</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>union</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>using</para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-         </row></tbody></tgroup>
    </informaltable>
-</section>
-   
+   </section>
+   </section>
+   </section>
+   </section>
 
-<!-- ARITHEMTIC OPERATORS, ETC -->
    
+<!-- ARITHMETIC OPERATORS, ETC -->
+<section>
+	<title>Arithmetic Operators and More</title>
+
 <section>
 <title>Arithmetic Operators</title>
 
@@ -2780,7 +2411,9 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>? :</para>
             </entry>
             <entry>
-               <para>condition ? value_if_true : value_if_false</para>
+               <para>(condition ? value_if_true : value_if_false) </para>
+               <para>The bincond should be enclosed in parenthesis. </para>
+               <para>The schemas for the two conditional outputs of the bincond should match.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -4560,7 +4193,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          </row></tbody></tgroup>
    </informaltable>
    <para>Note the following:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Tuple dereferencing can be done by name (tuple.field_name) or position (mytuple.$0). Note that if the dot operator is applied to a bytearray, the bytearray will be assumed to be a tuple.</para>
       </listitem>
@@ -4570,14 +4203,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>Map dereferencing must be done by key (field_name#key or $0#key). If the pound operator is applied to a bytearray, the bytearray is assumed to be a map. If the key does not exist, the empty string is returned.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    
    <section>
-   <title>Example: Tuple</title><orderedlist>
+   <title>Example: Tuple</title><itemizedlist>
       <listitem>
          <para>Suppose we have relation A.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -4605,11 +4238,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
-      <listitem>
-         <para/>
-      </listitem>
-   </orderedlist></section>
+   </section>
    
    <section>
    <title>Example: Bag</title>
@@ -4659,11 +4288,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    
    <section>
    <title>Example: Tuple and Bag</title>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Suppose we have relation B, formed by grouping relation A  (see the GROUP operator for information about the field names in relation B).</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -4713,11 +4342,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    
    <section>
    <title>Example: Map</title>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Suppose we have relation A. </para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -4730,12 +4359,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para/>
          <para>In this example dereferencing is used to look up the value of key 'open'.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -4748,11 +4377,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
-      <listitem>
-         <para/>
-      </listitem>
-   </orderedlist></section></section></section>
+  </section></section></section>
    
    <section>
    <title>Sign Operators</title>
@@ -5082,7 +4707,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>yes </para>
             </entry>
             <entry>
-               <para>yes </para>
+               <para>error </para>
             </entry>
             <entry>
                <para>error </para>
@@ -5114,7 +4739,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>yes </para>
             </entry>
             <entry>
-               <para>yes </para>
+               <para>error </para>
             </entry>
             <entry>
                <para>error </para>
@@ -5146,7 +4771,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>yes </para>
             </entry>
             <entry>
-               <para>yes </para>
+               <para>error </para>
             </entry>
             <entry>
                <para>error </para>
@@ -5178,7 +4803,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
             </entry>
             <entry>
-               <para>yes </para>
+               <para>error </para>
             </entry>
             <entry>
                <para>error </para>
@@ -5286,11 +4911,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <title>Usage</title>
    <para>Cast operators enable you to cast or convert data from one type to another, as long as conversion is supported (see the table above). For example, suppose you have an integer field, myint, which you want to convert to a string. You can cast this field from int to chararray using (chararray)myint.</para>
    <para>Please note the following:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>A field can be explicitly cast. Once cast, the field remains that type (it is not automatically cast back). In this example $0 is explicitly cast to int.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -5299,11 +4924,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          </row></tbody></tgroup>
    </informaltable>
    <para/>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Where possible, Pig performs implicit casts. In this example $0 is cast to int (regardless of underlying data) and $1 is cast to double.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -5311,17 +4936,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
-      <listitem>
-         <para/>
-      </listitem>
+   <itemizedlist>
       <listitem>
          <para>When two bytearrays are used in arithmetic expressions or with built-in aggregate functions (such as SUM) they are implicitly cast to double. If the underlying data is really int or long, you’ll get better performance by declaring the type or explicitly casting the data.</para>
       </listitem>
       <listitem>
          <para>Downcasts may cause loss of data. For example casting from long to int may drop bits.</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Examples</title>
@@ -5444,6 +5066,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          </row></tbody></tgroup>
    </informaltable>
 </section></section></section> 
+</section>
 
 <!-- RELATIONAL OPERATORS, ETC -->
    
@@ -5520,14 +5143,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
                <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
                <para>Note the following:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
                   </listitem>
                   <listitem>
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5639,14 +5262,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
                <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
                <para>Note the following:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
                   </listitem>
                   <listitem>
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5727,14 +5350,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
                <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
                <para>Note the following:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
                   </listitem>
                   <listitem>
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5990,7 +5613,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>nested_op</para>
             </entry>
             <entry>
-               <para>Allowed operations are FILTER, ORDER, and DISTINCT. </para>
+               <para>Allowed operations are DISTINCT, FILTER, LIMIT, ORDER and SAMPLE. </para>
                <para>The FOREACH … GENERATE operation itself is not allowed since this could lead to an arbitrary number of nesting levels.</para>
             </entry>
          </row>
@@ -6008,14 +5631,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>A schema using the AS keyword (see Schemas).</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>If the FLATTEN keyword is used, enclose the schema in parentheses.</para>
                   </listitem>
                   <listitem>
                      <para>If the FLATTEN keyword is not used, don't enclose the schema in parentheses.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6024,11 +5647,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <title>Usage</title>
    <para>Use the FOREACH …GENERATE operation to work with columns of data (if you want to work with tuples or rows of data, use the FILTER operation).</para>
    <para>FOREACH …GENERATE works with relations (outer bags) as well as inner bags:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>If A is a relation (outer bag), a FOREACH statement could look like this.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -6036,11 +5659,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>If A is an inner bag, a FOREACH statement could look like this.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -6098,7 +5721,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    
    <section>
    <title>Example: Projection</title>
-   <para>In this example the asterisk (*) is used to project all fields from relation A to relation X (this is similar to SQL Select *). Relation A and X are identical.</para>
+   <para>In this example the asterisk (*) is used to project all tuples from relation A to relation X. Relation A and X are identical.</para>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -6293,7 +5916,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = GROUP alias [BY {[field_alias [, field_alias]] | * | [expression] } ]  [ALL]  [PARALLEL n];</para>
+               <para>alias = GROUP alias { [ALL] | [BY {[field_alias [, field_alias]] | * | [expression]] } [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6309,12 +5932,22 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>The name of a relation.</para>
             </entry>
          </row>
+                  <row>
+            <entry>
+               <para>ALL</para>
+            </entry>
+            <entry>
+               <para>Keyword. Use ALL if you want all tuples to go to a single group; for example, when doing aggregates across entire relations.</para>
+               <para>B = GROUP A ALL;</para>
+            </entry>
+         </row>
          <row>
             <entry>
                <para>BY</para>
             </entry>
             <entry>
-               <para>Keyword. Use this clause to group the relation by fields or by expression.</para>
+               <para>Keyword. Use this clause to group the relation by field, tuple or expression.</para>
+               <para>B = GROUP A BY f1;</para>
             </entry>
          </row>
          <row>
@@ -6331,7 +5964,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>*</para>
             </entry>
             <entry>
-               <para>The asterisk. A designator for all fields in the relation.</para>
+               <para>The designator for a tuple.</para>
             </entry>
          </row>
          <row>
@@ -6342,14 +5975,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>An expression.</para>
             </entry>
          </row>
-         <row>
-            <entry>
-               <para>ALL</para>
-            </entry>
-            <entry>
-               <para>Keyword. Use ALL if you want all tuples to go to a single group; for example, when doing aggregates across entire relations.</para>
-            </entry>
-         </row>
+
          <row>
             <entry>
                <para>PARALLEL n</para>
@@ -6361,14 +5987,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
                <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
                <para>Note the following:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
                   </listitem>
                   <listitem>
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6376,7 +6002,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Usage</title>
    <para>The GROUP operator groups together tuples that have the same group key (key field). The result of a GROUP operation is a relation that includes one tuple per group. This tuple contains two fields: </para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>The first field is named "group" (do not confuse this with the GROUP operator) and is the same type of the group key.</para>
       </listitem>
@@ -6385,15 +6011,15 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          <para/>
          <para>The names of both fields are generated by the system as shown in the example below.</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Example</title>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Suppose we have relation A.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -6433,12 +6059,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para/>
-         <para>Continuing on, as shown in these FOREACH statements, we can refer to the fields in relation B by names "group" and "A"  or by positional notation.</para>
+         <para>Continuing on, as shown in these FOREACH statements, we can refer to the fields in relation B by names "group" and "A" or by positional notation.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
@@ -6553,14 +6179,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
                <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
                <para>Note the following:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
                   </listitem>
                   <listitem>
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6765,14 +6391,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>The load function. </para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>You can use a built-in function (see the load/store functions). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</para>
                   </listitem>
                   <listitem>
                      <para>You can write your own load function (see the <ulink url="http://wiki.apache.org/pig/UDFManual">User-Defined Function Manual</ulink>) if your data is in a format that cannot be processed by the built-in functions.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row>
          <row>
@@ -6805,9 +6431,9 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>1        2        3</para>
-               <para>4        2            1</para>
-               <para>8            3            4</para>
+               <para>1    2    3</para>
+               <para>4    2    1</para>
+               <para>8    3    4</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -6890,15 +6516,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para>*</para>
             </entry>
             <entry>
-               <para>Represents all fields in a relation. If relation A has three fields a1, a2, a3, then these statements are equivalent:</para>
-               <orderedlist>
-                  <listitem>
-                     <para>X = ORDER A BY a1,a2,a3;</para>
-                  </listitem>
-                  <listitem>
-                     <para>X = ORDER A BY * ;</para>
-                  </listitem>
-               </orderedlist>
+               <para>The designator for a tuple.</para>
             </entry>
          </row>
          <row>
@@ -6936,14 +6554,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                <para/>
                <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
                <para>Note the following:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
                   </listitem>
                   <listitem>
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6951,7 +6569,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Usage</title>
    <para>In Pig, relations are unordered (see Relations, Bags, Tuples, and Fields):</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>If you order relation A to produce relation X (X = ORDER A BY * DESC;) relations A and X still contain the same thing. </para>
       </listitem>
@@ -6961,7 +6579,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>However, if you further process relation X (Y = FILTER X BY $0 &gt; 1;) there is no guarantee that the contents will be processed in the order you originally specified (descending).</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Examples</title>
@@ -6995,6 +6613,62 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable></section></section>
+   
+   
+   <section>
+   <title>SAMPLE</title>
+   <para>Partitions a relation into two or more relations.</para>
+   
+   <section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>SAMPLE alias size;</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>alias</para>
+            </entry>
+            <entry>
+               <para>The name of a relation.</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>size</para>
+            </entry>
+            <entry>
+               <para>Sample size, range 0 to 1 (for example, enter 0.1 for 10%).</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+     <title>Usage</title>
+     <para>Use the SAMPLE operator to select a random data sample with the stated sample size. 
+     SAMPLE is a probabalistic operator; there is no guarantee that the exact same number of tuples will be returned for a particular sample size
+     each time the operator is used.</para>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <para>In this example relation X will contain 1% of the data in relation A.</para>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int);</para>
+               <para>X = SAMPLE A 0.01</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section></section>  
+   
    
    <section>
    <title>SPLIT</title>
@@ -7050,7 +6724,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Usage</title>
    <para>Use the SPLIT operator to partition the contents of a relation into two or more relations based on some expression. Depending on the conditions stated in the expression:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>A tuple may be assigned to more than one relation.</para>
       </listitem>
@@ -7059,7 +6733,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          <para/>
          <para/>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Example</title>
@@ -7146,14 +6820,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>The store function.</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>You can use a built-in function (see the Load/Store Functions). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</para>
                   </listitem>
                   <listitem>
                      <para>You can write your own store function (see the User-Defined Function Manual) if your data is in a format that cannot be processed by the built-in functions.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7315,7 +6989,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>About Data Guarantees</title>
    <para>Data guarantees are determined based on the position of the streaming operator in the Pig script. </para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Unordered data – No guarantee for the order in which the data is delivered to the streaming application. </para>
       </listitem>
@@ -7325,7 +6999,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>Grouped and ordered data – The data for the same grouped key is guaranteed to be provided to the streaming application contiguously. Additionally, the data within the group is guaranteed to be sorted by the provided secondary key.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>In addition to position, data grouping and ordering can be determined by the data itself. However, you need to know the property of the data to be able to take advantage of its structure.</para>
    </section>
    
@@ -7411,7 +7085,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Usage</title>
    <para>Use the UNION operator to merge the contents of two or more relations. The UNION operator:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>Does not preserve the order of tuples. Both the input and output relations are interpreted as unordered bags of tuples.</para>
       </listitem>
@@ -7421,7 +7095,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>Does not eliminate duplicate tuples.</para>
       </listitem>
-   </orderedlist></section>
+   </itemizedlist></section>
    
    <section>
    <title>Example</title>
@@ -7451,7 +7125,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          </row></tbody></tgroup>
    </informaltable>
    </section></section></section>
-   
+
+
+ <!-- DIAGNOSTIC OPERATORS -->    
+<section>
+	<title>Diagnostic Operators</title>
+  
    <section>
    <title>DESCRIBE</title>
    <para>Returns the schema of an alias.</para>
@@ -7540,7 +7219,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>EXPLAIN alias;        </para>
+               <para>EXPLAIN [–out path] [-brief] [-dot] [–param param_name = param_value] [–param_file file_name] alias; </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7548,20 +7227,74 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Terms</title>
    <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
+   <tgroup cols="2"><tbody>
+      
+         <row>
+            <entry>
+               <para>–out path</para>
+            </entry>
+            <entry>
+               <para>Will generate logical_plan.[txt||dot], physical_plan.[text||dot], exec_plan.[text||dot] in the specified directory (path).</para>
+               <para>Default (no path given): Stdout </para>
+            </entry>
+         </row>
+
+         <row>
+            <entry>
+               <para>–brief</para>
+            </entry>
+            <entry>
+               <para>Does not expand nested plans (presenting a smaller graph for overview). </para>
+            </entry>
+         </row>
+         
+         <row>
+            <entry>
+               <para>–dot</para>
+            </entry>
+            <entry>
+               <para>Dot mode: outputs a format that can be passed to dot for graphical display.</para>
+               <para>Text mode: multiple output (split) will be broken out in sections.  </para>
+               <para>Default: Text </para>
+            </entry>
+         </row>
+
+         <row>
+            <entry>
+               <para>–param param_name = param_value</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution.</para>
+            </entry>
+         </row>
+
+         <row>
+            <entry>
+               <para>–param_file file_name</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution. </para>
+            </entry>
+         </row>
+      
+      <row>
             <entry>
                <para>alias</para>
             </entry>
             <entry>
                <para>The name of a relation.</para>
             </entry>
-         </row></tbody></tgroup>
+         </row>
+         
+   </tbody></tgroup>
    </informaltable></section>
    
    <section>
    <title>Usage</title>
    <para>Use the EXPLAIN operator to review the logical, physical, and map reduce execution plans that are used to compute the specified relationship. </para>
-   <orderedlist>
+   <para>If no script is given:</para>
+
+   <itemizedlist>	
       <listitem>
          <para>The logical plan shows a pipeline of operators to be executed to build the relation. Type checking and backend-independent optimizations (such as applying filters early on) also apply.</para>
       </listitem>
@@ -7571,7 +7304,11 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <listitem>
          <para>The map reduce plan shows how the physical operators are grouped into map reduce jobs.</para>
       </listitem>
-   </orderedlist></section>
+  </itemizedlist> 
+  <para></para>
+   <para>If a script without an alias is specified, it will output the entire execution graph (logical, physical, or map reduce). </para>
+   <para>If a script with a alias is specified, it will output the plan for the given alias. </para>
+   </section>
    
    <section>
    <title>Example</title>
@@ -7642,14 +7379,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Usage</title>
    <para>Use the ILLUSTRATE operator to review how data is transformed through a sequence of Pig Latin statements:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>The data load statement must include a schema.</para>
       </listitem>
       <listitem>
          <para>The Pig Latin statement used to form the relation that is used with the ILLUSTRATE command cannot include the map data type, the LIMIT and SPLIT operators, or nested FOREACH statements. </para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>ILLUSTRATE accesses the ExampleGenerator algorithm which can select an appropriate and concise set of example data automatically. It does a better job than random sampling would do; for example, random sampling suffers from the drawback that selective operations such as filters or joins can eliminate all the sampled data, giving you empty results which will not help with debugging. </para>
    <para>With the ILLUSTRATE operator you can test your programs on small datasets and get faster turnaround times. The ExampleGenerator algorithm uses Pig's Local mode (rather than Hadoop mode) which means that illustrative example data is generated in near real-time.</para>
    <para>Relation X can be used with the ILLUSTRATE operator.</para>
@@ -7730,6 +7467,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable></section></section>
+   </section>
+   
+   
+    <!-- UDF STATEMENTS --> 
+   <section>
+   <title>UDF Statements</title>
    
    <section>
    <title>DEFINE</title>
@@ -7779,7 +7522,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             <entry>
                <para>INPUT ( {stdin | 'path'} [USING serializer] [, {stdin | 'path'} [USING serializer] …] )</para>
                <para>Where:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>INPUT – Keyword.</para>
                   </listitem>
@@ -7792,7 +7535,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                   <listitem>
                      <para>serializer – A function that converts data from tuples to stream format. PigStorage is the default serializer. You can also write your own UDF.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row>
          <row>
@@ -7802,7 +7545,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             <entry>
                <para>OUTPUT ( {stdout | stderr | 'path'} [USING deserializer] [, {stdout | stderr | 'path'} [USING deserializer] …] )</para>
                <para>Where:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>OUTPUT – Keyword.</para>
                   </listitem>
@@ -7815,7 +7558,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
                   <listitem>
                      <para>deserializer – A function that converts data from stream format to tuples. PigStorage is the default deserializer. You can also write your own UDF.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row>
          <row>
@@ -7825,14 +7568,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             <entry>
                <para>SHIP('path' [, 'path' …])</para>
                <para>Where:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>SHIP – Keyword.</para>
                   </listitem>
                   <listitem>
                      <para>'path' – A file path, enclosed in single quotes.</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row>
          <row>
@@ -7842,14 +7585,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             <entry>
                <para>CACHE('dfs_path#dfs_file' [, 'dfs_path#dfs_file' …])</para>
                <para>Where:</para>
-               <orderedlist>
+               <itemizedlist>
                   <listitem>
                      <para>CACHE – Keyword.</para>
                   </listitem>
                   <listitem>
                      <para>'dfs_path#dfs_file' – A file path/file name on the distributed file system, enclosed in single quotes. Example: '/mydir/mydata.txt#mydata.txt'</para>
                   </listitem>
-               </orderedlist>
+               </itemizedlist>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7858,14 +7601,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <title>Usage</title>
    <para>Use the DEFINE statement to assign a name (alias) to a function or to a command.</para>
    <para>Use DEFINE to specify a function when:</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
          <para>The function has a log package name that you don't want to include in a script, especially if you call the function several times in that script.</para>
       </listitem>
       <listitem>
          <para>The constructor for the function takes string parameters. If you need to use different constructor parameters for different calls to the function you will need to create multiple defines – one for each parameter set.</para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>Use DEFINE to specify a command when the streaming command specification is complex or requires additional parameters (input, output, and so on).</para>
    
    <section
@@ -7876,10 +7619,61 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    
    <section>
    <title>About Ship </title>
-   <para>Use the ship option to send streaming binary and supporting files, if any, from the client node to the compute nodes. Pig does not automatically ship dependencies; it is your responsibility to explicitly specify all the dependencies and to make sure that the software the processing relies on (for instance, perl or python) is installed on the cluster. Supporting files are shipped to the task's current working directory and only relative paths should be specified. Any pre-installed binaries should be specified in the path. </para>
+   <para>Use the ship option to send streaming binary and supporting files, if any, from the client node to the compute nodes. Pig does not automatically ship dependencies; it is your responsibility to explicitly specify all the dependencies and to make sure that the software the processing relies on (for instance, perl or python) is installed on the cluster. Supporting files are shipped to the task's current working directory and only relative paths should be specified. Any pre-installed binaries should be specified in the PATH. </para>
    <para>Only files, not directories, can be specified with the ship option. One way to work around this limitation is to tar all the dependencies into a tar file that accurately reflects the structure needed on the compute nodes, then have a wrapper for your script that un-tars the dependencies prior to execution.</para>
-   <para>Note that the ship option has two components: the source specification, provided in the ship clause, is the view of your machine; the command specification is the view of the cluster.The only guarantee is that the shipped files are available is the current working directory of the launched job and that your current working directory is also on the PATH environment variable. </para>
+   <para>Note that the ship option has two components: the source specification, provided in the ship( ) clause, is the view of your machine; the command specification is the view of the actual cluster. The only guarantee is that the shipped files are available in the current working directory of the launched job and that your current working directory is also on the PATH environment variable. </para>
    <para>Shipping files to relative paths or absolute paths is not supported since you might not have permission to read/write/execute from arbitrary paths on the clusters.</para>
+   
+    <para>Note the following:</para>
+	<orderedlist>
+		<listitem>
+			<para>It is safe only to ship files to be executed from the current working directory on the task on the cluster.</para>
+			<programlisting>
+OP = stream IP through `script`;
+or
+DEFINE CMD `script` ship('/a/b/script');
+OP = stream IP through CMD`;
+</programlisting>
+		</listitem>
+	    <listitem>
+			<para>Shipping files to relative paths or absolute paths is undefined and mostly will fail since you may not have permissions to read/write/execute from arbitraty paths on the actual clusters. </para>
+	    </listitem>
+	</orderedlist>   
+   </section>
+   
+   <section>
+   <title>About Auto-Ship</title>
+   <para>If the ship option is not specified, Pig will attempt to auto-ship the binary in the following way:</para>
+   <itemizedlist>
+		<listitem>
+            <para>If the first word on the streaming command is perl or python, Pig assumes that the binary is the first non-quoted string it encounters that does not start with dash.</para>
+		</listitem>
+		<listitem>
+			<para>Otherwise, Pig will attempt to ship the first string from the command line as long as it does not come from /bin, /usr/bin, /usr/local/bin. Pig will determine this by scanning the path if an absolute path is provided or by executing which. The paths can be made configurable using the set stream.skippath &lt;path&gt; option. (You can use multiple set commands to specify more than one path to skip.) </para>
+		</listitem>
+	</itemizedlist>
+	<para>If you don't supply a DEFINE for a given streaming command, then auto-shipping is turned off.</para>
+	<para>Note the following:</para>
+	<orderedlist>
+		<listitem>
+			<para>If Pig determines that it needs to auto-ship an absolute path it will not ship it at all since there is no way to ship files to the necessary location (lack of permissions and so on). </para>
+			<programlisting>
+OP = stream IP through `/a/b/c/script`;
+or 
+OP = stream IP through `perl /a/b/c/script.pl`;
+</programlisting>
+		</listitem>
+	    <listitem>
+			<para>Pig will not auto-ship files in the following system directories (this is determined by executing 'which &lt;file&gt;' command). </para>
+			<programlisting>
+/bin /usr/bin /usr/local/bin /sbin /usr/sbin /usr/local/sbin
+</programlisting>
+		</listitem>
+	    <listitem>
+			<para>To auto-ship, the file in question should be present in the PATH. So if the file is in the current working directory then the current working directory should be in the PATH. </para>
+		</listitem>
+	</orderedlist>
+	
    </section>
    
    <section>
@@ -8019,6 +7813,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <para>
 
    </para></section></section>
+   </section>
    
    <!-- BUILT-IN FUNCTIONS --> 
     
@@ -8234,7 +8029,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>COUNT</title>
    <para>Computes the number of elements in a bag. COUNT requires a preceding GROUP ALL statement for global counts and a GROUP BY statement for group counts.</para>
-   
+   <para>Note that COUNT works with bags. You cannot use the tuple designator (*) with COUNT; that is, COUNT(*) will not work.</para>
    <section>
    <title>Syntax</title>
    <informaltable frame="all">
@@ -8402,6 +8197,55 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable></section></section>
+   
+   
+<section>
+   <title>IsEmpty</title>
+   <para>Checks if a bag or map is empty.</para>
+   
+   <section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>IsEmpty(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression with any data type.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Usage</title>
+   <para>The IsEmpty function checks if a bag or map is empty (has no data). The function can be used to filter data.</para></section>
+   
+   <section>
+   <title>Example</title>
+   <para>In this example all students with an SSN but no name are located.</para>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>SSN = load 'ssn.txt' using PigStorage() as (ssn:long);</para>
+               <para>SSN_NAME = load 'students.txt' using PigStorage() as (ssn:long, name:chararray);</para>
+               <para>-- do a left out join of SSN with SSN_Name</para>
+               <para>X = cogroup SSN by ssn inner, SSN_NAME by ssn;</para>
+               <para>-- only keep those ssn's for which there is no name</para>
+               <para>Y = filter X by IsEmpty(SSN_NAME);</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section></section>    
+   
    
    <section>
    <title>MAX</title>
@@ -9056,7 +8900,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
       <tgroup cols="1"><tbody><row>
             <entry>
                <para>A = LOAD 'data' USING BinStorage();</para>
-               <para>STORE X into 'output' USING BinStorage();        </para>
+               <para>STORE X into 'output' USING BinStorage(); </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section></section>
@@ -9084,7 +8928,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
             <entry>
                <para>Parameter. </para>
-               <para>The default field delimiter is tab ('\t'). You can specify other characters as  field delimiters.</para>
+               <para>The default field delimiter is tab ('\t'). You can specify other characters as field delimiters.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -9092,14 +8936,14 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Usage</title>
    <para>PigStorage works with structured text files in human-readable UTF-8 format. PigStorage also works with simple and complex data types and is the default function for the LOAD and STORE operators.</para>
-   <orderedlist>
+   <itemizedlist>
       <listitem>
-         <para>For load statements, PigStorage expects data to be formatted as delimiter-separated fields and newline-separated records. </para>
+         <para>For load statements, PigStorage expects data to be formatted as delimiter-separated fields and newline-separated records ('\n'). </para>
       </listitem>
       <listitem>
-         <para>For store statements, PigStorage outputs data as delimiter-separated fields and newline-separated records. </para>
+         <para>For store statements, PigStorage outputs data as delimiter-separated fields and newline-separated records ('\n'). </para>
       </listitem>
-   </orderedlist>
+   </itemizedlist>
    <para>For both load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <ulink url="http://en.wikipedia.org/wiki/ASCII">ASCII</ulink>, <ulink url="http://en.wikipedia.org/wiki/Unicode">Unicode</ulink>, and <ulink url="http://en.wikipedia.org/wiki/UTF-16">UTF-16</ulink>).</para>
    </section>
    
@@ -9207,7 +9051,12 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
          </row></tbody></tgroup>
    </informaltable></section></section></section>
    
-   <!-- SHELL COMMANDS-->
+   
+   
+   <!-- FILE COMMANDS-->
+   <section>
+   <title>File Commands</title>
+
    <section>
    <title>cat</title>
    <para>Prints the content of one or more files to the screen.</para>
@@ -9468,7 +9317,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>run script        </para>
+               <para>exec [–param param_name = param_value] [–param_file file_name] script  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -9476,21 +9325,43 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Terms</title>
    <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
+   <tgroup cols="2"><tbody>
+        <row>
+            <entry>
+               <para>–param param_name = param_value</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution.</para>
+            </entry>
+        </row>
+
+        <row>
+            <entry>
+               <para>–param_file file_name</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution. </para>
+            </entry>
+        </row>
+   
+      <row>
             <entry>
                <para>script</para>
             </entry>
             <entry>
                <para>The name of a Pig script.</para>
             </entry>
-         </row></tbody></tgroup>
+         </row>
+         
+   </tbody></tgroup>
    </informaltable></section>
    
    <section>
    <title>Usage</title>
-   <para>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell. Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </para>
+   <para>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell (batch mode). Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </para>
+   <para>With the exec command, store statements will not trigger execution; rather, the entire script is parsed before execution starts. Unlike the run command, exec does not change the command history or remembers the handles used inside the script. Exec without any parameters can be used in scripts to force execution up to the point in the script where the exec occurs. </para>
    <para>For comparison, see the run command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</para>
-   <para>The exec command supports parameter substitution.</para></section>
+   </section>
    
    <section>
    <title>Example</title>
@@ -9812,7 +9683,7 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>run script        </para>
+               <para>run [–param param_name = param_value] [–param_file file_name] script </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -9820,21 +9691,42 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
    <section>
    <title>Terms</title>
    <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
+   <tgroup cols="2"><tbody>
+         <row>
+            <entry>
+               <para>–param param_name = param_value</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution.</para>
+            </entry>
+         </row>
+
+         <row>
+            <entry>
+               <para>–param_file file_name</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution. </para>
+            </entry>
+         </row>
+      <row>
             <entry>
                <para>script</para>
             </entry>
             <entry>
                <para>The name of a Pig script.</para>
             </entry>
-         </row></tbody></tgroup>
+         </row>
+         
+   </tbody></tgroup>
    </informaltable></section>
    
    <section>
    <title>Usage</title>
-   <para>Use the run command to run a Pig script that can interact with the Grunt shell. The script has access to aliases defined externally via the Grunt shell. The Grunt shell has access to aliases defined within the script. All commands from the script are visible in the command history. </para>
+   <para>Use the run command to run a Pig script that can interact with the Grunt shell (interactive mode). The script has access to aliases defined externally via the Grunt shell. The Grunt shell has access to aliases defined within the script. All commands from the script are visible in the command history. </para>   
+	<para>With the run command, every store triggers execution. The statements from the script are put into the command history and all the aliases defined in the script can be referenced in subsequent statements after the run command has completed. Issuing a run command on the grunt command line has basically the same effect as typing the statements manually. </para>   
    <para>For comparison, see the exec command. Both the run and exec commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</para>
-   <para>The run command supports parameter substitution.</para></section>
+  </section>
    
    <section>
    <title>Example</title>
@@ -9867,6 +9759,8 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable></section></section>
+   </section>
+   
    
    <section>
    <title>Utility Commands</title>
@@ -10089,6 +9983,123 @@ As noted, nulls can occur naturally in the data. If nulls are part of the data, 
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   </section></section></section></article>
+   </section></section>
+   
+   
+   </section>
+  <!-- CONVENTIONS -->
+<section>
+<title>Conventions</title>
+   <para>Conventions for the syntax and code examples in the Pig Latin Reference Manual are described here.</para>
+   <informaltable frame="all">
+      <tgroup cols="3"><tbody><row>
+            <entry>
+               <para>Convention</para>
+            </entry>
+            <entry>
+               <para>Description</para>
+            </entry>
+            <entry>
+               <para>Example</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>( )</para>
+            </entry>
+            <entry>
+               <para>Parentheses enclose one or more items.</para>
+               <para>Parentheses are also used to indicate the tuple data type.</para>
+            </entry>
+            <entry>
+               <para>Multiple items:</para>
+               <para>(1, abc, (2,4,6) )</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>[ ]</para>
+            </entry>
+            <entry>
+               <para>Straight brackets enclose one or more optional items.</para>
+               <para>Straight brackets are also used to indicate the map data type. In this case &lt;&gt; is used to indicate optional items.</para>
+            </entry>
+            <entry>
+               <para>Optional items:</para>
+               <para>[INNER | OUTER]</para>
+               <para/>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>{ }</para>
+            </entry>
+            <entry>
+               <para>Curly brackets enclose two or more items, one of which is required. </para>
+               <para>Curly brackets also used to indicate the bag data type. In this case &lt;&gt; is used to indicate required items.</para>
+            </entry>
+            <entry>
+               <para>Two items, one required:</para>
+               <para>{ gen_blk | nested_gen_blk }</para>
+               <para/>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>…</para>
+            </entry>
+            <entry>
+               <para>Horizontal ellipsis points indicate that you can repeat a portion of the code.</para>
+            </entry>
+            <entry>
+               <para>Pig Latin syntax statement:</para>
+               <para>cat path [path …]</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>UPPERCASE</para>
+               <para/>
+               <para>lowercase</para>
+            </entry>
+            <entry>
+               <para>In general, uppercase type indicates elements the system supplies.</para>
+               <para>In general, lowercase type indicates elements that you supply.</para>
+               <para>Note: The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. All other Pig Latin keywords are case insensitive.</para>
+            </entry>
+            <entry>
+               <para>Pig Latin statement:</para>
+               <para>A = LOAD 'data' AS (f1:int);</para>
+               <para/>
+               <itemizedlist>
+                  <listitem>
+                     <para>LOAD, AS supplied BY system</para>
+                  </listitem>
+                  <listitem>
+                     <para>A, f1 are names (aliases)</para>
+                  </listitem>
+                  <listitem>
+                     <para>data supplied by you</para>
+                  </listitem>
+               </itemizedlist>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>italics</para>
+            </entry>
+            <entry>
+               <para>Italic type indicates placeholders or variables for which you must supply values.</para>
+            </entry>
+            <entry>
+               <para>Pig Latin syntax:</para>
+               <para>alias = LIMIT alias  n;</para>
+               <para/>
+               <para>You supply the values for placeholder alias and variable n.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+   </section>   
+   </article>
   
    
