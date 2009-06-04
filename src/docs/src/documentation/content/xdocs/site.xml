@@ -41,7 +41,7 @@ See http://forrest.apache.org/docs/linking.html for more info
 
   <docs label="Overview"> 
     <index label="Overview" 				href="index.html" />
-    <quickstart label="Quick Start"		href="quickstart.html" />
+    <quickstart label="Getting Started"	href="getstarted.html" />
     <tutorial label="Tutorial"				 	href="tutorial.html" />
     <piglatin label="Pig Latin Manual"	href="piglatin.html" />
     <cookbook label="Cookbook" 		href="cookbook.html" />
