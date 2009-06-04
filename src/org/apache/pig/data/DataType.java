@@ -381,9 +381,9 @@ public class DataType {
      * @return The object as a Integer.
      * @throws ExecException if the type can't be forced to an Integer.
      */
-    public static Integer toInteger(Object o) throws ExecException {
+    public static Integer toInteger(Object o,byte type) throws ExecException {
         try {
-			switch (findType(o)) {
+			switch (type) {
 			case BOOLEAN:
 			    if (((Boolean)o) == true) return new Integer(1);
 			    else return new Integer(0);
@@ -422,7 +422,9 @@ public class DataType {
 			    " to an Integer";
 			    throw new ExecException(msg, errCode, PigException.INPUT);
 			}
-		} catch (ExecException ee) {
+		} catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
 			throw ee;
 		} catch (NumberFormatException nfe) {
 			int errCode = 1074;
@@ -434,7 +436,17 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
-
+    /**
+     * If type of object is not known, use this method, which internally calls
+     * toInteger(object,type)
+     * 
+     * @param o
+     * @return Object as Integer.
+     * @throws ExecException
+     */
+    public static Integer toInteger(Object o) throws ExecException {
+        return toInteger(o, findType(o));
+    }
     /**
      * Force a data object to a Long, if possible.  Any numeric type
      * can be forced to a Long (though precision may be lost), as well
@@ -445,9 +457,9 @@ public class DataType {
      * @return The object as a Long.
      * @throws ExecException if the type can't be forced to a Long.
      */
-    public static Long toLong(Object o) throws ExecException {
+    public static Long toLong(Object o,byte type) throws ExecException {
         try {
-			switch (findType(o)) {
+			switch (type) {
 			case BOOLEAN:
 			    if (((Boolean)o) == true) return new Long(1);
 			    else return new Long(0);
@@ -486,7 +498,9 @@ public class DataType {
 			    " to a Long";
 			    throw new ExecException(msg, errCode, PigException.INPUT);
 			}
-		} catch (ExecException ee) {
+		} catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
 			throw ee;
 		} catch (NumberFormatException nfe) {
 			int errCode = 1074;
@@ -499,6 +513,17 @@ public class DataType {
 		}
 
     }
+    /**
+     * If type of object is not known, use this method which in turns call
+     * toLong(object,type) after finding type.
+     * 
+     * @param o
+     * @return Object as Long.
+     * @throws ExecException
+     */
+    public static Long toLong(Object o) throws ExecException {
+        return toLong(o, findType(o));
+    }
 
     /**
      * Force a data object to a Float, if possible.  Any numeric type
@@ -510,9 +535,9 @@ public class DataType {
      * @return The object as a Float.
      * @throws ExecException if the type can't be forced to a Float.
      */
-    public static Float toFloat(Object o) throws ExecException {
+    public static Float toFloat(Object o,byte type) throws ExecException {
         try {
-			switch (findType(o)) {
+			switch (type) {
 			case INTEGER:
 			    return new Float(((Integer)o).floatValue());
 
@@ -546,7 +571,9 @@ public class DataType {
 			    " to a Float";
 			    throw new ExecException(msg, errCode, PigException.INPUT);
 			}
-		} catch (ExecException ee) {
+		} catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
 			throw ee;
 		} catch (NumberFormatException nfe) {
 			int errCode = 1074;
@@ -557,6 +584,17 @@ public class DataType {
 			String msg = "Internal error. Could not convert " + o + " to Float.";
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
+    }
+    /**
+     * If type of object is not known, use this method which in turns call
+     * toFloat(object,type) after finding type.
+     * 
+     * @param o
+     * @return Object as Float.
+     * @throws ExecException
+     */
+    public static Float toFloat(Object o) throws ExecException {
+        return toFloat(o, findType(o));
     }
 
     /**
@@ -569,9 +607,9 @@ public class DataType {
      * @return The object as a Double.
      * @throws ExecException if the type can't be forced to a Double.
      */
-    public static Double toDouble(Object o) throws ExecException {
+    public static Double toDouble(Object o,byte type) throws ExecException {
         try {
-			switch (findType(o)) {
+			switch (type) {
 			case INTEGER:
 			    return new Double(((Integer)o).doubleValue());
 
@@ -605,7 +643,9 @@ public class DataType {
 			    " to a Double";
 			    throw new ExecException(msg, errCode, PigException.INPUT);
 			}
-		} catch (ExecException ee) {
+		} catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
 			throw ee;
 		} catch (NumberFormatException nfe) {
 			int errCode = 1074;
@@ -617,6 +657,17 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
+    /**
+     * If type of object is not known, use this method which in turns call
+     * toLong(object,type) after finding type.
+     * 
+     * @param o
+     * @return Object as Double.
+     * @throws ExecException
+     */
+    public static Double toDouble(Object o) throws ExecException {
+        return toDouble(o, findType(o));
+    }
 
     /**
      * Force a data object to a String, if possible.  Any simple (atomic) type
@@ -627,9 +678,9 @@ public class DataType {
      * @return The object as a String.
      * @throws ExecException if the type can't be forced to a String.
      */
-    public static String toString(Object o) throws ExecException {
+    public static String toString(Object o,byte type) throws ExecException {
         try {
-			switch (findType(o)) {
+			switch (type) {
 			case INTEGER:
 			    return ((Integer)o).toString();
 
@@ -667,7 +718,9 @@ public class DataType {
 			    " to a String";
 			    throw new ExecException(msg, errCode, PigException.INPUT);
 			}
-		} catch (ExecException ee) {
+		} catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
 			throw ee;
 		} catch (Exception e) {
 			int errCode = 2054;
@@ -675,7 +728,17 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
-
+    /**
+     * If type of object is not known, use this method which in turns call
+     * toString(object,type) after finding type.
+     * 
+     * @param o
+     * @return Object as String.
+     * @throws ExecException
+     */
+    public static String toString(Object o) throws ExecException {
+        return toString(o, findType(o));
+    }
     /**
      * If this object is a map, return it as a map.
      * This isn't particularly efficient, so if you
