@@ -28,14 +28,12 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestCounters extends TestCase {
@@ -499,7 +497,7 @@ public class TestCounters extends TestCase {
             System.out.println("============================================");
         }
 
-        Map<String, String> jobStats = stats.get(pigStats.getLastJobID());
+        Map<String, String> jobStats = stats.get(pigStats.getRootJobIDs().get(0));
 
         System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
         assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
