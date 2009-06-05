@@ -21,7 +21,6 @@ package org.apache.pig.tools.pigstats;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,8 +33,6 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapred.Counters.Counter;
-import org.apache.hadoop.mapred.Counters.Group;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
@@ -45,7 +42,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.local.executionengine.physicalLayer.counters.POCounter;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigStats {
@@ -54,7 +50,8 @@ public class PigStats {
     JobControl jc;
     JobClient jobClient;
     Map<String, Map<String, String>> stats = new HashMap<String, Map<String,String>>();
-    String lastJobID;
+    // String lastJobID;
+    ArrayList<String> rootJobIDs = new ArrayList<String>();
     ExecType mode;
     
     public void setMROperatorPlan(MROperPlan mrp) {
@@ -112,8 +109,6 @@ public class PigStats {
     
     private Map<String, Map<String, String>> accumulateMRStats() throws ExecException {
         
-        Job lastJob = getLastJob(jc.getSuccessfulJobs());
-        
         for(Job job : jc.getSuccessfulJobs()) {
             
             
@@ -170,12 +165,14 @@ public class PigStats {
             
         }
         
-        if (lastJob != null) lastJobID = lastJob.getAssignedJobID().toString();
+        getLastJobIDs(jc.getSuccessfulJobs());
+        
         return stats;
     }
     
 
-    private Job getLastJob(List<Job> jobs) {
+    private void getLastJobIDs(List<Job> jobs) {
+        rootJobIDs.clear();
          Set<Job> temp = new HashSet<Job>();
          for(Job job : jobs) {
              if(job.getDependingJobs() != null && job.getDependingJobs().size() > 0)
@@ -185,17 +182,13 @@ public class PigStats {
          //difference between temp and jobs would be the set of leaves
          //we can safely assume there would be only one leaf
          for(Job job : jobs) {
-             if(temp.contains(job))
-                 continue;
-             else
-                 //this means a leaf
-                 return job;
+             if(temp.contains(job)) continue;
+             else rootJobIDs.add(job.getAssignedJobID().toString());
          }
-         return null;
     }
     
-    public String getLastJobID() {
-        return lastJobID;
+    public List<String> getRootJobIDs() {
+        return rootJobIDs;
     }
     
     public Map<String, Map<String, String>> getPigStats() {
@@ -226,14 +219,18 @@ public class PigStats {
      * @return
      */
     private long getRecordsCountMR() {
-        String reducePlan = stats.get(lastJobID).get("PIG_STATS_REDUCE_PLAN");
-        String records = null;
-        if(reducePlan == null) {
-            records = stats.get(lastJobID).get("PIG_STATS_MAP_OUTPUT_RECORDS");
-        } else {
-            records = stats.get(lastJobID).get("PIG_STATS_REDUCE_OUTPUT_RECORDS");
+        long records = 0;
+        for (String jid : rootJobIDs) {
+            Map<String, String> jobStats = stats.get(jid);
+            if (jobStats == null) continue;
+            String reducePlan = jobStats.get("PIG_STATS_REDUCE_PLAN");
+        	if(reducePlan == null) {
+            	records += Long.parseLong(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
+        	} else {
+            	records += Long.parseLong(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
+        	}
         }
-        return Long.parseLong(records);
+    	return records;
     }
     
     public long getBytesWritten() {
@@ -254,7 +251,13 @@ public class PigStats {
     }
     
     private long getMapReduceBytesWritten() {
-        return Long.parseLong(stats.get(lastJobID).get("PIG_STATS_BYTES_WRITTEN"));
+        long bytesWritten = 0;
+        for (String jid : rootJobIDs) {
+            Map<String, String> jobStats = stats.get(jid);
+            if (jobStats == null) continue;
+            bytesWritten += Long.parseLong(jobStats.get("PIG_STATS_BYTES_WRITTEN"));
+        }
+        return bytesWritten;
     }
     
 }
