@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-831: Turned off reporting of records and bytes written for mutli-store
+queries as the returned results are confusing and wrong. (gates)
+
 PIG-813: documentation updates (chandec via olgan)
 
 PIG-825: PIG_HADOOP_VERSION should be set to 18 (dvryaboy via gates).

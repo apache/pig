@@ -192,6 +192,7 @@ public class MapReduceLauncher extends Launcher{
         log.info( "100% complete");
 
         boolean failed = false;
+        int finalStores = 0;
         // Look to see if any jobs failed.  If so, we need to report that.
         if (failedJobs != null && failedJobs.size() > 0) {
             log.error(failedJobs.size()+" map reduce job(s) failed!");
@@ -210,6 +211,7 @@ public class MapReduceLauncher extends Launcher{
                     if (!st.isTmpStore()) {
                         failedStores.add(st.getSFile());
                         failureMap.put(st.getSFile(), backendException);
+                        finalStores++;
                     }
 
                     FileLocalizer.registerDeleteOnFail(st.getSFile().getFileName(), pc);
@@ -227,6 +229,7 @@ public class MapReduceLauncher extends Launcher{
                 for (POStore st: sts) {
                     if (!st.isTmpStore()) {
                         succeededStores.add(st.getSFile());
+                        finalStores++;
                     }
                     log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
                 }
@@ -241,9 +244,10 @@ public class MapReduceLauncher extends Launcher{
             CompilationMessageCollector.logAggregate(warningAggMap, MessageType.Warning, log) ;
         }
         
-        if(stats.getPigStats().get(stats.getLastJobID()) == null)
-            log.warn("Jobs not found in the JobClient. Please try to use Local, Hadoop Distributed or Hadoop MiniCluster modes instead of Hadoop LocalExecution");
-        else {
+        // Report records and bytes written.  Only do this in the single store case.  Multi-store
+        // scripts mess up the stats reporting from hadoop.
+        List<String> rji = stats.getRootJobIDs();
+        if (rji != null && rji.size() == 1 && finalStores == 1) {
             log.info("Records written : " + stats.getRecordsWritten());
             log.info("Bytes written : " + stats.getBytesWritten());
         }
