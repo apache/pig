@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-830: Add RegExLoader and apache log utils to piggybank (dvryaboy via gates).
+
 PIG-831: Turned off reporting of records and bytes written for mutli-store
 queries as the returned results are confusing and wrong. (gates)
 
