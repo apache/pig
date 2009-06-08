@@ -278,14 +278,14 @@ public static void main(String args[])
         BufferedReader in;
         String substFile = null;
         switch (mode) {
-        case FILE:
+        case FILE: {
             // Run, using the provided file as a pig file
             in = new BufferedReader(new FileReader(file));
 
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
-            if (dryrun){
+            if (dryrun) {
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return;
             }
@@ -298,14 +298,16 @@ public static void main(String args[])
                                                    "PigLatin:" +new File(file).getName()
             );
             
-            if (!debug)
+            if (!debug) {
                 new File(substFile).deleteOnExit();
+            }
             
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
-            grunt.exec();
-            rc = 0;
+            int results[] = grunt.exec();
+            rc = getReturnCodeForStats(results);
             return;
+        }
 
         case STRING: {
             // Gather up all the remaining arguments into a string and pass them into
@@ -319,8 +321,8 @@ public static void main(String args[])
             in = new BufferedReader(new StringReader(sb.toString()));
             grunt = new Grunt(in, pigContext);
             gruntCalled = true;
-            grunt.exec();
-            rc = 0;
+            int results[] = grunt.exec();
+            rc = getReturnCodeForStats(results);
             return;
             }
 
@@ -380,20 +382,7 @@ public static void main(String args[])
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
             int[] results = grunt.exec();
-            if (results[1] == 0) {
-                // no failed jobs
-                rc = 0;
-            }
-            else {
-                if (results[0] == 0) {
-                    // no succeeded jobs
-                    rc = 2;
-                }
-                else {
-                    // some jobs have failed
-                    rc = 3;
-                }
-            }
+            rc = getReturnCodeForStats(results);
             return;
         }
 
@@ -424,6 +413,23 @@ public static void main(String args[])
         FileLocalizer.deleteTempFiles();
         PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
         System.exit(rc);
+    }
+}
+
+private static int getReturnCodeForStats(int[] stats) {
+    if (stats[1] == 0) {
+        // no failed jobs
+        return 0;
+    }
+    else {
+        if (stats[0] == 0) {
+            // no succeeded jobs
+            return 2;
+        }
+        else {
+            // some jobs have failed
+            return 3;
+        }
     }
 }
 
