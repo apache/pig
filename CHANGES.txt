@@ -16,9 +16,17 @@
  * limitations under the License.
  */
 
-
-
 Pig Change Log
+
+Trunk (unreleased changes)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
 
 Release 0.3.0 - Unreleased
 
