@@ -22,7 +22,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -39,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -449,6 +453,55 @@ public class TestMultiQuery extends TestCase {
              
             myPig.executeBatch();
             
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }         
+    
+    @Test
+    public void testMultiQueryPhase3WithDifferentMapDataTypes3() {
+
+        System.out.println("===== multi-query phase 3 with different map datatypes (3) =====");
+
+        try {
+            myPig.setBatchOn();
+            String[] inputData = {"john\t20\t3.4",
+            		"john\t25\t3.4" ,
+            		"henry\t23\t3.9" ,
+            		"adam\t54\t2.9" ,
+            		"henry\t21\t3.9"};
+            Util.createInputFile(cluster, "queryInput.txt", inputData);
+
+            myPig.registerQuery("a = load 'queryInput.txt' " +
+                                 "as (name:chararray, age:int, gpa:double);");
+            myPig.registerQuery("b = group a all;");
+            myPig.registerQuery("c = foreach b generate group, COUNT(a);");
+            myPig.registerQuery("store c into 'foo';");
+            myPig.registerQuery("d = group a by (name, gpa);");
+            myPig.registerQuery("e = foreach d generate flatten(group), MIN(a.age);");
+            myPig.registerQuery("store e into 'bar';");
+             
+            myPig.executeBatch();
+            
+            myPig.registerQuery("a = load 'foo' as (grp:chararray, cnt:long) ;");
+            Iterator<Tuple> it = myPig.openIterator("a");
+            assertEquals(Util.getPigConstant("('all', 5l)"), it.next());
+            assertFalse(it.hasNext());
+            
+            myPig.registerQuery("a = load 'bar' as (name:chararray, gpa:double, age:int);");
+            it = myPig.openIterator("a");
+            int i = 0;
+            Map<String, Tuple> expectedResults = new HashMap<String, Tuple>();
+            expectedResults.put("john", (Tuple) Util.getPigConstant("('john',3.4,20)"));
+            expectedResults.put("adam", (Tuple) Util.getPigConstant("('adam',2.9,54)"));
+            expectedResults.put("henry", (Tuple) Util.getPigConstant("('henry',3.9,21)"));
+            while(it.hasNext()) {
+                Tuple t = it.next();
+                i++;
+                assertEquals(expectedResults.get(t.get(0)), t);
+            }
+            assertEquals(3, i);
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();

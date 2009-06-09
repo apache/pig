@@ -35,6 +35,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -420,12 +421,28 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 lr.setKeyType(DataType.TUPLE);
             }
         } else if (leaf instanceof POSplit) {
+            // if the map plan that we are trying to merge
+            // has a split, we need to update the indices of
+            // the POLocalRearrange operators in the inner plans
+            // of the split to be a continuation of the index
+            // number sequence we are currently at.
+            // So for example, if we we are in the MapRedOper
+            // we are currently processing, if the index is currently
+            // at 1 (meaning index 0 was used for a map plan
+            // merged earlier), then we want the POLocalRearrange
+            // operators in the split to have indices 1, 2 ...
+            // essentially we are flattening the index numbers
+            // across all POLocalRearranges in all merged map plans
+            // including nested ones in POSplit
             POSplit spl = (POSplit)leaf;
             curIndex = setIndexOnLRInSplit(index, spl);
         }
                     
         splitOp.addPlan(pl);
-               
+        
+        // return the updated index after setting index
+        // on all POLocalRearranges including ones
+        // in inner plans of any POSplit operators
         return curIndex;
     }
     
@@ -439,7 +456,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             PhysicalOperator leaf = pl.getLeaves().get(0);
             if (leaf instanceof POLocalRearrange) {
                 POLocalRearrange lr = (POLocalRearrange)leaf;
-                try {                    
+                try {
+                    // if the baseindex is set on the demux, then
+                    // POLocalRearranges in its inner plan should really
+                    // be sending an index out by adding the base index
+                    // This is because we would be replicating the demux
+                    // as many times as there are inner plans in the demux
+                    // hence the index coming out of POLocalRearranges
+                    // needs to be adjusted accordingly
                     lr.setMultiQueryIndex(initial + lr.getIndex());                   
                 } catch (ExecException e) {                   
                     int errCode = 2136;
@@ -474,7 +498,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     }
     
     private void mergeOneReducePlanWithIndex(PhysicalPlan from, 
-            PhysicalPlan to, int initial, int current) throws VisitorException {                    
+            PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {                    
         POPackage pk = (POPackage)from.getRoots().get(0);
         from.remove(pk);
  
@@ -483,7 +507,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         // with the new indexed key       
         Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pk.getKeyInfo();
         if (keyInfo != null && keyInfo.size() > 0) {      
-            byte b = (byte)(initial | 0x80);
+            byte b = (byte)(initial | PigNullableWritable.mqFlag);
             keyInfo.put(new Integer(b), keyInfo.get(0));
         }     
         
@@ -505,7 +529,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         
         PODemux demux = (PODemux)to.getLeaves().get(0);
         for (int i=initial; i<current; i++) {
-            demux.addPlan(from);
+            demux.addPlan(from, mapKeyType);
         }
                
         if (demux.isSameMapKeyType()) {
@@ -516,7 +540,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     }
     
     private void mergeOneCombinePlanWithIndex(PhysicalPlan from,
-            PhysicalPlan to, int initial, int current) throws VisitorException {
+            PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {
         POPackage cpk = (POPackage)from.getRoots().get(0);
         from.remove(cpk);
        
@@ -550,7 +574,20 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             setBaseIndexOnDemux(initial, locDemux);
         } 
        
-        POMultiQueryPackage pkg = (POMultiQueryPackage)to.getRoots().get(0);     
+        POMultiQueryPackage pkg = (POMultiQueryPackage)to.getRoots().get(0);
+        
+        // if current > initial + 1, it means we had
+        // a split in the map of the MROper we are trying to
+        // merge. In that case we would have changed the indices
+        // of the POLocalRearranges in the split to be in the
+        // range initial to current. To handle key, value pairs
+        // coming out of those POLocalRearranges, we replicate
+        // the Package as many times (in this case, the package
+        // would have to be a POMultiQueryPackage since we had
+        // a POSplit in the map). That Package would have a baseindex
+        // correctly set (in the beginning of this method) and would
+        // be able to handle the outputs from the different
+        // POLocalRearranges.
         for (int i=initial; i<current; i++) {
             pkg.addPackage(cpk);
         }
@@ -561,9 +598,12 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         } 
         
         pkg.setKeyType(cpk.getKeyType());
-                
+        
+        // See comment above for why we replicated the Package
+        // in the from plan - for the same reason, we replicate
+        // the Demux operators now.
         for (int i=initial; i<current; i++) {
-            demux.addPlan(from);
+            demux.addPlan(from, mapKeyType);
         }
     }
     
@@ -600,7 +640,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
        
         boolean sameKeyType = hasSameMapKeyType(mergeList);
         
-        log.info("Splittees have the same key type: " + sameKeyType);
+        log.debug("Splittees have the same key type: " + sameKeyType);
         
         // create a new reduce plan that will be the container
         // for the multiple reducer plans of the MROpers in the mergeList
@@ -611,13 +651,17 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         PhysicalPlan comPl = needCombiner(mergeList) ? 
                 createDemuxPlan(sameKeyType, true) : null;
 
-        log.info("Splittees have combiner: " + (comPl != null));
+        log.debug("Splittees have combiner: " + (comPl != null));
                 
         int index = 0;             
         
         for (MapReduceOper mrOp : mergeList) {
 
-            // merge the map plan            
+            // merge the map plan - this will recursively
+            // set index on all POLocalRearranges encountered
+            // including ones in inner plans of any POSplit
+            // operators. Hence the index returned could be
+            // > index + 1
             int incIndex = mergeOneMapPlanWithIndex(
                     mrOp.mapPlan, splitOp, index, sameKeyType);
                        
@@ -625,7 +669,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             if (comPl != null) {
                 if (!mrOp.combinePlan.isEmpty()) {                    
                     mergeOneCombinePlanWithIndex(
-                            mrOp.combinePlan, comPl, index, incIndex);
+                            mrOp.combinePlan, comPl, index, incIndex, mrOp.mapKeyType);
                 } else {         
                     int errCode = 2141;
                     String msg = "Internal Error. Cannot merge non-combiner with combiners for optimization.";
@@ -635,7 +679,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
 
             // merge the reducer plan
             mergeOneReducePlanWithIndex(
-                    mrOp.reducePlan, redPl, index, incIndex);
+                    mrOp.reducePlan, redPl, index, incIndex, mrOp.mapKeyType);
            
             index = incIndex;
             

@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
@@ -177,14 +178,30 @@ public class POLocalRearrange extends PhysicalOperator {
     }
     
     private void setIndex(int index, boolean multiQuery) throws ExecException {
-        if (index > 0x7F) {
+        if (index > PigNullableWritable.idxSpace) { 
+            // indices in group and cogroup should only
+            // be in the range 0x00 to 0x7F (only 127 possible
+            // inputs)
             int errCode = 1082;
             String msg = multiQuery? 
                     "Merge more than 127 map-reduce jobs not supported."
                   : "Cogroups with more than 127 inputs not supported.";
             throw new ExecException(msg, errCode, PigException.INPUT);
         } else {
-            this.index = multiQuery ? (byte)(index | 0x80) : (byte)index;
+            // We could potentially be sending the (key, value) relating to 
+            // multiple "group by" statements through one map reduce job
+            // in  multiquery optimized execution. In this case, we want
+            // two keys which have the same content but coming from different
+            // group by operations to be treated differently so that they
+            // go to different invocations of the reduce(). To achieve this
+            // we let the index be outside the regular index space - 0x00 to 0x7F
+            // by ORing with the mqFlag bitmask which will put the index above
+            // the 0x7F value. In PigNullableWritable.compareTo if the index is
+            // in this "multiquery" space, we also consider the index when comparing
+            // two PigNullableWritables and not just the contents. Keys with same
+            // contents coming from different "group by" operations would have different
+            // indices and hence would go to different invocation of reduce()
+            this.index = multiQuery ? (byte)(index | PigNullableWritable.mqFlag) : (byte)index;
         }            
         lrOutput.set(0, new Byte(this.index));
     }
