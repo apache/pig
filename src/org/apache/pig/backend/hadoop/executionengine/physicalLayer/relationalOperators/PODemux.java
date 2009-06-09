@@ -30,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -73,7 +74,18 @@ public class PODemux extends PhysicalOperator {
      * The list of sub-plans the inner plan is composed of
      */
     private ArrayList<PhysicalPlan> myPlans = new ArrayList<PhysicalPlan>();
-           
+    
+    /**
+     * If the POLocalRearranges corresponding to the reduce plans in 
+     * myPlans (the list of inner plans of the demux) have different key types
+     * then the MultiQueryOptimizer converts all the keys to be of type tuple
+     * by wrapping any non-tuple keys into Tuples (keys which are already tuples
+     * are left alone).
+     * The list below is a list of booleans indicating whether extra tuple wrapping
+     * was done for the key in the corresponding POLocalRearranges and if we need
+     * to "unwrap" the tuple to get to the key
+     */
+    private ArrayList<Boolean> isKeyWrapped = new ArrayList<Boolean>();
     /*
      * Flag indicating when a new pull should start 
      */
@@ -158,7 +170,7 @@ public class PODemux extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Demux - " + mKey.toString();
+        return "Demux" + isKeyWrapped + "[" + baseIndex +"] - " + mKey.toString();
     }
 
     @Override
@@ -203,9 +215,13 @@ public class PODemux extends PhysicalOperator {
      * 
      * @param inPlan plan to be appended to the inner plan list
      */
-    public void addPlan(PhysicalPlan inPlan) {  
+    public void addPlan(PhysicalPlan inPlan, byte mapKeyType) {  
         myPlans.add(inPlan);
         processedSet.set(myPlans.size()-1);
+        // if mapKeyType is already a tuple, we will NOT
+        // be wrapping it in an extra tuple. If it is not
+        // a tuple, we will wrap into in a tuple
+        isKeyWrapped.add(mapKeyType == DataType.TUPLE ? false : true);
     }
    
     @Override
@@ -259,8 +275,7 @@ public class PODemux extends PhysicalOperator {
         if (res.returnStatus == POStatus.STATUS_EOP) {
             getNext = true;
         }
-        
-        return (res.returnStatus == POStatus.STATUS_OK) ? res : empty;
+        return (res.returnStatus == POStatus.STATUS_OK || res.returnStatus == POStatus.STATUS_ERR) ? res : empty;
     }
 
     private Result getStreamCloseResult() throws ExecException {
@@ -334,10 +349,10 @@ public class PODemux extends PhysicalOperator {
         int index = key.getIndex();
         index &= idxPart;
         index -= baseIndex;                         
-                           
+        
         PhysicalPlan pl = myPlans.get(index);
         if (!(pl.getRoots().get(0) instanceof PODemux)) {                             
-            if (!sameMapKeyType & !inCombiner) {                                       
+            if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {                                       
                 Tuple tup = (Tuple)key.getValueAsPigType();
                 res.set(0, tup.get(0));
             } else {
