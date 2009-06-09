@@ -109,7 +109,7 @@ public class POMultiQueryPackage extends POPackage {
 
     @Override
     public String name() {
-        return "MultiQuery Package - " +  getOperatorKey().toString();
+        return "MultiQuery Package[" + baseIndex +"] - " +  getOperatorKey().toString();
     }
 
     @Override
@@ -187,7 +187,16 @@ public class POMultiQueryPackage extends POPackage {
         
         Tuple tuple = (Tuple)res.result;
 
-        // replace the wrapped value in the key with the key itself
+        // the key present in the first field
+        // of the tuple above is the real key without
+        // index information - this is because the
+        // package above, extracts the real key out of
+        // the PigNullableWritable key - we are going to
+        // give this result tuple to a PODemux operator
+        // which needs a PigNullableWritable key so
+        // it can figure out the index - we already have
+        // the PigNullableWritable key cachec in "myKey"
+        // let's send this in the result tuple
         tuple.set(0, myKey);
 
         return res;

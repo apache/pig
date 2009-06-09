@@ -36,9 +36,18 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public abstract class PigNullableWritable implements WritableComparable {
 
-    private static byte mqFlag = (byte)0x80;
+    /**
+     * indices in multiquery optimized maps
+     * will have the Most Significant Bit set
+     * This is a bitmask used in those cases.
+     */
+    public static final byte mqFlag = (byte)0x80;
     
-    private static byte idxSpace = (byte)0x7F;
+    /**
+     *  regular indices used in group and cogroup
+     *  can only go from 0x00 to 0x7F
+     */
+    public static final byte idxSpace = (byte)0x7F;
     
     private boolean mNull;
 
