@@ -67,6 +67,9 @@ PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via p
 
 BUG FIXES
 
+PIG-839: incorrect return codes on failure when using -f or -e flags (hagletin
+via sms)
+
 PIG-796: support conversion from numeric types to chararray (Ashutosh Chauhan
 via pradeepkth)
 
