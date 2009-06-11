@@ -21,43 +21,101 @@
     <title>Pig Getting Started Guide</title>
   </header>
   <body>
-  
+ 
+<section>
+<title>Overview</title>
     <section id="req">
       <title>Requirements</title>
-      
       <p><strong>Unix</strong> and <strong>Windows</strong> users need the following:</p>
 		<ol>
-		  <li> <strong>Hadoop 18</strong>: <a href="http://hadoop.apache.org/core/">http://hadoop.apache.org/core/</a></li>
-		  <li> <strong>Java 1.6</strong>, preferably from Sun: <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a>. Set JAVA_HOME to the root of your Java installation.</li>
-		  <li> <strong>Ant</strong> for builds: <a href="http://ant.apache.org/">http://ant.apache.org/</a>.</li>
-		  <li> <strong>JUnit</strong> for unit tests: <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a>.</li>
+		  <li> <strong>Hadoop 18</strong> - <a href="http://hadoop.apache.org/core/">http://hadoop.apache.org/core/</a></li>
+		  <li> <strong>Java 1.6</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> Set JAVA_HOME to the root of your Java installation.</li>
+		  <li> <strong>Ant 1.7</strong> - (optional, for builds) <a href="http://ant.apache.org/">http://ant.apache.org/</a></li>
+		  <li> <strong>JUnit 4.5</strong> - (optional, for unit tests) <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a></li>
 		</ol>
-	<p><strong>Windows</strong> users need to install Cygwin and the Perl package: <a href="http://www.cygwin.com/"> http://www.cygwin.com/</a>.</p>
-   </section>
+	<p><strong>Windows</strong> users need to install Cygwin and the Perl package: <a href="http://www.cygwin.com/"> http://www.cygwin.com/</a></p>
+    </section>
+	<section>
+		<title>Run Modes</title>
+	        <p>Pig has two run modes or exectypes:  </p>
+    <ul>
+      <li><p> Local Mode - To run Pig in local mode, you need access to a single machine.  </p></li>
+      <li><p> Mapreduce Mode - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. 
+      Pig will automatically allocate and deallocate a 15-node cluster.</p></li>
+    </ul>
+    <p>You can run the Grunt shell, Pig scripts, or embedded programs using either mode.</p>
+    </section>         
+</section>      
         
+        
+<section>
+<title>Beginning Pig</title>
     <section>
 	<title>Download Pig</title>
 	<p>To get a Pig distribution, download a recent stable release from one of the Apache Download Mirrors (see <a href="http://hadoop.apache.org/pig/releases.html"> Pig Releases</a>).</p>
-	<p>Unpack the downloaded Pig distribution. You can find the Pig script in the bin directory (/pig-n.n.n/bin/pig).</p>
+	<p>Unpack the downloaded Pig distribution. The Pig script is located in the bin directory (/pig-n.n.n/bin/pig).</p>
 	<p>Add /pig-n.n.n/bin to your path. Use export (bash,sh,ksh) or setenv (tcsh,csh). For example: </p>
 <source>
 $ export PATH=/&lt;my-path-to-pig&gt;/pig-n.n.n/bin:$PATH
 </source>
-	<p>Try the following command, to get a listing of all Pig commands </p>	
+	<p>Try the following command, to get a list of Pig commands: </p>	
 <source>
 $ pig -help
 </source>
-	<p>Try the following command, to start the Grunt Shell:</p>
+	<p>Try the following command, to start the Grunt shell:</p>
 <source>
 $ pig 
 </source>
+</section>  
+
+<section>
+<title>Grunt Shell</title>
+<p>Use Pig's interactive shell, Grunt, to enter pig commands manually. See the <a href="getstarted.html#Sample+Code">Sample Code</a> for instructions about the passwd file used in the example.</p>
+<p>You can also run or execute script files from the Grunt shell. See the RUN and EXEC commands in the <a href="piglatin.html">Pig Latin Manual</a>. </p>
+<p><strong>Local Mode</strong></p>
+<source>
+$ pig -x local
+</source>
+<p><strong>Mapreduce Mode</strong> </p>
+<source>
+$ pig
+or
+$ pig -x mapreduce
+</source>
+<p>For either mode, the Grunt shell is invoked and you can enter commands at the prompt. The results are displayed to your terminal screen (if DUMP is used) or to a file (if STORE is used).
+</p>
+<source>
+grunt&gt; A = load 'passwd' using PigStorage(':'); 
+grunt&gt; B = foreach A generate $0 as id; 
+grunt&gt; dump B; 
+grunt&gt; store B; 
+</source>
+</section>
+
+<section>
+<title>Script Files</title>
+<p>Use script files to run Pig commands as batch jobs. See the <a href="getstarted.html#Sample+Code">Sample Code</a> for instructions about the passwd file and the script file (id.pig) used in the example.</p>
+<p><strong>Local Mode</strong></p>
+<source>
+$ pig -x local id.pig
+</source>
+<p><strong>Mapreduce Mode</strong> </p>
+<source>
+$ pig id.pig
+or
+$ pig -x mapreduce id.pig
+</source>
+<p>For either mode, the Pig Latin statements are executed and the results are displayed to your terminal screen (if DUMP is used) or to a file (if STORE is used).</p>
+</section>
+</section>
 
 
-	</section>  
-	
+<section>
+ <title>Advanced Pig</title>
+
     <section>
       <title>Build Pig</title>
-      <p>(optional) To build pig, do the following:</p>
+      <p>To build pig, do the following:</p>
      <ol>
 	  <li> Check out the Pig code from SVN: <em>svn co http://svn.apache.org/repos/asf/hadoop/pig/trunk</em>. </li>
 	  <li> Build the code from the top directory: <em>ant</em>. If the build is successful, you should see the <em>pig.jar</em> created in that directory. </li>	
@@ -66,62 +124,18 @@ $ pig
     </section>
 
 <section>
-	<title>Run Pig</title>
-    <p>Pig has two run modes or exectypes:  </p>
-    <ul>
-      <li><p> Local Mode: To run Pig in local mode, you need access to a single machine.  </p></li>
-      <li><p> Mapreduce Mode: To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. 
-      Pig will automatically allocate and deallocate a 15-node cluster.</p></li>
-    </ul>
-
-
-<section>
-<title>Grunt Shell</title>
-<p>Use Pig's interactive shell, Grunt, to enter pig commands manually. 
-(You can also run or execute script files from the Grunt shell. See the RUN and EXEC commands in the <a href="piglatin.html">Pig Latin Manual</a>). </p>
-<p>Local mode: 
-</p>
-<source>
-$ pig -x local
-</source>
-<p>Mapreduce mode: 
-</p>
-<source>
-$ pig
-or
-$ pig -x mapreduce
-</source>
-<p>The Grunt shell is invoked and you can enter commands at the prompt. 
-</p>
-<source>
-grunt&gt; A = load 'passwd' using PigStorage(':'); 
-grunt&gt; B = foreach A generate $0 as id; 
-grunt&gt; dump B; 
-</source>
+	<title>Environment Variables and Properties</title>
+	<p>Refer to the <a href="getstarted.html#Download+Pig">Download Pig</a> section.</p>
+	<p>The Pig environment variables are described in the Pig script file, located in the  /pig-n.n.n/bin directory.</p>
+	<p>The Pig properties file, pig.properties, is located in the /pig-n.n.n/conf directory. You can specify an alternate location using the PIG_CONF_DIR environment variable.</p>
 </section>
 
 <section>
-<title>Script Files</title>
-<p>Use script files to run Pig commands as batch jobs. See the sample code for the script file (id.pig) used in the examples.</p>
-<p>Local mode:</p>
-<source>
-$ pig -x local id.pig
-</source>
-<p>Mapreduce mode: </p>
-<source>
-$ pig id.pig
-or
-$ pig -x mapreduce id.pig
-</source>
-<p>The Pig Latin statements are executed and the results are displayed to your terminal screen (if DUMP is used) or to a file (if STORE is used).</p>
-</section>
+<title>Embedded Programs</title>
+<p>Used the embedded option to embed Pig commands in a host language and run the program. 
+See the <a href="getstarted.html#Sample+Code">Sample Code</a> for instructions about the passwd file and java files (idlocal.java, idmapreduce.java) used in the examples.</p>
 
-<section>
-	<title>Embedded Programs</title>
-<p>Embed Pig commands in a host language and run the program. 
-See the sample code for the java files (idlocal.java, idmapreduce.java) used in the examples.</p>
-	<section>
-<title> Local Mode</title>
+<p><strong>Local Mode</strong></p>
 <p>From your current working directory, compile the program: </p>
 <source>
 $ javac -cp pig.jar idlocal.java
@@ -134,9 +148,8 @@ Unix:   $ java -cp pig.jar:. idlocal
 Cygwin: $ java –cp ‘.;pig.jar’ idlocal
 </source>
 <p>To view the results, check the output file, id.out. </p>
-</section>
-<section>
-<title>Mapreduce Mode</title>
+
+<p><strong>Mapreduce Mode</strong></p>
 <p>Point $HADOOPDIR to the directory that contains the hadoop-site.xml file. Example: 
 </p>
 <source>
@@ -155,10 +168,9 @@ Unix:   $ java -cp pig.jar:.:$HADOOPDIR idhadoop
 Cygwin: $ java –cp ‘.;pig.jar;$HADOOPDIR’ idhadoop
 </source>
 <p>To view the results, check the idout directory on your Hadoop system. </p>
+</section>
+</section>
 
-</section>
-</section>
-</section>
 
 <section>
 <title>Sample Code</title>
@@ -166,8 +178,7 @@ Cygwin: $ java –cp ‘.;pig.jar;$HADOOPDIR’ idhadoop
 <p>The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. </p>
 <p>Copy the /etc/passwd file to your local working directory.</p>
 	
-<section>
-<title>id.pig</title>
+<p><strong>id.pig</strong></p>
 <p>For the Grunt Shell and script files. </p>
 <source>
 A = load 'passwd' using PigStorage(':'); 
@@ -175,10 +186,8 @@ B = foreach A generate $0 as id;
 dump B; 
 store B into ‘id.out’;
 </source>
-</section>
 
-<section>
-<title>idlocal.java</title>
+<p><strong>idlocal.java</strong></p>
 <p>For embedded programs. </p>
 <source>
 import java.io.IOException;
@@ -199,10 +208,8 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
  }
 }
 </source>
-</section>
 
-<section>
-<title>idmapreduce.java</title>
+<p><strong>idmapreduce.java</strong></p>
 <p>For embedded programs. </p>
 <source>
 import java.io.IOException;
@@ -223,10 +230,7 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
    }
 }
 </source>
-</section>
-
 
 </section>
-
 </body>
 </document>

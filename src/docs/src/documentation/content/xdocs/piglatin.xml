@@ -21,12 +21,6 @@
   
 <article>
 <title>Pig Latin Manual</title>
-
-
-   
- 
-   
-   
    
    <!-- ABOUT PIG LATIN -->
    <section>
@@ -101,7 +95,7 @@ DUMP B;
 </programlisting>   
    
    <para> </para>
-   <para>Note: See Multi-Query Optimization for more information on how Pig Latin statements are processed.</para> 
+   <para>Note: See Multi-Query Execution for more information on how Pig Latin statements are processed.</para> 
    </section>
    
    <section>
@@ -214,11 +208,28 @@ grunt> DUMP C;
 </section>      
 </section>
 
-<!-- MULTI-QUERY OPTIMIZATION-->
+<!-- MULTI-QUERY EXECUTION-->
 <section>
-	<title>Multi-Query Optimization</title>
-<para>With multi-query optimization Pig processes an entire script or a batch of statements at once 
-(as opposed to processing statements when a DUMP or STORE is encountered). Multi-query optimization introduces some changes:</para>
+<title>Multi-Query Execution</title>
+<para>With multi-query execution Pig processes an entire script or a batch of statements at once 
+(as opposed to processing statements when a DUMP or STORE is encountered). </para>
+
+
+<section>
+	<title>Turning Multi-Query Execution On or Off</title>	
+	<para>Multi-query execution is turned on by default. 
+	To turn it off and revert to Pi'gs "execute-on-dump/store" behavior, use the "-M" or "-no_multiquery" options. </para>
+	<para>To run script "myscript.pig" without the optimization, execute Pig as follows: </para>
+<programlisting>
+$ pig -M myscript.pig
+or
+$ pig -no_multiquery myscript.pig
+</programlisting>
+</section>
+
+<section>
+<title>How it Works</title>
+<para>Multi-query execution introduces some changes:</para>
 
 <itemizedlist>
 <listitem>
@@ -258,7 +269,7 @@ STORE C' ...
 <para>In prior Pig releases, Example 1 will dump A' to disk and then start jobs for B' and C'. 
 Example 2 will execute all the dependencies of B' and store it and then execute all the dependencies of C' and store it. 
 Both are equivalent, but the performance will be different. </para>
-<para>Here's what the multi-query optimization does to increase the performance: </para>
+<para>Here's what the multi-query execution does to increase the performance: </para>
 	<itemizedlist>
 		<listitem><para>For Example 2, adds an implicit split to transform the query to Example 1. This eliminates the processing of A' multiple times.</para></listitem>
 		<listitem><para>Makes the split non-blocking and allows processing to continue. This helps reduce the amount of data that has to be stored right at the split.  </para></listitem>
@@ -281,28 +292,15 @@ STORE A''
 
 <para>If the script doesn't re-load A' for the processing of A the steps above A' will be duplicated. 
 This is a special case of Example 2 above, so the same steps are recommended. 
-With multi-query optimization, the script will process A and dump A' as a side-effect.</para>
+With multi-query execution, the script will process A and dump A' as a side-effect.</para>
 </section>
 </section>
-
-
-<section>
-	<title>Turning Multi-Query Optimization On or Off</title>	
-	<para>By default multi-query optimization is enabled. 
-	To turn off the optimization and revert to "execute-on-store" behavior, use the "-M" or "-no_multiquery" options. </para>
-	<para>To run script "myscript.pig" without the optimization, execute Pig as follows: </para>
-
-<programlisting>
-$ pig -M myscript.pig
-or
-$ pig -no_multiquery myscript.pig
-</programlisting>
-
 </section>
+
 
 <section>
 	<title>Error Handling</title>
-	<para>With multi-query optimization Pig processes an entire script or a batch of statements at once. 
+	<para>With multi-query execution Pig processes an entire script or a batch of statements at once. 
 	By default Pig tries to run all the jobs that result from that, regardless of whether some jobs fail during execution. 
 	To check which jobs have succeeded or failed use one of these options. </para>
 	
@@ -334,7 +332,7 @@ $ pig -stop_on_failure myscript.pig
 <section>
 	<title>Backward Compatibility</title>
 	
-	<para>Most existing Pig scripts will produce the same result with or without the multi-query optimization. 
+	<para>Most existing Pig scripts will produce the same result with or without the multi-query execution. 
 	There are cases though were this is not true. Path names and schemes are discussed here.</para>
 	
 	<para>Any script is parsed in it's entirety before it is sent to execution. Since the current directory can change 
@@ -397,9 +395,10 @@ STORE C INTO 'out2';
 
 </section>
  <!-- KEYWORDS -->
+
    <section>
    <title>Keywords</title>
-   
+   <para>Pig keywords are listed here.</para>
    <informaltable frame="all">
       <tgroup cols="2"><tbody>  
     
@@ -1600,33 +1599,23 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <title>Schemas with LOAD and STREAM Statements</title>
    <para>With LOAD and STREAM statements, the schema following the AS keyword must be enclosed in parentheses.</para>
    <para>In this example the LOAD statement includes a schema definition for simple data types.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int, f2:int);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' AS (f1:int, f2:int);
+</programlisting>   
+   </section>
    
    <section>
    <title>Schemas with FOREACH Statements</title>
    <para>With FOREACH statements, the schema following the AS keyword must be enclosed in parentheses when the FLATTEN keyword is used. Otherwise, the schema should not be enclosed in parentheses.</para>
    <para>In this example the FOREACH statement includes the FLATTEN keyword and a schema for simple data types.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE FLATTEN(B) AS (f1:int, f2:int, f3:int);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH C GENERATE FLATTEN(B) AS (f1:int, f2:int, f3:int);
+</programlisting>  
    <para>In this example the FOREACH statement includes a schema for simple data types.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f1+f2 AS x1:int;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH A GENERATE f1+f2 AS x1:int;
+</programlisting>   
+   </section>
    
    <section>
    <title>Schemas for Simple Data Types</title>
@@ -1676,51 +1665,46 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>In this example the schema defines multiple types.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat student</para>
-               <para>John   18      4.0</para>
-               <para>Mary   19      3.8</para>
-               <para>Bill      20      3.9</para>
-               <para>Joe     18      3.8</para>
-               <para/>
-               <para>A = LOAD 'student' AS (name:chararray, age:int, gpa:float);</para>
-               <para/>
-               <para>DESCRIBE A;</para>
-               <para>A: {name: chararray,age: int,gpa: float}</para>
-               <para/>
-               <para>DUMP A:</para>
-               <para>(John,18,4.0F)</para>
-               <para>(Mary,19,3.8F)</para>
-               <para>(Bill,20,3.9F)</para>
-               <para>(Joe,18,3.8F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+cat student;
+John	18	4.0
+Mary	19   	3.8
+Bill	20   	3.9
+Joe	18   	3.8
+
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+DESCRIBE A;
+A: {name: chararray,age: int,gpa: float}
+
+DUMP A;
+(John,18,4.0F)
+(Mary,19,3.8F)
+(Bill,20,3.9F)
+(Joe,18,3.8F)
+</programlisting>
+   
    <para>In this example field "gpa" will default to bytearray because no type is declared. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat student</para>
-               <para>John    18      4.0</para>
-               <para>Mary    19      3.8</para>
-               <para>Bill       20      3.9</para>
-               <para>Joe      18      3.8</para>
-               <para/>
-               <para>A = LOAD 'data' AS (name:chararray, age:int, gpa)</para>
-               <para/>
-               <para>DESCRIBE A;</para>
-               <para>A: {name: chararray,age: int,gpa: bytearray}</para>
-               <para/>
-               <para>DUMP A;</para>
-               <para>(John,18,4.0)</para>
-               <para>(Mary,19,3.8)</para>
-               <para>(Bill,20,3.9)</para>
-               <para>(Joe,18,3.8)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+cat student;
+John	18	4.0
+Mary	19	3.8
+Bill	20	3.9
+Joe	18	3.8
+
+A = LOAD 'data' AS (name:chararray, age:int, gpa);
+
+DESCRIBE A;
+A: {name: chararray,age: int,gpa: bytearray}
+
+DUMP A;
+(John,18,4.0)
+(Mary,19,3.8)
+(Bill,20,3.9)
+(Joe,18,3.8)
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>Schemas for Complex Data Types</title>
@@ -1787,48 +1771,43 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section><title>Examples</title>
    <para>In this example the schema defines one tuple. The load statements are equivalent.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data</para>
-               <para>(3,8,9)</para>
-               <para>(1,4,7)</para>
-               <para>(2,5,8)</para>
-               <para/>
-               <para>A = LOAD 'data' AS (T: tuple (f1:int, f2:int, f3:int));</para>
-               <para>A = LOAD 'data' AS (T: (f1:int, f2:int, f3:int));</para>
-               <para/>
-               <para>DESCRIBE A;</para>
-               <para>A: {T: (f1: int,f2: int,f3: int)}</para>
-               <para/>
-               <para>DUMP A;</para>
-               <para>((3,8,9))</para>
-               <para>((1,4,7))</para>
-               <para>((2,5,8))</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+
+ <programlisting>
+cat data;
+(3,8,9)
+(1,4,7)
+(2,5,8)
+
+A = LOAD 'data' AS (T: tuple (f1:int, f2:int, f3:int));
+A = LOAD 'data' AS (T: (f1:int, f2:int, f3:int));
+
+DESCRIBE A;
+A: {T: (f1: int,f2: int,f3: int)}
+
+DUMP A;
+((3,8,9))
+((1,4,7))
+((2,5,8))
+</programlisting>
+   
    <para>In this example the schema defines two tuples.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data</para>
-               <para>(3,8,9) (mary,19)</para>
-               <para>(1,4,7) (john,18)</para>
-               <para>(2,5,8) (joe,18)</para>
-               <para/>
-               <para>A = LOAD data AS (F:tuple(f1:int,f2:int,f3:int),T:tuple(t1:chararray,t2:int));</para>
-               <para/>
-               <para>DESCRIBE A;</para>
-               <para>A: {F: (f1: int,f2: int,f3: int),T: (t1: chararray,t2: int)}</para>
-               <para/>
-               <para>DUMP A;</para>
-               <para>((3,8,9),(mary,19))</para>
-               <para>((1,4,7),(john,18))</para>
-               <para>((2,5,8),(joe,18))</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+cat data;
+(3,8,9) (mary,19)
+(1,4,7) (john,18)
+(2,5,8) (joe,18)
+
+A = LOAD data AS (F:tuple(f1:int,f2:int,f3:int),T:tuple(t1:chararray,t2:int));
+
+DESCRIBE A;
+A: {F: (f1: int,f2: int,f3: int),T: (t1: chararray,t2: int)}
+
+DUMP A;
+((3,8,9),(mary,19))
+((1,4,7),(john,18))
+((2,5,8),(joe,18))
+</programlisting>
+   </section></section>
    
    <section>
    <title>Bag Schema</title>
@@ -1884,27 +1863,24 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>In this example the schema defines a bag. The two load statements are equivalent.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data;</para>
-               <para>{(3,8,9)}</para>
-               <para>{(1,4,7)}</para>
-               <para>{(2,5,8)}</para>
-               <para/>
-               <para>A = LOAD 'data' AS (B: bag {T: tuple(t1:int, t2:int, t3:int)});</para>
-               <para>A = LOAD 'data' AS (B: {T: (t1:int, t2:int, t3:int)});</para>
-               <para/>
-               <para>DESCRIBE A:</para>
-               <para>A: {B: {T: (t1: int,t2: int,t3: int)}}</para>
-               <para/>
-               <para>DUMP A;</para>
-               <para>({(3,8,9)})</para>
-               <para>({(1,4,7)})</para>
-               <para>({(2,5,8)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+cat data;
+{(3,8,9)}
+{(1,4,7)}
+{(2,5,8)}
+
+A = LOAD 'data' AS (B: bag {T: tuple(t1:int, t2:int, t3:int)});
+A = LOAD 'data' AS (B: {T: (t1:int, t2:int, t3:int)});
+
+DESCRIBE A:
+A: {B: {T: (t1: int,t2: int,t3: int)}}
+
+DUMP A;
+({(3,8,9)})
+({(1,4,7)})
+({(2,5,8)})
+</programlisting>
+   </section></section>
    
    <section>
    <title>Map Schema</title>
@@ -1951,25 +1927,22 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section><title>Example</title>
    <para>In this example the schema defines a map. The load statements are equivalent.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data</para>
-               <para>[open#apache]</para>
-               <para>[apache#hadoop]</para>
-               <para/>
-               <para>A = LOAD 'data' AS (M:map []);</para>
-               <para>A = LOAD 'data' AS (M:[]);</para>
-               <para/>
-               <para>DESCRIBE A;</para>
-               <para>a: {M: map[ ]}</para>
-               <para/>
-               <para>DUMP A;</para>
-               <para>([open#apache])</para>
-               <para>([apache#hadoop])</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+cat data;
+[open#apache]
+[apache#hadoop]
+
+A = LOAD 'data' AS (M:map []);
+A = LOAD 'data' AS (M:[]);
+
+DESCRIBE A;
+a: {M: map[ ]}
+
+DUMP A;
+([open#apache])
+([apache#hadoop])
+</programlisting>
+    </section></section>
    
    <section>
    <title>Schemas for Multiple Types</title>
@@ -1978,14 +1951,13 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example the schema defines a tuple, bag, and map.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'mydata' AS (T1:tuple(f1:int, f2:int), B:bag{T2:tuple(t1:float,t2:float)}, M:map[] ); </para>
-               <para>A = LOAD 'mydata' AS (T1:(f1:int, f2:int), B:{T2:(t1:float,t2:float)}, M:[] ); </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section></section>
+<programlisting>
+A = LOAD 'mydata' AS (T1:tuple(f1:int, f2:int), B:bag{T2:tuple(t1:float,t2:float)}, M:map[] );
+
+A = LOAD 'mydata' AS (T1:(f1:int, f2:int), B:{T2:(t1:float,t2:float)}, M:[] );
+</programlisting>
+   
+   </section></section></section>
    
    <section>
    <title>Parameter Substitution</title>
@@ -2198,129 +2170,96 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example: Specifying parameters in the command line</title>
    <para>Suppose we have a data file called 'mydata' and a pig script called 'myscript.pig'.</para>
-   <itemizedlist>
-      <listitem>
-         <para>mydata </para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>1       2       3</para>
-               <para>4       2       1</para>
-               <para>8       3       4</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <itemizedlist>
-      <listitem>
-         <para>myscript.pig</para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD '$data' USING PigStorage() AS (f1:int, f2:int, f3:int);</para>
-               <para>DUMP A;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example the parameter (data) and the parameter value (mydata) are specified in the command line. If the parameter name in the command line (data) and the parameter name in the script ($data) do not match, the script will not run. If the value for the parameter (mydata) is not found, an error is generated.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>$ pig –param data=mydata myscript.pig</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+
+<para>mydata </para>
+<programlisting>
+1       2       3
+4       2       1
+8       3       4
+</programlisting>
+ 
+ <para>myscript.pig</para>
+<programlisting>
+A = LOAD '$data' USING PigStorage() AS (f1:int, f2:int, f3:int);
+DUMP A;
+</programlisting>
+
+<para>In this example the parameter (data) and the parameter value (mydata) are specified in the command line. If the parameter name in the command line (data) and the parameter name in the script ($data) do not match, the script will not run. If the value for the parameter (mydata) is not found, an error is generated.</para>
+<programlisting>
+$ pig –param data=mydata myscript.pig
+
+(1,2,3)
+(4,2,1)
+(8,3,4)
+</programlisting>
+   
+   </section>
    
    <section>
-   <title>Example: Specifying parameters using a parameter file</title><para>Suppose we have a parameter file called 'myparams.'</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para># my parameters</para>
-               <para>data1 = mydata1</para>
-               <para>cmd = `generate_name`</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+   <title>Example: Specifying parameters using a parameter file</title>
+   <para>Suppose we have a parameter file called 'myparams.'</para>
+<programlisting>
+# my parameters
+data1 = mydata1
+cmd = `generate_name`
+</programlisting>
+
+   
    <para>In this example the parameters and values are passed to the script using the parameter file.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>$ pig –param_file myparams script2.pig</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+$ pig –param_file myparams script2.pig
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Specifying parameters using the declare statement</title>
    <para>In this example the command is executed and its stdout is used as the parameter value.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>%declare CMD `generate_date`</para>
-               <para>A = LOAD '/data/mydata/$CMD';</para>
-               <para>B = FILTER A BY $0&gt;'5';</para>
-               <para>etc …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+%declare CMD `generate_date`;
+A = LOAD '/data/mydata/$CMD';
+B = FILTER A BY $0>'5';
+
+<emphasis>etc...</emphasis></programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Specifying parameters using the default statement</title>
    <para>In this example the parameter (DATE) and value ('20090101') are specified in the Pig script using the default statement. If a value for DATE is not specified elsewhere, the default value 20090101 is used.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>%default DATE '20090101';</para>
-               <para>A = load '/data/mydata/$DATE';</para>
-               <para>etc …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+%default DATE '20090101';
+A = load '/data/mydata/$DATE';
+
+<emphasis>etc...</emphasis></programlisting>
+
    </section>
    
    <section>
    <title>Examples: Specifying parameter values as a sequence of characters</title>
    <para>In this example the characters (in this case, Joe's URL) can be enclosed in single or double quotes, and quotes within the sequence of characters can be escaped. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>%declare DES 'Joe\'s URL';</para>
-               <para>A = LOAD 'data' AS (name, description, url);</para>
-               <para>B = FILTER A BY description == '$DES';</para>
-               <para>etc …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+%declare DES 'Joe\'s URL';
+A = LOAD 'data' AS (name, description, url);
+B = FILTER A BY description == '$DES';
+ 
+<emphasis>etc...</emphasis></programlisting>
+   
    <para>In this example single word values that don't use special characters (in this case, mydata) don't have to be enclosed in quotes.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>$ pig –param data=mydata myscript.pig</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   </section>
+<programlisting>
+$ pig –param data=mydata myscript.pig
+</programlisting>   
+</section>
    
    <section>
    <title>Example: Specifying parameter values as a command</title>
    <para>In this example the command is enclosed in back ticks. First, the parameters mycmd and date are substituted when the declare statement is encountered. Then the resulting command is executed and its stdout is placed in the path before the load statement is run.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>%declare CMD `$mycmd $date`</para>
-               <para>A = LOAD '/data/mydata/$CMD';</para>
-               <para>B = FILTER A BY $0&gt;'5';</para>
-               <para>etc …</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+%declare CMD `$mycmd $date`;
+A = LOAD '/data/mydata/$CMD';
+B = FILTER A BY $0>'5';
+ 
+<emphasis>etc...</emphasis></programlisting>
    </section>
    </section>
    </section>
@@ -2417,47 +2356,39 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   
+
    <section>
    <title>Examples </title>
    <para>Suppose we have relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int, f2:int, B:bag{T:tuple(t1:int,t2:int)});</para>
-               <para>DUMP A;</para>
-               <para>(10,1,{(2,3),(4,6)})</para>
-               <para>(10,3,{(2,3),(4,6)})</para>
-               <para>(10,6,{(2,3),(4,6),(5,7)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' AS (f1:int, f2:int, B:bag{T:tuple(t1:int,t2:int)});
+
+DUMP A;
+(10,1,{(2,3),(4,6)})
+(10,3,{(2,3),(4,6)})
+(10,6,{(2,3),(4,6),(5,7)})
+</programlisting>
+
+  <para>In this example the modulo operator is used with fields f1 and f2.</para>
+<programlisting>
+X = FOREACH A GENERATE f1, f2, f1%f2;
+
+DUMP X;
+(10,1,0)
+(10,3,1)
+(10,6,4)
+</programlisting>
    
-   <section>
-   <title>In this example the modulo operator is used with fields f1 and f2.</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f1, f2, f1%f2;</para>
-               <para>DUMP X;</para>
-               <para>(10,1,0)</para>
-               <para>(10,3,1)</para>
-               <para>(10,6,4)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
    <para>In this example the bincond operator is used with fields f2 and B. The condition is "f2 equals 1"; if the condition is true, return 1; if the condition is false, return the count of the number of tuples in B.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f2, (f2==1?1:COUNT(B));</para>
-               <para>DUMP X;</para>
-               <para>(1,1L)</para>
-               <para>(3,2L)</para>
-               <para>(6,3L)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH A GENERATE f2, (f2==1?1:COUNT(B));
+
+DUMP X;
+(1,1L)
+(3,2L)
+(6,3L)
+</programlisting>
+   </section>
    
    <section>
    <title> Types Table: addition (+) and subtraction (-) operators</title>
@@ -2790,7 +2721,8 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
                <para>cast as double </para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Types Table: multiplication (*) and division (/) operators</title>
@@ -3126,7 +3058,8 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
                <para>cast as double  </para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Types Table: modulo (%) operator</title>
@@ -3190,7 +3123,8 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
                <para>error </para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section></section></section>
+   </informaltable>
+   </section></section></section>
    
    <section>
    <title>Comparison Operators</title>
@@ -3290,33 +3224,24 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section>
    <title>Example: numeric</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY (f1 == 8);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FILTER A BY (f1 == 8);
+</programlisting>
+   </section>
    
    <section>
    <title>Example: string</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY (f2 == 'apache');</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FILTER A BY (f2 == 'apache');
+</programlisting>
+   </section>
    
    <section>
    <title>Example: matches</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY (f1 matches '.*apache.*');</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FILTER A BY (f1 matches '.*apache.*');
+</programlisting>
+   </section>
    
    <section>
    <title>Types Table: equal (==) and not equal (!=) operators</title>
@@ -4066,13 +3991,10 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section>
    <title>Example</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY f1 is not null;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = FILTER A BY f1 is not null;
+</programlisting>
+   </section></section>
    
    <section>
    <title>Types Table</title>
@@ -4133,13 +4055,11 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section>
    <title>Example</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section></section>
+<programlisting>
+X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
+</programlisting>
+   
+   </section></section></section>
    
    <section>
    <title>Dereference Operators</title>
@@ -4206,177 +4126,149 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    </itemizedlist>
    
    <section>
-   <title>Example: Tuple</title><itemizedlist>
-      <listitem>
-         <para>Suppose we have relation A.</para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>LOAD 'data' as (f1:int, f2:tuple(t1:int,t2:int,t3:int));</para>
-               <para>DUMP A;</para>
-               <para>(1,(1,2,3))</para>
-               <para>(2,(4,5,6))</para>
-               <para>(3,(7,8,9))</para>
-               <para>(4,(1,4,7))</para>
-               <para>(5,(2,5,8))</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+   <title>Example: Tuple</title>
+   <para>Suppose we have relation A.</para>
+
+<programlisting>
+LOAD 'data' as (f1:int, f2:tuple(t1:int,t2:int,t3:int));
+
+DUMP A;
+(1,(1,2,3))
+(2,(4,5,6))
+(3,(7,8,9))
+(4,(1,4,7))
+(5,(2,5,8))
+</programlisting>
+   
    <para>In this example dereferencing is used to retrieve two fields from tuple f2.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f2.t1,f2.t3;</para>
-               <para>DUMP X;</para>
-               <para>(1,3)</para>
-               <para>(4,6)</para>
-               <para>(7,9)</para>
-               <para>(1,7)</para>
-               <para>(2,8)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH A GENERATE f2.t1,f2.t3;
+
+DUMP X;
+(1,3)
+(4,6)
+(7,9)
+(1,7)
+(2,8)
+</programlisting>
    </section>
    
    <section>
    <title>Example: Bag</title>
    <para>Suppose we have relation B, formed by grouping relation A (see the GROUP operator for information about the field names in relation B).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int, f2:int,f3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = GROUP A BY f1;</para>
-               <para>DUMP B;</para>
-               <para>(1,{(1,2,3)})</para>
-               <para>(4,{(4,2,1),(4,3,3)})</para>
-               <para>(7,{(7,2,5)})</para>
-               <para>(8,{(8,3,4),(8,4,3)})</para>
-               <para/>
-               <para>ILLUSTRATE B;</para>
-               <para>etc …</para>
-               <para>----------------------------------------------------------</para>
-               <para>| b   | group: int | a: bag({f1: int,f2: int,f3: int}) |</para>
-               <para>----------------------------------------------------------</para>
-               <para>|       | 8            | {(8, 3, 4), (8, 4, 3)}              |</para>
-               <para>----------------------------------------------------------</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example dereferencing is used with relation X to project the first field (f1) of each tuple in the bag (a).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH B GENERATE a.f1;</para>
-               <para>DUMP X;</para>
-               <para>({(1)})</para>
-               <para>({(4),(4)})</para>
-               <para>({(7)})</para>
-               <para>({(8),(8)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' AS (f1:int, f2:int,f3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = GROUP A BY f1;
+
+DUMP B;
+(1,{(1,2,3)})
+(4,{(4,2,1),(4,3,3)})
+(7,{(7,2,5)})
+(8,{(8,3,4),(8,4,3)})
+
+ILLUSTRATE B;
+<emphasis>etc …</emphasis>
+----------------------------------------------------------
+| b   | group: int | a: bag({f1: int,f2: int,f3: int}) |
+----------------------------------------------------------
+</programlisting>
+   
+<para>In this example dereferencing is used with relation X to project the first field (f1) of each tuple in the bag (a).</para>
+<programlisting>
+X = FOREACH B GENERATE a.f1;
+
+DUMP X;
+({(1)})
+({(4),(4)})
+({(7)})
+({(8),(8)})
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Tuple and Bag</title>
-   <itemizedlist>
-      <listitem>
-         <para>Suppose we have relation B, formed by grouping relation A  (see the GROUP operator for information about the field names in relation B).</para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int, f2:int, f3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = GROUP A BY (f1,f2);</para>
-               <para>DUMP B;</para>
-               <para>((1,2),{(1,2,3)})</para>
-               <para>((4,2),{(4,2,1)})</para>
-               <para>((4,3),{(4,3,3)})</para>
-               <para>((7,2),{(7,2,5)})</para>
-               <para>((8,3),{(8,3,4)})</para>
-               <para>((8,4),{(8,4,3)})</para>
-               <para/>
-               <para>ILLUSTRATE B;</para>
-               <para>etc …</para>
-               <para>-------------------------------------------------------------------------------</para>
-               <para>| b     | group: tuple({f1: int,f2: int}) | a: bag({f1: int,f2: int,f3: int}) |</para>
-               <para>-------------------------------------------------------------------------------</para>
-               <para>|       | (8, 3)                                | {(8, 3, 4), (8, 3, 4)}              |</para>
-               <para>-------------------------------------------------------------------------------</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+    <para>Suppose we have relation B, formed by grouping relation A  (see the GROUP operator for information about the field names in relation B).</para>
+
+   
+<programlisting>
+A = LOAD 'data' AS (f1:int, f2:int, f3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = GROUP A BY (f1,f2);
+
+DUMP B;
+((1,2),{(1,2,3)})
+((4,2),{(4,2,1)})
+((4,3),{(4,3,3)})
+((7,2),{(7,2,5)})
+((8,3),{(8,3,4)})
+((8,4),{(8,4,3)})
+
+ILLUSTRATE B;
+<emphasis>etc …</emphasis>
+-------------------------------------------------------------------------------
+| b     | group: tuple({f1: int,f2: int}) | a: bag({f1: int,f2: int,f3: int}) |
+-------------------------------------------------------------------------------
+|       | (8, 3)                                | {(8, 3, 4), (8, 3, 4)} |
+-------------------------------------------------------------------------------
+</programlisting>   
+   
    <para>In this example dereferencing is used to project a field (f1) from a tuple (group) and a field (f1) from a bag (a).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH B GENERATE group.f1, a.f1;</para>
-               <para>DUMP X;</para>
-               <para>(1,{(1)})</para>
-               <para>(4,{(4)})</para>
-               <para>(4,{(4)})</para>
-               <para>(7,{(7)})</para>
-               <para>(8,{(8)})</para>
-               <para>(8,{(8)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH B GENERATE group.f1, a.f1;
+
+DUMP X;
+(1,{(1)})
+(4,{(4)})
+(4,{(4)})
+(7,{(7)})
+(8,{(8)})
+(8,{(8)})
+</programlisting>
+   </section>
    
    <section>
    <title>Example: Map</title>
-   <itemizedlist>
-      <listitem>
-         <para>Suppose we have relation A. </para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int, f2:map[]);</para>
-               <para>DUMP A;</para>
-               <para>(1,[open#apache])</para>
-               <para>(2,[apache#hadoop])</para>
-               <para>(3,[hadoop#pig])</para>
-               <para>(4,[pig#grunt])</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <itemizedlist>
-      <listitem>
-         <para/>
-         <para>In this example dereferencing is used to look up the value of key 'open'.</para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f2#'open';</para>
-               <para>DUMP X;</para>
-               <para>(apache)</para>
-               <para>()</para>
-               <para>()</para>
-               <para>()</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+   <para>Suppose we have relation A. </para>
+
+<programlisting>
+A = LOAD 'data' AS (f1:int, f2:map[]);
+
+DUMP A;
+(1,[open#apache])
+(2,[apache#hadoop])
+(3,[hadoop#pig])
+(4,[pig#grunt])
+</programlisting>
+
+   <para>In this example dereferencing is used to look up the value of key 'open'.</para>
+
+<programlisting>
+X = FOREACH A GENERATE f2#'open';
+
+DUMP X;
+(apache)
+()
+()
+()
+</programlisting>
   </section></section></section>
    
    <section>
@@ -4422,14 +4314,13 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section>
    <title>Example</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' as (x, y, z);</para>
-               <para>B = FOREACH A GENERATE -x, y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' as (x, y, z);
+
+B = FOREACH A GENERATE -x, y;
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Types Table: negation ( - ) operator</title>
@@ -4948,123 +4839,127 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>In this example an int is cast to type chararray (see relation X).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = GROUP A BY f1;</para>
-               <para>DUMP B;</para>
-               <para>(1,{(1,2,3)})</para>
-               <para>(4,{(4,2,1),(4,3,3)})</para>
-               <para>(7,{(7,2,5)})</para>
-               <para>(8,{(8,3,4),(8,4,3)})</para>
-               <para/>
-               <para>DESCRIBE B;</para>
-               <para>B: {group: int,A: {f1: int,f2: int,f3: int}}</para>
-               <para/>
-               <para>X = FOREACH B GENERATE group, (chararray)COUNT(A) AS total;</para>
-               <para>(1,1)</para>
-               <para>(4,2)</para>
-               <para>(7,1)</para>
-               <para>(8,2)</para>
-               <para/>
-               <para>DESCRIBE X;</para>
-               <para>X: {group: int,total: chararray}</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example a bytearray (fld in relation A) is cast to type tuple.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para/>
-               <para>A = LOAD 'data' AS fld:bytearray;</para>
-               <para>DESCRIBE A;</para>
-               <para>a: {fld: bytearray}</para>
-               <para>DUMP A;</para>
-               <para>((1,2,3))</para>
-               <para>((4,2,1))</para>
-               <para>((8,3,4))</para>
-               <para/>
-               <para>B = FOREACH A GENERATE (tuple(int,int,float))fld;</para>
-               <para>DESCRIBE B;</para>
-               <para>b: {(int,int,float)}</para>
-               <para>DUMP B;</para>
-               <para>((1,2,3))</para>
-               <para>((4,2,1))</para>
-               <para>((8,3,4))</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (f1:int,f2:int,f3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = GROUP A BY f1;
+
+DUMP B;
+(1,{(1,2,3)})
+(4,{(4,2,1),(4,3,3)})
+(7,{(7,2,5)})
+(8,{(8,3,4),(8,4,3)})
+
+DESCRIBE B;
+B: {group: int,A: {f1: int,f2: int,f3: int}}
+
+X = FOREACH B GENERATE group, (chararray)COUNT(A) AS total;
+(1,1)
+(4,2)
+(7,1)
+(8,2)
+
+DESCRIBE X;
+X: {group: int,total: chararray}
+</programlisting>
+   
+   
+<para>In this example a bytearray (fld in relation A) is cast to type tuple.</para>
+<programlisting>
+cat data;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+
+A = LOAD 'data' AS fld:bytearray;
+
+DESCRIBE A;
+a: {fld: bytearray}
+
+DUMP A;
+((1,2,3))
+((4,2,1))
+((8,3,4))
+
+B = FOREACH A GENERATE (tuple(int,int,float))fld;
+
+DESCRIBE B;
+b: {(int,int,float)}
+
+DUMP B;
+((1,2,3))
+((4,2,1))
+((8,3,4))
+</programlisting>
+   
    <para>In this example a bytearray (fld in relation A) is cast to type bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data</para>
-               <para>{(4829090493980522200L)}</para>
-               <para>{(4893298569862837493L)}</para>
-               <para>{(1297789302897398783L)}</para>
-               <para/>
-               <para>A = LOAD 'data' AS fld:bytearray;</para>
-               <para>DESCRIBE A;</para>
-               <para>A: {fld: bytearray}</para>
-               <para>DUMP A;</para>
-               <para>({(4829090493980522200L)})</para>
-               <para>({(4893298569862837493L)})</para>
-               <para>({(1297789302897398783L)})</para>
-               <para/>
-               <para>B = FOREACH A GENERATE (bag{tuple(long)})fld; </para>
-               <para>DESCRIBE B;</para>
-               <para>B: {{(long)}}</para>
-               <para>DUMP B;</para>
-               <para>({(4829090493980522200L)})</para>
-               <para>({(4893298569862837493L)})</para>
-               <para>({(1297789302897398783L)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+cat data;
+{(4829090493980522200L)}
+{(4893298569862837493L)}
+{(1297789302897398783L)}
+
+A = LOAD 'data' AS fld:bytearray;
+
+DESCRIBE A;
+A: {fld: bytearray}
+
+DUMP A;
+({(4829090493980522200L)})
+({(4893298569862837493L)})
+({(1297789302897398783L)})
+
+B = FOREACH A GENERATE (bag{tuple(long)})fld; 
+
+DESCRIBE B;
+B: {{(long)}}
+
+DUMP B;
+({(4829090493980522200L)})
+({(4893298569862837493L)})
+({(1297789302897398783L)})
+</programlisting>
+
+
    <para>In this example a bytearray (fld in relation A) is cast to type map.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>cat data</para>
-               <para>[open#apache]</para>
-               <para>[apache#hadoop]</para>
-               <para>[hadoop#pig]</para>
-               <para>[pig#grunt]</para>
-               <para/>
-               <para>A = LOAD 'data' AS fld:bytearray;</para>
-               <para>DESCRIBE A;</para>
-               <para>A: {fld: bytearray}</para>
-               <para>DUMP A;</para>
-               <para>([open#apache])</para>
-               <para>([apache#hadoop])</para>
-               <para>([hadoop#pig])</para>
-               <para>([pig#grunt])</para>
-               <para/>
-               <para>B = FOREACH A GENERATE ((map[])fld;</para>
-               <para>DESCRIBE B;</para>
-               <para>B: {map[ ]}</para>
-               <para>DUMP B;</para>
-               <para>([open#apache])</para>
-               <para>([apache#hadoop])</para>
-               <para>([hadoop#pig])</para>
-               <para>([pig#grunt])</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+cat data;
+[open#apache]
+[apache#hadoop]
+[hadoop#pig]
+[pig#grunt]
+
+A = LOAD 'data' AS fld:bytearray;
+
+DESCRIBE A;
+A: {fld: bytearray}
+
+DUMP A;
+([open#apache])
+([apache#hadoop])
+([hadoop#pig])
+([pig#grunt])
+
+B = FOREACH A GENERATE ((map[])fld;
+
+DESCRIBE B;
+B: {map[ ]}
+
+DUMP B;
+([open#apache])
+([apache#hadoop])
+([hadoop#pig])
+([pig#grunt])
+</programlisting>
+   
 </section></section></section> 
 </section>
 
@@ -5162,69 +5057,60 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>Suppose we have two relations, A and B.</para>
-   <informaltable  frame="all">
-      <tgroup  cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data1' AS (owner:chararray,pet:chararray);</para>
-               <para>DUMP A;</para>
-               <para>(Alice,turtle)</para>
-               <para>(Alice,goldfish)</para>
-               <para>(Alice,cat)</para>
-               <para>(Bob,dog)</para>
-               <para>(Bob,cat)</para>
-               <para/>
-               <para>B = LOAD 'data2' AS (friend1:chararray,friend2:chararray);</para>
-               <para>DUMP B;</para>
-               <para>(Cindy,Alice)</para>
-               <para>(Mark,Alice)</para>
-               <para>(Paul,Bob)</para>
-               <para>(Paul,Jane)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data1' AS (owner:chararray,pet:chararray);
+
+DUMP A;
+(Alice,turtle)
+(Alice,goldfish)
+(Alice,cat)
+(Bob,dog)
+(Bob,cat)
+
+B = LOAD 'data2' AS (friend1:chararray,friend2:chararray);
+
+DUMP B;
+(Cindy,Alice)
+(Mark,Alice)
+(Paul,Bob)
+(Paul,Jane)
+</programlisting>
+   
    <para>In this example tuples are co-grouped using field “owner” from relation A and field “friend2” from relation B as the key fields. The DESCRIBE operator shows the schema for relation X, which has two fields, "group" and "A" (see the GROUP operator for information about the field names).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = COGROUP A BY owner, B BY friend2;</para>
-               <para>DESCRIBE X;</para>
-               <para>X: {group: chararray,A: {owner: chararray,pet: chararray},b: {firend1: chararray,friend2: chararray}}</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = COGROUP A BY owner, B BY friend2;
+
+DESCRIBE X;
+X: {group: chararray,A: {owner: chararray,pet: chararray},b: {firend1: chararray,friend2: chararray}}
+</programlisting>
+   
    <para>Relation X looks like this. A tuple is created for each unique key field. The tuple includes the key field and two bags. The first bag is the tuples from the first relation with the matching key field. The second bag is the tuples from the second relation with the matching key field. If no tuples match the key field, the bag is empty.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})</para>
-               <para>(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})</para>
-               <para>(Jane,{},{(Paul,Jane)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
+(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
+(Jane,{},{(Paul,Jane)})
+</programlisting>
+   
    <para>In this example tuples are co-grouped and the INNER keyword is used to ensure that only bags with at least one tuple are returned. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = COGROUP A BY owner INNER, B BY friend2 INNER;</para>
-               <para>DUMP X;</para>
-               <para>(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})</para>
-               <para>(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = COGROUP A BY owner INNER, B BY friend2 INNER;
+
+DUMP X;
+(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
+(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
+</programlisting>
+   
    <para>In this example tuples are co-grouped and the INNER keyword is used asymmetrically on only one of the relations.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = COGROUP A BY owner, B BY friend2 INNER;</para>
-               <para>DUMP X;</para>
-               <para>(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})</para>
-               <para>(Jane,{},{(Paul,Jane)})</para>
-               <para>(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = COGROUP A BY owner, B BY friend2 INNER;
+
+DUMP X;
+(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
+(Jane,{},{(Paul,Jane)})
+(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>CROSS</title>
@@ -5282,37 +5168,35 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>Suppose we have relations A and B.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data1' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para/>
-               <para>B = LOAD 'data2' AS (b1:int,b2:int);</para>
-               <para>DUMP B;</para>
-               <para>(2,4)</para>
-               <para>(8,9)</para>
-               <para>(1,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example the cross product of relation A and B is computed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = CROSS A, B;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3,2,4)</para>
-               <para>(1,2,3,8,9)</para>
-               <para>(1,2,3,1,3)</para>
-               <para>(4,2,1,2,4)</para>
-               <para>(4,2,1,8,9)</para>
-               <para>(4,2,1,1,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+A = LOAD 'data1' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+
+B = LOAD 'data2' AS (b1:int,b2:int);
+
+DUMP B;
+(2,4)
+(8,9)
+(1,3)
+</programlisting>
+   
+<para>In this example the cross product of relation A and B is computed.</para>
+<programlisting>
+X = CROSS A, B;
+
+DUMP X;
+(1,2,3,2,4)
+(1,2,3,8,9)
+(1,2,3,1,3)
+(4,2,1,2,4)
+(4,2,1,8,9)
+(4,2,1,1,3)
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>DISTINCT </title>
@@ -5369,31 +5253,28 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>Suppose we have relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(8,3,4)</para>
-               <para>(1,2,3)        </para>
-               <para>(4,3,3)        </para>
-               <para>(4,3,3)        </para>
-               <para>(1,2,3)        </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(8,3,4)
+(1,2,3)        
+(4,3,3)        
+(4,3,3)        
+(1,2,3) 
+</programlisting>
+   
    <para>In this example all duplicate tuples are removed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = DISTINCT A;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,3,3)</para>
-               <para>(8,3,4)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = DISTINCT A;
+
+DUMP X;
+(1,2,3)
+(4,3,3)
+(8,3,4)
+</programlisting>
+
+   </section></section>
    
    <section>
    <title>DUMP</title>
@@ -5429,25 +5310,24 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example a dump is performed after each statement.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name:chararray, age:int, gpa:float);</para>
-               <para>DUMP A;</para>
-               <para>(John,18,4.0F)</para>
-               <para>(Mary,19,3.7F)</para>
-               <para>(Bill,20,3.9F)</para>
-               <para>(Joe,22,3.8F)</para>
-               <para>(Jill,20,4.0F)</para>
-               <para/>
-               <para>B = FILTER A BY name matches 'J.+';</para>
-               <para>DUMP B;</para>
-               <para>(John,18,4.0F)</para>
-               <para>(Joe,22,3.8F)</para>
-               <para>(Jill,20,4.0F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+DUMP A;
+(John,18,4.0F)
+(Mary,19,3.7F)
+(Bill,20,3.9F)
+(Joe,22,3.8F)
+(Jill,20,4.0F)
+
+B = FILTER A BY name matches 'J.+';
+
+DUMP B;
+(John,18,4.0F)
+(Joe,22,3.8F)
+(Jill,20,4.0F)
+</programlisting>
+</section></section>
    
    <section>
    <title>FILTER </title>
@@ -5500,45 +5380,40 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>Suppose we have relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+</programlisting>
+   
    <para>In this example the condition states that if the third field equals 3, then include the tuple with relation X.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY f3 == 3;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,3,3)</para>
-               <para>(8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example the condition states that if the first field equals 8 or if the sum of fields f2 and f3 is not greater than first field, then include the tuple relation X.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FILTER A BY (f1 == 8) OR (NOT (f2+f3 &gt; f1));</para>
-               <para>DUMP X;</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = FILTER A BY f3 == 3;
+
+DUMP X;
+(1,2,3)
+(4,3,3)
+(8,4,3)
+</programlisting>
+   
+<para>In this example the condition states that if the first field equals 8 or if the sum of fields f2 and f3 is not greater than first field, then include the tuple relation X.</para>
+<programlisting>
+X = FILTER A BY (f1 == 8) OR (NOT (f2+f3 > f1));
+
+DUMP X;
+(4,2,1)
+(8,3,4)
+(7,2,5)
+(8,4,3)
+</programlisting>
+
+   </section></section>
    
    <section>
    <title>FOREACH … GENERATE</title>
@@ -5646,266 +5521,243 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Usage</title>
    <para>Use the FOREACH …GENERATE operation to work with columns of data (if you want to work with tuples or rows of data, use the FILTER operation).</para>
+  
    <para>FOREACH …GENERATE works with relations (outer bags) as well as inner bags:</para>
    <itemizedlist>
       <listitem>
          <para>If A is a relation (outer bag), a FOREACH statement could look like this.</para>
+<programlisting>
+X = FOREACH A GENERATE f1;
+</programlisting>
       </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f1;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <itemizedlist>
       <listitem>
          <para>If A is an inner bag, a FOREACH statement could look like this.</para>
+  <programlisting>
+X = FOREACH B {
+        S = FILTER A BY 'xyz';
+        GENERATE COUNT (S.$0);
+}
+</programlisting>
       </listitem>
    </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH B {</para>
-               <para>        S = FILTER A BY 'xyz';</para>
-               <para>        GENERATE COUNT (S.$0);</para>
-               <para>}</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+   </section>
    
    <section>
    <title>Examples</title>
    <para>Suppose we have relations A, B, and C (see the GROUP operator for information about the field names in relation C).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data1' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = LOAD 'data2' AS (b1:int,b2:int);</para>
-               <para>DUMP B;</para>
-               <para>(2,4)</para>
-               <para>(8,9)</para>
-               <para>(1,3)</para>
-               <para>(2,7)</para>
-               <para>(2,9)</para>
-               <para>(4,6)</para>
-               <para>(4,9)</para>
-               <para/>
-               <para>C = COGROUP A BY a1 inner, B BY b1 inner;</para>
-               <para>DUMP C;</para>
-               <para>(1,{(1,2,3)},{(1,3)})</para>
-               <para>(4,{(4,2,1),(4,3,3)},{(4,6),(4,9)})</para>
-               <para>(8,{(8,3,4),(8,4,3)},{(8,9)})</para>
-               <para/>
-               <para>ILLUSTRATE C;</para>
-               <para>etc …</para>
-               <para>--------------------------------------------------------------------------------------</para>
-               <para>| c     | group: int | a: bag({a1: int,a2: int,a3: int}) | B: bag({b1: int,b2: int}) |</para>
-               <para>--------------------------------------------------------------------------------------</para>
-               <para>|       | 1          | {(1, 2, 3)}                       | {(1, 3)}                  |</para>
-               <para>--------------------------------------------------------------------------------------</para>
-               <para/>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para/></section>
+<programlisting>
+A = LOAD 'data1' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = LOAD 'data2' AS (b1:int,b2:int);
+
+DUMP B;
+(2,4)
+(8,9)
+(1,3)
+(2,7)
+(2,9)
+(4,6)
+(4,9)
+
+C = COGROUP A BY a1 inner, B BY b1 inner;
+
+DUMP C;
+(1,{(1,2,3)},{(1,3)})
+(4,{(4,2,1),(4,3,3)},{(4,6),(4,9)})
+(8,{(8,3,4),(8,4,3)},{(8,9)})
+
+ILLUSTRATE C;
+<emphasis>etc …</emphasis>
+--------------------------------------------------------------------------------------
+| c     | group: int | a: bag({a1: int,a2: int,a3: int}) | B: bag({b1: int,b2: int}) |
+--------------------------------------------------------------------------------------
+|       | 1          | {(1, 2, 3)}                       | {(1, 3)}                  |
+-------------------------------------------------------------------------------------
+</programlisting>
+</section>
    
    <section>
    <title>Example: Projection</title>
    <para>In this example the asterisk (*) is used to project all tuples from relation A to relation X. Relation A and X are identical.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE *;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH A GENERATE *;
+
+DUMP X;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+</programlisting>
+   
    <para>In this example two fields from relation A are projected to form relation X. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE a1, a2;</para>
-               <para>DUMP X;</para>
-               <para>(1,2)</para>
-               <para>(4,2)</para>
-               <para>(8,3)</para>
-               <para>(4,3)</para>
-               <para>(7,2)</para>
-               <para>(8,4)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH A GENERATE a1, a2;
+
+DUMP X;
+(1,2)
+(4,2)
+(8,3)
+(4,3)
+(7,2)
+(8,4)
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Nested Projection</title>
    <para>In this example if one of the fields in the input relation is a tuple, bag or map, we can perform a projection on that field (using a deference operator).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE group, B.b2;</para>
-               <para>DUMP X;</para>
-               <para>(1,{(3)})</para>
-               <para>(4,{(6),(9)})</para>
-               <para>(8,{(9)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH C GENERATE group, B.b2;
+
+DUMP X;
+(1,{(3)})
+(4,{(6),(9)})
+(8,{(9)})
+</programlisting>
+   
    <para>In this example multiple nested columns are retained.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE group, A.(a1, a2);</para>
-               <para>DUMP X;</para>
-               <para>(1,{(1,2)})</para>
-               <para>(4,{(4,2),(4,3)})</para>
-               <para>(8,{(8,3),(8,4)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH C GENERATE group, A.(a1, a2);
+
+DUMP X;
+(1,{(1,2)})
+(4,{(4,2),(4,3)})
+(8,{(8,3),(8,4)})
+</programlisting>
+   </section>
    
    <section>
    <title>Example: Schema</title>
    <para>In this example two fields in relation A are summed to form relation X. A schema is defined for the projected field.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE a1+a2 AS f1:int;</para>
-               <para>DESCRIBE X;</para>
-               <para>x: {f1: int}</para>
-               <para>DUMP X;</para>
-               <para>(3)</para>
-               <para>(6)</para>
-               <para>(11)</para>
-               <para>(7)</para>
-               <para>(9)</para>
-               <para>(12)</para>
-               <para/>
-               <para>Y = FILTER X BY f1 &gt; 10;</para>
-               <para>DUMP Y;</para>
-               <para>(11)</para>
-               <para>(12)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH A GENERATE a1+a2 AS f1:int;
+
+DESCRIBE X;
+x: {f1: int}
+
+DUMP X;
+(3)
+(6)
+(11)
+(7)
+(9)
+(12)
+
+Y = FILTER X BY f1 > 10;
+
+DUMP Y;
+(11)
+(12)
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Applying Functions</title>
    <para>In this example the built-in function SUM() is used to sum a set of numbers in a bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE group, SUM (A.a1);</para>
-               <para>DUMP X;</para>
-               <para>(1,1)</para>
-               <para>(4,8)</para>
-               <para>(8,16)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH C GENERATE group, SUM (A.a1);
+
+DUMP X;
+(1,1)
+(4,8)
+(8,16)
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Flattening</title>
    <para>In this example the FLATTEN keyword is used to eliminate nesting. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE group, FLATTEN(A);</para>
-               <para>DUMP X;</para>
-               <para>(1,1,2,3)</para>
-               <para>(4,4,2,1)</para>
-               <para>(4,4,3,3)</para>
-               <para>(8,8,3,4)</para>
-               <para>(8,8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH C GENERATE group, FLATTEN(A);
+
+DUMP X;
+(1,1,2,3)
+(4,4,2,1)
+(4,4,3,3)
+(8,8,3,4)
+(8,8,4,3)
+</programlisting>
+   
+   
    <para>Another FLATTEN example.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE GROUP, FLATTEN(A.a3);</para>
-               <para>DUMP X;</para>
-               <para>(1,3)</para>
-               <para>(4,1)</para>
-               <para>(4,3)</para>
-               <para>(8,4)</para>
-               <para>(8,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH C GENERATE GROUP, FLATTEN(A.a3);
+
+DUMP X;
+(1,3)
+(4,1)
+(4,3)
+(8,4)
+(8,3)
+</programlisting>
+   
    <para>Another FLATTEN example. Note that for the group '4' in C, there are two tuples in each bag. Thus, when both bags are flattened, the cross product of these tuples is returned; that is, tuples (4, 2, 6), (4, 3, 6), (4, 2, 9), and (4, 3, 9).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH C GENERATE FLATTEN(A.(a1, a2)), FLATTEN(B.$1);</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,6)</para>
-               <para>(4,2,9)</para>
-               <para>(4,3,6)</para>
-               <para>(4,3,9)</para>
-               <para>(8,3,9)</para>
-               <para>(8,4,9)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = FOREACH C GENERATE FLATTEN(A.(a1, a2)), FLATTEN(B.$1);
+
+DUMP X;
+(1,2,3)
+(4,2,6)
+(4,2,9)
+(4,3,6)
+(4,3,9)
+(8,3,9)
+(8,4,9)
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Nested Block</title>
    <para>Suppose we have relations A and B. Note that relation B contains an inner bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (url:chararray,outline:chararray);</para>
-               <para>DUMP A;</para>
-               <para>(www.ccc.com,www.hjk.com)</para>
-               <para>(www.ddd.com,www.xyz.org)</para>
-               <para>(www.aaa.com,www.cvn.org)</para>
-               <para>(www.www.com,www.kpt.net)</para>
-               <para>(www.www.com,www.xyz.org)</para>
-               <para>(www.ddd.com,www.xyz.org)</para>
-               <para/>
-               <para>B = GROUP A BY url;</para>
-               <para>DUMP B;</para>
-               <para>(www.aaa.com,{(www.aaa.com,www.cvn.org)})</para>
-               <para>(www.ccc.com,{(www.ccc.com,www.hjk.com)})</para>
-               <para>(www.ddd.com,{(www.ddd.com,www.xyz.org),(www.ddd.com,www.xyz.org)})</para>
-               <para>(www.www.com,{(www.www.com,www.kpt.net),(www.www.com,www.xyz.org)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (url:chararray,outline:chararray);
+
+DUMP A;
+(www.ccc.com,www.hjk.com)
+(www.ddd.com,www.xyz.org)
+(www.aaa.com,www.cvn.org)
+(www.www.com,www.kpt.net)
+(www.www.com,www.xyz.org)
+(www.ddd.com,www.xyz.org)
+
+B = GROUP A BY url;
+
+DUMP B;
+(www.aaa.com,{(www.aaa.com,www.cvn.org)})
+(www.ccc.com,{(www.ccc.com,www.hjk.com)})
+(www.ddd.com,{(www.ddd.com,www.xyz.org),(www.ddd.com,www.xyz.org)})
+(www.www.com,{(www.www.com,www.kpt.net),(www.www.com,www.xyz.org)})
+</programlisting>
+   
    <para>In this example we perform two of the operations allowed in a nested block, FILTER and DISTINCT. Note that the last statement in the nested block must be GENERATE.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = foreach B {</para>
-               <para>        FA= FILTER A BY outlink == 'www.xyz.org';</para>
-               <para>        PA = FA.outlink;</para>
-               <para>        DA = DISTINCT PA;</para>
-               <para>        GENERATE GROUP, COUNT(DA);</para>
-               <para>}</para>
-               <para>DUMP X;</para>
-               <para>(www.ddd.com,1L)</para>
-               <para>(www.www.com,1L)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = foreach B {
+        FA= FILTER A BY outlink == 'www.xyz.org';
+        PA = FA.outlink;
+        DA = DISTINCT PA;
+        GENERATE GROUP, COUNT(DA);
+}
+
+DUMP X;
+(www.ddd.com,1L)
+(www.www.com,1L)
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>GROUP</title>
@@ -6015,100 +5867,86 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    
    <section>
    <title>Example</title>
-   <itemizedlist>
-      <listitem>
-         <para>Suppose we have relation A.</para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = load 'student' AS (name:chararray,age:int,gpa:float);</para>
-               <para>DESCRIBE A;</para>
-               <para>A: {name: chararray,age: int,gpa: float}</para>
-               <para>DUMP A;</para>
-               <para>(John,18,4.0F)</para>
-               <para>(Mary,19,3.8F)</para>
-               <para>(Bill,20,3.9F)</para>
-               <para>(Joe,18,3.8F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<para>Suppose we have relation A.</para>
+
+<programlisting>
+A = load 'student' AS (name:chararray,age:int,gpa:float);
+
+DESCRIBE A;
+A: {name: chararray,age: int,gpa: float}
+
+DUMP A;
+(John,18,4.0F)
+(Mary,19,3.8F)
+(Bill,20,3.9F)
+(Joe,18,3.8F)
+</programlisting>
+   
    <para>Now, suppose we group relation A on field "age" for form relation B. We can use the DESCRIBE and ILLUSTRATE operators to examine the structure of relation B. Relation B has two fields. The first field is named "group" and is type int, the same as field "age" in relation A. The second field is name "A"  after relation A and is type bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>B = GROUP A BY age;</para>
-               <para/>
-               <para>DESCRIBE B;</para>
-               <para>B: {group: int, A: {name: chararray,age: int,gpa: float}}</para>
-               <para/>
-               <para>ILLUSTRATE B;</para>
-               <para>etc …</para>
-               <para>----------------------------------------------------------------------</para>
-               <para>| B     | group: int | A: bag({name: chararray,age: int,gpa: float}) |</para>
-               <para>----------------------------------------------------------------------</para>
-               <para>|       | 18         | {(John, 18, 4.0), (Joe, 18, 3.8)}             |</para>
-               <para>|       | 20         | {(Bill, 20, 3.9)}                             |</para>
-               <para>----------------------------------------------------------------------</para>
-               <para/>
-               <para>DUMP B;</para>
-               <para>(18,{(John,18,4.0F),(Joe,18,3.8F)})</para>
-               <para>(19,{(Mary,19,3.8F)})</para>
-               <para>(20,{(Bill,20,3.9F)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <itemizedlist>
-      <listitem>
-         <para/>
-         <para>Continuing on, as shown in these FOREACH statements, we can refer to the fields in relation B by names "group" and "A" or by positional notation.</para>
-      </listitem>
-   </itemizedlist>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>C = FOREACH B GENERATE group, COUNT(A);</para>
-               <para>DUMP C;</para>
-               <para>(18,2L)</para>
-               <para>(19,1L)</para>
-               <para>(20,1L)</para>
-               <para/>
-               <para>C = FOREACH B GENERATE $0, $1.name;</para>
-               <para>DUMP C;</para>
-               <para>(18,{(John),(Joe)})</para>
-               <para>(19,{(Mary)})</para>
-               <para>(20,{(Bill)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+B = GROUP A BY age;
+
+DESCRIBE B;
+B: {group: int, A: {name: chararray,age: int,gpa: float}}
+
+ILLUSTRATE B;
+<emphasis>etc …</emphasis>
+----------------------------------------------------------------------
+| B     | group: int | A: bag({name: chararray,age: int,gpa: float}) |
+----------------------------------------------------------------------
+|       | 18         | {(John, 18, 4.0), (Joe, 18, 3.8)}             |
+|       | 20         | {(Bill, 20, 3.9)}                             |
+----------------------------------------------------------------------
+
+DUMP B;
+(18,{(John,18,4.0F),(Joe,18,3.8F)})
+(19,{(Mary,19,3.8F)})
+(20,{(Bill,20,3.9F)})
+</programlisting>
+   
+
+   <para>Continuing on, as shown in these FOREACH statements, we can refer to the fields in relation B by names "group" and "A" or by positional notation.</para>
+
+<programlisting>
+C = FOREACH B GENERATE group, COUNT(A);
+
+DUMP C;
+(18,2L)
+(19,1L)
+(20,1L)
+
+C = FOREACH B GENERATE $0, $1.name;
+
+DUMP C;
+(18,{(John),(Joe)})
+(19,{(Mary)})
+(20,{(Bill)})
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>Example</title>
    <para>Suppose we have relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' as (f1:chararray, f2:int, f3:int);</para>
-               <para>DUMP A;</para>
-               <para>(r1,1,2)</para>
-               <para>(r2,2,1)</para>
-               <para>(r3,2,8)</para>
-               <para>(r4,4,4)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example the tuples are grouped using an expression, f2*f3.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = GROUP A BY f2*f3;</para>
-               <para>DUMP X;</para>
-               <para>(2,{(r1,1,2),(r2,2,1)})</para>
-               <para>(16,{(r3,2,8),(r4,4,4)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' as (f1:chararray, f2:int, f3:int);
+
+DUMP A;
+(r1,1,2)
+(r2,2,1)
+(r3,2,8)
+(r4,4,4)
+</programlisting>
+   
+<para>In this example the tuples are grouped using an expression, f2*f3.</para>
+<programlisting>
+X = GROUP A BY f2*f3;
+
+DUMP X;
+(2,{(r1,1,2),(r2,2,1)})
+(16,{(r3,2,8),(r4,4,4)})
+</programlisting>
+   </section>
    
    <section>
    <title>JOIN </title>
@@ -6200,60 +6038,58 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>Suppose we have relations A and B.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data1' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = LOAD 'data2' AS (b1:int,b2:int);</para>
-               <para>DUMP B;</para>
-               <para>(2,4)</para>
-               <para>(8,9)</para>
-               <para>(1,3)</para>
-               <para>(2,7)</para>
-               <para>(2,9)</para>
-               <para>(4,6)</para>
-               <para>(4,9)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data1' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = LOAD 'data2' AS (b1:int,b2:int);
+
+DUMP B;
+(2,4)
+(8,9)
+(1,3)
+(2,7)
+(2,9)
+(4,6)
+(4,9)
+</programlisting>
+   
    <para>In this example relations A and B are joined by their first fields.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = JOIN A BY a1, B BY b1;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3,1,3)</para>
-               <para>(4,2,1,4,6)</para>
-               <para>(4,3,3,4,6)</para>
-               <para>(4,2,1,4,9)</para>
-               <para>(4,3,3,4,9)</para>
-               <para>(8,3,4,8,9)</para>
-               <para>(8,4,3,8,9)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = JOIN A BY a1, B BY b1;
+
+DUMP X;
+(1,2,3,1,3)
+(4,2,1,4,6)
+(4,3,3,4,6)
+(4,2,1,4,9)
+(4,3,3,4,9)
+(8,3,4,8,9)
+(8,4,3,8,9)
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Example: Fragment Replicate Join</title>
       <para>In this example, a large relation is joined with two smaller relations. Note that the large relation comes first followed by the smaller relations; and, all small relations together must fit into main memory, otherwise an error is generated.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>big = LOAD 'big_data' AS (b1,b2,b3);</para>
-               <para>tiny = LOAD 'tiny_data' AS (t1,t2,t3);</para>
-               <para>mini = LOAD 'mini_data' AS (m1,m2,m3);</para>
-               <para>C = JOIN big BY b1, tiny BY t1, mini BY m1 USING "replicated";</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+big = LOAD 'big_data' AS (b1,b2,b3);
+
+tiny = LOAD 'tiny_data' AS (t1,t2,t3);
+
+mini = LOAD 'mini_data' AS (m1,m2,m3);
+
+C = JOIN big BY b1, tiny BY t1, mini BY m1 USING "replicated";
+</programlisting>
+   </section></section>
    
    <section>
    <title>LIMIT </title>
@@ -6300,53 +6136,48 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>Suppose we have relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+</programlisting>
+   
    <para>In this example output is limited to 3 tuples. Note that there is no guarantee which three tuples will be output.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = LIMIT A 3;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = LIMIT A 3;
+
+DUMP X;
+(1,2,3)
+(4,3,3)
+(7,2,5)
+</programlisting>
+   
    <para>In this example the ORDER operator is used to order the tuples and the LIMIT operator is used to output the first three tuples.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>B = ORDER A BY f1 DESC, f2 ASC;</para>
-               <para>DUMP B;</para>
-               <para>(8,3,4) </para>
-               <para>(8,4,3) </para>
-               <para>(7,2,5) </para>
-               <para>(4,2,1)</para>
-               <para>(4,3,3)</para>
-               <para>(1,2,3)</para>
-               <para/>
-               <para>X = LIMIT B 3;</para>
-               <para>DUMP X;</para>
-               <para>(8,3,4)</para>
-               <para>(8,4,3) </para>
-               <para>(7,2,5) </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+B = ORDER A BY f1 DESC, f2 ASC;
+
+DUMP B;
+(8,3,4) 
+(8,4,3) 
+(7,2,5) 
+(4,2,1)
+(4,3,3)
+(1,2,3)
+
+X = LIMIT B 3;
+
+DUMP X;
+(8,3,4)
+(8,4,3) 
+(7,2,5) 
+</programlisting>
+   </section></section>
    
    <section>
    <title>LOAD </title>
@@ -6428,52 +6259,46 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>Suppose we have a data file called myfile.txt. The fields are tab-delimited. The records are newline-separated.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>1    2    3</para>
-               <para>4    2    1</para>
-               <para>8    3    4</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+1 2 3
+4 2 1
+8 3 4
+</programlisting>
+   
    <para>In this example the default load function, PigStorage, loads data from myfile.txt to form relation A. The two LOAD statements are equivalent. Note that, because no schema is specified, the fields are not named and all fields default to type bytearray. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'myfile.txt';</para>
-               <para>A = LOAD 'myfile.txt' USING PigStorage('\t');</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'myfile.txt';
+
+A = LOAD 'myfile.txt' USING PigStorage('\t');
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+</programlisting>
+   
    <para>In this example a schema is specified using the AS keyword. The two LOAD statements are equivalent. You can use the DESCRIBE and ILLUSTRATE operators to view the schema. </para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'myfile.txt' AS (f1:int, f2:int, f3:int);</para>
-               <para>A = LOAD 'myfile.txt' USING PigStorage(‘\t’) AS (f1:int, f2:int, f3:int);</para>
-               <para/>
-               <para>DESCRIBE A;</para>
-               <para>a: {f1: int,f2: int,f3: int}</para>
-               <para/>
-               <para>ILLUSTRATE A;</para>
-               <para>---------------------------------------------------------</para>
-               <para>| a     | f1: bytearray | f2: bytearray | f3: bytearray |</para>
-               <para>---------------------------------------------------------</para>
-               <para>|       | 4             | 2             | 1             |</para>
-               <para>---------------------------------------------------------</para>
-               <para>---------------------------------------</para>
-               <para>| a     | f1: int | f2: int | f3: int |</para>
-               <para>---------------------------------------</para>
-               <para>|       | 4       | 2       | 1       |</para>
-               <para>---------------------------------------</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'myfile.txt' AS (f1:int, f2:int, f3:int);
+
+A = LOAD 'myfile.txt' USING PigStorage(‘\t’) AS (f1:int, f2:int, f3:int);
+
+DESCRIBE A;
+a: {f1: int,f2: int,f3: int}
+
+ILLUSTRATE A;
+---------------------------------------------------------
+| a     | f1: bytearray | f2: bytearray | f3: bytearray |
+---------------------------------------------------------
+|       | 4             | 2             | 1             |
+---------------------------------------------------------
+
+---------------------------------------
+| a     | f1: int | f2: int | f3: int |
+---------------------------------------
+|       | 4       | 2       | 1       |
+---------------------------------------
+</programlisting>
    <para>
       For examples of how to specify more complex schemas for use with the LOAD operator, see Schemas for Complex Data Types and Schemas for Multiple Types.
       </para></section></section>
@@ -6584,35 +6409,32 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>Suppose we have relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+</programlisting>
+   
    <para>In this example relation A is sorted by the third field, f3 in descending order. Note that the order of the three tuples ending in 3 can vary.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = ORDER A BY a3 DESC;</para>
-               <para>DUMP X;</para>
-               <para>(7,2,5)</para>
-               <para>(8,3,4)</para>
-               <para>(1,2,3)</para>
-               <para>(4,3,3)</para>
-               <para>(8,4,3)</para>
-               <para>(4,2,1)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+X = ORDER A BY a3 DESC;
+
+DUMP X;
+(7,2,5)
+(8,3,4)
+(1,2,3)
+(4,3,3)
+(8,4,3)
+(4,2,1)
+</programlisting>
+   
+   </section></section>
    
    
    <section>
@@ -6660,15 +6482,12 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example relation X will contain 1% of the data in relation A.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int);</para>
-               <para>X = SAMPLE A 0.01</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>  
-   
+<programlisting>
+A = LOAD 'data' AS (f1:int,f2:int,f3:int);
+
+X = SAMPLE A 0.01;
+</programlisting>
+   </section></section>  
    
    <section>
    <title>SPLIT</title>
@@ -6738,29 +6557,29 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example relation A is split into three relations, X, Y, and Z.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int);</para>
-               <para>DUMP A;                </para>
-               <para>(1,2,3)</para>
-               <para>(4,5,6)</para>
-               <para>(7,8,9)        </para>
-               <para/>
-               <para>SPLIT A INTO X IF f1&lt; 7, Y IF f2==5, Z IF (f3&lt;6 OR f3&gt;6);</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,5,6)</para>
-               <para/>
-               <para>DUMP Y;</para>
-               <para>(4,5,6)</para>
-               <para/>
-               <para>DUMP Z;</para>
-               <para>(1,2,3)</para>
-               <para>(7,8,9)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+A = LOAD 'data' AS (f1:int,f2:int,f3:int);
+
+DUMP A;                
+(1,2,3)
+(4,5,6)
+(7,8,9)        
+
+SPLIT A INTO X IF f1&lt;7, Y IF f2==5, Z IF (f3&lt;6 OR f3&gt;6);
+
+DUMP X;
+(1,2,3)
+(4,5,6)
+
+DUMP Y;
+(4,5,6)
+
+DUMP Z;
+(1,2,3)
+(7,8,9)
+</programlisting>
+
+   </section></section>
    
    <section>
    <title>STORE </title>
@@ -6839,62 +6658,62 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Examples</title>
    <para>In this example data is stored using PigStorage and the asterisk character (*) as the field delimiter.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>STORE A INTO ‘myoutput’ USING PigStorage (‘*’);</para>
-               <para>CAT myoutput;</para>
-               <para>1*2*3</para>
-               <para>4*2*1</para>
-               <para>8*3*4</para>
-               <para>4*3*3</para>
-               <para>7*2*5</para>
-               <para>8*4*3</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+STORE A INTO ‘myoutput’ USING PigStorage (‘*’);
+
+CAT myoutput;
+1*2*3
+4*2*1
+8*3*4
+4*3*3
+7*2*5
+8*4*3
+</programlisting>
+   
    <para>In this example, the CONCAT function is used to format the data before it is stored.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = FOREACH A GENERATE CONCAT('a:',(chararray)f1), CONCAT('b:',(chararray)f2), CONCAT('c:',(chararray)f3);</para>
-               <para>DUMP B;</para>
-               <para>(a:1,b:2,c:3)</para>
-               <para>(a:4,b:2,c:1)</para>
-               <para>(a:8,b:3,c:4)</para>
-               <para>(a:4,b:3,c:3)</para>
-               <para>(a:7,b:2,c:5)</para>
-               <para>(a:8,b:4,c:3)</para>
-               <para/>
-               <para>STORE B INTO 'myoutput' using PigStorage(',');</para>
-               <para>CAT myoutput;</para>
-               <para>a:1,b:2,c:3</para>
-               <para>a:4,b:2,c:1</para>
-               <para>a:8,b:3,c:4</para>
-               <para>a:4,b:3,c:3</para>
-               <para>a:7,b:2,c:5</para>
-               <para>a:8,b:4,c:3</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = FOREACH A GENERATE CONCAT('a:',(chararray)f1), CONCAT('b:',(chararray)f2), CONCAT('c:',(chararray)f3);
+
+DUMP B;
+(a:1,b:2,c:3)
+(a:4,b:2,c:1)
+(a:8,b:3,c:4)
+(a:4,b:3,c:3)
+(a:7,b:2,c:5)
+(a:8,b:4,c:3)
+
+STORE B INTO 'myoutput' using PigStorage(',');
+
+CAT myoutput;
+a:1,b:2,c:3
+a:4,b:2,c:1
+a:8,b:3,c:4
+a:4,b:3,c:3
+a:7,b:2,c:5
+a:8,b:4,c:3
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>STREAM</title>
@@ -6967,24 +6786,20 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <title>Usage</title>
    <para>Use the STREAM operator to send data through an external script or program. Multiple stream operators can appear in the same Pig script. The stream operators can be adjacent to each other or have other operations in between.</para>
    <para>When used with a command, a stream statement could look like this:</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>B = STREAM A THROUGH `stream.pl -n 5`;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data';
+
+B = STREAM A THROUGH `stream.pl -n 5`;
+</programlisting>
    <para>When used with a cmd_alias, a stream statement could look like this, where cmd is the defined alias.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>DEFINE cmd `stream.pl –n 5`;</para>
-               <para>B = STREAM A THROUGH cmd;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data';
+
+DEFINE cmd `stream.pl –n 5`;
+
+B = STREAM A THROUGH cmd;
+</programlisting>
+   </section>
    
    <section>
    <title>About Data Guarantees</title>
@@ -7006,50 +6821,45 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example: Data Guarantees</title>
    <para>In this example the data is unordered.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>B = STREAM A THROUGH `stream.pl`;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data';
+
+B = STREAM A THROUGH `stream.pl`;
+</programlisting>
+   
    <para>In this example the data is grouped.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>B = GROUP A BY $1;</para>
-               <para>C = FOREACH B FLATTEN(A);</para>
-               <para>D = STREAM C THROUGH `stream.pl`</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data';
+
+B = GROUP A BY $1;
+
+C = FOREACH B FLATTEN(A);
+
+D = STREAM C THROUGH `stream.pl`
+</programlisting>
+   
    <para>In this example the data is grouped and ordered.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>B = GROUP A BY $1;</para>
-               <para>C = FOREACH B {</para>
-               <para>      D = ORDER A BY ($3, $4);</para>
-               <para>      GENERATE D;</para>
-               <para>}</para>
-               <para>E = STREAM C THROUGH `stream.pl`;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data';
+
+B = GROUP A BY $1;
+
+C = FOREACH B {
+      D = ORDER A BY ($3, $4);
+      GENERATE D;
+}
+
+E = STREAM C THROUGH `stream.pl`;
+</programlisting>
+   </section>
    
    <section>
    <title>Example: Schemas</title>
    <para>In this example a schema is specified as part of the STREAM statement.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = STREAM A THROUGH `stream.pl` as (f1:int, f2;int, f3:int);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+X = STREAM A THROUGH `stream.pl` as (f1:int, f2;int, f3:int);
+</programlisting>
+   </section>
    
    <section>
    <title>Additional Examples</title>
@@ -7100,30 +6910,29 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example the union of relation A and B is computed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (a1:int,a2:int,a3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para/>
-               <para>B = LOAD 'data' AS (b1:int,b2:int);</para>
-               <para>DUMP A;</para>
-               <para>(2,4)</para>
-               <para>(8,9)</para>
-               <para>(1,3)</para>
-               <para/>
-               <para>X = UNION A, B;</para>
-               <para>DUMP X;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(2,4)</para>
-               <para>(8,9)</para>
-               <para>(1,3)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'data' AS (a1:int,a2:int,a3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+
+B = LOAD 'data' AS (b1:int,b2:int);
+
+DUMP A;
+(2,4)
+(8,9)
+(1,3)
+
+X = UNION A, B;
+
+DUMP X;
+(1,2,3)
+(4,2,1)
+(2,4)
+(8,9)
+(1,3)
+</programlisting>
    </section></section></section>
 
 
@@ -7165,50 +6974,55 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example a schema is specified using the AS clause. If all data conforms to the schema, Pig will use the assigned types.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name:chararray, age:int, gpa:float);</para>
-               <para>B = FILTER A BY name matches 'J.+';</para>
-               <para>C = GROUP B BY name;</para>
-               <para>D = FOREACH B GENERATE COUNT(B.age);</para>
-               <para>DESCRIBE A;</para>
-               <para>A: {group, B: (name: chararray,age: int,gpa: float}</para>
-               <para>DESCRIBE B;</para>
-               <para>B: {group, B: (name: chararray,age: int,gpa: float}</para>
-               <para>DESCRIBE C;</para>
-               <para>C: {group, chararry,B: (name: chararray,age: int,gpa: float}</para>
-               <para>DESCRIBE D;</para>
-               <para>D: {long}</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+B = FILTER A BY name matches 'J.+';
+
+C = GROUP B BY name;
+
+D = FOREACH B GENERATE COUNT(B.age);
+
+DESCRIBE A;
+A: {group, B: (name: chararray,age: int,gpa: float}
+
+DESCRIBE B;
+B: {group, B: (name: chararray,age: int,gpa: float}
+
+DESCRIBE C;
+C: {group, chararry,B: (name: chararray,age: int,gpa: float}
+
+DESCRIBE D;
+D: {long}
+</programlisting>
+   
    <para>In this example no schema is specified. All fields default to type bytearray or long (see Data Types).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>a = LOAD 'student';</para>
-               <para>b = FILTER a BY $0 matches 'J.+';</para>
-               <para>c = GROUP b BY $0;</para>
-               <para>d = FOREACH c GENERATE COUNT(b.$1);</para>
-               <para/>
-               <para>DESCRIBE a;</para>
-               <para>Schema for a unknown.</para>
-               <para/>
-               <para>DESCRIBE b;</para>
-               <para>2008-12-05 01:17:15,316 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly cast to chararray under LORegexp Operator</para>
-               <para>Schema for b unknown.</para>
-               <para/>
-               <para>DESCRIBE c;</para>
-               <para>2008-12-05 01:17:23,343 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly caste to chararray under LORegexp Operator</para>
-               <para>c: {group: bytearray,b: {null}}</para>
-               <para/>
-               <para>DESCRIBE d;</para>
-               <para>2008-12-05 03:04:30,076 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly caste to chararray under LORegexp Operator</para>
-               <para>d: {long}</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+a = LOAD 'student';
+
+b = FILTER a BY $0 matches 'J.+';
+
+c = GROUP b BY $0;
+
+d = FOREACH c GENERATE COUNT(b.$1);
+
+DESCRIBE a;
+Schema for a unknown.
+
+DESCRIBE b;
+2008-12-05 01:17:15,316 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly cast to chararray under LORegexp Operator
+Schema for b unknown.
+
+DESCRIBE c;
+2008-12-05 01:17:23,343 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly caste to chararray under LORegexp Operator
+c: {group: bytearray,b: {null}}
+
+DESCRIBE d;
+2008-12-05 03:04:30,076 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly caste to chararray under LORegexp Operator
+d: {long}
+</programlisting>
+   
+   </section></section>
    
    <section>
    <title>EXPLAIN</title>
@@ -7313,41 +7127,43 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <section>
    <title>Example</title>
    <para>In this example the EXPLAIN operator produces all three plans. (Note that only a portion of the output is shown in this example.)</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name:chararray, age:int, gpa:float);</para>
-               <para>B = GROUP A BY name;</para>
-               <para>C = FOREACH B GENERATE COUNT(A.age);</para>
-               <para>EXPLAIN C;</para>
-               <para/>
-               <para>Logical Plan:</para>
-               <para>Store xxx-Fri Dec 05 19:42:29 UTC 2008-23 Schema: {long} Type: Unknown</para>
-               <para>|</para>
-               <para>|---ForEach xxx-Fri Dec 05 19:42:29 UTC 2008-15 Schema: {long} Type: bag</para>
-               <para>etc …</para>
-               <para>-----------------------------------------------</para>
-               <para>Physical Plan:</para>
-               <para>-----------------------------------------------</para>
-               <para>Store(fakefile:org.apache.pig.builtin.PigStorage) - xxx-Fri Dec 05 19:42:29 UTC 2008-40</para>
-               <para>|</para>
-               <para>|---New For Each(false)[bag] - xxx-Fri Dec 05 19:42:29 UTC 2008-39</para>
-               <para>    |   |</para>
-               <para>    |   POUserFunc(org.apache.pig.builtin.COUNT)[long] - xxx-Fri Dec 05 </para>
-               <para>etc …</para>
-               <para/>
-               <para>--------------------------------------------------</para>
-               <para>| Map Reduce Plan                                |</para>
-               <para>--------------------------------------------------</para>
-               <para>MapReduce node xxx-Fri Dec 05 19:42:29 UTC 2008-41</para>
-               <para>Map Plan</para>
-               <para>Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34</para>
-               <para>|   |</para>
-               <para>|   Project[chararray][0] - xxx-Fri Dec 05 19:42:29 UTC 2008-35</para>
-               <para>etc …        </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+ <programlisting>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+B = GROUP A BY name;
+
+C = FOREACH B GENERATE COUNT(A.age);
+
+EXPLAIN C;
+-----------------------------------------------
+Logical Plan:
+-----------------------------------------------
+Store xxx-Fri Dec 05 19:42:29 UTC 2008-23 Schema: {long} Type: Unknown
+|
+|---ForEach xxx-Fri Dec 05 19:42:29 UTC 2008-15 Schema: {long} Type: bag
+<emphasis>etc …</emphasis>
+
+-----------------------------------------------
+Physical Plan:
+-----------------------------------------------
+Store(fakefile:org.apache.pig.builtin.PigStorage) - xxx-Fri Dec 05 19:42:29 UTC 2008-40
+|
+|---New For Each(false)[bag] - xxx-Fri Dec 05 19:42:29 UTC 2008-39
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.COUNT)[long] - xxx-Fri Dec 05 
+<emphasis>etc …</emphasis>
+
+--------------------------------------------------
+| Map Reduce Plan                               
+-------------------------------------------------
+MapReduce node xxx-Fri Dec 05 19:42:29 UTC 2008-41
+Map Plan
+Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
+|   |
+|   Project[chararray][0] - xxx-Fri Dec 05 19:42:29 UTC 2008-35
+<emphasis>etc …</emphasis></programlisting> 
+ </section></section>
    
    <section>
    <title>ILLUSTRATE</title>
@@ -7358,7 +7174,7 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>ILLUSTRATE alias;        </para>
+               <para>ILLUSTRATE alias; </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7390,83 +7206,86 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
    <para>ILLUSTRATE accesses the ExampleGenerator algorithm which can select an appropriate and concise set of example data automatically. It does a better job than random sampling would do; for example, random sampling suffers from the drawback that selective operations such as filters or joins can eliminate all the sampled data, giving you empty results which will not help with debugging. </para>
    <para>With the ILLUSTRATE operator you can test your programs on small datasets and get faster turnaround times. The ExampleGenerator algorithm uses Pig's Local mode (rather than Hadoop mode) which means that illustrative example data is generated in near real-time.</para>
    <para>Relation X can be used with the ILLUSTRATE operator.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = FOREACH A GENERATE f1;</para>
-               <para>ILLUSTRATE X;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = FOREACH A GENERATE f1;
+
+ILLUSTRATE X;
+</programlisting>
+   
    <para>Relation Y cannot be used with the ILLUSTRATE operator.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>Y = LIMIT A 3;</para>
-               <para>ILLUSTRATE Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+Y = LIMIT A 3;
+
+ILLUSTRATE Y;
+</programlisting>
+   </section>
    
    <section>
    <title>Example</title>
    <para>In this example we count the number of sites a user has visited since 12/1/08. The ILLUSTRATE statement will show how the results for num_user_visits are derived.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>visits = LOAD 'visits' AS (user:chararray, ulr:chararray, timestamp:chararray);</para>
-               <para>DUMP visits;</para>
-               <para>(Amy,cnn.com,20080218)</para>
-               <para>(Fred,harvard.edu,20081204)</para>
-               <para>(Amy,bbc.com,20081205)</para>
-               <para>(Fred,stanford.edu,20081206)</para>
-               <para/>
-               <para>recent_visits = FILTER visits BY timestamp &gt;= '20081201';</para>
-               <para>user_visits = GROUP recent_visits BY user;</para>
-               <para>num_user_visits = FOREACH user_visits GENERATE COUNT(recent_visits);</para>
-               <para>DUMP num_user_visits;</para>
-               <para>(1L)</para>
-               <para>(2L)</para>
-               <para/>
-               <para>ILLUSTRATE num_user_visits;</para>
-               <para>------------------------------------------------------------------------</para>
-               <para>| visits     | user: bytearray | ulr: bytearray | timestamp: bytearray |</para>
-               <para>------------------------------------------------------------------------</para>
-               <para>|            | Amy             | cnn.com        | 20080218             |</para>
-               <para>|            | Fred            | harvard.edu    | 20081204             |</para>
-               <para>|            | Amy             | bbc.com        | 20081205             |</para>
-               <para>|            | Fred            | stanford.edu   | 20081206             |</para>
-               <para>------------------------------------------------------------------------</para>
-               <para>------------------------------------------------------------------------</para>
-               <para>| visits     | user: chararray | ulr: chararray | timestamp: chararray |</para>
-               <para>------------------------------------------------------------------------</para>
-               <para>|            | Amy             | cnn.com        | 20080218             |</para>
-               <para>|            | Fred            | harvard.edu    | 20081204             |</para>
-               <para>|            | Amy             | bbc.com        | 20081205             |</para>
-               <para>|            | Fred            | stanford.edu   | 20081206             |</para>
-               <para>------------------------------------------------------------------------</para>
-               <para>-------------------------------------------------------------------------------</para>
-               <para>| recent_visits     | user: chararray | ulr: chararray | timestamp: chararray |</para>
-               <para>-------------------------------------------------------------------------------</para>
-               <para>|                   | Fred            | harvard.edu    | 20081204             |</para>
-               <para>|                   | Amy             | bbc.com        | 20081205             |</para>
-               <para>|                   | Fred            | stanford.edu   | 20081206             |</para>
-               <para>-------------------------------------------------------------------------------</para>
-               <para>------------------------------------------------------------------------------------------------------------------</para>
-               <para>| user_visits     | group: chararray | recent_visits: bag({user: chararray,ulr: chararray,timestamp: chararray}) |</para>
-               <para>------------------------------------------------------------------------------------------------------------------</para>
-               <para>|                 | Amy              | {(Amy, bbc.com, 20081205)}                                                |</para>
-               <para>|                 | Fred             | {(Fred, harvard.edu, 20081204), (Fred, stanford.edu, 20081206)}           |</para>
-               <para>------------------------------------------------------------------------------------------------------------------</para>
-               <para>-------------------------------</para>
-               <para>| num_user_visits     | long  |</para>
-               <para>-------------------------------</para>
-               <para>|                     | 1     |</para>
-               <para>|                     | 2     |</para>
-               <para>-------------------------------</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+ <programlisting>
+visits = LOAD 'visits' AS (user:chararray, ulr:chararray, timestamp:chararray);
+
+DUMP visits;
+(Amy,cnn.com,20080218)
+(Fred,harvard.edu,20081204)
+(Amy,bbc.com,20081205)
+(Fred,stanford.edu,20081206)
+
+recent_visits = FILTER visits BY timestamp >= '20081201';
+
+user_visits = GROUP recent_visits BY user;
+
+num_user_visits = FOREACH user_visits GENERATE COUNT(recent_visits);
+
+DUMP num_user_visits;
+(1L)
+(2L)
+
+ILLUSTRATE num_user_visits;
+------------------------------------------------------------------------
+| visits     | user: bytearray | ulr: bytearray | timestamp: bytearray |
+------------------------------------------------------------------------
+|            | Amy             | cnn.com        | 20080218             |
+|            | Fred            | harvard.edu    | 20081204             |
+|            | Amy             | bbc.com        | 20081205             |
+|            | Fred            | stanford.edu   | 20081206             |
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+| visits     | user: chararray | ulr: chararray | timestamp: chararray |
+------------------------------------------------------------------------
+|            | Amy             | cnn.com        | 20080218             |
+|            | Fred            | harvard.edu    | 20081204             |
+|            | Amy             | bbc.com        | 20081205             |
+|            | Fred            | stanford.edu   | 20081206             |
+------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+| recent_visits     | user: chararray | ulr: chararray | timestamp: chararray |
+-------------------------------------------------------------------------------
+|                   | Fred            | harvard.edu    | 20081204             |
+|                   | Amy             | bbc.com        | 20081205             |
+|                   | Fred            | stanford.edu   | 20081206             |
+-------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------
+| user_visits     | group: chararray | recent_visits: bag({user: chararray,ulr: chararray,timestamp: chararray}) |
+------------------------------------------------------------------------------------------------------------------
+|                 | Amy              | {(Amy, bbc.com, 20081205)}                                                |
+|                 | Fred             | {(Fred, harvard.edu, 20081204), (Fred, stanford.edu, 20081206)}           |
+------------------------------------------------------------------------------------------------------------------
+
+-------------------------------
+| num_user_visits     | long  |
+------------------------------
+|                     | 1     |
+|                     | 2     |
+-------------------------------
+</programlisting>
+  
+   </section></section>
    </section>
    
    
@@ -7684,85 +7503,73 @@ OP = stream IP through `perl /a/b/c/script.pl`;
  <section>
  <title>Example: Input/Output</title>
  <para>In this example PigStorage is the default serialization/deserialization function. The tuples from relation A are converted to tab-delimited lines that are passed to the script.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>X = STREAM A THROUGH `stream.pl`;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+X = STREAM A THROUGH `stream.pl`;
+</programlisting>
+   
    <para>In this example PigStorage is used as the serialization/deserialization function, but a comma is used as the delimiter.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl` INPUT(stdin USING PigStorage(',')) OUTPUT (stdout USING PigStorage(','));</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+DEFINE Y `stream.pl` INPUT(stdin USING PigStorage(',')) OUTPUT (stdout USING PigStorage(','));
+
+X = STREAM A THROUGH Y;
+</programlisting>
+   
    <para>In this example user-defined serialization/deserialization functions are used with the script.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl` INPUT(stdin USING MySerializer) OUTPUT (stdout USING MyDeserializer);</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+DEFINE Y `stream.pl` INPUT(stdin USING MySerializer) OUTPUT (stdout USING MyDeserializer);
+
+X = STREAM A THROUGH Y;
+</programlisting>
+   </section>
    
    <section>
    <title>Example: Ship/Cache</title>
    <para>In this example ship is used to send the script to the cluster compute nodes.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl` SHIP('/work/stream.pl');</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+DEFINE Y `stream.pl` SHIP('/work/stream.pl');
+
+X = STREAM A THROUGH Y;
+</programlisting>
+   
    <para>In this example cache is used to specify a file located on the cluster compute nodes.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl data.gz` SHIP('/work/stream.pl') CACHE('/input/data.gz#data.gz');</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+DEFINE Y `stream.pl data.gz` SHIP('/work/stream.pl') CACHE('/input/data.gz#data.gz');
+
+X = STREAM A THROUGH Y;
+</programlisting>
+   </section>
    
    <section>
    <title>Example: Logging</title>
    <para>In this example the streaming stderr is stored in the _logs/&lt;dir&gt; directory of the job's output directory. Because the job can have multiple streaming applications associated with it, you need to ensure that different directory names are used to avoid conflicts. Pig stores up to 100 tasks per streaming job.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl` stderr('&lt;dir&gt;' limit 100);</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example a function is defined for use with the FOREACH …GENERATE operator.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>REGISTER /src/myfunc.jar</para>
-               <para>DEFINE myFunc myfunc.MyEvalfunc('foo');</para>
-               <para>A = LOAD 'students';</para>
-               <para>B = FOREACH A GENERATE myFunc($0);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
-   <para>In this example a command is defined for use with the STREAM operator.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data';</para>
-               <para>DEFINE cmd `stream_cmd –input file.dat`</para>
-               <para>B = STREAM A through cmd.</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+DEFINE Y `stream.pl` stderr('&lt;dir&gt;' limit 100);
+
+X = STREAM A THROUGH Y;
+</programlisting>
+
+   
+<para>In this example a function is defined for use with the FOREACH …GENERATE operator.</para>
+<programlisting>
+REGISTER /src/myfunc.jar
+
+DEFINE myFunc myfunc.MyEvalfunc('foo');
+
+A = LOAD 'students';
+
+B = FOREACH A GENERATE myFunc($0);
+</programlisting>
+   
+<para>In this example a command is defined for use with the STREAM operator.</para>
+<programlisting>
+A = LOAD 'data';
+
+DEFINE cmd `stream_cmd –input file.dat`
+
+B = STREAM A through cmd.
+</programlisting>
+</section>
+</section>
    
    <section>
    <title>REGISTER</title>
@@ -7799,17 +7606,15 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example REGISTER states that myfunc.jar is located in the /src directory.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>/src $ java -jar pig.jar –</para>
-               <para/>
-               <para>REGISTER /src/myfunc.jar;</para>
-               <para>A = LOAD 'students';</para>
-               <para>B = FOREACH A GENERATE myfunc.MyEvalFunc($0);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+/src $ java -jar pig.jar –
+
+REGISTER /src/myfunc.jar;
+
+A = LOAD 'students';
+
+B = FOREACH A GENERATE myfunc.MyEvalFunc($0);
+</programlisting>
    <para>
 
    </para></section></section>
@@ -7852,32 +7657,32 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the average GPA for each student is computed (see the GROUP operators for information about the field names in relation B).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student.txt' AS (name:chararray, term:chararray, gpa:float);</para>
-               <para>DUMP A;</para>
-               <para>(John,fl,3.9F)</para>
-               <para>(John,wt,3.7F)</para>
-               <para>(John,sp,4.0F)</para>
-               <para>(John,sm,3.8F)</para>
-               <para>(Mary,fl,3.8F)</para>
-               <para>(Mary,wt,3.9F)</para>
-               <para>(Mary,sp,4.0F)</para>
-               <para>(Mary,sm,4.0F)</para>
-               <para/>
-               <para>B = GROUP A BY name;</para>
-               <para>DUMP B;</para>
-               <para>(John,{(John,fl,3.9F),(John,wt,3.7F),(John,sp,4.0F),(John,sm,3.8F)})</para>
-               <para>(Mary,{(Mary,fl,3.8F),(Mary,wt,3.9F),(Mary,sp,4.0F),(Mary,sm,4.0F)})</para>
-               <para/>
-               <para>C = FOREACH B GENERATE A.name, AVG(A.gpa);</para>
-               <para>DUMP C;</para>
-               <para>({(John),(John),(John),(John)},3.850000023841858)</para>
-               <para>({(Mary),(Mary),(Mary),(Mary)},3.925000011920929)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'student.txt' AS (name:chararray, term:chararray, gpa:float);
+
+DUMP A;
+(John,fl,3.9F)
+(John,wt,3.7F)
+(John,sp,4.0F)
+(John,sm,3.8F)
+(Mary,fl,3.8F)
+(Mary,wt,3.9F)
+(Mary,sp,4.0F)
+(Mary,sm,4.0F)
+
+B = GROUP A BY name;
+
+DUMP B;
+(John,{(John,fl,3.9F),(John,wt,3.7F),(John,sp,4.0F),(John,sm,3.8F)})
+(Mary,{(Mary,fl,3.8F),(Mary,wt,3.9F),(Mary,sp,4.0F),(Mary,sm,4.0F)})
+
+C = FOREACH B GENERATE A.name, AVG(A.gpa);
+
+DUMP C;
+({(John),(John),(John),(John)},3.850000023841858)
+({(Mary),(Mary),(Mary),(Mary)},3.925000011920929)
+</programlisting>
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -7967,23 +7772,23 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example fields f2 and f3 are concatenated.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' as (f1:chararray, f2:chararray, f3:chararray);</para>
-               <para>DUMP A;</para>
-               <para>(apache,open,source)</para>
-               <para>(hadoop,map,reduce)</para>
-               <para>(pig,pig,latin)</para>
-               <para/>
-               <para>X = FOREACH A GENERATE CONCAT(f2,f3);</para>
-               <para>DUMP X;</para>
-               <para>(opensource)</para>
-               <para>(mapreduce)</para>
-               <para>(piglatin)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' as (f1:chararray, f2:chararray, f3:chararray);
+
+DUMP A;
+(apache,open,source)
+(hadoop,map,reduce)
+(pig,pig,latin)
+
+X = FOREACH A GENERATE CONCAT(f2,f3);
+
+DUMP X;
+(opensource)
+(mapreduce)
+(piglatin)
+</programlisting>
+   
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -8060,34 +7865,34 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the tuples in the bag are counted (see the GROUP operator for information about the field names in relation B).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (f1:int,f2:int,f3:int);</para>
-               <para>DUMP A;</para>
-               <para>(1,2,3)</para>
-               <para>(4,2,1)</para>
-               <para>(8,3,4)</para>
-               <para>(4,3,3)</para>
-               <para>(7,2,5)</para>
-               <para>(8,4,3)</para>
-               <para/>
-               <para>B = GROUP A BY f1;</para>
-               <para>DUMP B;</para>
-               <para>(1,{(1,2,3)})</para>
-               <para>(4,{(4,2,1),(4,3,3)})</para>
-               <para>(7,{(7,2,5)})</para>
-               <para>(8,{(8,3,4),(8,4,3)})</para>
-               <para/>
-               <para>X = FOREACH B GENERATE COUNT(A);</para>
-               <para>DUMP X;</para>
-               <para>(1L)</para>
-               <para>(2L)</para>
-               <para>(1L)</para>
-               <para>(2L)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' AS (f1:int,f2:int,f3:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+
+B = GROUP A BY f1;
+
+DUMP B;
+(1,{(1,2,3)})
+(4,{(4,2,1),(4,3,3)})
+(7,{(7,2,5)})
+(8,{(8,3,4),(8,4,3)})
+
+X = FOREACH B GENERATE COUNT(A);
+
+DUMP X;
+(1L)
+(2L)
+(1L)
+(2L)
+</programlisting>
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -8178,26 +7983,25 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the two fields are bags. DIFF compares the tuples in each bag.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'bag_data' AS (B1:bag{T1:tuple(t1:int,t2:int)},B2:bag{T2:tuple(f1:int,f2:int)});</para>
-               <para>DUMP A;</para>
-               <para>({(8,9),(0,1)},{(8,9),(1,1)})</para>
-               <para>({(2,3),(4,5)},{(2,3),(4,5)})</para>
-               <para>({(6,7),(3,7)},{(2,2),(3,7)})</para>
-               <para>DESCRIBE A;</para>
-               <para>a: {B1: {T1: (t1: int,t2: int)},B2: {T2: (f1: int,f2: int)}}</para>
-               <para/>
-               <para>X = FOREACH A DIFF(B1,B2);</para>
-               <para>grunt&gt; dump x;</para>
-               <para>({(0,1),(1,1)})</para>
-               <para>({})</para>
-               <para>({(6,7),(2,2)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
-   
+<programlisting>
+A = LOAD 'bag_data' AS (B1:bag{T1:tuple(t1:int,t2:int)},B2:bag{T2:tuple(f1:int,f2:int)});
+
+DUMP A;
+({(8,9),(0,1)},{(8,9),(1,1)})
+({(2,3),(4,5)},{(2,3),(4,5)})
+({(6,7),(3,7)},{(2,2),(3,7)})
+
+DESCRIBE A;
+a: {B1: {T1: (t1: int,t2: int)},B2: {T2: (f1: int,f2: int)}}
+
+X = FOREACH A DIFF(B1,B2);
+
+grunt> dump x;
+({(0,1),(1,1)})
+({})
+({(6,7),(2,2)})
+</programlisting>
+   </section></section>
    
 <section>
    <title>IsEmpty</title>
@@ -8233,18 +8037,18 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example all students with an SSN but no name are located.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>SSN = load 'ssn.txt' using PigStorage() as (ssn:long);</para>
-               <para>SSN_NAME = load 'students.txt' using PigStorage() as (ssn:long, name:chararray);</para>
-               <para>-- do a left out join of SSN with SSN_Name</para>
-               <para>X = cogroup SSN by ssn inner, SSN_NAME by ssn;</para>
-               <para>-- only keep those ssn's for which there is no name</para>
-               <para>Y = filter X by IsEmpty(SSN_NAME);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>    
+<programlisting>
+SSN = load 'ssn.txt' using PigStorage() as (ssn:long);
+
+SSN_NAME = load 'students.txt' using PigStorage() as (ssn:long, name:chararray);
+
+-- do a left out join of SSN with SSN_Name
+X = cogroup SSN by ssn inner, SSN_NAME by ssn;
+
+-- only keep those ssn's for which there is no name
+Y = filter X by IsEmpty(SSN_NAME);
+</programlisting>
+   </section></section>    
    
    
    <section>
@@ -8281,32 +8085,32 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the maximum GPA for all terms is computed for each student (see the GROUP operator for information about the field names in relation B).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name:chararray, session:chararray, gpa:float);</para>
-               <para>DUMP A;</para>
-               <para>(John,fl,3.9F)</para>
-               <para>(John,wt,3.7F)</para>
-               <para>(John,sp,4.0F)</para>
-               <para>(John,sm,3.8F)</para>
-               <para>(Mary,fl,3.8F)</para>
-               <para>(Mary,wt,3.9F)</para>
-               <para>(Mary,sp,4.0F)</para>
-               <para>(Mary,sm,4.0F)</para>
-               <para/>
-               <para>B = GROUP A BY name;</para>
-               <para>DUMP B;</para>
-               <para>(John,{(John,fl,3.9F),(John,wt,3.7F),(John,sp,4.0F),(John,sm,3.8F)})</para>
-               <para>(Mary,{(Mary,fl,3.8F),(Mary,wt,3.9F),(Mary,sp,4.0F),(Mary,sm,4.0F)})</para>
-               <para/>
-               <para>X = FOREACH B GENERATE group, MAX(A.gpa);</para>
-               <para>DUMP X;</para>
-               <para>(John,4.0F)</para>
-               <para>(Mary,4.0F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'student' AS (name:chararray, session:chararray, gpa:float);
+
+DUMP A;
+(John,fl,3.9F)
+(John,wt,3.7F)
+(John,sp,4.0F)
+(John,sm,3.8F)
+(Mary,fl,3.8F)
+(Mary,wt,3.9F)
+(Mary,sp,4.0F)
+(Mary,sm,4.0F)
+
+B = GROUP A BY name;
+
+DUMP B;
+(John,{(John,fl,3.9F),(John,wt,3.7F),(John,sp,4.0F),(John,sm,3.8F)})
+(Mary,{(Mary,fl,3.8F),(Mary,wt,3.9F),(Mary,sp,4.0F),(Mary,sm,4.0F)})
+
+X = FOREACH B GENERATE group, MAX(A.gpa);
+
+DUMP X;
+(John,4.0F)
+(Mary,4.0F)
+</programlisting>
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -8397,32 +8201,32 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the minimum GPA for all terms is computed for each student (see the GROUP operator for information about the field names in relation B).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' AS (name:chararray, session:chararray, gpa:float);</para>
-               <para>DUMP A;</para>
-               <para>(John,fl,3.9F)</para>
-               <para>(John,wt,3.7F)</para>
-               <para>(John,sp,4.0F)</para>
-               <para>(John,sm,3.8F)</para>
-               <para>(Mary,fl,3.8F)</para>
-               <para>(Mary,wt,3.9F)</para>
-               <para>(Mary,sp,4.0F)</para>
-               <para>(Mary,sm,4.0F)</para>
-               <para/>
-               <para>B = GROUP A BY name;</para>
-               <para>DUMP B;</para>
-               <para>(John,{(John,fl,3.9F),(John,wt,3.7F),(John,sp,4.0F),(John,sm,3.8F)})</para>
-               <para>(Mary,{(Mary,fl,3.8F),(Mary,wt,3.9F),(Mary,sp,4.0F),(Mary,sm,4.0F)})</para>
-               <para/>
-               <para>X = FOREACH B GENERATE group, MIN(A.gpa);</para>
-               <para>DUMP X;</para>
-               <para>(John,3.7F)</para>
-               <para>(Mary,3.8F)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'student' AS (name:chararray, session:chararray, gpa:float);
+
+DUMP A;
+(John,fl,3.9F)
+(John,wt,3.7F)
+(John,sp,4.0F)
+(John,sm,3.8F)
+(Mary,fl,3.8F)
+(Mary,wt,3.9F)
+(Mary,sp,4.0F)
+(Mary,sm,4.0F)
+
+B = GROUP A BY name;
+
+DUMP B;
+(John,{(John,fl,3.9F),(John,wt,3.7F),(John,sp,4.0F),(John,sm,3.8F)})
+(Mary,{(Mary,fl,3.8F),(Mary,wt,3.9F),(Mary,sp,4.0F),(Mary,sm,4.0F)})
+
+X = FOREACH B GENERATE group, MIN(A.gpa);
+
+DUMP X;
+(John,3.7F)
+(Mary,3.8F)
+</programlisting>
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -8512,22 +8316,20 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the number of characters in the first field is computed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' as (f1:chararray, f2:chararray, f3:chararray);</para>
-               <para>(apache,open,source)</para>
-               <para>(hadoop,map,reduce)</para>
-               <para>(pig,pig,latin)</para>
-               <para/>
-               <para>X = FOREACH A GENERATE SIZE(f1);</para>
-               <para>DUMP X;</para>
-               <para>(6L)</para>
-               <para>(6L)</para>
-               <para>(3L)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' as (f1:chararray, f2:chararray, f3:chararray);
+(apache,open,source)
+(hadoop,map,reduce)
+(pig,pig,latin)
+
+X = FOREACH A GENERATE SIZE(f1);
+
+DUMP X;
+(6L)
+(6L)
+(3L)
+</programlisting>
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -8640,29 +8442,28 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the number of pets is computed. (see the GROUP operator for information about the field names in relation B).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' AS (owner:chararray, pet_type:chararray, pet_num:int);</para>
-               <para>DUMP A;</para>
-               <para>(Alice,turtle,1)</para>
-               <para>(Alice,goldfish,5)</para>
-               <para>(Alice,cat,2)</para>
-               <para>(Bob,dog,2)</para>
-               <para>(Bob,cat,2) </para>
-               <para/>
-               <para>B = GROUP A BY owner;</para>
-               <para>DUMP B;</para>
-               <para>(Alice,{(Alice,turtle,1),(Alice,goldfish,5),(Alice,cat,2)})</para>
-               <para>(Bob,{(Bob,dog,2),(Bob,cat,2)})</para>
-               <para/>
-               <para>X = FOREACH B GENERATE group, SUM(A.pet_num);</para>
-               <para>DUMP X;</para>
-               <para>(Alice,8L)</para>
-               <para>(Bob,4L)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
+<programlisting>
+A = LOAD 'data' AS (owner:chararray, pet_type:chararray, pet_num:int);
+
+DUMP A;
+(Alice,turtle,1)
+(Alice,goldfish,5)
+(Alice,cat,2)
+(Bob,dog,2)
+(Bob,cat,2) 
+
+B = GROUP A BY owner;
+
+DUMP B;
+(Alice,{(Alice,turtle,1),(Alice,goldfish,5),(Alice,cat,2)})
+(Bob,{(Bob,dog,2),(Bob,cat,2)})
+
+X = FOREACH B GENERATE group, SUM(A.pet_num);
+DUMP X;
+(Alice,8L)
+(Bob,4L)
+</programlisting>
+   </section>
    
    <section>
    <title>Types Tables</title>
@@ -8753,23 +8554,23 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the strings in each row are split.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A  = LOAD 'data' AS (f1:chararray);</para>
-               <para>DUMP A;</para>
-               <para>(Here is the first string.)</para>
-               <para>(Here is the second string.)</para>
-               <para>(Here is the third string.)</para>
-               <para/>
-               <para>X = FOREACH A GENERATE TOKENIZE(f1);</para>
-               <para>DUMP X;</para>
-               <para>({(Here),(is),(the),(first),(string.)})</para>
-               <para>({(Here),(is),(the),(second),(string.)})</para>
-               <para>({(Here),(is),(the),(third),(string.)})</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section></section>
+<programlisting>
+A  = LOAD 'data' AS (f1:chararray);
+
+DUMP A;
+(Here is the first string.)
+(Here is the second string.)
+(Here is the third string.)
+
+X = FOREACH A GENERATE TOKENIZE(f1);
+
+DUMP X;
+({(Here),(is),(the),(first),(string.)})
+({(Here),(is),(the),(second),(string.)})
+({(Here),(is),(the),(third),(string.)})
+</programlisting>
+   
+   </section></section></section>
    
    <section>
    <title>Load/Store Functions</title>
@@ -8809,14 +8610,12 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the BinarySerializer and BinaryDeserializer are use to convert data to and from streaming format.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl` INPUT(stdin USING BinarySerializer()) OUTPUT (stdout USING BinaryDeserializer());</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+DEFINE Y `stream.pl` INPUT(stdin USING BinarySerializer()) OUTPUT (stdout USING BinaryDeserializer());
+
+X = STREAM A THROUGH Y;
+</programlisting>
+   </section></section>
    
    <section>
    <title>BinaryDeserializer</title>
@@ -8852,14 +8651,12 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the BinarySerializer and BinaryDeserializer are use to convert data to and from streaming format.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DEFINE Y `stream.pl` INPUT(stdin USING BinarySerializer()) OUTPUT (stdout USING BinaryDeserializer());</para>
-               <para>X = STREAM A THROUGH Y;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+DEFINE Y `stream.pl` INPUT(stdin USING BinarySerializer()) OUTPUT (stdout USING BinaryDeserializer());
+
+X = STREAM A THROUGH Y;
+</programlisting>
+   </section></section>
    
    <section>
    <title>BinStorage</title>
@@ -8896,14 +8693,12 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example BinStorage is used with the LOAD and STORE functions.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' USING BinStorage();</para>
-               <para>STORE X into 'output' USING BinStorage(); </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+A = LOAD 'data' USING BinStorage();
+
+STORE X into 'output' USING BinStorage(); 
+</programlisting>
+   </section></section>
    
    <section>
    <title>PigStorage</title>
@@ -8950,22 +8745,17 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example PigStorage expects input.txt to contain tab-separated fields and newline-separated records. The statements are equivalent.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'student' USING PigStorage('\t') AS (name: chararray, age:int, gpa: float); </para>
-               <para>A = LOAD 'student' AS (name: chararray, age:int, gpa: float);</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+A = LOAD 'student' USING PigStorage('\t') AS (name: chararray, age:int, gpa: float); 
+
+A = LOAD 'student' AS (name: chararray, age:int, gpa: float);
+</programlisting>
+   
    <para>In this example PigStorage stores the contents of X into files with fields that are delimited with an asterisk ( * ). The STORE function specifies that the files will be located in a directory named output and that the files will be named part-nnnnn (for example, part-00000).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>STORE X INTO  'output' USING PigStorage('*');</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+STORE X INTO  'output' USING PigStorage('*');
+</programlisting>
+   </section></section>
    
    <section>
    <title>PigDump</title>
@@ -9001,13 +8791,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example PigDump is used with the STORE function.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>STORE X INTO 'output' USING PigDump();</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+STORE X INTO 'output' USING PigDump();
+</programlisting>
+   </section></section>
    
    <section>
    <title>TextLoader</title>
@@ -9021,7 +8808,8 @@ OP = stream IP through `perl /a/b/c/script.pl`;
                <para>TextLoader()</para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Terms</title>
@@ -9043,13 +8831,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example TextLoader is used with the LOAD function.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>A = LOAD 'data' USING TextLoader();</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section></section>
+<programlisting>
+A = LOAD 'data' USING TextLoader();
+</programlisting>
+   </section></section></section>
    
    
    
@@ -9092,17 +8877,13 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the students file in the data directory is printed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; cat data/students</para>
-               <para>joe smith</para>
-               <para>john adams</para>
-               <para>anne white</para>
-               <para>grunt&gt;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt> cat data/students;
+joe smith
+john adams
+anne white
+</programlisting>
+   </section></section>
    
    <section>
    <title>cd</title>
@@ -9139,13 +8920,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example we move to the /data directory.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; cd /data</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; cd /data
+</programlisting>   
+   </section></section>
    
    <section>
    <title>copyFromLocal</title>
@@ -9190,20 +8968,21 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example a file (students) and a directory (/data/tests) are copied from the local file system to HDFS.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; copyFromLocal /data/students students</para>
-               <para>grunt&gt; ls students</para>
-               <para>/data/students &lt;r 3&gt; 8270</para>
-               <para>grunt&gt;  copyFromLocal  /data/tests new_tests</para>
-               <para>grunt&gt; ls new_test</para>
-               <para>/data/new_test/test1.data&lt;r 3&gt;   664</para>
-               <para>/data/new_test/test2.data&lt;r 3&gt;    344</para>
-               <para>/data/new_test/more_data      </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+<programlisting>
+grunt> copyFromLocal /data/students students
+
+grunt> ls students
+/data/students &lt;r 3&gt; 8270
+
+grunt>  copyFromLocal  /data/tests new_tests
+
+grunt> ls new_test
+/data/new_test/test1.data &lt;r 3&gt; 664
+/data/new_test/test2.data &lt;r 3&gt; 344
+/data/new_test/more_data   
+</programlisting>
+</section></section>
    
    <section>
    <title>copyToLocal</title>
@@ -9248,14 +9027,11 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example two files are copied from HDFS to the local file system.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; copyToLocal students /data</para>
-               <para>grunt&gt; copyToLocal data /data/mydata</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+   <programlisting>
+grunt&gt; copyToLocal students /data
+grunt&gt; copyToLocal data /data/mydata
+</programlisting>
+   </section></section>
    
    <section>
    <title>cp</title>
@@ -9300,13 +9076,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example a file (students) is copied to another file (students_save).</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; cp students students_save</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+ <programlisting>
+grunt&gt; cp students students_save
+</programlisting>
+   </section></section>
    
    <section>
    <title>exec</title>
@@ -9366,32 +9139,30 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the script is displayed and run.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; cat myscript.pig</para>
-               <para>a = LOAD 'student' AS (name, age, gpa);</para>
-               <para>b = LIMIT a 3;</para>
-               <para>DUMP b;</para>
-               <para>grunt&gt; exec myscript.pig</para>
-               <para>(alice,20,2.47)</para>
-               <para>(luke,18,4.00)</para>
-               <para>(holly,24,3.27)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+
+<programlisting>
+grunt&gt; cat myscript.pig
+a = LOAD 'student' AS (name, age, gpa);
+b = LIMIT a 3;
+DUMP b;
+
+grunt&gt; exec myscript.pig
+(alice,20,2.47)
+(luke,18,4.00)
+(holly,24,3.27)
+</programlisting>
+
    <para>In this example parameter substitution is used with the exec command.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; cat myscript.pig</para>
-               <para>a = LOAD 'student' AS (name, age, gpa);</para>
-               <para>b = ORDER a BY name;</para>
-               <para>STORE b into '$out';</para>
-               <para>grunt&gt; exec –param out=myoutput myscript.pig</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; cat myscript.pig
+a = LOAD 'student' AS (name, age, gpa);
+b = ORDER a BY name;
+
+STORE b into '$out';
+
+grunt&gt; exec –param out=myoutput myscript.pig
+</programlisting>
+   </section></section>
    
    <section>
    <title>ls</title>
@@ -9428,17 +9199,14 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the contents of the data directory are listed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; ls /data</para>
-               <para>/data/DDLs  &lt;dir&gt;</para>
-               <para>/data/count &lt;dir&gt;</para>
-               <para>/data/data  &lt;dir&gt;</para>
-               <para>/data/schema &lt;dir&gt;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; ls /data
+/data/DDLs  &lt;dir&gt;
+/data/count &lt;dir&gt;
+/data/data  &lt;dir&gt;
+/data/schema &lt;dir&gt;
+</programlisting>
+   </section></section>
    
    <section>
    <title>mkdir</title>
@@ -9475,13 +9243,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example a directory and subdirectory are created.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; mkdir data/20070905</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; mkdir data/20070905
+</programlisting>
+   </section></section>
    
    <section>
    <title>mv</title>
@@ -9527,19 +9292,19 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the output directory is copied to output2 and then deleted.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; mv output output2</para>
-               <para>grunt&gt; ls output</para>
-               <para>File or directory output does not exist.</para>
-               <para>grunt&gt; ls output2</para>
-               <para>/data/output2/map-000000&lt;r 3&gt;     508844</para>
-               <para>/data/output2/output3     &lt;dir&gt;</para>
-               <para>/data/output2/part-00000&lt;r 3&gt;     0</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+ <programlisting>
+grunt&gt; mv output output2
+
+grunt&gt; ls output
+File or directory output does not exist.
+
+grunt&gt; ls output2
+/data/output2/map-000000&lt;r 3&gt;     508844
+/data/output2/output3     &lt;dir&gt;
+/data/output2/part-00000&lt;r 3&gt;     0
+</programlisting>
+</section></section>
    
    <section>
    <title>pwd</title>
@@ -9576,14 +9341,12 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the name of the current working directory is /data.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; pwd</para>
-               <para>/data</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+<programlisting>
+grunt&gt; pwd
+/data
+</programlisting>
+   </section></section>
    
    <section>
    <title>rm</title>
@@ -9620,14 +9383,12 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example files are removed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; rm /data/students</para>
-               <para>grunt&gt; rm students students_sav</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+
+   <programlisting>
+grunt&gt; rm /data/students
+grunt&gt; rm students students_sav
+</programlisting>
+   </section></section>
    
    <section>
    <title>rmf</title>
@@ -9665,14 +9426,11 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example files are forcibly removed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; rmf /data/students</para>
-               <para>grunt&gt; rmf students students_sav</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+ <programlisting>
+grunt&gt; rmf /data/students
+grunt&gt; rmf students students_sav
+</programlisting>
+   </section></section>
    
    <section>
    <title>run</title>
@@ -9731,34 +9489,36 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the script interacts with the results of commands issued via the Grunt shell.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; cat myscript.pig</para>
-               <para>b = ORDER a BY name;</para>
-               <para>c = LIMIT b 10;</para>
-               <para>grunt&gt; a = LOAD 'student' AS (name, age, gpa);</para>
-               <para>grunt&gt; run myscript.pig</para>
-               <para>grunt&gt; d = LIMIT c 3;</para>
-               <para>grunt&gt; DUMP d;</para>
-               <para>(alice,20,2.47)</para>
-               <para>(alice,27,1.95)</para>
-               <para>(alice,36,2.27)</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+grunt&gt; cat myscript.pig
+b = ORDER a BY name;
+c = LIMIT b 10;
+
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+
+grunt&gt; run myscript.pig
+
+grunt&gt; d = LIMIT c 3;
+
+grunt&gt; DUMP d;
+(alice,20,2.47)
+(alice,27,1.95)
+(alice,36,2.27)
+</programlisting>
+   
+   
    <para>In this example parameter substitution is used with the run command.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; a = LOAD 'student' AS (name, age, gpa);</para>
-               <para>grunt&gt; cat myscript.pig</para>
-               <para>b = ORDER a BY name;</para>
-               <para>STORE b into '$out';</para>
-               <para>grunt&gt; run –param out=myoutput myscript.pig</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+
+grunt&gt; cat myscript.pig
+b = ORDER a BY name;
+STORE b into '$out';
+
+grunt&gt; run –param out=myoutput myscript.pig
+</programlisting>
+   
+   </section></section>
    </section>
    
    
@@ -9799,18 +9559,14 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the students file in the data directory is printed out.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; help</para>
-               <para>Commands:</para>
-               <para>&lt;pig latin statement&gt;;</para>
-               <para>store &lt;alias&gt; into &lt;filename&gt; [using &lt;functionSpec&gt;]</para>
-               <para>dump &lt;alias&gt;</para>
-               <para>etc ….</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; help
+Commands:
+&lt;pig latin statement&gt;;
+store &lt;alias&gt; into &lt;filename&gt; [using &lt;functionSpec&gt;]
+dump &lt;alias&gt;
+<emphasis>etc …</emphasis></programlisting>
+   </section></section>
    
    <section>
    <title>kill</title>
@@ -9846,13 +9602,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the job with id job_0001 is killed.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; kill job_0001</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; kill job_0001
+</programlisting>
+   </section></section>
    
    <section>
    <title>quit</title>
@@ -9888,13 +9641,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example the quit command exits the Pig grunt shall.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; quit</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+<programlisting>
+grunt&gt; quit
+</programlisting>
+   </section></section>
    
    <section>
    <title>set</title>
@@ -9975,14 +9725,10 @@ OP = stream IP through `perl /a/b/c/script.pl`;
    <section>
    <title>Example</title>
    <para>In this example debug is set on and the job is assigned a name.</para>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>grunt&gt; set debug on</para>
-               <para>grunt&gt; set job.name 'my job'</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable>
+<programlisting>
+grunt&gt; set debug on
+grunt&gt; set job.name 'my job'
+</programlisting>
    </section></section>
    
    

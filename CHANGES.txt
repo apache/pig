@@ -28,15 +28,17 @@ OPTIMIZATIONS
 
 BUG FIXES
 
-PIG-835: Multiquery optimization does not handle the case where the map keys
-in the split plans have different key types (tuple and non tuple key type)
-(pradeepkth)
-
 Release 0.3.0 - Unreleased
 
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-835: Multiquery optimization does not handle the case where the map keys
+in the split plans have different key types (tuple and non tuple key type)
+(pradeepkth)
+
+PIG-817: documentation update (chandec via olgan)
 
 PIG-830: Add RegExLoader and apache log utils to piggybank (dvryaboy via gates).
 
