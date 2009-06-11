@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-817: documentation update (chandec via olgan)
+
 PIG-830: Add RegExLoader and apache log utils to piggybank (dvryaboy via gates).
 
 PIG-831: Turned off reporting of records and bytes written for mutli-store
