@@ -72,7 +72,7 @@ public class TestKeyTypeDiscoveryVisitor extends TestCase {
         		// The null records will get discarded by the join and hence the join
         		// output would be {(1, 15L, 1, 20, 70L)} 
         		"join_a_b = join b_sum by x, a_aggs by x;";
-        Util.registerQuery(pigServer, script);
+        Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it = pigServer.openIterator("join_a_b");
         Object[] results = new Object[] { 1, 15L, 1, 20, 70L};
         Tuple output = it.next();

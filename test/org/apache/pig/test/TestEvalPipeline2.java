@@ -299,7 +299,7 @@ public class TestEvalPipeline2 extends TestCase {
         		"b = foreach a generate $0, CONCAT($0, '\u0005'), $1; " +
         		"store b into 'testPigStorageWithCtrlCharsOutput.txt' using PigStorage('\u0001');" +
         		"c = load 'testPigStorageWithCtrlCharsOutput.txt' using PigStorage('\u0001') as (f1:chararray, f2:chararray, f3:chararray);";
-        Util.registerQuery(pigServer, script);
+        Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it  = pigServer.openIterator("c");
         HashMap<String, Tuple> expectedResults = new HashMap<String, Tuple>();
         expectedResults.put("hello", (Tuple) Util.getPigConstant("('hello','hello\u0005','world')"));
