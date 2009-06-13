@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -502,18 +503,27 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         POPackage pk = (POPackage)from.getRoots().get(0);
         from.remove(pk);
  
-        // XXX the index of the original keyInfo map is always 0,
-        // we need to shift the index so that the lookups works
-        // with the new indexed key       
-        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pk.getKeyInfo();
-        if (keyInfo != null && keyInfo.size() > 0) {      
-            byte b = (byte)(initial | PigNullableWritable.mqFlag);
-            keyInfo.put(new Integer(b), keyInfo.get(0));
-        }     
+        if(!(pk instanceof POMultiQueryPackage)){
+            // XXX the index of the original keyInfo map is always 0,
+            // we need to shift the index so that the lookups works
+            // with the new indexed key
+            addShiftedKeyInfoIndex(initial, pk); 
+        }
         
         if (pk instanceof POMultiQueryPackage) {
             POMultiQueryPackage mpkg = (POMultiQueryPackage)pk;
             setBaseIndexOnPackage(initial, mpkg);
+            // we should update the keyinfo map of the 
+            // POPackage objects in the POMultiQueryPackage to
+            // have the shifted index - The index now will be
+            // starting from "initial" going up to "current"
+            // ORed with the multi query bit mask
+            int retIndex = addShiftedKeyInfoIndex(initial, current, mpkg);
+            if(retIndex != current) {
+                int errCode = 2146;
+                String msg = "Internal Error. Inconsistency in key index found during optimization.";
+                throw new OptimizerException(msg, errCode, PigException.BUG);
+            }
         }
                                 
         PhysicalOperator root = from.getRoots().get(0);
@@ -539,6 +549,86 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }                
     }
     
+    private void addShiftedKeyInfoIndex(int index, POPackage pkg) throws OptimizerException {
+        /**
+         * we only do multi query optimization for single input MROpers
+         * Hence originally the keyInfo would have had only index 0. As
+         * we merge MROpers into parent MROpers we add entries for the
+         * multiquery based index (ORed with multi query bit mask). These additions
+         * would mean we have many entries in the keyInfo while really it should
+         * only have one since there is only one input that the package would
+         * be processing and hence only one index. So each time we add an entry
+         * for a new shifted index, we should clean up keyInfo so that it has only one entry
+         * - the valid entry at that point. The "value" in the keyInfo map for the new
+         * addition should be the same as the "value" in the existing Entry. After
+         * addition, we should remove the older entry
+         */
+        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkg.getKeyInfo();
+        byte newIndex = (byte)(index | PigNullableWritable.mqFlag);
+        
+        Set<Integer> existingIndices = keyInfo.keySet();
+        if(existingIndices.size() != 1) {
+            // we always maintain one entry in the keyinfo
+            // which is the valid entry at the given stage of
+            // multi query optimization
+            int errCode = 2146;
+            String msg = "Internal Error. Inconsistency in key index found during optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
+        int existingIndex = existingIndices.iterator().next();
+        keyInfo.put(new Integer(newIndex), keyInfo.get(existingIndex));
+        
+        // clean up the old entry so we only keep
+        // the valid entry around - if we did something wrong while
+        // setting this up, we will fail at runtime which is better
+        // than doing something wrong and giving incorrect results!
+        if(newIndex != existingIndex) {
+            keyInfo.remove(existingIndex);
+        }
+    }
+    
+    /**
+     * @param initialIndex
+     * @param onePastEndIndex
+     * @param mpkg
+     * @throws OptimizerException 
+     */
+    private int addShiftedKeyInfoIndex(int initialIndex, int onePastEndIndex,
+            POMultiQueryPackage mpkg) throws OptimizerException {
+        // recursively iterate over the packages in the
+        // POMultiQueryPackage adding a shifted keyInfoIndex entry
+        // in the packages in order going from initialIndex upto
+        // onePastEndIndex (exclusive) flattening out any nested
+        // packages in nested POMultiqueryPackages as we traverse
+        List<POPackage> pkgs = mpkg.getPackages();
+        // if we have lesser pkgs than (onePastEndIndex - initialIndex)
+        // its because one or more of the pkgs is a POMultiQueryPackage which
+        // internally has packages.
+        int numIndices = (onePastEndIndex - initialIndex);
+        int end = numIndices;
+        if(numIndices > pkgs.size()) {
+            end = pkgs.size();
+        } else if (numIndices < pkgs.size()) {
+            int errCode = 2146;
+            String msg = "Internal Error. Inconsistency in key index found during optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG);
+        }
+        int i = 0;
+        int curIndex = initialIndex;
+        while (i < end) {
+            POPackage pkg = pkgs.get(i);
+            if(pkg instanceof POMultiQueryPackage) {
+                curIndex = addShiftedKeyInfoIndex(curIndex, onePastEndIndex, (POMultiQueryPackage)pkg);
+            } else {
+                addShiftedKeyInfoIndex(curIndex, pkg);
+                curIndex++;
+            }
+            i++;
+        }
+        return curIndex; // could be used in a caller who recursively called this function
+        
+    }
+
     private void mergeOneCombinePlanWithIndex(PhysicalPlan from,
             PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {
         POPackage cpk = (POPackage)from.getRoots().get(0);
@@ -664,7 +754,73 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             // > index + 1
             int incIndex = mergeOneMapPlanWithIndex(
                     mrOp.mapPlan, splitOp, index, sameKeyType);
-                       
+            
+            // In the combine and reduce plans the Demux and POMultiQueryPackage
+            // operators' baseIndex is set whenever the incIndex above is > index + 1
+            // What does this 'baseIndex' mean - here is an attempt to explain it:
+            // Consider a map - reduce plan layout as shown below (the comments
+            // apply even if a combine plan was present) - An explanation of the "index"
+            // and "baseIndex" fields follows:
+            // The numbers in parenthesis () are "index" values - Note that in multiquery
+            // optimizations these indices are actually ORed with a bitmask (0x80) on the
+            // map side in the LocalRearrange. The POMultiQueryPackage and PODemux operators
+            // then remove this bitmask to restore the original index values. In the commentary
+            // below, indices will be referred to without this bitmask - the bitmask is only
+            // to identify the multiquery optimization during comparsion - for details see the comments
+            // in POLocalRearrange.setIndex().
+            // The numbers in brackets [] are "baseIndex" values. These baseIndex values are
+            // used by POMultiQueryPackage and PODemux to calculate the an arrayList index which
+            // they use to pick the right package or inner plan respectively. All this is needed
+            // since on the map side the indices are assigned after flattening all POLocalRearranges
+            // including those nested in Splits into one flat space (as can be noticed by the
+            // numbering of the indices under the split in the example below). The optimizer then
+            // duplicates the POMultiQueryPackage and Demux inner plan corresponding to the split
+            // in the reduce plan (the entities with * in the figure below). Now if a key with index '1'
+            // is emitted, it goes to the first POMultiQueryPackage in the reduce plan below, which 
+            // then picks the second package in its arraylist of packages which is a 
+            // POMultiQueryPackage (the first with a * below). This POMultiQueryPackage then picks 
+            // the first package in its list (it arrives at this arraylist index of 0 by subtracting
+            // the baseIndex (1) from the index coming in (1)). So the record emitted by LocalRearrange(1)
+            // reaches the right package. Likewise, if LocalRearrange(2) emits a key,value they would have
+            // an index 2. The first POMultiQueryPackage (with baseIndex 0 below) would pick the 3rd package
+            // (arraylist index 2 arrived at by doing index - baseIndex which is 2 - 0). This is the
+            // duplicated POMultiQueryPackage with baseIndex 1. This would inturn pick the second package
+            // in its arraylist (arraylist index 1 arrived at by doing index - baseIndex which is 2 - 1)
+            // The idea is that through duplication we make it easier to determine which POPackage to pick.
+            // The exact same logic is used by PODemux to pick the right inner plan from its arraylist of
+            // inner plans.
+            
+            // The arrows in the figure below show the correspondence between the different operators
+            // and plans .i.e the end of an arrow points to the operator or plan which consumes
+            // data coming from the root of the arrow
+            
+            // If you look at the layout below column-wise, each "column" is a MROper
+            // which is being merged into the parent MROper - the Split represents a
+            // MROper which inside of it has 2 MROpers merged in.
+            // A star (*) next to an operator means it is the same object as the
+            // other operator with a star(*) - Essentially the same object reference
+            // is copied twice.
+            // LocalRearrange(0)           Split                           LocalRearrange(3)
+            //     |                       /     \                               |
+            //     |         LocalRearrange(1)  LocalRearrange(2)                |
+            //     |             |     MAP PLAN              |                   |
+            // ----|-------------|---------------------------|-------------------|--------------------
+            //     |             |     REDUCE PLAN           |                   |
+            //     |             |   POMultiQueryPackage[0]  |                   |
+            //     V             V         | contains        V                   V
+            // [ POPackage, POMultiQueryPackage[1]*,POMultiQueryPackage[1]*,   POPackage]
+            //      |           /    \               /      \                    |
+            //      |       POPackage POPackage  POPackage  POPackage            |
+            //      |              \                          |                  |
+            //      |               \   Demux[0]              |                  |
+            //      V                V    | contains          V                  V
+            //  [ planOfRedOperators,planWithDemux*, planWithDemux*,      planOfRedOperators]             
+            //                       /    |              |        \
+            //                      /   Demux[1]        Demux[1]   \
+            //                     V      |               |         V
+            //            [planOfRedOps,planOfRedOps][planOfRedOps,planOfRedOps]
+            // 
+            
             // merge the combiner plan
             if (comPl != null) {
                 if (!mrOp.combinePlan.isEmpty()) {                    
@@ -676,7 +832,6 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     throw new OptimizerException(msg, errCode, PigException.BUG);
                 }
             }
-
             // merge the reducer plan
             mergeOneReducePlanWithIndex(
                     mrOp.reducePlan, redPl, index, incIndex, mrOp.mapKeyType);

@@ -69,6 +69,9 @@ PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via p
 
 BUG FIXES
 
+PIG-846: MultiQuery optimization in some cases has an issue when there is a
+split in the map plan (pradeepkth)
+
 PIG-835: Multiquery optimization does not handle the case where the map keys
 in the split plans have different key types (tuple and non tuple key type)
 (pradeepkth)

@@ -42,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -1093,8 +1094,85 @@ public class TestMultiQuery extends TestCase {
             e.printStackTrace();
             Assert.fail();
         } 
-    }         
+    }       
 
+    @Test
+    public void testMultiQueryWithSplitInMapAndMultiMerge() throws Exception {
+
+        // clean up any existing dirs/files
+        String[] toClean = {"tmwsimam-input.txt", "foo1", "foo2", "foo3", "foo4" };
+        for (int j = 0; j < toClean.length; j++) {
+            Util.deleteFile(cluster, toClean[j]);    
+        }
+        
+        // the data below is tab delimited
+        String[] inputData = {
+        "1	a	b	e	f	i	j	m	n",
+        "2	a	b	e	f	i	j	m	n",
+        "3	c	d	g	h	k	l	o	p",
+        "4	c	d	g	h	k	l	o	p" };
+        Util.createInputFile(cluster, "tmwsimam-input.txt", inputData);
+        String query = 
+        "A = LOAD 'tmwsimam-input.txt' " +
+        "as (f0:chararray, f1:chararray, f2:chararray, f3:chararray, " +
+        "f4:chararray, f5:chararray, f6:chararray, f7:chararray, f8:chararray); " +
+        "B = FOREACH A GENERATE f0, f1, f2, f3, f4;" +
+        "B1 = foreach B generate f0, f1, f2;" + 
+        "C = GROUP B1 BY (f1, f2);" + 
+        "STORE C into 'foo1' using BinStorage();" +
+        "B2 = FOREACH B GENERATE f0, f3, f4;" + 
+        "E = GROUP B2 BY (f3, f4);" +
+        "STORE E into 'foo2'  using BinStorage();" +
+        "F = FOREACH A GENERATE f0, f5, f6, f7, f8;" +
+        "F1 = FOREACH F GENERATE f0, f5, f6;" +
+        "G = GROUP F1 BY (f5, f6);" +
+        "STORE G into 'foo3'  using BinStorage();" + 
+        "F2  = FOREACH F GENERATE f0, f7, f8;" +
+        "I = GROUP F2 BY (f7, f8);" +
+        "STORE I into 'foo4'  using BinStorage();" +
+        "explain;";
+        myPig.setBatchOn();
+        Util.registerMultiLineQuery(myPig, query);
+        myPig.executeBatch();
+        
+        String templateLoad = "a = load 'foo' using BinStorage();";
+        
+        Map<Tuple, DataBag> expectedResults = new HashMap<Tuple, DataBag>();
+        expectedResults.put((Tuple)Util.getPigConstant("('a','b')"),  
+                            (DataBag)Util.getPigConstant("{('1','a','b'),('2','a','b')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('c','d')"),  
+                            (DataBag)Util.getPigConstant("{('3','c','d'),('4','c','d')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('e','f')"),  
+                            (DataBag)Util.getPigConstant("{('1','e','f'),('2','e','f')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('g','h')"),  
+                            (DataBag)Util.getPigConstant("{('3','g','h'),('4','g','h')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('i','j')"),  
+                            (DataBag)Util.getPigConstant("{('1','i','j'),('2','i','j')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('k','l')"),  
+                            (DataBag)Util.getPigConstant("{('3','k','l'),('4','k','l')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('m','n')"),  
+                            (DataBag)Util.getPigConstant("{('1','m','n'),('2','m','n')}"));
+        expectedResults.put((Tuple)Util.getPigConstant("('o','p')"),  
+                            (DataBag)Util.getPigConstant("{('3','o','p'),('4','o','p')}"));
+        String[] outputDirs = { "foo1", "foo2", "foo3", "foo4" };
+        for(int k = 0; k < outputDirs.length; k++) {
+            myPig.registerQuery(templateLoad.replace("foo", outputDirs[k]));
+            Iterator<Tuple> it = myPig.openIterator("a");
+            int numTuples = 0;
+            while(it.hasNext()) {
+                Tuple t = it.next();
+                assertEquals(expectedResults.get(t.get(0)), t.get(1));
+                numTuples++;
+            }
+            assertEquals(numTuples, 2);
+        }
+        // cleanup
+        for (int j = 0; j < toClean.length; j++) {
+            Util.deleteFile(cluster, toClean[j]);    
+        }
+        
+    }
+    
     @Test
     public void testMultiQueryWithTwoStores() {
 
