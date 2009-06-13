@@ -392,7 +392,7 @@ public class Util {
         return comp.getMRPlan();	
     }
     
-    public static void registerQuery(PigServer pigServer, String query) throws IOException {
+    public static void registerMultiLineQuery(PigServer pigServer, String query) throws IOException {
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
         pw.println(query);

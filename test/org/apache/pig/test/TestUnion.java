@@ -224,7 +224,7 @@ public class TestUnion extends junit.framework.TestCase {
         Util.createInputFile(cluster, "input1.txt", new String[] {"dummy"});
         Util.createInputFile(cluster, "input2.txt", new String[] {"dummy"});
         PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        Util.registerQuery(pig, "a = load 'input1.txt';" +
+        Util.registerMultiLineQuery(pig, "a = load 'input1.txt';" +
         		"b = load 'input2.txt';" +
         		"c = foreach a generate 1, {(1, 'str1')};" +
         		"d = foreach b generate 2, {(2, 'str2')};" +
