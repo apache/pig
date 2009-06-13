@@ -92,7 +92,7 @@ public class TestRelationToExprProject extends TestCase {
         		"        filter_one    = filter test by (col2==1);" +
         		"        filter_notone = filter test by (col2!=1);" +
         		"        generate group as col1, COUNT(filter_one) as cnt_one, COUNT(filter_notone) as cnt_notone;};";
-        Util.registerQuery(pigServer, script);
+        Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it = pigServer.openIterator("test3");
         Tuple[] expected = new DefaultTuple[2];
         expected[0] = (Tuple) Util.getPigConstant("(1,1L,1L)");
@@ -145,7 +145,7 @@ public class TestRelationToExprProject extends TestCase {
         		"                matchedcount as matchedcount," +
         		"                A.str;" +
         		"        };";  
-        Util.registerQuery(pigServer, query);
+        Util.registerMultiLineQuery(pigServer, query);
         Iterator<Tuple> it = pigServer.openIterator("Cfiltered");
         Map<String, Tuple> expected = new HashMap<String, Tuple>();
         expected.put("a", (Tuple) Util.getPigConstant("('a',1L,{('hello'),('goodbye')})"));
@@ -179,7 +179,7 @@ public class TestRelationToExprProject extends TestCase {
         		"                }" +
         		"TESTDATA_AGG_1 = group TESTDATA_AGG ALL;" +
         		"TESTDATA_AGG_2 = foreach TESTDATA_AGG_1 generate COUNT(TESTDATA_AGG);" ;
-        Util.registerQuery(pigServer, query);
+        Util.registerMultiLineQuery(pigServer, query);
         Iterator<Tuple> it = pigServer.openIterator("TESTDATA_AGG_2");
         
         int i = 0;
@@ -205,7 +205,7 @@ public class TestRelationToExprProject extends TestCase {
                 "test3 = foreach test2 {" +
                 "        filter_one    = filter test by (col2==1);" +
                 "        generate filter_one;};";
-        Util.registerQuery(pigServer, script);
+        Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it = pigServer.openIterator("test3");
         Map<Tuple, Integer> expected = new HashMap<Tuple, Integer>();
         expected.put((Tuple) Util.getPigConstant("({(1,1,3)})"), 0);
@@ -246,7 +246,7 @@ public class TestRelationToExprProject extends TestCase {
                 "test3 = foreach test2 {" +
                 "        filter_one    = filter test by (col2==1);" +
                 "        generate group, filter_one;};";
-        Util.registerQuery(pigServer, script);
+        Util.registerMultiLineQuery(pigServer, script);
         Iterator<Tuple> it = pigServer.openIterator("test3");
         Map<Tuple, Integer> expected = new HashMap<Tuple, Integer>();
         expected.put((Tuple) Util.getPigConstant("(1,{(1,1,3)})"), 0);
