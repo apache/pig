@@ -28,6 +28,11 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-852: pig -version or pig -help returns exit code of 1 (milindb via
+    olgan)
+
+    PIG-849: Local engine loses records in splits (hagleitn via olgan)
+
 Release 0.3.0 - Unreleased
 
 INCOMPATIBLE CHANGES
@@ -692,5 +697,3 @@ Release 0.1.0 - 2008-09-11
 
     PIG-284: target for building source jar (oae via olgan)
 
-    PIG-852: pig -version or pig -help returns exit code of 1 (milindb via
-    olgan)
