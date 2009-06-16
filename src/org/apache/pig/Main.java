@@ -175,10 +175,12 @@ public static void main(String args[])
 
             case 'h':
                 usage();
+                rc = 0;
                 return;
 
             case 'i':
             	System.out.println(getVersionString());
+                rc = 0;
             	return;
 
             case 'j': 

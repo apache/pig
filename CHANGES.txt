@@ -692,3 +692,5 @@ Release 0.1.0 - 2008-09-11
 
     PIG-284: target for building source jar (oae via olgan)
 
+    PIG-852: pig -version or pig -help returns exit code of 1 (milindb via
+    olgan)
