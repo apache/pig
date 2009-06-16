@@ -319,4 +319,32 @@ public class TestEvalPipeline2 extends TestCase {
         
     }
 
+    @Test
+    // Test case added for PIG-850
+    public void testLimitedSortWithDump() throws Exception{
+        int LOOP_COUNT = 40;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random(1);
+        int rand;
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            rand = r.nextInt(100);
+            ps.println(rand);
+        }
+        ps.close();
+
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' AS (num:int);");
+        pigServer.registerQuery("B = order A by num parallel 2;");
+        pigServer.registerQuery("C = limit B 10;");
+        Iterator<Tuple> result = pigServer.openIterator("C");
+        
+        int numIdentity = 0;
+        while (result.hasNext())
+        {
+            Tuple t = result.next();
+            ++numIdentity;
+        }
+        assertEquals(10, numIdentity);
+    }
+
 }
