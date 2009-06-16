@@ -1710,6 +1710,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 
                 FileSpec fSpec = getTempFileSpec();
                 ((POStore)mpLeaf).setSFile(fSpec);
+                ((POStore)mpLeaf).setIsTmpStore(true);
                 mr.setReduceDone(true);
                 MapReduceOper limitAdjustMROp = getMROp();
                 POLoad ld = getLoad();
@@ -1724,6 +1725,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 limitAdjustMROp.reducePlan.addAsLeaf(pLimit2);
                 POStore st = getStore();
                 st.setSFile(oldSpec);
+                st.setIsTmpStore(false);
                 limitAdjustMROp.reducePlan.addAsLeaf(st);
                 limitAdjustMROp.requestedParallelism = 1;
                 // If the operator we're following has global sort set, we
