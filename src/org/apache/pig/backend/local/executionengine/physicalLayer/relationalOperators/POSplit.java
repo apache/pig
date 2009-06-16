@@ -68,7 +68,10 @@ public class POSplit extends PhysicalOperator {
 		if(input.returnStatus == POStatus.STATUS_ERR) {
 		    throw new ExecException("Error accumulating output at local Split operator");
 		}
-		data.add((Tuple) input.result);
+
+                if (input.returnStatus != POStatus.STATUS_NULL) {
+                    data.add((Tuple) input.result);
+                }
 	    }
 	    processingDone = true;
 	}
