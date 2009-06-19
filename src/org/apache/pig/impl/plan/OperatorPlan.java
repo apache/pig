@@ -29,10 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.pig.PigException;
-import org.apache.pig.impl.util.MultiMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
+import org.apache.pig.impl.util.MultiMap;
 
 
 //import org.apache.commons.collections.map.MultiValueMap;
@@ -50,6 +50,18 @@ import org.apache.commons.logging.LogFactory;
  * are generally understood mathematically.  But it greatly reducing the need
  * for graph manipulators (such as the validators and optimizers) to
  * understand the internals of various nodes.
+ */
+
+//TODO
+/*
+ * The graph operations swap, insertBetween, pushBefore, etc. have to be re-implemented
+ * in a layered fashion. The layering will facilitate the re-use of operations. In addition,
+ * use of operator.rewire in the aforementioned operations requires transaction like ability
+ * due to various pre-conditions. Often, the result of one of the operations leaves the
+ * graph in an inconsistent state for the rewire operation. Clear layering and assignment
+ * of the ability to rewire will remove these inconsistencies. For now, use of rewire
+ * has resulted in a slightly less maintainable code along with the necessity to use
+ * rewire with discretion.
  */
 public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, Serializable, Cloneable {
     protected Map<E, OperatorKey> mOps;
@@ -241,7 +253,19 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @param op Operator to trim everything before.
      */
     public void trimAbove(E op) {
-        trimAbove(getPredecessors(op));
+        List<E> predecessors = new ArrayList<E>(getPredecessors(op));
+        IndexHelper<E> indexHelper = new IndexHelper<E>(predecessors);
+        trimAbove(predecessors);
+        for(E predecessor: predecessors) {
+            try {
+                op.rewire(predecessor, indexHelper.getIndex(predecessor), null, true);
+            } catch (PlanException pe) {
+                //TODO
+                //need to change the method signature to include the exception clause
+                //for now, throwing RunTimeException to workaround this issue
+                throw new RuntimeException("Encountered problems with rewiring operators.", pe);
+            }
+        }
     }
 
     private void trimAbove(List<E> ops) {
@@ -453,15 +477,41 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             E after,
             E newNode,
             E before) throws PlanException {
+        doInsertBetween(after, newNode, before, true);
+    }
+    
+    /*
+     * Private method to perform the insertBetween operation with the ability to turn off
+     * rewiring operation.
+     */
+    private void doInsertBetween(
+            E after,
+            E newNode,
+            E before,
+            boolean rewire) throws PlanException {
         checkInPlan(newNode);
+        List<E> newNodePreds = getPredecessors(newNode);
+        //assuming that the newNode has zero or one predecessor
+        E newNodePred = (newNodePreds == null? null: newNodePreds.get(0));
         if (!replaceNode(after, newNode, before, mFromEdges) || !replaceNode(before, newNode, after, mToEdges)) {
-            PlanException pe = new PlanException("Attempt to insert between two nodes " +
-                "that were not connected.");
-            log.error(pe.getMessage());
+            int errCode = 1094;
+            String msg = "Attempt to insert between two nodes " +
+            "that were not connected.";
+            PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
             throw pe;
         }
         mFromEdges.put(newNode, before);
         mToEdges.put(newNode, after);
+
+        if(rewire) {
+            if((newNodePred != null) && !(newNodePred.equals(after))) {
+                newNodePred.regenerateProjectionMap();
+                newNode.rewire(newNodePred, 0, after, true);
+            }
+            newNode.regenerateProjectionMap();
+            IndexHelper<E> indexHelper = new IndexHelper<E>(getPredecessors(newNode));
+            before.rewire(after, indexHelper.getIndex(after), newNode, false);
+        }
     }
 
     // replaces (src -> dst) entry in multiMap with (src -> replacement)
@@ -513,7 +563,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
     /**
      * Replace an existing node in the graph with a new node.  The new node
      * will be connected to all the nodes the old node was.  The old node will
-     * be removed.
+     * be removed. The new node is assumed to have no incoming or outgoing edges
      * @param oldNode Node to be replaced
      * @param newNode Node to add in place of oldNode
      * @throws PlanException
@@ -521,9 +571,28 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
     public void replace(E oldNode, E newNode) throws PlanException {
         checkInPlan(oldNode);
         add(newNode);
+        List<E> oldNodeSuccs = (getSuccessors(oldNode) == null? null : new ArrayList<E>(getSuccessors(oldNode)));
+        List<IndexHelper<E>> indexHelpers = new ArrayList<IndexHelper<E>>();
+        if(oldNodeSuccs != null) {
+            for(int i = 0; i < oldNodeSuccs.size(); ++i) {
+                E oldNodeSucc = oldNodeSuccs.get(i);
+                indexHelpers.add(new IndexHelper<E>(new ArrayList<E>(getPredecessors(oldNodeSucc))));
+            }
+        }
+
+        
         mToEdges = generateNewMap(oldNode, newNode, mToEdges);
         mFromEdges = generateNewMap(oldNode, newNode, mFromEdges);
+        
+        //ensure that the oldNode's successors are rewired
+        if(oldNodeSuccs != null) {
+            for(int i = 0; i < oldNodeSuccs.size(); ++i) {
+                E oldNodeSucc = oldNodeSuccs.get(i);
+                oldNodeSucc.rewire(oldNode, indexHelpers.get(i).getIndex(oldNode), newNode, true);
+            }
+        }
         remove(oldNode);
+
     }
 
     private MultiMap<E, E> generateNewMap(
@@ -568,9 +637,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         E pred = null;
         if (preds != null) {
             if (preds.size() > 1) {
-                PlanException pe = new PlanException("Attempt to remove " +
-                    " and reconnect for node with multiple predecessors.");
-                log.error(pe.getMessage());
+                int errCode = 1095;
+                String msg = "Attempt to remove " +
+                " and reconnect for node with multiple predecessors.";
+                PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
                 throw pe;
             }
             pred = preds.get(0);
@@ -581,9 +651,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         E succ = null;
         if (succs != null) {
             if (succs.size() > 1) {
-                PlanException pe = new PlanException("Attempt to remove " +
-                    " and reconnect for node with multiple successors.");
-                log.error(pe.getMessage());
+                int errCode = 1095;
+                String msg = "Attempt to remove " +
+                " and reconnect for node with multiple successors.";
+                PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
                 throw pe;
             }
             succ = succs.get(0);
@@ -591,7 +662,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         }
 
         remove(node);
-        if (pred != null && succ != null) connect(pred, succ);
+        if (pred != null && succ != null) {
+            connect(pred, succ);
+            succ.rewire(node, 0, pred, true);
+        }
     }
 
     private void reconnectSuccessors(E node, boolean successorRequired, boolean removeNode) throws PlanException {
@@ -615,35 +689,44 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             Integer size = null;
             if(preds != null)
                 size = preds.size();
-
-            PlanException pe = new PlanException("Attempt to remove " +
-                    " and reconnect for node with  " + size +
-            " predecessors.");
-            log.error(pe.getMessage());
+            int errCode = 1096;
+            String msg = "Attempt to remove "
+                    + " and reconnect for node with  " + size
+                    + " predecessors.";
+            PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
             throw pe;
         }
 
         //A and C
         E nodeA = preds.get(0);
-        Collection<E> nodeC = mFromEdges.get(nodeB);
+        Collection<E> nodeC = (mFromEdges.get(nodeB) == null? null : new ArrayList<E>(mFromEdges.get(nodeB)));
 
         //checking pre-requisite conditions
         if(successorRequired) {
             if (nodeC == null || nodeC.size() == 0) {
-                PlanException pe = new PlanException("Attempt to remove " +
-                " and reconnect for node with no successors.");
-                log.error(pe.getMessage());
+                int errCode = 1096;
+                String msg = "Attempt to remove " +
+                " and reconnect for node with no successors.";
+                PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
                 throw pe;
             }
         }
 
+        List<IndexHelper<E>> indexHelpers = new ArrayList<IndexHelper<E>>();
+        if(nodeC != null) {
+            for(int i = 0; i < nodeC.size(); ++i) {
+                E c = ((List<E>)nodeC).get(i);
+                indexHelpers.add(new IndexHelper<E>(new ArrayList<E>(getPredecessors(c))));
+            }
+        }
 
         // replace B in A.succesors and add B.successors(ie C) to it
         replaceAndAddSucessors(nodeA, nodeB);
         
         // for all C(succs) , replace B(node) in predecessors, with A(pred)
         if(nodeC != null) {
-            for(E c: nodeC) {
+            for(int i = 0; i < nodeC.size(); ++i) {
+                E c = ((List<E>)nodeC).get(i);
                 Collection<E> sPreds = mToEdges.get(c);
                 ArrayList<E> newPreds = new ArrayList<E>(sPreds.size());
                 for(E p: sPreds){
@@ -667,6 +750,14 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             //make sure that the node does not have any dangling from and to edges
             mFromEdges.removeKey(nodeB);
             mToEdges.removeKey(nodeB);
+        }
+        
+        //ensure that any existing successor of nodeB is rewired to have nodeA in place of nodeB
+        if(nodeC != null) {
+            for(int i = 0; i < nodeC.size(); ++i) {
+                E c = ((List<E>)nodeC).get(i);
+                c.rewire(nodeB, indexHelpers.get(i).getIndex(nodeB), nodeA, true);
+            }
         }
     }
     
@@ -694,23 +785,24 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             if(nodeBsuccessors != null)
                 size = nodeBsuccessors.size();
 
-            PlanException pe = new PlanException("Attempt to remove " +
-                    " and reconnect for node with  " + size +
-            " successors.");
-            log.error(pe.getMessage());
+            int errCode = 1096;
+            String msg = "Attempt to remove "
+                    + " and reconnect for node with  " + size + " successors.";
+            PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
             throw pe;
         }
 
         //A and C
         E nodeA = nodeBsuccessors.get(0);
-        Collection<E> nodeC = mToEdges.get(nodeB);
+        Collection<E> nodeC = (mToEdges.get(nodeB) == null? null : new ArrayList<E>(mToEdges.get(nodeB)));
 
         //checking pre-requisite conditions
         if(predecessorRequired) {
             if (nodeC == null || nodeC.size() == 0) {
-                PlanException pe = new PlanException("Attempt to remove " +
-                " and reconnect for node with no predecessors.");
-                log.error(pe.getMessage());
+                int errCode = 1096;
+                String msg = "Attempt to remove "
+                        + " and reconnect for node with no predecessors.";
+                PlanException pe = new PlanException(msg, errCode, PigException.INPUT);
                 throw pe;
             }
         }
@@ -721,6 +813,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         
         // for all C(predecessors) , replace B(node) in successors, with A(successor)
         if(nodeC != null) {
+                        
             for(E c: nodeC) {
                 Collection<E> sPreds = mFromEdges.get(c);
                 ArrayList<E> newPreds = new ArrayList<E>(sPreds.size());
@@ -736,6 +829,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
                 mFromEdges.removeKey(c);
                 mFromEdges.put(c,newPreds);
                 
+                //rewire nodeA 
+                nodeA.rewire(nodeB, 0, c, true);
             }
         }
         
@@ -750,7 +845,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
     
     // removes entry for successor in list of successors of node
     // and adds successors of successor in its place
-    // @param noded - parent node whose entry for successor needs to be replaced
+    // @param node - parent node whose entry for successor needs to be replaced
     // @param successor - see above
     private void replaceAndAddSucessors(E node, E successor) throws PlanException {
        Collection<E> oldSuccessors = mFromEdges.get(node);
@@ -944,12 +1039,24 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             replaceNode(firstNode, secondNode, firstNodePredecessor, mToEdges);
             replaceNode(secondNode, firstNode, secondNodeSuccessor, mFromEdges);
             replaceNode(secondNode, firstNodePredecessor, secondNodePredecessor, mToEdges);
+            
+            //rewire the two nodes
+            secondNode.rewire(firstNode, 0, firstNodePredecessor, true);
+            secondNode.regenerateProjectionMap();
+            firstNode.rewire(firstNodePredecessor, 0, secondNode, false);            
+
         } else {
             //Replace the predecessors and successors of first and second in their respective edge lists       
             replaceNode(firstNode, secondNodeSuccessor, firstNodeSuccessor, mFromEdges);
             replaceNode(firstNode, secondNodePredecessor, firstNodePredecessor, mToEdges);
             replaceNode(secondNode, firstNodeSuccessor, secondNodeSuccessor, mFromEdges);
             replaceNode(secondNode, firstNodePredecessor, secondNodePredecessor, mToEdges);
+            
+            //rewire the two nodes
+            //here the use of true as the final parameter is questionable
+            //there is no knowledge about how to use the projection maps
+            firstNode.rewire(firstNodePredecessor, 0, secondNodePredecessor, true);
+            secondNode.rewire(secondNodePredecessor, 0, firstNodePredecessor, true);
         }
 
         //Replace first with second in the edges list for first's predecessor and successor        
@@ -959,6 +1066,18 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         //Replace second with first in the edges list for second's predecessor and successor
         replaceNode(secondNodePredecessor, firstNode, secondNode, mFromEdges);
         replaceNode(secondNodeSuccessor, firstNode, secondNode, mToEdges);
+        
+        if(firstNodeSuccessor != null) {
+            //here the use of true as the final parameter is questionable
+            //there is no knowledge about how to use the projection maps
+            firstNodeSuccessor.rewire(firstNode, 0, secondNode, true);
+        }
+        
+        if(secondNodeSuccessor != null) {
+            //here the use of true as the final parameter is questionable
+            //there is no knowledge about how to use the projection maps
+            secondNodeSuccessor.rewire(secondNode, 0, firstNode, true);
+        }
         
         markDirty();
     }
@@ -992,7 +1111,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         checkInPlan(firstNode);
         checkInPlan(secondNode);
         
-        List<E> firstNodePredecessors = (ArrayList<E>)mToEdges.get(firstNode);
+        List<E> firstNodePredecessors = (mToEdges.get(firstNode) == null? null : new ArrayList<E>(mToEdges.get(firstNode)));
         
         if(firstNodePredecessors == null || firstNodePredecessors.size() <= 1) {
             int size = (firstNodePredecessors == null ? 0 : firstNodePredecessors.size());
@@ -1018,7 +1137,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             throw new PlanException(msg, errCode, PigException.INPUT);
         }
         
-        List<E> secondNodePredecessors = (ArrayList<E>)mToEdges.get(secondNode);
+        List<E> secondNodePredecessors = (mToEdges.get(secondNode) == null? null : new ArrayList<E>(mToEdges.get(secondNode)));
         
         if(secondNodePredecessors == null || secondNodePredecessors.size() > 1) {
             int size = (secondNodePredecessors == null ? 0 : secondNodePredecessors.size());
@@ -1028,7 +1147,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             throw new PlanException(msg, errCode, PigException.INPUT);
         }
         
-        List<E> secondNodeSuccessors = (ArrayList<E>)mFromEdges.get(secondNode);
+        List<E> secondNodeSuccessors = (mFromEdges.get(secondNode) == null? null : new ArrayList<E>(mFromEdges.get(secondNode)));
         
         //check for multiple edges from first to second
         int edgesFromFirstToSecond = 0;
@@ -1092,7 +1211,17 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         //  F  I   J   K  H           
         
         reconnectSuccessors(secondNode, false, false);
-        insertBetween(firstNodePredecessors.get(inputNum), secondNode, firstNode);
+        doInsertBetween(firstNodePredecessors.get(inputNum), secondNode, firstNode, false);
+        
+        //A note on the use of rewire
+        //Rewire is used within reconnectPredecessors. However, rewire is explicitly turned off in insertBetween
+        //The rewiring is done explicitly here to avoid exceptions that are generated due to precondition
+        //violations in insertBetween
+        IndexHelper<E> indexHelper = new IndexHelper<E>(secondNodePredecessors);
+        secondNode.rewire(firstNode, indexHelper.getIndex(firstNode), firstNodePredecessors.get(inputNum), true);
+        secondNode.regenerateProjectionMap();
+        //firstNode.rewire(firstNodePredecessors.get(inputNum), inputNum, secondNode, false);
+        firstNode.rewire(firstNodePredecessors.get(inputNum), 0, secondNode, false);
 
         markDirty();
         return;
@@ -1127,7 +1256,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         checkInPlan(firstNode);
         checkInPlan(secondNode);
         
-        List<E> firstNodePredecessors = (ArrayList<E>)mToEdges.get(firstNode);
+        List<E> firstNodePredecessors = (mToEdges.get(firstNode) == null? null : new ArrayList<E>(mToEdges.get(firstNode)));
 
         if(firstNodePredecessors == null) {
             int errCode = 1088;
@@ -1136,7 +1265,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             throw new PlanException(msg, errCode, PigException.INPUT);
         }        
 
-        List<E> firstNodeSuccessors = (ArrayList<E>)mFromEdges.get(firstNode);
+        List<E> firstNodeSuccessors = (mFromEdges.get(firstNode) == null? null: new ArrayList<E>(mFromEdges.get(firstNode)));
         
         if(firstNodeSuccessors == null || firstNodeSuccessors.size() <= 1) {
             int size = (firstNodeSuccessors == null ? 0 : firstNodeSuccessors.size());
@@ -1153,9 +1282,9 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             throw new PlanException(msg, errCode, PigException.INPUT);
         }
         
-        List<E> secondNodePredecessors = (ArrayList<E>)mToEdges.get(secondNode);
+        List<E> secondNodePredecessors = (mToEdges.get(secondNode) == null? null : new ArrayList<E>(mToEdges.get(secondNode)));
         
-        List<E> secondNodeSuccessors = (ArrayList<E>)mFromEdges.get(secondNode);
+        List<E> secondNodeSuccessors = (mFromEdges.get(secondNode) == null? null : new ArrayList<E>(mFromEdges.get(secondNode)));
 
         if(secondNodeSuccessors == null || secondNodeSuccessors.size() > 1) {
             int size = (secondNodeSuccessors == null ? 0 : secondNodeSuccessors.size());
@@ -1189,7 +1318,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         
         if(!firstNode.supportsMultipleInputs()) {
             int numSecondNodePredecessors = (secondNodePredecessors == null? 0 : secondNodePredecessors.size());
-            if((firstNodePredecessors.size() > 0) || (numSecondNodePredecessors > 0)) {
+            //if((firstNodePredecessors.size() > 0) || (numSecondNodePredecessors > 0)) {
+            if(numSecondNodePredecessors > 1) {
                 int errCode = 1091;
                 String msg = "First operator does not support multiple inputs."
                     + " On completing the pushAfter operation First operator will end up with "
@@ -1227,12 +1357,51 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         //         |
         //         J
         
+        
         reconnectPredecessors(secondNode, false, false);
-        insertBetween(firstNode, secondNode, firstNodeSuccessors.get(outputNum));
+        doInsertBetween(firstNode, secondNode, firstNodeSuccessors.get(outputNum), false);
+        //A note on the use of rewire
+        //Rewire is used within reconnectPredecessors. However, rewire is explicitly turned off in insertBetween
+        //The rewiring is done explicitly here to avoid exceptions that are generated due to precodition
+        //violations in insertBetween
+
+        if(secondNodePredecessors != null) {
+            for(int i = 0; i < secondNodePredecessors.size(); ++i) {
+                E secondNodePred = secondNodePredecessors.get(i);
+                secondNode.rewire(secondNodePred, i, firstNode, true);
+            }
+        }
+        
+        secondNode.regenerateProjectionMap();
+        firstNodeSuccessors.get(outputNum).rewire(firstNode, 0, secondNode, false);
         
         markDirty();
         return;
 
+    }
+    
+    /*
+     * A helper class that computes the index of each reference in a list for a quick lookup
+     */
+    class IndexHelper <E> {
+        
+        private Map<E, Integer> mIndex = null;
+        
+        public IndexHelper(List<E> list) {
+            if(list != null) {
+                if(list.size() != 0) {
+                    mIndex = new HashMap<E, Integer>();
+                    for(int i = 0; i < list.size(); ++i) {
+                        mIndex.put(list.get(i), i);
+                    }
+                }
+            }
+        }
+        
+        public int getIndex(E e) {
+            if(mIndex == null || mIndex.size() == 0) return -1;
+            return mIndex.get(e);
+        }
     }
 
 }

@@ -66,7 +66,12 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
      * returns true as well, then Transformer.transform is called. 
      * @throws OptimizerException
      */
-    public final void optimize() throws OptimizerException {
+    public void optimize() throws OptimizerException {
+        //TODO
+        //made the method non-final
+        //we need a call back for transformer specific actions
+        //for example, the logical transformer rebuilds schemas
+        //after each successful transformation
         boolean sawMatch = false;
         int numIterations = 0;
         do {

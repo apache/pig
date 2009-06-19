@@ -128,4 +128,59 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable, C
         return opClone;
     }
     
+    /**
+     * Produce a map describing how this operator modifies its projection.
+     * @return ProjectionMap null indicates it does not know how the projection
+     * changes, for example a join of two inputs where one input does not have
+     * a schema.
+     */
+    public ProjectionMap getProjectionMap() {
+        //TODO
+        //this method should be made abstract in the future
+        return null;
+    };
+    
+    /**
+     * Unset the projection map as if it had not been calculated.  This is used by
+     * anyone who reorganizes the tree and needs to have projection maps recalculated.
+     */
+    public void unsetProjectionMap() {
+        //TODO
+        //this method should be made abstract in the future
+    }
+
+    /**
+     * Regenerate the projection map by unsetting and getting the projection map
+     */
+    public ProjectionMap regenerateProjectionMap() {
+        unsetProjectionMap();
+        return getProjectionMap();
+    }
+
+    
+    /**
+     * Make any necessary changes to a node based on a change of position in the
+     * plan. This allows operators to rewire their projections, etc. when they
+     * are relocated in a plan.
+     * 
+     * @param oldPred
+     *            Operator that was previously the predecessor.
+     * @param oldPredIndex
+     *            position of the old predecessor in the list of predecessors
+     * @param newPred
+     *            Operator that will now be the predecessor.
+     * @param useOldPred
+     *            If true use oldPred's projection map for the rewire; otherwise
+     *            use newPred's projection map
+     * @throws PlanException
+     */
+    public void rewire(Operator<V> oldPred, int oldPredIndex,
+            Operator<V> newPred, boolean useOldPred) throws PlanException {
+        //TODO
+        //this method should be made abstract in the future
+        if (oldPred == null) {
+            return;
+        }
+    }
+    
 }

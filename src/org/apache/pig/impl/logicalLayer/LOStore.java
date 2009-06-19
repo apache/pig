@@ -133,14 +133,16 @@ public class LOStore extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
-        }
-        if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         Schema inputSchema = null;        
@@ -150,20 +152,20 @@ public class LOStore extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         }
         
-        if(inputSchema == null) {
-            return null;
-        }
         
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             //problem - input and output schemas for a store have to match!
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
     }
 

@@ -28,7 +28,9 @@ import java.util.Set;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
@@ -210,17 +212,17 @@ public class LOSort extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+
         Schema outputSchema;
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
-        if(outputSchema == null) {
-            return null;
-        }
-        
+
         Schema inputSchema = null;        
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
@@ -228,22 +230,22 @@ public class LOSort extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
-        if(inputSchema == null) {
-            return null;
-        }
-        
+
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             //problem - input and output schemas for a sort have to match!
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
     }
     
@@ -289,4 +291,24 @@ public class LOSort extends LogicalOperator {
         }
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+        super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+        LogicalOperator previous = (LogicalOperator) oldPred;
+        LogicalOperator current = (LogicalOperator) newPred;
+        for(LogicalPlan plan: mSortColPlans) {
+            try {
+                ProjectFixerUpper projectFixer = new ProjectFixerUpper(
+                        plan, previous, oldPredIndex, current, useOldPred, this);
+                projectFixer.visit();
+            } catch (VisitorException ve) {
+                int errCode = 2144;
+                String msg = "Problem while fixing project inputs during rewiring.";
+                throw new PlanException(msg, errCode, PigException.BUG, ve);
+            }
+        }
+    }
 }

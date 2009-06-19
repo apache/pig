@@ -62,21 +62,28 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the foreach projection map has null mappedFields
         //and null removed fields since the input schema is null
         LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
         ProjectionMap foreachProjectionMap = foreach.getProjectionMap();
         assertTrue(foreachProjectionMap.changes() == true);
-        assertTrue(foreachProjectionMap.getMappedFields() == null);
-        assertTrue(foreachProjectionMap.getRemovedFields() == null);
+
+        MultiMap<Integer, Pair<Integer, Integer>> foreachMapFields = foreachProjectionMap.getMappedFields(); 
+        assertTrue(foreachMapFields != null);
         
-        //check that added fields contain [0, 1]
-        List<Integer> foreachAddedFields = foreachProjectionMap.getAddedFields();
-        assertTrue(foreachAddedFields.size() == 2);
-        assertTrue(foreachAddedFields.get(0) == 0);
-        assertTrue(foreachAddedFields.get(1) == 1);
+        List<Pair<Integer, Integer>> mapValues = (ArrayList<Pair<Integer, Integer>>)foreachMapFields.get(0);
+        assertTrue(mapValues.get(0).first == 0);
+        assertTrue(mapValues.get(0).second == 1);
+        
+        mapValues = (ArrayList<Pair<Integer, Integer>>)foreachMapFields.get(1);
+        assertTrue(mapValues.get(0).first == 0);
+        assertTrue(mapValues.get(0).second == 2);
+        
+        assertTrue(foreachProjectionMap.getRemovedFields() == null);
+        assertTrue(foreachProjectionMap.getAddedFields() == null);
+        
     }
 
     @Test
@@ -87,21 +94,27 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the foreach projection map has null mappedFields
         //and null removed fields since the input schema is null
         LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
         ProjectionMap foreachProjectionMap = foreach.getProjectionMap();
         assertTrue(foreachProjectionMap.changes() == true);
-        assertTrue(foreachProjectionMap.getMappedFields() == null);
+        
+        MultiMap<Integer, Pair<Integer, Integer>> foreachMapFields = foreachProjectionMap.getMappedFields(); 
+        assertTrue(foreachMapFields != null);
+        
+        List<Pair<Integer, Integer>> mapValues = (ArrayList<Pair<Integer, Integer>>)foreachMapFields.get(0);
+        assertTrue(mapValues.get(0).first == 0);
+        assertTrue(mapValues.get(0).second == 1);
+
         assertTrue(foreachProjectionMap.getRemovedFields() == null);
         
         //check that added fields contain [0, 1]
         List<Integer> foreachAddedFields = foreachProjectionMap.getAddedFields();
-        assertTrue(foreachAddedFields.size() == 2);
-        assertTrue(foreachAddedFields.get(0) == 0);
-        assertTrue(foreachAddedFields.get(1) == 1);
+        assertTrue(foreachAddedFields.size() == 1);
+        assertTrue(foreachAddedFields.get(0) == 1);
     }
 
     @Test
@@ -112,11 +125,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
 
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -170,7 +183,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -222,7 +235,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -280,11 +293,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
 
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -345,7 +358,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -406,12 +419,12 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the filter projection map has null mappedFields
         LOFilter filter = (LOFilter)lp.getLeaves().get(0);
         ProjectionMap filterProjectionMap = filter.getProjectionMap();
-        assertTrue(filterProjectionMap == null);
+        assertTrue(filterProjectionMap.changes() == false);
     }
     
     @Test
@@ -422,20 +435,20 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the split projection map has null mappedFields
         LOSplit split = (LOSplit)lp.getSuccessors(load).get(0);
         ProjectionMap splitProjectionMap = split.getProjectionMap();
-        assertTrue(splitProjectionMap == null);
+        assertTrue(splitProjectionMap.changes() == false);
         
         LOSplitOutput splitb = (LOSplitOutput)lp.getSuccessors(split).get(0);
         ProjectionMap splitbProjectionMap = splitb.getProjectionMap();
-        assertTrue(splitbProjectionMap == null);
+        assertTrue(splitbProjectionMap.changes() == false);
         
         LOSplitOutput splitc = (LOSplitOutput)lp.getSuccessors(split).get(1);
         ProjectionMap splitcProjectionMap = splitc.getProjectionMap();
-        assertTrue(splitcProjectionMap == null);
+        assertTrue(splitcProjectionMap.changes() == false);
     }
     
     @Test
@@ -446,12 +459,12 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the order by projection map has null mappedFields
         LOSort sort = (LOSort)lp.getLeaves().get(0);
         ProjectionMap sortProjectionMap = sort.getProjectionMap();
-        assertTrue(sortProjectionMap == null);
+        assertTrue(sortProjectionMap.changes() == false);
     }
     
     @Test
@@ -463,17 +476,17 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the order by projection map is not null
         LOSort sort = (LOSort)lp.getSuccessors(load).get(0);
         ProjectionMap sortProjectionMap = sort.getProjectionMap();
-        assertTrue(sortProjectionMap == null);
+        assertTrue(sortProjectionMap.changes() == false);
         
         //check that the limit projection map is null
         LOLimit limit = (LOLimit)lp.getLeaves().get(0);
         ProjectionMap limitProjectionMap = limit.getProjectionMap();
-        assertTrue(limitProjectionMap == null);
+        assertTrue(limitProjectionMap.changes() == false);
     }
     
     @Test
@@ -484,12 +497,12 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the distinct projection map has null mappedFields
         LODistinct distinct = (LODistinct)lp.getLeaves().get(0);
         ProjectionMap distinctProjectionMap = distinct.getProjectionMap();
-        assertTrue(distinctProjectionMap == null);
+        assertTrue(distinctProjectionMap.changes() == false);
     }
     
     @Test
@@ -500,7 +513,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the stream projection map is null
         LOStream stream = (LOStream)lp.getLeaves().get(0);
@@ -516,7 +529,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the stream projection map is null
         LOStream stream = (LOStream)lp.getLeaves().get(0);
@@ -532,7 +545,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the foreach projection map has null mappedFields
         //and null removed fields since the input schema is null
@@ -557,11 +570,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
 
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -630,11 +643,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
 
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -697,11 +710,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cross projection map
         LOCross cross = (LOCross)lp.getSuccessors(loada).get(0);
@@ -718,11 +731,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check union projection map
         LOUnion union = (LOUnion)lp.getSuccessors(loada).get(0);
@@ -739,11 +752,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cross projection map
         LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
@@ -760,11 +773,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -825,7 +838,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the filter projection map is not null
         LOFilter filter = (LOFilter)lp.getLeaves().get(0);
@@ -842,7 +855,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the split projection map has null mappedFields
         LOSplit split = (LOSplit)lp.getSuccessors(load).get(0);
@@ -866,7 +879,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the order by projection map is not null
         LOSort sort = (LOSort)lp.getLeaves().get(0);
@@ -884,7 +897,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the order by projection map is not null
         LOSort sort = (LOSort)lp.getSuccessors(load).get(0);
@@ -907,7 +920,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the distinct projection map is not null
         LODistinct distinct = (LODistinct)lp.getLeaves().get(0);
@@ -924,7 +937,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the stream projection map is null
         LOStream stream = (LOStream)lp.getLeaves().get(0);
@@ -947,7 +960,7 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the load projection map is null
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadProjectionMap = load.getProjectionMap();
-        assertTrue(loadProjectionMap == null);
+        assertTrue(loadProjectionMap.changes() == false);
         
         //check that the stream projection map is null
         LOStream stream = (LOStream)lp.getLeaves().get(0);
@@ -982,11 +995,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
 
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -1107,11 +1120,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cross projection map
         LOCross cross = (LOCross)lp.getSuccessors(loada).get(0);
@@ -1154,11 +1167,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check union projection map
         LOUnion union = (LOUnion)lp.getSuccessors(loada).get(0);
@@ -1200,11 +1213,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cross projection map
         LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
@@ -1248,11 +1261,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
@@ -1331,11 +1344,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cross projection map
         LOCross cross = (LOCross)lp.getSuccessors(loada).get(0);
@@ -1351,11 +1364,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check union projection map
         LOUnion union = (LOUnion)lp.getSuccessors(loada).get(0);
@@ -1371,11 +1384,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cross projection map
         LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
@@ -1392,11 +1405,11 @@ public class TestProjectionMap extends junit.framework.TestCase {
         //check that the loads' projection map is null
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
         ProjectionMap loadaProjectionMap = loada.getProjectionMap();
-        assertTrue(loadaProjectionMap == null);
+        assertTrue(loadaProjectionMap.changes() == false);
         
         LOLoad loadb = (LOLoad) lp.getRoots().get(1);
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
-        assertTrue(loadbProjectionMap == null);
+        assertTrue(loadbProjectionMap.changes() == false);
         
         //check cogroup projection map
         LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);

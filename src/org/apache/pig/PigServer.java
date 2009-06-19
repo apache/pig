@@ -55,11 +55,13 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOFRJoin;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
+import org.apache.pig.impl.logicalLayer.optimizer.TypeCastInserter;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -1056,6 +1058,7 @@ public class PigServer {
                 }
                 graph.postProcess();
             } catch (IOException ioe) {
+                ioe.printStackTrace();
                 graph = null;
             }          
             return graph;
@@ -1080,6 +1083,32 @@ public class PigServer {
                     String ifile = load.getInputFile().getFileName();
                     String ofile = store.getOutputFile().getFileName();
                     if (ofile.compareTo(ifile) == 0) {
+                        try {
+                            store.getPlan().connect(store, load);
+                        } catch (PlanException ex) {
+                            int errCode = 2128;
+                            String msg = "Failed to connect store with dependent load.";
+                            throw new FrontendException(msg, errCode, ex);
+                        }
+                        
+
+                         
+                        //TODO
+                        //if the load has a schema then the type cast inserter has to introduce 
+                        //casts to get the right types. Since the type cast inserter runs later,
+                        //removing the load could create problems. For example, if the storage function
+                        //does not preserve type information required and the subsequent load created
+                        //as part of the MR Compiler introduces a load then the type cast insertion
+                        //will be missing.
+                        //As a result, check if the store function preserves types. For now, the only
+                        //storage that preserves types internally is BinStorage.
+                        //In the future, Pig the storage functions should support method to enquire if
+                        //type information is preserved. Similarly, the load functions should support
+                        //a similar interface. With these interfaces in place, the code below can be
+                        //used to optimize the store/load combination
+                            
+
+                        /*                         
                         LoadFunc lFunc = (LoadFunc) pigContext.instantiateFuncFromSpec(load.getInputFile().getFuncSpec());
                         StoreFunc sFunc = (StoreFunc) pigContext.instantiateFuncFromSpec(store.getOutputFile().getFuncSpec());
                         if (lFunc.getClass() == sFunc.getClass() && lFunc instanceof ReversibleLoadStoreFunc) {
@@ -1100,29 +1129,23 @@ public class PigServer {
                             // the store happens on a job boundary.
                             store.setInputSpec(load.getInputFile());
                             
-                            lp.disconnect(store, load);
-                            lp.replace(load, storePred);
-
-                            List<LogicalOperator> succs = lp.getSuccessors(storePred);
-                            
-                            for (LogicalOperator succ : succs) {
-                                MultiMap<LogicalOperator, LogicalPlan> innerPls = null;
-                                
-                                // fix inner plans for cogroup and frjoin operators
-                                if (succ instanceof LOCogroup) {
-                                    innerPls = ((LOCogroup)succ).getGroupByPlans();
-                                } else if (succ instanceof LOFRJoin) {
-                                    innerPls = ((LOFRJoin)succ).getJoinColPlans();
-                                }
-                                
-                                if (innerPls != null) {
-                                    if (innerPls.containsKey(load)) {
-                                        Collection<LogicalPlan> pls = innerPls.get(load);
-                                        innerPls.removeKey(load);
-                                        innerPls.put(storePred, pls);
-                                    }
-                                }
+                            Schema storePredSchema = storePred.getSchema();
+                            if(storePredSchema != null) {
+                                load.setSchema(storePredSchema);
+                                TypeCastInserter typeCastInserter = new TypeCastInserter(lp, LOLoad.class.getName());                                
+                                List<LogicalOperator> loadList = new ArrayList<LogicalOperator>();
+                                loadList.add(load);
+                                //the following needs a change to TypeCastInserter and LogicalTransformer
+                                typeCastInserter.doTransform(loadList, false);
                             }
+                            
+                            lp.disconnect(store, load);
+                            lp.connect(storePred, load);
+                            lp.removeAndReconnectMultiSucc(load);
+                            
+                            List<LogicalOperator> succs = lp.getSuccessors(load);
+                            
+
                         } else {
                             try {
                                 store.getPlan().connect(store, load);
@@ -1130,8 +1153,9 @@ public class PigServer {
                                 int errCode = 2128;
                                 String msg = "Failed to connect store with dependent load.";
                                 throw new FrontendException(msg, errCode, ex);
-                            }
+                            }    
                         }
+                        */
                     }
                 }
             }
