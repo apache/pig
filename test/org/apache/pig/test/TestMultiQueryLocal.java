@@ -458,8 +458,8 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("c = cogroup a by $0, b by $0;");
             myPig.registerQuery("store c into '/tmp/output5';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 21);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 12);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 19);
 
             myPig.executeBatch();
             myPig.discardBatch(); 

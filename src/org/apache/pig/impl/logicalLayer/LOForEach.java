@@ -30,7 +30,9 @@ import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
@@ -452,21 +454,28 @@ public class LOForEach extends LogicalOperator {
 
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
         if(predecessors == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         LogicalOperator predecessor = predecessors.get(0);
@@ -476,7 +485,8 @@ public class LOForEach extends LogicalOperator {
         try {
             inputSchema = predecessor.getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<LogicalPlan> foreachPlans = getForEachPlans();
@@ -490,20 +500,20 @@ public class LOForEach extends LogicalOperator {
             LogicalPlan foreachPlan = foreachPlans.get(i);
             List<LogicalOperator> leaves = foreachPlan.getLeaves();
             if(leaves == null || leaves.size() > 1) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             int inputColumn = -1;
             boolean mapped = false;
             
-            if(leaves.get(0) instanceof LOProject) {
+            
+            if(leaves.get(0) instanceof LOProject || leaves.get(0) instanceof LOCast) {
                 //find out if this project is a chain of projects
-                if(LogicalPlan.chainOfProjects(foreachPlan)) {
-                    LOProject rootProject = (LOProject)foreachPlan.getRoots().get(0);
-                    inputColumn = rootProject.getCol();
-                    if(inputSchema != null) {
+                LOProject topProject = LogicalPlan.chainOfProjects(foreachPlan);
+                if(topProject != null) {
+                    inputColumn = topProject.getCol();
                         mapped = true;
-                    }
                 }
             }
             
@@ -511,11 +521,13 @@ public class LOForEach extends LogicalOperator {
             try {
                 leafFS = ((ExpressionOperator)leaves.get(0)).getFieldSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             if(leafFS == null) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             if(flattenList.get(i)) {
@@ -532,17 +544,20 @@ public class LOForEach extends LogicalOperator {
                         // check that indeed we only have one field schema
                         // which is that of a tuple
                         if(innerSchema.getFields().size() != 1) {
-                            return null;
+                            mProjectionMap = null;
+                            return mProjectionMap;
                         }
                         Schema.FieldSchema tupleFS;
                         try {
                             tupleFS = innerSchema.getField(0);
                         } catch (FrontendException fee) {
-                            return null;
+                            mProjectionMap = null;
+                            return mProjectionMap;
                         }
                         
                         if(tupleFS.type != DataType.TUPLE) {
-                            return null;
+                            mProjectionMap = null;
+                            return mProjectionMap;
                         }
                         innerSchema = tupleFS.schema;
                     }
@@ -596,21 +611,20 @@ public class LOForEach extends LogicalOperator {
         }
         
         List<Pair<Integer, Integer>> removedFields = new ArrayList<Pair<Integer, Integer>>();
-       
-        if(inputSchema == null) {
-            //if input schema is null then there are no mappedFields and removedFields
+
+        //if the size of the map is zero then set it to null
+        if(mapFields.size() == 0) {
             mapFields = null;
+        }
+        
+        if(addedFields.size() == 0) {
+            addedFields = null;
+        }
+
+        if(inputSchema == null) {
+            //if input schema is null then there are no removedFields
             removedFields = null;
         } else {
-            
-            //if the size of the map is zero then set it to null
-            if(mapFields.size() == 0) {
-                mapFields = null;
-            }
-            
-            if(addedFields.size() == 0) {
-                addedFields = null;
-            }
             
             //input schema is not null. Need to compute the removedFields
             //compute the set difference between the input schema and mapped fields
@@ -640,7 +654,8 @@ public class LOForEach extends LogicalOperator {
             }
         }
 
-        return new ProjectionMap(mapFields, removedFields, addedFields);
+        mProjectionMap = new ProjectionMap(mapFields, removedFields, addedFields);
+        return mProjectionMap;
     }
 
     @Override
@@ -682,6 +697,27 @@ public class LOForEach extends LogicalOperator {
                 requiredFields.add(new RequiredFields(new ArrayList<Pair<Integer, Integer>>(fields)));
             }
             return (requiredFields.size() == 0? null: requiredFields);
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+        super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+        LogicalOperator previous = (LogicalOperator) oldPred;
+        LogicalOperator current = (LogicalOperator) newPred;
+        for(LogicalPlan plan: mForEachPlans) {
+            try {
+                ProjectFixerUpper projectFixer = new ProjectFixerUpper(
+                        plan, previous, oldPredIndex, current, useOldPred, this);
+                projectFixer.visit();
+            } catch (VisitorException ve) {
+                int errCode = 2144;
+                String msg = "Problem while fixing project inputs during rewiring.";
+                throw new PlanException(msg, errCode, PigException.BUG, ve);
+            }
         }
     }
 

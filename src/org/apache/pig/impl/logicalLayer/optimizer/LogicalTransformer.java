@@ -42,6 +42,9 @@ import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
+import org.apache.pig.impl.logicalLayer.ProjectFixerUpper;
+import org.apache.pig.impl.logicalLayer.ProjectionMapCalculator;
+import org.apache.pig.impl.logicalLayer.ProjectionMapRemover;
 
 public abstract class LogicalTransformer extends Transformer<LogicalOperator, LogicalPlan> {
 
@@ -65,72 +68,18 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         sc.visit();
         
     }
-
+    
     /**
-     * A class to visit all the projects and change them to attach to a new
-     * node.  This class overrides all of the relational operators visit
-     * methods because it does not want to visit contained plans.
+     * Rebuild projection maps after a rule has transformed the tree.  This will first
+     * null out existing projection maps and then call getProjectionMap to rebuild them.
+     * @throws VisitorException
      */
-    private class ProjectFixerUpper extends LOVisitor {
-
-        private LogicalOperator mNewNode;
-        private LogicalOperator mOldNode;
-        private Map<Integer, Integer> mProjectionMapping;
-
-        ProjectFixerUpper(
-                LogicalPlan plan,
-                LogicalOperator oldNode,
-                LogicalOperator newNode, Map<Integer, Integer> projectionMapping) {
-            super(plan,
-                new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
-            mNewNode = newNode;
-            mOldNode = oldNode;
-            mProjectionMapping = projectionMapping;
-        }
-
-        protected void visit(LOCogroup cg) throws VisitorException {
-        }
-
-        protected void visit(LOSort s) throws VisitorException {
-        }
-
-        protected void visit(LOFilter f) throws VisitorException {
-        }
-
-        protected void visit(LOSplit s) throws VisitorException {
-        }
-
-        protected void visit(LOSplitOutput s) throws VisitorException {
-        }
-
-        protected void visit(LOForEach f) throws VisitorException {
-        }
-
-        protected void visit(LOProject p) throws VisitorException {
-            // Only switch the expression if this is a top level projection,
-            // that is, this project is pointing to a relational operator
-            // outside the plan).
-            List<LogicalOperator> preds = mPlan.getPredecessors(p);
-            if (preds == null || preds.size() == 0) {
-                if(p.getExpression().equals(mOldNode))
-                    // Change the expression
-                    p.setExpression(mNewNode);
-
-                // Remap the projection column if necessary
-                if (mProjectionMapping != null && !p.isStar()) {
-                    List<Integer> oldProjection = p.getProjection();
-                    List<Integer> newProjection =
-                        new ArrayList<Integer>(oldProjection.size());
-                    for (Integer i : oldProjection) {
-                        Integer n = mProjectionMapping.get(i);
-                        assert(n != null);
-                        newProjection.add(n);
-                    }
-                }
-            } else {
-                p.getExpression().visit(this);
-            }
-        }
+    protected void rebuildProjectionMaps() throws VisitorException {
+        ProjectionMapRemover pMapRemover = new ProjectionMapRemover(mPlan);
+        pMapRemover.visit();
+        ProjectionMapCalculator pMapCalculator = new ProjectionMapCalculator(mPlan);
+        pMapCalculator.visit();
+        
     }
 
     /**
@@ -156,7 +105,6 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         // Insert it into the plan.
         mPlan.add(newNode);
         mPlan.insertBetween(after, newNode, before);
-        fixUpContainedPlans(after, newNode, before, projectionMapping);
     }
     
     /**

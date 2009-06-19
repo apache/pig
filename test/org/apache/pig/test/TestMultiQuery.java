@@ -657,9 +657,9 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("e = foreach d generate flatten(b), flatten(c);");
             myPig.registerQuery("store e into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(2, 2, 9);
+            LogicalPlan lp = checkLogicalPlan(2, 1, 7);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 2, 12);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 1, 10);
 
             checkMRPlan(pp, 1, 1, 2); 
 
@@ -827,11 +827,11 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("b = load '/tmp/output1' using PigStorage(':'); ");
             myPig.registerQuery("store b into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 7);
+            LogicalPlan lp = checkLogicalPlan(1, 1, 5);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 7);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 5);
 
-            checkMRPlan(pp, 1, 1, 1); 
+            checkMRPlan(pp, 1, 1, 2); 
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1508,8 +1508,8 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("g = group f by $0;");
             myPig.registerQuery("store g into '/tmp/output4';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 4, 14);
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 4, 20);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 14);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 20);
             MROperPlan mp = checkMRPlan(pp, 1, 2, 3);
 
             MapReduceOper mo1 = mp.getRoots().get(0);
@@ -1573,8 +1573,8 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("d = group c by $0;");
             myPig.registerQuery("e = store d into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 9);
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 13);
+            LogicalPlan lp = checkLogicalPlan(1, 1, 7);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 11);
             MROperPlan mp = checkMRPlan(pp, 1, 1, 2);
 
             MapReduceOper mo1 = mp.getRoots().get(0);
@@ -1624,8 +1624,8 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("c = cogroup a by $0, b by $0;");
             myPig.registerQuery("store c into '/tmp/output5';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 17);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 12);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 15);
             MROperPlan mp = checkMRPlan(pp, 1, 3, 5);
 
             myPig.executeBatch();

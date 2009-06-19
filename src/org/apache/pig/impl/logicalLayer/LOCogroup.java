@@ -28,7 +28,9 @@ import java.util.Iterator;
 
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
@@ -517,21 +519,28 @@ public class LOCogroup extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
         if(predecessors == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         //the column with the alias 'group' can be mapped in several ways
@@ -566,9 +575,9 @@ public class LOCogroup extends LogicalOperator {
                 
                 if(leaves.get(0) instanceof LOProject) {
                     //find out if this project is a chain of projects
-                    if(LogicalPlan.chainOfProjects(predecessorPlan)) {
-                        LOProject rootProject = (LOProject)predecessorPlan.getRoots().get(0);
-                        inputColumn = rootProject.getCol();
+                    LOProject topProject = LogicalPlan.chainOfProjects(predecessorPlan);
+                    if(topProject != null) {
+                        inputColumn = topProject.getCol();
                         mapFields.put(0, new Pair<Integer, Integer>(inputNum, inputColumn));
                     }
                 } else {
@@ -580,7 +589,8 @@ public class LOCogroup extends LogicalOperator {
             try {
                 inputSchema = predecessor.getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             if(inputSchema != null) {
@@ -609,7 +619,8 @@ public class LOCogroup extends LogicalOperator {
             removedFields = null;
         }
 
-        return new ProjectionMap(mapFields, removedFields, addedFields);
+        mProjectionMap = new ProjectionMap(mapFields, removedFields, addedFields);
+        return mProjectionMap;
     }
 
     @Override
@@ -660,6 +671,44 @@ public class LOCogroup extends LogicalOperator {
         }
         
         return (requiredFields.size() == 0? null: requiredFields);
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+        super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+        if(newPred == null) {
+            int errCode = 1097;
+            String msg = "Replacement node cannot be null.";
+            throw new PlanException(msg, errCode, PigException.INPUT);
+        }
+        LogicalOperator previous = (LogicalOperator) oldPred;
+        LogicalOperator current = (LogicalOperator) newPred;
+        Set<LogicalOperator> cogroupInputs = new HashSet<LogicalOperator>(mGroupByPlans.keySet());
+        for(LogicalOperator input: cogroupInputs) {
+            if(input.equals(previous)) {
+                //replace the references to the key(i.e., previous) in the values with current
+                for(LogicalPlan plan: mGroupByPlans.get(input)) {
+                    try {
+                        ProjectFixerUpper projectFixer = new ProjectFixerUpper(
+                                plan, previous, oldPredIndex, current, useOldPred, this);
+                        projectFixer.visit();
+                    } catch (VisitorException ve) {
+                        int errCode = 2144;
+                        String msg = "Problem while fixing project inputs during rewiring.";
+                        throw new PlanException(msg, errCode, PigException.BUG, ve);
+                    }
+                }
+                //remove the key and the values
+                List<LogicalPlan> plans = (List<LogicalPlan>)mGroupByPlans.get(previous);
+                mGroupByPlans.removeKey(previous);
+                
+                //reinsert new key and values
+                mGroupByPlans.put(current, plans);
+            }
+        }
     }
 
 }

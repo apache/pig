@@ -79,6 +79,21 @@ public class SchemaCalculator extends LOVisitor {
 
     /**
      * 
+     * @param frjoin
+     *            the logical fragment replicate join operator that has to be visited
+     * @throws VisitorException
+     */
+    protected void visit(LOFRJoin frjoin) throws VisitorException {
+        try {
+            frjoin.getSchema();
+            super.visit(frjoin);
+        } catch (FrontendException fe) {
+            throw new VisitorException(fe);
+        }
+    }
+    
+    /**
+     * 
      * @param s
      *            the logical sort operator that has to be visited
      * @throws VisitorException
@@ -222,7 +237,12 @@ public class SchemaCalculator extends LOVisitor {
     }
     
     protected void visit(LOStore store) throws VisitorException{
-        // We don't calculate schema of LOStore
+        try {
+            store.getSchema();
+            super.visit(store);
+        } catch (FrontendException fe) {
+            throw new VisitorException(fe);
+        }
     }
     
     protected void visit(LOConst c) throws VisitorException{

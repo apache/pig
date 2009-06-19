@@ -137,21 +137,28 @@ public class LOUnion extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
         if(predecessors == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
@@ -163,11 +170,13 @@ public class LOUnion extends LogicalOperator {
             try {
                 inputSchema = predecessor.getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             if(inputSchema == null) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             } else {
                 for(int inputColumn = 0; inputColumn < inputSchema.size(); ++inputColumn) {
                     mapFields.put(inputColumn, new Pair<Integer, Integer>(inputNum, inputColumn));
@@ -176,7 +185,8 @@ public class LOUnion extends LogicalOperator {
             }
         }
         
-        return new ProjectionMap(mapFields, null, null);
+        mProjectionMap = new ProjectionMap(mapFields, null, null);
+        return mProjectionMap;
     }
 
     @Override

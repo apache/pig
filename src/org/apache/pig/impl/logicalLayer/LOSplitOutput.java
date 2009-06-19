@@ -29,7 +29,9 @@ import java.util.Set;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
@@ -133,17 +135,23 @@ public class LOSplitOutput extends LogicalOperator {
 
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
+/*        
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
+*/        
         Schema inputSchema = null;        
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
@@ -151,22 +159,27 @@ public class LOSplitOutput extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
+/*        
         if(inputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
+*/        
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             //problem - input and output schemas for a split output have to match!
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
     }
 
@@ -202,6 +215,29 @@ public class LOSplitOutput extends LogicalOperator {
             }
             return (requiredFields.size() == 0? null: requiredFields);
         }
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+        super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+        LogicalOperator previous = (LogicalOperator) oldPred;
+        LogicalOperator current = (LogicalOperator) newPred;
+        try {
+            ProjectFixerUpper projectFixer = new ProjectFixerUpper(
+                    mCondPlan, previous, oldPredIndex, current, useOldPred, this);
+            projectFixer.visit();
+        } catch (VisitorException ve) {
+            int errCode = 2144;
+            String msg = "Problem while fixing project inputs during rewiring.";
+            throw new PlanException(msg, errCode, PigException.BUG, ve);
+        }
+        
+        //ideally we should be fixing mIndex too but split and split output should always 
+        //be treated as one operator. Any operations on split will imply an operation on
+        //split output
     }
 
 }

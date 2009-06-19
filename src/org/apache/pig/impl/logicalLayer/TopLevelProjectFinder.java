@@ -86,10 +86,7 @@ public class TopLevelProjectFinder extends
     	if(projectPreds == null) {
         	//check if the project's predecessor is null then add it to the list
     		mProjectList.add(project);
-    	} /*else if (!(projectPreds.get(0) instanceof LOProject)) {
-    		//check if the project's predecessor is not a project then add it to the list
-    		mProjectList.add(project);
-    	}*/
+    	}
     }
     
     public List<LOProject> getProjectList() {

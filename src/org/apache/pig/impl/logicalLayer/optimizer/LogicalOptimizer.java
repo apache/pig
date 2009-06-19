@@ -17,9 +17,12 @@
  */
 package org.apache.pig.impl.logicalLayer.optimizer;
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
@@ -138,4 +141,46 @@ public class LogicalOptimizer extends
         mRules.add(rule);
     }
 
+    @Override
+    public final void optimize() throws OptimizerException {
+        //the code that follows is a copy of the code in the
+        //base class. see the todo note in the base class
+        boolean sawMatch = false;
+        int numIterations = 0;
+        do {
+            sawMatch = false;
+            for (Rule rule : mRules) {
+                RuleMatcher matcher = new RuleMatcher();
+                if (matcher.match(rule)) {
+                    // It matches the pattern.  Now check if the transformer
+                    // approves as well.
+                    List<List<LogicalOperator>> matches = matcher.getAllMatches();
+                    for (List<LogicalOperator> match:matches)
+                    {
+                        if (rule.getTransformer().check(match)) {
+                            // The transformer approves.
+                            sawMatch = true;
+                            rule.getTransformer().transform(match);
+                            try {
+                                ((LogicalTransformer)rule.getTransformer()).rebuildSchemas();
+                            } catch (FrontendException fee) {
+                                int errCode = 2145;
+                                String msg = "Problem while rebuilding schemas after transformation.";
+                                throw new OptimizerException(msg, errCode, PigException.BUG, fee);
+                            }
+
+                            try {
+                                ((LogicalTransformer)rule.getTransformer()).rebuildProjectionMaps();
+                            } catch (FrontendException fee) {
+                                int errCode = 2145;
+                                String msg = "Problem while rebuilding projection maps after transformation.";
+                                throw new OptimizerException(msg, errCode, PigException.BUG, fee);
+                            }
+
+                        }
+                    }
+                }
+            }
+        } while(sawMatch && ++numIterations < mMaxIterations);
+    }
 }

@@ -155,8 +155,6 @@ public class ImplicitSplitInserter extends LogicalTransformer {
                 mPlan.add(splitOutput);
                 mPlan.insertBetween(splitOp, splitOutput, succ);
                 splitOutput.setAlias(splitOp.getAlias());
-                // Patch up the contained plans of succ
-                fixUpContainedPlans(nodes.get(0), splitOutput, succ, null);
             }
             
         } catch (Exception e) {

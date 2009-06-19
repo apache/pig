@@ -323,7 +323,7 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
      * the rule.  The nodes will be in the vector in the order they are
      * specified in the rule.
      */
-    List<List<O>> getAllMatches() {
+    public List<List<O>> getAllMatches() {
         return mMatches;
     }
 

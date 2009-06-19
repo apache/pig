@@ -73,6 +73,16 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      */
     protected LogicalPlan mPlan;
 
+    /**
+     * ProjectionMap of this operator.
+     */
+    protected ProjectionMap mProjectionMap;
+
+    /**
+     * A boolean variable to remember if the projection map has been computed
+     */
+    protected boolean mIsProjectionMapComputed = false;
+    
     private static Log log = LogFactory.getLog(LogicalOperator.class);
 
     /**
@@ -150,6 +160,9 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         mSchema = null;
     }
 
+    /**
+     * Regenerate the schema by unsetting and getting the schema
+     */
     public Schema regenerateSchema() throws FrontendException, VisitorException {
         unsetSchema();
         return getSchema();
@@ -288,9 +301,35 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * changes, for example a join of two inputs where one input does not have
      * a schema.
      */
+    @Override
     public ProjectionMap getProjectionMap() {
         return null;
     };
+    
+    /**
+     * Unset the projection map as if it had not been calculated.  This is used by
+     * anyone who reorganizes the tree and needs to have projection maps recalculated.
+     */
+    @Override
+    public void unsetProjectionMap() {
+        mIsProjectionMapComputed = false;
+        mProjectionMap = null;
+    }
+
+    /**
+     * Regenerate the projection map by unsetting and getting the projection map
+     */
+    @Override
+    public ProjectionMap regenerateProjectionMap() {
+        try {
+            regenerateSchema();
+        } catch (Exception e) {
+            
+        }
+        unsetProjectionMap();
+        return getProjectionMap();
+    }
+
 
     /**
 	 * Get a list of fields that this operator requires. This is not necessarily
