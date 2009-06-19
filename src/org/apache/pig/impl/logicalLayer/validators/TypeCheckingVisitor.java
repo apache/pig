@@ -2583,7 +2583,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     if (innerRoot instanceof LOProject) {
                         resolveLOProjectType((LOProject) innerRoot) ;
                     }
-                    else if (innerRoot instanceof LOConst) {
+                    else if (innerRoot instanceof LOConst || innerRoot instanceof LOUserFunc) {
                         // it's ok because LOConst always has
                         // the right type information
                     }
