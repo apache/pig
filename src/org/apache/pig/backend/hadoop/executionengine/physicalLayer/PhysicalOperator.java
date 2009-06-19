@@ -303,17 +303,13 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     /**
-     * Make a deep copy of this operator.  This is declared here to make it
-     * public for all physical operators.  However, the default
-     * implementation is to throw an exception.  Operators we expect to clone
-     * need to implement this method.
+     * Make a deep copy of this operator. This function is blank, however, 
+     * we should leave a place holder so that the subclasses can clone
      * @throws CloneNotSupportedException
      */
     @Override
     public PhysicalOperator clone() throws CloneNotSupportedException {
-        String s = new String("This physical operator does not " +
-            "implement clone.");
-        throw new CloneNotSupportedException(s);
+        return (PhysicalOperator)super.clone();
     }
 
     protected void cloneHelper(PhysicalOperator op) {
