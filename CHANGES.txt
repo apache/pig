@@ -84,6 +84,8 @@ PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via p
 
 BUG FIXES
 
+PIG-797: Limit with ORDER BY producing wrong results (daijy)
+
 PIG-850: Dump produce wrong result while "store into" is ok (daijy)
 
 PIG-846: MultiQuery optimization in some cases has an issue when there is a

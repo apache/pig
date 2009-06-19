@@ -321,15 +321,21 @@ public class POPackage extends PhysicalOperator {
      */
     @Override
     public POPackage clone() throws CloneNotSupportedException {
-        POPackage clone = new POPackage(new OperatorKey(mKey.scope,
-            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
+        POPackage clone = (POPackage)super.clone();
+        clone.mKey = new OperatorKey(mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope));
+        clone.requestedParallelism = requestedParallelism;
         clone.resultType = resultType;
         clone.keyType = keyType;
         clone.numInputs = numInputs;
-        clone.inner = new boolean[inner.length];
-        for (int i = 0; i < inner.length; i++) {
-            clone.inner[i] = inner[i];
+        if (inner!=null)
+        {
+            clone.inner = new boolean[inner.length];
+            for (int i = 0; i < inner.length; i++) {
+                clone.inner[i] = inner[i];
+            }
         }
+        else
+            clone.inner = null;
         return clone;
     }
 
