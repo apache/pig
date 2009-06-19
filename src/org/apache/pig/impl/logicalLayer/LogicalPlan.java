@@ -152,46 +152,58 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
     
     /**
      * A utility method to check if a plan contains a chain of projection
-     * operators
+     * operators with or without casts
      * 
      * @param plan
      *            input plan
-     * @return true if there is a chain of projection operators; false otherwise
+     * @return the top most projection operator if there is a chain of
+     *         projection operators with or without casts; null otherwise
      */
-    public static boolean chainOfProjects(LogicalPlan plan) {
-        
+    public static LOProject chainOfProjects(LogicalPlan plan) {
+
+        LOProject topProject = null;
+
         if (plan == null) {
-            return false;
+            return null;
         }
-        
+
         List<LogicalOperator> leaves = plan.getLeaves();
 
         if (leaves == null) {
-            return false;
+            return null;
         }
 
         if (leaves.size() > 1) {
-            return false;
+            return null;
         }
 
         LogicalOperator node = leaves.get(0);
 
         while (true) {
-            if ((node == null) || !(node instanceof LOProject)) {
-                //not a projection operator
-                return false;
+            if (node == null) {
+                //a node cannot be null
+                return null;
+            }
+
+            if (node instanceof LOProject) {
+                topProject = (LOProject) node;
+            } else if (node instanceof LOCast) {
+                // continue
+            } else {
+                // not a projection or a cast return null
+                return null;
             }
 
             List<LogicalOperator> predecessors = plan.getPredecessors(node);
 
             if (predecessors == null) {
-                //we have reached the root
-                return true;
+                // we have reached the root
+                return topProject;
             }
 
             if (predecessors.size() > 1) {
-                //a project cannot have multiple inputs
-                return false;
+                // a project or cast cannot have multiple inputs
+                return null;
             }
 
             node = predecessors.get(0);

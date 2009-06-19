@@ -190,21 +190,28 @@ public class LOCross extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
         if(predecessors == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
@@ -220,7 +227,8 @@ public class LOCross extends LogicalOperator {
             try {
                 inputSchema = predecessor.getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             if(inputSchema == null) {
@@ -246,14 +254,16 @@ public class LOCross extends LogicalOperator {
          */
 
         if(anyUnknownInputSchema) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(addedFields.size() == 0) {
             addedFields = null;
         }
 
-        return new ProjectionMap(mapFields, null, addedFields);
+        mProjectionMap = new ProjectionMap(mapFields, null, addedFields);
+        return mProjectionMap;
     }
 
     @Override

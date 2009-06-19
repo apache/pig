@@ -229,16 +229,16 @@ public class LOLoad extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
-        }
-        
-        if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         Schema inputSchema = null;        
@@ -248,30 +248,41 @@ public class LOLoad extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
             try {
                 inputSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
             } catch (IOException ioe) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         }
         
         if(inputSchema == null) {
-            return null;
+            if(outputSchema != null) {
+                //determine schema returned null and the user specified a schema
+                //OR
+                //the predecessor did not have a schema and the user specified a schema
+                mProjectionMap = new ProjectionMap(false);
+                return mProjectionMap;
+            }
         }
         
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
             //compute the mapping assuming its a prefix projection
             for(int i = 0; i < inputSchema.size(); ++i) {
                 mapFields.put(i, new Pair<Integer, Integer>(0, i));
             }
-            return new ProjectionMap(mapFields, null, null);
+            
+            mProjectionMap = new ProjectionMap(mapFields, null, null); 
+            return mProjectionMap;
         }
     }
 

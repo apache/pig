@@ -27,6 +27,7 @@ import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.ExecType;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.* ;
@@ -235,6 +236,16 @@ public class LogicalPlanTester {
             fail(e.getClass().getName() + ": " + e.getMessage() + " -- " + query);
         }
         return null;
+    }
+
+    public void setPlan(LogicalPlan lp) throws VisitorException {
+        PlanSetter ps = new PlanSetter(lp);
+        ps.visit();
+    }
+    
+    public void setProjectionMap(LogicalPlan lp) throws VisitorException {
+        ProjectionMapCalculator pmc = new ProjectionMapCalculator(lp);
+        pmc.visit();
     }
 
 

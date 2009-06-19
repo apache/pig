@@ -179,16 +179,22 @@ public class LOStream extends LogicalOperator {
 
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         Schema inputSchema = null;        
@@ -198,10 +204,12 @@ public class LOStream extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
-                return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<Integer> addedFields = new ArrayList<Integer>();
@@ -218,7 +226,8 @@ public class LOStream extends LogicalOperator {
                 removedFields.add(new Pair<Integer, Integer>(0, i));
             }
         }
-        return new ProjectionMap(null, (removedFields.size() == 0? null: removedFields), addedFields);
+        mProjectionMap = new ProjectionMap(null, (removedFields.size() == 0? null: removedFields), addedFields);
+        return mProjectionMap;
     }
 
     @Override

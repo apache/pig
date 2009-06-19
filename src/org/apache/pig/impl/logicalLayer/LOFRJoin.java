@@ -32,7 +32,9 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
@@ -276,21 +278,28 @@ public class LOFRJoin extends LogicalOperator {
 
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
         if(predecessors == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
@@ -306,7 +315,8 @@ public class LOFRJoin extends LogicalOperator {
             try {
                 inputSchema = predecessor.getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
             
             if(inputSchema == null) {
@@ -332,14 +342,16 @@ public class LOFRJoin extends LogicalOperator {
          */
 
         if(anyUnknownInputSchema) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(addedFields.size() == 0) {
             addedFields = null;
         }
 
-        return new ProjectionMap(mapFields, null, addedFields);
+        mProjectionMap = new ProjectionMap(mapFields, null, addedFields);
+        return mProjectionMap;
     }
 
     @Override
@@ -392,4 +404,40 @@ public class LOFRJoin extends LogicalOperator {
         return (requiredFields.size() == 0? null: requiredFields);
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+        super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+        LogicalOperator previous = (LogicalOperator) oldPred;
+        LogicalOperator current = (LogicalOperator) newPred;
+        Set<LogicalOperator> joinInputs = new HashSet<LogicalOperator>(mJoinColPlans.keySet()); 
+        for(LogicalOperator input: joinInputs) {
+            if(input.equals(previous)) {
+                //replace the references to the key(i.e., previous) in the values with current
+                for(LogicalPlan plan: mJoinColPlans.get(input)) {
+                    try {
+                        ProjectFixerUpper projectFixer = new ProjectFixerUpper(
+                                plan, previous, oldPredIndex, current, useOldPred, this);
+                        projectFixer.visit();
+                    } catch (VisitorException ve) {
+                        int errCode = 2144;
+                        String msg = "Problem while fixing project inputs during rewiring.";
+                        throw new PlanException(msg, errCode, PigException.BUG, ve);
+                    }
+                }
+                //remove the key and the values
+                List<LogicalPlan> plans = (List<LogicalPlan>)mJoinColPlans.get(previous);
+                mJoinColPlans.removeKey(previous);
+                
+                //reinsert new key and values
+                mJoinColPlans.put(current, plans);
+                
+                if(input.equals(fragOp)) {
+                   fragOp = current; 
+                }
+            }
+        }
+    }
 }

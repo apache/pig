@@ -22,8 +22,11 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
@@ -132,15 +135,16 @@ public class LOFilter extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
-        }
-        
-        if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         Schema inputSchema = null;        
@@ -150,22 +154,22 @@ public class LOFilter extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
-            return null;
-        }
-        
-        if(inputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             //problem - input and output schemas for a filter have to match!
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
     }
 
@@ -200,6 +204,25 @@ public class LOFilter extends LogicalOperator {
                 requiredFields.add(new RequiredFields(new ArrayList<Pair<Integer, Integer>>(fields)));
             }
             return (requiredFields.size() == 0? null: requiredFields);
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+     */
+    @Override
+    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+        super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+        LogicalOperator previous = (LogicalOperator) oldPred;
+        LogicalOperator current = (LogicalOperator) newPred;
+        try {
+            ProjectFixerUpper projectFixer = new ProjectFixerUpper(
+                    mComparisonPlan, previous, oldPredIndex, current, useOldPred, this);
+            projectFixer.visit();
+        } catch (VisitorException ve) {
+            int errCode = 2144;
+            String msg = "Problem while fixing project inputs during rewiring.";
+            throw new PlanException(msg, errCode, PigException.BUG, ve);
         }
     }
     

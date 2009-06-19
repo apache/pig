@@ -117,17 +117,17 @@ public class LOLimit extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+
         Schema outputSchema;
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
-        if(outputSchema == null) {
-            return null;
-        }
-        
+
         Schema inputSchema = null;        
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
@@ -135,22 +135,22 @@ public class LOLimit extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
-        
-        if(inputSchema == null) {
-            return null;
-        }
-        
+
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             //problem - input and output schemas for a distinct have to match!
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
     }
     

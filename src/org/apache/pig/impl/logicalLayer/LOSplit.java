@@ -25,7 +25,9 @@ import java.util.Set;
 
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
@@ -126,15 +128,16 @@ public class LOSplit extends LogicalOperator {
     
     @Override
     public ProjectionMap getProjectionMap() {
+        
+        if(mIsProjectionMapComputed) return mProjectionMap;
+        mIsProjectionMapComputed = true;
+        
         Schema outputSchema;
         try {
             outputSchema = getSchema();
         } catch (FrontendException fee) {
-            return null;
-        }
-        
-        if(outputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         Schema inputSchema = null;        
@@ -144,22 +147,22 @@ public class LOSplit extends LogicalOperator {
             try {
                 inputSchema = predecessors.get(0).getSchema();
             } catch (FrontendException fee) {
-                return null;
+                mProjectionMap = null;
+                return mProjectionMap;
             }
         } else {
-            return null;
-        }
-        
-        if(inputSchema == null) {
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
         
         if(Schema.equals(inputSchema, outputSchema, false, true)) {
             //there is a one is to one mapping between input and output schemas
-            return new ProjectionMap(false);
+            mProjectionMap = new ProjectionMap(false);
+            return mProjectionMap;
         } else {
             //problem - input and output schemas for a distinct have to match!
-            return null;
+            mProjectionMap = null;
+            return mProjectionMap;
         }
     }
     
@@ -169,4 +172,15 @@ public class LOSplit extends LogicalOperator {
         requiredFields.add(new RequiredFields(false, true));
         return requiredFields;
     }
+    
+    /* (non-Javadoc)
+    * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
+    */
+   @Override
+   public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+       for(LogicalOperator output: mPlan.getSuccessors(this)) {
+           output.rewire(oldPred, oldPredIndex, newPred, useOldPred);
+       }
+   }
+
 }

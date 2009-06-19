@@ -18,8 +18,6 @@
 package org.apache.pig.test;
 
 import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Test;
@@ -27,10 +25,8 @@ import org.junit.Test;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.test.utils.LogicalPlanTester;
 
