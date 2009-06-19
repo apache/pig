@@ -712,9 +712,38 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
+    public void connectMapToReduceLimitedSort(MapReduceOper mro, MapReduceOper sortMROp) throws PlanException, VisitorException
+    {
+        POLocalRearrange slr = (POLocalRearrange)sortMROp.mapPlan.getLeaves().get(0);
+        
+        POLocalRearrange lr = null;
+        try {
+            lr = slr.clone();
+        } catch (CloneNotSupportedException e) {
+            int errCode = 2147;
+            String msg = "Error cloning POLocalRearrange for limit after sort";
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+        
+        mro.mapPlan.addAsLeaf(lr);
+        
+        POPackage spkg = (POPackage)sortMROp.reducePlan.getRoots().get(0);
+
+        POPackage pkg = null;
+        try {
+            pkg = spkg.clone();
+        } catch (Exception e) {
+            int errCode = 2148;
+            String msg = "Error cloning POPackageLite for limit after sort";
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+        mro.reducePlan.add(pkg);
+        mro.reducePlan.addAsLeaf(getPlainForEachOP());
+    }
+    
     public void simpleConnectMapToReduce(MapReduceOper mro) throws PlanException
     {
-    	PhysicalPlan ep = new PhysicalPlan();
+        PhysicalPlan ep = new PhysicalPlan();
         POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar.setResultType(DataType.TUPLE);
         prjStar.setStar(true);
@@ -727,8 +756,8 @@ public class MRCompiler extends PhyPlanVisitor {
         try {
             lr.setIndex(0);
         } catch (ExecException e) {
-        	int errCode = 2058;
-        	String msg = "Unable to set index on the newly created POLocalRearrange.";
+            int errCode = 2058;
+            String msg = "Unable to set index on the newly created POLocalRearrange.";
             throw new PlanException(msg, errCode, PigException.BUG, e);
         }
         lr.setKeyType(DataType.TUPLE);
@@ -744,6 +773,11 @@ public class MRCompiler extends PhyPlanVisitor {
         pkg.setInner(inner);
         mro.reducePlan.add(pkg);
         
+        mro.reducePlan.addAsLeaf(getPlainForEachOP());
+    }
+    
+    public POForEach getPlainForEachOP()
+    {
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();
         PhysicalPlan ep1 = new PhysicalPlan();
@@ -755,11 +789,10 @@ public class MRCompiler extends PhyPlanVisitor {
         ep1.add(prj1);
         eps1.add(ep1);
         flat1.add(true);
-        POForEach nfe1 = new POForEach(new OperatorKey(scope, nig
+        POForEach fe = new POForEach(new OperatorKey(scope, nig
                 .getNextNodeId(scope)), -1, eps1, flat1);
-        nfe1.setResultType(DataType.BAG);
-        
-        mro.reducePlan.addAsLeaf(nfe1);
+        fe.setResultType(DataType.BAG);
+        return fe;
     }
     
     public void visitLimit(POLimit op) throws VisitorException{
@@ -1719,7 +1752,10 @@ public class MRCompiler extends PhyPlanVisitor {
                 POLimit pLimit = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 pLimit.setLimit(mr.limit);
                 limitAdjustMROp.mapPlan.addAsLeaf(pLimit);
-                simpleConnectMapToReduce(limitAdjustMROp);
+                if (mr.isGlobalSort()) 
+                    connectMapToReduceLimitedSort(limitAdjustMROp, mr);
+                else
+                    simpleConnectMapToReduce(limitAdjustMROp);
                 POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 pLimit2.setLimit(mr.limit);
                 limitAdjustMROp.reducePlan.addAsLeaf(pLimit2);
