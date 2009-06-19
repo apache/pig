@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-753:  Allow UDFs with no parameters (zjffdu via gates).
+
 OPTIMIZATIONS
 
 BUG FIXES
