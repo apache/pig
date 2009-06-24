@@ -947,7 +947,7 @@ public class TestPOCast extends TestCase {
             return new Long(Long.valueOf(new DataByteArray(b).toString()));
         }
 
-        public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
           return null;
         }
 
@@ -979,10 +979,10 @@ public class TestPOCast extends TestCase {
             return l.toString().getBytes();
         }
         
-        public byte[] toBytes(Map<Object, Object> m) throws IOException {
-            return null;
-        }
-        
+	    public byte[] toBytes(Map<String, Object> m) throws IOException {
+	        return null;
+	    }
+	
         public byte[] toBytes(Tuple t) throws IOException {
             return null;
         }
@@ -1295,12 +1295,12 @@ public class TestPOCast extends TestCase {
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
             plan = constructPlan(newOp);
             Tuple t = tf.newTuple();
-            Map<Object, Object> input = new HashMap<Object, Object>();
+            Map<String, Object> input = new HashMap<String, Object>();
             input.put("key1", "value1");
             input.put("key2", "value2");
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(new HashMap<Object, Object>());
+            Result res = newOp.getNext(new HashMap<String, Object>());
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + str);
                 assertEquals(input, res.result);
@@ -1637,7 +1637,7 @@ public class TestPOCast extends TestCase {
 		
 		{
 			Tuple t = tf.newTuple();
-			t.append(GenRandomData.genRandObjectMap(r, 10));
+			t.append(GenRandomData.genRandMap(r, 10));
 			plan.attachInput(t);
 			DataByteArray i = null;
 			Result res = op.getNext(i);

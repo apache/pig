@@ -64,9 +64,19 @@ public class DataReaderWriter {
         return bag;
     }
     
-    public static Map<Object, Object> bytesToMap(DataInput in) throws IOException {
+    public static Map<String, Object> bytesToMap(DataInput in) throws IOException {
         int size = in.readInt();    
-        Map<Object, Object> m = new HashMap<Object, Object>(size);
+        Map<String, Object> m = new HashMap<String, Object>(size);
+        for (int i = 0; i < size; i++) {
+            String key = (String)readDatum(in);
+            m.put(key, readDatum(in));
+        }
+        return m;    
+    }
+
+    public static InternalMap bytesToInternalMap(DataInput in) throws IOException {
+        int size = in.readInt();    
+        InternalMap m = new InternalMap(size);
         for (int i = 0; i < size; i++) {
             Object key = readDatum(in);
             m.put(key, readDatum(in));
@@ -104,6 +114,9 @@ public class DataReaderWriter {
 
             case DataType.MAP: 
                 return bytesToMap(in);    
+
+            case DataType.INTERNALMAP: 
+                return bytesToInternalMap(in);    
 
             case DataType.INTEGER:
                 return new Integer(in.readInt());
@@ -146,6 +159,7 @@ public class DataReaderWriter {
         }
     }
 
+	@SuppressWarnings("unchecked")
     public static void writeDatum(
             DataOutput out,
             Object val) throws IOException {
@@ -167,6 +181,20 @@ public class DataReaderWriter {
 
             case DataType.MAP: {
                 out.writeByte(DataType.MAP);
+                Map<String, Object> m = (Map<String, Object>)val;
+                out.writeInt(m.size());
+                Iterator<Map.Entry<String, Object> > i =
+                    m.entrySet().iterator();
+                while (i.hasNext()) {
+                    Map.Entry<String, Object> entry = i.next();
+                    writeDatum(out, entry.getKey());
+                    writeDatum(out, entry.getValue());
+                }
+                break;
+                               }
+            
+            case DataType.INTERNALMAP: {
+                out.writeByte(DataType.INTERNALMAP);
                 Map<Object, Object> m = (Map<Object, Object>)val;
                 out.writeInt(m.size());
                 Iterator<Map.Entry<Object, Object> > i =
@@ -178,7 +206,7 @@ public class DataReaderWriter {
                 }
                 break;
                                }
-
+            
             case DataType.INTEGER:
                 out.writeByte(DataType.INTEGER);
                 out.writeInt((Integer)val);

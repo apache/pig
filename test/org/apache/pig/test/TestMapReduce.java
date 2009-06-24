@@ -258,8 +258,8 @@ public class TestMapReduce extends TestCase {
             return "";
         }
 
-        public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
-            return new HashMap<Object, Object>();
+        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+            return new HashMap<String, Object>();
         }
 
         public Tuple bytesToTuple(byte[] b) throws IOException {
@@ -296,7 +296,7 @@ public class TestMapReduce extends TestCase {
 	        return l.toString().getBytes();
 	    }
 	
-	    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+	    public byte[] toBytes(Map<String, Object> m) throws IOException {
 	        return m.toString().getBytes();
 	    }
 	

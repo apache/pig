@@ -54,7 +54,7 @@ public class RemoveRedundantOperators extends
      * @throws VisitorException
      */
     protected void visit(LOProject project) throws VisitorException {
-        LogicalPlan currentPlan = (LogicalPlan)mCurrentWalker.getPlan();
+        LogicalPlan currentPlan = mCurrentWalker.getPlan();
         
         //if the project is a project(*) and if there are predecessors 
         // and successors that are
@@ -119,7 +119,7 @@ public class RemoveRedundantOperators extends
             if(n instanceof LOProject){
                 LOProject lop = (LOProject)n;
                 if(current == lop.getExpression()){
-                    lop.setExpression((LogicalOperator)pred);
+                    lop.setExpression(pred);
                 }
             }
         }

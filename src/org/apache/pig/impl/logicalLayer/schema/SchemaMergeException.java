@@ -21,6 +21,9 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public class SchemaMergeException extends FrontendException {
 
+	// Change this if you modify the class.
+	static final long serialVersionUID = 1L;
+
     /**
      * Create a new FrontendException with null as the error message.
      */

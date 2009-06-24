@@ -182,7 +182,7 @@ public class TestDataModel extends junit.framework.TestCase {
 
             o = after.get(2);
             assertTrue("isa Map", o instanceof Map);
-            Map<Object, Object> m = (Map<Object, Object>)o;
+            Map<String, Object> m = (Map<String, Object>)o;
             assertEquals("world", (String)m.get("hello"));
             assertEquals("all", (String)m.get("goodbye"));
             assertNull(m.get("fred"));
@@ -222,6 +222,42 @@ public class TestDataModel extends junit.framework.TestCase {
             String s = (String)o;
             assertEquals("goodbye", s);
          }
+
+        file.delete();
+    }
+
+    @Test
+    public void testReadWriteInternal() throws Exception {
+        // Create a tuple with every internal data type in it, and then read and
+        // write it, both via DataReaderWriter and Tuple.readFields
+        TupleFactory tf = TupleFactory.getInstance();
+
+        Tuple t1 = tf.newTuple(1);
+
+        InternalMap map = new InternalMap(2);
+        map.put(new Integer(1), new String("world"));
+        map.put(new Long(3L), new String("all"));
+        t1.set(0, map);
+
+        File file = File.createTempFile("Tuple", "put");
+        FileOutputStream fos = new FileOutputStream(file);
+        DataOutput out = new DataOutputStream(fos);
+        t1.write(out);
+        fos.close();
+
+        FileInputStream fis = new FileInputStream(file);
+        DataInput in = new DataInputStream(fis);
+ 
+        Tuple after = tf.newTuple();
+        after.readFields(in);
+
+        Object o = after.get(0);
+        assertTrue("isa InternalMap", o instanceof InternalMap);
+        
+        InternalMap m = (InternalMap)o;
+        assertEquals("world", (String)m.get(new Integer(1)));
+        assertEquals("all", (String)m.get(new Long(3L)));
+        assertNull(m.get("fred"));
 
         file.delete();
     }
@@ -522,7 +558,7 @@ public class TestDataModel extends junit.framework.TestCase {
         bag.add(tf.newTuple(new Integer(4)));
         bag.add(tf.newTuple(new String("mary had a little lamb")));
 
-        Map<Object, Object> map = new HashMap<Object, Object>(2);
+        Map<String, Object> map = new HashMap<String, Object>(2);
         map.put(new String("hello"), new String("world"));
         map.put(new String("goodbye"), new String("all"));
 

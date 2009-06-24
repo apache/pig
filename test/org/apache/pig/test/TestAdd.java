@@ -231,8 +231,8 @@ public class TestAdd extends TestCase{
                 break;
             }
             case DataType.MAP: {
-                Map<Integer,String> inpm1 = GenRandomData.genRandMap(r, 10);
-                Map<Integer,String> inpm2 = GenRandomData.genRandMap(r, 10);
+                Map<String,Object> inpm1 = GenRandomData.genRandMap(r, 10);
+                Map<String,Object> inpm2 = GenRandomData.genRandMap(r, 10);
                 lt.setValue(inpm1);
                 rt.setValue(inpm2);
                 Result resm = op.getNext(inpm1);

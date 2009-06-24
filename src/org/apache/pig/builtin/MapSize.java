@@ -36,7 +36,7 @@ public class MapSize extends EvalFunc<Long> {
     @Override
     public Long exec(Tuple input) throws IOException {
         try {
-            Map<Object, Object> m = (Map<Object, Object>)(input.get(0));
+            Map<String, Object> m = (Map<String, Object>)(input.get(0));
             return m == null ? null : new Long(m.keySet().size());
         } catch (ExecException exp) {
             throw exp;

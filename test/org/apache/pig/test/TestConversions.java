@@ -174,9 +174,9 @@ public class TestConversions extends TestCase {
     {
         
         for (int i = 0; i < MAX; i++) {
-            Map<Object, Object>  m = GenRandomData.genRandObjectMap(r,5);
+            Map<String, Object>  m = GenRandomData.genRandMap(r,5);
             String expectedMapString = DataType.mapToString(m);
-            Map<Object, Object> convertedMap = ps.bytesToMap(expectedMapString.getBytes());
+            Map<String, Object> convertedMap = ps.bytesToMap(expectedMapString.getBytes());
             assertTrue(m.equals(convertedMap));
         }
         
@@ -227,7 +227,7 @@ public class TestConversions extends TestCase {
         
     @Test
     public void testMapToBytes() throws IOException {
-        Map<Object, Object>  m = GenRandomData.genRandObjectMap(r,5);
+        Map<String, Object>  m = GenRandomData.genRandMap(r,5);
         assertTrue(DataType.equalByteArrays(DataType.mapToString(m).getBytes(), ps.toBytes(m)));
     }
 }

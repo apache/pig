@@ -220,7 +220,7 @@ public class DefaultTuple implements Tuple {
             Object d = it.next();
             if(d != null) {
                 if(d instanceof Map) {
-                    sb.append(DataType.mapToString((Map<Object, Object>)d));
+                    sb.append(DataType.mapToString((Map<String, Object>)d));
                 } else {
                     sb.append(d.toString());
                     if(d instanceof Long) {
@@ -346,12 +346,12 @@ public class DefaultTuple implements Tuple {
                 return 8 + 12;
 
             case DataType.MAP: {
-                Map<Object, Object> m = (Map<Object, Object>)o;
-                Iterator<Map.Entry<Object, Object> > i =
+                Map<String, Object> m = (Map<String, Object>)o;
+                Iterator<Map.Entry<String, Object> > i =
                     m.entrySet().iterator();
                 long sum = 0;
                 while (i.hasNext()) {
-                    Map.Entry<Object, Object> entry = i.next();
+                    Map.Entry<String, Object> entry = i.next();
                     sum += getFieldMemorySize(entry.getKey());
                     sum += getFieldMemorySize(entry.getValue());
                 }

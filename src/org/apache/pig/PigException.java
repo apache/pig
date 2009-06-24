@@ -31,6 +31,9 @@ import java.io.IOException;
  */
 public class PigException extends IOException {
 
+	// Change this if you modify the class.
+	static final long serialVersionUID = 1L;
+
     /*
      * Instead of using an enum for the source of the error,
      * the classic style of using static final is adopted

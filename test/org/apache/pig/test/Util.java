@@ -150,9 +150,9 @@ public class Util {
         return result;
     }
     
-    static public Map<Object, Object> createMap(String[] contents)
+    static public Map<String, Object> createMap(String[] contents)
     {
-        Map<Object, Object> m = new HashMap<Object, Object>();
+        Map<String, Object> m = new HashMap<String, Object>();
         for(int i = 0; i < contents.length; ) {
             m.put(contents[i], contents[i+1]);
             i += 2;

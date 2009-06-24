@@ -203,12 +203,12 @@ abstract public class Utf8StorageConverter {
         }
     }
 
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         if(b == null)
             return null;
-        Map<Object, Object> map;
+        Map<String, Object> map;
         try {
-            map = (Map<Object, Object>)parseFromBytes(b);
+            map = (Map<String, Object>)parseFromBytes(b);
         }
         catch (ParseException pe) {
             LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
@@ -276,7 +276,7 @@ abstract public class Utf8StorageConverter {
         return l.toString().getBytes();
     }
 
-    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+    public byte[] toBytes(Map<String, Object> m) throws IOException {
         return DataType.mapToString(m).getBytes();
     }
 
