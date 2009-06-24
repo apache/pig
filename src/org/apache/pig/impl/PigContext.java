@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.apache.commons.logging.Log;
@@ -156,8 +157,21 @@ public class PigContext implements Serializable, FunctionInstantiator {
     static{
         packageImportList.add("");
         packageImportList.add("org.apache.pig.builtin.");
-        packageImportList.add("com.yahoo.pig.yst.sds.ULT.");
         packageImportList.add("org.apache.pig.impl.builtin.");        
+    }
+    
+    public static void initializeImportList(String importListCommandLineProperties)
+    {
+        StringTokenizer tokenizer = new StringTokenizer(importListCommandLineProperties, ":");
+        int pos = 0;
+        while (tokenizer.hasMoreTokens())
+        {
+            String importItem = tokenizer.nextToken();
+            if (!importItem.endsWith("."))
+                importItem += ".";
+            packageImportList.add(pos, importItem);
+            pos++;
+        }
     }
     
     public void connect() throws ExecException {
@@ -613,5 +627,10 @@ public class PigContext implements Serializable, FunctionInstantiator {
         } else {
             return PigException.BUG;
         }        
+    }
+    
+    public static ArrayList<String> getPackageImportList()
+    {
+        return packageImportList;
     }
 }
