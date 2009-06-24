@@ -272,6 +272,9 @@ public static void main(String args[])
         if(optimizerRules.size() > 0) {
         	pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
         }
+        
+        if (properties.get("udf.import.list")!=null)
+            PigContext.initializeImportList((String)properties.get("udf.import.list"));
 
         LogicalPlanBuilder.classloader = pigContext.createCl(null);
 

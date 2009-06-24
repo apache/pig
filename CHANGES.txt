@@ -26,6 +26,8 @@ PIG-734:  Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-832: Make import list configurable (daijy)
+
 PIG-697: Proposed improvements to pig's optimizer (sms)
 
 PIG-753:  Allow UDFs with no parameters (zjffdu via gates).
@@ -33,6 +35,10 @@ PIG-753:  Allow UDFs with no parameters (zjffdu via gates).
 OPTIMIZATIONS
 
 BUG FIXES
+
+    PIG-797: Limit with ORDER BY producing wrong results (daijy)
+
+    PIG-850: Dump produce wrong result while "store into" is ok (daijy)
 
     PIG-852: pig -version or pig -help returns exit code of 1 (milindb via
     olgan)
@@ -87,10 +93,6 @@ PIG-626: Add access to hadoop counters (shubhamc via gates).
 PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via pradeepkth)
 
 BUG FIXES
-
-PIG-797: Limit with ORDER BY producing wrong results (daijy)
-
-PIG-850: Dump produce wrong result while "store into" is ok (daijy)
 
 PIG-846: MultiQuery optimization in some cases has an issue when there is a
 split in the map plan (pradeepkth)
