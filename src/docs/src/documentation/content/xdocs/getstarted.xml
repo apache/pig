@@ -158,14 +158,14 @@ $ export HADOOPDIR=/yourHADOOPsite/conf
 <p>From your current working directory, compile the program: 
 </p>
 <source>
-$ javac -cp pig.jar idhadoop.java
+$ javac -cp pig.jar idmapreduce.java
 </source>
-<p>Note: idhadoop.class is written to your current working directory. Include “.” in the class path when you run the program. </p>
+<p>Note: idmapreduce.class is written to your current working directory. Include “.” in the class path when you run the program. </p>
 <p>From your current working directory, run the program: 
 </p>
 <source>
-Unix:   $ java -cp pig.jar:.:$HADOOPDIR idhadoop
-Cygwin: $ java –cp ‘.;pig.jar;$HADOOPDIR’ idhadoop
+Unix:   $ java -cp pig.jar:.:$HADOOPDIR idmapreduce
+Cygwin: $ java –cp ‘.;pig.jar;$HADOOPDIR’ idmapreduce
 </source>
 <p>To view the results, check the idout directory on your Hadoop system. </p>
 </section>
@@ -214,7 +214,7 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
 <source>
 import java.io.IOException;
 import org.apache.pig.PigServer;
-public class idhadoop {
+public class idmapreduce{
    public static void main(String[] args) {
    try {
      PigServer pigServer = new PigServer("mapreduce");
