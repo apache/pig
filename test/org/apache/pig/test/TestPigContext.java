@@ -20,7 +20,9 @@ package org.apache.pig.test;
 
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -89,6 +91,58 @@ public class TestPigContext extends TestCase {
     public void testHadoopExceptionCreation() throws Exception {
     	Object object = PigContext.instantiateFuncFromSpec("org.apache.hadoop.mapred.FileAlreadyExistsException");
     	assertTrue(object instanceof FileAlreadyExistsException);
+    }
+    
+    @Test
+    // See PIG-832
+    public void testImportList() throws Exception {
+        String FILE_SEPARATOR = System.getProperty("file.separator");
+        File tmpDir = File.createTempFile("test", "");
+        tmpDir.delete();
+        tmpDir.mkdir();
+        
+        File tempDir = new File(tmpDir.getAbsolutePath());
+        Util.deleteDirectory(tempDir);
+        File udf1Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf1");
+        udf1Dir.mkdirs();
+        File udf1JavaSrc = new File(udf1Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF.java");
+        String udf1Src = new String("package com.xxx.udf1;\n" +
+                "public class TestUDF {}\n");
+        
+        // generate java file
+        FileOutputStream outStream = 
+            new FileOutputStream(udf1JavaSrc);
+        
+        OutputStreamWriter outWriter = new OutputStreamWriter(outStream);
+        outWriter.write(udf1Src);
+        outWriter.close();
+        
+        // compile
+        int status;
+        status = Util.executeShellCommand("javac " + udf1JavaSrc);
+        
+        // generate jar file
+        String jarName = "TestUDFJar1.jar";
+        status = Util.executeShellCommand("jar -cf " + tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName + 
+                              " -C " + tmpDir.getAbsolutePath() + " " + "com");
+        assertTrue(status==0);
+
+        PigServer pig = new PigServer(pigContext);
+        pig.registerJar(tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName);
+        
+        PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
+        ArrayList<String> importList = PigContext.getPackageImportList();
+        assertTrue(importList.size()==5);
+        assertTrue(importList.get(0).equals("com.xxx.udf1."));
+        assertTrue(importList.get(1).equals("com.xxx.udf2."));
+        assertTrue(importList.get(2).equals(""));
+        assertTrue(importList.get(3).equals("org.apache.pig.builtin."));
+        assertTrue(importList.get(4).equals("org.apache.pig.impl.builtin."));
+        
+        Object udf = PigContext.instantiateFuncFromSpec("TestUDF");
+        assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF"));
+        
+        Util.deleteDirectory(tempDir);
     }
 
     @After

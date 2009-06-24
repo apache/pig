@@ -120,14 +120,6 @@ public class TestPigServer extends TestCase {
         addMethod.invoke(sysLoader, new Object[]{urlToAdd});
     }
     
-    private static void executeShellCommand(String cmd) throws Exception {
-        Process cmdProc = Runtime.getRuntime().exec(cmd);
-        
-        cmdProc.waitFor();
-        
-        assertTrue(cmdProc.exitValue() == 0);
-    }
-    
     /**
      * The jar file to register is not present
      */
@@ -252,16 +244,19 @@ public class TestPigServer extends TestCase {
         outWriter.close();
         
         // compile
-        executeShellCommand("javac " + dir + FILE_SEPARATOR + subDir +
+        int status;
+        status = Util.executeShellCommand("javac " + dir + FILE_SEPARATOR + subDir +
                                FILE_SEPARATOR + className + ".java");
+        assertTrue(status==0);
 
         // remove src file
         (new File(dir + FILE_SEPARATOR + subDir +
                   FILE_SEPARATOR + className + ".java")).delete();
 
         // generate jar file
-        executeShellCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
+        status = Util.executeShellCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
                               "-C " + dir + " " + subDir);
+        assertTrue(status==0);
         
         // remove class file and sub_dir
         (new File(dir + FILE_SEPARATOR + subDir +
