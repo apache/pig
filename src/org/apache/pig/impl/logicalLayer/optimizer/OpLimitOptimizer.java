@@ -186,7 +186,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
             	for (LogicalOperator prepredecessor:nodesToProcess)
             	{
             		try {
-            			newLimit = (LOLimit)limit.duplicate();
+            			newLimit = limit.duplicate();
             			insertBetween(prepredecessor, newLimit, predecessor, null);
             		} catch (Exception e) {
             		    int errCode = 2011;

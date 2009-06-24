@@ -33,7 +33,7 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class POMapLookUp extends ExpressionOperator {
 	
-	private Object key;
+	private String key;
 
 	public POMapLookUp(OperatorKey k) {
 		super(k);
@@ -43,16 +43,16 @@ public class POMapLookUp extends ExpressionOperator {
 		super(k, rp);
 	}
 	
-	public POMapLookUp(OperatorKey k, int rp, Object key) {
+	public POMapLookUp(OperatorKey k, int rp, String key) {
 		super(k, rp);
 		this.key = key;
 	}
 	
-	public void setLookUpKey(Object key) {
+	public void setLookUpKey(String key) {
 		this.key = key;
 	}
 	
-	public Object getLookUpKey() {
+	public String getLookUpKey() {
 		return key;
 	}
 
@@ -64,20 +64,18 @@ public class POMapLookUp extends ExpressionOperator {
 
 	@Override
 	public String name() {
-		// TODO Auto-generated method stub
 		return "POMapLookUp" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
 	}
 
 	@Override
 	public boolean supportsMultipleInputs() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 	
 	@Override
 	public Result processInput() throws ExecException {
         Result res = new Result();
-        Map<Object, Object> inpValue = null;
+        Map<String, Object> inpValue = null;
         if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
@@ -93,10 +91,11 @@ public class POMapLookUp extends ExpressionOperator {
         }
     }
 	
+	@SuppressWarnings("unchecked")
 	private Result getNext() throws ExecException {
 		Result res = processInput();
 		if(res.result != null && res.returnStatus == POStatus.STATUS_OK) {
-			res.result = ((Map)res.result).get(key);
+			res.result = ((Map<String, Object>)res.result).get(key);
 		}
 		return res;
 	}

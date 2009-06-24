@@ -149,6 +149,7 @@ public class TestPackage extends junit.framework.TestCase {
             runTest(r.nextLong(),inner);
             break;
         case DataType.MAP:
+        case DataType.INTERNALMAP:
         case DataType.BYTE:
             return; // map not key type
         case DataType.TUPLE:

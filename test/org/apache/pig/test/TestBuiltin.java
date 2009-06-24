@@ -1152,7 +1152,7 @@ public class TestBuiltin extends TestCase {
         
         // Map size
         String[] mapContents = new String[]{"key1", "value1", "key2", "value2"};
-        Map<Object, Object> map = Util.createMap(mapContents);
+        Map<String, Object> map = Util.createMap(mapContents);
         expected = new Long(2);
         t.set(0, map);
         size = new MapSize();

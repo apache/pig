@@ -2786,7 +2786,7 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 	ExpressionOperator projection; 
 	Schema subSchema = null; 
 	Token t; 
-    Object key = new Object();
+    String key;
 	log.trace("Entering BaseEvalSpec");
 }
 {
@@ -2815,7 +2815,7 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 				item = projection;
 			}
 		)
-|		( "#" key = AtomDatum() { 
+|		( "#" key = StringDatum() { 
 			assertAtomic(item, false);
 			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), key, DataType.BYTEARRAY, null);
 			lp.add(mapLookup);
@@ -3461,9 +3461,9 @@ Tuple Tuple() :
 	}
 }
 
-Map<Object, Object> Map() :
+Map<String, Object> Map() :
 {
-	Map<Object, Object> keyValues = new HashMap<Object, Object>();
+	Map<String, Object> keyValues = new HashMap<String, Object>();
 	log.trace("Entering Map");
 	
 }
@@ -3475,14 +3475,14 @@ Map<Object, Object> Map() :
 	}
 }
 
-void KeyValuePair(Map<Object, Object> keyValues) :
+void KeyValuePair(Map<String, Object> keyValues) :
 {
-	Object key = null;
+	String key = null;
 	Object value = null;
 	log.trace("Entering KeyValuePair");
 }
 {
-	(key = AtomDatum() "#" value = Datum())
+	(key = StringDatum() "#" value = Datum())
 	{
 		if(key == null)
 		    throw new ParseException("key in a map cannot be null (provided input has '"+ key + "#" + value + "')");
@@ -3492,6 +3492,23 @@ void KeyValuePair(Map<Object, Object> keyValues) :
 	
 }
 
+String StringDatum():
+{
+    String s = null;
+    Token t;
+    log.trace("Entering String");
+}
+{
+    (
+    t = <QUOTEDSTRING> { s = unquote(t.image); }
+|   t = <NULL> {s = null;}
+    )
+    {
+        log.trace("Exiting String with " + t.image);
+        return s;
+    }
+}
+ 
 Object AtomDatum():
 {
     Object obj = null;

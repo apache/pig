@@ -222,7 +222,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         }
     }
 
-    public Map<Object, Object> bytesToMap(byte[] b) {
+    public Map<String, Object> bytesToMap(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
             return DataReaderWriter.bytesToMap(dis);
@@ -372,7 +372,7 @@ public class BinStorage implements ReversibleLoadStoreFunc {
         return baos.toByteArray();
     }
 
-    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+    public byte[] toBytes(Map<String, Object> m) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
         try {

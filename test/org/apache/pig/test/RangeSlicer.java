@@ -183,7 +183,7 @@ public class RangeSlicer
     /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#bytesToMap(byte[])
      */
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         return null;
     }
 

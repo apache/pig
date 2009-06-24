@@ -37,7 +37,7 @@ import junit.framework.TestCase;
 public class TestPOMapLookUp extends TestCase {
 	
 	Random r = new Random();
-	Map<Integer, String> map;// = GenRandomData.genRandMap(r, 10);
+	Map<String, Object> map;// = GenRandomData.genRandMap(r, 10);
 	
 	@Test
 	public void testMapLookUp() throws PlanException, ExecException {
@@ -53,7 +53,7 @@ public class TestPOMapLookUp extends TestCase {
 			map = GenRandomData.genRandMap(r, 10);
 			Tuple t = TupleFactory.getInstance().newTuple();
 			t.append(map);
-			for(Map.Entry<Integer, String> e : map.entrySet()) {
+			for(Map.Entry<String, Object> e : map.entrySet()) {
 				op.setLookUpKey(e.getKey());
 				plan.attachInput(t);
 				Result res = op.getNext(map);

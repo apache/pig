@@ -124,9 +124,9 @@ Tuple Tuple() :
 	}
 }
 
-Map<Object, Object> Map() :
+Map<String, Object> Map() :
 {
-	Map<Object, Object> keyValues = new HashMap<Object, Object>();
+	Map<String, Object> keyValues = new HashMap<String, Object>();
 	log.trace("Entering Map");
 	
 }
@@ -138,20 +138,38 @@ Map<Object, Object> Map() :
 	}
 }
 
-void KeyValuePair(Map<Object, Object> keyValues) :
+void KeyValuePair(Map<String, Object> keyValues) :
 {
-	Object key = null;
+	String key = null;
 	Object value = null;
 	log.trace("Entering KeyValuePair");
 }
 {
-	(key = AtomDatum() "#" value = Datum())
+	(key = StringDatum() "#" value = Datum())
 	{
 		keyValues.put(key, value);
 		log.trace("Exiting KeyValuePair");
 	}
 	
 }
+
+String StringDatum():
+{
+    String s = null;
+    Token t;
+    log.trace("Entering String");
+}
+{
+    (
+    t = <STRING> { s = t.image; }
+|	t = <NULL> {}
+    )
+    {
+        log.trace("Exiting String with " + t.image);
+        return s;
+    }
+}
+        
 
 Object AtomDatum():
 {

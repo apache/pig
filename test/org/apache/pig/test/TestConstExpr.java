@@ -138,7 +138,7 @@ public class TestConstExpr extends junit.framework.TestCase {
 
     @Test
     public void testGetNextMap() throws ExecException {
-        Map<Integer,String> inp = GenRandomData.genRandMap(r, 10);
+        Map<String,Object> inp = GenRandomData.genRandMap(r, 10);
         ce.setValue(inp);
         Result resm = ce.getNext(inp);
         Map<Integer,String> ret = (Map)resm.result;

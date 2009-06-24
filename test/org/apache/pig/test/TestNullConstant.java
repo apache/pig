@@ -145,8 +145,9 @@ public class TestNullConstant extends TestCase {
         pigServer.registerQuery("b = foreach a generate {(null)}, ['2'#null];");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
+System.out.println("tuple: " + t);
         assertEquals(null, ((DataBag)t.get(0)).iterator().next().get(0));
-        assertEquals(null, ((Map<Object, Object>)t.get(1)).get("2"));
+        assertEquals(null, ((Map<String, Object>)t.get(1)).get("2"));
         
     }
 

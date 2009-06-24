@@ -1007,7 +1007,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     private void insertCast(ExpressionOperator node,
                             byte toType, ExpressionOperator predecessor) 
     throws VisitorException {
-        LogicalPlan currentPlan =  (LogicalPlan) mCurrentWalker.getPlan() ;
+        LogicalPlan currentPlan = mCurrentWalker.getPlan() ;
         collectCastWarning(node, predecessor.getType(), toType);
 
         OperatorKey newKey = genNewOperatorKey(node);
@@ -2928,7 +2928,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private FuncSpec getLoadFuncSpec(ExpressionOperator exOp) throws FrontendException {
-        Schema.FieldSchema fs = ((ExpressionOperator)exOp).getFieldSchema();
+        Schema.FieldSchema fs = exOp.getFieldSchema();
         if(null == fs) {
             return null;
         }

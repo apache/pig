@@ -66,6 +66,7 @@ public class DataType {
     public static final byte MAP       = 100;
     public static final byte TUPLE     = 110;
     public static final byte BAG       = 120;
+    public static final byte INTERNALMAP = 127; // internal use only; for maps that are object->object.  Used by FindQuantiles.
     public static final byte ERROR     =  -1;
 
     /**
@@ -83,6 +84,7 @@ public class DataType {
         else if (o instanceof DataBag) return BAG;
         else if (o instanceof Integer) return INTEGER;
         else if (o instanceof Long) return LONG;
+        else if (o instanceof InternalMap) return INTERNALMAP;
         else if (o instanceof Map) return MAP;
         else if (o instanceof Float) return FLOAT;
         else if (o instanceof Double) return DOUBLE;
@@ -109,6 +111,7 @@ public class DataType {
         else if (t == Double.class) return DOUBLE;
         else if (t == Boolean.class) return BOOLEAN;
         else if (t == Byte.class) return BYTE;
+        else if (t == InternalMap.class) return INTERNALMAP;
         else {
             // Might be a tuple or a bag, need to check the interfaces it
             // implements
@@ -144,14 +147,15 @@ public class DataType {
         return types.length;
     }
     public static byte[] genAllTypes(){
-        byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, DataType.CHARARRAY, 
-                DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.MAP, DataType.TUPLE};
+        byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, 
+                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.INTERNALMAP, 
+                DataType.LONG, DataType.MAP, DataType.TUPLE};
         return types;
     }
     
     private static String[] genAllTypeNames(){
-        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER", "LONG", 
-                "MAP", "TUPLE" };
+        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER",
+                "INTERNALMAP", "LONG", "MAP", "TUPLE" };
         return names;
     }
     
@@ -202,6 +206,7 @@ public class DataType {
         case BIGCHARARRAY: return "bigchararray";
         case CHARARRAY: return "chararray";
         case MAP:       return "map";
+        case INTERNALMAP: return "internalmap";
         case TUPLE:     return "tuple";
         case BAG:       return "bag";
         default: return "Unknown";
@@ -215,7 +220,7 @@ public class DataType {
      */
     public static boolean isComplex(byte dataType) {
         return ((dataType == BAG) || (dataType == TUPLE) ||
-            (dataType == MAP));
+            (dataType == MAP) || (dataType == INTERNALMAP));
     }
 
     /**
@@ -320,8 +325,8 @@ public class DataType {
                 return ((String)o1).compareTo((String)o2);
 
             case MAP: {
-                Map<Object, Object> m1 = (Map<Object, Object>)o1;
-                Map<Object, Object> m2 = (Map<Object, Object>)o2;
+                Map<String, Object> m1 = (Map<String, Object>)o1;
+                Map<String, Object> m2 = (Map<String, Object>)o2;
                 int sz1 = m1.size();
                 int sz2 = m2.size();
                 if (sz1 < sz2) {
@@ -331,16 +336,16 @@ public class DataType {
                 } else {
                     // This is bad, but we have to sort the keys of the maps in order
                     // to be commutative.
-                    TreeMap<Object, Object> tm1 = new TreeMap<Object, Object>(m1);
-                    TreeMap<Object, Object> tm2 = new TreeMap<Object, Object>(m2);
-                    Iterator<Map.Entry<Object, Object> > i1 =
+                    TreeMap<String, Object> tm1 = new TreeMap<String, Object>(m1);
+                    TreeMap<String, Object> tm2 = new TreeMap<String, Object>(m2);
+                    Iterator<Map.Entry<String, Object> > i1 =
                         tm1.entrySet().iterator();
-                    Iterator<Map.Entry<Object, Object> > i2 =
+                    Iterator<Map.Entry<String, Object> > i2 =
                         tm2.entrySet().iterator();
                     while (i1.hasNext()) {
-                        Map.Entry<Object, Object> entry1 = i1.next();
-                        Map.Entry<Object, Object> entry2 = i2.next();
-                        int c = compare(entry1.getKey(), entry2.getKey());
+                        Map.Entry<String, Object> entry1 = i1.next();
+                        Map.Entry<String, Object> entry2 = i2.next();
+                        int c = entry1.getKey().compareTo(entry2.getKey());
                         if (c != 0) {
                             return c;
                         } else {
@@ -354,6 +359,9 @@ public class DataType {
                 }
                       }
 
+            case INTERNALMAP:
+                return -1;  // Don't think anyway will want to do this.
+                
             case TUPLE:
                 return ((Tuple)o1).compareTo((Tuple)o2);
 
@@ -413,6 +421,7 @@ public class DataType {
 			    return null;
 
 			case MAP:
+			case INTERNALMAP:
 			case TUPLE:
 			case BAG:
 			case UNKNOWN:
@@ -489,6 +498,7 @@ public class DataType {
 			    return null;
 
 			case MAP:
+			case INTERNALMAP:
 			case TUPLE:
 			case BAG:
 			case UNKNOWN:
@@ -562,6 +572,7 @@ public class DataType {
 			case BOOLEAN:
 			case BYTE:
 			case MAP:
+			case INTERNALMAP:
 			case TUPLE:
 			case BAG:
 			case UNKNOWN:
@@ -634,6 +645,7 @@ public class DataType {
 			case BOOLEAN:
 			case BYTE:
 			case MAP:
+			case INTERNALMAP:
 			case TUPLE:
 			case BAG:
 			case UNKNOWN:
@@ -709,6 +721,7 @@ public class DataType {
 			    return ((Byte)o).toString();
 
 			case MAP:
+			case INTERNALMAP:
 			case TUPLE:
 			case BAG:
 			case UNKNOWN:
@@ -744,15 +757,15 @@ public class DataType {
      * This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Map you
      * should just cast it.
-     * @return The object as a Double.
+     * @return The object as a Map.
      * @throws ExecException if the type can't be forced to a Double.
      */
-    public static Map<Object, Object> toMap(Object o) throws ExecException {
+    public static Map<String, Object> toMap(Object o) throws ExecException {
         if (o == null) return null;
 
-        if (o instanceof Map) {
+        if (o instanceof Map && !(o instanceof InternalMap)) {
             try {
-				return (Map<Object, Object>)o;
+				return (Map<String, Object>)o;
     		} catch (Exception e) {
     			int errCode = 2054;
     			String msg = "Internal error. Could not convert " + o + " to Map.";
@@ -888,20 +901,21 @@ public class DataType {
         return DataType.ERROR ;
     }
     
-    public static String mapToString(Map<Object, Object> m) {
+    public static String mapToString(Map<String, Object> m) {
         boolean hasNext = false;
         StringBuilder sb = new StringBuilder();
         sb.append("[");
-        for(Object o: m.keySet()) {
+        for(String s: m.keySet()) {
             if(hasNext) {
                 sb.append(",");
             } else {
                 hasNext = true;
             }
-            sb.append(o.toString());
+            sb.append(s);
             sb.append("#");
-            if(m.get(o) != null) {
-                sb.append(m.get(o).toString());
+            Object val = m.get(s);
+            if(val != null) {
+                sb.append(val.toString());
             }
         }
         sb.append("]");

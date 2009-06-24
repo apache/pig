@@ -36,7 +36,7 @@ public class LOMapLookup extends ExpressionOperator {
      * The key to lookup along with the type and schema corresponding to the
      * type and schema of the value linked to the key
      */
-    private Object mMapKey;
+    private String mMapKey;
     private byte mValueType;
     private Schema mValueSchema;
     private static Log log = LogFactory.getLog(LOMapLookup.class);
@@ -55,13 +55,12 @@ public class LOMapLookup extends ExpressionOperator {
      *            schema of the value if the type is tuple
      */
     public LOMapLookup(LogicalPlan plan, OperatorKey key,
-            Object mapKey, byte valueType, Schema valueSchema)
+            String mapKey, byte valueType, Schema valueSchema)
             throws ParseException {
         super(plan, key);
 
         if (!DataType.isAtomic(DataType.findType(mapKey))) {
-            throw new ParseException("Map key " + mapKey.toString()
-                    + " is not atomic");
+            throw new ParseException("Map key " + mapKey + " is not atomic");
         }
         mMapKey = mapKey;
         mValueType = valueType;
@@ -76,7 +75,7 @@ public class LOMapLookup extends ExpressionOperator {
         return (ExpressionOperator)preds.get(0);
     }
 
-    public Object getLookUpKey() {
+    public String getLookUpKey() {
         return mMapKey;
     }
 
