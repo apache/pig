@@ -147,11 +147,11 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testMapLookup() throws Exception {
         DataBag b = BagFactory.getInstance().newDefaultBag();
-        Map<Object, Object> colors = new HashMap<Object, Object>();
+        Map<String, Object> colors = new HashMap<String, Object>();
         colors.put("apple","red");
         colors.put("orange","orange");
         
-        Map<Object, Object> weights = new HashMap<Object, Object>();
+        Map<String, Object> weights = new HashMap<String, Object>();
         weights.put("apple","0.1");
         weights.put("orange","0.3");
         
@@ -244,9 +244,9 @@ public class TestEvalPipeline extends TestCase {
         }
     }
 
-    static public class MapUDF extends EvalFunc<Map<Object, Object>> {
+    static public class MapUDF extends EvalFunc<Map<String, Object>> {
         @Override
-        public Map<Object, Object> exec(Tuple input) throws IOException {
+        public Map<String, Object> exec(Tuple input) throws IOException {
 
             TupleFactory tupleFactory = TupleFactory.getInstance();
             ArrayList<Object> objList = new ArrayList<Object>();
@@ -260,11 +260,11 @@ public class TestEvalPipeline extends TestCase {
             DataBag bag = bagFactory.newDefaultBag();
             bag.add(tuple);
 
-            Map<Object, Object> mapInMap = new HashMap<Object, Object>();
+            Map<String, Object> mapInMap = new HashMap<String, Object>();
             mapInMap.put("int", new Integer(10));
             mapInMap.put("float", new Float(10.0));
 
-            Map<Object, Object> myMap = new HashMap<Object, Object>();
+            Map<String, Object> myMap = new HashMap<String, Object>();
             myMap.put("string", new String("Hello"));
             myMap.put("int", new Integer(1));
             myMap.put("long", new Long(1));
@@ -758,7 +758,7 @@ public class TestEvalPipeline extends TestCase {
             assertEquals(new Integer(10), (Integer)t.get(3));
             assertEquals(1, ((DataBag)t.get(4)).size());
             assertEquals(4, ((Tuple)t.get(5)).size());
-            assertEquals(2, ((Map<Object, Object>)t.get(6)).size());
+            assertEquals(2, ((Map<String, Object>)t.get(6)).size());
             assertEquals(DataByteArray.class, t.get(7).getClass());
             assertEquals(8, t.size());
             ++numIdentity;

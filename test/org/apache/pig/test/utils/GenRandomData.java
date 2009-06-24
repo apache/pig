@@ -30,26 +30,14 @@ import org.apache.pig.data.Tuple;
 public class GenRandomData {
     
     
-    public static Map<Integer,String> genRandMap(Random r, int numEnt) {
-        Map<Integer,String> ret = new HashMap<Integer, String>();
+    public static Map<String, Object> genRandMap(Random r, int numEnt) {
+        Map<String,Object> ret = new HashMap<String, Object>();
         if(r==null){
-            ret.put(1, "RANDOM");
+            ret.put("random", "RANDOM");
             return ret;
         }
         for(int i=0;i<numEnt;i++){
-            ret.put(r.nextInt(), genRandString(r));
-        }
-        return ret;
-    }
-    
-    public static Map<Object,Object> genRandObjectMap(Random r, int numEnt) {
-        Map<Object,Object> ret = new HashMap<Object, Object>();
-        if(r==null){
-            ret.put(1, "RANDOM");
-            return ret;
-        }
-        for(int i=0;i<numEnt;i++){
-            ret.put(r.nextInt(), genRandString(r));
+            ret.put(genRandString(r), genRandString(r));
         }
         return ret;
     }

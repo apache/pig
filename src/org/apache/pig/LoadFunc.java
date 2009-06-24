@@ -119,7 +119,7 @@ public interface LoadFunc {
      * @return Map value.
      * @throws IOException if the value cannot be cast.
      */
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException;
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException;
 
     /**
      * Cast data from bytes to tuple value.  

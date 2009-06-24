@@ -22,6 +22,8 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-734:  Changed maps to only take strings as keys (gates).
+
 IMPROVEMENTS
 
 PIG-697: Proposed improvements to pig's optimizer (sms)

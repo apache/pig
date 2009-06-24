@@ -21,6 +21,9 @@ import org.apache.pig.PigException;
 
 public class BackendException extends PigException {
 
+	// Change this if you modify the class.
+	static final long serialVersionUID = 1L;
+
     /**
      * Create a new BackendException with null as the error message.
      */

@@ -21,6 +21,9 @@ import org.apache.pig.PigException;
 
 public class FrontendException extends PigException {
 
+	// Change this if you modify the class.
+	static final long serialVersionUID = 1L;
+
     /**
      * Create a new FrontendException with null as the error message.
      */

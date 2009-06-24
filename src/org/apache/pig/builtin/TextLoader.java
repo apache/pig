@@ -132,7 +132,7 @@ public class TextLoader implements LoadFunc{
      * TextLoader does not support conversion to Map
      * @throws IOException if the value cannot be cast.
      */
-    public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Map.";
         throw new ExecException(msg, errCode, PigException.BUG);
@@ -206,7 +206,7 @@ public class TextLoader implements LoadFunc{
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 
-    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+    public byte[] toBytes(Map<String, Object> m) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion from Map.";
         throw new ExecException(msg, errCode, PigException.BUG);

@@ -38,6 +38,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
+import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -51,7 +52,7 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 
 
-public class FindQuantiles extends EvalFunc<Map<Object, Object>>{
+public class FindQuantiles extends EvalFunc<Map<String, Object>>{
     // keys for the weightedparts Map
     public static final String QUANTILES_LIST = "quantiles.list";
     public static final String WEIGHTED_PARTS = "weighted.parts";
@@ -160,14 +161,14 @@ public class FindQuantiles extends EvalFunc<Map<Object, Object>>{
      */
     
     @Override
-    public Map<Object, Object> exec(Tuple in) throws IOException {
-        Map<Object, Object> output = new HashMap<Object, Object>();
+    public Map<String, Object> exec(Tuple in) throws IOException {
+        Map<String, Object> output = new HashMap<String, Object>();
         if(in==null || in.size()==0)
             return null;
         Integer numQuantiles = null;
         DataBag samples = null;
         ArrayList<Tuple> quantilesList = new ArrayList<Tuple>();
-        Map<Tuple,Tuple> weightedParts = new HashMap<Tuple, Tuple>();
+        InternalMap weightedParts = new InternalMap();
         // the sample file has a tuple as under:
         // (numQuantiles, bag of samples) 
         // numQuantiles here is the reduce parallelism

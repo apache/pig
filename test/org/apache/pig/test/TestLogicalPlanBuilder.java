@@ -422,7 +422,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             return null;
         }
 
-        public Map<Object, Object> bytesToMap(byte[] b) throws IOException {
+        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
             return null;
         }
 
@@ -454,7 +454,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             return null;
 	    }
 	
-	    public byte[] toBytes(Map<Object, Object> m) throws IOException {
+	    public byte[] toBytes(Map<String, Object> m) throws IOException {
             return null;
 	    }
 	
@@ -875,8 +875,8 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     @Test
     public void testQuery70() {
         buildPlan(" a = load 'input1';");
-        buildPlan(" b = foreach a generate [10L#'hello', 4.0e-2#10L, 0.5f#(1), 'world'#42, 42#{('guide')}] as mymap:map[];");
-        buildPlan(" c = foreach b generate mymap#10L;");
+        buildPlan(" b = foreach a generate ['10'#'hello', '4.0e-2'#10L, '0.5f'#(1), 'world'#42, '42'#{('guide')}] as mymap:map[];");
+        buildPlan(" c = foreach b generate mymap#'10';");
     }
 
     @Test

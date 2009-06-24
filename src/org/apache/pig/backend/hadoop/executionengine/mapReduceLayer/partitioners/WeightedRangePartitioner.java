@@ -35,6 +35,7 @@ import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.FindQuantiles;
@@ -91,11 +92,11 @@ public class WeightedRangePartitioner implements Partitioner<PigNullableWritable
             // numQuantiles here is the reduce parallelism
             Map<String, Object> quantileMap = (Map<String, Object>) t.get(0);
             quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
-            Map<Tuple, Tuple> weightedPartsData = (Map<Tuple, Tuple>) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
+            InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
             convertToArray(quantilesList);
-            for(Entry<Tuple, Tuple> ent : weightedPartsData.entrySet()){
-                Tuple key = ent.getKey(); // sample item which repeats
-                float[] probVec = getProbVec(ent.getValue());
+            for(Entry<Object, Object> ent : weightedPartsData.entrySet()){
+                Tuple key = (Tuple)ent.getKey(); // sample item which repeats
+                float[] probVec = getProbVec((Tuple)ent.getValue());
                 weightedParts.put(getPigNullableWritable(key), 
                         new DiscreteProbabilitySampleGenerator(probVec));
             }
