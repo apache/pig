@@ -161,7 +161,7 @@ public class LOUnion extends LogicalOperator {
             return mProjectionMap;
         }
         
-        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        MultiMap<Integer, ProjectionMap.Column> mapFields = new MultiMap<Integer, ProjectionMap.Column>();
         
         for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
             LogicalOperator predecessor = predecessors.get(inputNum);
@@ -179,8 +179,7 @@ public class LOUnion extends LogicalOperator {
                 return mProjectionMap;
             } else {
                 for(int inputColumn = 0; inputColumn < inputSchema.size(); ++inputColumn) {
-                    mapFields.put(inputColumn, new Pair<Integer, Integer>(inputNum, inputColumn));
-                    //removedFields.add(new Pair<Integer, Integer>(inputNum, inputColumn));
+                    mapFields.put(inputColumn, new ProjectionMap.Column(new Pair<Integer, Integer>(inputNum, inputColumn)));
                 }
             }
         }

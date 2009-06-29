@@ -21,6 +21,7 @@ package org.apache.pig.impl.plan;
 import java.lang.StringBuilder;
 import java.util.List;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 
@@ -35,11 +36,12 @@ public class ProjectionMap {
 
     /**
      * Map of field changes, with keys being the output fields of the operator
-     * and values being the input fields. Fields are numbered from 0. So for a
-     * foreach operator derived from 'B = foreach A generate $0, $2, $3,
-     * udf($1)' would produce a mapping of 0->(0, 0), 2->(0, 1), 3->(0, 2)
+     * and values being the projection map columns. Fields are numbered from 0.
+     * So for a foreach operator derived from 'B = foreach A generate $0, $2,
+     * (int)$3, udf($1)' would produce a mapping of 0->(0, 0), 2->(0, 1),
+     * 3->[(0, 2), DataType.INTEGER]
      */
-    private MultiMap<Integer, Pair<Integer, Integer>> mMappedFields;
+    private MultiMap<Integer, Column> mMappedFields;
 
     /**
      * List of fields removed from the input. This includes fields that were
@@ -73,7 +75,7 @@ public class ProjectionMap {
      * @param addedFields
      *            the list of columns that are added to the output
      */
-    public ProjectionMap(MultiMap<Integer, Pair<Integer, Integer>> mapFields,
+    public ProjectionMap(MultiMap<Integer, Column> mapFields,
             List<Pair<Integer, Integer>> removedFields,
             List<Integer> addedFields) {
         this(mapFields, removedFields, addedFields, true);
@@ -90,7 +92,7 @@ public class ProjectionMap {
      * @param changes
      *            to indicate if this projection map changes its input or not
      */
-    private ProjectionMap(MultiMap<Integer, Pair<Integer, Integer>> mapFields,
+    private ProjectionMap(MultiMap<Integer, Column> mapFields,
             List<Pair<Integer, Integer>> removedFields,
             List<Integer> addedFields, boolean changes) {
         mMappedFields = mapFields;
@@ -103,7 +105,7 @@ public class ProjectionMap {
      * 
      * @return the mapping of input column to output column
      */
-    public MultiMap<Integer, Pair<Integer, Integer>> getMappedFields() {
+    public MultiMap<Integer, Column> getMappedFields() {
         return mMappedFields;
     }
 
@@ -112,7 +114,7 @@ public class ProjectionMap {
      * @param fields
      *            the mapping of input column to output column
      */
-    public void setMappedFields(MultiMap<Integer, Pair<Integer, Integer>> fields) {
+    public void setMappedFields(MultiMap<Integer, Column> fields) {
         mMappedFields = fields;
     }
 
@@ -184,5 +186,96 @@ public class ProjectionMap {
         sb.append(" added fields: " + mAddedFields);
         sb.append(" removed fields: " + mRemovedFields);
         return sb.toString();
+    }
+
+	/**
+     * 
+     * A wrapper for projection map columns to contain the input number, input
+     * column. Additionally, if a cast is used, record the type of the cast
+     * 
+     */
+    public static class Column {
+        private Pair<Integer, Integer> mInputColumn;
+        private boolean mCast = false;
+        private byte mCastType = DataType.UNKNOWN;
+
+        /**
+         * 
+         * @param inputColumn
+         *            A pair of integers representing the input number and the
+         *            input column number
+         */
+        public Column(Pair<Integer, Integer> inputColumn) {
+            this(inputColumn, false, DataType.UNKNOWN);
+        }
+
+        /**
+         * 
+         * @param inputColumn
+         *            A pair of integers representing the input number and the
+         *            input column number
+         * @param cast
+         *            true if the input column has a cast
+         * @param castType
+         *            the data type of the cast
+         */
+        public Column(Pair<Integer, Integer> inputColumn, boolean cast,
+                byte castType) {
+            mInputColumn = inputColumn;
+            mCast = cast;
+            mCastType = castType;
+        }
+
+        /**
+         * 
+         * Get the mapped column details
+         * 
+         * @return A pair of integers representing the input number and the
+         *         input column number
+         */
+        public Pair<Integer, Integer> getInputColumn() {
+            return mInputColumn;
+        }
+
+        /**
+         * 
+         * Check if the column is cast
+         * 
+         * @return true if the input column has a cast; false otherwise
+         */
+        public boolean getCast() {
+            return mCast;
+        }
+
+        
+        /**
+         * 
+         * Check if the column is cast
+         * 
+         * @return true if the input column has a cast; false otherwise
+         */
+        public boolean cast() {
+            return getCast();
+        }
+
+        /**
+         * 
+         * Get the data type of the cast
+         * 
+         * @return the data type of the cast
+         */
+        public byte getCastType() {
+            return mCastType;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(mInputColumn);
+            if (mCast) {
+                sb.append(" cast to: " + DataType.findTypeName(mCastType));
+            }
+            return sb.toString();
+        }
     }
 }

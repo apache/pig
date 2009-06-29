@@ -77,7 +77,9 @@ public class OpLimitOptimizer extends LogicalTransformer {
             LogicalOperator lo = nodes.get(0);
             if (lo == null || !(lo instanceof LOLimit)) {
                 int errCode = 2005;
-                String msg = "Expected " + LOLimit.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+                String msg = "Expected " + LOLimit.class.getSimpleName()
+                        + ", got "
+                        + (lo == null ? lo : lo.getClass().getSimpleName());
                 throw new OptimizerException(msg, errCode, PigException.BUG);
             }
         } catch (Exception e) {
@@ -168,7 +170,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
             		else
             		{
             		    int errCode = 2010;
-            		    String msg = "LOFilter should have one input";
+            		    String msg = "LOForEach should have one input";
             			throw new OptimizerException(msg, errCode, PigException.BUG);
             		}
                     // we can move LOLimit even further, recursively optimize LOLimit

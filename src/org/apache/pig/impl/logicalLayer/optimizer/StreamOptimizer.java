@@ -75,7 +75,9 @@ public class StreamOptimizer extends LogicalTransformer {
         LogicalOperator lo = nodes.get(0);
         if (lo == null || !(lo instanceof LOStream)) {
             int errCode = 2005;
-            String msg = "Expected " + LOStream.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+            String msg = "Expected " + LOStream.class.getSimpleName()
+                    + ", got "
+                    + (lo == null ? lo : lo.getClass().getSimpleName());
             throw new OptimizerException(msg, errCode, PigException.BUG);            
         }
         LOStream stream = (LOStream)lo;
@@ -230,6 +232,12 @@ public class StreamOptimizer extends LogicalTransformer {
             String msg = "Unable to optimize load-stream-store optimization"; 
             throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
+    }
+    
+    @Override
+    public void reset() {
+        mOptimizeLoad = false;
+        mOptimizeStore = false;
     }
 }
 

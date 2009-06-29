@@ -108,7 +108,9 @@ public class TypeCastInserter extends LogicalTransformer {
         if(LOLoad.class.getName().equals(operatorClassName)) {
             if (lo == null || !(lo instanceof LOLoad)) {
                 int errCode = 2005;
-                String msg = "Expected " + LOLoad.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+                String msg = "Expected " + LOLoad.class.getSimpleName()
+                        + ", got "
+                        + (lo == null ? lo : lo.getClass().getSimpleName());
                 throw new OptimizerException(msg, errCode, PigException.BUG);
             }
     
@@ -116,7 +118,9 @@ public class TypeCastInserter extends LogicalTransformer {
         } else if(LOStream.class.getName().equals(operatorClassName)){
             if (lo == null || !(lo instanceof LOStream)) {
                 int errCode = 2005;
-                String msg = "Expected " + LOStream.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+                String msg = "Expected " + LOStream.class.getSimpleName()
+                        + ", got "
+                        + (lo == null ? lo : lo.getClass().getSimpleName());
                 throw new OptimizerException(msg, errCode, PigException.BUG);
             }
     

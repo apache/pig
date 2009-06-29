@@ -1128,7 +1128,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             throw new PlanException(msg, errCode, PigException.INPUT);
         }
         
-        List<E> firstNodeSuccessors = (ArrayList<E>)mFromEdges.get(firstNode);
+        List<E> firstNodeSuccessors = (mFromEdges.get(firstNode) == null? null : new ArrayList<E>(mFromEdges.get(firstNode)));
         
         if(firstNodeSuccessors == null) {
             int errCode = 1088;
@@ -1217,10 +1217,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         //Rewire is used within reconnectPredecessors. However, rewire is explicitly turned off in insertBetween
         //The rewiring is done explicitly here to avoid exceptions that are generated due to precondition
         //violations in insertBetween
-        IndexHelper<E> indexHelper = new IndexHelper<E>(secondNodePredecessors);
-        secondNode.rewire(firstNode, indexHelper.getIndex(firstNode), firstNodePredecessors.get(inputNum), true);
+        secondNode.rewire(firstNode, inputNum, firstNodePredecessors.get(inputNum), true);
         secondNode.regenerateProjectionMap();
-        //firstNode.rewire(firstNodePredecessors.get(inputNum), inputNum, secondNode, false);
         firstNode.rewire(firstNodePredecessors.get(inputNum), 0, secondNode, false);
 
         markDirty();
