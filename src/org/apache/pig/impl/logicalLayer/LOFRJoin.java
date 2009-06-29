@@ -302,7 +302,7 @@ public class LOFRJoin extends LogicalOperator {
             return mProjectionMap;
         }
         
-        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        MultiMap<Integer, ProjectionMap.Column> mapFields = new MultiMap<Integer, ProjectionMap.Column>();
         List<Integer> addedFields = new ArrayList<Integer>();
         boolean[] unknownSchema = new boolean[predecessors.size()];
         boolean anyUnknownInputSchema = false;
@@ -327,7 +327,8 @@ public class LOFRJoin extends LogicalOperator {
             } else {
                 unknownSchema[inputNum] = false;
                 for(int inputColumn = 0; inputColumn < inputSchema.size(); ++inputColumn) {
-                    mapFields.put(outputColumnNum++, new Pair<Integer, Integer>(inputNum, inputColumn));
+                    mapFields.put(outputColumnNum++, 
+                            new ProjectionMap.Column(new Pair<Integer, Integer>(inputNum, inputColumn)));
                 }
             }
         }

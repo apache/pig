@@ -144,7 +144,7 @@ public class ProjectFixerUpper extends LOVisitor {
                             return;
                         }
 
-                        MultiMap<Integer, Pair<Integer, Integer>> oldNodeMappedFields = oldNodeMap
+                        MultiMap<Integer, ProjectionMap.Column> oldNodeMappedFields = oldNodeMap
                                 .getMappedFields();
                         if (oldNodeMappedFields == null) {
                             // there is no mapping available bail out
@@ -155,9 +155,9 @@ public class ProjectFixerUpper extends LOVisitor {
 
                         }
 
-                        List<Pair<Integer, Integer>> pairs = (List<Pair<Integer, Integer>>) oldNodeMappedFields
-                                .get(oldNodeColumn);
-                        if (pairs == null) {
+                        List<ProjectionMap.Column> columns = (List<ProjectionMap.Column>) oldNodeMappedFields.get(oldNodeColumn);
+                        
+                        if (columns == null) {
                             // there is no mapping for oldNodeColumn
                             // it could be an added field; bail out
                             int errCode = 2148;
@@ -167,7 +167,8 @@ public class ProjectFixerUpper extends LOVisitor {
                         }
 
                         boolean foundMapping = false;
-                        for (Pair<Integer, Integer> pair : pairs) {
+                        for (ProjectionMap.Column column : columns) {
+                        	Pair<Integer, Integer> pair = column.getInputColumn();
                             if (pair.first.equals(mPredecessorIndex)) {
                                 ArrayList<Integer> newColumns = new ArrayList<Integer>();
                                 newColumns.add(pair.second);
@@ -209,7 +210,7 @@ public class ProjectFixerUpper extends LOVisitor {
                             return;
                         }
 
-                        MultiMap<Integer, Pair<Integer, Integer>> newNodeMappedFields = newNodeMap
+                        MultiMap<Integer, ProjectionMap.Column> newNodeMappedFields = newNodeMap
                                 .getMappedFields();
                         if (newNodeMappedFields == null) {
                             // there is no mapping available bail out
@@ -223,9 +224,9 @@ public class ProjectFixerUpper extends LOVisitor {
                         boolean foundMapping = false;
                         for (Integer key : newNodeMappedFields.keySet()) {
 
-                            List<Pair<Integer, Integer>> pairs = (List<Pair<Integer, Integer>>) newNodeMappedFields
+                            List<ProjectionMap.Column> columns = (List<ProjectionMap.Column>) newNodeMappedFields
                                     .get(key);
-                            if (pairs == null) {
+                            if (columns == null) {
                                 // should not happen
                                 int errCode = 2152;
                                 String msg = "Error during fixing projections. Could not locate mapping for column: "
@@ -234,7 +235,8 @@ public class ProjectFixerUpper extends LOVisitor {
                                         PigException.BUG);
                             }
 
-                            for (Pair<Integer, Integer> pair : pairs) {
+                            for (ProjectionMap.Column column : columns) {
+                            	Pair<Integer, Integer> pair = column.getInputColumn();
                                 if (pair.first.equals(mPredecessorIndex)
                                         && pair.second.equals(oldNodeColumn)) {
                                     ArrayList<Integer> newColumns = new ArrayList<Integer>();

@@ -270,5 +270,10 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
     	// Now rebuild the schemas
         // rebuildSchemas();
     }
-    
+
+    @Override
+    public void reset() {
+        // do nothing
+    }
+
 }

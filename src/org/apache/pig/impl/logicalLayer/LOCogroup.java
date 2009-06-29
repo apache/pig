@@ -557,7 +557,7 @@ public class LOCogroup extends LogicalOperator {
         MultiMap<LogicalOperator, LogicalPlan> groupByPlans = getGroupByPlans();
         
         boolean groupByAdded = false;
-        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        MultiMap<Integer, ProjectionMap.Column> mapFields = new MultiMap<Integer, ProjectionMap.Column>();
         List<Pair<Integer, Integer>> removedFields = new ArrayList<Pair<Integer, Integer>>();
         
         for(int inputNum = 0; (inputNum < predecessors.size()) && (!groupByAdded); ++inputNum) {
@@ -575,10 +575,22 @@ public class LOCogroup extends LogicalOperator {
                 
                 if(leaves.get(0) instanceof LOProject) {
                     //find out if this project is a chain of projects
-                    LOProject topProject = LogicalPlan.chainOfProjects(predecessorPlan);
-                    if(topProject != null) {
-                        inputColumn = topProject.getCol();
-                        mapFields.put(0, new Pair<Integer, Integer>(inputNum, inputColumn));
+                    Pair<LOProject, LOCast> pair = LogicalPlan.chainOfProjects(predecessorPlan);
+                    if (pair != null) {
+                        LOProject topProject = pair.first;
+                        if (topProject != null) {
+                            inputColumn = topProject.getCol();
+                            LOCast cast = pair.second;
+                            if (cast != null) {
+                                mapFields.put(0, 
+                                        new ProjectionMap.Column(
+                                                new Pair<Integer, Integer>(inputNum, inputColumn), true, cast.getType()
+                                        )
+                                );
+                            } else {
+                                mapFields.put(0, new ProjectionMap.Column(new Pair<Integer, Integer>(inputNum, inputColumn)));
+                            }
+                        }
                     }
                 } else {
                     groupByAdded = true;

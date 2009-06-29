@@ -60,6 +60,13 @@ public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>>
      * @throws OptimizerException
      */
     public abstract void transform(List<O> nodes) throws OptimizerException;
+    
+    /**
+     * Reset any internal state after the transformation.
+     * 
+     * @throws OptimizerException
+     */
+    public abstract void reset() throws OptimizerException;
 
 }
 

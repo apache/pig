@@ -492,7 +492,7 @@ public class LOForEach extends LogicalOperator {
         List<LogicalPlan> foreachPlans = getForEachPlans();
         List<Boolean> flattenList = getFlatten();
         
-        MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+        MultiMap<Integer, ProjectionMap.Column> mapFields = new MultiMap<Integer, ProjectionMap.Column>();
         List<Integer> addedFields = new ArrayList<Integer>();
         int outputColumn = 0;
         
@@ -506,14 +506,19 @@ public class LOForEach extends LogicalOperator {
             
             int inputColumn = -1;
             boolean mapped = false;
+            LOCast cast = null;
             
             
             if(leaves.get(0) instanceof LOProject || leaves.get(0) instanceof LOCast) {
                 //find out if this project is a chain of projects
-                LOProject topProject = LogicalPlan.chainOfProjects(foreachPlan);
-                if(topProject != null) {
-                    inputColumn = topProject.getCol();
+                Pair<LOProject, LOCast> pair = LogicalPlan.chainOfProjects(foreachPlan);
+                if (pair != null) {
+                    LOProject topProject = pair.first;
+                    cast = pair.second;
+                    if (topProject != null) {
+                        inputColumn = topProject.getCol();
                         mapped = true;
+                    }
                 }
             }
             
@@ -567,7 +572,17 @@ public class LOForEach extends LogicalOperator {
                         for(int j = 0; j < innerSchema.size(); ++j) {
                             if(mapped) {
                                 //map each flattened column to the original column
-                                mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                                if (cast != null) {
+                                    mapFields.put(outputColumn++,
+                                            new ProjectionMap.Column(
+                                                    new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
+                                            )
+                                    );
+                                } else {
+                                    mapFields.put(outputColumn++,
+                                            new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
+                                    );
+                                }
                             } else {
                                 addedFields.add(outputColumn++);
                             }
@@ -578,12 +593,32 @@ public class LOForEach extends LogicalOperator {
                             //flattening a null schema results in a bytearray
                             if(mapped) {
                                 //map each flattened column to the original column
-                                mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                                if (cast != null) {
+                                    mapFields.put(outputColumn++,
+                                            new ProjectionMap.Column(
+                                                    new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
+                                            )
+                                    );
+                                } else {
+                                    mapFields.put(outputColumn++,
+                                            new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
+                                    );
+                                }
                             } else {
                                 addedFields.add(outputColumn++);
                             }
                         } else {
-                            mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                        	if (cast != null) {
+                                mapFields.put(outputColumn++,
+                                        new ProjectionMap.Column(
+                                                new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
+                                        )
+                                );
+                            } else {
+                                mapFields.put(outputColumn++,
+                                        new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
+                                );
+                            }
                         }
                     }
                 } else {
@@ -592,18 +627,48 @@ public class LOForEach extends LogicalOperator {
                         //flattening a null schema results in a bytearray
                         if(mapped) {
                             //map each flattened column to the original column
-                            mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                            if (cast != null) {
+                                mapFields.put(outputColumn++,
+                                        new ProjectionMap.Column(
+                                                new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
+                                        )
+                                );
+                            } else {
+                                mapFields.put(outputColumn++,
+                                        new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
+                                );
+                            }
                         } else {
                             addedFields.add(outputColumn++);
                         }
                     } else {
-                        mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                    	if (cast != null) {
+                            mapFields.put(outputColumn++,
+                                    new ProjectionMap.Column(
+                                            new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
+                                    )
+                            );
+                        } else {
+                            mapFields.put(outputColumn++,
+                                    new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
+                            );
+                        }
                     }
                 }
             } else {
                 //not a flattened column
                 if(mapped) {
-                    mapFields.put(outputColumn++, new Pair<Integer, Integer>(0, inputColumn));
+                	if (cast != null) {
+                        mapFields.put(outputColumn++, 
+                                new ProjectionMap.Column(
+                                        new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
+                                )
+                        );
+                    } else {
+                        mapFields.put(outputColumn++, 
+                                new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
+                        );
+                    }
                 } else {
                     addedFields.add(outputColumn++);
                 }
@@ -637,9 +702,9 @@ public class LOForEach extends LogicalOperator {
             if(mapFields != null) {
                 Set<Integer> mappedSet = new HashSet<Integer>();
                 for(Integer key: mapFields.keySet()) {
-                    List<Pair<Integer, Integer>> values = (ArrayList<Pair<Integer, Integer>>)mapFields.get(key);
-                    for(Pair<Integer, Integer> value: values) {
-                        mappedSet.add(value.second);
+                    List<ProjectionMap.Column> values = (ArrayList<ProjectionMap.Column>) mapFields.get(key);
+                    for (ProjectionMap.Column value : values) {
+                        mappedSet.add(value.getInputColumn().second);
                     }
                 }
                 removedSet.removeAll(mappedSet);

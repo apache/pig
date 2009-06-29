@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -85,6 +86,15 @@ public class FunctionalLogicalOptimizer extends
         rulePlan.add(loStream);
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
                 LOStream.class.getName()), "StreamTypeCastInserter"));
+        
+        // Push up filters as far as we can
+        rulePlan = new RulePlan();
+        RuleOperator loFilter = new RuleOperator(LOFilter.class,
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(loFilter);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                new TypeCastInserter(plan, LOFilter.class.getName()),
+                "PushUpFilter"));
 
     }
 

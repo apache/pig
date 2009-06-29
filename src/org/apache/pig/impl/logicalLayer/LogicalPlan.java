@@ -32,6 +32,7 @@ import java.util.Collection;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.util.Pair;
 
 public class LogicalPlan extends OperatorPlan<LogicalOperator> {
     private static final long serialVersionUID = 2L;
@@ -156,12 +157,14 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
      * 
      * @param plan
      *            input plan
-     * @return the top most projection operator if there is a chain of
-     *         projection operators with or without casts; null otherwise
+     * @return a pair consisting of the top most projection operator and the
+     *         cast (if present) if there is a chain of projection operators
+     *         with or without casts; null otherwise
      */
-    public static LOProject chainOfProjects(LogicalPlan plan) {
+    public static Pair<LOProject, LOCast> chainOfProjects(LogicalPlan plan) {
 
         LOProject topProject = null;
+        LOCast cast = null;
 
         if (plan == null) {
             return null;
@@ -181,14 +184,14 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
 
         while (true) {
             if (node == null) {
-                //a node cannot be null
+                // a node cannot be null
                 return null;
             }
 
             if (node instanceof LOProject) {
                 topProject = (LOProject) node;
             } else if (node instanceof LOCast) {
-                // continue
+                cast = (LOCast) node;
             } else {
                 // not a projection or a cast return null
                 return null;
@@ -198,7 +201,7 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
 
             if (predecessors == null) {
                 // we have reached the root
-                return topProject;
+                return new Pair<LOProject, LOCast>(topProject, cast);
             }
 
             if (predecessors.size() > 1) {

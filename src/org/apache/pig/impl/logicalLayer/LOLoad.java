@@ -275,10 +275,10 @@ public class LOLoad extends LogicalOperator {
             mProjectionMap = new ProjectionMap(false);
             return mProjectionMap;
         } else {
-            MultiMap<Integer, Pair<Integer, Integer>> mapFields = new MultiMap<Integer, Pair<Integer, Integer>>();
+            MultiMap<Integer, ProjectionMap.Column> mapFields = new MultiMap<Integer, ProjectionMap.Column>();
             //compute the mapping assuming its a prefix projection
             for(int i = 0; i < inputSchema.size(); ++i) {
-                mapFields.put(i, new Pair<Integer, Integer>(0, i));
+                mapFields.put(i, new ProjectionMap.Column(new Pair<Integer, Integer>(0, i)));
             }
             
             mProjectionMap = new ProjectionMap(mapFields, null, null); 

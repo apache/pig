@@ -23,6 +23,7 @@ import java.util.Set;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
@@ -107,24 +108,35 @@ public class LogicalOptimizer extends
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
                 LOStream.class.getName()), "StreamTypeCastInserter"));
 
-        // Optimize when LOAD precedes STREAM and the loader class
-        // is the same as the serializer for the STREAM.
-        // Similarly optimize when STREAM is followed by store and the
-        // deserializer class is same as the Storage class.
         if(!turnAllRulesOff) {
-            Rule rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan, new StreamOptimizer(plan,
-                    LOStream.class.getName()), "StreamOptimizer");
-            checkAndAddRule(rule);
-        }
+            /*
+             * Optimize when LOAD precedes STREAM and the loader class is the
+             * same as the serializer for the STREAM. Similarly optimize when
+             * STREAM is followed by store and the deserializer class is same as
+             * the Storage class.
+             */
 
-        // Push up limit where ever possible.
-        if(!turnAllRulesOff) {
-            rulePlan = new RulePlan();
-            RuleOperator loLimit = new RuleOperator(LOLimit.class, 
-                    new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
-            rulePlan.add(loLimit);
             Rule rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
-                    new OpLimitOptimizer(plan, mode), "LimitOptimizer");
+                    new StreamOptimizer(plan, LOStream.class.getName()),
+                    "StreamOptimizer");
+            checkAndAddRule(rule);
+
+            // Push up limit wherever possible.
+            rulePlan = new RulePlan();
+            RuleOperator loLimit = new RuleOperator(LOLimit.class,
+					new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+			rulePlan.add(loLimit);
+            rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+					new OpLimitOptimizer(plan, mode), "LimitOptimizer");
+            checkAndAddRule(rule);
+            
+            // Push filters up wherever possible
+            rulePlan = new RulePlan();
+            RuleOperator loFilter = new RuleOperator(LOFilter.class,
+                    new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+            rulePlan.add(loFilter);
+            rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                    new PushUpFilter(plan), "PushUpFilter");
             checkAndAddRule(rule);
         }
         
@@ -178,6 +190,7 @@ public class LogicalOptimizer extends
                             }
 
                         }
+                        rule.getTransformer().reset();
                     }
                 }
             }
