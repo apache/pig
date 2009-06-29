@@ -89,6 +89,7 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
     	                    sawMatch = true;
     	                    rule.getTransformer().transform(match);
     	                }
+    	                rule.getTransformer().reset();
                     }
                 }
             }

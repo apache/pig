@@ -286,6 +286,10 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         public int getNumberOfChecks() {
             return mNumChecks;
         }
+        
+        @Override
+        public void reset() {
+        }
     }
 
     class NeverTransform extends Transformer<TOperator, TPlan> {
@@ -307,6 +311,10 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         
         public int getNumberOfChecks() {
             return mNumChecks;
+        }
+        
+        @Override
+        public void reset() {
         }
     }
 
