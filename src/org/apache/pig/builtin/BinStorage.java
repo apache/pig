@@ -25,7 +25,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -35,8 +34,8 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ReversibleLoadStoreFunc;
+import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
@@ -44,14 +43,10 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.impl.util.WrappedIOException;
 
-
-public class BinStorage implements ReversibleLoadStoreFunc {
+public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
     public static final byte RECORD_1 = 0x01;
     public static final byte RECORD_2 = 0x02;
     public static final byte RECORD_3 = 0x03;
@@ -68,6 +63,16 @@ public class BinStorage implements ReversibleLoadStoreFunc {
     public BinStorage() {
     }
 
+    @Override
+    public long getPosition() throws IOException {
+        return in.getPosition();
+    }
+
+    @Override
+    public long skip(long n) throws IOException {
+        return in.skip(n);
+    }
+    
     public Tuple getNext() throws IOException {
         
         byte b = 0;
