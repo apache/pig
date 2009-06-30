@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.LinkedList;
+import java.util.List;
 
 import junit.framework.TestCase;
 
@@ -30,7 +32,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-import org.apache.pig.piggybank.evaluation.string.UPPER;
+import org.apache.pig.piggybank.evaluation.string.*;
 
 // This class tests all string eval functions.
 
@@ -56,4 +58,83 @@ public class TestEvalString extends TestCase {
         //assertTrue(outSchema.toString().equals("upper_" + fieldName));
 
     }
+
+    @Test
+    public void testLOWER() throws Exception {
+        LOWER func = new LOWER();
+
+        // test excution
+        String in = "Hello World!";
+        String expected = "hello world!";
+
+        Tuple input = DefaultTupleFactory.getInstance().newTuple(in);
+
+        String output = func.exec(input);
+        assertTrue(output.equals(expected));
+    }
+
+    @Test
+    public void testINDEXOF() throws Exception {
+        INDEXOF func = new INDEXOF();
+
+        // test excution
+        List l = new LinkedList();
+        l.add("Hello World!");
+        l.add("o");
+
+        Tuple input = DefaultTupleFactory.getInstance().newTuple(l);
+
+        Integer output = func.exec(input);
+        assertTrue(output.intValue()==4);
+    }
+
+    @Test
+    public void testLASTINDEXOF() throws Exception {
+        LASTINDEXOF func = new LASTINDEXOF();
+
+        // test excution
+        List l = new LinkedList();
+        l.add("Hello World!");
+        l.add("o");
+
+        Tuple input = DefaultTupleFactory.getInstance().newTuple(l);
+
+        Integer output = func.exec(input);
+        assertTrue(output.intValue()==7);
+    }
+
+    @Test
+    public void testREPLACE() throws Exception {
+        REPLACE func = new REPLACE();
+
+        // test excution
+        List l = new LinkedList();
+        l.add("Hello World!");
+        l.add("o");
+        l.add("a");
+        String expected = "Hella Warld!";
+
+        Tuple input = DefaultTupleFactory.getInstance().newTuple(l);
+
+        String output = func.exec(input);
+        assertTrue(output.equals(expected));
+    }
+
+    @Test
+    public void testSUBSTRING() throws Exception {
+        SUBSTRING func = new SUBSTRING();
+
+        // test excution
+        List l = new LinkedList();
+        l.add("Hello World!");
+        l.add(1);
+        l.add(5);
+        String expected = "ello";
+
+        Tuple input = DefaultTupleFactory.getInstance().newTuple(l);
+
+        String output = func.exec(input);
+        assertTrue(output.equals(expected));
+    }
+
 }
