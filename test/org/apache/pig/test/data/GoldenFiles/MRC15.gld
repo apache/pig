@@ -78,7 +78,7 @@ MapReduce(1,GFCross) - -156:
             |       |   |
             |       |   Project[tuple][*] - -131
             |       |
-            |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader) - -129
+            |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.builtin.RandomSampleLoader('org.apache.pig.builtin.BinStorage','100')) - -129
             |
             |---MapReduce(-1) - -127:
                 Reduce Plan Empty

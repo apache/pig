@@ -36,6 +36,10 @@ import org.apache.pig.backend.executionengine.ExecException;
  *
  * Fields are numbered from 0.
  */
+
+// Put in to make the compiler not complain about WritableComparable
+// being a generic type.
+@SuppressWarnings("unchecked")
 public interface Tuple extends WritableComparable, Serializable {
        
     /**

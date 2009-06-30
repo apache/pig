@@ -20,9 +20,7 @@ package org.apache.pig.builtin;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Iterator;
 
@@ -30,9 +28,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
 import org.apache.pig.ExecType;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.SamplableLoader;
 import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -40,7 +37,6 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -50,7 +46,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
 public class PigStorage extends Utf8StorageConverter
-        implements ReversibleLoadStoreFunc {
+        implements ReversibleLoadStoreFunc, SamplableLoader {
     protected BufferedPositionedInputStream in = null;
     protected final Log mLog = LogFactory.getLog(getClass());
         
@@ -99,6 +95,16 @@ public class PigStorage extends Utf8StorageConverter
         } else {            
             throw new RuntimeException("PigStorage delimeter must be a single character");
         }
+    }
+
+    @Override
+    public long getPosition() throws IOException {
+        return in.getPosition();
+    }
+
+    @Override
+    public long skip(long n) throws IOException {
+        return in.skip(n);
     }
 
     public Tuple getNext() throws IOException {
@@ -335,6 +341,5 @@ public class PigStorage extends Utf8StorageConverter
         // TODO Auto-generated method stub
         return null;
     }
-
 
 }

@@ -507,6 +507,13 @@ public class MRCompiler extends PhyPlanVisitor {
     }
     
     
+    /**
+     * Force an end to the current map reduce job with a store into a temporary
+     * file.
+     * @param fSpec Temp file to force a store into.
+     * @return MR operator that now is finished with a store.
+     * @throws PlanException
+     */
     private MapReduceOper endSingleInputPlanWithStr(FileSpec fSpec) throws PlanException{
         if(compiledInputs.length>1) {
             int errCode = 2023;
@@ -1231,8 +1238,20 @@ public class MRCompiler extends PhyPlanVisitor {
         return mro;
     }
 
-    public Pair<MapReduceOper,Integer> getQuantileJob(POSort inpSort, MapReduceOper prevJob, FileSpec lFile, FileSpec quantFile, int rp, Pair<Integer,Byte>[] fields) throws PlanException, VisitorException {
-        FileSpec quantLdFilName = new FileSpec(lFile.getFileName(), new FuncSpec(RandomSampleLoader.class.getName()));
+    public Pair<MapReduceOper,Integer> getQuantileJob(
+            POSort inpSort,
+            MapReduceOper prevJob,
+            FileSpec lFile,
+            FileSpec quantFile,
+            int rp,
+            Pair<Integer,Byte>[] fields) throws PlanException, VisitorException {
+        String[] rslargs = new String[2];
+        // RandomSampleLoader expects string version of FuncSpec 
+        // as its first constructor argument.
+        rslargs[0] = (new FuncSpec(BinStorage.class.getName())).toString();
+        rslargs[1] = "100"; // TODO Needs to be determined based on file size.
+        FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
+            new FuncSpec(RandomSampleLoader.class.getName(), rslargs));
         MapReduceOper mro = startNew(quantLdFilName, prevJob);
         POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
                 .getRequestedParallelism(), null, inpSort.getSortPlans(),
