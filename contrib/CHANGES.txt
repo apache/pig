@@ -1,3 +1,4 @@
+PIG-868: added strin manipulation functions (bennies via olgan)
 PIG-273: addition of Top and SearchQuery UDFs (ankur via olgan)
 PIG-246: created UDF repository (olgan)
 PIG-245: UDF wrappers for Java Math functions (ajaygarg via olgan)
