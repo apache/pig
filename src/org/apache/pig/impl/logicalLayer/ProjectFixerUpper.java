@@ -133,7 +133,7 @@ public class ProjectFixerUpper extends LOVisitor {
 
                         if (oldNodeMap == null) {
                             // bail out if the projection map is null
-                            int errCode = 2146;
+                            int errCode = 2156;
                             String msg = "Error while fixing projections. Projection map of node to be replaced is null.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
@@ -148,7 +148,7 @@ public class ProjectFixerUpper extends LOVisitor {
                                 .getMappedFields();
                         if (oldNodeMappedFields == null) {
                             // there is no mapping available bail out
-                            int errCode = 2147;
+                            int errCode = 2157;
                             String msg = "Error while fixing projections. No mapping available in old predecessor to replace column.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
@@ -160,7 +160,7 @@ public class ProjectFixerUpper extends LOVisitor {
                         if (columns == null) {
                             // there is no mapping for oldNodeColumn
                             // it could be an added field; bail out
-                            int errCode = 2148;
+                            int errCode = 2158;
                             String msg = "Error during fixing projections. No mapping available in old predecessor for column to be replaced.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
@@ -179,7 +179,7 @@ public class ProjectFixerUpper extends LOVisitor {
                         }
                         if (!foundMapping) {
                             // did not find a mapping - bail out
-                            int errCode = 2149;
+                            int errCode = 2159;
                             String msg = "Error during fixing projections. Could not locate replacement column from the old predecessor.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
@@ -199,7 +199,7 @@ public class ProjectFixerUpper extends LOVisitor {
                         ProjectionMap newNodeMap = mNewNode.getProjectionMap();
                         if (newNodeMap == null) {
                             // did not find a mapping - bail out
-                            int errCode = 2150;
+                            int errCode = 2160;
                             String msg = "Error during fixing projections. Projection map of new predecessor is null.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
@@ -214,7 +214,7 @@ public class ProjectFixerUpper extends LOVisitor {
                                 .getMappedFields();
                         if (newNodeMappedFields == null) {
                             // there is no mapping available bail out
-                            int errCode = 2151;
+                            int errCode = 2161;
                             String msg = "Error during fixing projections. No mapping available in new predecessor to replace column.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
@@ -228,7 +228,7 @@ public class ProjectFixerUpper extends LOVisitor {
                                     .get(key);
                             if (columns == null) {
                                 // should not happen
-                                int errCode = 2152;
+                                int errCode = 2162;
                                 String msg = "Error during fixing projections. Could not locate mapping for column: "
                                         + key + " in new predecessor.";
                                 throw new VisitorException(msg, errCode,
@@ -255,8 +255,10 @@ public class ProjectFixerUpper extends LOVisitor {
                         }
                         if (!foundMapping) {
                             // did not find a mapping - bail out
-                            int errCode = 2153;
-                            String msg = "Error during fixing projections. Could not locate replacement column in the new predecessor.";
+                            int errCode = 2163;
+                            String msg = "Error during fixing projections. Could not locate replacement column for column: "
+                                    + oldNodeColumn
+                                    + " in the new predecessor.";
                             throw new VisitorException(msg, errCode,
                                     PigException.BUG);
                         }

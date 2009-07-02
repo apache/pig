@@ -21,6 +21,8 @@ package org.apache.pig.test.utils;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaCalculator;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.PlanValidationException;
@@ -247,6 +249,19 @@ public class LogicalPlanTester {
         ProjectionMapCalculator pmc = new ProjectionMapCalculator(lp);
         pmc.visit();
     }
-
-
+    
+    public void rebuildProjectionMap(LogicalPlan lp) throws VisitorException {
+        ProjectionMapRemover pmr = new ProjectionMapRemover(lp);
+        pmr.visit();
+        ProjectionMapCalculator pmc = new ProjectionMapCalculator(lp);
+        pmc.visit();
+    }
+    
+    public void rebuildSchema(LogicalPlan lp) throws VisitorException {
+        SchemaRemover sr = new SchemaRemover(lp);
+        sr.visit();
+        SchemaCalculator sc = new SchemaCalculator(lp);
+        sc.visit();
+    }
+    
 }

@@ -289,7 +289,7 @@ public class PushUpFilter extends LogicalTransformer {
         LogicalOperator lo = nodes.get(0);
         if (lo == null || !(lo instanceof LOFilter)) {
             // we should never be called with any other operator class name
-            int errCode = 1101;
+            int errCode = 2005;
             String msg = "Expected " + LOFilter.class.getSimpleName()
                     + ", got "
                     + (lo == null ? lo : lo.getClass().getSimpleName());

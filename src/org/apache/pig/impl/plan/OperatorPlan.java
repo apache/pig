@@ -1381,7 +1381,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
     /*
      * A helper class that computes the index of each reference in a list for a quick lookup
      */
-    class IndexHelper <E> {
+    public static class IndexHelper <E> {
         
         private Map<E, Integer> mIndex = null;
         
