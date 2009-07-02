@@ -588,43 +588,7 @@ public class LOForEach extends LogicalOperator {
                             }
                         }
                     } else {
-                        //innerSchema is null; check for schema type
-                        if(DataType.isSchemaType(leafFS.type)) {
-                            //flattening a null schema results in a bytearray
-                            if(mapped) {
-                                //map each flattened column to the original column
-                                if (cast != null) {
-                                    mapFields.put(outputColumn++,
-                                            new ProjectionMap.Column(
-                                                    new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
-                                            )
-                                    );
-                                } else {
-                                    mapFields.put(outputColumn++,
-                                            new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
-                                    );
-                                }
-                            } else {
-                                addedFields.add(outputColumn++);
-                            }
-                        } else {
-                        	if (cast != null) {
-                                mapFields.put(outputColumn++,
-                                        new ProjectionMap.Column(
-                                                new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
-                                        )
-                                );
-                            } else {
-                                mapFields.put(outputColumn++,
-                                        new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
-                                );
-                            }
-                        }
-                    }
-                } else {
-                    //innerSchema is null; check for schema type
-                    if(DataType.isSchemaType(leafFS.type)) {
-                        //flattening a null schema results in a bytearray
+                        //innerSchema is null
                         if(mapped) {
                             //map each flattened column to the original column
                             if (cast != null) {
@@ -641,8 +605,12 @@ public class LOForEach extends LogicalOperator {
                         } else {
                             addedFields.add(outputColumn++);
                         }
-                    } else {
-                    	if (cast != null) {
+                    }
+                } else {
+                    //innerSchema is null
+                    if(mapped) {
+                        //map each flattened column to the original column
+                        if (cast != null) {
                             mapFields.put(outputColumn++,
                                     new ProjectionMap.Column(
                                             new Pair<Integer, Integer>(0, inputColumn), true, cast.getType()
@@ -653,6 +621,8 @@ public class LOForEach extends LogicalOperator {
                                     new ProjectionMap.Column(new Pair<Integer, Integer>(0, inputColumn))
                             );
                         }
+                    } else {
+                        addedFields.add(outputColumn++);
                     }
                 }
             } else {
@@ -784,6 +754,25 @@ public class LOForEach extends LogicalOperator {
                 throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
         }
+    }
+    
+    /**
+     * A helper method to check if the foreach has a flattened element
+     * 
+     * @return true if any of the expressions in the foreach has a flatten;
+     *         false otherwise
+     */
+    public Pair<Boolean, List<Integer>> hasFlatten() {
+        boolean hasFlatten = false;
+        List<Integer> flattenedColumns = new ArrayList<Integer>();
+        for (int i = 0; i < mFlatten.size(); ++i) {
+            Boolean b = mFlatten.get(i);
+            if (b.equals(true)) {
+                hasFlatten = true;
+                flattenedColumns.add(i);
+            }
+        }
+        return new Pair<Boolean, List<Integer>>(hasFlatten, flattenedColumns);
     }
 
 }

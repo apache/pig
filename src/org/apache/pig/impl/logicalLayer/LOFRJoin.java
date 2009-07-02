@@ -86,16 +86,20 @@ public class LOFRJoin extends LogicalOperator {
                         
                         for (FieldSchema schema : cSchema.getFields()) {
                             ++i;
-                            if(nonDuplicates.containsKey(schema.alias))
-                                {
-                                    if(nonDuplicates.get(schema.alias)!=-1) {
-                                        nonDuplicates.remove(schema.alias);
-                                        nonDuplicates.put(schema.alias, -1);
-                                    }
+                            FieldSchema newFS = null;
+                            if(schema.alias != null) {
+                                if(nonDuplicates.containsKey(schema.alias)) {
+                                        if(nonDuplicates.get(schema.alias)!=-1) {
+                                            nonDuplicates.remove(schema.alias);
+                                            nonDuplicates.put(schema.alias, -1);
+                                        }
+                                } else {
+                                    nonDuplicates.put(schema.alias, i);
                                 }
-                            else
-                                nonDuplicates.put(schema.alias, i);
-                            FieldSchema newFS = new FieldSchema(op.getAlias()+"::"+schema.alias,schema.schema,schema.type);
+                                newFS = new FieldSchema(op.getAlias()+"::"+schema.alias,schema.schema,schema.type);
+                            } else {
+                                newFS = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                            }
                             newFS.setParent(schema.canonicalName, op);
                             fss.add(newFS);
                         }

@@ -88,7 +88,7 @@ public class TestPushUpFilter extends junit.framework.TestCase {
             pushUpFilter.check(lp.getRoots());
             fail("Exception Expected!");
         } catch(Exception e) {
-            assertTrue(((OptimizerException)e).getErrorCode() == 1101);
+            assertTrue(((OptimizerException)e).getErrorCode() == 2005);
         }
     }
     
