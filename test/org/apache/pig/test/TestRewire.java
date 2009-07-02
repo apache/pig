@@ -366,7 +366,7 @@ public class TestRewire extends junit.framework.TestCase {
             fail("Expected failure.");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            assertTrue(pe.getErrorCode() == 2146);
+            assertTrue(pe.getErrorCode() == 2156);
         }        
     }
     
@@ -392,7 +392,7 @@ public class TestRewire extends junit.framework.TestCase {
             fail("Expected failure.");
         } catch(Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            assertTrue(pe.getErrorCode() == 2148);
+            assertTrue(pe.getErrorCode() == 2158);
         }
         
     }

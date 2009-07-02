@@ -24,6 +24,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOFilter;
+import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
@@ -137,6 +138,15 @@ public class LogicalOptimizer extends
             rulePlan.add(loFilter);
             rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
                     new PushUpFilter(plan), "PushUpFilter");
+            checkAndAddRule(rule);
+            
+            // Push foreach with flatten down wherever possible
+            rulePlan = new RulePlan();
+            RuleOperator loForeach = new RuleOperator(LOForEach.class,
+                    new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+            rulePlan.add(loForeach);
+            rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                    new PushDownForeachFlatten(plan), "PushDownForeachFlatten");
             checkAndAddRule(rule);
         }
         
