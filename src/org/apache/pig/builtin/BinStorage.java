@@ -47,9 +47,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 
 public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
-    public static final byte RECORD_1 = 0x01;
-    public static final byte RECORD_2 = 0x02;
-    public static final byte RECORD_3 = 0x03;
+    public static final int RECORD_1 = 0x01;
+    public static final int RECORD_2 = 0x02;
+    public static final int RECORD_3 = 0x03;
 
     Iterator<Tuple>     i              = null;
     protected BufferedPositionedInputStream in = null;
@@ -75,7 +75,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
     
     public Tuple getNext() throws IOException {
         
-        byte b = 0;
+        int b = 0;
 //      skip to next record
         while (true) {
             if (in == null || in.getPosition() >=end) {
@@ -87,23 +87,23 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
             // After reading the second RECORD_1 in the above
             // sequence, we should not look for RECORD_1 again
             if(b != RECORD_1) {
-                b = (byte) in.read();
+                b = in.read();
                 if(b != RECORD_1 && b != -1) {
                     continue;
                 }
                 if(b == -1) return null;
             }
-            b = (byte) in.read();
+            b = in.read();
             if(b != RECORD_2 && b != -1) {
                 continue;
             }
             if(b == -1) return null;
-            b = (byte) in.read();
+            b = in.read();
             if(b != RECORD_3 && b != -1) {
                 continue;
             }
             if(b == -1) return null;
-            b = (byte) in.read();
+            b = in.read();
             if(b != DataType.TUPLE && b != -1) {
                 continue;
             }
