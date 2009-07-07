@@ -59,6 +59,7 @@ public class PigStorage extends Utf8StorageConverter
     private static final int OS_UNIX = 0;
     private static final int OS_WINDOWS = 1;
     private static final String UTF8 = "UTF-8";
+    private Byte prevByte = null;
     
     public PigStorage() {
         os = OS_UNIX;
@@ -104,7 +105,13 @@ public class PigStorage extends Utf8StorageConverter
 
     @Override
     public long skip(long n) throws IOException {
-        return in.skip(n);
+        
+        long skipped = in.skip(n-1);
+        prevByte = (byte)in.read();
+        if(prevByte == -1) // End of stream.
+            return skipped;
+        else
+            return skipped+1;
     }
 
     public Tuple getNext() throws IOException {
@@ -133,6 +140,20 @@ public class PigStorage extends Utf8StorageConverter
             } else {
                 mBuf.write(b);
             }
+        }
+    }
+
+    @Override
+    public Tuple getSampledTuple() throws IOException {
+       
+        if(prevByte == null || prevByte == recordDel) 
+            // prevByte = null when this is called for the first time, in that case bindTo would have already
+            // called getNext() if it was required.
+        return getNext();
+        
+        else{   // We are in middle of record. So, we skip this and return the next one.
+            getNext();
+            return getNext();            
         }
     }
 
@@ -341,5 +362,4 @@ public class PigStorage extends Utf8StorageConverter
         // TODO Auto-generated method stub
         return null;
     }
-
-}
+ }

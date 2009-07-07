@@ -20,6 +20,8 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.pig.data.Tuple;
+
 /**
  * Implementing this interface indicates to Pig that a given loader can be 
  * used by a sampling loader.  The requirement for this is that the loader
@@ -46,4 +48,16 @@ public interface SamplableLoader extends LoadFunc {
      * @return position in the stream.
      */
     public long getPosition() throws IOException;
+    
+    /**
+     * Get the next tuple from the stream starting from the current 
+     * read position.
+     * The loader implementation should not assume that current read position 
+     * in the stream is at the beginning of a record since this method is called
+     * for sampling and the current read position in the stream could be anywhere
+     * in the stream. 
+     * @return the next tuple from underlying input stream or null if there are no more tuples
+     * to be processed.
+     */
+    public Tuple getSampledTuple() throws IOException;
 }
