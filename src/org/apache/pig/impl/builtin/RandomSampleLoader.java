@@ -64,7 +64,7 @@ public class RandomSampleLoader implements LoadFunc {
     @Override
     public Tuple getNext() throws IOException {
         long initialPos = loader.getPosition();
-        Tuple t = loader.getNext();
+        Tuple t = loader.getSampledTuple();
         long finalPos = loader.getPosition();
         
         long toSkip = skipInterval - (finalPos - initialPos);

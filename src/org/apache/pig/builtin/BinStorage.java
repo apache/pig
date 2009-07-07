@@ -414,4 +414,9 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         // TODO Auto-generated method stub
         return null;
     }
+
+    @Override
+    public Tuple getSampledTuple() throws IOException {
+        return this.getNext();
+    }
 }
