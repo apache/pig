@@ -40,6 +40,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-851: Map type used as return type in UDFs not recognized at all times
+    (zjffdu via sms)
+    
     PIG-861: POJoinPackage lose tuple in large dataset (daijy)
 
     PIG-797: Limit with ORDER BY producing wrong results (daijy)

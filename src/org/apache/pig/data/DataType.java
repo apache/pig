@@ -17,26 +17,21 @@
  */
 package org.apache.pig.data;
 
-import java.lang.Class;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.ArrayList;
 
-import org.apache.hadoop.io.BooleanWritable;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.FloatWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+
+
 
 /**
  * A class of static final values used to encode data type and a number of
@@ -116,31 +111,41 @@ public class DataType {
             // Might be a tuple or a bag, need to check the interfaces it
             // implements
             if (t instanceof Class) {
-                Class c = (Class)t;
-                Class[] ioeInterfaces = c.getInterfaces();
-                Class[] interfaces = null;
-                if(c.isInterface()){
-                    interfaces = new Class[ioeInterfaces.length+1];
-                    interfaces[0] = c;
-                    for (int i = 1; i < interfaces.length; i++) {
-                     interfaces[i] = ioeInterfaces[i-1];
-                    }
-                }  else {
-                    interfaces = ioeInterfaces;
-                }
-                for (int i = 0; i < interfaces.length; i++) {
-                    if (interfaces[i].getName().equals("org.apache.pig.data.Tuple")) {
-                        return TUPLE;
-                    } else if (interfaces[i].getName().equals("org.apache.pig.data.DataBag")) {
-                        return BAG;
-                    } else if (interfaces[i].getName().equals("java.util.Map")) {
-                        return MAP;
-                    }
-                }
+                return extractTypeFromClass(t);
+            }else if (t instanceof ParameterizedType){
+            	ParameterizedType impl=(ParameterizedType)t;
+            	Class c=(Class)impl.getRawType();
+            	return extractTypeFromClass(c);
             }
             return ERROR;
         }
     }
+
+	private static byte extractTypeFromClass(Type t) {
+		Class c = (Class)t;
+		Class[] ioeInterfaces = c.getInterfaces();
+		Class[] interfaces = null;
+		if(c.isInterface()){
+		    interfaces = new Class[ioeInterfaces.length+1];
+		    interfaces[0] = c;
+		    for (int i = 1; i < interfaces.length; i++) {
+		     interfaces[i] = ioeInterfaces[i-1];
+		    }
+		}  else {
+		    interfaces = ioeInterfaces;
+		}
+		for (int i = 0; i < interfaces.length; i++) {
+		    if (interfaces[i].getName().equals("org.apache.pig.data.Tuple")) {
+		        return TUPLE;
+		    } else if (interfaces[i].getName().equals("org.apache.pig.data.DataBag")) {
+		        return BAG;
+		    } else if (interfaces[i].getName().equals("java.util.Map")) {
+		        return MAP;
+		    }
+		}
+		
+		return ERROR;
+	}
     
     public static int numTypes(){
         byte[] types = genAllTypes();
