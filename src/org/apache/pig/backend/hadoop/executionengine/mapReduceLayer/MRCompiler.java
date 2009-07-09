@@ -1787,8 +1787,11 @@ public class MRCompiler extends PhyPlanVisitor {
                 // need to indicate that this is a limit after a sort.
                 // This will assure that we get the right sort comparator
                 // set.  Otherwise our order gets wacked (PIG-461).
-                if (mr.isGlobalSort()) limitAdjustMROp.setLimitAfterSort(true);
-                
+                if (mr.isGlobalSort()) 
+                {
+                    limitAdjustMROp.setLimitAfterSort(true);
+                    limitAdjustMROp.setSortOrder(mr.getSortOrder());
+                }
                 List<MapReduceOper> successorList = MRPlan.getSuccessors(mr);
                 MapReduceOper successors[] = null;
                 
