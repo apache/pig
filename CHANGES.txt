@@ -40,6 +40,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-876: limit changes order of order-by to ascending (daijy)
+
     PIG-851: Map type used as return type in UDFs not recognized at all times
     (zjffdu via sms)
     
