@@ -378,5 +378,36 @@ public class TestEvalPipeline2 extends TestCase {
         assertEquals(10, numIdentity);
     }
 
+    @Test
+    public void testLimitAfterSortDesc() throws Exception{
+        int LOOP_COUNT = 40;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random(1);
+        int rand;
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            rand = r.nextInt(100);
+            ps.println(rand);
+        }
+        ps.close();
+
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' AS (num:int);");
+        pigServer.registerQuery("B = order A by num desc parallel 2;");
+        pigServer.registerQuery("C = limit B 10;");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        int oldNum = Integer.MAX_VALUE;
+        int newNum;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            newNum = (Integer)t.get(0);
+            assertTrue(newNum<=oldNum);
+            oldNum = newNum;
+            ++numIdentity;
+        }
+        assertEquals(10, numIdentity);
+    }
+
 
 }
