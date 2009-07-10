@@ -333,6 +333,11 @@ public class MRCompiler extends PhyPlanVisitor {
             //operator op. Also this should be added to the MRPlan.
             curMROp = getMROp();
             curMROp.mapPlan.add(op);
+            if (op !=null && op instanceof POLoad)
+            {
+                if (((POLoad)op).getLFile()!=null && ((POLoad)op).getLFile().getFuncSpec()!=null)
+                    curMROp.UDFs.add(((POLoad)op).getLFile().getFuncSpec().toString());
+            }
             MRPlan.add(curMROp);
             return;
         }

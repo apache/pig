@@ -39,13 +39,15 @@ import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
 //import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
 public class JarManager {
 
-
+    private static Log log = LogFactory.getLog(JarManager.class);
     /**
      * A container class to track the Jar files that need to be merged together to submit to Hadoop.
      */
@@ -104,9 +106,9 @@ public class JarManager {
         for (String func: funcs) {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
-                if (pigClassLoader == clazz.getClassLoader()) {
+                /*if (pigClassLoader == clazz.getClassLoader()) {
                     continue;
-                }
+                }*/
                 addContainingJar(jarList, clazz, null, pigContext);
             }
         }
@@ -236,7 +238,11 @@ public class JarManager {
         if (pigContext.skipJars.contains(jar) && prefix == null)
             return;
         if (jar == null)
-            throw new RuntimeException("Couldn't find the jar for " + clazz.getName());
+        {
+            //throw new RuntimeException("Couldn't find the jar for " + clazz.getName());
+            log.warn("Couldn't find the jar for " + clazz.getName() + ", skip it");
+            return;
+        }
         JarListEntry jarListEntry = new JarListEntry(jar, prefix);
         if (!jarList.contains(jarListEntry))
             jarList.add(jarListEntry);
