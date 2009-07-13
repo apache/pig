@@ -146,6 +146,7 @@ public abstract class PigMapBase extends MapReduceBase{
         SpillableMemoryManager.configure(ConfigurationUtil.toProperties(job));
         PigMapReduce.sJobConf = job;
         try {
+            PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
             mp = (PhysicalPlan) ObjectSerializer.deserialize(
                 job.get("pig.mapPlan"));
             stores = PlanHelper.getStores(mp);
