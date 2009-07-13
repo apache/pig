@@ -402,6 +402,10 @@ public class PushUpFilter extends LogicalTransformer {
         for (Integer input : predInputs) {
             List<ProjectionMap.Column> inputList = (List<ProjectionMap.Column>) mappedFields
                     .get(input);
+            // inputList is null -> the required field is added
+            if(inputList == null) {
+                return new Pair<Boolean, Set<Integer>>(false, null);
+            }
             for (ProjectionMap.Column column : inputList) {
                 // TODO
                 // Check if the column has a cast
