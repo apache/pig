@@ -40,6 +40,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-877: Push up filter does not account for added columns in foreach
+    (sms)
+
     PIG-883: udf import list does not send to the backend (daijy)
 
     PIG-881: Pig should ship load udfs to the backend (daijy)
