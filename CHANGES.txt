@@ -40,6 +40,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-883: udf import list does not send to the backend (daijy)
+
     PIG-881: Pig should ship load udfs to the backend (daijy)
 
     PIG-876: limit changes order of order-by to ascending (daijy)

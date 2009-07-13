@@ -633,4 +633,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     {
         return packageImportList;
     }
+    public static void setPackageImportList(ArrayList<String> list)
+    {
+        packageImportList = list;
+    }
 }
