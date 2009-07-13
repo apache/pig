@@ -276,6 +276,24 @@ public class TestPushUpFilter extends junit.framework.TestCase {
         assertEquals(filter, lp.getPredecessors(foreach).get(0));
         
     }
+    
+    @Test
+    public void testFilterForeachAddedField() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, $2, COUNT({(1)});");        
+        LogicalPlan lp = planTester.buildPlan("C = filter B by $2 < 18;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        
+        PushUpFilter pushUpFilter = new PushUpFilter(lp);
+        
+        assertTrue(!pushUpFilter.check(lp.getLeaves()));
+        assertTrue(pushUpFilter.getSwap() == false);
+        assertTrue(pushUpFilter.getPushBefore() == false);
+        assertTrue(pushUpFilter.getPushBeforeInput() == -1);
+        
+    }
 
     @Test
     public void testFilterForeachCast() throws Exception {
