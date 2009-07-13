@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -180,6 +181,7 @@ public class PigMapReduce {
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
             sJobConf = jConf;
             try {
+                PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
                 rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.reducePlan"));
                 stores = PlanHelper.getStores(rp);

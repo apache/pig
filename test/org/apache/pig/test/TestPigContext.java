@@ -23,16 +23,22 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +51,7 @@ public class TestPigContext extends TestCase {
 
     private File input;
     private PigContext pigContext;
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     @Before
     @Override
@@ -106,8 +113,14 @@ public class TestPigContext extends TestCase {
         File udf1Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf1");
         udf1Dir.mkdirs();
         File udf1JavaSrc = new File(udf1Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF.java");
-        String udf1Src = new String("package com.xxx.udf1;\n" +
-                "public class TestUDF {}\n");
+        String udf1Src = new String("package com.xxx.udf1;\n"+
+                "import java.io.IOException;\n"+
+                "import org.apache.pig.EvalFunc;\n"+
+                "import org.apache.pig.data.Tuple;\n"+
+                "public class TestUDF extends EvalFunc<Integer>{\n"+
+                "public Integer exec(Tuple input) throws IOException {\n"+
+                "return 1;}\n"+
+                "}");
         
         // generate java file
         FileOutputStream outStream = 
@@ -119,7 +132,7 @@ public class TestPigContext extends TestCase {
         
         // compile
         int status;
-        status = Util.executeShellCommand("javac " + udf1JavaSrc);
+        status = Util.executeShellCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf1JavaSrc);
         
         // generate jar file
         String jarName = "TestUDFJar1.jar";
@@ -141,6 +154,30 @@ public class TestPigContext extends TestCase {
         
         Object udf = PigContext.instantiateFuncFromSpec("TestUDF");
         assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF"));
+        
+        int LOOP_COUNT = 40;
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        Random r = new Random(1);
+        int rand;
+        for(int i = 0; i < LOOP_COUNT; i++) {
+            rand = r.nextInt(100);
+            ps.println(rand);
+        }
+        ps.close();
+        
+        FileLocalizer.deleteTempFiles();
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' AS (num:chararray);");
+        pigServer.registerQuery("B = foreach A generate TestUDF(num);");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        if(!iter.hasNext()) fail("No output found");
+        int numIdentity = 0;
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(t.get(0) instanceof Integer);
+            assertTrue((Integer)t.get(0) == 1);
+        }
         
         Util.deleteDirectory(tempDir);
     }

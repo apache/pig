@@ -321,6 +321,7 @@ public class JobControlCompiler{
             jobConf.set("pig.inputs", ObjectSerializer.serialize(inp));
             jobConf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
+            jobConf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer
             if (pigContext.getProperties().getProperty(PigContext.JOB_NAME) != null)
                 jobConf.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));

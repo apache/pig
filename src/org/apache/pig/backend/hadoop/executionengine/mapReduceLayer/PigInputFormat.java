@@ -190,6 +190,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
 			        .deserialize(job.get("pig.inpTargets"));
 			pigContext = (PigContext) ObjectSerializer.deserialize(job
 			        .get("pig.pigContext"));
+			PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
 		} catch (Exception e) {
 			int errCode = 2094;
 			String msg = "Unable to deserialize object.";
