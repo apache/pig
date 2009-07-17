@@ -124,6 +124,7 @@ public class SliceWrapper implements InputSplit {
         // working dir to /user/<userid>
         if(pigContext.getExecType() == ExecType.MAPREDUCE)
             store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
+        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
         wrapped.init(store);
         
         job.set("map.target.ops", ObjectSerializer.serialize(targetOps));
