@@ -406,12 +406,12 @@ public static void main(String args[])
         }
 
         if(!gruntCalled) {
-        	LogUtils.writeLog(pe, logFileName, log, verbose);
+        	LogUtils.writeLog(pe, logFileName, log, verbose, "Error before Pig is launched");
         }
     } catch (Throwable e) {
         rc = 2;
         if(!gruntCalled) {
-        	LogUtils.writeLog(e, logFileName, log, verbose);
+        	LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
         }
     } finally {
         // clear temp files

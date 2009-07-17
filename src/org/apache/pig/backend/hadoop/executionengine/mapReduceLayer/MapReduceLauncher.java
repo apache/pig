@@ -57,6 +57,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -70,6 +71,7 @@ public class MapReduceLauncher extends Launcher{
  
     //used to track the exception thrown by the job control which is run in a separate thread
     private Exception jobControlException = null;
+    private String jobControlExceptionStackTrace = null;
     private boolean aggregateWarning = false;
     private Map<FileSpec, Exception> failureMap;
 
@@ -148,6 +150,11 @@ public class MapReduceLauncher extends Launcher{
             //no jobs to check for failure
             if(jobControlException != null) {
         	if(jobControlException instanceof PigException) {
+        	        if(jobControlExceptionStackTrace != null) {
+        	            LogUtils.writeLog("Error message from job controller", jobControlExceptionStackTrace, 
+        	                    pc.getProperties().getProperty("pig.logfile"), 
+                                log);
+        	        }
                     throw jobControlException;
         	} else {
                     int errCode = 2117;
@@ -372,12 +379,13 @@ public class MapReduceLauncher extends Launcher{
     		ByteArrayOutputStream baos = new ByteArrayOutputStream();
     		PrintStream ps = new PrintStream(baos);
     		throwable.printStackTrace(ps);
-    		String exceptionString = baos.toString();    		
+    		jobControlExceptionStackTrace = baos.toString();    		
     		try {	
-    			jobControlException = getExceptionFromString(exceptionString);
+    			jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
     		} catch (Exception e) {
-    			String errMsg = "Could not resolve error that occured when launching map reduce job.";
-    			jobControlException = new RuntimeException(errMsg, e);
+    			String errMsg = "Could not resolve error that occured when launching map reduce job: "
+                        + getFirstLineFromMessage(jobControlExceptionStackTrace);
+    			jobControlException = new RuntimeException(errMsg);
     		}
     	}
     }

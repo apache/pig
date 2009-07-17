@@ -118,7 +118,8 @@ public class GruntParser extends PigScriptParser {
                               job.getException(), 
                               mPigServer.getPigContext().getProperties().getProperty("pig.logfile"), 
                               log, 
-                              "true".equalsIgnoreCase(mPigServer.getPigContext().getProperties().getProperty("verbose")));
+                              "true".equalsIgnoreCase(mPigServer.getPigContext().getProperties().getProperty("verbose")),
+                              "Pig Stack Trace");
                         }
                     }
                     else {
@@ -542,7 +543,7 @@ public class GruntParser extends PigScriptParser {
             else
             {    
                 job.killJob();
-                log.error("kill submitted.");
+                log.info("Kill " + id + " submitted.");
             }
         }
     }
