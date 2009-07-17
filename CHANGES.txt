@@ -40,6 +40,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-728: All backend error messages must be logged to preserve the
+    original error messages (sms)
+
     PIG-877: Push up filter does not account for added columns in foreach
     (sms)
 

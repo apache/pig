@@ -75,7 +75,8 @@ public class Grunt
                 parser.parseStopOnError();
                 break;                            
             } catch(Throwable t) {
-                LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
+                LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), 
+                        log, verbose, "Pig Stack Trace");
                 parser.ReInit(in);
             }
         }
@@ -87,7 +88,8 @@ public class Grunt
             parser.setInteractive(false);
             return parser.parseStopOnError();
         } catch (Throwable t) {
-            LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), log, verbose);
+            LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), 
+                    log, verbose, "Pig Stack Trace");
             throw (t);
         }
     }

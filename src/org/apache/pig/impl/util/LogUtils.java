@@ -68,14 +68,22 @@ public class LogUtils {
         
     }
     
-    public static void writeLog(Throwable t, String logFileName, Log log, boolean verbose) {
-        writeLog(t, logFileName, log, verbose, null, true, true);
+    public static void writeLog(Throwable t, String logFileName, Log log, boolean verbose, String headerMessage) {
+        writeLog(t, logFileName, log, verbose, headerMessage, true, true);
     }
     
     public static void writeLog(Throwable t, String logFileName, Log log, boolean verbose, 
             String headerMessage, boolean displayFooter, boolean displayMessage) {
         
         String message = null;
+        String marker = null;
+        StringBuilder sb = new StringBuilder("=");
+        
+        for(int i = 0; i < 79; ++i) {
+            sb.append("=");
+        }
+        sb.append("\n");
+        marker = sb.toString();
         
         if(t instanceof Exception) {
             Exception pe = LogUtils.getPermissionException((Exception)t);
@@ -113,7 +121,7 @@ public class LogUtils {
         
         if(logFileName == null) {
             //if exec is invoked programmatically then logFileName will be null
-            log.warn("There is no log file to write to");
+            log.warn("There is no log file to write to.");
             log.error(bs.toString());
             return;
         }
@@ -122,9 +130,24 @@ public class LogUtils {
         File logFile = new File(logFileName);
         try {            
             fos = new FileOutputStream(logFile, true);
-            if(headerMessage != null) fos.write((headerMessage + "\n").getBytes("UTF-8"));
-            fos.write((message + "\n").getBytes("UTF-8"));
-            fos.write(bs.toString().getBytes("UTF-8"));           
+            if(headerMessage != null) {
+                fos.write((headerMessage + "\n").getBytes("UTF-8"));
+                sb = new StringBuilder("-");
+                for(int i = 1; i < headerMessage.length(); ++i) {
+                    sb.append("-");
+                }
+                sb.append("\n");
+                fos.write(sb.toString().getBytes("UTF-8"));
+            }
+            if(message != null) {
+                if(message.charAt(message.length() - 1) == '\n') {
+                    fos.write((message + "\n").getBytes("UTF-8"));
+                } else {
+                    fos.write((message + "\n\n").getBytes("UTF-8"));
+                }
+            }
+            fos.write(bs.toString().getBytes("UTF-8"));
+            fos.write(marker.getBytes("UTF-8"));
             fos.close();
             if(displayFooter) {
                 if(verbose) {
@@ -137,7 +160,43 @@ public class LogUtils {
             log.warn("Could not write to log file: " + logFileName + " :" + ioe.getMessage());
             log.error(bs.toString());
         }
-    }    
+    }
+    
+    public static void writeLog(String headerMessage, String message, String logFileName, Log log) {
+        if(logFileName == null) {
+            //if exec is invoked programmatically then logFileName will be null
+            log.warn("There is no log file to write to.");
+            log.error(message);
+            return;
+        }
+        
+        
+        File logFile = new File(logFileName);
+        FileOutputStream fos = null;
+        try {            
+            fos = new FileOutputStream(logFile, true);
+            if(headerMessage != null) {
+                fos.write((headerMessage + "\n").getBytes("UTF-8"));
+                StringBuilder sb = new StringBuilder("-");
+                for(int i = 1; i < headerMessage.length(); ++i) {
+                    sb.append("-");
+                }
+                sb.append("\n");
+                fos.write(sb.toString().getBytes("UTF-8"));
+            }
+            if(message != null) {
+                if(message.charAt(message.length() - 1) == '\n') {
+                    fos.write((message + "\n").getBytes("UTF-8"));
+                } else {
+                    fos.write((message + "\n\n").getBytes("UTF-8"));
+                }
+            }
+            fos.close();
+        } catch (IOException ioe) {
+            log.warn("Could not write to log file: " + logFileName + " :" + ioe.getMessage());
+            log.error(message);
+        }
+    }
 
 
 }
