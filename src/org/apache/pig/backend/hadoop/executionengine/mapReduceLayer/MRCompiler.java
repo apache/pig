@@ -626,6 +626,11 @@ public class MRCompiler extends PhyPlanVisitor {
         for(MapReduceOper rmro : remLst){
             if(rmro.requestedParallelism > mergedMap.requestedParallelism)
                 mergedMap.requestedParallelism = rmro.requestedParallelism;
+            for (String udf:rmro.UDFs)
+            {
+                if (!mergedMap.UDFs.contains(udf))
+                    mergedMap.UDFs.add(udf);
+            }
             MRPlan.remove(rmro);
         }
         return ret;

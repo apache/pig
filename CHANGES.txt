@@ -40,6 +40,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-888: Pig do not pass udf to the backend in some situation (daijy)
+
     PIG-728: All backend error messages must be logged to preserve the
     original error messages (sms)
 

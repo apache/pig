@@ -901,6 +901,22 @@ public class TestMRCompiler extends junit.framework.TestCase {
     }
 
 
+    @Test
+    public void testUDFInJoin() throws Exception {
+        planTester.buildPlan("a = load 'input1' using BinStorage();");
+        planTester.buildPlan("b = load 'input2';");
+        planTester.buildPlan("c = join a by $0, b by $0;");
+        LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+        
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        MapReduceOper mrOper = mrPlan.getRoots().get(0);
+        
+        assertTrue(mrOper.UDFs.size()==2);
+        assertTrue(mrOper.UDFs.get(0).equals("BinStorage"));
+        assertTrue(mrOper.UDFs.get(1).equals("org.apache.pig.builtin.PigStorage"));
+    }
+    
     public static class WeirdComparator extends ComparisonFunc {
 
         @Override
