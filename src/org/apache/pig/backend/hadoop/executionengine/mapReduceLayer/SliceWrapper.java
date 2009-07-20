@@ -92,7 +92,7 @@ public class SliceWrapper implements InputSplit {
             for (String loc : wrapped.getLocations()) {
                 Path path = new Path(loc);
                 FileStatus status = fs.getFileStatus(path); 
-                BlockLocation[] b = fs.getFileBlockLocations(status, 0, status.getLen());
+				BlockLocation[] b = fs.getFileBlockLocations(status, wrapped.getStart(), wrapped.getLength());
                 int total = 0;
                 for (int i = 0; i < b.length; i++) {
                     total += b[i].getHosts().length;
