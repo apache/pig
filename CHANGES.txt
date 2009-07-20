@@ -40,6 +40,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+	PIG-878: Pig is returning too many blocks in the input split. (arunc via gates).
+
     PIG-888: Pig do not pass udf to the backend in some situation (daijy)
 
     PIG-728: All backend error messages must be logged to preserve the
