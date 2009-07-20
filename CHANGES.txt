@@ -69,6 +69,8 @@ PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via p
 
 BUG FIXES
 
+PIG-861: POJoinPackage lose tuple in large dataset (daijy)
+
 PIG-846: MultiQuery optimization in some cases has an issue when there is a
 split in the map plan (pradeepkth)
 
