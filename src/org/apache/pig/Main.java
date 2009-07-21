@@ -76,6 +76,7 @@ public static void main(String args[])
     boolean verbose = false;
     boolean gruntCalled = false;
     String logFileName = null;
+    boolean userSpecifiedLog = false;
 
     try {
         BufferedReader pin = null;
@@ -199,7 +200,8 @@ public static void main(String args[])
                 } else {
                     logFileName = validateLogFile(logFileName, null);
                 }
-                properties.setProperty("pig.logfile", logFileName);
+                userSpecifiedLog = true;
+                properties.setProperty("pig.logfile", (logFileName == null? "": logFileName));
                 break;
 
             case 'm':
@@ -263,11 +265,15 @@ public static void main(String args[])
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
         
-        if(logFileName == null) {
+        if(logFileName == null && !userSpecifiedLog) {
             logFileName = validateLogFile(null, null);
         }
         
-        pigContext.getProperties().setProperty("pig.logfile", logFileName);
+        if(logFileName != null) {
+            log.info("Logging error messages to: " + logFileName);
+        }
+        
+        pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
         
         if(optimizerRules.size() > 0) {
         	pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
@@ -547,7 +553,7 @@ public static void usage()
         System.out.println("    -m, -param_file path to the parameter file");
         System.out.println("    -o, -hod read hod server from system property ssh.gateway");
         System.out.println("    -p, -param key value pair of the form param=val");
-        System.out.println("    -r, -dryrun CmdLineParser.ValueExpected.NOT_ACCEPTED");
+        System.out.println("    -r, -dryrun");
         System.out.println("    -t, -optimizer_off optimizer rule name, turn optimizer off for this rule; use all to turn all rules off, optimizer is turned on by default");
         System.out.println("    -v, -verbose print all error messages to screen");
         System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
@@ -567,7 +573,8 @@ private static String validateLogFile(String logFileName, String scriptName) {
             try {
                 scriptFileAbsPath = scriptFile.getCanonicalPath();
             } catch (IOException ioe) {
-                throw new AssertionError("Could not compute canonical path to the script file " + ioe.getMessage());      
+                log.warn("Could not compute canonical path to the script file " + ioe.getMessage());
+                return null;
             }            
             strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
         }
@@ -586,11 +593,13 @@ private static String validateLogFile(String logFileName, String scriptName) {
                 try {
                     logFileName = logFile.getCanonicalPath() + File.separator + defaultLogFileName;
                 } catch (IOException ioe) {
-                    throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());       
+                    log.warn("Could not compute canonical path to the log file " + ioe.getMessage());
+                    return null;
                 }
                 return logFileName;
             } else {
-                throw new AssertionError("Need write permission in the directory: " + logFileName + " to create log file.");
+                log.warn("Need write permission in the directory: " + logFileName + " to create log file.");
+                return null;
             }
         } else {
             //we have a relative path or an absolute path to the log file
@@ -601,13 +610,15 @@ private static String validateLogFile(String logFileName, String scriptName) {
                     try {
                         logFileName = new File(logFileName).getCanonicalPath();
                     } catch (IOException ioe) {
-                        throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());
+                        log.warn("Could not compute canonical path to the log file " + ioe.getMessage());
+                        return null;
                     }
                     return logFileName;
                 } else {
                     //do not have write permissions for the log file
                     //bail out with an error message
-                    throw new AssertionError("Cannot write to file: " + logFileName + ". Need write permission.");
+                    log.warn("Cannot write to file: " + logFileName + ". Need write permission.");
+                    return logFileName;
                 }
             } else {
                 logFile = logFile.getParentFile();
@@ -618,11 +629,13 @@ private static String validateLogFile(String logFileName, String scriptName) {
                         try {
                             logFileName = new File(logFileName).getCanonicalPath();
                         } catch (IOException ioe) {
-                            throw new AssertionError("Could not compute canonical path to the log file " + ioe.getMessage());
+                            log.warn("Could not compute canonical path to the log file " + ioe.getMessage());
+                            return null;
                         }
                         return logFileName;
                     } else {
-                        throw new AssertionError("Need write permission in the directory: " + logFile + " to create log file.");
+                        log.warn("Need write permission in the directory: " + logFile + " to create log file.");
+                        return logFileName;
                     }
                 }//end if logFile != null else is the default in fall through                
             }//end else part of logFile.exists()
@@ -637,7 +650,8 @@ private static String validateLogFile(String logFileName, String scriptName) {
     if(logFile.canWrite()) {        
         return logFileName;
     }    
-    throw new RuntimeException("Cannot write to log file: " + logFileName);
+    log.warn("Cannot write to log file: " + logFileName);
+    return null;
 }
 
 private static String getFileFromCanonicalPath(String canonicalPath) {
