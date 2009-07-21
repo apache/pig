@@ -40,6 +40,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+    PIG-695: Pig should not fail when error logs cannot be created (sms)
+
 	PIG-878: Pig is returning too many blocks in the input split. (arunc via gates).
 
     PIG-888: Pig do not pass udf to the backend in some situation (daijy)

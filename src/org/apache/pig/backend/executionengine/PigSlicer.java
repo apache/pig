@@ -82,7 +82,7 @@ public class PigSlicer implements Slicer {
                 }
             } catch (Exception e) {
                 int errCode = 2099;
-                String msg = "Problem in constructing slices.";
+                String msg = "Problem in constructing slices: " + e.getMessage();
                 throw new ExecException(msg, errCode, PigException.BUG, e);
             }
             Map<String, Object> stats = fullPath.getStatistics();
