@@ -489,7 +489,7 @@ public abstract class Launcher {
             		}		                		
             	} else { //else for if(object instanceof PigException)
             		//its not PigException; create the exception with the message
-            		object = PigContext.instantiateFuncFromSpec(exceptionName + "(" + exceptionMessage + ")");
+            		object = PigContext.instantiateFuncFromSpec(new FuncSpec(exceptionName, exceptionMessage));
             	}
             	
             	StackTraceElement[] steArr = new StackTraceElement[stackTraceElements.size()];

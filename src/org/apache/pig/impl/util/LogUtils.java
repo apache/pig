@@ -119,7 +119,7 @@ public class LogUtils {
             log.error(bs.toString());
         }
         
-        if(logFileName == null) {
+        if(logFileName == null || logFileName.equals("")) {
             //if exec is invoked programmatically then logFileName will be null
             log.warn("There is no log file to write to.");
             log.error(bs.toString());
@@ -163,10 +163,10 @@ public class LogUtils {
     }
     
     public static void writeLog(String headerMessage, String message, String logFileName, Log log) {
-        if(logFileName == null) {
+        if(logFileName == null || logFileName.equals("")) {
             //if exec is invoked programmatically then logFileName will be null
             log.warn("There is no log file to write to.");
-            log.error(message);
+            log.error(headerMessage + "\n" + message);
             return;
         }
         
