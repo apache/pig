@@ -993,6 +993,7 @@ public class DataType {
                 DataBag b = (DataBag)o;
                 long bagSize = b.size();
                 Schema schema = null;
+                Schema bagSchema = null;
 
                 if(bagSize != 0) {
                     Iterator<Tuple> it = b.iterator();
@@ -1003,8 +1004,9 @@ public class DataType {
                     schema = schemas.get(0);
                     if(null == schema) {
                         Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
-                        Schema bagSchema = new Schema(tupleFs);
-                        return new Schema.FieldSchema(null, null, BAG);
+                        bagSchema = new Schema(tupleFs);
+                        bagSchema.setTwoLevelAccessRequired(true);
+                        return new Schema.FieldSchema(null, bagSchema, BAG);
                     }
                     int schemaSize = schema.size();
 
@@ -1012,19 +1014,19 @@ public class DataType {
                         Schema currSchema = schemas.get(i);
                         if((null == currSchema) || (currSchema.size() != schemaSize)) {
                             Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
-                            Schema bagSchema = new Schema(tupleFs);
+                            bagSchema = new Schema(tupleFs);
                             bagSchema.setTwoLevelAccessRequired(true);
                             return new Schema.FieldSchema(null, bagSchema, BAG);
                         }
                         schema = Schema.mergeSchema(schema, currSchema, false, false, false); 
                     }
+                    Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
+                    bagSchema = new Schema(tupleFs);
+                    // since this schema has tuple field schema which internally
+                    // has a list of field schemas for the actual items in the bag
+                    // an access to any field in the bag is a  two level access
+                    bagSchema.setTwoLevelAccessRequired(true);
                 }
-                Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
-                Schema bagSchema = new Schema(tupleFs);
-                // since this schema has tuple field schema which internally
-                // has a list of field schemas for the actual items in the bag
-                // an access to any field in the bag is a  two level access
-                bagSchema.setTwoLevelAccessRequired(true);
                 return new Schema.FieldSchema(null, bagSchema, BAG);
             }
         default: {
