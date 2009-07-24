@@ -41,6 +41,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.ExecType;
@@ -1927,6 +1928,137 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         
         assertTrue(Schema.equals(foreach.getSchema(), new Schema(bagFs), false, true));
     }
+    @Test
+    public void testEmptyTupleConst() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate ();");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+        LogicalOperator logOp = foreach.getForEachPlans().get(0).getLeaves().get(0);
+        assertTrue( logOp instanceof LOConst);
+        
+        LOConst loConst = (LOConst)logOp;
+        assertTrue(loConst.getType() == DataType.TUPLE);
+        assertTrue(loConst.getValue() instanceof Tuple);
+        assertTrue(loConst.getValue().equals(TupleFactory.getInstance().newTuple()));
+ 
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs);
+       
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+
+    @Test
+    public void testEmptyMapConst() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate [];");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+        LogicalOperator logOp = foreach.getForEachPlans().get(0).getLeaves().get(0);
+        assertTrue( logOp instanceof LOConst);
+        
+        LOConst loConst = (LOConst)logOp;
+        assertTrue(loConst.getType() == DataType.MAP);
+        assertTrue(loConst.getValue() instanceof Map);
+        assertTrue(loConst.getValue().equals(new HashMap<String,Object>()));
+	
+	Schema.FieldSchema mapFs = new Schema.FieldSchema(null, null, DataType.MAP);
+        Schema expectedSchema = new Schema(mapFs);
+
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+   
+    @Test
+    public void testEmptyBagConst() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate {};");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+        LogicalOperator logOp = foreach.getForEachPlans().get(0).getLeaves().get(0);
+        assertTrue( logOp instanceof LOConst);
+        
+        LOConst loConst = (LOConst)logOp;
+        assertTrue(loConst.getType() == DataType.BAG);
+        assertTrue(loConst.getValue() instanceof DataBag);
+        assertTrue(loConst.getValue().equals(BagFactory.getInstance().newDefaultBag()));
+        
+	Schema.FieldSchema bagFs = new Schema.FieldSchema(null, null, DataType.BAG);
+        Schema expectedSchema = new Schema(bagFs);
+
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+   
+    @Test
+    public void testEmptyTupConstRecursive1() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate (());");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+       
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, DataType.TUPLE);
+        Schema tupleSchema = new Schema(tupleFs);
+        Schema.FieldSchema tupleFs2 = new Schema.FieldSchema(null, tupleSchema, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs2);
+
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+   
+    @Test
+    public void testEmptyTupConstRecursive2() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate ([]);");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+
+        Schema.FieldSchema mapFs = new Schema.FieldSchema(null, null, DataType.MAP);
+        Schema tupleSchema = new Schema(mapFs);
+        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, tupleSchema, DataType.TUPLE);
+        Schema expectedSchema = new Schema(tupleFs);
+
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+   
+    @Test
+    public void testEmptyTupConstRecursive3() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate ({});");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+ 
+        Schema.FieldSchema bagFs = new Schema.FieldSchema(null, null, DataType.BAG);
+        Schema innerSchema = new Schema(bagFs);
+        Schema.FieldSchema outerTupleFs = new Schema.FieldSchema(null,innerSchema,DataType.TUPLE);
+        Schema expectedSchema = new Schema(outerTupleFs);
+       
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+   
+    @Test
+    public void testEmptyBagConstRecursive() throws FrontendException{
+       
+        LogicalPlan lp = buildPlan("a = foreach (load 'b') generate {()};");
+        LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+        
+        Schema.FieldSchema bagFs = new Schema.FieldSchema(null,null,DataType.TUPLE);
+        Schema bagSchema = new Schema(bagFs);
+        bagSchema.setTwoLevelAccessRequired(true);
+        
+        Schema.FieldSchema outerBagFs = new Schema.FieldSchema(null,bagSchema,DataType.BAG);
+        Schema expectedSchema = new Schema(outerBagFs);
+       
+        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
+    }
+   
+    @Test
+    public void testRandomEmptyConst(){
+        // Various random scripts to test recursive nature of parser with empty constants.
+       
+        buildPlan("a = foreach (load 'b') generate {({})};");
+        buildPlan("a = foreach (load 'b') generate ({()});");
+        buildPlan("a = foreach (load 'b') generate {(),()};");
+        buildPlan("a = foreach (load 'b') generate ({},{});");
+        buildPlan("a = foreach (load 'b') generate ((),());");
+        buildPlan("a = foreach (load 'b') generate ([],[]);");
+        buildPlan("a = foreach (load 'b') generate {({},{})};");
+        buildPlan("a = foreach (load 'b') generate {([],[])};");
+        buildPlan("a = foreach (load 'b') generate (({},{}));");
+        buildPlan("a = foreach (load 'b') generate (([],[]));");
+    }
+
     
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
