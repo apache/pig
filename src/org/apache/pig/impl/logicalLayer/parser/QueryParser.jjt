@@ -3430,7 +3430,9 @@ DataBag Bag() :
     log.trace("Entering bag");
 }
 {
- ("(" t = Tuple() {bag.add(t);} ")" ("," "(" t = Tuple() {bag.add(t);} ")" )* )
+ (("(" t = Tuple() {bag.add(t);} ")" ("," "(" t = Tuple() {bag.add(t);} ")" )* )
+	|{ } // Match empty content in bag.
+ )
  {
     log.trace("Exiting bag");
     return bag;
@@ -3443,19 +3445,19 @@ Tuple Tuple() :
 	Object obj = null;
 	TupleFactory tupleFactory = TupleFactory.getInstance();
 	ArrayList<Object> objList = new ArrayList<Object>(); 
+	Tuple tuple;
 	log.trace("Entering Tuple");
 }
 {
-	(	
 	(	
             (
                 obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);} 
 		        ( LOOKAHEAD(2) "," obj = Datum() {log.debug("Adding " + obj + " to the list: " + objList); objList.add(obj);})* 
             )
-	)
+            {	tuple = tupleFactory.newTuple(objList);	}
+			|{	tuple = tupleFactory.newTuple(0);		} // Match empty content in tuple.
 	)
 	{
-		Tuple tuple = tupleFactory.newTuple(objList);
 		log.trace("Exiting Tuple");
 		return tuple;
 	}
@@ -3468,7 +3470,9 @@ Map<String, Object> Map() :
 	
 }
 {
-	( KeyValuePair(keyValues) ("," KeyValuePair(keyValues))* )
+	(( KeyValuePair(keyValues) ("," KeyValuePair(keyValues))* )
+	 	|{ } // Match empty content in map. 
+	)
 	{
 		log.trace("Exiting Map");
 		return keyValues;
