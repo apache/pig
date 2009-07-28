@@ -183,6 +183,10 @@ public class PigServer {
     public void debugOff() {
         pigContext.debug = false;
     }
+    
+    public void setDefaultParallel(int p) {
+        pigContext.defaultParallel = p;
+    }
  
     /**
      * Starts batch execution mode.

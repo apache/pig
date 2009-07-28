@@ -282,6 +282,8 @@ public class JobControlCompiler{
         //used as the working directory
         String user = System.getProperty("user.name");
         jobConf.setUser(user != null ? user : "Pigster");
+        if (pigContext.defaultParallel > 0)
+            jobConf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
 
         try{        
             //Process the POLoads

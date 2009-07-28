@@ -116,6 +116,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     private static ArrayList<String> packageImportList = new ArrayList<String>();
 
     public boolean debug = true;
+    
+    public int defaultParallel = -1;
 
     // Says, wether we're processing an explain right now. Explain
     // might skip some check in the logical plan validation (file
