@@ -435,6 +435,14 @@ public class GruntParser extends PigScriptParser {
             }
             mPigServer.addPathToSkip(value);
         }
+        else if (key.equals("default_parallel")) {
+            // Validate
+            try {
+                mPigServer.setDefaultParallel(Integer.parseInt(value));
+            } catch (NumberFormatException e) {
+                throw new ParseException("Invalid value for default_parallel");
+            }
+        }
         else
         {
             // other key-value pairs can go there

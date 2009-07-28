@@ -26,6 +26,8 @@ PIG-734:  Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-895: Default parallel for Pig (daijy)
+
 PIG-820: Change RandomSampleLoader to take a LoadFunc instead of extending
 		BinStorage.  Added new Samplable interface for loaders to implement
 		allowing them to be used by RandomSampleLoader (ashutoshc via gates).

@@ -476,6 +476,32 @@ public class TestJobSubmission extends junit.framework.TestCase{
         }
     }
     
+    @Test
+    public void testDefaultParallel() throws Throwable {
+        pc.defaultParallel = 100;
+        
+        LogicalPlanTester planTester = new LogicalPlanTester() ;
+        planTester.buildPlan("a = load 'input';");
+        LogicalPlan lp = planTester.buildPlan("b = group a by $0;");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        POStore store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+
+        ExecutionEngine exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+        
+        JobControl jobControl = jcc.compile(mrPlan, "Test");
+        Job job = jobControl.getWaitingJobs().get(0);
+        int parallel = job.getJobConf().getNumReduceTasks();
+
+        assertTrue(parallel==100);
+        
+        pc.defaultParallel = -1;        
+    }
+
     private void submit() throws Exception{
         assertEquals(true, FileLocalizer.fileExists(hadoopLdFile, pc));
         MapReduceLauncher mrl = new MapReduceLauncher();
