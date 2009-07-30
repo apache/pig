@@ -37,6 +37,8 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.builtin.TupleSize;
+import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -61,8 +63,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -77,6 +81,7 @@ import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
@@ -345,8 +350,13 @@ public class MRCompiler extends PhyPlanVisitor {
         //Now we have the inputs compiled. Do something
         //with the input oper op.
         op.visit(this);
-        if(op.getRequestedParallelism() > curMROp.requestedParallelism)
-            curMROp.requestedParallelism = op.getRequestedParallelism();
+        if(op.getRequestedParallelism() > curMROp.requestedParallelism ) {
+        	// we don't want to change prallelism for skewed join due to sampling
+        	// and pre-allocated reducers for skewed keys
+        	if (!curMROp.isSkewedJoin()) {
+        		curMROp.requestedParallelism = op.getRequestedParallelism();
+        	}
+        }
         compiledInputs = prevCompInp;
     }
     
@@ -1045,6 +1055,165 @@ public class MRCompiler extends PhyPlanVisitor {
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
+    
+    public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
+		try {
+			if (compiledInputs.length != 2) {
+				throw new VisitorException("POSkewedJoin operator has " + compiledInputs.length + " inputs. It should have 2.");
+			}
+			
+			FileSpec fSpec = getTempFileSpec();
+			MapReduceOper mro = compiledInputs[0];
+			POStore str = getStore();
+			str.setSFile(fSpec);
+			if (!mro.isMapDone()) {
+				mro.mapPlan.addAsLeaf(str);
+				mro.setMapDoneSingle(true);
+			} else if (mro.isMapDone() && !mro.isReduceDone()) {
+				mro.reducePlan.addAsLeaf(str);
+				mro.setReduceDone(true);
+			} else {
+				int errCode = 2022;
+				String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+				throw new PlanException(msg, errCode, PigException.BUG);
+			}
+			
+			FileSpec partitionFile = getTempFileSpec();
+			int rp = op.getRequestedParallelism();
+			
+			Pair<MapReduceOper, Integer> sampleJobPair = getSkewedJoinSampleJob(op, mro, fSpec, partitionFile, rp);            
+			rp = sampleJobPair.second;
+			
+			// set parallelism of SkewedJoin as the value calculated by sampling job
+			// if "parallel" is specified in join statement, "rp" is equal to that number
+			// if not specified, use the value that sampling process calculated
+			// based on default.
+			op.setRequestedParallelism(rp);
+						
+			// load the temp file for first table as input of join            
+			MapReduceOper[] joinInputs = new MapReduceOper[] {startNew(fSpec, sampleJobPair.first), compiledInputs[1]};            
+			MapReduceOper[] rearrangeOutputs = new MapReduceOper[2];                       
+			
+			compiledInputs = new MapReduceOper[] {joinInputs[0]};
+			// run POLocalRearrange for first join table
+			POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);            
+			try {
+				lr.setIndex(0);                
+			} catch (ExecException e) {
+				int errCode = 2058;
+				String msg = "Unable to set index on newly created POLocalRearrange.";
+				throw new PlanException(msg, errCode, PigException.BUG, e);
+			}
+			
+			List<PhysicalOperator> l = plan.getPredecessors(op);
+			MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = op.getJoinPlans();
+			List<PhysicalPlan> groups = (List<PhysicalPlan>)joinPlans.get(l.get(0));
+			// check the type of group keys, if there are more than one field, the key is TUPLE.
+			byte type = DataType.TUPLE;
+			if (groups.size() == 1) {
+				type = groups.get(0).getLeaves().get(0).getResultType();                
+			}               
+			
+			lr.setKeyType(type);            
+			lr.setPlans(groups);
+			lr.setResultType(DataType.TUPLE);
+			
+			lr.visit(this);
+			if(lr.getRequestedParallelism() > curMROp.requestedParallelism)
+				curMROp.requestedParallelism = lr.getRequestedParallelism();
+			rearrangeOutputs[0] = curMROp;
+			
+			compiledInputs = new MapReduceOper[] {joinInputs[1]};       
+			// if the map for current input is already closed, then start a new job
+			if (compiledInputs[0].isMapDone() && !compiledInputs[0].isReduceDone()) {
+				FileSpec f = getTempFileSpec();
+				POStore s = getStore();
+				s.setSFile(f);
+				compiledInputs[0].reducePlan.addAsLeaf(s);
+				compiledInputs[0].setReduceDone(true);
+				compiledInputs[0] = startNew(f, compiledInputs[0]);
+			}     		      
+			
+			// run POPartitionRearrange for second join table
+			lr = new POPartitionRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);            
+			try {
+				lr.setIndex(1);
+			} catch (ExecException e) {
+				int errCode = 2058;
+				String msg = "Unable to set index on newly created POLocalRearrange.";
+				throw new PlanException(msg, errCode, PigException.BUG, e);
+			}               
+			((POPartitionRearrange)lr).setPartitionFile(partitionFile.getFileName());
+			
+			groups = (List<PhysicalPlan>)joinPlans.get(l.get(1));
+			lr.setPlans(groups);
+			lr.setKeyType(type);            
+			lr.setResultType(DataType.BAG);
+			
+			lr.visit(this);
+			if(lr.getRequestedParallelism() > curMROp.requestedParallelism)
+				curMROp.requestedParallelism = lr.getRequestedParallelism();
+			rearrangeOutputs[1] = curMROp;                     
+			compiledInputs = rearrangeOutputs;
+					   
+			
+			// create POGlobalRearrange
+			POGlobalRearrange gr = new POGlobalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);                          
+			gr.setResultType(DataType.TUPLE);
+			gr.visit(this);
+			if(gr.getRequestedParallelism() > curMROp.requestedParallelism)
+				curMROp.requestedParallelism = gr.getRequestedParallelism();
+			compiledInputs = new MapReduceOper[] {curMROp};
+			
+			// create POPakcage
+			POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);
+			pkg.setKeyType(type);
+			pkg.setResultType(DataType.TUPLE);
+			pkg.setNumInps(2);
+			boolean[] inner = {true, true}; 
+			pkg.setInner(inner);            
+			pkg.visit(this);       
+			compiledInputs = new MapReduceOper[] {curMROp};
+			
+			// create POForEach
+			List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
+			List<Boolean> flat = new ArrayList<Boolean>();
+			
+			PhysicalPlan ep = new PhysicalPlan();
+			POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+			prj.setColumn(1);
+			prj.setOverloaded(false);
+			prj.setResultType(DataType.BAG);
+			ep.add(prj);
+			eps.add(ep);
+			flat.add(true);
+
+			ep = new PhysicalPlan();
+			prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+			prj.setColumn(2);
+			prj.setOverloaded(false);
+			prj.setResultType(DataType.BAG);
+			ep.add(prj);
+			eps.add(ep);
+			flat.add(true);
+
+			POForEach fe = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, eps, flat);
+			fe.setResultType(DataType.TUPLE);
+			
+			fe.visit(this);
+			
+			curMROp.setSkewedJoinPartitionFile(partitionFile.getFileName());
+        }catch(PlanException e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }catch(IOException e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+
+    }
 
     @Override
     public void visitSort(POSort op) throws VisitorException {
@@ -1053,7 +1222,7 @@ public class MRCompiler extends PhyPlanVisitor {
             MapReduceOper mro = endSingleInputPlanWithStr(fSpec);
             FileSpec quantFile = getTempFileSpec();
             int rp = op.getRequestedParallelism();
-            Pair<Integer,Byte>[] fields = getSortCols(op);
+            Pair<Integer,Byte>[] fields = getSortCols(op.getSortPlans());
             Pair<MapReduceOper, Integer> quantJobParallelismPair = 
                 getQuantileJob(op, mro, fSpec, quantFile, rp, fields);
             curMROp = getSortJob(op, quantJobParallelismPair.first, fSpec, quantFile, 
@@ -1069,8 +1238,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
-    private Pair<Integer, Byte>[] getSortCols(POSort sort) throws PlanException, ExecException {
-        List<PhysicalPlan> plans = sort.getSortPlans();
+    private Pair<Integer, Byte>[] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
         if(plans!=null){
             Pair[] ret = new Pair[plans.size()]; 
             int i=-1;
@@ -1175,10 +1343,10 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.setMapDone(true);
         
         if (limit!=-1) {
-       	    POPackageLite pkg_c = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
-       	    pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
+        	POPackageLite pkg_c = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        	pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
             pkg_c.setNumInps(1);
-            //pkg.setResultType(DataType.TUPLE);
+            //pkg.setResultType(DataType.TUPLE);            
             mro.combinePlan.add(pkg_c);
         	
             List<PhysicalPlan> eps_c1 = new ArrayList<PhysicalPlan>();
@@ -1220,7 +1388,7 @@ public class MRCompiler extends PhyPlanVisitor {
         POPackageLite pkg = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
         pkg.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
             keyType);
-        pkg.setNumInps(1);
+        pkg.setNumInps(1);       
         mro.reducePlan.add(pkg);
         
         PhysicalPlan ep = new PhysicalPlan();
@@ -1255,7 +1423,117 @@ public class MRCompiler extends PhyPlanVisitor {
             FileSpec quantFile,
             int rp,
             Pair<Integer,Byte>[] fields) throws PlanException, VisitorException {
-        String[] rslargs = new String[2];
+        
+        POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
+                .getRequestedParallelism(), null, inpSort.getSortPlans(),
+                inpSort.getMAscCols(), inpSort.getMSortFunc());
+    	
+    	// Turn the asc/desc array into an array of strings so that we can pass it
+        // to the FindQuantiles function.
+        List<Boolean> ascCols = inpSort.getMAscCols();
+        String[] ascs = new String[ascCols.size()];
+        for (int i = 0; i < ascCols.size(); i++) ascs[i] = ascCols.get(i).toString();
+        // check if user defined comparator is used in the sort, if so
+        // prepend the name of the comparator as the first fields in the
+        // constructor args array to the FindQuantiles udf
+        String[] ctorArgs = ascs;
+        if(sort.isUDFComparatorUsed) {
+            String userComparatorFuncSpec = sort.getMSortFunc().getFuncSpec().toString();
+            ctorArgs = new String[ascs.length + 1];
+            ctorArgs[0] = USER_COMPARATOR_MARKER + userComparatorFuncSpec;
+            for(int j = 0; j < ascs.length; j++) {
+                ctorArgs[j+1] = ascs[j];
+            }
+        }
+        
+        return getSamplingJob(sort, prevJob, null, lFile, quantFile, rp, null, FindQuantiles.class.getName(), ctorArgs);
+    }
+    
+    /**
+     * Create Sampling job for skewed join.
+     */
+    public Pair<MapReduceOper, Integer> getSkewedJoinSampleJob(POSkewedJoin op, MapReduceOper prevJob, 
+    		FileSpec lFile, FileSpec sampleFile, int rp ) throws PlanException, VisitorException {
+    	    	
+    	MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = op.getJoinPlans();
+    	
+    	List<PhysicalOperator> l = plan.getPredecessors(op);
+    	List<PhysicalPlan> groups = (List<PhysicalPlan>)joinPlans.get(l.get(0));
+    	
+    	
+    	List<Boolean> ascCol = new ArrayList<Boolean>();
+    	for(int i=0; i<groups.size(); i++) {    		    		
+    		ascCol.add(false);
+    	}
+    	
+    	POSort sort = new POSort(op.getOperatorKey(), op.getRequestedParallelism(), null, groups, ascCol, null);
+    	
+    	// set up transform plan to get keys and memory size of input tuples
+    	// it first adds all the plans to get key columns,
+    	List<PhysicalPlan> transformPlans = new ArrayList<PhysicalPlan>(); 
+    	transformPlans.addAll(groups);
+        
+    	// then it adds a column for memory size
+    	POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        prjStar.setResultType(DataType.TUPLE);
+        prjStar.setStar(true);            
+        
+        List<PhysicalOperator> ufInps = new ArrayList<PhysicalOperator>();
+        ufInps.add(prjStar);
+        
+    	PhysicalPlan ep = new PhysicalPlan();
+    	POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps,
+    	            new FuncSpec(TupleSize.class.getName(), (String[])null));
+    	uf.setResultType(DataType.TUPLE);
+    	ep.add(uf);     
+    	ep.add(prjStar);
+    	ep.connect(prjStar, uf);
+        	
+        transformPlans.add(ep);      
+        
+    	try{    		
+    		// pass configurations to the User Function
+    		String per = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.memusage", "0.5");
+    		String mc = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.maxtuple", "0");
+    		String inputFile = lFile.getFileName();
+    		    		
+    		return getSamplingJob(sort, prevJob, transformPlans, lFile, sampleFile, rp, null, 
+    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile});
+    	}catch(Exception e) {
+    		throw new PlanException(e);
+    	}
+    }    	 
+  
+  	
+    /**
+     * Create a sampling job to collect statistics by sampling an input file. The sequence of operations is as
+     * following:
+     * <li>Transform input sample tuples into another tuple.</li>
+     * <li>Add an extra field &quot;all&quot; into the tuple </li>
+     * <li>Package all tuples into one bag </li>
+     * <li>Add constant field for number of reducers. </li>
+     * <li>Sorting the bag </li>
+     * <li>Invoke UDF with the number of reducers and the sorted bag.</li>
+     * <li>Data generated by UDF is stored into a file.</li>
+     * 
+     * @param sort  the POSort operator used to sort the bag
+     * @param prevJob  previous job of current sampling job
+     * @param transformPlans  PhysicalPlans to transform input samples
+     * @param lFile  path of input file
+     * @param sampleFile  path of output file
+     * @param rp  configured parallemism
+     * @param sortKeyPlans  PhysicalPlans to be set into POSort operator to get sorting keys
+     * @param udfClassName  the class name of UDF
+     * @param udfArgs   the arguments of UDF
+     * @return pair<mapreduceoper,integer>
+     * @throws PlanException
+     * @throws VisitorException
+     */
+  	protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
+  			FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans, 
+  			String udfClassName, String[] udfArgs ) throws PlanException, VisitorException {
+  		
+  		String[] rslargs = new String[2];
         // RandomSampleLoader expects string version of FuncSpec 
         // as its first constructor argument.
         rslargs[0] = (new FuncSpec(BinStorage.class.getName())).toString();
@@ -1263,38 +1541,52 @@ public class MRCompiler extends PhyPlanVisitor {
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
             new FuncSpec(RandomSampleLoader.class.getName(), rslargs));
         MapReduceOper mro = startNew(quantLdFilName, prevJob);
-        POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
-                .getRequestedParallelism(), null, inpSort.getSortPlans(),
-                inpSort.getMAscCols(), inpSort.getMSortFunc());
+       
         if(sort.isUDFComparatorUsed) {
             mro.UDFs.add(sort.getMSortFunc().getFuncSpec().toString());
-        }
-        
+        }        
+    
+        List<Boolean> flat1 = new ArrayList<Boolean>();         
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
-        List<Boolean> flat1 = new ArrayList<Boolean>();
-        // Set up the projections of the key columns 
-        if (fields == null) {
-            PhysicalPlan ep = new PhysicalPlan();
-            POProject prj = new POProject(new OperatorKey(scope,
-                nig.getNextNodeId(scope)));
-            prj.setStar(true);
-            prj.setOverloaded(false);
-            prj.setResultType(DataType.TUPLE);
-            ep.add(prj);
-            eps1.add(ep);
-            flat1.add(true);
-        } else {
-            for (Pair<Integer,Byte> i : fields) {
+        
+        // if transform plans are not specified, project the columns of sorting keys
+        if (transformPlans == null) {        	
+        	Pair<Integer,Byte>[] fields = null;
+            try{
+            	fields = getSortCols(sort.getSortPlans());
+            }catch(Exception e) {
+            	throw new RuntimeException(e);
+            }
+            // Set up the projections of the key columns 
+            if (fields == null) {
                 PhysicalPlan ep = new PhysicalPlan();
-                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                prj.setColumn(i.first);
+                POProject prj = new POProject(new OperatorKey(scope,
+                    nig.getNextNodeId(scope)));
+                prj.setStar(true);
                 prj.setOverloaded(false);
-                prj.setResultType(i.second);
+                prj.setResultType(DataType.TUPLE);
                 ep.add(prj);
                 eps1.add(ep);
                 flat1.add(true);
+            } else {
+                for (Pair<Integer,Byte> i : fields) {
+                    PhysicalPlan ep = new PhysicalPlan();
+                    POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    prj.setColumn(i.first);
+                    prj.setOverloaded(false);
+                    prj.setResultType(i.second);
+                    ep.add(prj);
+                    eps1.add(ep);
+                    flat1.add(true);
+                }
             }
+        }else{
+        	for(int i=0; i<transformPlans.size(); i++) {
+        		eps1.add(transformPlans.get(i));
+        		flat1.add(true);
+        	}
         }
+        
         // This foreach will pick the sort key columns from the RandomSampleLoader output 
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps1,flat1);
         mro.mapPlan.addAsLeaf(nfe1);
@@ -1345,26 +1637,39 @@ public class MRCompiler extends PhyPlanVisitor {
         fe2Plan.add(topPrj);
         
         // the projections which will form sort plans
-        List<PhysicalPlan> nesSortPlanLst = new ArrayList<PhysicalPlan>();
-        if (fields == null) {
-            PhysicalPlan ep = new PhysicalPlan();
-            POProject prj = new POProject(new OperatorKey(scope,
-                nig.getNextNodeId(scope)));
-            prj.setStar(true);
-            prj.setOverloaded(false);
-            prj.setResultType(DataType.TUPLE);
-            ep.add(prj);
-            nesSortPlanLst.add(ep);
-        } else {
-            for (int i=0; i<fields.length;i++) {
+        List<PhysicalPlan> nesSortPlanLst = new ArrayList<PhysicalPlan>();             
+        if (sortKeyPlans != null) {
+        	for(int i=0; i<sortKeyPlans.size(); i++) {        	
+        		nesSortPlanLst.add(sortKeyPlans.get(i));        	
+        	}
+        }else{   
+        	Pair<Integer,Byte>[] fields = null;
+            try{
+            	fields = getSortCols(sort.getSortPlans());
+            }catch(Exception e) {
+            	throw new RuntimeException(e);
+            }
+            // Set up the projections of the key columns 
+            if (fields == null) {
                 PhysicalPlan ep = new PhysicalPlan();
-                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                prj.setColumn(i);
+                POProject prj = new POProject(new OperatorKey(scope,
+                    nig.getNextNodeId(scope)));
+                prj.setStar(true);
                 prj.setOverloaded(false);
-                prj.setResultType(fields[i].second);
+                prj.setResultType(DataType.TUPLE);
                 ep.add(prj);
                 nesSortPlanLst.add(ep);
-            }
+            } else {
+                for (int i=0; i<fields.length; i++) {
+                    PhysicalPlan ep = new PhysicalPlan();
+                    POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    prj.setColumn(i);
+                    prj.setOverloaded(false);
+                    prj.setResultType(fields[i].second);
+                    ep.add(prj);
+                    nesSortPlanLst.add(ep);
+                }
+            }                       
         }
         
         sort.setSortPlans(nesSortPlanLst);
@@ -1428,26 +1733,9 @@ public class MRCompiler extends PhyPlanVisitor {
         
         List<PhysicalOperator> ufInps = new ArrayList<PhysicalOperator>();
         ufInps.add(prjStar4);
-        // Turn the asc/desc array into an array of strings so that we can pass it
-        // to the FindQuantiles function.
-        List<Boolean> ascCols = inpSort.getMAscCols();
-        String[] ascs = new String[ascCols.size()];
-        for (int i = 0; i < ascCols.size(); i++) ascs[i] = ascCols.get(i).toString();
-        // check if user defined comparator is used in the sort, if so
-        // prepend the name of the comparator as the first fields in the
-        // constructor args array to the FindQuantiles udf
-        String[] ctorArgs = ascs;
-        if(sort.isUDFComparatorUsed) {
-            String userComparatorFuncSpec = sort.getMSortFunc().getFuncSpec().toString();
-            ctorArgs = new String[ascs.length + 1];
-            ctorArgs[0] = USER_COMPARATOR_MARKER + userComparatorFuncSpec;
-            for(int j = 0; j < ascs.length; j++) {
-                ctorArgs[j+1] = ascs[j];
-            }
-        }
-        
+      
         POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, 
-            new FuncSpec(FindQuantiles.class.getName(), ctorArgs));
+            new FuncSpec(udfClassName, udfArgs));
         ep4.add(uf);
         ep4.connect(prjStar4, uf);
         
@@ -1461,7 +1749,8 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.reducePlan.connect(nfe2, nfe3);
         
         POStore str = getStore();
-        str.setSFile(quantFile);
+        str.setSFile(sampleFile);
+        
         mro.reducePlan.add(str);
         mro.reducePlan.connect(nfe3, str);
         

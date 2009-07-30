@@ -129,6 +129,13 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
                 }
             }
         }
+        else if(op instanceof POSkewedJoin) {
+        	POSkewedJoin skewed = (POSkewedJoin)op;
+            Collection<PhysicalPlan> joinPlans = skewed.getJoinPlans().values();
+            if(joinPlans!=null) {
+                plans.addAll(joinPlans);
+            }
+        }
 
         return plans;
     }

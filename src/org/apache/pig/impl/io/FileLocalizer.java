@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Stack;
 import java.util.Properties ;
@@ -42,6 +43,7 @@ import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SliceWrapper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.WrappedIOException;
@@ -151,11 +153,19 @@ public class FileLocalizer {
     public static InputStream openDFSFile(String fileName) throws IOException {
         SliceWrapper wrapper = PigInputFormat.getActiveSplit();
 
-        if (wrapper == null)
+        JobConf conf = null;
+        if (wrapper == null) {
+        	conf = PigMapReduce.sJobConf;
+        }else{
+        	conf = wrapper.getJobConf();
+        }
+        
+        if (conf == null) {
             throw new RuntimeException(
                     "can't open DFS file while executing locally");
+        }
         
-        return openDFSFile(fileName, ConfigurationUtil.toProperties(wrapper.getJobConf()));
+        return openDFSFile(fileName, ConfigurationUtil.toProperties(conf));
 
     }
 
@@ -163,6 +173,42 @@ public class FileLocalizer {
         DataStorage dds = new HDataStorage(properties);
         ElementDescriptor elem = dds.asElement(fileName);
         return openDFSFile(elem);
+    }
+    
+    public static long getSize(String fileName) throws IOException {
+    	SliceWrapper wrapper = PigInputFormat.getActiveSplit();
+    	
+    	JobConf conf = null;
+    	if (wrapper == null) {
+    		conf = PigMapReduce.sJobConf;
+    	}else{
+    		conf = wrapper.getJobConf();
+    	}
+
+    	if (conf == null) {
+    		throw new RuntimeException(
+                "can't open DFS file while executing locally");
+    	}
+
+        return getSize(fileName, ConfigurationUtil.toProperties(conf));
+    }
+    
+    public static long getSize(String fileName, Properties properties) throws IOException {
+    	DataStorage dds = new HDataStorage(properties);
+        ElementDescriptor elem = dds.asElement(fileName);
+       
+        // recursively get all the files under this path
+        ElementDescriptor[] allElems = getFileElementDescriptors(elem);
+        
+        long size = 0;
+        
+        // add up the sizes of all files found
+        for (int i=0; i<allElems.length; i++) {
+        	Map<String, Object> stats = allElems[i].getStatistics();
+        	size += (Long) (stats.get(ElementDescriptor.LENGTH_KEY));
+        }
+        
+        return size;
     }
     
     private static InputStream openDFSFile(ElementDescriptor elem) throws IOException{

@@ -29,6 +29,9 @@ import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
@@ -179,6 +182,12 @@ public class SampleOptimizer extends MROpPlanVisitor {
         POLoad newLoad = new POLoad(load.getOperatorKey(),load.getRequestedParallelism(), fs, load.isSplittable());
         try {
             mr.mapPlan.replace(load, newLoad);
+            
+            // check if it has PartitionSkewedKeys
+            List<PhysicalOperator> ls = mr.reducePlan.getLeaves();
+            for(PhysicalOperator op: ls) {
+            	scan(mr, op, fs.getFileName());
+            }        
         } catch (PlanException e) {
             throw new VisitorException(e);
         }
@@ -197,4 +206,36 @@ public class SampleOptimizer extends MROpPlanVisitor {
         opsToRemove.add(pred);
     }
 
+    // search for PartionSkewedKeys and update input file name
+    // it is always under a POForEach operator in reduce plan
+    private void scan(MapReduceOper mr, PhysicalOperator op, String fileName) {
+    	
+		if (op instanceof POUserFunc) {
+			if (((POUserFunc)op).getFuncSpec().getClassName().equals(
+					"org.apache.pig.impl.builtin.PartitionSkewedKeys")) {
+				
+				String[] ctorArgs = ((POUserFunc)op).getFuncSpec().getCtorArgs();
+				ctorArgs[2] = fileName;    		
+				return;
+			}
+		}else if (op instanceof POForEach) {
+			List<PhysicalPlan> pl = ((POForEach)op).getInputPlans();
+			for(PhysicalPlan plan: pl) {
+				List<PhysicalOperator> list = plan.getLeaves();
+				for (PhysicalOperator pp: list) {
+					scan(mr, pp, fileName);
+				}
+			}
+		}else{
+			List<PhysicalOperator> preds = mr.reducePlan.getPredecessors(op);
+	    	
+	    	if (preds == null) {
+	    		return;
+	    	}
+	    	
+	    	for(PhysicalOperator p: preds) {	    		    	
+	    		scan(mr, p, fileName);	    		
+	    	}
+		}
+    }
 }

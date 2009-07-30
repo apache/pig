@@ -55,6 +55,9 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
+
+import org.apache.pig.impl.util.MultiMap;
+
 public class LogToPhyTranslationVisitor extends LOVisitor {
 
     protected Map<LogicalOperator, PhysicalOperator> LogToPhyMap;
@@ -720,7 +723,65 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         LogToPhyMap.put(cg, poPackage);
     }
     
-    
+	/**
+     * Create the inner plans used to configure the Partition rearrange operators
+     */
+	@Override
+	protected void visit(LOJoin loj) throws VisitorException {
+        List<LogicalOperator> inputs = loj.getInputs();
+        MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = new MultiMap<PhysicalOperator, PhysicalPlan>();
+
+        List<PhysicalOperator> inp = new ArrayList<PhysicalOperator>();
+        for (LogicalOperator op : inputs) {
+			PhysicalOperator physOp = LogToPhyMap.get(op);
+            inp.add(physOp);
+            List<LogicalPlan> plans = (List<LogicalPlan>) loj.getJoinPlans().get(op);
+            
+            List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
+            currentPlans.push(currentPlan);
+            for (LogicalPlan lp : plans) {
+                currentPlan = new PhysicalPlan();
+                PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker.spawnChildWalker(lp);
+                pushWalker(childWalker);
+                mCurrentWalker.walk(this);
+                exprPlans.add(currentPlan);
+                popWalker();
+            }
+            currentPlan = currentPlans.pop();
+			joinPlans.put(physOp, exprPlans);
+		}
+
+		// For skewed join, add a local rearrange operator to the plan
+		if (loj.getJoinType() == LOJoin.JOINTYPE.SKEWED) {
+			POSkewedJoin skj;
+			try {
+				String scope = loj.getOperatorKey().scope;
+				skj = new POSkewedJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),loj.getRequestedParallelism(),
+											inp);
+				skj.setJoinPlans(joinPlans);
+			}
+			catch (Exception e) {
+				int errCode = 2015;
+				String msg = "Skewed Join creation failed";
+				throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+			}
+			skj.setResultType(DataType.TUPLE);
+			currentPlan.add(skj);
+
+			for (LogicalOperator op : inputs) {
+				try {
+					currentPlan.connect(LogToPhyMap.get(op), skj);
+				} catch (PlanException e) {
+					int errCode = 2015;
+					String msg = "Invalid physical operators in the physical plan" ;
+					throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+				}
+			}
+			LogToPhyMap.put(loj, skj);
+		}
+	}
+
+
     /**
      * Create the inner plans used to configure the Local Rearrange operators(ppLists)
      * Extract the keytypes and create the POFRJoin operator.

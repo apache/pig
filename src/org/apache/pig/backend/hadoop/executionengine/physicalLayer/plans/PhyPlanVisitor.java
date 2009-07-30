@@ -263,6 +263,19 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
 	
     }
 
+	public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
+
+	}
+
+	public void visitPartitionRearrange(POPartitionRearrange pr) throws VisitorException {
+        List<PhysicalPlan> inpPlans = pr.getPlans();
+        for (PhysicalPlan plan : inpPlans) {
+            pushWalker(mCurrentWalker.spawnChildWalker(plan));
+            visit();
+            popWalker();
+        }
+	}
+
     /**
      * @param lrfi
      * @throws VisitorException 

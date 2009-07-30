@@ -29,12 +29,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.PigException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 
 public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         PlanVisitor<O, P> {
@@ -174,6 +176,15 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
                 sb.append(planString(list));
               }
           }
+          else if(node instanceof POSkewedJoin){
+              POSkewedJoin skewed = (POSkewedJoin)node;
+              MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = skewed.getJoinPlans();
+              if(joinPlans!=null) {
+            	  List<PhysicalPlan> inner_plans = new ArrayList<PhysicalPlan>();
+            	  inner_plans.addAll(joinPlans.values());                
+                  sb.append(planString(inner_plans));                
+              }
+            }
         }
         
         if (node instanceof POSplit) {

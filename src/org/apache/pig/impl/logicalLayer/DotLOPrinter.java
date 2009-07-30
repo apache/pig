@@ -90,6 +90,9 @@ public class DotLOPrinter extends DotPlanDumper<LogicalOperator, LogicalPlan,
         else if(op instanceof LOFRJoin){
             return ((LOFRJoin)op).getJoinColPlans();
         }
+        else if(op instanceof LOJoin){
+            return ((LOJoin)op).getJoinPlans();
+        }
         return new MultiMap<LogicalOperator, LogicalPlan>();
     }
 
