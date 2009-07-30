@@ -48,6 +48,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -62,6 +63,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
@@ -173,10 +175,12 @@ public class JobControlCompiler{
         for (FileStatus fstat: fs.listStatus(p)) {
             Path src = fstat.getPath();
             if (fstat.isDir()) {
+		log.info("mkdir: "+src);
                 fs.mkdirs(removePart(src, rem));
                 moveResults(fstat.getPath(), rem, fs);
             } else {
                 Path dst = removePart(src, rem);
+		log.info("mv: "+src+" "+dst);
                 fs.rename(src,dst);
             }
         }
@@ -509,6 +513,13 @@ public class JobControlCompiler{
                     jobConf.set("pig.sortOrder",
                         ObjectSerializer.serialize(mro.getSortOrder()));
                 }
+            }
+            
+            if (mro.isSkewedJoin()) {
+            	jobConf.set("pig.keyDistFile", mro.getSkewedJoinPartitionFile());
+            	jobConf.setPartitionerClass(SkewedPartitioner.class);
+            	jobConf.setMapperClass(PigMapReduce.MapWithPartitionIndex.class);
+				jobConf.setMapOutputKeyClass(NullablePartitionWritable.class);
             }
             
             Job job = new Job(jobConf);

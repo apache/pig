@@ -54,6 +54,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOFRJoin;
+import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -1148,8 +1149,6 @@ public class PigServer {
                             lp.removeAndReconnectMultiSucc(load);
                             
                             List<LogicalOperator> succs = lp.getSuccessors(load);
-                            
-
                         } else {
                             try {
                                 store.getPlan().connect(store, load);

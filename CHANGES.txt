@@ -40,6 +40,8 @@ PIG-753:  Allow UDFs with no parameters (zjffdu via gates).
 
 OPTIMIZATIONS
 
+PIG-792: skew join implementation (sriranjan via olgan)
+
 BUG FIXES
 
     PIG-773: Empty complex constants (empty bag, empty tuple and empty map)

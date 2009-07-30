@@ -241,7 +241,7 @@ public abstract class PigMapBase extends MapReduceBase{
         }
     }
 
-    private void runPipeline(PhysicalOperator leaf) throws IOException, ExecException {
+    protected void runPipeline(PhysicalOperator leaf) throws IOException, ExecException {
         while(true){
             Result res = leaf.getNext(DUMMYTUPLE);
             if(res.returnStatus==POStatus.STATUS_OK){

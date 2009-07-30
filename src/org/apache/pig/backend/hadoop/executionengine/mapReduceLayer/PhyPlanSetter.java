@@ -250,6 +250,11 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitFRJoin(POFRJoin join) throws VisitorException {
         join.setParentPlan(parent);
     }
+    
+    @Override
+    public void visitSkewedJoin(POSkewedJoin join) throws VisitorException {
+        join.setParentPlan(parent);
+    }   
 
     @Override
     public void visitStream(POStream stream) throws VisitorException {
@@ -273,6 +278,13 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         lrfi.setParentPlan(parent);
     }
 
+/*
+    @Override
+    public void visitPartitionRearrange(POPartitionRearrange lrfi) throws VisitorException {
+        super.visitPartitionRearrange(lrfi);
+        lrfi.setParentPlan(parent);
+    }
+*/
     @Override
     public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) {
         optimizedForEach.setParentPlan(parent);
