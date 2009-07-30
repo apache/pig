@@ -26,6 +26,7 @@ import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -39,7 +40,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class RandomSampleLoader implements LoadFunc {
     
     private int numSamples;
-    private long skipInterval;
+    private long skipInterval;    
+	private TupleFactory factory;
     private SamplableLoader loader;
     
     /**
@@ -55,16 +57,22 @@ public class RandomSampleLoader implements LoadFunc {
         numSamples = Integer.valueOf(ns);
     }
     
-    @Override
-    public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
-        skipInterval = (end - offset)/numSamples;
+
+    public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {        
+    	skipInterval = (end - offset)/numSamples;
         loader.bindTo(fileName, is, offset, end);
     }
     
-    @Override
+
     public Tuple getNext() throws IOException {
         long initialPos = loader.getPosition();
-        Tuple t = loader.getSampledTuple();
+        
+        // make sure we move to a boundry of a record
+        Tuple t = loader.getSampledTuple();        
+        long middlePos = loader.getPosition();
+        
+        // we move to next boundry
+        t = loader.getSampledTuple();        
         long finalPos = loader.getPosition();
         
         long toSkip = skipInterval - (finalPos - initialPos);
@@ -84,8 +92,26 @@ public class RandomSampleLoader implements LoadFunc {
                 }
                 remainingSkip -= rc;
             }
+        }       
+        
+        if (t == null) {
+        	return null;
         }
-        return t;
+        
+        if (factory == null) {
+        	factory = TupleFactory.getInstance();
+        }
+
+        // copy existing field 
+        Tuple m = factory.newTuple(t.size()+1);
+        for(int i=0; i<t.size(); i++) {
+        	m.set(i, t.get(i));
+        }
+        
+        // add size of the tuple at the end
+        m.set(t.size(), (finalPos-middlePos));
+        
+        return m;
     }
     
     public Integer bytesToInteger(byte[] b) throws IOException {

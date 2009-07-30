@@ -325,7 +325,7 @@ public class MapReduceLauncher extends Launcher{
         // Optimize the jobs that have a load/store only first MR job followed
         // by a sample job.
         SampleOptimizer so = new SampleOptimizer(plan);
-        so.visit();
+        so.visit();            
         
         // optimize key - value handling in package
         POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);

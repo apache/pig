@@ -59,8 +59,9 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     
     public void attachInput(Tuple t){
         List<PhysicalOperator> roots = getRoots();
-        for (PhysicalOperator operator : roots)
+        for (PhysicalOperator operator : roots) {
             operator.attachInput(t);
+		}
     }
     
     /**

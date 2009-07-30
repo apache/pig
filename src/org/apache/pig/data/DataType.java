@@ -85,7 +85,7 @@ public class DataType {
         else if (o instanceof Double) return DOUBLE;
         else if (o instanceof Boolean) return BOOLEAN;
         else if (o instanceof Byte) return BYTE;
-        else return ERROR;
+        else {return ERROR;}
     }
 
     /**

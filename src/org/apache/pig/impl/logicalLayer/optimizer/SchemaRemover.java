@@ -211,4 +211,8 @@ public class SchemaRemover extends LOVisitor {
         super.visit(frj);
     }
     
+    protected void visit(LOJoin frj) throws VisitorException {
+        frj.unsetSchema();
+        super.visit(frj);
+    }
 }

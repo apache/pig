@@ -2245,6 +2245,131 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
     }
 
+	/**
+     * LOJoin visitor
+	 */
+    protected void visit(LOJoin frj) throws VisitorException {
+        try {
+            frj.regenerateSchema();
+        } catch (FrontendException fe) {
+            int errCode = 1060;
+            String msg = "Cannot resolve Join output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+        }
+        
+        MultiMap<LogicalOperator, LogicalPlan> joinColPlans
+                                                    = frj.getJoinPlans() ;
+        List<LogicalOperator> inputs = frj.getInputs() ;
+        
+        // Type checking internal plans.
+        for(int i=0;i < inputs.size(); i++) {
+            LogicalOperator input = inputs.get(i) ;
+            List<LogicalPlan> innerPlans
+                        = new ArrayList<LogicalPlan>(joinColPlans.get(input)) ;
+
+            for(int j=0; j < innerPlans.size(); j++) {
+
+                LogicalPlan innerPlan = innerPlans.get(j) ;
+                
+                // Check that the inner plan has only 1 output port
+                if (!innerPlan.isSingleLeafPlan()) {
+                    int errCode = 1057;
+                    String msg = "Join's inner plans can only"
+                                 + " have one output (leaf)" ;
+                    msgCollector.collect(msg, MessageType.Error) ;
+                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                }
+
+                checkInnerPlan(innerPlans.get(j)) ;
+            }
+        }
+        
+        try {
+
+            if (!frj.isTupleJoinCol()) {
+                // merge all the inner plan outputs so we know what type
+                // our group column should be
+
+                // TODO: Don't recompute schema here
+                //byte groupType = schema.getField(0).type ;
+                byte groupType = frj.getAtomicJoinColType() ;
+
+                // go through all inputs again to add cast if necessary
+                for(int i=0;i < inputs.size(); i++) {
+                    LogicalOperator input = inputs.get(i) ;
+                    List<LogicalPlan> innerPlans
+                                = new ArrayList<LogicalPlan>(joinColPlans.get(input)) ;
+                    // Checking innerPlan size already done above
+                    byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
+                    if (innerType != groupType) {
+                        insertAtomicCastForJoinInnerPlan(innerPlans.get(0),
+                                                            frj,
+                                                            groupType) ;
+                    }
+                }
+            }
+            else {
+
+                // TODO: Don't recompute schema here
+                //Schema groupBySchema = schema.getField(0).schema ;
+                Schema groupBySchema = frj.getTupleJoinSchema() ;
+
+                // go through all inputs again to add cast if necessary
+                for(int i=0;i < inputs.size(); i++) {
+                    LogicalOperator input = inputs.get(i) ;
+                    List<LogicalPlan> innerPlans
+                                = new ArrayList<LogicalPlan>(joinColPlans.get(input)) ;
+                    for(int j=0;j < innerPlans.size(); j++) {
+                        LogicalPlan innerPlan = innerPlans.get(j) ;
+                        byte innerType = innerPlan.getSingleLeafPlanOutputType() ;
+                        byte expectedType = DataType.BYTEARRAY ;
+
+                        if (!DataType.isAtomic(innerType) && (DataType.TUPLE != innerType)) {
+                            int errCode = 1057;
+                            String msg = "Join's inner plans can only"
+                                         + "have one output (leaf)" ;
+                            msgCollector.collect(msg, MessageType.Error) ;
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                        }
+
+                        try {
+                            expectedType = groupBySchema.getField(j).type ;
+                        }
+                        catch(FrontendException fee) {
+                            int errCode = 1060;
+                            String msg = "Cannot resolve Join output schema" ;
+                            msgCollector.collect(msg, MessageType.Error) ;
+                            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
+                        }
+
+                        if (innerType != expectedType) {
+                            insertAtomicCastForJoinInnerPlan(innerPlan,
+                                                                frj,
+                                                                expectedType) ;
+                        }
+                    }
+                }
+            }
+        }
+        catch (FrontendException fe) {
+            int errCode = 1060;
+            String msg = "Cannot resolve Join output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+        }
+
+        try {
+            Schema outputSchema = frj.regenerateSchema() ;
+        }
+        catch (FrontendException fe) {
+            int errCode = 1060;
+            String msg = "Cannot resolve Join output schema" ;
+            msgCollector.collect(msg, MessageType.Error) ;
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+        }
+    }
+
     /**
      * COGroup
      * All group by cols from all inputs have to be of the
@@ -2379,6 +2504,36 @@ public class TypeCheckingVisitor extends LOVisitor {
     
     private void insertAtomicCastForFRJInnerPlan(LogicalPlan innerPlan,
             LOFRJoin frj, byte toType) throws VisitorException {
+        if (!DataType.isUsableType(toType)) {
+            int errCode = 1051;
+            String msg = "Cannot cast to "
+                + DataType.findTypeName(toType);
+            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+        }
+
+        List<LogicalOperator> leaves = innerPlan.getLeaves();
+        if (leaves.size() > 1) {
+            int errCode = 2060;
+            String msg = "Expected one leaf. Found " + leaves.size() + " leaves.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG);
+        }
+        ExpressionOperator currentOutput = (ExpressionOperator) leaves.get(0);
+        collectCastWarning(frj, currentOutput.getType(), toType);
+        OperatorKey newKey = genNewOperatorKey(currentOutput);
+        LOCast cast = new LOCast(innerPlan, newKey, toType);
+        innerPlan.add(cast);
+        try {
+            innerPlan.connect(currentOutput, cast);
+        } catch (PlanException pe) {
+            int errCode = 2059;
+            String msg = "Problem with inserting cast operator for fragment replicate join in plan.";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
+        }
+        this.visit(cast);
+    }
+
+    private void insertAtomicCastForJoinInnerPlan(LogicalPlan innerPlan,
+            LOJoin frj, byte toType) throws VisitorException {
         if (!DataType.isUsableType(toType)) {
             int errCode = 1051;
             String msg = "Cannot cast to "

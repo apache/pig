@@ -58,6 +58,9 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.WrappedIOException;
 
+import org.apache.pig.data.DataBag;
+import org.apache.pig.impl.io.NullablePartitionWritable;
+
 /**
  * This class is the static Mapper &amp; Reducer classes that
  * are used by Pig to execute Pig Map Reduce jobs. Since
@@ -139,6 +142,97 @@ public class PigMapReduce {
             oc.collect(key, val);
         }
     }
+
+	/**
+	 * Used by Skewed Join
+	 */
+    public static class MapWithPartitionIndex extends Map implements
+            Mapper<Text, Tuple, PigNullableWritable, Writable> {    	
+
+        @Override
+        public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {			
+			Byte tupleKeyIdx = 2;
+			Byte tupleValIdx = 3;
+
+            Byte index = (Byte)tuple.get(0);
+			Byte partitionIndex = -1;
+        	// for partitioning table, the partition index isn't present
+			if (tuple.size() == 3) {
+				//super.collect(oc, tuple);
+				//return;
+				tupleKeyIdx--;
+				tupleValIdx--;
+			} else {
+				partitionIndex = (Byte)tuple.get(1);
+			}
+
+            PigNullableWritable key =
+                HDataType.getWritableComparableTypes(tuple.get(tupleKeyIdx), DataType.TUPLE);
+
+			NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
+			//key.setIndex(index);
+			//NullableTuple wrappedKey = new NullableTuple((Tuple)tuple);
+
+			NullableTuple val = new NullableTuple((Tuple)tuple.get(tupleValIdx));
+            // Both the key and the value need the index.  The key needs it so
+            // that it can be sorted on the index in addition to the key
+            // value.  The value needs it so that POPackage can properly
+            // assign the tuple to its slot in the projection.
+            wrappedKey.setIndex(index);
+			// set the partition
+			wrappedKey.setPartition(partitionIndex);
+			val.setIndex(index);
+            oc.collect(wrappedKey, val);
+            //oc.collect(key, val);
+        }
+
+		@Override
+		protected void runPipeline(PhysicalOperator leaf) throws IOException, ExecException {			
+			while(true){								
+				Result res = leaf.getNext(DUMMYTUPLE);
+				
+				if(res.returnStatus==POStatus.STATUS_OK){
+					// For POPartitionRearrange, the result is a bag. This operator is used for 
+					// skewed join
+					if (res.result instanceof DataBag) {					
+						Iterator<Tuple> its = ((DataBag)res.result).iterator();
+						while(its.hasNext()) {																
+							collect(outputCollector, its.next());
+						}
+					}else{											
+						collect(outputCollector, (Tuple)res.result);
+					}
+					continue;
+				}
+				
+				if(res.returnStatus==POStatus.STATUS_EOP) {
+					return;
+				}
+				
+				if(res.returnStatus==POStatus.STATUS_NULL)
+					continue;
+				
+				if(res.returnStatus==POStatus.STATUS_ERR){
+					// remember that we had an issue so that in 
+					// close() we can do the right thing
+					errorInMap  = true;
+					// if there is an errmessage use it
+					String errMsg;
+					if(res.result != null) {
+						errMsg = "Received Error while " +
+						"processing the map plan: " + res.result;
+					} else {
+						errMsg = "Received Error while " +
+						"processing the map plan.";
+					}
+						
+					int errCode = 2055;
+					ExecException ee = new ExecException(errMsg, errCode, PigException.BUG);
+					throw ee;
+				}
+			}
+		}
+	}
 
     public static class Reduce extends MapReduceBase
             implements
@@ -321,7 +415,7 @@ public class PigMapReduce {
             {
                 Result redRes = leaf.getNext(DUMMYTUPLE);
                 if(redRes.returnStatus==POStatus.STATUS_OK){
-                    outputCollector.collect(null, (Tuple)redRes.result);
+                   	outputCollector.collect(null, (Tuple)redRes.result);
                     continue;
                 }
                 

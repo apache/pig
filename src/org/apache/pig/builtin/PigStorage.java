@@ -98,12 +98,10 @@ public class PigStorage extends Utf8StorageConverter
         }
     }
 
-    @Override
     public long getPosition() throws IOException {
         return in.getPosition();
     }
 
-    @Override
     public long skip(long n) throws IOException {
         
         long skipped = in.skip(n-1);
@@ -125,7 +123,8 @@ public class PigStorage extends Utf8StorageConverter
             // BufferedPositionedInputStream is buffered, so I don't need
             // to buffer.
             int b = in.read();
-
+            prevByte = (byte)b;
+            
             if (b == fieldDel) {
                 readField();
             } else if (b == recordDel) {
@@ -143,7 +142,6 @@ public class PigStorage extends Utf8StorageConverter
         }
     }
 
-    @Override
     public Tuple getSampledTuple() throws IOException {
        
         if(prevByte == null || prevByte == recordDel) 
@@ -357,7 +355,7 @@ public class PigStorage extends Utf8StorageConverter
     /* (non-Javadoc)
      * @see org.apache.pig.StoreFunc#getStorePreparationClass()
      */
-    @Override
+   
     public Class getStorePreparationClass() throws IOException {
         // TODO Auto-generated method stub
         return null;
