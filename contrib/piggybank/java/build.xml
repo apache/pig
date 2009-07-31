@@ -32,6 +32,7 @@
     <property name="build.docs" value="${build.dir}/docs" />
     <property name="build.javadoc" value="${build.docs}/api" />
     <property name="pigjar" value="../../../pig.jar" />
+    <property name="pigtest" value="../../../build/test/classes" />
     <property name="udfjar" value="piggybank.jar" />
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
 
@@ -45,16 +46,19 @@
     <property name="test.timeout" value="900000" />
     <property name="test.junit.output.format" value="plain" />
     <property name="test.src.dir" value="src/test/java" />
+    <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
 
     <path id="pigudf.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${pigjar}"/>
+        <pathelement location="${pigtest}"/>
     </path>
 
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.classes}"/>
         <pathelement location="${test.src.dir}"/>
+        <pathelement location="${junit.hadoop.conf}" />
         <path refid="pigudf.classpath"/>
     </path>
 
@@ -93,6 +97,7 @@
         <delete dir="${test.logs}"/>
         <mkdir dir="${test.logs}"/>
         <junit printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">        
+            <sysproperty key="hadoop.log.dir" value="${test.logs}"/>
             <classpath refid="test.classpath"/>
             <formatter type="${test.junit.output.format}" />
             <batchtest fork="yes" todir="${test.logs}" unless="testcase">
