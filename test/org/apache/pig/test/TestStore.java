@@ -207,7 +207,7 @@ public class TestStore extends junit.framework.TestCase {
             t.append(flds[8].compareTo("")!=0 ? ps.bytesToTuple(flds[8].getBytes()) : null);
             t.append(flds[9].compareTo("")!=0 ? ps.bytesToCharArray(flds[9].getBytes()) : null);
             
-            assertTrue(inputTuple.equals(t));
+            assertTrue(TestHelper.tupleEquals(inputTuple, t));
             ++size;
         }
         FileLocalizer.delete(fSpec.getFileName(), pc);

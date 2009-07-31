@@ -44,6 +44,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 
 
 public class TextDataParser {
@@ -141,13 +142,13 @@ Map<String, Object> Map() :
 void KeyValuePair(Map<String, Object> keyValues) :
 {
 	String key = null;
-	Object value = null;
+	String value = null;
 	log.trace("Entering KeyValuePair");
 }
 {
-	(key = StringDatum() "#" value = Datum())
+	(key = StringDatum() "#" value = StringDatum())
 	{
-		keyValues.put(key, value);
+		keyValues.put(key, new DataByteArray(value.getBytes("UTF-8")));
 		log.trace("Exiting KeyValuePair");
 	}
 	
@@ -161,11 +162,20 @@ String StringDatum():
 }
 {
     (
-    t = <STRING> { s = t.image; }
-|	t = <NULL> {}
+	(
+	t = <SIGNEDINTEGER> 
+|	t = <LONGINTEGER> 
+|	t = <FLOATNUMBER> 
+|	t = <DOUBLENUMBER> 
+|	t = <STRING>
+	) 
+    {
+        s = t.image;
+    }
+
     )
     {
-        log.trace("Exiting String with " + t.image);
+        log.trace("Exiting String with " + s);
         return s;
     }
 }
@@ -195,7 +205,6 @@ Object AtomDatum():
     {
         obj = new Double(Double.parseDouble(t.image));
     }
-|	t = <NULL> {}
 |	t = <STRING> 
     {
         obj = t.image;
