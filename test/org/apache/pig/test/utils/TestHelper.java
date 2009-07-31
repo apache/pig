@@ -19,6 +19,7 @@ package org.apache.pig.test.utils;
 
 import java.io.*;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -45,7 +46,7 @@ public class TestHelper {
     public static boolean bagContains(DataBag db, Tuple t) {
         Iterator<Tuple> iter = db.iterator();
         for (Tuple tuple : db) {
-            if (tuple.compareTo(t) == 0)
+            if (tuple.compareTo(t) == 0 || tupleEquals(tuple, t))
                 return true;
         }
         return false;
@@ -240,4 +241,134 @@ public class TestHelper {
         ps.close();
         return fp1 ;
     }
+    
+    //a quick way to check for map equality as the map value returned by PigStorage has byte array
+    public static boolean mapEquals(Map<String, Object> expectedMap, Map<String, Object> convertedMap) {
+        if(expectedMap == null) {
+            if(convertedMap != null) {
+                return false;
+            }
+        } else {
+            if (convertedMap == null) {
+                return false;
+            }
+        }
+        
+        if(expectedMap.size() != convertedMap.size()) {
+            return false;
+        }
+        
+        for(String key: expectedMap.keySet()) {
+            Object v = convertedMap.get(key);
+            String convertedValue = new String(((DataByteArray)v).get());
+            if(!expectedMap.get(key).equals(convertedValue)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    @SuppressWarnings("unchecked")
+    public static boolean tupleEquals(Tuple expectedTuple, Tuple convertedTuple) {
+        if(expectedTuple == null) {
+            if(convertedTuple != null) {
+                return false;
+            }
+        } else {
+            if(convertedTuple == null) {
+                return false;
+            }
+        }
+        
+        if(expectedTuple.size() != convertedTuple.size()) {
+            return false;
+        }
+        
+        for(int i = 0; i < expectedTuple.size(); ++i) {
+            Object e ;
+            Object c ;
+            
+            try {
+                e = expectedTuple.get(i);
+                c = convertedTuple.get(i);
+            } catch (Exception e1) {
+                return false;
+            }
+            
+            if(e instanceof Map) {
+                Map<String, Object> eMap = (Map<String, Object>)e;
+                if(c instanceof Map) {
+                    Map<String, Object> cMap = (Map<String, Object>)c;
+                    if(!mapEquals(eMap, cMap)) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else if (e instanceof Tuple) {
+                if(c instanceof Tuple) {
+                    if(!tupleEquals((Tuple)e, (Tuple)c)) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else if (e instanceof DataBag){
+                if(c instanceof DataBag) {
+                    if(!bagEquals((DataBag)e, (DataBag)c)) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                if(e == null) {
+                    if(c != null) {
+                        return false;
+                    }
+                } else {
+                    if(c == null) {
+                        return false;
+                    } else {
+                        if(!e.equals(c)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return true;
+    }   
+    
+    public static boolean bagEquals(DataBag expectedBag, DataBag convertedBag) {
+        if(expectedBag == null) {
+            if(convertedBag != null) {
+                return false;
+            }
+        } else {
+            if(convertedBag == null) {
+                return false;
+            }
+        }
+        
+        if(expectedBag.size() != convertedBag.size()) {
+            return false;
+        }
+        
+        Iterator<Tuple> expectedBagIterator = expectedBag.iterator();
+        Iterator<Tuple> convertedBagIterator = convertedBag.iterator();
+        
+        while(expectedBagIterator.hasNext()) {
+            Tuple expectedBagTuple = expectedBagIterator.next();
+            Tuple convertedBagTuple = convertedBagIterator.next();
+            if(!tupleEquals(expectedBagTuple, convertedBagTuple)) {
+                return false;
+            }
+        }
+        
+        return true;
+
+    }
+
 }
