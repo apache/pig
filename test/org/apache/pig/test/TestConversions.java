@@ -17,12 +17,14 @@
  */
 package org.apache.pig.test;
 
+import java.util.Iterator;
 import java.util.Random;
 import java.util.Map;
 import java.io.IOException;
 
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.DataBag;
@@ -44,6 +46,7 @@ public class TestConversions extends TestCase {
     PigStorage ps = new PigStorage();
 	Random r = new Random();
 	final int MAX = 10;
+
     
     @Test
     public  void testBytesToInteger() throws IOException
@@ -153,7 +156,7 @@ public class TestConversions extends TestCase {
         for (int i = 0; i < MAX; i++) {
             Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
             Tuple convertedTuple = ps.bytesToTuple(t.toString().getBytes());
-            assertTrue(t.equals(convertedTuple));
+            assertTrue(TestHelper.tupleEquals(t, convertedTuple));
         }
         
     }
@@ -164,7 +167,7 @@ public class TestConversions extends TestCase {
         for (int i = 0; i < MAX; i++) {
             DataBag b = GenRandomData.genRandFullTupTextDataBag(r,5,100);
             DataBag convertedBag = ps.bytesToBag(b.toString().getBytes());
-            assertTrue(b.equals(convertedBag));
+            assertTrue(TestHelper.bagEquals(b, convertedBag));
         }
         
     }
@@ -177,7 +180,7 @@ public class TestConversions extends TestCase {
             Map<String, Object>  m = GenRandomData.genRandMap(r,5);
             String expectedMapString = DataType.mapToString(m);
             Map<String, Object> convertedMap = ps.bytesToMap(expectedMapString.getBytes());
-            assertTrue(m.equals(convertedMap));
+            assertTrue(TestHelper.mapEquals(m, convertedMap));
         }
         
     }
