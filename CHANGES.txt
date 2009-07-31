@@ -20,6 +20,10 @@
 
 Pig Change Log
 
+BUG FIXES 
+
+PIG-878: Pig is returning too many blocks in the input split. (arunc via gates).
+
 Release 0.3.0 - 06/16/09
 
 INCOMPATIBLE CHANGES
