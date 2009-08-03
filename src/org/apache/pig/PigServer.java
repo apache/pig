@@ -36,6 +36,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -178,11 +181,13 @@ public class PigServer {
     }
     
     public void debugOn() {
-        pigContext.debug = true;
+        Logger.getLogger("org.apache.pig").setLevel(Level.DEBUG);
+        pigContext.getLog4jProperties().setProperty("log4j.logger.org.apache.pig", Level.DEBUG.toString());
     }
     
     public void debugOff() {
-        pigContext.debug = false;
+        Logger.getLogger("org.apache.pig").setLevel(pigContext.getDefaultLogLevel());
+        pigContext.getLog4jProperties().setProperty("log4j.logger.org.apache.pig", pigContext.getDefaultLogLevel().toString());
     }
     
     public void setDefaultParallel(int p) {
@@ -321,7 +326,7 @@ public class PigServer {
             resourceLocation = urls.nextElement();
         }
         
-        if (pigContext.debug && urls.hasMoreElements()) {
+        if (urls.hasMoreElements()) {
             String logMessage = "Found multiple resources that match " 
                 + jarName + ": " + resourceLocation;
             

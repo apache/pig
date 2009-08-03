@@ -41,6 +41,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.log4j.Level;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.Main;
 import org.apache.pig.ExecType;
@@ -115,7 +116,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
     private static ArrayList<String> packageImportList = new ArrayList<String>();
 
-    public boolean debug = true;
+    private Properties log4jProperties = new Properties();
+    
+    private Level defaultLogLevel; 
     
     public int defaultParallel = -1;
 
@@ -638,5 +641,21 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public static void setPackageImportList(ArrayList<String> list)
     {
         packageImportList = list;
+    }
+    public void setLog4jProperties(Properties p)
+    {
+        log4jProperties = p;
+    }
+    public Properties getLog4jProperties()
+    {
+        return log4jProperties;
+    }
+    public Level getDefaultLogLevel()
+    {
+        return defaultLogLevel;
+    }
+    public void setDefaultLogLevel(Level l)
+    {
+        defaultLogLevel = l;
     }
 }

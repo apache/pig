@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.ExecType;
 import org.apache.pig.impl.PigContext;
@@ -260,10 +261,11 @@ public static void main(String args[])
                      }
             }
         }
-        // configure logging
-        configureLog4J(properties);
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
+
+        // configure logging
+        configureLog4J(properties, pigContext);
         
         if(logFileName == null && !userSpecifiedLog) {
             logFileName = validateLogFile(null, null);
@@ -445,7 +447,7 @@ private static int getReturnCodeForStats(int[] stats) {
 }
 
 //TODO jz: log4j.properties should be used instead
-private static void configureLog4J(Properties properties) {
+private static void configureLog4J(Properties properties, PigContext pigContext) {
     // TODO Add a file appender for the logs
     // TODO Need to create a property in the properties file for it.
     // sgroschupf, 25Feb2008: this method will be obsolete with PIG-115.
@@ -460,35 +462,43 @@ private static void configureLog4J(Properties properties) {
         logLevel = Level.toLevel(logLevelString, Level.INFO);
     }
     
+    Properties props = new Properties();
     if (log4jconf != null) {
-         PropertyConfigurator.configure(log4jconf);
-     } else if (!brief ) {
-         // non-brief logging - timestamps
-         Properties props = new Properties();
-         props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
-         props.setProperty("log4j.appender.PIGCONSOLE",
-                           "org.apache.log4j.ConsoleAppender");
-         props.setProperty("log4j.appender.PIGCONSOLE.layout",
-                           "org.apache.log4j.PatternLayout");
-         props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
-                           "%d [%t] %-5p %c - %m%n");
-         props.setProperty("log4j.appender.PIGCONSOLE.target",
-         "System.err");
-         PropertyConfigurator.configure(props);
-     } else {
-         // brief logging - no timestamps
-         Properties props = new Properties();
-         props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
-         props.setProperty("log4j.appender.PIGCONSOLE",
-                           "org.apache.log4j.ConsoleAppender");
-         props.setProperty("log4j.appender.PIGCONSOLE.layout",
-                           "org.apache.log4j.PatternLayout");
-         props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern",
-                           "%m%n");
-         props.setProperty("log4j.appender.PIGCONSOLE.target",
-         "System.err");
-         PropertyConfigurator.configure(props);
-     }
+        try {
+            FileReader propertyReader = new FileReader(log4jconf);
+            props.load(propertyReader);
+        }
+        catch (IOException e)
+        {
+            System.err.println("Warn: Cannot open log4j properties file, use default");
+        }
+    }
+    if (props.size() == 0) {
+        props.setProperty("log4j.logger.org.apache.pig", logLevel.toString()+", PIGCONSOLE");
+        props.setProperty("log4j.appender.PIGCONSOLE",
+                "org.apache.log4j.ConsoleAppender");
+        props.setProperty("log4j.appender.PIGCONSOLE.layout",
+                "org.apache.log4j.PatternLayout");
+        props.setProperty("log4j.appender.PIGCONSOLE.target", "System.err");
+
+        if (!brief) {
+            // non-brief logging - timestamps
+            props.setProperty(
+                    "log4j.appender.PIGCONSOLE.layout.ConversionPattern",
+                    "%d [%t] %-5p %c - %m%n");
+        } else {
+            // brief logging - no timestamps
+            props.setProperty(
+                    "log4j.appender.PIGCONSOLE.layout.ConversionPattern",
+                    "%m%n");
+        }
+    }
+    PropertyConfigurator.configure(props);
+    logLevel = Logger.getLogger("org.apache.pig").getLevel();
+    Properties backendProps = pigContext.getLog4jProperties();
+    backendProps.setProperty("log4j.logger.org.apache.pig.level", logLevel.toString());
+    pigContext.setLog4jProperties(backendProps);
+    pigContext.setDefaultLogLevel(logLevel);
 }
  
 // returns the stream of final pig script to be passed to Grunt

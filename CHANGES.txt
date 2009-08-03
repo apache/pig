@@ -44,6 +44,8 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
 
+    PIG-882: log level not propogated to loggers (daijy)
+
     PIG-880: Order by is borken with complex fields (sms)
     
     PIG-773: Empty complex constants (empty bag, empty tuple and empty map)
