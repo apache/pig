@@ -30,6 +30,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.TargetedTuple;
@@ -147,6 +148,10 @@ public abstract class PigMapBase extends MapReduceBase{
         PigMapReduce.sJobConf = job;
         try {
             PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
+            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+            if (pigContext.getLog4jProperties()!=null)
+                PropertyConfigurator.configure(pigContext.getLog4jProperties());
+            
             mp = (PhysicalPlan) ObjectSerializer.deserialize(
                 job.get("pig.mapPlan"));
             stores = PlanHelper.getStores(mp);
@@ -176,7 +181,7 @@ public abstract class PigMapBase extends MapReduceBase{
                 leaf = mp.getLeaves().get(0);
             }
             
-            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+            
             
         } catch (IOException ioe) {
             String msg = "Problem while configuring map plan.";

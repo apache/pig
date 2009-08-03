@@ -33,6 +33,7 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.log4j.PropertyConfigurator;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -96,6 +97,10 @@ public class PigCombiner {
             sJobConf = jConf;
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
+                pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
+                if (pigContext.getLog4jProperties()!=null)
+                    PropertyConfigurator.configure(pigContext.getLog4jProperties());
+                
                 cp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.combinePlan"));
                 pack = (POPackage)ObjectSerializer.deserialize(jConf.get("pig.combine.package"));
@@ -118,9 +123,6 @@ public class PigCombiner {
                     roots = cp.getRoots().toArray(new PhysicalOperator[1]);
                     leaf = cp.getLeaves().get(0);
                 }
-                
-                pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
-                
             } catch (IOException ioe) {
                 String msg = "Problem while configuring combiner's reduce plan.";
                 throw new RuntimeException(msg, ioe);
