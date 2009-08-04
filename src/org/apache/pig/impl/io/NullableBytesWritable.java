@@ -39,6 +39,6 @@ public class NullableBytesWritable extends PigNullableWritable {
 
     public Object getValueAsPigType() {
         BytesWritable bw = (BytesWritable)mValue;
-        return isNull() ? null : new DataByteArray(bw.getBytes(), 0, bw.getLength());
+        return isNull() ? null : new DataByteArray(bw.get(), 0, bw.getSize());
     }
 }
