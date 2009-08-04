@@ -20,7 +20,7 @@ package org.apache.pig.test;
 import java.io.*;
 import java.util.Properties;
 
-import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.dfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
 
 import org.apache.hadoop.conf.Configuration;
@@ -68,7 +68,7 @@ public class MiniCluster {
             m_conf.setInt("mapred.submit.replication", 2);
             m_conf.set("dfs.datanode.address", "0.0.0.0:0");
             m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
-            m_conf.writeXml(new FileOutputStream(conf_file));
+            m_conf.write(new FileOutputStream(conf_file));
             
             // Set the system properties needed by Pig
             System.setProperty("cluster", m_conf.get("mapred.job.tracker"));

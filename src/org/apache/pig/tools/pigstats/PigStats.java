@@ -148,13 +148,14 @@ public class PigStats {
                 try {
                     counters = rj.getCounters();
                     Counters.Group taskgroup = counters.getGroup("org.apache.hadoop.mapred.Task$Counter");
-                    Counters.Group hdfsgroup = counters.getGroup("org.apache.hadoop.mapred.Task$FileSystemCounter");
+                    Counters.Group hdfsgroup = counters.getGroup("FileSystemCounters");
 
                     jobStats.put("PIG_STATS_MAP_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("MAP_INPUT_RECORDS").getCounter())).toString());
                     jobStats.put("PIG_STATS_MAP_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("MAP_OUTPUT_RECORDS").getCounter())).toString());
                     jobStats.put("PIG_STATS_REDUCE_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_INPUT_RECORDS").getCounter())).toString());
                     jobStats.put("PIG_STATS_REDUCE_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_OUTPUT_RECORDS").getCounter())).toString());
-                    jobStats.put("PIG_STATS_BYTES_WRITTEN", (Long.valueOf(hdfsgroup.getCounterForName("HDFS_WRITE").getCounter())).toString());
+                    jobStats.put("PIG_STATS_BYTES_WRITTEN", (Long.valueOf(hdfsgroup.getCounterForName("HDFS_BYTES_WRITTEN").getCounter())).toString());
+
                 } catch (IOException e) {
                     // TODO Auto-generated catch block
                     String error = "Unable to get the counters.";

@@ -47,14 +47,14 @@
     <!-- property name="build.encoding" value="ISO-8859-1" / -->
     <property name="build.encoding" value="UTF8" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
-    <property name="hadoop.jarfile" value="hadoop18.jar" />
+    <property name="hadoop.jarfile" value="hadoop20.jar" />
     <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
     <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
 
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
     <property name="javac.optimize" value="on" />
-    <property name="javac.deprecation" value="on" />
+    <property name="javac.deprecation" value="off" />
     <property name="javac.version" value="1.5" />
     <property name="javac.args" value="" />
     <!-- default warnings option -->
@@ -446,6 +446,7 @@
                     <!-- Excluded under Windows.-->
                     <exclude name="**/TestHBaseStorage.java" if="isWindows" />
                     <!-- Excluced because we don't want to run them -->
+                    <exclude name="**/TestHBaseStorage.java" />
                     <exclude name="**/PigExecTestCase.java" />
                     <exclude name="**/TypeCheckingTestUtil.java" />
                     <exclude name="**/TypeGraphPrinter.java" />
