@@ -60,7 +60,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public class SliceWrapper implements InputSplit {
 
     private int index;
-    private PigContext pigContext;
+    private ExecType execType;
     private Slice wrapped;
     private transient FileSystem fs;// transient so it isn't serialized
     private transient JobConf lastConf;
@@ -70,9 +70,9 @@ public class SliceWrapper implements InputSplit {
         // for deserialization
     }
 
-    public SliceWrapper(Slice slice, PigContext context, int index, FileSystem fs, ArrayList<OperatorKey> targetOps) {
+    public SliceWrapper(Slice slice, ExecType execType, int index, FileSystem fs, ArrayList<OperatorKey> targetOps) {
         this.wrapped = slice;
-        this.pigContext = context;
+        this.execType = execType;
         this.index = index;
         this.fs = fs;
         this.targetOps = targetOps;
@@ -122,7 +122,7 @@ public class SliceWrapper implements InputSplit {
         DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
         // if the execution is against Mapred DFS, set
         // working dir to /user/<userid>
-        if(pigContext.getExecType() == ExecType.MAPREDUCE)
+        if(execType == ExecType.MAPREDUCE)
             store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
         wrapped.init(store);
         
@@ -165,7 +165,7 @@ public class SliceWrapper implements InputSplit {
     }
 
     public void readFields(DataInput is) throws IOException {
-        pigContext = (PigContext) readObject(is);
+        execType = (ExecType) readObject(is);
         targetOps = (ArrayList<OperatorKey>) readObject(is);
         index = is.readInt();
         wrapped = (Slice) readObject(is);
@@ -192,7 +192,7 @@ public class SliceWrapper implements InputSplit {
     }
 
     public void write(DataOutput os) throws IOException {
-        writeObject(pigContext, os);
+        writeObject(execType, os);
         writeObject(targetOps, os);
         os.writeInt(index);
         writeObject(wrapped, os);

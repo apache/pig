@@ -22,6 +22,9 @@ Pig Change Log
 
 BUG FIXES 
 
+PIG-901: InputSplit (SliceWrapper) created by Pig is big in size due to
+serialized PigContext (pradeepkth)
+
 PIG-878: Pig is returning too many blocks in the input split. (arunc via gates).
 
 Release 0.3.0 - 06/16/09
