@@ -103,6 +103,7 @@ public class TestPigContext extends TestCase {
     @Test
     // See PIG-832
     public void testImportList() throws Exception {
+        
         String FILE_SEPARATOR = System.getProperty("file.separator");
         File tmpDir = File.createTempFile("test", "");
         tmpDir.delete();
@@ -112,37 +113,51 @@ public class TestPigContext extends TestCase {
         Util.deleteDirectory(tempDir);
         File udf1Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf1");
         udf1Dir.mkdirs();
-        File udf1JavaSrc = new File(udf1Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF.java");
+        File udf2Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf2");
+        udf2Dir.mkdirs();
+        File udf1JavaSrc = new File(udf1Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF1.java");
+        File udf2JavaSrc = new File(udf2Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF2.java");
+        
         String udf1Src = new String("package com.xxx.udf1;\n"+
                 "import java.io.IOException;\n"+
                 "import org.apache.pig.EvalFunc;\n"+
                 "import org.apache.pig.data.Tuple;\n"+
-                "public class TestUDF extends EvalFunc<Integer>{\n"+
+                "public class TestUDF1 extends EvalFunc<Integer>{\n"+
                 "public Integer exec(Tuple input) throws IOException {\n"+
                 "return 1;}\n"+
                 "}");
         
+        String udf2Src = new String("package com.xxx.udf2;\n"+
+                "import org.apache.pig.builtin.PigStorage;\n" +
+                "public class TestUDF2 extends PigStorage { }\n");
+
         // generate java file
-        FileOutputStream outStream = 
+        FileOutputStream outStream1 = 
             new FileOutputStream(udf1JavaSrc);
+        OutputStreamWriter outWriter1 = new OutputStreamWriter(outStream1);
+        outWriter1.write(udf1Src);
+        outWriter1.close();
         
-        OutputStreamWriter outWriter = new OutputStreamWriter(outStream);
-        outWriter.write(udf1Src);
-        outWriter.close();
+        FileOutputStream outStream2 = 
+            new FileOutputStream(udf2JavaSrc);
+        OutputStreamWriter outWriter2 = new OutputStreamWriter(outStream2);
+        outWriter2.write(udf2Src);
+        outWriter2.close();
         
         // compile
         int status;
         status = Util.executeShellCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf1JavaSrc);
-        
+        status = Util.executeShellCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf2JavaSrc);
+                
         // generate jar file
-        String jarName = "TestUDFJar1.jar";
+        String jarName = "TestUDFJar.jar";
         status = Util.executeShellCommand("jar -cf " + tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName + 
                               " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertTrue(status==0);
-
+        
         PigServer pig = new PigServer(pigContext);
         pig.registerJar(tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName);
-        
+
         PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
         ArrayList<String> importList = PigContext.getPackageImportList();
         assertTrue(importList.size()==5);
@@ -152,9 +167,9 @@ public class TestPigContext extends TestCase {
         assertTrue(importList.get(3).equals("org.apache.pig.builtin."));
         assertTrue(importList.get(4).equals("org.apache.pig.impl.builtin."));
         
-        Object udf = PigContext.instantiateFuncFromSpec("TestUDF");
-        assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF"));
-        
+        Object udf = PigContext.instantiateFuncFromSpec("TestUDF1");
+        assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF1"));
+
         int LOOP_COUNT = 40;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -168,11 +183,10 @@ public class TestPigContext extends TestCase {
         
         FileLocalizer.deleteTempFiles();
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' AS (num:chararray);");
-        pigServer.registerQuery("B = foreach A generate TestUDF(num);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' using TestUDF2() AS (num:chararray);");
+        pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No output found");
-        int numIdentity = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(t.get(0) instanceof Integer);

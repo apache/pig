@@ -18,10 +18,12 @@
 
 package org.apache.pig;
 
+import java.io.Serializable;
+
 /**
  * The type of query execution
  */
-public enum ExecType {
+public enum ExecType implements Serializable {
     /**
      * Run everything on the local machine
      */

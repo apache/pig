@@ -234,7 +234,7 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
 				}
 				Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
 				for (Slice split : pigs) {
-				    splits.add(new SliceWrapper(split, pigContext, i, fs, inpTargets.get(i)));
+				    splits.add(new SliceWrapper(split, pigContext.getExecType(), i, fs, inpTargets.get(i)));
 				}
             } catch (ExecException ee) {
             	throw ee;

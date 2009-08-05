@@ -43,6 +43,9 @@ OPTIMIZATIONS
 PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
+    
+    PIG-901: InputSplit (SliceWrapper) created by Pig is big in size due to
+    serialized PigContext (pradeepkth)
 
     PIG-882: log level not propogated to loggers (daijy)
 
