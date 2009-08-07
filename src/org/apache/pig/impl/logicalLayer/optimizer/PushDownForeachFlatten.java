@@ -28,8 +28,8 @@ import java.util.Set;
 import org.apache.pig.impl.logicalLayer.CastFinder;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCross;
-import org.apache.pig.impl.logicalLayer.LOFRJoin;
 import org.apache.pig.impl.logicalLayer.LOForEach;
+import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -222,7 +222,7 @@ public class PushDownForeachFlatten extends LogicalTransformer {
                 mSwap = true;
                 return true;
             } else if (successor instanceof LOCross
-                    || successor instanceof LOFRJoin) {
+                    || successor instanceof LOJoin) {
                 
                 List<LogicalOperator> children = mPlan.getSuccessors(successor);
                 

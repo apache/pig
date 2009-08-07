@@ -2123,6 +2123,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     /**
      * Mimics the type checking of LOCogroup
      */
+    /*
     protected void visit(LOFRJoin frj) throws VisitorException {
         try {
             frj.regenerateSchema();
@@ -2244,13 +2245,13 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
-
+*/
 	/**
      * LOJoin visitor
 	 */
-    protected void visit(LOJoin frj) throws VisitorException {
+    protected void visit(LOJoin join) throws VisitorException {
         try {
-            frj.regenerateSchema();
+            join.regenerateSchema();
         } catch (FrontendException fe) {
             int errCode = 1060;
             String msg = "Cannot resolve Join output schema" ;
@@ -2259,8 +2260,8 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         
         MultiMap<LogicalOperator, LogicalPlan> joinColPlans
-                                                    = frj.getJoinPlans() ;
-        List<LogicalOperator> inputs = frj.getInputs() ;
+                                                    = join.getJoinPlans() ;
+        List<LogicalOperator> inputs = join.getInputs() ;
         
         // Type checking internal plans.
         for(int i=0;i < inputs.size(); i++) {
@@ -2287,13 +2288,13 @@ public class TypeCheckingVisitor extends LOVisitor {
         
         try {
 
-            if (!frj.isTupleJoinCol()) {
+            if (!join.isTupleJoinCol()) {
                 // merge all the inner plan outputs so we know what type
                 // our group column should be
 
                 // TODO: Don't recompute schema here
                 //byte groupType = schema.getField(0).type ;
-                byte groupType = frj.getAtomicJoinColType() ;
+                byte groupType = join.getAtomicJoinColType() ;
 
                 // go through all inputs again to add cast if necessary
                 for(int i=0;i < inputs.size(); i++) {
@@ -2304,7 +2305,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
                     if (innerType != groupType) {
                         insertAtomicCastForJoinInnerPlan(innerPlans.get(0),
-                                                            frj,
+                                                            join,
                                                             groupType) ;
                     }
                 }
@@ -2313,7 +2314,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
                 // TODO: Don't recompute schema here
                 //Schema groupBySchema = schema.getField(0).schema ;
-                Schema groupBySchema = frj.getTupleJoinSchema() ;
+                Schema groupBySchema = join.getTupleJoinSchema() ;
 
                 // go through all inputs again to add cast if necessary
                 for(int i=0;i < inputs.size(); i++) {
@@ -2345,7 +2346,7 @@ public class TypeCheckingVisitor extends LOVisitor {
 
                         if (innerType != expectedType) {
                             insertAtomicCastForJoinInnerPlan(innerPlan,
-                                                                frj,
+                                                                join,
                                                                 expectedType) ;
                         }
                     }
@@ -2360,7 +2361,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
 
         try {
-            Schema outputSchema = frj.regenerateSchema() ;
+            Schema outputSchema = join.regenerateSchema() ;
         }
         catch (FrontendException fe) {
             int errCode = 1060;
@@ -2369,6 +2370,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
     }
+
 
     /**
      * COGroup
@@ -2502,6 +2504,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
     }
     
+    /*
     private void insertAtomicCastForFRJInnerPlan(LogicalPlan innerPlan,
             LOFRJoin frj, byte toType) throws VisitorException {
         if (!DataType.isUsableType(toType)) {
@@ -2531,7 +2534,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         this.visit(cast);
     }
-
+*/
     private void insertAtomicCastForJoinInnerPlan(LogicalPlan innerPlan,
             LOJoin frj, byte toType) throws VisitorException {
         if (!DataType.isUsableType(toType)) {
@@ -2561,6 +2564,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         this.visit(cast);
     }
+
 
     // This helps insert casting to atomic types in COGroup's inner plans
     // as a new leave of the plan

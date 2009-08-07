@@ -44,13 +44,13 @@ public class ProjectionMapCalculator extends
 
     /**
      * 
-     * @param frjoin
-     *            the logical fragment replicate join operator that has to be visited
+     * @param join
+     *            the logical join operator that has to be visited
      * @throws VisitorException
      */
-    protected void visit(LOFRJoin frjoin) throws VisitorException {
-        frjoin.getProjectionMap();
-        super.visit(frjoin);
+    protected void visit(LOJoin join) throws VisitorException {
+        join.getProjectionMap();
+        super.visit(join);
     }
     
     /**

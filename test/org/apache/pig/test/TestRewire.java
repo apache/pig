@@ -259,7 +259,7 @@ public class TestRewire extends junit.framework.TestCase {
         planTester.setProjectionMap(lp);
         
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         LOFilter filter = (LOFilter)lp.getSuccessors(frjoin).get(0);
         LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
         
@@ -277,7 +277,7 @@ public class TestRewire extends junit.framework.TestCase {
         assertTrue(filterProject.getCol() == 0);
         
         
-        LogicalPlan joinPlan = ((List<LogicalPlan>)(frjoin.getJoinColPlans().get(filter))).get(0);
+        LogicalPlan joinPlan = ((List<LogicalPlan>)(frjoin.getJoinPlans().get(filter))).get(0);
         LOProject joinProject = (LOProject)joinPlan.getRoots().get(0);
         assertTrue(joinProject.getExpression().equals(filter));
         
@@ -357,7 +357,7 @@ public class TestRewire extends junit.framework.TestCase {
         planTester.setProjectionMap(lp);
         
         LOLoad loada = (LOLoad) lp.getRoots().get(0);
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         LOFilter filter = (LOFilter)lp.getSuccessors(frjoin).get(0);
         LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
         

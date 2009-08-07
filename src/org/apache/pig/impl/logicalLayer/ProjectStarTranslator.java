@@ -76,41 +76,15 @@ public class ProjectStarTranslator extends
     }
     
     /* (non-Javadoc)
-     * @see org.apache.pig.impl.logicalLayer.LOVisitor#visit(org.apache.pig.impl.logicalLayer.LOFRJoin)
-     */
-    @Override
-    protected void visit(LOFRJoin frj) throws VisitorException {
-        //get the attributes of LOFRJoin that are modified during the translation
-        
-        MultiMap<LogicalOperator, LogicalPlan> joinColPlans = frj.getJoinColPlans();
-
-        for(LogicalOperator op: frj.getInputs()) {
-            ArrayList<LogicalPlan> newPlansAfterTranslation = new ArrayList<LogicalPlan>();
-            for(LogicalPlan lp: joinColPlans.get(op)) {
-                if (checkPlanForProjectStar(lp)) {
-                    ArrayList<LogicalPlan> translatedPlans = translateProjectStarInPlan(lp);
-                    for(int j = 0; j < translatedPlans.size(); ++j) {
-                        newPlansAfterTranslation.add(translatedPlans.get(j));
-                    }
-                } else {
-                    newPlansAfterTranslation.add(lp);
-                }
-            }
-            joinColPlans.removeKey(op);
-            joinColPlans.put(op, newPlansAfterTranslation);
-        }
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.pig.impl.logicalLayer.LOVisitor#visit(org.apache.pig.impl.logicalLayer.LOJoin)
      */
     @Override
-    protected void visit(LOJoin frj) throws VisitorException {
+    protected void visit(LOJoin join) throws VisitorException {
         //get the attributes of LOJoin that are modified during the translation
         
-        MultiMap<LogicalOperator, LogicalPlan> joinColPlans = frj.getJoinPlans();
+        MultiMap<LogicalOperator, LogicalPlan> joinColPlans = join.getJoinPlans();
 
-        for(LogicalOperator op: frj.getInputs()) {
+        for(LogicalOperator op: join.getInputs()) {
             ArrayList<LogicalPlan> newPlansAfterTranslation = new ArrayList<LogicalPlan>();
             for(LogicalPlan lp: joinColPlans.get(op)) {
                 if (checkPlanForProjectStar(lp)) {

@@ -744,14 +744,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker.spawnChildWalker(lp);
                 pushWalker(childWalker);
                 mCurrentWalker.walk(this);
-                exprPlans.add(currentPlan);
+                exprPlans.add((PhysicalPlan) currentPlan);
                 popWalker();
             }
             currentPlan = currentPlans.pop();
 			joinPlans.put(physOp, exprPlans);
 		}
 
-		// For skewed join, add a local rearrange operator to the plan
 		if (loj.getJoinType() == LOJoin.JOINTYPE.SKEWED) {
 			POSkewedJoin skj;
 			try {
@@ -778,15 +777,227 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 				}
 			}
 			LogToPhyMap.put(loj, skj);
+		} else if(loj.getJoinType() == LOJoin.JOINTYPE.REPLICATED) {
+	        String scope = loj.getOperatorKey().scope;
+	        inputs = loj.getInputs();
+	        List<List<PhysicalPlan>> ppLists = new ArrayList<List<PhysicalPlan>>();
+	        List<Byte> keyTypes = new ArrayList<Byte>();
+	        
+	        int fragment = 0;
+	        inp = new ArrayList<PhysicalOperator>();
+	        for (LogicalOperator op : inputs) {
+	            inp.add(LogToPhyMap.get(op));
+	            List<LogicalPlan> plans = (List<LogicalPlan>) loj.getJoinPlans()
+	                    .get(op);
+	            
+	            List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
+	            currentPlans.push(currentPlan);
+	            for (LogicalPlan lp : plans) {
+	                currentPlan = new PhysicalPlan();
+	                PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
+	                        .spawnChildWalker(lp);
+	                pushWalker(childWalker);
+	                mCurrentWalker.walk(this);
+	                exprPlans.add((PhysicalPlan) currentPlan);
+	                popWalker();
+
+	            }
+	            currentPlan = currentPlans.pop();
+	            ppLists.add(exprPlans);
+	            
+	            if (plans.size() > 1) {
+	                keyTypes.add(DataType.TUPLE);
+	            } else {
+	                keyTypes.add(exprPlans.get(0).getLeaves().get(0).getResultType());
+	            }
+	        }
+	        POFRJoin pfrj;
+	        try {
+	            pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),loj.getRequestedParallelism(),
+	                                        inp, ppLists, keyTypes, null, fragment);
+	        } catch (ExecException e1) {
+	            int errCode = 2058;
+	            String msg = "Unable to set index on newly create POLocalRearrange.";
+	            throw new VisitorException(msg, errCode, PigException.BUG, e1);
+	        }
+	        pfrj.setResultType(DataType.TUPLE);
+	        currentPlan.add(pfrj);
+	        for (LogicalOperator op : inputs) {
+	            try {
+	                currentPlan.connect(LogToPhyMap.get(op), pfrj);
+	            } catch (PlanException e) {
+	                int errCode = 2015;
+	                String msg = "Invalid physical operators in the physical plan" ;
+	                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+	            }
+	        }
+	        LogToPhyMap.put(loj, pfrj);
+		} else if(loj.getJoinType() == LOJoin.JOINTYPE.REGULAR) {
+	        String scope = loj.getOperatorKey().scope;
+	        inputs = loj.getInputs();
+	        
+	        POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
+	                scope, nodeGen.getNextNodeId(scope)), loj
+	                .getRequestedParallelism());
+	        POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
+	                .getNextNodeId(scope)), loj.getRequestedParallelism());
+
+	        currentPlan.add(poGlobal);
+	        currentPlan.add(poPackage);
+	        
+	        int count = 0;
+            Byte type = null;
+	        
+	        try {
+	            currentPlan.connect(poGlobal, poPackage);
+	            List<Boolean> flattenLst = Arrays.asList(true, true);
+
+	            for (LogicalOperator op : inputs) {
+	                List<LogicalPlan> plans = (List<LogicalPlan>) loj.getJoinPlans()
+	                        .get(op);
+	                POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
+	                        scope, nodeGen.getNextNodeId(scope)), loj
+	                        .getRequestedParallelism());
+	                List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
+	                currentPlans.push(currentPlan);
+	                for (LogicalPlan lp : plans) {
+	                    currentPlan = new PhysicalPlan();
+	                    PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
+	                            .spawnChildWalker(lp);
+	                    pushWalker(childWalker);
+	                    mCurrentWalker.walk(this);
+	                    exprPlans.add((PhysicalPlan) currentPlan);
+	                    popWalker();
+
+	                }
+	                currentPlan = currentPlans.pop();
+	                try {
+	                    physOp.setPlans(exprPlans);
+	                } catch (PlanException pe) {
+	                    int errCode = 2071;
+	                    String msg = "Problem with setting up local rearrange's plans.";
+	                    throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+	                }
+	                try {
+	                    physOp.setIndex(count++);
+	                } catch (ExecException e1) {
+	                    int errCode = 2058;
+	                    String msg = "Unable to set index on newly create POLocalRearrange.";
+	                    throw new VisitorException(msg, errCode, PigException.BUG, e1);
+	                }
+	                if (plans.size() > 1) {
+	                    type = DataType.TUPLE;
+	                    physOp.setKeyType(type);
+	                } else {
+	                    type = exprPlans.get(0).getLeaves().get(0).getResultType();
+	                    physOp.setKeyType(type);
+	                }
+	                physOp.setResultType(DataType.TUPLE);
+
+	                currentPlan.add(physOp);
+
+	                try {
+	                    currentPlan.connect(LogToPhyMap.get(op), physOp);
+	                    currentPlan.connect(physOp, poGlobal);
+	                } catch (PlanException e) {
+	                    int errCode = 2015;
+	                    String msg = "Invalid physical operators in the physical plan" ;
+	                    throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+	                }
+
+	            }
+	            
+	        } catch (PlanException e1) {
+	            int errCode = 2015;
+	            String msg = "Invalid physical operators in the physical plan" ;
+	            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
+	        }
+
+            poPackage.setKeyType(type);
+            poPackage.setResultType(DataType.TUPLE);
+            poPackage.setNumInps(count);
+                
+	        boolean inner[] = new boolean[count];
+	        for (int i=0;i<count;i++) {
+	            inner[i] = true;
+	        }
+	        poPackage.setInner(inner);
+	        
+	        List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
+	        List<Boolean> flattenLst = new ArrayList<Boolean>();
+	        for(int i=1;i<=count;i++){
+	            PhysicalPlan fep1 = new PhysicalPlan();
+	            POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), loj.getRequestedParallelism(), i);
+	            feproj1.setResultType(DataType.BAG);
+	            feproj1.setOverloaded(false);
+	            fep1.add(feproj1);
+	            fePlans.add(fep1);
+	            flattenLst.add(true);
+	        }
+	        
+	        POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), loj.getRequestedParallelism(), fePlans, flattenLst );
+	        currentPlan.add(fe);
+	        try{
+	            currentPlan.connect(poPackage, fe);
+	        }catch (PlanException e1) {
+	            int errCode = 2015;
+	            String msg = "Invalid physical operators in the physical plan" ;
+	            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
+	        }
+	        LogToPhyMap.put(loj, fe);   
 		}
 	}
 
 
+	/**
+     * Add a local rearrange operator to the plan 
+	 */
+/*
+	private void addLocalRearrange(LogicalOperator lo, PhysicalPlan &plan, List<PhysicalPlan> &exprPlans) throws VisitorException {
+        String scope = lo.getOperatorKey().scope;
+		POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
+				scope, nodeGen.getNextNodeId(scope)), lo.getRequestedParallelism());
+
+		try {
+			physOp.setPlans(exprPlans);
+		} catch (PlanException pe) {
+			int errCode = 2071;
+			String msg = "Problem with setting up local rearrange's plans.";
+			throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+		}
+		try {
+			physOp.setIndex(count++);
+		} catch (ExecException e1) {
+			int errCode = 2058;
+			String msg = "Unable to set index on newly create POLocalRearrange.";
+			throw new VisitorException(msg, errCode, PigException.BUG, e1);
+		}
+		if (plans.size() > 1) {
+			type = DataType.TUPLE;
+			physOp.setKeyType(type);
+		} else {
+			type = exprPlans.get(0).getLeaves().get(0).getResultType();
+			physOp.setKeyType(type);
+		}
+		physOp.setResultType(DataType.TUPLE);
+
+		currentPlan.add(physOp);
+
+		try {
+			currentPlan.connect(LogToPhyMap.get(op), physOp);
+			currentPlan.connect(physOp, poGlobal);
+		} catch (PlanException e) {
+			int errCode = 2015;
+			String msg = "Invalid physical operators in the physical plan" ;
+			throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+		}
+	}
+  */  
     /**
      * Create the inner plans used to configure the Local Rearrange operators(ppLists)
      * Extract the keytypes and create the POFRJoin operator.
      */
-    @Override
+/*    @Override
     protected void visit(LOFRJoin frj) throws VisitorException {
         String scope = frj.getOperatorKey().scope;
         List<LogicalOperator> inputs = frj.getInputs();
@@ -843,7 +1054,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
         LogToPhyMap.put(frj, pfrj);
     }
-
+*/
     private int findFrag(List<LogicalOperator> inputs, LogicalOperator fragOp) {
         int i=-1;
         for (LogicalOperator lop : inputs) {

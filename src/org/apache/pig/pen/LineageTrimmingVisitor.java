@@ -420,9 +420,11 @@ public class LineageTrimmingVisitor extends LOVisitor {
     }
 
     private void processOperator(LogicalOperator op) {
+        if (op instanceof LOLoad) return;
+        
         continueTrimming = checkCompleteness(op);
 
-        if (op instanceof LOLoad || continueTrimming == false)
+        if (continueTrimming == false)
             return;
 
         LogicalOperator childOp = plan.getPredecessors(op).get(0);
