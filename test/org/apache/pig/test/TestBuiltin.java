@@ -1355,6 +1355,33 @@ public class TestBuiltin extends TestCase {
         
         assertTrue(f1.equals(f2));        
     }
+    
+    @Test
+    public void testTOKENIZE() throws Exception {
+        TupleFactory tf = TupleFactory.getInstance();
+        Tuple t1 = tf.newTuple(1);
+        t1.set(0, "123 456\"789");
+        Tuple t2 = tf.newTuple(1);
+        t2.set(0, null);
+        Tuple t3 = tf.newTuple(0);
+        
+        TOKENIZE f = new TOKENIZE();
+        DataBag b = f.exec(t1);
+        assertTrue(b.size()==3);
+        Iterator<Tuple> i = b.iterator();
+        Tuple rt = i.next();
+        assertTrue(rt.get(0).equals("123"));
+        rt = i.next();
+        assertTrue(rt.get(0).equals("456"));
+        rt = i.next();
+        assertTrue(rt.get(0).equals("789"));
+        
+        b = f.exec(t2);
+        assertTrue(b==null);
+        
+        b = f.exec(t3);
+        assertTrue(b==null);
+    }
 
     @Test
     public void testDIFF() throws Exception {
