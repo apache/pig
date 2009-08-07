@@ -358,6 +358,7 @@ public class QueryParser {
 	/**
 	 * Mimicing parseCogroup as the parsing logic for FRJoin remains exactly the same.
 	 */
+	 /*
 	LogicalOperator parseFRJoin(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
 		
 		log.trace("Entering parseCogroup");
@@ -407,6 +408,7 @@ public class QueryParser {
 		log.trace("Exiting parseFRJoin");
 		return frj;
 	}
+	*/
 			
 	/**
 	 * The join operator is translated to foreach 
@@ -1918,7 +1920,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	(gi = GroupItem(lp) { gis.add(gi); }
 	("," gi = GroupItem(lp) { gis.add(gi); })+
 	// The addition of using replicated to indicate FRJoin
-	([<USING> ("\"replicated\"" { frj = parseFRJoin(gis, lp); } | "\"repl\"" { frj=parseFRJoin(gis,lp);}
+	([<USING> ("\"replicated\"" { frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); } | "\"repl\"" { frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);}
     |"\"skewed\"" { skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); })] ))
 
 	{log.trace("Exiting JoinClause");
@@ -1929,7 +1931,8 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 		return skj;
 	}
 	else {
-		return rewriteJoin(gis,lp);
+		//return rewriteJoin(gis,lp);
+		return parseJoin(gis, lp, LOJoin.JOINTYPE.REGULAR);
 	}}
 	
 }

@@ -868,7 +868,7 @@ public class TestPushUpFilter extends junit.framework.TestCase {
 
         LOLimit limit = (LOLimit) lp.getLeaves().get(0);
         LOFilter filter = (LOFilter) lp.getPredecessors(limit).get(0);
-        LOFRJoin frjoin = (LOFRJoin)lp.getPredecessors(filter).get(0);
+        LOJoin frjoin = (LOJoin)lp.getPredecessors(filter).get(0);
 
         assertTrue(pushUpFilter.check(lp.getPredecessors(limit)));
         assertTrue(pushUpFilter.getSwap() == false);
@@ -898,7 +898,7 @@ public class TestPushUpFilter extends junit.framework.TestCase {
 
         LOLimit limit = (LOLimit) lp.getLeaves().get(0);
         LOFilter filter = (LOFilter) lp.getPredecessors(limit).get(0);
-        LOFRJoin frjoin = (LOFRJoin)lp.getPredecessors(filter).get(0);
+        LOJoin frjoin = (LOJoin)lp.getPredecessors(filter).get(0);
 
         assertTrue(pushUpFilter.check(lp.getPredecessors(limit)));
         assertTrue(pushUpFilter.getSwap() == false);
@@ -957,19 +957,61 @@ public class TestPushUpFilter extends junit.framework.TestCase {
         planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
         planTester.buildPlan("B = load 'anotherfile' as (name, age, preference);");
         planTester.buildPlan("C = join A by $0, B by $0;");        
-        LogicalPlan lp = planTester.buildPlan("D = filter C by $0 < 'name';");
+        planTester.buildPlan("D = filter C by $0 < 'name';");
+        LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
         
         planTester.setPlan(lp);
         planTester.setProjectionMap(lp);
         
         PushUpFilter pushUpFilter = new PushUpFilter(lp);
         
-        assertTrue(!pushUpFilter.check(lp.getLeaves()));
+        LOLimit limit = (LOLimit) lp.getLeaves().get(0);
+        LOFilter filter = (LOFilter) lp.getPredecessors(limit).get(0);
+        LOJoin join = (LOJoin)lp.getPredecessors(filter).get(0);
+        
+        assertTrue(pushUpFilter.check(lp.getPredecessors(limit)));
         assertTrue(pushUpFilter.getSwap() == false);
-        assertTrue(pushUpFilter.getPushBefore() == false);
-        assertTrue(pushUpFilter.getPushBeforeInput() == -1);
+        assertTrue(pushUpFilter.getPushBefore() == true);
+        assertTrue(pushUpFilter.getPushBeforeInput() == 0);
+
+        
+        pushUpFilter.transform(lp.getPredecessors(limit));
+        
+        assertEquals(join, lp.getPredecessors(limit).get(0));
+        assertEquals(filter, lp.getPredecessors(join).get(0));
         
     }
+
+    @Test
+    public void testFilterInnerJoin1() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = load 'anotherfile' as (name, age, preference);");
+        planTester.buildPlan("C = join A by $0, B by $0;");        
+        planTester.buildPlan("D = filter C by $4 < 'name';");
+        LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        
+        PushUpFilter pushUpFilter = new PushUpFilter(lp);
+        
+        LOLimit limit = (LOLimit) lp.getLeaves().get(0);
+        LOFilter filter = (LOFilter) lp.getPredecessors(limit).get(0);
+        LOJoin join = (LOJoin)lp.getPredecessors(filter).get(0);
+        
+        assertTrue(pushUpFilter.check(lp.getPredecessors(limit)));
+        assertTrue(pushUpFilter.getSwap() == false);
+        assertTrue(pushUpFilter.getPushBefore() == true);
+        assertTrue(pushUpFilter.getPushBeforeInput() == 1);
+
+        
+        pushUpFilter.transform(lp.getPredecessors(limit));
+        
+        assertEquals(join, lp.getPredecessors(limit).get(0));
+        assertEquals(filter, lp.getPredecessors(join).get(1));
+        
+    }
+
     
     @Test
     public void testFilterConstantConditionInnerJoin() throws Exception {

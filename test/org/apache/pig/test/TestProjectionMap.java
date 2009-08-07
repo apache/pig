@@ -758,8 +758,8 @@ public class TestProjectionMap extends junit.framework.TestCase {
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
         assertTrue(loadbProjectionMap.changes() == false);
         
-        //check cross projection map
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        //check frjoin projection map
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         ProjectionMap frjoinProjectionMap = frjoin.getProjectionMap();
         assertTrue(frjoinProjectionMap == null);
         
@@ -779,55 +779,10 @@ public class TestProjectionMap extends junit.framework.TestCase {
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
         assertTrue(loadbProjectionMap.changes() == false);
         
-        //check cogroup projection map
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        ProjectionMap cogroupProjectionMap = cogroup.getProjectionMap();
-        assertTrue(cogroupProjectionMap.changes() == true);
-        
-        MultiMap<Integer, ProjectionMap.Column> cogroupMapFields = cogroupProjectionMap.getMappedFields(); 
-        assertTrue(cogroupMapFields != null);
-        
-        List<ProjectionMap.Column> mapValues = (ArrayList<ProjectionMap.Column>)cogroupMapFields.get(0);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 0);
-        assertTrue(mapValues.get(1).getInputColumn().first == 1);
-        assertTrue(mapValues.get(1).getInputColumn().second == 0);
-        
-        //check the cogroup removed fields is null
-        assertTrue(cogroupProjectionMap.getRemovedFields() == null);
-        
-        //check that cogroup added fields contain [1, 2]
-        List<Integer> cogroupAddedFields = cogroupProjectionMap.getAddedFields();
-        assertTrue(cogroupAddedFields.size() == 2);
-        assertTrue(cogroupAddedFields.get(0) == 1);
-        assertTrue(cogroupAddedFields.get(1) == 2);
-        
-        //check that the foreach projection map has non-null mappedFields
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        ProjectionMap foreachProjectionMap = foreach.getProjectionMap();
-        assertTrue(foreachProjectionMap.changes() == true);
-        
-        MultiMap<Integer, ProjectionMap.Column> foreachMapFields = foreachProjectionMap.getMappedFields(); 
-        assertTrue(foreachMapFields != null);
-        
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(0);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 1);
-        
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(1);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 2);
-
-        //check that removed fields has all the group column from the input cogroup
-        List<Pair<Integer, Integer>> foreachRemovedFields = foreachProjectionMap.getRemovedFields();
-        assertTrue(foreachRemovedFields.size() == 1);
-        Pair<Integer, Integer> removedField = foreachRemovedFields.get(0);
-        assertTrue(removedField.first == 0);
-        assertTrue(removedField.second == 0);
-        
-        //check that added fields is null
-        List<Integer> foreachAddedFields = foreachProjectionMap.getAddedFields();
-        assertTrue(foreachAddedFields == null);
+        //check join projection map
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        ProjectionMap joinProjectionMap = join.getProjectionMap();
+        assertTrue(joinProjectionMap == null);
     }
     
     @Test
@@ -1219,8 +1174,8 @@ public class TestProjectionMap extends junit.framework.TestCase {
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
         assertTrue(loadbProjectionMap.changes() == false);
         
-        //check cross projection map
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        //check frjoin projection map
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         ProjectionMap frjoinProjectionMap = frjoin.getProjectionMap();
         assertTrue(frjoinProjectionMap != null);
         
@@ -1267,73 +1222,37 @@ public class TestProjectionMap extends junit.framework.TestCase {
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
         assertTrue(loadbProjectionMap.changes() == false);
         
-        //check cogroup projection map
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        ProjectionMap cogroupProjectionMap = cogroup.getProjectionMap();
-        assertTrue(cogroupProjectionMap.changes() == true);
+        //check join projection map
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        ProjectionMap joinProjectionMap = join.getProjectionMap();
+        assertTrue(joinProjectionMap != null);
         
-        MultiMap<Integer, ProjectionMap.Column> cogroupMapFields = cogroupProjectionMap.getMappedFields(); 
-        assertTrue(cogroupMapFields != null);
-        
-        List<ProjectionMap.Column> mapValues = (ArrayList<ProjectionMap.Column>)cogroupMapFields.get(0);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 0);
-        assertTrue(mapValues.get(1).getInputColumn().first == 1);
-        assertTrue(mapValues.get(1).getInputColumn().second == 0);
-        
-        //check that removed fields is not null
-        List<Pair<Integer, Integer>> cogroupRemovedFields = cogroupProjectionMap.getRemovedFields();
-        assertTrue(cogroupRemovedFields != null);
-        
-        Pair<Integer, Integer> removedFields = cogroupRemovedFields.get(0);
-        assertTrue(removedFields.first == 0);
-        assertTrue(removedFields.second == 1);
+        MultiMap<Integer, ProjectionMap.Column> joinMapFields = joinProjectionMap.getMappedFields();
+        assertTrue(joinMapFields != null);
 
-        removedFields = cogroupRemovedFields.get(1);
-        assertTrue(removedFields.first == 1);
-        assertTrue(removedFields.second == 1);
-
-        //check that cogroup added fields contain [1, 2]
-        List<Integer> cogroupAddedFields = cogroupProjectionMap.getAddedFields();
-        assertTrue(cogroupAddedFields.size() == 2);
-        assertTrue(cogroupAddedFields.get(0) == 1);
-        assertTrue(cogroupAddedFields.get(1) == 2);
+        List<ProjectionMap.Column> frjoinMapValues = (ArrayList<ProjectionMap.Column>)joinMapFields.get(0);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().first == 0);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().second == 0);
         
-        //check that the foreach projection map has non-null mappedFields
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        ProjectionMap foreachProjectionMap = foreach.getProjectionMap();
-        assertTrue(foreachProjectionMap.changes() == true);
+        frjoinMapValues = (ArrayList<ProjectionMap.Column>)joinMapFields.get(1);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().first == 0);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().second == 1);
         
-        MultiMap<Integer, ProjectionMap.Column> foreachMapFields = foreachProjectionMap.getMappedFields(); 
-        assertTrue(foreachMapFields != null);
+        frjoinMapValues = (ArrayList<ProjectionMap.Column>)joinMapFields.get(2);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().first == 1);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().second == 0);
         
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(0);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 1);
+        frjoinMapValues = (ArrayList<ProjectionMap.Column>)joinMapFields.get(3);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().first == 1);
+        assertTrue(frjoinMapValues.get(0).getInputColumn().second == 1);
         
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(1);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 1);
-
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(2);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 2);
-
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(3);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 2);
-
-        
-        //check that removed fields has all the group column from the input cogroup
-        List<Pair<Integer, Integer>> foreachRemovedFields = foreachProjectionMap.getRemovedFields();
-        assertTrue(foreachRemovedFields.size() == 1);
-        Pair<Integer, Integer> removedField = foreachRemovedFields.get(0);
-        assertTrue(removedField.first == 0);
-        assertTrue(removedField.second == 0);
+        //check that removed fields is null
+        List<Pair<Integer, Integer>> joinRemovedFields = joinProjectionMap.getRemovedFields();
+        assertTrue(joinRemovedFields == null);
         
         //check that added fields is null
-        List<Integer> foreachAddedFields = foreachProjectionMap.getAddedFields();
-        assertTrue(foreachAddedFields == null);
+        List<Integer> joinAddedFields = joinProjectionMap.getAddedFields();
+        assertTrue(joinAddedFields == null);
     }
 
     @Test
@@ -1390,8 +1309,8 @@ public class TestProjectionMap extends junit.framework.TestCase {
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
         assertTrue(loadbProjectionMap.changes() == false);
         
-        //check cross projection map
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        //check frjoin projection map
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         ProjectionMap frjoinProjectionMap = frjoin.getProjectionMap();
         assertTrue(frjoinProjectionMap == null);
         
@@ -1411,65 +1330,10 @@ public class TestProjectionMap extends junit.framework.TestCase {
         ProjectionMap loadbProjectionMap = loadb.getProjectionMap();
         assertTrue(loadbProjectionMap.changes() == false);
         
-        //check cogroup projection map
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        ProjectionMap cogroupProjectionMap = cogroup.getProjectionMap();
-        assertTrue(cogroupProjectionMap.changes() == true);
-        
-        MultiMap<Integer, ProjectionMap.Column> cogroupMapFields = cogroupProjectionMap.getMappedFields(); 
-        assertTrue(cogroupMapFields != null);
-        
-        List<ProjectionMap.Column> mapValues = (ArrayList<ProjectionMap.Column>)cogroupMapFields.get(0);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 0);
-        assertTrue(mapValues.get(1).getInputColumn().first == 1);
-        assertTrue(mapValues.get(1).getInputColumn().second == 0);
-        
-        //check that removed fields is not null
-        List<Pair<Integer, Integer>> cogroupRemovedFields = cogroupProjectionMap.getRemovedFields();
-        assertTrue(cogroupRemovedFields.size() == 1);
-        
-        Pair<Integer, Integer> removedFields = cogroupRemovedFields.get(0);
-        assertTrue(removedFields.first == 0);
-        assertTrue(removedFields.second == 1);
-
-        //check that cogroup added fields contain [1, 2]
-        List<Integer> cogroupAddedFields = cogroupProjectionMap.getAddedFields();
-        assertTrue(cogroupAddedFields.size() == 2);
-        assertTrue(cogroupAddedFields.get(0) == 1);
-        assertTrue(cogroupAddedFields.get(1) == 2);
-        
-        //check that the foreach projection map has non-null mappedFields
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        ProjectionMap foreachProjectionMap = foreach.getProjectionMap();
-        assertTrue(foreachProjectionMap.changes() == true);
-        
-        MultiMap<Integer, ProjectionMap.Column> foreachMapFields = foreachProjectionMap.getMappedFields(); 
-        assertTrue(foreachMapFields.size() == 3);
-        
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(0);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 1);
-        
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(1);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 1);
-
-        mapValues = (ArrayList<ProjectionMap.Column>)foreachMapFields.get(2);
-        assertTrue(mapValues.get(0).getInputColumn().first == 0);
-        assertTrue(mapValues.get(0).getInputColumn().second == 2);
-
-        
-        //check that removed fields has all the group column from the input cogroup
-        List<Pair<Integer, Integer>> foreachRemovedFields = foreachProjectionMap.getRemovedFields();
-        assertTrue(foreachRemovedFields.size() == 1);
-        Pair<Integer, Integer> removedField = foreachRemovedFields.get(0);
-        assertTrue(removedField.first == 0);
-        assertTrue(removedField.second == 0);
-        
-        //check that added fields is null
-        List<Integer> foreachAddedFields = foreachProjectionMap.getAddedFields();
-        assertTrue(foreachAddedFields == null);
+        //check join projection map
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        ProjectionMap joinProjectionMap = join.getProjectionMap();
+        assertTrue(joinProjectionMap == null);
     }
     
 }
