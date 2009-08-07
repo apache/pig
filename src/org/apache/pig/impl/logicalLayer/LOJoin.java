@@ -20,10 +20,8 @@ package org.apache.pig.impl.logicalLayer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -34,11 +32,9 @@ import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.MultiMap;
@@ -49,14 +45,14 @@ import org.apache.pig.impl.plan.ProjectionMap;
 public class LOJoin extends LogicalOperator {
     private static final long serialVersionUID = 2L;
 
-	/**
-	 * Enum for the type of join
-	 */
+    /**
+     * Enum for the type of join
+     */
 	public static enum JOINTYPE {
-								REGULAR, /// Regular join
-								REPLICATED, /// Fragment Replicated join
-								SKEWED /// Skewed Join
-							  };
+        REGULAR, // Regular join
+        REPLICATED, // Fragment Replicated join
+        SKEWED // Skewed Join
+    };
 
     /**
      * LOJoin contains a list of logical operators corresponding to the
@@ -67,7 +63,7 @@ public class LOJoin extends LogicalOperator {
     private static Log log = LogFactory.getLog(LOJoin.class);
     private MultiMap<LogicalOperator, LogicalPlan> mJoinPlans;
 
-	private JOINTYPE mJoinType;	// Retains the type of the join
+	private JOINTYPE mJoinType; // Retains the type of the join
 
     /**
      * 
@@ -77,7 +73,7 @@ public class LOJoin extends LogicalOperator {
      *            OperatorKey for this operator
      * @param joinPlans
      *            the join columns
-     * @param jt 
+     * @param jt
      *            indicates the type of join - regular, skewed or fragment replicated
      */
     public LOJoin(
@@ -99,16 +95,15 @@ public class LOJoin extends LogicalOperator {
     }    
 
     public void setJoinPlans(MultiMap<LogicalOperator, LogicalPlan> joinPlans) {
-System.out.println("#@ resetting join plans");
         mJoinPlans = joinPlans;
     }    
 
 	/**
      * Returns the type of join.
      */
-	public JOINTYPE getJoinType() {
-		return mJoinType;
-	}
+    public JOINTYPE getJoinType() {
+        return mJoinType;
+    }
 
     @Override
     public String name() {
@@ -135,22 +130,28 @@ System.out.println("#@ resetting join plans");
                         
                         for (FieldSchema schema : cSchema.getFields()) {
                             ++i;
-                            if(nonDuplicates.containsKey(schema.alias))
-                                {
-                                    if(nonDuplicates.get(schema.alias)!=-1) {
+                            FieldSchema newFS = null;
+                            if(schema.alias != null) {
+                                if(nonDuplicates.containsKey(schema.alias)) {
+                                    if (nonDuplicates.get(schema.alias) != -1) {
                                         nonDuplicates.remove(schema.alias);
                                         nonDuplicates.put(schema.alias, -1);
                                     }
+                                } else {
+                                    nonDuplicates.put(schema.alias, i);
                                 }
-                            else
-                                nonDuplicates.put(schema.alias, i);
-                            FieldSchema newFS = new FieldSchema(op.getAlias()+"::"+schema.alias,schema.schema,schema.type);
+                                newFS = new FieldSchema(op.getAlias()+"::"+schema.alias,schema.schema,schema.type);
+                            } else {
+                                newFS = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                            }
                             newFS.setParent(schema.canonicalName, op);
                             fss.add(newFS);
                         }
+                    } else {
+                        FieldSchema newFS = new FieldSchema(null, DataType.BYTEARRAY);
+                        newFS.setParent(null, op);
+                        fss.add(newFS);
                     }
-                    else
-                        fss.add(new FieldSchema(null,DataType.BYTEARRAY));
                 } catch (FrontendException ioe) {
                     mIsSchemaComputed = false;
                     mSchema = null;
@@ -162,7 +163,7 @@ System.out.println("#@ resetting join plans");
                 int ind = ent.getValue();
                 if(ind==-1) continue;
                 FieldSchema prevSch = fss.get(ind);
-                fss.set(ind, new FieldSchema(ent.getKey(),prevSch.schema,prevSch.type));
+                prevSch.alias = ent.getKey();
             }
             mSchema = new Schema(fss);
         }
@@ -428,7 +429,7 @@ System.out.println("#@ resetting join plans");
             Set<LOProject> projectSet = new HashSet<LOProject>();
             boolean groupByStar = false;
 
-            for (LogicalPlan plan : this.getJoinPlans().get(predecessors.get(inputNum))) {
+            for (LogicalPlan plan : mJoinPlans.get(predecessors.get(inputNum))) {
                 TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(plan);
                 try {
                     projectFinder.visit();

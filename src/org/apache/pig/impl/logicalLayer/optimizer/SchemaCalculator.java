@@ -79,14 +79,14 @@ public class SchemaCalculator extends LOVisitor {
 
     /**
      * 
-     * @param frjoin
-     *            the logical fragment replicate join operator that has to be visited
+     * @param join
+     *            the logical join operator that has to be visited
      * @throws VisitorException
      */
-    protected void visit(LOFRJoin frjoin) throws VisitorException {
+    protected void visit(LOJoin join) throws VisitorException {
         try {
-            frjoin.getSchema();
-            super.visit(frjoin);
+            join.getSchema();
+            super.visit(join);
         } catch (FrontendException fe) {
             throw new VisitorException(fe);
         }

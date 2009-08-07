@@ -58,11 +58,6 @@ public class PlanSetter extends LOVisitor {
         super.visit(op);
     }
     
-    public void visit(LOFRJoin op) throws VisitorException {
-        op.setPlan(mCurrentWalker.getPlan());
-        super.visit(op);
-    }
-
     public void visit(LOJoin op) throws VisitorException {
         op.setPlan(mCurrentWalker.getPlan());
         super.visit(op);

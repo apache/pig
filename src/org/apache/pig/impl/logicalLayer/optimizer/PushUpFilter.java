@@ -31,30 +31,24 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCast;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOCross;
-import org.apache.pig.impl.logicalLayer.LOFRJoin;
+import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOStore;
-import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOUnion;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.UDFFinder;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.impl.streaming.StreamingCommand;
-import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 
@@ -182,7 +176,7 @@ public class PushUpFilter extends LogicalTransformer {
             if (predecessor instanceof LOCross
                     || predecessor instanceof LOUnion
                     || predecessor instanceof LOCogroup
-                    || predecessor instanceof LOFRJoin) {
+                    || predecessor instanceof LOJoin) {
 
                 // check if the filter's required fields in conjunction with the
                 // predecessor's projection map. If the filter needs more than

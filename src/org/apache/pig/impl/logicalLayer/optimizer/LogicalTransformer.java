@@ -24,25 +24,20 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.Transformer;
-import org.apache.pig.impl.plan.optimizer.Transformer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOFRJoin;
+import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOGenerate;
-import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
-import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.ProjectFixerUpper;
 import org.apache.pig.impl.logicalLayer.ProjectionMapCalculator;
 import org.apache.pig.impl.logicalLayer.ProjectionMapRemover;
@@ -132,8 +127,8 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
             LOCogroup cg = (LOCogroup) before ;
             cg.switchGroupByPlanOp(after, newNode);
         }
-        if (before instanceof LOFRJoin) {
-            LOFRJoin frj = (LOFRJoin) before ;
+        if (before instanceof LOJoin) {
+            LOJoin frj = (LOJoin) before ;
             frj.switchJoinColPlanOp(after, newNode);
         }
         if (before instanceof LOJoin) {
@@ -147,8 +142,8 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
         List<LogicalPlan> plans = new ArrayList<LogicalPlan>();
         if (before instanceof LOCogroup) {
             plans.addAll((((LOCogroup)before).getGroupByPlans()).values());
-        } else if (before instanceof LOFRJoin) {
-            plans.addAll((((LOFRJoin)before).getJoinColPlans()).values());
+        } else if (before instanceof LOJoin) {
+            plans.addAll((((LOJoin)before).getJoinPlans()).values());
         } else if (before instanceof LOJoin) {
             plans.addAll((((LOJoin)before).getJoinPlans()).values());
         }

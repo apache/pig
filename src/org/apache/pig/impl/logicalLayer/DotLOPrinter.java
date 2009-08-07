@@ -87,8 +87,8 @@ public class DotLOPrinter extends DotPlanDumper<LogicalOperator, LogicalPlan,
         if(op instanceof LOCogroup){
             return  ((LOCogroup)op).getGroupByPlans();
         }
-        else if(op instanceof LOFRJoin){
-            return ((LOFRJoin)op).getJoinColPlans();
+        else if(op instanceof LOJoin){
+            return ((LOJoin)op).getJoinPlans();
         }
         else if(op instanceof LOJoin){
             return ((LOJoin)op).getJoinPlans();

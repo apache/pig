@@ -878,7 +878,7 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.getFields() == null);
 
         //check frjoin required fields
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         List<RequiredFields> frjoinRequiredFields = frjoin.getRequiredFields();
         assertTrue(frjoinRequiredFields.size() == 2);
         
@@ -926,12 +926,12 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.needAllFields() == false);
         assertTrue(requiredField.getFields() == null);
 
-        //check cogroup required fields
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        List<RequiredFields> cogroupRequiredFields = cogroup.getRequiredFields();
-        assertTrue(cogroupRequiredFields.size() == 2);
+        //check join required fields
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        List<RequiredFields> joinRequiredFields = join.getRequiredFields();
+        assertTrue(joinRequiredFields.size() == 2);
         
-        requiredField = cogroupRequiredFields.get(0);
+        requiredField = joinRequiredFields.get(0);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
 
@@ -939,28 +939,16 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(fields.size() == 1);
         assertTrue(fields.get(0).first == 0);
         assertTrue(fields.get(0).second == 0);
-        
-        requiredField = cogroupRequiredFields.get(1);
+
+
+        requiredField = joinRequiredFields.get(1);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
-
+        
         fields = requiredField.getFields(); 
         assertTrue(fields.size() == 1);
         assertTrue(fields.get(0).first == 1);
         assertTrue(fields.get(0).second == 0);
-        
-        //check that the foreach required fields contain [<0, 1>, <0, 2>]
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        List<RequiredFields> foreachRequiredFields = foreach.getRequiredFields();
-        assertTrue(foreachRequiredFields.size() == 1);
-
-        requiredField = foreachRequiredFields.get(0);
-        fields = requiredField.getFields(); 
-        assertTrue(fields.size() == 2);
-        assertTrue(fields.get(0).first == 0);
-        assertTrue(fields.get(0).second == 1);
-        assertTrue(fields.get(1).first == 0);
-        assertTrue(fields.get(1).second == 2);
 
     }
 
@@ -1376,7 +1364,7 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.getFields() == null);
 
         //check frjoin required fields
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         List<RequiredFields> frjoinRequiredFields = frjoin.getRequiredFields();
         assertTrue(frjoinRequiredFields.size() == 2);
         
@@ -1425,12 +1413,12 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.needAllFields() == false);
         assertTrue(requiredField.getFields() == null);
 
-        //check cogroup required fields
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        List<RequiredFields> cogroupRequiredFields = cogroup.getRequiredFields();
-        assertTrue(cogroupRequiredFields.size() == 2);
+        //check join required fields
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        List<RequiredFields> joinRequiredFields = join.getRequiredFields();
+        assertTrue(joinRequiredFields.size() == 2);
         
-        requiredField = cogroupRequiredFields.get(0);
+        requiredField = joinRequiredFields.get(0);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
 
@@ -1438,29 +1426,16 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(fields.size() == 1);
         assertTrue(fields.get(0).first == 0);
         assertTrue(fields.get(0).second == 0);
-        
-        requiredField = cogroupRequiredFields.get(1);
+
+
+        requiredField = joinRequiredFields.get(1);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
-
+        
         fields = requiredField.getFields(); 
         assertTrue(fields.size() == 1);
         assertTrue(fields.get(0).first == 1);
         assertTrue(fields.get(0).second == 0);
-        
-        //check that the foreach required fields contain [<0, 1>, <0, 2>]
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        List<RequiredFields> foreachRequiredFields = foreach.getRequiredFields();
-        assertTrue(foreachRequiredFields.size() == 1);
-
-        requiredField = foreachRequiredFields.get(0);
-        fields = requiredField.getFields(); 
-        assertTrue(fields.size() == 2);
-        assertTrue(fields.get(0).first == 0);
-        assertTrue(fields.get(0).second == 1);
-        assertTrue(fields.get(1).first == 0);
-        assertTrue(fields.get(1).second == 2);
-
     }
 
     @Test
@@ -1569,7 +1544,7 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.getFields() == null);
 
         //check frjoin required fields
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         List<RequiredFields> frjoinRequiredFields = frjoin.getRequiredFields();
         assertTrue(frjoinRequiredFields.size() == 2);
         
@@ -1618,12 +1593,12 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.needAllFields() == false);
         assertTrue(requiredField.getFields() == null);
 
-        //check cogroup required fields
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        List<RequiredFields> cogroupRequiredFields = cogroup.getRequiredFields();
-        assertTrue(cogroupRequiredFields.size() == 2);
+        //check join required fields
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        List<RequiredFields> joinRequiredFields = join.getRequiredFields();
+        assertTrue(joinRequiredFields.size() == 2);
         
-        requiredField = cogroupRequiredFields.get(0);
+        requiredField = joinRequiredFields.get(0);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
 
@@ -1631,28 +1606,17 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(fields.size() == 1);
         assertTrue(fields.get(0).first == 0);
         assertTrue(fields.get(0).second == 0);
-        
-        requiredField = cogroupRequiredFields.get(1);
+
+
+        requiredField = joinRequiredFields.get(1);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
-
+        
         fields = requiredField.getFields(); 
         assertTrue(fields.size() == 1);
         assertTrue(fields.get(0).first == 1);
         assertTrue(fields.get(0).second == 0);
-        
-        //check that the foreach required fields contain [<0, 1>, <0, 2>]
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        List<RequiredFields> foreachRequiredFields = foreach.getRequiredFields();
-        assertTrue(foreachRequiredFields.size() == 1);
 
-        requiredField = foreachRequiredFields.get(0);
-        fields = requiredField.getFields(); 
-        assertTrue(fields.size() == 2);
-        assertTrue(fields.get(0).first == 0);
-        assertTrue(fields.get(0).second == 1);
-        assertTrue(fields.get(1).first == 0);
-        assertTrue(fields.get(1).second == 2);
     }
 
     @Test
@@ -1776,7 +1740,7 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.getFields() == null);
 
         //check frjoin required fields
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         List<RequiredFields> frjoinRequiredFields = frjoin.getRequiredFields();
         assertTrue(frjoinRequiredFields.size() == 2);
         
@@ -1816,33 +1780,21 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.needAllFields() == false);
         assertTrue(requiredField.getFields() == null);
 
-        //check cogroup required fields
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        List<RequiredFields> cogroupRequiredFields = cogroup.getRequiredFields();
-        assertTrue(cogroupRequiredFields.size() == 2);
+        //check join required fields
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        List<RequiredFields> joinRequiredFields = join.getRequiredFields();
+        assertTrue(joinRequiredFields.size() == 2);
         
-        requiredField = cogroupRequiredFields.get(0);
+        requiredField = joinRequiredFields.get(0);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == true);
         assertTrue(requiredField.getFields() == null);
 
-        requiredField = cogroupRequiredFields.get(1);
+        requiredField = joinRequiredFields.get(1);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == true);
         assertTrue(requiredField.getFields() == null);
 
-        //check that the foreach required fields contain [<0, 1>, <0, 2>]
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        List<RequiredFields> foreachRequiredFields = foreach.getRequiredFields();
-        assertTrue(foreachRequiredFields.size() == 1);
-
-        requiredField = foreachRequiredFields.get(0);
-        List<Pair<Integer, Integer>> fields = requiredField.getFields(); 
-        assertTrue(fields.size() == 2);
-        assertTrue(fields.get(0).first == 0);
-        assertTrue(fields.get(0).second == 1);
-        assertTrue(fields.get(1).first == 0);
-        assertTrue(fields.get(1).second == 2);
     }
 
     @Test
@@ -2026,7 +1978,7 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.getFields() == null);
 
         //check frjoin required fields
-        LOFRJoin frjoin = (LOFRJoin)lp.getSuccessors(loada).get(0);
+        LOJoin frjoin = (LOJoin)lp.getSuccessors(loada).get(0);
         List<RequiredFields> frjoinRequiredFields = frjoin.getRequiredFields();
         assertTrue(frjoinRequiredFields.size() == 2);
         
@@ -2078,12 +2030,12 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(requiredField.needAllFields() == false);
         assertTrue(requiredField.getFields() == null);
 
-        //check cogroup required fields
-        LOCogroup cogroup = (LOCogroup)lp.getSuccessors(loada).get(0);
-        List<RequiredFields> cogroupRequiredFields = cogroup.getRequiredFields();
-        assertTrue(cogroupRequiredFields.size() == 2);
+        //check join required fields
+        LOJoin join = (LOJoin)lp.getSuccessors(loada).get(0);
+        List<RequiredFields> joinRequiredFields = join.getRequiredFields();
+        assertTrue(joinRequiredFields.size() == 2);
         
-        requiredField = cogroupRequiredFields.get(0);
+        requiredField = joinRequiredFields.get(0);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
 
@@ -2093,30 +2045,17 @@ public class TestRequiredFields extends junit.framework.TestCase {
         assertTrue(fields.get(0).second == 0);
         assertTrue(fields.get(1).first == 0);
         assertTrue(fields.get(1).second == 1);
-        
-        requiredField = cogroupRequiredFields.get(1);
+
+        requiredField = joinRequiredFields.get(1);
         assertTrue(requiredField.needNoFields() == false);
         assertTrue(requiredField.needAllFields() == false);
-
+        
         fields = requiredField.getFields(); 
         assertTrue(fields.size() == 2);
         assertTrue(fields.get(0).first == 1);
         assertTrue(fields.get(0).second == 0);
         assertTrue(fields.get(1).first == 1);
         assertTrue(fields.get(1).second == 1);
-        
-        //check that the foreach required fields contain [<0, 1>, <0, 2>]
-        LOForEach foreach = (LOForEach)lp.getLeaves().get(0);
-        List<RequiredFields> foreachRequiredFields = foreach.getRequiredFields();
-        assertTrue(foreachRequiredFields.size() == 1);
-
-        requiredField = foreachRequiredFields.get(0);
-        fields = requiredField.getFields(); 
-        assertTrue(fields.size() == 2);
-        assertTrue(fields.get(0).first == 0);
-        assertTrue(fields.get(0).second == 1);
-        assertTrue(fields.get(1).first == 0);
-        assertTrue(fields.get(1).second == 2);
 
     }
     

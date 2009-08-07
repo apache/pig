@@ -607,7 +607,7 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
 
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         LOLimit limit = (LOLimit) lp.getLeaves().get(0);
-        LOFRJoin frjoin = (LOFRJoin)lp.getPredecessors(limit).get(0);
+        LOJoin frjoin = (LOJoin)lp.getPredecessors(limit).get(0);
         LOForEach foreach = (LOForEach) lp.getPredecessors(frjoin).get(0);
         
         Schema limitSchema = limit.getSchema();
@@ -656,7 +656,7 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
 
         LOLoad load = (LOLoad) lp.getRoots().get(1);
         LOLimit limit = (LOLimit) lp.getLeaves().get(0);
-        LOFRJoin frjoin = (LOFRJoin)lp.getPredecessors(limit).get(0);
+        LOJoin frjoin = (LOJoin)lp.getPredecessors(limit).get(0);
         LOForEach foreach = (LOForEach) lp.getPredecessors(frjoin).get(1);
         
         Schema limitSchema = limit.getSchema();
@@ -798,12 +798,38 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
         
         PushDownForeachFlatten pushDownForeach = new PushDownForeachFlatten(lp);
 
-        LOLoad loada = (LOLoad) lp.getRoots().get(0);
+        LOLoad load = (LOLoad) lp.getRoots().get(0);
+        LOLimit limit = (LOLimit) lp.getLeaves().get(0);
+        LOJoin join = (LOJoin)lp.getPredecessors(limit).get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(join).get(0);
         
-        assertTrue(!pushDownForeach.check(lp.getSuccessors(loada)));
+        Schema limitSchema = limit.getSchema();
+        
+        assertTrue(pushDownForeach.check(lp.getSuccessors(load)));
         assertTrue(pushDownForeach.getSwap() == false);
-        assertTrue(pushDownForeach.getInsertBetween() == false);
-        assertTrue(pushDownForeach.getFlattenedColumnMap() == null);
+        assertTrue(pushDownForeach.getInsertBetween() == true);
+        assertTrue(pushDownForeach.getFlattenedColumnMap() != null);
+
+        pushDownForeach.transform(lp.getSuccessors(load));
+        
+        planTester.rebuildSchema(lp);
+        
+        for(Boolean b: foreach.getFlatten()) {
+            assertEquals(b.booleanValue(), false);
+        }
+        
+        LOForEach newForeach = (LOForEach)lp.getSuccessors(join).get(0);
+        
+        
+        List<Boolean> newForeachFlatten = newForeach.getFlatten();
+        Map<Integer, Integer> remap = pushDownForeach.getFlattenedColumnMap();        
+        for(Integer key: remap.keySet()) {
+            Integer value = remap.get(key);
+            assertEquals(newForeachFlatten.get(value).booleanValue(), true);
+        }
+        
+        assertTrue(Schema.equals(limitSchema, limit.getSchema(), false, true));        
+
     }
     
     @Test
@@ -820,12 +846,38 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
         
         PushDownForeachFlatten pushDownForeach = new PushDownForeachFlatten(lp);
 
-        LOLoad loadb = (LOLoad) lp.getRoots().get(1);
+        LOLoad load = (LOLoad) lp.getRoots().get(1);
+        LOLimit limit = (LOLimit) lp.getLeaves().get(0);
+        LOJoin join = (LOJoin)lp.getPredecessors(limit).get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(join).get(1);
         
-        assertTrue(!pushDownForeach.check(lp.getSuccessors(loadb)));
+        Schema limitSchema = limit.getSchema();
+        
+        assertTrue(pushDownForeach.check(lp.getSuccessors(load)));
         assertTrue(pushDownForeach.getSwap() == false);
-        assertTrue(pushDownForeach.getInsertBetween() == false);
-        assertTrue(pushDownForeach.getFlattenedColumnMap() == null);
+        assertTrue(pushDownForeach.getInsertBetween() == true);
+        assertTrue(pushDownForeach.getFlattenedColumnMap() != null);
+
+        pushDownForeach.transform(lp.getSuccessors(load));
+        
+        planTester.rebuildSchema(lp);
+        
+        for(Boolean b: foreach.getFlatten()) {
+            assertEquals(b.booleanValue(), false);
+        }
+        
+        LOForEach newForeach = (LOForEach)lp.getSuccessors(join).get(0);
+        
+        
+        List<Boolean> newForeachFlatten = newForeach.getFlatten();
+        Map<Integer, Integer> remap = pushDownForeach.getFlattenedColumnMap();        
+        for(Integer key: remap.keySet()) {
+            Integer value = remap.get(key);
+            assertEquals(newForeachFlatten.get(value).booleanValue(), true);
+        }
+        
+        assertTrue(Schema.equals(limitSchema, limit.getSchema(), false, true));       
+
     }
 
 
