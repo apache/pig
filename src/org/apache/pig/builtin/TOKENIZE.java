@@ -18,6 +18,8 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import org.apache.pig.EvalFunc;
@@ -30,7 +32,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
+import org.apache.pig.FuncSpec;
 
 public class TOKENIZE extends EvalFunc<DataBag> {
     TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -39,8 +41,14 @@ public class TOKENIZE extends EvalFunc<DataBag> {
     @Override
     public DataBag exec(Tuple input) throws IOException {
         try {
-            DataBag output = mBagFactory.newDefaultBag();
+            if (input==null)
+                return null;
+            if (input.size()==0)
+                return null;
             Object o = input.get(0);
+            if (o==null)
+                return null;
+            DataBag output = mBagFactory.newDefaultBag();
             if (!(o instanceof String)) {
             	int errCode = 2114;
             	String msg = "Expected input to be chararray, but" +
@@ -86,5 +94,11 @@ public class TOKENIZE extends EvalFunc<DataBag> {
         }   
     }
 
-    
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        funcList.add(new FuncSpec(this.getClass().getName(), s));
+        return funcList;
+    }
 };

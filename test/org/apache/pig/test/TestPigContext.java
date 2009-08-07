@@ -213,7 +213,7 @@ public class TestPigContext extends TestCase {
     private List<String> getCommands() {
         List<String> commands = new ArrayList<String>();
         commands.add("my_input = LOAD '" + Util.encodeEscape(input.getAbsolutePath()) + "' USING PigStorage();");
-        commands.add("words = FOREACH my_input GENERATE FLATTEN(TOKENIZE(*));");
+        commands.add("words = FOREACH my_input GENERATE FLATTEN(TOKENIZE($0));");
         commands.add("grouped = GROUP words BY $0;");
         commands.add("counts = FOREACH grouped GENERATE group, COUNT(words);");
         return commands;
