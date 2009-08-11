@@ -1,0 +1,442 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+options {
+      STATIC = false ;
+		IGNORE_CASE = true;
+}
+
+PARSER_BEGIN(TableStorageParser)
+package org.apache.pig.table.types;
+import java.io.*;
+import java.util.*;
+
+public class TableStorageParser {
+           public static void main( String[] args )
+           throws ParseException, TokenMgrError, java.io.FileNotFoundException, java.io.IOException, java.lang.ClassNotFoundException {
+					/*
+					FileInputStream input = new FileInputStream("/tmp/schema");
+					ObjectInputStream objin = new ObjectInputStream(input);
+					Schema schema = (Schema) objin.readObject();
+					objin.close();
+					input = new FileInputStream("store");
+					System.out.println("Table Schema:");
+					System.out.println("--------------------------");
+					System.out.println(schema.toString());
+					Partition partition = new Partition(
+               TableStorageParser parser = new TableStorageParser(schema.toString(), schema) ;
+					ArrayList<CGSchema> schemas = parser.StorageSchema();
+					System.out.println("Column Groups:");
+					System.out.println("--------------------------");
+					for (int i = 0; i < schemas.size(); i++)
+					{
+						System.out.println(schemas.get(i).toString());
+						System.out.println("==========================");
+					}
+					System.out.println("Table Schema with Storage Hints");
+					System.out.println(schema.toString());
+					System.out.println("==========================");
+					System.out.println("Column Map:");
+					System.out.println("--------------------------");
+					Map<String, Schema.ColumnMappingEntry> colmap = schema.getColMap();
+					if (!colmap.isEmpty())
+					{
+						Set<Map.Entry<String, Schema.ColumnMappingEntry>> entrySet = colmap.entrySet();
+						Map.Entry<String, Schema.ColumnMappingEntry>[] array = entrySet.toArray(new Map.Entry[entrySet.size()]);
+						for (int j = 0; j < colmap.size(); j++)
+						{
+							System.out.println("[Column = " + array[j].getKey() +" CG= "+ array[j].getValue().getCGIndex()+"."+array[j].getValue().getColumnIndex()+"]");
+						}
+					}
+					Schema.ColumnMappingEntry cm;
+					if (args.length > 0)
+					{
+						System.out.println("==========================");
+						System.out.println("Column CG Index:");
+						System.out.println("--------------------------");
+						if ((cm = schema.getColMapping(args[0])) != null)
+							System.out.println(args[0]+":CG= "+ cm.getCGIndex()+"."+cm.getColumnIndex());
+						else
+							System.out.println(args[0]+":Column not found !");
+					}
+					Schema.ColumnSchema fs;
+					if (args.length > 0)
+					{
+						System.out.println("==========================");
+						System.out.println("Column Schema:");
+						System.out.println("--------------------------");
+						StringBuilder sb = new StringBuilder();
+						if ((fs = schema.getColumnSchema(args[0])) != null)
+						{
+						// print out a particular  column's CG index
+						//	System.out.println(args[0]+":Schema = "+ fs.name +":"+ColumnType.genTypeToNameMap().get(fs.type));
+							Schema.stringifySchema(sb, fs.schema, fs.type, false, false);
+							if (sb.toString().isEmpty())
+								System.out.println(args[0]+":Schema = "+ ColumnType.findTypeName(fs.type));
+							else
+								System.out.println(args[0]+":Schema = "+ ColumnType.findTypeName(fs.type)+":"+sb.toString());
+						} else
+							System.out.println(args[0]+":Column not found !");
+					}
+					*/
+      }
+		public TableStorageParser(java.io.Reader in, Partition partition, Schema schema) { this(in); mSchema = schema; this.partition = partition;}
+		private Schema mSchema;
+		private int mDefaultCGIndex = -1;
+		private String mCompressor = "lzo2", mSerializer = "pig";
+		private int mCGCount = 0;
+		private Partition partition;
+}
+PARSER_END(TableStorageParser)
+
+// Skip all the new lines, tabs and spaces
+SKIP : { " " |	"\r" |	"\t" |	"\n" }
+
+// Skip comments(single line and multiline)
+SKIP : {
+   <"--"(~["\r","\n"])*>
+|  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : { <COMPRESSOR : "lzo2" | "gzip"> }
+TOKEN : { <SERIALIZER : ("pig" | "avro")> }
+
+TOKEN : { <ORDER : "order by"> }
+TOKEN : { <COMPRESS : "compress by"> }
+TOKEN : { <SERIALIZE : "serialize by"> }
+
+TOKEN:
+{
+ 	<#LETTER : ["a"-"z", "A"-"Z"] >
+|	<#DIGIT : ["0"-"9"] >
+|   <#SPECIALCHAR : ["_"] >
+|   <#FSSPECIALCHAR: ["-", ":", "/"]>
+|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* >
+}
+
+ArrayList<CGSchema> StorageSchema() throws ParseException :
+{
+	ArrayList<CGSchema> s = new ArrayList();
+	CGSchema fs;
+	CGSchema defaultSchema;
+}
+{
+	try {
+		<EOF>
+		{
+			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, 0);
+			if (defaultSchema != null)
+				s.add(defaultSchema);
+			return s;
+		}
+	|
+		fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);}
+		(";" fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);})* <EOF>
+		{
+			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
+			if (defaultSchema != null)
+				s.add(defaultSchema);
+			return s;
+		}
+	} catch (TokenMgrError e) {
+		throw new ParseException(e.getMessage());
+	}
+}
+
+CGSchema FieldSchema() : 
+{
+	Token t1 = null, t2 = null; 
+	Schema fs = null;
+	CGSchema cs = null;
+}
+{
+	(
+	<COMPRESS> t1 = <IDENTIFIER> [ <SERIALIZE> t2 = <IDENTIFIER> ]
+|
+	<SERIALIZE> t2 = <IDENTIFIER> [ <COMPRESS> t1 = <IDENTIFIER> ]
+|
+// one column group schema's length cannot exceed 1000;
+// how good is value 1000?
+  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <COMPRESS> t1 = <COMPRESSOR> <SERIALIZE> t2 = <SERIALIZER>
+|
+  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <SERIALIZE> t2 = <SERIALIZER> <COMPRESS> t1 = <COMPRESSOR> 
+|
+  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <COMPRESS> t1 = <COMPRESSOR> 
+|
+  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <SERIALIZE> t2 = <SERIALIZER>
+|
+  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" 
+	)
+	{
+		String compressor, serializer;
+		if (t1 == null)
+			compressor = "lzo2";
+		else {
+			compressor = t1.image;
+		}
+		if (t2 == null)
+			serializer = "pig";
+		else {
+			serializer = t2.image;
+		}
+		if (fs == null)
+		{
+			if (mDefaultCGIndex != -1)
+			{
+				String msg = "Default Storage Information defined more than once";
+				throw new ParseException(msg);
+			}
+			mDefaultCGIndex = mCGCount;
+			mCompressor = compressor;
+			mSerializer = serializer;
+		} else
+			cs = new CGSchema(fs, false, serializer, compressor);
+		return cs;
+	}
+}
+
+Schema.ColumnSchema ColumnSchema(int colIndex) throws ParseException: 
+{
+	Token t1;
+	String name = "";
+	Schema.ColumnSchema fs = null; 
+}
+{
+	(
+	LOOKAHEAD(SchemaRecord()) fs = SchemaRecord(mSchema, name, colIndex)
+|	LOOKAHEAD(SchemaMap()) fs = SchemaMap(mSchema, name, colIndex)
+|	LOOKAHEAD(AtomSchema()) fs = AtomSchema(mSchema, name, colIndex)
+	)
+	{
+		return fs;
+	}
+}
+
+Schema.ColumnSchema AtomSchema(Schema schema, String name, int colIndex) throws ParseException : 
+{
+	Token t1 = null;
+	Schema.ColumnSchema fs;
+}
+{
+	(	( t1 = <IDENTIFIER>  )
+		{ 
+			Schema.ColumnSchema fs0 = schema.getColumn(t1.image);
+			name += t1.image;
+			if (fs0 == null)
+			{
+				String msg = "Column "+name+" not defined in schema";
+				throw new ParseException(msg);
+			}
+			/* create a new field schema using concatenated name */
+			if (!partition.getPartitionInfo().setCGIndex(fs0, mCGCount, colIndex, name))
+			{
+				throw new ParseException("Column "+name+" specified more than once!");
+			}
+			fs = new Schema.ColumnSchema(name, fs0.schema, fs0.type);
+			return fs;
+		}
+	)
+}
+
+Schema.ColumnSchema SchemaMap(Schema schema, String name, int colIndex) throws ParseException :
+{
+	Token t1 = null; 
+	Schema.ColumnSchema fs;
+}
+{
+	t1 = <IDENTIFIER> "#" fs = AnonymousMapSchema(schema.getColumn(t1.image), t1.image, 0, colIndex)
+	{
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema SchemaRecord(Schema schema, String name, int colIndex) throws ParseException : 
+{
+	Token t1 = null;
+	Schema.ColumnSchema fs;
+}
+{ 
+	t1 = <IDENTIFIER> "."  fs = AnonymousRecordSchema(schema.getColumn(t1.image), t1.image, 0, colIndex)
+	{
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema AnonymousColumnSchema(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException :
+{
+	Token t1; 
+	Schema.ColumnSchema fs = null; 
+}
+{
+	(
+	LOOKAHEAD(AnonymousSchemaRecord()) fs = AnonymousSchemaRecord(schema, name, cl, colIndex)
+|	LOOKAHEAD(AnonymousSchemaMap()) fs = AnonymousSchemaMap(schema, name, cl, colIndex)
+	)
+	{
+		return fs;
+	}
+}
+
+Schema.ColumnSchema AnonymousSchemaRecord(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException :
+{
+	Schema.ColumnSchema fs;
+}
+{ 
+	"."  fs = AnonymousRecordSchema(schema, name, cl, colIndex)
+	{
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema AnonymousSchemaMap(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException:
+{
+	Schema.ColumnSchema fs;
+}
+{ 
+	"#"  fs = AnonymousMapSchema(schema, name, cl, colIndex)
+	{
+		return fs;
+	} 
+}
+
+
+Schema RecordSchema(Schema list) throws ParseException :
+{
+	if (list == null)
+		list = new Schema(); 
+	Schema.ColumnSchema fs = null;
+	int colIndex = 0;
+}
+{
+	(
+	(	
+		fs = ColumnSchema(colIndex) {list.add(fs);} 
+		( "," fs = ColumnSchema(++colIndex) {list.add(fs);})* 
+	)
+|		{} {list = null;}
+	)
+	{ return list; }
+}
+
+Schema.ColumnSchema AnonymousRecordSchema(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException :
+{
+	Schema.ColumnSchema fs = null, fs0 = null;
+	Token t;
+	if (schema == null)
+	{
+		String msg = "no matching column: " + name;
+		throw new ParseException(msg);
+	} else if (schema.type != ColumnType.RECORD && schema.type != ColumnType.COLLECTION) {
+		String msg = "Column " + name + " is not a record or a collection of records";
+		throw new ParseException(msg);
+	} else if (schema.type == ColumnType.COLLECTION) {
+		String msg = "Split of COLLECTION Column, " + name + ", is not supported in this release";
+		throw new ParseException(msg);
+  }
+	if (schema.type == ColumnType.COLLECTION)
+	{
+		cl += 1;
+		if (schema.schema.getNumColumns() == 1 && schema.schema.getColumn(0).type == ColumnType.RECORD && (schema.schema.getColumn(0).name == null || schema.schema.getColumn(0).name.isEmpty()))
+		// an anonymous record inside a collection: go one level lower
+		{
+			schema = schema.schema.getColumn(0);
+			partition.setSplit(schema, Partition.SplitType.RECORD, Partition.SplitType.RECORD, name, null, false);
+		}
+	}
+}
+{
+	(
+		LOOKAHEAD(2) t = <IDENTIFIER> fs = AnonymousSchemaRecord(schema.schema.getColumn(t.image), name + "." + t.image, cl, colIndex)
+		{
+	    partition.setSplit(schema, Partition.SplitType.RECORD, Partition.SplitType.RECORD, name, t.image, true);
+			return fs;
+		} 
+|
+		LOOKAHEAD(2) t = <IDENTIFIER> fs = AnonymousSchemaMap(schema.schema.getColumn(t.image), name + "." + t.image, cl, colIndex)
+		{
+	    partition.setSplit(schema, Partition.SplitType.RECORD, Partition.SplitType.MAP, name, t.image, true);
+			return fs;
+		} 
+|
+		t= <IDENTIFIER>
+		{
+	    partition.setSplit(schema, Partition.SplitType.RECORD, Partition.SplitType.NONE, name, t.image, false);
+			name = name + "." + t.image;
+			fs0 = schema.schema.getColumn(t.image);
+			if (fs0 == null)
+			{
+				String msg = "no matching column: " + name;
+				throw new ParseException(msg);
+			}
+			if (!partition.setCGIndex(fs0, mCGCount, colIndex, name))
+				throw new ParseException("Column "+name+" specified more than once!");
+			fs = new Schema.ColumnSchema(name, fs0.schema, fs0.type);
+		}
+	)
+	{ return fs; }
+}
+
+Schema.ColumnSchema AnonymousMapSchema(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException :
+{
+	Schema.ColumnSchema fs = null;
+  HashSet<String> keys;
+	if (schema == null)
+	{
+		String msg = "no matching column: " + name;
+		throw new ParseException(msg);
+	} else if (schema.type != ColumnType.MAP) {
+		String msg = "Column " + name + " is not a map";
+		throw new ParseException(msg);
+	}
+	partition.setSplit(schema, Partition.SplitType.MAP, Partition.SplitType.RECORD, name, null, false);
+}
+{
+	(
+	/* will not support nested splits inside a MAP key. Might be enabled later along with other
+	   necessary changes
+	*/
+	/*
+		LOOKAHEAD(2)
+		t = <IDENTIFIER> fs = AnonymousColumnSchema(schema.schema.getColumn(0), name = name + "#" + t.image, cl, colIndex)
+		{
+			return fs;
+		} 
+|
+*/
+		"{" keys = hashKeys() "}"
+		{
+			if(!partition.getPartitionInfo().setKeyCGIndex(schema, mCGCount, colIndex, name, keys))
+				throw new ParseException("Column "+name+" specified more than once!");
+			fs = new Schema.ColumnSchema(name, schema.schema, schema.type);
+		}
+	)
+	{ return fs; }
+}
+
+HashSet<String> hashKeys() :
+{
+  Token t;
+  HashSet<String> result = new HashSet<String>();
+}
+{
+  t = <IDENTIFIER> { result.add(t.image); }
+  ("|" t = <IDENTIFIER> { result.add(t.image); })*
+  {
+    return result;
+  }
+}
