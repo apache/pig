@@ -25,6 +25,7 @@ INCOMPATIBLE CHANGES
 PIG-734:  Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
+PIG-833: Added Zebra, new columnar storage mechanism for HDFS (rangadi plus many others via gates)
 
 PIG-697: Proposed improvements to pig's optimizer, Phase5 (daijy)
 
