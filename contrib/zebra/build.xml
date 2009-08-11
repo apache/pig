@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!-- 
+Before you can run these subtargets directly, you need 
+to call at top-level: ant deploy-contrib compile-core-test
+-->
+<project name="zebra" default="jar">
+
+  <import file="build-contrib.xml"/>
+  <property name="zebraVersion" value="0.1.0" />
+
+  <!-- Override jar target to specify main class -->
+  <target name="jar" depends="compile">
+    <jar
+      jarfile="${build.dir}/${name}-${zebraVersion}.jar"
+      basedir="${build.classes}"      
+    >
+  	<manifest>
+	    <attribute name="Main-Class" value="org.apache.hadoop.zebra.io.BasicTable"/>
+	</manifest>
+    </jar>
+  </target>
+
+  <!-- Temp check for hadoop jar file --> 
+  <target name="hadoop-jar-exists">
+     <fail message="${hadoop.jarfile} is missing. ${line.separator}
+     ####### Build can not proceed. Please read the following ######### ${line.separator}
+       ${line.separator}
+       ${hadoop.jarfile} is not found. This usually implies that you need to follow ${line.separator}
+       following extra steps to be able to build zebra. These steps are required ${line.separator}
+       until PIG-660 is committed : ${line.separator}
+          * Place hadoop20.jar atatched to PIG-833 under lib in top level directory ${line.separator}
+          * Apply the latest working patch from PIG-660 so that Pig works with ${line.separator}
+            Hadoop-20 ${line.separator}
+          * run 'ant clean jar' under top level Pig directory ${line.separator}
+       ${line.separator}
+     ###################################################################">
+       <condition>
+         <not>
+           <available file="${pig.root}/lib/${hadoop.jarfile}"/>
+         </not>
+       </condition>
+     </fail>
+  </target>
+
+
+  <target name="javadoc" depends="jar">
+	  <mkdir dir="${build.javadoc}" />
+	  <javadoc packagenames="org.apache.pig.*" overview="${src.docs.dir}/overview.html" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="Hadoop Zebra API" doctitle="Hadoop Zebra API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+		  <packageset dir="${src.dir}" excludes="**/examples,**/comparator/,**/io/" />
+		  <link href="${javadoc.link}" />
+          <classpath refid="classpath"/>
+		  <!--
+		  <classpath>
+			  <path refid="classpath" />
+			  <pathelement path="${java.class.path}" />
+			  <pathelement path="${output.jarfile}" />
+		  </classpath>
+		  -->
+		  <group title="zebra" packages="org.apache.hadoop.zebra.*" />
+	  </javadoc>
+  </target>
+
+  <!-- Override jar target to specify main class -->
+  <target name="jar-test" depends="jar, compile-test">
+    <jar
+      jarfile="${build.dir}/pig-${version}-${name}-test.jar"
+      basedir="${build.test}"      
+    >
+    </jar>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- Run checkin tests                                                  -->
+  <!-- ================================================================== -->
+  <target name="test" depends="compile-test, compile" if="test.available">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}" 
+      haltonfailure="no" fork="yes" maxmemory="256m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+      
+      <sysproperty key="test.build.data" value="${build.test}/data"/>
+      <sysproperty key="build.test" value="${build.test}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+      
+      <!-- requires fork=yes for: 
+        relative File paths to use the specified user.dir 
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${build.test}/data"/>
+      
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <batchtest todir="${build.test}">
+        <fileset dir="${src.test}"
+                 includes="**/TestCheckin*.java" excludes="**/${test.exclude}.java" />
+      </batchtest>
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- Run nightly tests                                                  -->
+  <!-- ================================================================== -->
+  <target name="nightly" depends="compile-test, compile" if="test.available">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}" 
+      haltonfailure="no" fork="yes" maxmemory="256m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+      
+      <sysproperty key="test.build.data" value="${build.test}/data"/>
+      <sysproperty key="build.test" value="${build.test}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+      
+      <!-- requires fork=yes for: 
+        relative File paths to use the specified user.dir 
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${build.test}/data"/>
+      
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <batchtest todir="${build.test}">
+        <fileset dir="${src.test}"
+                 includes="**/Test*.java" excludes="**/${test.exclude}.java" />
+      </batchtest>
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+
+</project>
