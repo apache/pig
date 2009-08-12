@@ -626,4 +626,12 @@ public class TestSchema extends TestCase {
         Assert.assertFalse(Schema.equals(bagSchema1, bagSchema2, false, false)) ;
     }
 
+    public void testCharArray2Numeric(){
+    	byte[] numbericTypes=new byte[]{DataType.DOUBLE,DataType.FLOAT,DataType.LONG,DataType.INTEGER};
+    	Schema.FieldSchema inputFieldSchema=new Schema.FieldSchema("",DataType.CHARARRAY);
+    	for (byte type:numbericTypes){
+    		Schema.FieldSchema castFieldSchema=new Schema.FieldSchema("",type);
+    		Assert.assertTrue(Schema.FieldSchema.castable(castFieldSchema, inputFieldSchema));
+    	}
+    }
 }
