@@ -568,8 +568,11 @@ public class TestTypeCheckingValidator extends TestCase {
         assertEquals(DataType.TUPLE, equal1.getLhsOperand().getType()) ;
     }
 
+    /*
+     * chararray can been cast to int when jira-893 been resolved
+     */
     @Test
-    public void testExpressionTypeCheckingFail8() throws Throwable {
+    public void testExpressionTypeChecking9() throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         
 	    TupleFactory tupleFactory = TupleFactory.getInstance();
@@ -644,15 +647,14 @@ public class TestTypeCheckingValidator extends TestCase {
 
         try {
             typeValidator.validate(plan, collector) ; 
-            fail("Exception expected") ;
         } catch(PlanValidationException pve) {
-            //good
+        	fail("Exception expected") ;
         }
 
         printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
-        if (!collector.hasError()) {
+        if (collector.hasError()) {
             throw new Exception("Error expected") ;
         }   
     }

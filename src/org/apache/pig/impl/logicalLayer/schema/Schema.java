@@ -303,7 +303,8 @@ public class Schema implements Serializable, Cloneable {
                              inputType == DataType.CHARARRAY 
                            )  &&
                            (  (castType == DataType.CHARARRAY) ||
-                              (castType == DataType.BYTEARRAY)    
+                              (castType == DataType.BYTEARRAY) ||
+                              (DataType.isNumberType(castType))
                            ) 
                         ) {
                     //good
