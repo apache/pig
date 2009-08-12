@@ -39,6 +39,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.CastUtils;
 
 /**
  * This is just a cast that converts DataByteArray into either String or
@@ -205,7 +206,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Integer(Integer.valueOf((String) res.result));
+                res.result = CastUtils.stringToInteger((String)res.result);
             }
             return res;
         }
@@ -327,7 +328,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Long(Long.valueOf((String) res.result));
+            	res.result = CastUtils.stringToLong((String)res.result);
             }
             return res;
         }
@@ -448,7 +449,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Double(Double.valueOf((String) res.result));
+            	res.result = CastUtils.stringToDouble((String)res.result);
             }
             return res;
         }
@@ -571,7 +572,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Float(Float.valueOf((String) res.result));
+            	res.result = CastUtils.stringToFloat((String)res.result);
             }
             return res;
         }
