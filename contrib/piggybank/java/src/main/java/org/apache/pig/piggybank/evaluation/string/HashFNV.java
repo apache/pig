@@ -18,11 +18,14 @@
 package org.apache.pig.piggybank.evaluation.string;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.PigWarning;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -35,7 +38,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public class HashFNV extends EvalFunc<Long> {
     static final int FNV1_32_INIT = 33554467;
     static final int FNV_32_PRIME = 0x01000193;
-    int mMod=-1;
     public Schema outputSchema(Schema input) {
         try {
             return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.LONG));
@@ -63,31 +65,19 @@ public class HashFNV extends EvalFunc<Long> {
     {
         return hashFnv32Init(FNV1_32_INIT, s);
     }
-
+    
+    public Long exec(Tuple input) throws IOException { throw new IOException("HashFNV: internal error, try to use HashFNV directly"); }
+    
     @Override
-    public Long exec(Tuple input) throws IOException {
-        if (input.size()!=1 && input.size()!=2) {
-            String msg = "HashFNV : Only 1 or 2 parameters are allowed.";
-            throw new IOException(msg);
-        }
-        if (input.get(0)==null)
-            return null;
-        if (input.size() == 2)
-        {
-            try {
-                mMod = (Integer)input.get(1);
-            } catch (ClassCastException e) {
-                throw new IOException("HashFNV : 2nd parameter is not Integer",e);
-            }
-        }
-        
-        long v = hashFnv32((String)input.get(0));
-        if (v < 0)
-            v = -v;
-        if (mMod > 0)
-        {
-            v %= mMod;
-        }
-        return v;
-    }
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        funcList.add(new FuncSpec(HashFNV1.class.getName(), s));
+        s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s.add(new Schema.FieldSchema(null, DataType.INTEGER));
+        funcList.add(new FuncSpec(HashFNV2.class.getName(), s));
+        return funcList;
+    } 
 }
