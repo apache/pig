@@ -49,6 +49,8 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
     
+    PIG-913: Error in Pig script when grouping on chararray column (daijy)
+
     PIG-907: Provide multiple version of HashFNV (Piggybank) (daijy)
 
     PIG-905: TOKENIZE throws exception on null data (daijy)

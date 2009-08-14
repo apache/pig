@@ -159,7 +159,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
             		if (prepredecessor!=null)
             		{
             				try {
-            					removeFromChain(limit, null);
+            					mPlan.removeAndReconnect(limit);
             					insertBetween(prepredecessor, limit, predecessor, null);
             					
             				} catch (Exception e) {
@@ -213,7 +213,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
                     else
                         sort.setLimit(sort.getLimit()<limit.getLimit()?sort.getLimit():limit.getLimit());
                     try {
-                        removeFromChain(limit, null);
+                        mPlan.removeAndReconnect(limit);
                     } catch (Exception e) {
                         int errCode = 2012;
                         String msg = "Can not remove LOLimit after LOSort";
@@ -227,7 +227,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
             	LOLimit beforeLimit = (LOLimit)predecessor;
             	beforeLimit.setLimit(beforeLimit.getLimit()<limit.getLimit()?beforeLimit.getLimit():limit.getLimit());
             	try {
-            		removeFromChain(limit, null);
+            		mPlan.removeAndReconnect(limit);
             	} catch (Exception e) {
             	    int errCode = 2012;
             	    String msg = "Can not remove LOLimit after LOLimit";
