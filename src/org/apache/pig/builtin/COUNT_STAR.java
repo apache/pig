@@ -33,24 +33,19 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
 /**
- * Generates the count of the values of the first field of a tuple. This class is Algebraic in
+ * Generates the count of the values of the first field of a tuple. 
+ * This class is different from COUNT in that it counts all NULL values and as such
+ * implements SQL COUNT(*) semantics. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global functions
  */
-public class COUNT extends EvalFunc<Long> implements Algebraic{
+public class COUNT_STAR extends EvalFunc<Long> implements Algebraic{
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
     public Long exec(Tuple input) throws IOException {
         try {
             DataBag bag = (DataBag)input.get(0);
-            Iterator it = bag.iterator();
-            long cnt = 0;
-            while (it.hasNext()){
-                    Tuple t = (Tuple)it.next();
-                    if (t != null && t.size() > 0 && t.get(0) != null )
-                            cnt++;
-            }
-            return cnt;
+            return bag.size();
         } catch (ExecException ee) {
             throw ee;
         } catch (Exception e) {
@@ -81,13 +76,8 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             // input of a bag with a single tuple - the 
             // count should always be 1 if bag is non empty
             DataBag bag = (DataBag)input.get(0);
-            Iterator it = bag.iterator();
-            if (it.hasNext()){
-                Tuple t = (Tuple)it.next();
-                if (t != null && t.size() > 0 && t.get(0) != null)
-                    return mTupleFactory.newTuple(new Long(1));
-            }
-            return mTupleFactory.newTuple(new Long(0));
+            return mTupleFactory.newTuple(bag.iterator().hasNext()? 
+                    Long.valueOf(1L) : Long.valueOf(0L));
         }
     }
 

@@ -125,11 +125,11 @@ public class TestBuiltin extends TestCase {
         expectedMap.put("LongSum", new Long(145776964666362L));
         expectedMap.put("FloatSum", new Double(56.15395));
 
-        expectedMap.put("AVG", new Double(5.0));
-        expectedMap.put("DoubleAvg", new Double(15.506126530417545));
-        expectedMap.put("LongAvg", new Double(1.3252451333305637E13));
-        expectedMap.put("IntAvg", new Double(5.0));
-        expectedMap.put("FloatAvg", new Double(5.104904507723722));
+        expectedMap.put("AVG", new Double(5.5));
+        expectedMap.put("DoubleAvg", new Double(17.0567391834593));
+        expectedMap.put("LongAvg", new Double(14577696466636.2));
+        expectedMap.put("IntAvg", new Double(5.5));
+        expectedMap.put("FloatAvg", new Double(5.615394958853722));
         
         expectedMap.put("MIN", new Double(1));
         expectedMap.put("IntMin", new Integer(1));
@@ -145,7 +145,7 @@ public class TestBuiltin extends TestCase {
         expectedMap.put("DoubleMax", new Double(121.0));
         expectedMap.put("StringMax", "unit");
         
-        expectedMap.put("COUNT", new Long(11));
+        expectedMap.put("COUNT", new Long(10));
 
         // set up allowedInput
         for (String[] aggGroups : aggs) {
@@ -726,7 +726,10 @@ public class TestBuiltin extends TestCase {
             for (Tuple t: bg) {
                 Tuple newTuple = tupleFactory.newTuple(2);
                 newTuple.set(0, t.get(0));
-                newTuple.set(1, new Long(1));
+                if ( t.get(0) == null)
+                    newTuple.set(1, new Long(0));
+                else
+                    newTuple.set(1, new Long(1));
                 if(i < 5) {
                     bg1.add(newTuple);
                 } else {
@@ -752,11 +755,10 @@ public class TestBuiltin extends TestCase {
         }    
     }
 
-
     @Test
     public void testCOUNT() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        long expected = input.length;
+        Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, null };
+        long expected = input.length - 1;
 
         EvalFunc<Long> count = new COUNT();
         Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
@@ -767,12 +769,12 @@ public class TestBuiltin extends TestCase {
 
     @Test
     public void testCOUNTIntermed() throws Exception {
-        int input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         
         DataBag intermediateInputBag = bagFactory.newDefaultBag();
         // call initial and then Intermed
-        for (int i : input) {
-            Tuple t = tupleFactory.newTuple(new Integer(i));
+        for (Integer i : input) {
+            Tuple t = tupleFactory.newTuple(i);
             DataBag b = bagFactory.newDefaultBag();
             b.add(t);
             Tuple initialInput = tupleFactory.newTuple(b);
@@ -794,6 +796,52 @@ public class TestBuiltin extends TestCase {
         Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
 
         EvalFunc<Long> count = new COUNT.Final();
+        Long output = count.exec(tup);
+
+        assertEquals("Expected count to be 100", 100, output.longValue());
+    }
+
+    @Test
+    public void testCOUNT_STAR() throws Exception {
+        Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, null };
+        long expected = input.length;
+
+        EvalFunc<Long> count = new COUNT_STAR();
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+        Long output = count.exec(tup);
+
+        assertTrue(output == expected);
+    }
+
+    @Test
+    public void testCOUNT_STARIntermed() throws Exception {
+        Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        
+        DataBag intermediateInputBag = bagFactory.newDefaultBag();
+        // call initial and then Intermed
+        for (Integer i : input) {
+            Tuple t = tupleFactory.newTuple(i);
+            DataBag b = bagFactory.newDefaultBag();
+            b.add(t);
+            Tuple initialInput = tupleFactory.newTuple(b);
+            EvalFunc<?> initial = new COUNT_STAR.Initial();
+            intermediateInputBag.add((Tuple)initial.exec(initialInput));
+        }
+
+        EvalFunc<Tuple> countIntermed = new COUNT_STAR.Intermediate();
+        Tuple intermediateInput = tupleFactory.newTuple(intermediateInputBag);
+        Tuple output = countIntermed.exec(intermediateInput);
+
+        Long f1 = DataType.toLong(output.get(0));
+        assertEquals("Expected count to be 10", 10, f1.longValue());
+    }
+
+    @Test
+    public void testCOUNT_STARFinal() throws Exception {
+        long input[] = { 23, 38, 39 };
+        Tuple tup = Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), input);
+
+        EvalFunc<Long> count = new COUNT_STAR.Final();
         Long output = count.exec(tup);
 
         assertEquals("Expected count to be 100", 100, output.longValue());

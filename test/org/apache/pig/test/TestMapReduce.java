@@ -95,16 +95,18 @@ public class TestMapReduce extends TestCase {
         int LOOP_COUNT = 4*1024;
         File tmpFile = File.createTempFile( this.getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        long nonNullCnt = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
 	    if ( i % 10 == 0 ){
                ps.println("");
 	    } else {
                ps.println(i);
+               nonNullCnt ++;
 	    }
         }
         ps.close();
 
-        assertEquals( new Double( LOOP_COUNT ), bigGroupAll( tmpFile) );
+        assertEquals( new Double( nonNullCnt ), bigGroupAll( tmpFile) );
 
         tmpFile.delete();
 
