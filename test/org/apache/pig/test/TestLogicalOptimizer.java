@@ -185,6 +185,17 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
     }
 
     @Test
+    //See bug PIG-913
+    public void testOPLimit10Optimizer() throws Exception {
+        planTester.buildPlan("A = load 'myfile' AS (s:chararray);");
+        planTester.buildPlan("B = limit A 100;");
+        LogicalPlan plan = planTester.buildPlan("C = GROUP B by $0;");
+        optimizePlan(plan);
+        compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan10.dot");
+    }
+
+    
+    @Test
     //Test to ensure that the right exception is thrown
     public void testErrImplicitSplitInserter() throws Exception {
         LogicalPlan lp = new LogicalPlan();
