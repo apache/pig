@@ -204,13 +204,15 @@ public class TestAlgebraicEvalLocal extends TestCase {
                         // for half the groups
                         // emit nulls
                         ps.println(j%10 + ":");
+                        groupsize --;
                     } else {
                         ps.println(j%10 + ":" + j);
                     }
                 }
             }         
             ps.close();
-            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
+            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + 
+                           PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");
@@ -223,8 +225,6 @@ public class TestAlgebraicEvalLocal extends TestCase {
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(1));
-                    // right now count with nulls is same as
-                    // count without nulls
                     assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], groupsize, count.longValue());                    
                 }
             }
@@ -237,27 +237,30 @@ public class TestAlgebraicEvalLocal extends TestCase {
         for (int i = 0; i < nullFlags.length; i++) {
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             long groupsize = 0;
+            long nonNullCnt = 0;
             if(nullFlags[i] == false) {
                 // generate data without nulls
                 for(int j = 0; j < LOOP_COUNT; j++) {
-                    if(j%10 == 0) groupsize++;
+                    if(j%10 == 0) {groupsize++; nonNullCnt++;}
                     ps.println(j%10 + ":" + j);
                 }
             } else {
                 // generate data with nulls
                 for(int j = 0; j < LOOP_COUNT; j++) {
-                    if(j%10 == 0) groupsize++;
+                    if(j%10 == 0) {groupsize++; nonNullCnt++;}
                     if(j % 20 == 0) {
                         // for half the groups
                         // emit nulls
                         ps.println(j%10 + ":");
+                        nonNullCnt--;
                     } else {
                         ps.println(j%10 + ":" + j);
                     }
                 }
             }
             ps.close();
-            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
+            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + 
+                           PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
             System.out.println(query);
             pig.registerQuery(query);
             Iterator it = pig.openIterator("myid");
@@ -269,12 +272,10 @@ public class TestAlgebraicEvalLocal extends TestCase {
                 String a = t.get(0).toString();
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
-                    // right now count with nulls is same
-                    // as count without nulls
                     Long count = DataType.toLong(t.get(2));
                     assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],groupsize, count.longValue());
                     count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],groupsize, count.longValue());
+                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],nonNullCnt, count.longValue());
                 }
             }
         }

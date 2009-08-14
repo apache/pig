@@ -89,7 +89,11 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
                     d = (Double)(tp.get(0));
                 }
                 t.set(0, d);
-                t.set(1, 1L);
+                if (d != null){
+                    t.set(1, 1L);
+                }else{    
+                    t.set(1, 0L);
+                }
                 return t;
             } catch (ExecException ee) {
                 throw ee;
@@ -184,7 +188,14 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
 
     static protected long count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        return values.size();
+        Iterator it = values.iterator();
+        long cnt = 0;
+        while (it.hasNext()){
+            Tuple t = (Tuple)it.next();
+            if (t != null && t.size() > 0 && t.get(0) != null)
+                cnt++;
+        }
+        return cnt;
     }
 
     static protected Double sum(Tuple input) throws ExecException, IOException {
