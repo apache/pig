@@ -198,7 +198,7 @@ public class LogicalPlanTester {
     private LogicalPlan buildPlan(String query, ClassLoader cldr) {
 
         LogicalPlanBuilder.classloader = LogicalPlanTester.class.getClassLoader() ;
-        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
+        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
         try {
             pigContext.connect();
         } catch (ExecException e1) {

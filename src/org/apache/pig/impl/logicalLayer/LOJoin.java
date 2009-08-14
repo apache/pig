@@ -51,7 +51,8 @@ public class LOJoin extends LogicalOperator {
 	public static enum JOINTYPE {
         REGULAR, // Regular join
         REPLICATED, // Fragment Replicated join
-        SKEWED // Skewed Join
+        SKEWED, // Skewed Join
+        MERGE   // Sort Merge Join
     };
 
     /**
@@ -74,7 +75,7 @@ public class LOJoin extends LogicalOperator {
      * @param joinPlans
      *            the join columns
      * @param jt
-     *            indicates the type of join - regular, skewed or fragment replicated
+     *            indicates the type of join - regular, skewed fragment replicated or merge join
      */
     public LOJoin(
             LogicalPlan plan,

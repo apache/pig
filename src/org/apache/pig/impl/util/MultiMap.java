@@ -39,9 +39,9 @@ import java.util.Set;
 public class MultiMap<K, V> implements Serializable {
 
 	// Change this if you modify the class.
-	static final long serialVersionUID = 1L;
+	static final long serialVersionUID = 2L;
 
-    private HashMap<K, ArrayList<V>> mMap = null;
+    protected Map<K, ArrayList<V>> mMap = null;
 
     public MultiMap() {
         mMap = new HashMap<K, ArrayList<V>>();

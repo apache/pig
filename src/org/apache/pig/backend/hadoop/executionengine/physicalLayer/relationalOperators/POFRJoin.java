@@ -39,7 +39,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -73,7 +72,7 @@ public class POFRJoin extends PhysicalOperator {
     //Ex. join A by ($0+$1,$0-$1), B by ($0*$1,$0/$1);
     private List<List<PhysicalPlan>> phyPlanLists;
     //The key type for each Local Rearrange operator
-    private List<Byte> keyTypes;
+    private List<List<Byte>> keyTypes;
     //The Local Rearrange operators modeling the join key
     private POLocalRearrange[] LRs;
     //The set of files that represent the replicated inputs
@@ -109,7 +108,7 @@ public class POFRJoin extends PhysicalOperator {
         this(k,rp,inp,null, null, null, -1);
     }
     
-    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, List<List<PhysicalPlan>> ppLists, List<Byte> keyTypes, FileSpec[] replFiles, int fragment) throws ExecException{
+    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, List<List<PhysicalPlan>> ppLists, List<List<Byte>> keyTypes, FileSpec[] replFiles, int fragment) throws ExecException{
         super(k,rp,inp);
         
         phyPlanLists = ppLists;
@@ -148,7 +147,7 @@ public class POFRJoin extends PhysicalOperator {
             POLocalRearrange lr = new POLocalRearrange(genKey(old));
             lr.setIndex(i);
             lr.setResultType(DataType.TUPLE);
-            lr.setKeyType(keyTypes.get(i));
+            lr.setKeyType(keyTypes.get(i).size() > 1 ? DataType.TUPLE : keyTypes.get(i).get(0));
             try {
                 lr.setPlans(ppLst);
             } catch (PlanException pe) {

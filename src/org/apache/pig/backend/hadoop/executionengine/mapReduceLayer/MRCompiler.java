@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.builtin.MergeJoinIndexer;
 import org.apache.pig.impl.builtin.TupleSize;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
@@ -63,6 +65,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -82,6 +85,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
@@ -994,6 +998,239 @@ public class MRCompiler extends PhyPlanVisitor {
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
+    }
+
+    /** Since merge-join works on two inputs there are exactly two MROper predecessors identified  as left and right.
+     *  Instead of merging two operators, both are used to generate a MR job each. First MR oper is run to generate on-the-fly index on right side.
+     *  Second is used to actually do the join. First MR oper is identified as rightMROper and second as curMROper.
+
+     *  1) RightMROper: If it is in map phase. It can be preceded only by POLoad. If there is anything else
+     *                  in physical plan, that is yanked and set as inner plans of joinOp.
+     *                  If it is reduce phase. Close this operator and start new MROper.
+     *  2) LeftMROper:  If it is in map phase, add the Join operator in it.
+     *                  If it is in reduce phase. Close it and start new MROper.
+     */
+
+    @Override
+    public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
+
+        try{
+            if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2)
+                throw new MRCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, 1101);
+
+            OperatorKey leftPhyOpKey = joinOp.getInputs().get(0).getOperatorKey();
+            OperatorKey rightPhyOpKey = joinOp.getInputs().get(1).getOperatorKey();
+
+            // Currently we assume that physical operator succeeding POMergeJoin in the physical plan is present in MROperators found in compiledInputs[].
+            // This may not always hold. e.g., if there is an order-by before merge join.
+            
+            if(compiledInputs[0].mapPlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey) || compiledInputs[0].reducePlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey))
+                curMROp = compiledInputs[0];
+            
+            else if(compiledInputs[1].mapPlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey) || compiledInputs[1].reducePlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey))
+                curMROp = compiledInputs[1];
+            
+            else{ // This implies predecessor of left input is not found in compiled Inputs.
+                int errCode = 2169;
+                String errMsg = "Physical operator preceding left predicate not found in compiled MR jobs.";
+                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+            }
+             
+            MapReduceOper rightMROpr = null;
+            if(compiledInputs[1].mapPlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey) || compiledInputs[1].reducePlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey))
+                rightMROpr = compiledInputs[1];
+            
+            else if(compiledInputs[0].mapPlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey) || compiledInputs[0].reducePlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey))
+                rightMROpr = compiledInputs[0];
+            
+            else{ // This implies predecessor of right input is not found in compiled Inputs.
+                int errCode = 2169;
+                String errMsg = "Physical operator preceding right predicate not found in compiled MR jobs.";
+                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+            } 
+            
+            if(curMROp == null || rightMROpr == null){
+                
+                // This implies either of compiledInputs[0] or compiledInputs[1] is null.
+                int errCode = 2173;
+                String errMsg = "One of the preceding compiled MR operator is null. This is not expected.";
+                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+            }
+            
+            if(curMROp.equals(rightMROpr)){
+                int errCode = 2170;
+                String errMsg = "Physical operator preceding both left and right predicate found to be same. This is not expected.";
+                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+            }
+                
+            // We will first operate on right side which is indexer job.
+            // First yank plan of the compiled right input and set that as an inner plan of right operator.
+            if(!rightMROpr.mapDone){
+                PhysicalPlan rightMapPlan = rightMROpr.mapPlan;
+                if(rightMapPlan.getRoots().size() != 1){
+                    int errCode = 2171;
+                    String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                    throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+                }
+                
+                PhysicalOperator rightLoader = rightMapPlan.getRoots().get(0);
+                if(! (rightLoader instanceof POLoad)){
+                    int errCode = 2172;
+                    String errMsg = "Expected physical operator at root to be POLoad. Found : "+rightLoader.getClass().getCanonicalName();
+                    throw new MRCompilerException(errMsg,errCode);
+                }
+                
+                if (rightMapPlan.getSuccessors(rightLoader) == null || rightMapPlan.getSuccessors(rightLoader).isEmpty())
+                    // Load - Join case.
+                    joinOp.setupRightPipeline(null); 
+                
+                else{ // We got something on right side. Yank it and set it as inner plan of right input.
+                    PhysicalPlan rightPipelinePlan = rightMapPlan.clone();
+                    PhysicalOperator root = rightPipelinePlan.getRoots().get(0);
+                    rightPipelinePlan.disconnect(root, rightPipelinePlan.getSuccessors(root).get(0));
+                    rightPipelinePlan.remove(root);
+                    joinOp.setupRightPipeline(rightPipelinePlan);
+                    rightMapPlan.trimBelow(rightLoader);
+                }
+            }
+            
+            else if(!rightMROpr.reduceDone){ 
+                // Indexer must run in map. If we are in reduce, close it and start new MROper.
+                // No need of yanking in this case. Since we are starting brand new MR Operator and it will contain nothing.
+                joinOp.setupRightPipeline(null);
+                POStore rightStore = getStore();
+                FileSpec rightStrFile = getTempFileSpec();
+                rightStore.setSFile(rightStrFile);
+                rightMROpr.setReduceDone(true);
+                rightMROpr = startNew(rightStrFile, rightMROpr);
+            }
+            
+            else{
+                int errCode = 2022;
+                String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+            
+            // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
+            POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);
+            joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
+
+            // Replace POLoad with  indexer.
+            String[] indexerArgs = new String[2];
+            indexerArgs[0] = rightLoader.getLFile().getFuncName();
+            List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
+            indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans); 
+            FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
+            rightLoader.setLFile(lFile);
+
+            // Loader of mro will return a tuple of form (key1, key2, ..,filename, offset)
+            // Now set up a POLocalRearrange which has "all" as the key and tuple fetched
+            // by loader as the "value" of POLocalRearrange
+            // Sorting of index can possibly be achieved by using Hadoop sorting between map and reduce instead of Pig doing sort. If that is so, 
+            // it will simplify lot of the code below.
+            
+            PhysicalPlan lrPP = new PhysicalPlan();
+            ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            ce.setValue("all");
+            ce.setResultType(DataType.CHARARRAY);
+            lrPP.add(ce);
+
+            List<PhysicalPlan> lrInnerPlans = new ArrayList<PhysicalPlan>();
+            lrInnerPlans.add(lrPP);
+
+            POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            lr.setIndex(0);
+            lr.setKeyType(DataType.CHARARRAY);
+            lr.setPlans(lrInnerPlans);
+            lr.setResultType(DataType.TUPLE);
+            rightMROpr.mapPlan.addAsLeaf(lr);
+
+            rightMROpr.setMapDone(true);
+
+            // On the reduce side of this indexing job, there will be a global rearrange followed by POSort.
+            // Output of POSort will be index file dumped on the DFS.
+
+            // First add POPackage.
+            POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            pkg.setKeyType(DataType.CHARARRAY);
+            pkg.setNumInps(1); 
+            pkg.setInner(new boolean[]{false});
+            rightMROpr.reducePlan.add(pkg);
+
+            // Next project tuples from the bag created by POPackage.
+            POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            topPrj.setColumn(1);
+            topPrj.setResultType(DataType.TUPLE);
+            topPrj.setOverloaded(true);
+            rightMROpr.reducePlan.add(topPrj);
+            rightMROpr.reducePlan.connect(pkg, topPrj);
+
+            // Now create and add POSort. Sort plan is project *.
+            List<PhysicalPlan> sortPlans = new ArrayList<PhysicalPlan>(1);
+            PhysicalPlan innerSortPlan = new PhysicalPlan();
+            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            prj.setStar(true);
+            prj.setOverloaded(false);
+            prj.setResultType(DataType.TUPLE);
+            innerSortPlan.add(prj);
+            sortPlans.add(innerSortPlan);
+
+            // Currently we assume all columns are in asc order.
+            // Add two because filename and offset are added by Indexer in addition to keys.
+            List<Boolean>  mAscCols = new ArrayList<Boolean>(rightInpPlans.size()+2);
+            for(int i=0; i< rightInpPlans.size()+2; i++)
+                mAscCols.add(true);
+
+            POSort sortOp = new POSort(new OperatorKey(scope,nig.getNextNodeId(scope)),1, null, sortPlans, mAscCols, null);
+            rightMROpr.reducePlan.add(sortOp);
+            rightMROpr.reducePlan.connect(topPrj, sortOp);
+
+            POStore st = getStore();
+            FileSpec strFile = getTempFileSpec();
+            st.setSFile(strFile);
+            rightMROpr.reducePlan.addAsLeaf(st);
+            rightMROpr.setReduceDone(true);
+   
+            joinOp.setIndexFile(strFile);
+            
+            // We are done with right side. Lets work on left now.
+            // Join will be materialized in leftMROper.
+            if(!curMROp.mapDone) // Life is easy 
+                curMROp.mapPlan.addAsLeaf(joinOp);
+            
+            else if(!curMROp.reduceDone){  // This is a map-side join. Close this MROper and start afresh.
+                POStore leftStore = getStore();
+                FileSpec leftStrFile = getTempFileSpec();
+                leftStore.setSFile(leftStrFile);
+                curMROp.setReduceDone(true);
+                curMROp = startNew(leftStrFile, curMROp);
+                curMROp.mapPlan.addAsLeaf(joinOp);
+            }
+            
+            else{
+                int errCode = 2022;
+                String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+
+            // We want to ensure indexing job runs prior to actual join job. So, connect them in order.
+            MRPlan.connect(rightMROpr, curMROp);
+        }
+        catch(PlanException e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + joinOp.getClass().getCanonicalName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+       catch (IOException e){
+           int errCode = 3000;
+           String errMsg = "IOException caught while compiling POMergeJoin";
+            throw new MRCompilerException(errMsg, errCode,e);
+        }
+       catch(CloneNotSupportedException e){
+           int errCode = 2127;
+           String errMsg = "Cloning exception caught while compiling POMergeJoin";
+           throw new MRCompilerException(errMsg, errCode, PigException.BUG, e);
+       }
     }
 
     @Override

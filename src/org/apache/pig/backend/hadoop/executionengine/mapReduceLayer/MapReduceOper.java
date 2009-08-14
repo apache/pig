@@ -68,13 +68,13 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     //is complete
     boolean reduceDone = false;
     
-    // Indicates that there is POStream in the 
+    // Indicates that there is an operator which uses endOfAllInput flag in the 
     // map plan
-    boolean streamInMap = false;
+    boolean endOfAllInputInMap = false;
     
-    // Indicates that there is POStream in the 
+    // Indicates that there is an operator which uses endOfAllInput flag in the 
     // reduce plan
-    boolean streamInReduce = false;
+    boolean endOfAllInputInReduce = false;;
     
     //Indicates if this job is an order by job
     boolean globalSort = false;
@@ -306,33 +306,32 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     }
 
     /**
-     * @return whether there is a POStream in the map plan
+     * @return whether end of all input is set in the map plan
      */
-    public boolean isStreamInMap() {
-        return streamInMap;
+    public boolean isEndOfAllInputSetInMap() {
+        return endOfAllInputInMap;
     }
 
     /**
-     * @param streamInMap the streamInMap to set
+     * @param endOfAllInputInMap the streamInMap to set
      */
-    public void setStreamInMap(boolean streamInMap) {
-        this.streamInMap = streamInMap;
+    public void setEndOfAllInputInMap(boolean endOfAllInputInMap) {
+        this.endOfAllInputInMap = endOfAllInputInMap;
     }
 
     /**
-     * @return whether there is a POStream in the reduce plan
+     * @return whether end of all input is set in the reduce plan
      */
-    public boolean isStreamInReduce() {
-        return streamInReduce;
+    public boolean isEndOfAllInputSetInReduce() {
+        return endOfAllInputInReduce;
     }
 
     /**
-     * @param streamInReduce the streamInReduce to set
+     * @param endOfAllInputInReduce the streamInReduce to set
      */
-    public void setStreamInReduce(boolean streamInReduce) {
-        this.streamInReduce = streamInReduce;
-    }
-    
+    public void setEndOfAllInputInReduce(boolean endOfAllInputInReduce) {
+        this.endOfAllInputInReduce = endOfAllInputInReduce;
+    }    
     public int getFragment() {
         return fragment;
     }
