@@ -86,7 +86,10 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic {
                     l = (Long)(tp.get(0));
                 }
                 t.set(0, l);
-                t.set(1, 1L);
+                if (l != null)
+                    t.set(1, 1L);
+                else
+                    t.set(1, 0L);
                 return t;
             } catch (ExecException ee) {
                 throw ee;
@@ -181,7 +184,15 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic {
 
     static protected long count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        return values.size();
+        Iterator it = values.iterator();
+        long cnt = 0;
+        while (it.hasNext()){
+            Tuple t = (Tuple)it.next();
+            if (t != null && t.size() > 0 && t.get(0) != null)
+                cnt++;
+        }
+
+        return cnt;
     }
 
     static protected Long sum(Tuple input) throws ExecException, IOException {

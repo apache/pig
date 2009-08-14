@@ -22,7 +22,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
-PIG-734:  Changed maps to only take strings as keys (gates).
+PIG-892: Make COUNT and AVG deal with nulls accordingly with SQL standart
+(olgan)
+PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 

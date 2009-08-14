@@ -92,14 +92,17 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
                     dba = (DataByteArray)tp.get(0);
                 }
                 t.set(0, dba != null ? Double.valueOf(dba.toString()) : null);
-                t.set(1, 1L);
+                if (dba == null)
+                    t.set(1, 0L);
+                else
+                    t.set(1, 1L);
                 return t;
             } catch(NumberFormatException nfe) {
                 // invalid input,
                 // treat this input as null
                 try {
                     t.set(0, null);
-                    t.set(1, 1L);
+                    t.set(1, 0L);
                 } catch (ExecException e) {
                     throw e;
                 }
@@ -198,7 +201,15 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
 
     static protected long count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        return values.size();
+        long cnt = 0;
+        Iterator it = values.iterator();
+        while (it.hasNext()){
+            Tuple t = (Tuple)it.next(); 
+            if (t != null && t.size() > 0 && t.get(0) != null)
+                cnt ++;
+        }
+                    
+        return cnt;
     }
 
     static protected Double sum(Tuple input) throws ExecException, IOException {
