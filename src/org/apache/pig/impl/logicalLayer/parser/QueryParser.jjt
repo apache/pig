@@ -68,6 +68,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.impl.util.LinkedMultiMap;
 
 public class QueryParser {
 	private PigContext pigContext;
@@ -299,24 +300,32 @@ public class QueryParser {
 	}
 	
 	/**
-	 * Join parser. Currently can only handle skewed joins. 
+	 * Join parser. 
 	 */
 	LogicalOperator parseJoin(ArrayList<CogroupInput> gis, LogicalPlan lp, LOJoin.JOINTYPE jt) throws ParseException, PlanException{
 		log.trace("Entering parseJoin");
 		// Skewed Join behaves as regular join in local mode
 		if (pigContext.getExecType() == ExecType.LOCAL && jt == LOJoin.JOINTYPE.SKEWED) {
 			return rewriteJoin(gis,lp);
-		} 
-		
+		}
+
+      // Merge Join behaves as regular join in local mode
+		if (pigContext.getExecType() == ExecType.LOCAL && jt == LOJoin.JOINTYPE.MERGE) {
+            return rewriteJoin(gis,lp);
+        }
+        
 		int n = gis.size();
 
 		if (jt == LOJoin.JOINTYPE.SKEWED && n != 2) {
 			throw new ParseException("Skewed join can only be applied for 2-way joins");
 		}
-
+		if (jt == LOJoin.JOINTYPE.MERGE && n != 2) {
+            throw new ParseException("Merge join can only be applied for 2-way joins");
+        }
+        
 		ArrayList<LogicalOperator> los = new ArrayList<LogicalOperator>();
 		ArrayList<ArrayList<LogicalPlan>> plans = new ArrayList<ArrayList<LogicalPlan>>();
-		MultiMap<LogicalOperator, LogicalPlan> joinPlans = new MultiMap<LogicalOperator, LogicalPlan>();
+		MultiMap<LogicalOperator, LogicalPlan> joinPlans = new LinkedMultiMap<LogicalOperator, LogicalPlan>();
 		boolean[] isInner = new boolean[n];
 		
 		int arity = gis.get(0).plans.size();
@@ -355,61 +364,6 @@ public class QueryParser {
 		return loj;
 	}
 
-	/**
-	 * Mimicing parseCogroup as the parsing logic for FRJoin remains exactly the same.
-	 */
-	 /*
-	LogicalOperator parseFRJoin(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
-		
-		log.trace("Entering parseCogroup");
-		log.debug("LogicalPlan: " + lp);
-		
-		int n = gis.size();
-		log.debug("Number of cogroup inputs = " + n);
-		
-		ArrayList<LogicalOperator> los = new ArrayList<LogicalOperator>();
-		ArrayList<ArrayList<LogicalPlan>> plans = new ArrayList<ArrayList<LogicalPlan>>();
-		MultiMap<LogicalOperator, LogicalPlan> groupByPlans = new MultiMap<LogicalOperator, LogicalPlan>();
-		//Map<LogicalOperator, LogicalPlan> groupByPlans = new HashMap<LogicalOperator, LogicalPlan>();
-		boolean[] isInner = new boolean[n];
-		
-		int arity = gis.get(0).plans.size();
-		
-		for (int i = 0; i < n ; i++){
-			
-			CogroupInput gi = gis.get(i);
-			los.add(gi.op);
-			ArrayList<LogicalPlan> planList = gi.plans;
-			plans.add(gi.plans);
-			int numGrpByOps = planList.size();
-			log.debug("Number of group by operators = " + numGrpByOps);
-
-			if(arity != numGrpByOps) {
-				throw new ParseException("The arity of the group by columns do not match.");
-			}
-			for(int j = 0; j < numGrpByOps; ++j) {
-			    groupByPlans.put(gi.op, planList.get(j));
-				for(LogicalOperator root: planList.get(j).getRoots()) {
-					log.debug("Cogroup input plan root: " + root);
-				}
-			}
-			isInner[i] = gi.isInner;
-		}
-		
-		LogicalOperator frj = new LOFRJoin(lp, new OperatorKey(scope, getNextId()), groupByPlans, isInner, gis.get(0).op);
-		lp.add(frj);
-		log.debug("Added operator " + frj.getClass().getName() + " object " + frj + " to the logical plan " + lp);
-		
-		for(LogicalOperator op: los) {
-			lp.connect(op, frj);
-			log.debug("Connected operator " + op.getClass().getName() + " to " + frj.getClass().getName() + " in the logical plan");
-		}
-
-		log.trace("Exiting parseFRJoin");
-		return frj;
-	}
-	*/
-			
 	/**
 	 * The join operator is translated to foreach 
 	 */
@@ -1915,13 +1869,16 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	log.debug("LogicalPlan: " + lp);
 	LogicalOperator frj = null;
 	LogicalOperator skj = null;
+	LogicalOperator smj = null;
 }
 {
 	(gi = GroupItem(lp) { gis.add(gi); }
 	("," gi = GroupItem(lp) { gis.add(gi); })+
-	// The addition of using replicated to indicate FRJoin
-	([<USING> ("\"replicated\"" { frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); } | "\"repl\"" { frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);}
-    |"\"skewed\"" { skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); })] ))
+	// For all types of join we create LOJoin and mark what type of join it is.
+	([<USING> ("\"replicated\"" { frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); }
+	| "\"repl\"" { frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);}
+    |"\"skewed\"" { skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); }
+    |"\"merge\"" { smj = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE); })] ))
 
 	{log.trace("Exiting JoinClause");
 	if (frj!=null) {
@@ -1930,8 +1887,10 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	else if (skj!=null) {
 		return skj;
 	}
+	else if (smj!=null) {
+        return smj;
+    }
 	else {
-		//return rewriteJoin(gis,lp);
 		return parseJoin(gis, lp, LOJoin.JOINTYPE.REGULAR);
 	}}
 	

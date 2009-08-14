@@ -64,6 +64,8 @@ public class POLoad extends PhysicalOperator {
     boolean setUpDone = false;
     // Indicates whether the filespec is splittable
     boolean splittable = true;
+    // default offset.
+    private long offset = 0;
     
     private final Log log = LogFactory.getLog(getClass());
     
@@ -76,6 +78,11 @@ public class POLoad extends PhysicalOperator {
         this(k,-1,lFile, splittable);
     }
     
+    public POLoad(OperatorKey k, FileSpec lFile, long offset, boolean splittable){
+        this(k,-1,lFile, splittable);
+        this.offset = offset;
+    }
+    
     public POLoad(OperatorKey k, int rp, FileSpec lFile,boolean splittable) {
         super(k, rp);
         this.lFile = lFile;
@@ -86,7 +93,7 @@ public class POLoad extends PhysicalOperator {
      * Set up the loader by 
      * 1) Instantiating the load func
      * 2) Opening an input stream to the specified file and
-     * 3) Binding to the input stream
+     * 3) Binding to the input stream at the specified offset.
      * @throws IOException
      */
     public void setUp() throws IOException{
@@ -95,7 +102,7 @@ public class POLoad extends PhysicalOperator {
         
         is = FileLocalizer.open(filename, pc);
         
-        loader.bindTo(filename , new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
     }
     
     /**

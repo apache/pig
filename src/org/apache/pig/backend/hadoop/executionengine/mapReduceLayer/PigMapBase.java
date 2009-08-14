@@ -33,7 +33,6 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -45,7 +44,6 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -96,13 +94,13 @@ public abstract class PigMapBase extends MapReduceBase{
             return;
         }
             
-        if(PigMapReduce.sJobConf.get("pig.stream.in.map", "false").equals("true")) {
-            // If there is a stream in the pipeline we could 
+        if(PigMapReduce.sJobConf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false").equals("true")) {
+            // If there is a stream in the pipeline or if this map job belongs to merge-join we could 
             // potentially have more to process - so lets
             // set the flag stating that all map input has been sent
             // already and then lets run the pipeline one more time
             // This will result in nothing happening in the case
-            // where there is no stream in the pipeline
+            // where there is no stream or it is not a merge-join in the pipeline
             mp.endOfAllInput = true;
             try {
                 runPipeline(leaf);
