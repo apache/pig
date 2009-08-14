@@ -970,12 +970,12 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     
     private void mergeMROperProperties(MapReduceOper from, MapReduceOper to) {
 
-        if (from.isStreamInMap()) {
-            to.setStreamInMap(true);
+        if (from.isEndOfAllInputSetInMap()) {
+            to.setEndOfAllInputInMap(true);
         }
 
-        if (from.isStreamInReduce()) {
-            to.setStreamInReduce(true);
+        if (from.isEndOfAllInputSetInReduce()) {
+            to.setEndOfAllInputInReduce(true);
         }
         
         if (from.getRequestedParallelism() > to.getRequestedParallelism()) {

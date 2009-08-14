@@ -42,7 +42,7 @@ public class RandomSampleLoader implements LoadFunc {
     private int numSamples;
     private long skipInterval;    
 	private TupleFactory factory;
-    private SamplableLoader loader;
+    protected SamplableLoader loader;
     
     /**
      * Construct with a class of loader to use.

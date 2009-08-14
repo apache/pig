@@ -252,6 +252,11 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     }
     
     @Override
+    public void visitMergeJoin(POMergeJoin join) throws VisitorException {
+        join.setParentPlan(parent);
+    }
+
+    @Override
     public void visitSkewedJoin(POSkewedJoin join) throws VisitorException {
         join.setParentPlan(parent);
     }   

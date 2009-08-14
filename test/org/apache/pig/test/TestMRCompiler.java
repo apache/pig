@@ -900,7 +900,6 @@ public class TestMRCompiler extends junit.framework.TestCase {
     	assertTrue(count == 4);
     }
 
-
     @Test
     public void testUDFInJoin() throws Exception {
         planTester.buildPlan("a = load 'input1' using BinStorage();");
@@ -915,6 +914,19 @@ public class TestMRCompiler extends junit.framework.TestCase {
         assertTrue(mrOper.UDFs.size()==2);
         assertTrue(mrOper.UDFs.get(0).equals("BinStorage"));
         assertTrue(mrOper.UDFs.get(1).equals("org.apache.pig.builtin.PigStorage"));
+    }
+
+    @Test
+    public void testMergeJoin() throws Exception{
+
+        //generate = true;
+        planTester.buildPlan("a = load '/tmp/input1';");
+        planTester.buildPlan("b = load '/tmp/input2';");
+        planTester.buildPlan("c = join a by $0, b by $0 using \"merge\";");
+        LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+        
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/MRC18.gld");
     }
     
     public static class WeirdComparator extends ComparisonFunc {

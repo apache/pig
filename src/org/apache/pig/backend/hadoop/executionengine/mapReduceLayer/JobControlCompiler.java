@@ -110,6 +110,8 @@ public class JobControlCompiler{
 
     public static final String LOG_DIR = "_logs";
 
+    public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
+    
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
 
@@ -442,11 +444,11 @@ public class JobControlCompiler{
                 jobConf.setMapperClass(PigMapOnly.Map.class);
                 jobConf.setNumReduceTasks(0);
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
-                if(mro.isStreamInMap()) {
+                if(mro.isEndOfAllInputSetInMap()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
-                    // The pipeline is rerun only if there was a stream
-                    jobConf.set("pig.stream.in.map", "true");
+                    // The pipeline is rerun if there either was a stream or POMergeJoin
+                    jobConf.set(END_OF_INP_IN_MAP, "true");
                 }
             }
             else{
@@ -470,14 +472,14 @@ public class JobControlCompiler{
                     jobConf.setNumReduceTasks(mro.requestedParallelism);
 
                 jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
-                if(mro.isStreamInMap()) {
+                if(mro.isEndOfAllInputSetInMap()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
-                    // The pipeline is rerun only if there was a stream
-                    jobConf.set("pig.stream.in.map", "true");
+                    // The pipeline is rerun only if there was a stream or merge-join.
+                    jobConf.set(END_OF_INP_IN_MAP, "true");
                 }
                 jobConf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
-                if(mro.isStreamInReduce()) {
+                if(mro.isEndOfAllInputSetInReduce()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
                     // The pipeline is rerun only if there was a stream
