@@ -136,6 +136,47 @@ public class TestLocal2 extends TestCase {
         
     }
     
+    @Test
+    public void testJoin1() throws Exception {
+        // Regression test for Pig-925
+        File fp1 = File.createTempFile("test1", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+        
+        ps.println("1\t1");
+        ps.println("2\t2");
+        ps.close();
+        
+        File fp2 = File.createTempFile("test2", "txt");
+        ps = new PrintStream(new FileOutputStream(fp2));
+        
+        ps.println("1\t1");
+        ps.println("2\t2");
+        ps.close();
+        
+        
+        pig.registerQuery("A = load '" + Util.generateURI(fp1.toString()) + "'AS (a0:int, a1:int); ");
+        pig.registerQuery("B = load '" + Util.generateURI(fp2.toString()) + "'AS (b0:int, b1:int); ");
+        pig.registerQuery("C = join A by a0, B by b0;");
+        
+        Iterator<Tuple> iter = pig.openIterator("C");
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.get(0).equals(new Integer(1)));
+        assertTrue(t.get(1).equals(new Integer(1)));
+        assertTrue(t.get(2).equals(new Integer(1)));
+        assertTrue(t.get(3).equals(new Integer(1)));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.get(0).equals(new Integer(2)));
+        assertTrue(t.get(1).equals(new Integer(2)));
+        assertTrue(t.get(2).equals(new Integer(2)));
+        assertTrue(t.get(3).equals(new Integer(2)));
+        
+        assertTrue(!iter.hasNext());
+    }
+    
+    
     static public class Pig800Udf extends EvalFunc<DataBag> {
         
         @Override
