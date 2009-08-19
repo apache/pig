@@ -54,6 +54,8 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
     
+    PIG-925: Fix join in local mode (daijy)
+
     PIG-913: Error in Pig script when grouping on chararray column (daijy)
 
     PIG-907: Provide multiple version of HashFNV (Piggybank) (daijy)
