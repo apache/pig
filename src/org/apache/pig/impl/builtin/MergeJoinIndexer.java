@@ -18,119 +18,216 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.SamplableLoader;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.data.DataType;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.ObjectSerializer;
 
-public class MergeJoinIndexer extends RandomSampleLoader {
+/** Merge Join indexer is used to generate on the fly index for doing Merge Join efficiently.
+ *  It samples first record from every block of right side input. 
+ *  and returns tuple in the following format : 
+ *  (key0, key1,...,fileName, offset)
+ *  These tuples are then sorted before being written out to index file on HDFS.
+ */
 
-    /** Merge Join indexer is used to generate on the fly index for doing Merge Join efficiently.
-     *  It samples first record from every block of right side input (which is later opened as side file in merge join)
-     *  and returns tuple in the following format : 
-     *  (key0, key1,...,fileName, offset)
-     *  These tuples are then sorted before being written out to index file on HDFS.
-     */
-    
+public class MergeJoinIndexer  implements LoadFunc{
+
     private boolean firstRec = true;
     private transient TupleFactory mTupleFactory;
     private String fileName;
     private POLocalRearrange lr;
+    private PhysicalPlan precedingPhyPlan;
     private int keysCnt;
-    
+    private PhysicalOperator rightPipelineLeaf;
+    private PhysicalOperator rightPipelineRoot;
+    private Tuple dummyTuple = null;
+    private SamplableLoader loader;
+
     /** @param funcSpec : Loader specification.
-     *  @param serializedPlans : This is serialized version of LR plan. We 
+     *  @param innerPlan : This is serialized version of LR plan. We 
      *  want to keep only keys in our index file and not the whole tuple. So, we need LR and thus its plan
      *  to get keys out of the sampled tuple.  
+     * @param serializedPhyPlan Serialized physical plan on right side.
+     * @throws ExecException 
      */
     @SuppressWarnings("unchecked")
-    public MergeJoinIndexer(String funcSpec, String serializedPlans) throws ExecException{
-        super(funcSpec,"1");
-
+    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) throws ExecException{
+        
+        loader = (SamplableLoader)PigContext.instantiateFuncFromSpec(funcSpec);
         try {
-            List<PhysicalPlan> innerPlans = (List<PhysicalPlan>)ObjectSerializer.deserialize(serializedPlans);
+            List<PhysicalPlan> innerPlans = (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
             lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
             lr.setPlans(innerPlans);
             keysCnt = innerPlans.size();
-            mTupleFactory = TupleFactory.getInstance();
-        }
-        catch (PlanException pe) {
-            int errCode = 2071;
-            String msg = "Problem with setting up local rearrange's plans.";
-            throw new ExecException(msg, errCode, PigException.BUG, pe);
+            precedingPhyPlan = (PhysicalPlan)ObjectSerializer.deserialize(serializedPhyPlan);
+            if(precedingPhyPlan != null){
+                    if(precedingPhyPlan.getLeaves().size() != 1 || precedingPhyPlan.getRoots().size() != 1){
+                        int errCode = 2168;
+                        String errMsg = "Expected physical plan with exactly one root and one leaf.";
+                        throw new ExecException(errMsg,errCode,PigException.BUG);
+                    }
+                this.rightPipelineLeaf = precedingPhyPlan.getLeaves().get(0);
+                this.rightPipelineRoot = precedingPhyPlan.getRoots().get(0);
+                this.rightPipelineRoot.setInputs(null);                            
+            }
         }
         catch (IOException e) {
             int errCode = 2094;
-            String msg = "Unable to deserialize inner plans in Indexer.";
+            String msg = "Unable to deserialize plans in Indexer.";
             throw new ExecException(msg,errCode,e);
         }
+        mTupleFactory = TupleFactory.getInstance();
     }
 
     @Override
     public void bindTo(String fileName, BufferedPositionedInputStream is,long offset, long end) throws IOException {
         this.fileName = fileName;
-        super.bindTo(fileName, is, offset, end);
+        loader.bindTo(fileName, is, offset, end);
     }
 
     @Override
     public Tuple getNext() throws IOException {
 
-        if(!firstRec)   // We sample only record per block.
+        if(!firstRec)   // We sample only one record per block.
             return null;
 
+        long curPos;
+        Object key = null;
+        Tuple wrapperTuple = mTupleFactory.newTuple(keysCnt+2);
+        
         while(true){
-            long initialPos = loader.getPosition();
-            Tuple t = loader.getSampledTuple();
-            
-            if(null == t){          // We hit the end of block because all keys are null. 
-            
-                Tuple wrapperTuple = mTupleFactory.newTuple(keysCnt+2);
+            curPos = loader.getPosition();
+            Tuple readTuple = loader.getNext();
+
+            if(null == readTuple){    // We hit the end.
+
                 for(int i =0; i < keysCnt; i++)
                     wrapperTuple.set(i, null);
                 wrapperTuple.set(keysCnt, fileName);
-                wrapperTuple.set(keysCnt+1, initialPos);
+                wrapperTuple.set(keysCnt+1, curPos);
                 firstRec = false;
                 return wrapperTuple;
             }
-                
-            Tuple dummyTuple = null;
-            lr.attachInput(t);
-            Object key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
-            if(null == key)     // Tuple with null key. Drop it. Get next.
-                continue;
-            
-            Tuple wrapperTuple = mTupleFactory.newTuple(keysCnt+2);        
-            if(key instanceof Tuple){
-                Tuple tupKey = (Tuple)key;
-                for(int i =0; i < tupKey.size(); i++)
-                    wrapperTuple.set(i, tupKey.get(i));
+
+            if (null == precedingPhyPlan){
+
+                lr.attachInput(readTuple);
+                key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
+                lr.detachInput();
+                if ( null == key) // Tuple with null key. Drop it.
+                    continue;
+                break;      
             }
 
-            else
-                wrapperTuple.set(0, key);
+            // There is a physical plan. 
 
-            lr.detachInput();
-            wrapperTuple.set(keysCnt, fileName);
-            wrapperTuple.set(keysCnt+1, initialPos);
+            rightPipelineRoot.attachInput(readTuple);
+            boolean fetchNewTup;
 
-            firstRec = false;
-            return wrapperTuple;
+            while(true){
+
+                Result res = rightPipelineLeaf.getNext(dummyTuple);
+                switch(res.returnStatus){
+
+                case POStatus.STATUS_OK:
+
+                    lr.attachInput((Tuple)res.result);
+                    key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
+                    lr.detachInput();
+                    if ( null == key) // Tuple with null key. Drop it.
+                        continue;
+                     fetchNewTup = false;
+                    break;
+
+                case POStatus.STATUS_EOP:
+                    fetchNewTup = true;
+                    break;
+
+                default:
+                    int errCode = 2164;
+                    String errMsg = "Expected EOP/OK as return status. Found: "+res.returnStatus;
+                    throw new ExecException(errMsg,errCode);
+                }            
+                break;
+            }
+            if (!fetchNewTup)
+                break;
         }
+
+        if(key instanceof Tuple){
+            Tuple tupKey = (Tuple)key;
+            for(int i =0; i < tupKey.size(); i++)
+                wrapperTuple.set(i, tupKey.get(i));
+        }
+
+        else
+            wrapperTuple.set(0, key);
+
+        wrapperTuple.set(keysCnt, fileName);
+        wrapperTuple.set(keysCnt+1, curPos);    
+        firstRec = false;
+        return wrapperTuple;
+    }
+    
+    public Integer bytesToInteger(byte[] b) throws IOException {
+        return loader.bytesToInteger(b);
     }
 
-    private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException, ExecException{
-        is.defaultReadObject();
-        mTupleFactory = TupleFactory.getInstance();
+    public Long bytesToLong(byte[] b) throws IOException {
+        return loader.bytesToLong(b);
+    }
+
+    public Float bytesToFloat(byte[] b) throws IOException {
+        return loader.bytesToFloat(b);
+    }
+
+    public Double bytesToDouble(byte[] b) throws IOException {
+        return loader.bytesToDouble(b);
+    }
+
+    public String bytesToCharArray(byte[] b) throws IOException {
+        return loader.bytesToCharArray(b);
+    }
+
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+        return loader.bytesToMap(b);
+    }
+
+    public Tuple bytesToTuple(byte[] b) throws IOException {
+        return loader.bytesToTuple(b);
+    }
+
+    public DataBag bytesToBag(byte[] b) throws IOException {
+        return loader.bytesToBag(b);
+    }
+
+    public void fieldsToRead(Schema schema) {
+        loader.fieldsToRead(schema);
+    }
+
+    public Schema determineSchema(
+            String fileName,
+            ExecType execType,
+            DataStorage storage) throws IOException {
+        return loader.determineSchema(fileName, execType, storage);
     }
 }

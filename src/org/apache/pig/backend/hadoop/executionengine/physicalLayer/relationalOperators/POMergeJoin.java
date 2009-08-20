@@ -32,8 +32,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
@@ -49,16 +47,17 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
 
+/** This operator implements merge join algorithm to do map side joins. 
+ *  Currently, only two-way joins are supported. One input of join is identified as left
+ *  and other is identified as right. Left input tuples are the input records in map.
+ *  Right tuples are read from HDFS by opening right stream.
+ *  
+ *    This join doesn't support outer join.
+ *    Data is assumed to be sorted in ascending order. It will fail if data is sorted in descending order.
+ */
+
 public class POMergeJoin extends PhysicalOperator {
 
-    /** This operator implements merge join algorithm to do map side joins. 
-     *  Currently, only two-way joins are supported. One input of join is identified as left
-     *  and other is identified as right. Left input tuples are the input records in map.
-     *  Right tuples are read from HDFS by opening right stream.
-     *  
-     *    This join doesn't support outer join.
-     *    Data is assumed to be sorted in ascending order. It will fail if data is sorted in descending order.
-     */
     private static final long serialVersionUID = 1L;
 
     private final transient Log log = LogFactory.getLog(getClass());
@@ -119,10 +118,6 @@ public class POMergeJoin extends PhysicalOperator {
 
     private int arrayListSize = 1024;
 
-    private List<POCast> casters;
-
-    private List<POProject> projectors;
-
     /**
      * @param k
      * @param rp
@@ -140,35 +135,8 @@ public class POMergeJoin extends PhysicalOperator {
         mTupleFactory = TupleFactory.getInstance();
         leftTuples = new ArrayList<Tuple>(arrayListSize);
         this.createJoinPlans(inpPlans,keyTypes);
-        setUpTypeCastingForIdxTup(keyTypes.get(0));
     }
 
-    /** This function setups casting for key tuples which we read out of index file.
-     * We set the type of key as DataByteArray(DBA) and then cast it into the type specified in schema.
-     * If type is not specified in schema, then we will cast from DBA to DBA.
-     */
-    
-    private void setUpTypeCastingForIdxTup(List<Byte> keyTypes){
-         /*   
-         * Cant reuse one POCast operator for all keys since POCast maintains some state
-         * and hence its not safe to use one POCast. Thus we use one POCast for each key.
-         */
-        casters = new ArrayList<POCast>(keyTypes.size());
-        projectors = new ArrayList<POProject>(keyTypes.size());
-
-        for(Byte keytype : keyTypes){
-            POCast caster = new POCast(genKey());
-            List<PhysicalOperator> pp = new ArrayList<PhysicalOperator>(1);
-            POProject projector = new POProject(genKey());
-            projector.setResultType(DataType.BYTEARRAY);
-            projector.setColumn(0);
-            pp.add(projector);
-            caster.setInputs(pp);
-            caster.setResultType(keytype);
-            projectors.add(projector);
-            casters.add(caster);
-        }
-    }
     /**
      * Configures the Local Rearrange operators to get keys out of tuple.
      * @throws ExecException 
@@ -504,50 +472,15 @@ public class POMergeJoin extends PhysicalOperator {
     private Object extractKeysFromIdxTuple(Tuple idxTuple) throws ExecException{
 
         int idxTupSize = idxTuple.size();
+
+        if(idxTupSize == 3)
+            return idxTuple.get(0);
+        
         List<Object> list = new ArrayList<Object>(idxTupSize-2);
+        for(int i=0; i<idxTupSize-2;i++)
+            list.add(idxTuple.get(i));
 
-        for(int i=0; i<idxTupSize-2; i++){
-
-            projectors.get(i).attachInput(mTupleFactory.newTuple(idxTuple.get(i)));
-
-            switch (casters.get(i).getResultType()) {
-
-            case DataType.BYTEARRAY:    // POCast doesn't handle DBA. But we are saved, because in this case we don't need cast anyway.
-                list.add(idxTuple.get(i));
-                break;
-
-            case DataType.CHARARRAY:
-                list.add(casters.get(i).getNext(dummyString).result);
-                break;
-
-            case DataType.INTEGER:
-                list.add(casters.get(i).getNext(dummyInt).result);
-                break;
-
-            case DataType.FLOAT:
-                list.add(casters.get(i).getNext(dummyFloat).result);
-                break;
-
-            case DataType.DOUBLE:
-                list.add(casters.get(i).getNext(dummyDouble).result);
-                break;
-
-            case DataType.LONG:
-                list.add(casters.get(i).getNext(dummyLong).result);
-                break;
-
-            case DataType.TUPLE:
-                list.add(casters.get(i).getNext(dummyTuple).result);
-                break;
-
-            default:
-                int errCode = 2036;
-                String errMsg = "Unhandled key type : "+casters.get(i).getResultType();
-                throw new ExecException(errMsg,errCode,PigException.BUG);
-            }
-        }
-        // If there is only one key, we don't want to wrap it into Tuple.
-        return list.size() == 1 ? list.get(0) : mTupleFactory.newTuple(list);
+        return mTupleFactory.newTupleNoCopy(list);
     }
 
     private Result getNextRightInp() throws ExecException{
@@ -623,7 +556,11 @@ public class POMergeJoin extends PhysicalOperator {
 
         // bind loader to file pointed by this index Entry.
         int keysCnt = idxEntry.size();
-        rightLoader = new POLoad(genKey(), new FileSpec((String)idxEntry.get(keysCnt-2),this.rightLoaderFuncSpec),(Long)idxEntry.get(keysCnt-1), false);
+        Long offset = (Long)idxEntry.get(keysCnt-1);
+        if(offset > 0)
+            // Loader will throw away one tuple if we are in the middle of the block. We don't want that.
+            offset -= 1 ;
+        rightLoader = new POLoad(genKey(), new FileSpec((String)idxEntry.get(keysCnt-2),this.rightLoaderFuncSpec),offset, false);
         rightLoader.setPc(pc);
     }
 
@@ -673,8 +610,6 @@ public class POMergeJoin extends PhysicalOperator {
 
     public void setRightLoaderFuncSpec(FuncSpec rightLoaderFuncSpec) {
         this.rightLoaderFuncSpec = rightLoaderFuncSpec;
-        for(POCast caster : casters)
-            caster.setLoadFSpec(rightLoaderFuncSpec);            
     }
 
     public List<PhysicalPlan> getInnerPlansOf(int index) {
