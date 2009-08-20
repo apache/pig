@@ -407,6 +407,37 @@ public class TestMergeJoin {
     }       
 
     @Test
+    public void testIndexer() throws IOException{
+        Util.createInputFile(cluster, "temp_file1", new String[]{1+""});
+        Util.createInputFile(cluster, "temp_file2", new String[]{2+""});
+        Util.createInputFile(cluster, "temp_file3", new String[]{10+""});
+        pigServer.registerQuery("A = LOAD 'temp_file*' as (a:int);");
+        pigServer.registerQuery("B = LOAD 'temp_file*' as (a:int);");
+        DataBag dbmrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbmrj.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Util.deleteFile(cluster, "temp_file1");
+        Util.deleteFile(cluster, "temp_file2");
+        Util.deleteFile(cluster, "temp_file3");
+        Assert.assertEquals(dbmrj.size(),dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbmrj, dbshj));
+    }
+    
+    @Test
     public void testMergeJoinSch1() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");

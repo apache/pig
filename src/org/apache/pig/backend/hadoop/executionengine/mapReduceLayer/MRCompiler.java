@@ -34,6 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
+import org.apache.pig.SamplableLoader;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -1065,6 +1066,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 
             // We will first operate on right side which is indexer job.
             // First yank plan of the compiled right input and set that as an inner plan of right operator.
+            PhysicalPlan rightPipelinePlan;
             if(!rightMROpr.mapDone){
                 PhysicalPlan rightMapPlan = rightMROpr.mapPlan;
                 if(rightMapPlan.getRoots().size() != 1){
@@ -1082,14 +1084,13 @@ public class MRCompiler extends PhyPlanVisitor {
                 
                 if (rightMapPlan.getSuccessors(rightLoader) == null || rightMapPlan.getSuccessors(rightLoader).isEmpty())
                     // Load - Join case.
-                    joinOp.setupRightPipeline(null); 
+                    rightPipelinePlan = null; 
                 
                 else{ // We got something on right side. Yank it and set it as inner plan of right input.
-                    PhysicalPlan rightPipelinePlan = rightMapPlan.clone();
+                    rightPipelinePlan = rightMapPlan.clone();
                     PhysicalOperator root = rightPipelinePlan.getRoots().get(0);
                     rightPipelinePlan.disconnect(root, rightPipelinePlan.getSuccessors(root).get(0));
                     rightPipelinePlan.remove(root);
-                    joinOp.setupRightPipeline(rightPipelinePlan);
                     rightMapPlan.trimBelow(rightLoader);
                 }
             }
@@ -1097,12 +1098,12 @@ public class MRCompiler extends PhyPlanVisitor {
             else if(!rightMROpr.reduceDone){ 
                 // Indexer must run in map. If we are in reduce, close it and start new MROper.
                 // No need of yanking in this case. Since we are starting brand new MR Operator and it will contain nothing.
-                joinOp.setupRightPipeline(null);
                 POStore rightStore = getStore();
                 FileSpec rightStrFile = getTempFileSpec();
                 rightStore.setSFile(rightStrFile);
                 rightMROpr.setReduceDone(true);
                 rightMROpr = startNew(rightStrFile, rightMROpr);
+                rightPipelinePlan = null; 
             }
             
             else{
@@ -1111,15 +1112,23 @@ public class MRCompiler extends PhyPlanVisitor {
                 throw new PlanException(msg, errCode, PigException.BUG);
             }
             
+            joinOp.setupRightPipeline(rightPipelinePlan);
+                        
             // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
             POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);
             joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
 
             // Replace POLoad with  indexer.
-            String[] indexerArgs = new String[2];
-            indexerArgs[0] = rightLoader.getLFile().getFuncName();
+            String[] indexerArgs = new String[3];
+            indexerArgs[0] = rightLoader.getLFile().getFuncSpec().toString();
+             if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof SamplableLoader)){
+                 int errCode = 1104;
+                 String errMsg = "Right input of merge-join must implement SamplableLoader interface. The specified loader " + indexerArgs[0] + " doesn't implement it";
+                 throw new MRCompilerException(errMsg,errCode);
+             }
             List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
-            indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans); 
+            indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
+            indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
             FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
             rightLoader.setLFile(lFile);
 
