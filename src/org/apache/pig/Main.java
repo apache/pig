@@ -268,8 +268,8 @@ public static void main(String args[])
         configureLog4J(properties, pigContext);
         
         if(logFileName == null && !userSpecifiedLog) {
-            logFileName = validateLogFile(null, null);
-        }
+	    logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
+	}
         
         if(logFileName != null) {
             log.info("Logging error messages to: " + logFileName);
