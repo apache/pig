@@ -1574,6 +1574,45 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
       </listitem>
    </itemizedlist>
 
+      <section id="fexp">
+          <title>Field expressions</title>
+          <para>Field expressions represent a field or a dereference operator applied to a field. See <xref linkend="deref" /> for more details.</para>
+      </section>
+
+      <section id="sexp">
+          <title>Star expression</title>
+          <para>The star symbol, *, can be used to represent all the fields of a tuple. It is equivalent to writing out the fields explicitly. In the following example the definition of B and C are exactly the same, and MyUDF will be invoked with exactly the same arguments in both cases.</para>
+          <programlisting>
+A = LOAD 'data' USING MyStorage() AS (name:chararray, age: int);
+B = FOREACH A GENERATE *, MyUDF(name, age);
+C = FOREACH A GENERATE name, age, MyUDF(*);
+          </programlisting>
+          <para>A common error when using the star expression is the following:</para>
+          <programlisting>
+G = GROUP A BY $0;
+C = FOREACH G GENERATE COUNT(*)
+          </programlisting>
+          <para>In this example, the programmer really wants to count the number of elements in the bag in the second field: COUNT($1).</para>
+      </section>
+
+      <section id="bexp">
+          <title>Boolean expressions</title>
+          <para>Boolean expressions can be made up of UDFs that return a boolean value or boolean operators (see <xref linkend="boolops" />). 
+          </para>
+      </section>
+           
+      <section id="texp">
+          <title>Tuple expressions</title>
+          <para>Tuple expressions form subexpressions into tuples. The tuple expression has the form (expression [, expression …]), where expression is a general expression. The simplest tuple expression is the star expression, which represents all fields.
+          </para>
+      </section>
+
+      <section id="gexp">
+          <title>General expressions</title>
+          <para>General expressions can be made up of UDFs and almost any operator. Since Pig does not consider boolean a base type, the result of a general expression cannot be a boolean. Field expressions are the simpliest general expressions.
+          </para>
+      </section>
+
    </section>
    
    <section>
@@ -4000,7 +4039,7 @@ X = FILTER A BY f1 is not null;
    <title>Types Table</title>
    <para>The null operators can be applied to all data types. For more information, see Nulls.</para></section></section>
    
-   <section>
+   <section id="boolops">
    <title>Boolean Operators</title>
       
       <section>
@@ -4061,7 +4100,7 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
    
    </section></section></section>
    
-   <section>
+   <section id="deref">
    <title>Dereference Operators</title>
    
    <section>
@@ -4083,10 +4122,10 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
                <para>tuple dereference      </para>
             </entry>
             <entry>
-               <para>. (dot)</para>
+               <para>tuple.id or tuple.(id,…)</para>
             </entry>
             <entry>
-               <para>Retrieve a field from a tuple. </para>
+               <para>Tuple dereferencing can be done by name (tuple.field_name) or position (mytuple.$0). If a set of fields are dereferenced (tuple.(name1, name2) or tuple.($0, $1)), the expression represents a tuple composed of the specified fields. Note that if the dot operator is applied to a bytearray, the bytearray will be assumed to be a tuple.</para>
             </entry>
          </row>
          <row>
@@ -4094,10 +4133,10 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
                <para>bag dereference</para>
             </entry>
             <entry>
-               <para>. (dot)</para>
+               <para>bag.id or bag.(id,…)</para>
             </entry>
             <entry>
-               <para>Retrieve a column from a bag. </para>
+               <para>Bag dereferencing can be done by name (bag.field_name) or position (bag.$0). If a set of fields are dereferenced (bag.(name1, name2) or bag.($0, $1)), the expression represents a bag composed of the specified fields.</para>
             </entry>
          </row>
          <row>
@@ -4105,25 +4144,13 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
                <para>map dereference</para>
             </entry>
             <entry>
-               <para># </para>
+               <para>map#'key'</para>
             </entry>
             <entry>
-               <para>For a key#value pair, look up the value for the specified key.</para>
+               <para>Map dereferencing must be done by key (field_name#key or $0#key). If the pound operator is applied to a bytearray, the bytearray is assumed to be a map. If the key does not exist, the empty string is returned.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <para>Note the following:</para>
-   <itemizedlist>
-      <listitem>
-         <para>Tuple dereferencing can be done by name (tuple.field_name) or position (mytuple.$0). Note that if the dot operator is applied to a bytearray, the bytearray will be assumed to be a tuple.</para>
-      </listitem>
-      <listitem>
-         <para>Bag dereferencing can be done by name (bag.field_name) or position (bag.$0). </para>
-      </listitem>
-      <listitem>
-         <para>Map dereferencing must be done by key (field_name#key or $0#key). If the pound operator is applied to a bytearray, the bytearray is assumed to be a map. If the key does not exist, the empty string is returned.</para>
-      </listitem>
-   </itemizedlist>
    
    <section>
    <title>Example: Tuple</title>
@@ -4399,6 +4426,15 @@ B = FOREACH A GENERATE -x, y;
          </row></tbody></tgroup>
    </informaltable></section></section></section>
    
+   <section>
+   <title>Flatten Operator</title>
+   <para>The flatten operator looks like a UDF syntactically, but it is actually an operator that changes the structure of tuples and bags in a way that a UDF cannot. Flatten un-nests tuples as well as bags. The idea is the same, but the operation and result is different for each type of structure.</para>
+
+   <para>For tuples, flatten substitutes the fields of a tuple in place of the tuple. For example, consider a relation that has a tuple of the form (a, (b, c)). The expression GENERATE $0, flatten($1), will cause that tuple to become (a, b, c).</para>
+
+   <para>For bags, the situation becomes more complicated. When we un-nest a bag, we create new tuples. If we have a relation that is made up of tuples of the form ({(b,c),(d,e)}) and we apply GENERATE flatten($0), we end up with two tuples (b,c) and (d,e). When we remove a level of nesting in a bag, sometimes we cause a cross product to happen. For example, consider a relation that has a tuple of the form (a, {(b,c), (d,e)}), commonly produced by the GROUP operator. If we apply the expression GENERATE $0, flatten($1) to this tuple, we will create new tuples: (a, b, c) and (a, d, e).</para>
+   </section>
+
    <section>
    <title>Cast Operators</title>
    
@@ -4765,7 +4801,7 @@ B = FOREACH A GENERATE -x, y;
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   
+
    <section>
    <title>Syntax  </title>
    <informaltable frame="all">
@@ -4970,148 +5006,8 @@ DUMP B;
 
 <section>
 <title>COGROUP</title>
-   <para>Groups the data in two or more relations.</para>
-   
-   <section>
-   <title>Syntax</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>alias =COGROUP alias BY field_alias [INNER | OUTER] , alias  BY field_alias [INNER | OUTER] [PARALLEL n] ;</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Terms</title>
-   <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
-            <entry>
-               <para>alias</para>
-            </entry>
-            <entry>
-               <para>The name a relation.</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>field_alias</para>
-            </entry>
-            <entry>
-               <para>The name of one or more fields in a relation. </para>
-               <para>If multiple fields are specified, separate with commas and enclose in parentheses. For example, X = COGROUP A BY (f1, f2);</para>
-               <para>The number of fields specified in each BY clause must match. For example, X = COGROUP A BY (a1,a2,a3), B BY (b1,b2,b3);</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>BY</para>
-            </entry>
-            <entry>
-               <para>Keyword.</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>INNER</para>
-            </entry>
-            <entry>
-               <para>Keyword. </para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>OUTER</para>
-            </entry>
-            <entry>
-               <para>Keyword.</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>PARALLEL n</para>
-            </entry>
-            <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Usage</title>
-   <para>The COGOUP operator groups the data in two or more relations based on the common field values. Note that the COGROUP and JOIN operators perform similar functions. COGROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples.</para></section>
-   
-   <section>
-   <title>Examples</title>
-   <para>Suppose we have two relations, A and B.</para>
-<programlisting>
-A = LOAD 'data1' AS (owner:chararray,pet:chararray);
-
-DUMP A;
-(Alice,turtle)
-(Alice,goldfish)
-(Alice,cat)
-(Bob,dog)
-(Bob,cat)
-
-B = LOAD 'data2' AS (friend1:chararray,friend2:chararray);
-
-DUMP B;
-(Cindy,Alice)
-(Mark,Alice)
-(Paul,Bob)
-(Paul,Jane)
-</programlisting>
-   
-   <para>In this example tuples are co-grouped using field “owner” from relation A and field “friend2” from relation B as the key fields. The DESCRIBE operator shows the schema for relation X, which has two fields, "group" and "A" (see the GROUP operator for information about the field names).</para>
-<programlisting>
-X = COGROUP A BY owner, B BY friend2;
-
-DESCRIBE X;
-X: {group: chararray,A: {owner: chararray,pet: chararray},b: {firend1: chararray,friend2: chararray}}
-</programlisting>
-   
-   <para>Relation X looks like this. A tuple is created for each unique key field. The tuple includes the key field and two bags. The first bag is the tuples from the first relation with the matching key field. The second bag is the tuples from the second relation with the matching key field. If no tuples match the key field, the bag is empty.</para>
-<programlisting>
-(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
-(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
-(Jane,{},{(Paul,Jane)})
-</programlisting>
-   
-   <para>In this example tuples are co-grouped and the INNER keyword is used to ensure that only bags with at least one tuple are returned. </para>
-<programlisting>
-X = COGROUP A BY owner INNER, B BY friend2 INNER;
-
-DUMP X;
-(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
-(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
-</programlisting>
-   
-   <para>In this example tuples are co-grouped and the INNER keyword is used asymmetrically on only one of the relations.</para>
-<programlisting>
-X = COGROUP A BY owner, B BY friend2 INNER;
-
-DUMP X;
-(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
-(Jane,{},{(Paul,Jane)})
-(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
-</programlisting>
-   
-   </section></section>
-   
+   <para>COGROUP is the same as GROUP, but for readability purposes programmers usually use GROUP when only one relation is involved and COGROUP with multiple relations. See <xref linkend="GROUP" /> for more information.</para>
+</section>
    <section>
    <title>CROSS</title>
    <para>Computes the cross product of two or more relations.</para>
@@ -5367,7 +5263,7 @@ DUMP B;
                <para>expression</para>
             </entry>
             <entry>
-               <para>An expression.</para>
+               <para>A boolean expression.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5459,7 +5355,7 @@ DUMP X;
                <para/>
                <para>alias = FOREACH nested_alias {</para>
                <para>   alias = nested_op; [alias = nested_op; …]</para>
-               <para>   GENERATE expression [expression ….]</para>
+               <para>   GENERATE expression [, expression …]</para>
                <para>};</para>
                <para/>
                <para>Where:</para>
@@ -5759,16 +5655,16 @@ DUMP X;
    
    </section></section>
    
-   <section>
+   <section id="GROUP">
    <title>GROUP</title>
-   <para>Groups the data in a single relation.</para>
+   <para>Groups the data in a one or multiple relations. For readability COGROUP is usually used with multiple relations and group is used with a single relation, but they are the same operator.</para>
    
    <section>
    <title>Syntax</title>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = GROUP alias { [ALL] | [BY {[field_alias [, field_alias]] | * | [expression]] } [PARALLEL n];</para>
+               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …] [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5804,27 +5700,10 @@ DUMP X;
          </row>
          <row>
             <entry>
-               <para>field_alias</para>
-            </entry>
-            <entry>
-               <para>The name of a field in a relation. This is the group key or key field. </para>
-               <para>A relation can be grouped by a single field (f1) or by the composite value of multiple fields (f1,f2).</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>*</para>
-            </entry>
-            <entry>
-               <para>The designator for a tuple.</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
                <para>expression</para>
             </entry>
             <entry>
-               <para>An expression.</para>
+               <para>A tuple expression. This is the group key or key field. If the result of the tuple expression is a single field, the key will be the value of the first field rather than a tuple with one field.</para>
             </entry>
          </row>
 
@@ -5853,7 +5732,7 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>The GROUP operator groups together tuples that have the same group key (key field). The result of a GROUP operation is a relation that includes one tuple per group. This tuple contains two fields: </para>
+   <para>The GROUP operator groups together tuples that have the same group key (key field). The key field will be a tuple if the group key has more than one field, otherwise it will be the same type as that of the group key. The result of a GROUP operation is a relation that includes one tuple per group. This tuple contains two fields: </para>
    <itemizedlist>
       <listitem>
          <para>The first field is named "group" (do not confuse this with the GROUP operator) and is the same type of the group key.</para>
@@ -5863,7 +5742,11 @@ DUMP X;
          <para/>
          <para>The names of both fields are generated by the system as shown in the example below.</para>
       </listitem>
-   </itemizedlist></section>
+   </itemizedlist>
+   <para>
+   Note that the GROUP (and thus COGROUP) and JOIN operators perform similar functions. GROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples.
+   </para>
+   </section>
    
    <section>
    <title>Example</title>
@@ -5923,10 +5806,6 @@ DUMP C;
 (20,{(Bill)})
 </programlisting>
    
-   </section></section>
-   
-   <section>
-   <title>Example</title>
    <para>Suppose we have relation A.</para>
 <programlisting>
 A = LOAD 'data' as (f1:chararray, f2:int, f3:int);
@@ -5946,6 +5825,62 @@ DUMP X;
 (2,{(r1,1,2),(r2,2,1)})
 (16,{(r3,2,8),(r4,4,4)})
 </programlisting>
+
+   <para>Suppose we have two relations, A and B.</para>
+<programlisting>
+A = LOAD 'data1' AS (owner:chararray,pet:chararray);
+
+DUMP A;
+(Alice,turtle)
+(Alice,goldfish)
+(Alice,cat)
+(Bob,dog)
+(Bob,cat)
+
+B = LOAD 'data2' AS (friend1:chararray,friend2:chararray);
+
+DUMP B;
+(Cindy,Alice)
+(Mark,Alice)
+(Paul,Bob)
+(Paul,Jane)
+</programlisting>
+   
+   <para>In this example tuples are co-grouped using field “owner” from relation A and field “friend2” from relation B as the key fields. The DESCRIBE operator shows the schema for relation X, which has two fields, "group" and "A" (see the GROUP operator for information about the field names).</para>
+<programlisting>
+X = COGROUP A BY owner, B BY friend2;
+
+DESCRIBE X;
+X: {group: chararray,A: {owner: chararray,pet: chararray},b: {firend1: chararray,friend2: chararray}}
+</programlisting>
+   
+   <para>Relation X looks like this. A tuple is created for each unique key field. The tuple includes the key field and two bags. The first bag is the tuples from the first relation with the matching key field. The second bag is the tuples from the second relation with the matching key field. If no tuples match the key field, the bag is empty.</para>
+<programlisting>
+(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
+(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
+(Jane,{},{(Paul,Jane)})
+</programlisting>
+   
+   <para>In this example tuples are co-grouped and the INNER keyword is used to ensure that only bags with at least one tuple are returned. </para>
+<programlisting>
+X = COGROUP A BY owner INNER, B BY friend2 INNER;
+
+DUMP X;
+(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
+(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
+</programlisting>
+   
+   <para>In this example tuples are co-grouped and the INNER keyword is used asymmetrically on only one of the relations.</para>
+<programlisting>
+X = COGROUP A BY owner, B BY friend2 INNER;
+
+DUMP X;
+(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
+(Jane,{},{(Paul,Jane)})
+(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
+</programlisting>
+   
+   </section>
    </section>
    
    <section>
@@ -5957,7 +5892,7 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = JOIN alias BY field_alias, alias BY field_alias [, alias BY field_alias …] [USING "replicated"] [PARALLEL n];  </para>
+               <para>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING "replicated"] [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5983,10 +5918,10 @@ DUMP X;
          </row>
          <row>
             <entry>
-               <para>field_alias</para>
+               <para>expression</para>
             </entry>
             <entry>
-               <para>The name of a field in a relation. For the BY clause, field_alias must be in alias.</para>
+               <para>A field expression.</para>
                <para>Example: X = JOIN A BY fieldA, B BY fieldB, C BY fieldC;</para>
             </entry>
          </row>
