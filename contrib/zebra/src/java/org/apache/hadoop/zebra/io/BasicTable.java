@@ -697,7 +697,7 @@ public class BasicTable {
 
         while (true)
         {
-          int index = random.nextInt(cgScanners.length - 1) + 1;
+          int index = random.nextInt(cgScanners.length);
           if (cgScanners[index] != null) {
             if (cgScanners[index].atEnd() != ret) {
               throw new IOException(
@@ -734,7 +734,7 @@ public class BasicTable {
 
         while (true)
         {
-          int index = random.nextInt(cgScanners.length - 1) + 1;
+          int index = random.nextInt(cgScanners.length);
           if (cgScanners[index] != null)
           {
             BytesWritable key2 = new BytesWritable();
