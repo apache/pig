@@ -18,7 +18,6 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +42,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 
-public class LOForEach extends LogicalOperator {
+public class LOForEach extends RelationalOperator {
 
     private static final long serialVersionUID = 2L;
 
@@ -57,6 +56,10 @@ public class LOForEach extends LogicalOperator {
     private ArrayList<Boolean> mFlatten;
     private ArrayList<Schema> mUserDefinedSchema = null;
     private static Log log = LogFactory.getLog(LOForEach.class);
+    
+    // Cache the information of generating inner plan for each output schema while generating output schema, 
+    // for later use in caculate relevant field
+    private List<LogicalPlan> mSchemaPlanMapping = new ArrayList<LogicalPlan>();
 
     /**
      * @param plan
@@ -147,7 +150,7 @@ public class LOForEach extends LogicalOperator {
         if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
                     mForEachPlans.size());
-
+            
             for (LogicalPlan plan : mForEachPlans) {
                 log.debug("Number of leaves in " + plan + " = " + plan.getLeaves().size());
                 for(int i = 0; i < plan.getLeaves().size(); ++i) {
@@ -262,14 +265,16 @@ public class LOForEach extends LogicalOperator {
 										newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
                                         newFs.setParent(s.getField(i).canonicalName, op);
                                         fss.add(newFs);
+                                        mSchemaPlanMapping.add(plan);
                                         updateAliasCount(aliases, disambiguatorAlias);
-										//it's fine if there are duplicates
+                                        //it's fine if there are duplicates
 										//we just need to record if its due to
 										//flattening
 									} else {
 										newFs = new Schema.FieldSchema(fs);
                                         newFs.setParent(s.getField(i).canonicalName, op);
 										fss.add(newFs);
+										mSchemaPlanMapping.add(plan);
 									}
                                     updateAliasCount(aliases, innerCanonicalAlias);
 									flattenAlias.put(newFs, innerCanonicalAlias);
@@ -294,12 +299,14 @@ public class LOForEach extends LogicalOperator {
                                         }
                                         updateAliasCount(aliases, newFs.alias);
                                         fss.add(newFs);
+                                        mSchemaPlanMapping.add(plan);
                                         newFs.setParent(null, op);
                                     } else {
                                         for(Schema.FieldSchema ufs: userDefinedSchema.getFields()) {
                                             Schema.FieldSchema.setFieldSchemaDefaultType(ufs, DataType.BYTEARRAY);
                                             newFs = new Schema.FieldSchema(ufs);
                                             fss.add(newFs);
+                                            mSchemaPlanMapping.add(plan);
                                             newFs.setParent(null, op);
                                             updateAliasCount(aliases, ufs.alias);
                                         }
@@ -311,6 +318,7 @@ public class LOForEach extends LogicalOperator {
 								        newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                                     }
                                     fss.add(newFs);
+                                    mSchemaPlanMapping.add(plan);
                                     newFs.setParent(null, op);
                                 }
 							}
@@ -331,6 +339,7 @@ public class LOForEach extends LogicalOperator {
                             }
                             newFs.setParent(planFs.canonicalName, op);
                             fss.add(newFs);
+                            mSchemaPlanMapping.add(plan);
 						}
 					} else {
 						//did not get a valid list of field schemas
@@ -338,6 +347,7 @@ public class LOForEach extends LogicalOperator {
                         if(null != userDefinedSchema) {
                             Schema.FieldSchema userDefinedFieldSchema = new Schema.FieldSchema(userDefinedSchema.getField(0));
                             fss.add(userDefinedFieldSchema);
+                            mSchemaPlanMapping.add(plan);
                             userDefinedFieldSchema.setParent(null, op);
                             updateAliasCount(aliases, userDefinedFieldSchema.alias);
                         } else {
@@ -393,7 +403,8 @@ public class LOForEach extends LogicalOperator {
 			}
             mSchema = new Schema(fss);
 			//add the aliases that are unique after flattening
-			for(Schema.FieldSchema fs: mSchema.getFields()) {
+            for(int i=0;i<mSchema.getFields().size();i++) {
+                Schema.FieldSchema fs = mSchema.getFields().get(i);
 				String alias = flattenAlias.get(fs);
 				Integer count = aliases.get(alias);
 				if (null == count) count = 1;
@@ -774,5 +785,66 @@ public class LOForEach extends LogicalOperator {
         }
         return new Pair<Boolean, List<Integer>>(hasFlatten, flattenedColumns);
     }
+    
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
 
+        if (column<0)
+            return null;
+        
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+
+        if (mSchema == null)
+            return null;
+        
+        if (mSchema.size()<=column)
+        {
+            return null;
+        }
+        
+        // find the index of foreach inner plan for this particular output column
+        LogicalPlan generatingPlan = null;
+        int planIndex = 0;
+
+        generatingPlan = mSchemaPlanMapping.get(0);
+        
+        for (int i=1;i<=column;i++)
+        {
+            if (mSchemaPlanMapping.get(i)!=generatingPlan)
+            {
+                planIndex++;
+                generatingPlan = mSchemaPlanMapping.get(i);
+            }
+        }
+
+        // find relavant input columns for foreach innner plan
+        LogicalPlan plan = mForEachPlans.get(planIndex);
+        TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(
+                plan);
+        
+        try {
+            projectFinder.visit();
+        } catch (VisitorException ve) {
+            return null;
+        }
+        if(projectFinder.getProjectStarSet() != null) {
+            result.add(new RequiredFields(true));
+            return result;
+        }
+
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        for (LOProject project : projectFinder.getProjectSet()) {
+            for (int inputColumn : project.getProjection()) {
+                inputList.add(new Pair<Integer, Integer>(0, inputColumn));
+            }
+        }
+        if (inputList.size()==0)
+            return null;
+
+        result.add(new RequiredFields(inputList));
+        
+        return result;
+    }
 }

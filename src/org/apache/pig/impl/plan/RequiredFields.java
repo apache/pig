@@ -19,6 +19,7 @@
 package org.apache.pig.impl.plan;
 
 import java.lang.StringBuilder;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.util.Pair;
@@ -182,4 +183,5 @@ public class RequiredFields {
         sb.append(" fields: " + mFields);
         return sb.toString();
     }
+
 }

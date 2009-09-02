@@ -42,7 +42,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.ProjectionMap;
 
-public class LOJoin extends LogicalOperator {
+public class LOJoin extends RelationalOperator {
     private static final long serialVersionUID = 2L;
 
     /**
@@ -497,5 +497,51 @@ public class LOJoin extends LogicalOperator {
                 mJoinPlans.put(current, plans);
             }
         }
+    }
+    
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+        
+        if (column<0)
+            return null;
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        
+        if(predecessors == null) {
+            return null;
+        }
+
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        
+        for (int i=0;i<predecessors.size();i++)
+            result.add(null);
+        
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            LogicalOperator predecessor = predecessors.get(inputNum);
+            Schema inputSchema = null;        
+            
+            try {
+                inputSchema = predecessor.getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+            
+            if(inputSchema == null) {
+                return null;
+            } else {
+                if (column<inputSchema.size()) {
+                    ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+                    inputList.add(new Pair<Integer, Integer>(inputNum, column));
+                    RequiredFields requiredFields = new RequiredFields(inputList);
+                    result.set(inputNum, requiredFields);
+                    return result;
+                }
+                column-=inputSchema.size();
+            }
+        }
+        // shall not get here
+        return null;
     }
 }

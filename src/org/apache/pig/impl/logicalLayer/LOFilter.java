@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOFilter extends LogicalOperator {
+public class LOFilter extends RelationalOperator {
 
     private static final long serialVersionUID = 2L;
     private LogicalPlan mComparisonPlan;
@@ -226,4 +227,25 @@ public class LOFilter extends LogicalOperator {
         }
     }
     
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+        
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+        
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        inputList.add(new Pair<Integer, Integer>(0, column));
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        result.add(new RequiredFields(inputList));
+        return result;
+    }
 }

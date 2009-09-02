@@ -46,7 +46,7 @@ import org.apache.pig.impl.util.Pair;
  * details such as input/output/error specifications and also files to be
  * shipped to the cluster and files to be cached.
  */
-public class LOStream extends LogicalOperator {
+public class LOStream extends RelationalOperator {
 
     /**
      * 
@@ -236,5 +236,24 @@ public class LOStream extends LogicalOperator {
         requiredFields.add(new RequiredFields(true, false));
         return requiredFields;
     }
+    
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
 
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+        
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        result.add(new RequiredFields(true));
+        return result;
+    }
 }

@@ -32,11 +32,12 @@ import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOSplit extends LogicalOperator {
+public class LOSplit extends RelationalOperator {
     private static final long serialVersionUID = 2L;
 
     private ArrayList<LogicalOperator> mOutputs;
@@ -181,6 +182,31 @@ public class LOSplit extends LogicalOperator {
        for(LogicalOperator output: mPlan.getSuccessors(this)) {
            output.rewire(oldPred, oldPredIndex, newPred, useOldPred);
        }
+   }
+   
+   @Override
+   public List<RequiredFields> getRelevantInputs(int output, int column) {
+       if (output<0)
+           return null;
+       
+       List<LogicalOperator> successors = mPlan.getSuccessors(this);
+       
+       if (output>=successors.size())
+           return null;
+       
+       if (column<0)
+           return null;
+       
+       // if we have schema information, check if output column is valid
+       if (mSchema!=null)
+       {
+           if (column >= mSchema.size())
+               return null;
+       }
+       
+       List<RequiredFields> result = new ArrayList<RequiredFields>();
+       result.add(new RequiredFields(false, true));
+       return result;
    }
 
 }
