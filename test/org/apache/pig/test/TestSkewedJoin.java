@@ -40,6 +40,7 @@ public class TestSkewedJoin extends TestCase{
     private static final String INPUT_FILE1 = "SkewedJoinInput1.txt";
     private static final String INPUT_FILE2 = "SkewedJoinInput2.txt";
     private static final String INPUT_FILE3 = "SkewedJoinInput3.txt";
+    private static final String INPUT_FILE4 = "SkewedJoinInput4.txt";
     
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
@@ -48,7 +49,7 @@ public class TestSkewedJoin extends TestCase{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         // pigServer = new PigServer(ExecType.LOCAL);
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");     
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.1");
+        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.01");
     }
     
     @Before
@@ -93,9 +94,16 @@ public class TestSkewedJoin extends TestCase{
 
     	w3.close();
     	
+    	PrintWriter w4 = new PrintWriter(new FileWriter(INPUT_FILE4));
+        for(int i=0; i < 100; i++) {
+            w4.println("[a100#apple1,a100#apple2,a200#orange1,a200#orange2,a300#strawberry,a300#strawberry2,a400#pear]");
+        }
+    	w4.close();
+
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE2, INPUT_FILE2);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
+    	Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
     }
     
     @After
@@ -103,10 +111,12 @@ public class TestSkewedJoin extends TestCase{
     	new File(INPUT_FILE1).delete();
     	new File(INPUT_FILE2).delete();
     	new File(INPUT_FILE3).delete();
+        new File(INPUT_FILE4).delete();
     	
         Util.deleteFile(cluster, INPUT_FILE1);
         Util.deleteFile(cluster, INPUT_FILE2);
         Util.deleteFile(cluster, INPUT_FILE3);
+        Util.deleteFile(cluster, INPUT_FILE4);
     }
     
     
@@ -177,4 +187,26 @@ public class TestSkewedJoin extends TestCase{
         
         fail("Should throw exception, do not support 3 way join");
     }       
+
+    public void testSkewedJoinMapKey() throws IOException{
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE4 + "' as (m:[]);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE4 + "' as (n:[]);");
+        try {
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
+            {
+                pigServer.registerQuery("C = join A by (chararray)m#'a100', B by (chararray)n#'a100' using \"skewed\" parallel 20;");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+        }catch(Exception e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+        	fail("Should support maps and expression operators as keys");
+        }
+        
+       	return;
+	}
 }

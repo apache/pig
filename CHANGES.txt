@@ -60,6 +60,9 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
 
+    PIG-935: Skewed join throws an exception when used with map keys(sriranjan
+    via pradeepkth)
+
     PIG-934: Merge join implementation currently does not seek to right point
     on the right side input based on the offset provided by the index
     (ashutoshc via pradeepkth)

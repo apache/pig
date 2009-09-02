@@ -1489,9 +1489,16 @@ public class MRCompiler extends PhyPlanVisitor {
             Pair[] ret = new Pair[plans.size()]; 
             int i=-1;
             for (PhysicalPlan plan : plans) {
-                if (((POProject)plan.getLeaves().get(0)).isStar()) return null;
-                int first = ((POProject)plan.getLeaves().get(0)).getColumn();
-                byte second = ((POProject)plan.getLeaves().get(0)).getResultType();
+                PhysicalOperator op = plan.getLeaves().get(0);
+                int first = -1;
+                if (op instanceof POProject) {
+                    if (((POProject)op).isStar()) return null;
+                    first = ((POProject)op).getColumn();
+                } else {
+                    // the plan is not POProject, so we don't know the column index
+                    first = -1;
+                }
+                byte second = plan.getLeaves().get(0).getResultType();
                 ret[++i] = new Pair<Integer,Byte>(first,second);
             }
             return ret;
@@ -1705,8 +1712,6 @@ public class MRCompiler extends PhyPlanVisitor {
     	
     	List<PhysicalOperator> l = plan.getPredecessors(op);
     	List<PhysicalPlan> groups = (List<PhysicalPlan>)joinPlans.get(l.get(0));
-    	
-    	
     	List<Boolean> ascCol = new ArrayList<Boolean>();
     	for(int i=0; i<groups.size(); i++) {    		    		
     		ascCol.add(false);
@@ -1734,7 +1739,7 @@ public class MRCompiler extends PhyPlanVisitor {
     	ep.add(uf);     
     	ep.add(prjStar);
     	ep.connect(prjStar, uf);
-        	
+
         transformPlans.add(ep);      
         
     	try{    		
@@ -1742,7 +1747,7 @@ public class MRCompiler extends PhyPlanVisitor {
     		String per = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.memusage", "0.5");
     		String mc = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.maxtuple", "0");
     		String inputFile = lFile.getFileName();
-    		    		
+
     		return getSamplingJob(sort, prevJob, transformPlans, lFile, sampleFile, rp, null, 
     							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile});
     	}catch(Exception e) {
@@ -1818,6 +1823,14 @@ public class MRCompiler extends PhyPlanVisitor {
                 for (Pair<Integer,Byte> i : fields) {
                     PhysicalPlan ep = new PhysicalPlan();
                     POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    // Check for i being equal to -1. -1 is used by getSortCols for a non POProject
+                    // operator. Since Order by does not allow expression operators, it should never be set to
+                    // -1
+                    if (i.first == -1) {
+                    	int errCode = 2174;
+                    	String msg = "Internal exception. Could not create a sampler job";
+                        throw new MRCompilerException(msg, errCode, PigException.BUG);
+                    }
                     prj.setColumn(i.first);
                     prj.setOverloaded(false);
                     prj.setResultType(i.second);
