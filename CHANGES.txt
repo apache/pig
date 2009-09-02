@@ -59,7 +59,11 @@ OPTIMIZATIONS
 PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
-    
+
+    PIG-934: Merge join implementation currently does not seek to right point
+    on the right side input based on the offset provided by the index
+    (ashutoshc via pradeepkth)
+
     PIG-925: Fix join in local mode (daijy)
 
     PIG-913: Error in Pig script when grouping on chararray column (daijy)

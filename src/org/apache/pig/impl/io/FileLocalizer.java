@@ -41,6 +41,8 @@ import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.datastorage.SeekableInputStream;
+import org.apache.pig.backend.datastorage.SeekableInputStream.FLAGS;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -344,6 +346,48 @@ public class FileLocalizer {
             ElementDescriptor elem = pigContext.getLfs().asElement(fullPath(fileSpec, pigContext));
             return openLFSFile(elem);
         }
+    }
+    
+    /**
+     * @param fileSpec
+     * @param offset
+     * @param pigContext
+     * @return SeekableInputStream
+     * @throws IOException
+     * 
+     * This is an overloaded version of open where there is a need to seek in stream. Currently seek is supported
+     * only in file, not in directory or glob.
+     */
+    static public SeekableInputStream open(String fileSpec, long offset, PigContext pigContext) throws IOException {
+        
+        init(pigContext);
+        fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
+        
+        ElementDescriptor elem;
+        if (!fileSpec.startsWith(LOCAL_PREFIX)) 
+            elem = pigContext.getDfs().asElement(fullPath(fileSpec, pigContext));
+                
+        else{
+            fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
+            elem = pigContext.getLfs().asElement(fullPath(fileSpec, pigContext));            
+        }
+        
+        if (elem.exists() && (!elem.getDataStorage().isContainer(elem.toString()))) {
+            try {
+                if (elem.systemElement())
+                    throw new IOException ("Attempt is made to open system file " + elem.toString());
+                
+                SeekableInputStream sis = elem.sopen();
+                sis.seek(offset, FLAGS.SEEK_SET);
+                return sis;
+            }
+            catch (DataStorageException e) {
+                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
+            }
+        }
+        // Either a directory or a glob.
+        else
+            throw new IOException("Currently seek is supported only in a file, not in glob or directory.");
     }
     
     static public OutputStream create(String fileSpec, PigContext pigContext) throws IOException{
