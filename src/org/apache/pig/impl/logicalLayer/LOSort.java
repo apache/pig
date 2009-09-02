@@ -40,7 +40,7 @@ import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOSort extends LogicalOperator {
+public class LOSort extends RelationalOperator {
     private static final long serialVersionUID = 2L;
 
     private List<Boolean> mAscCols;
@@ -310,5 +310,27 @@ public class LOSort extends LogicalOperator {
                 throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
         }
+    }
+    
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+        
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+        
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        inputList.add(new Pair<Integer, Integer>(0, column));
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        result.add(new RequiredFields(inputList));
+        return result;
     }
 }

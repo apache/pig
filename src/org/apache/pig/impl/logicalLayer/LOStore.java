@@ -37,7 +37,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOStore extends LogicalOperator {
+public class LOStore extends RelationalOperator {
     private static final long serialVersionUID = 2L;
 
     private FileSpec mOutputFile;
@@ -174,6 +174,26 @@ public class LOStore extends LogicalOperator {
         List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
         requiredFields.add(new RequiredFields(false, true));
         return requiredFields;
+    }
+    
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+        
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+        
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        result.add(new RequiredFields(true));
+        return result;
     }
 
 }
