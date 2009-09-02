@@ -100,7 +100,7 @@ public class POLoad extends PhysicalOperator {
         String filename = lFile.getFileName();
         loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
         
-        is = FileLocalizer.open(filename, pc);
+        is = (this.offset == 0) ? FileLocalizer.open(filename, pc) : FileLocalizer.open(filename, this.offset,pc);
         
         loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
     }
