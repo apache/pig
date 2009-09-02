@@ -18,20 +18,17 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.io.IOException;
 
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
@@ -40,7 +37,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOCross extends LogicalOperator {
+public class LOCross extends RelationalOperator {
 
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(LOCross.class);
@@ -283,4 +280,49 @@ public class LOCross extends LogicalOperator {
         return (requiredFields.size() == 0? null: requiredFields);
     }
 
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+        
+        if (column<0)
+            return null;
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        
+        if(predecessors == null) {
+            return null;
+        }
+
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        
+        for (int i=0;i<predecessors.size();i++)
+            result.add(null);
+        
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            LogicalOperator predecessor = predecessors.get(inputNum);
+            Schema inputSchema = null;        
+            
+            try {
+                inputSchema = predecessor.getSchema();
+            } catch (FrontendException fee) {
+                return null;
+            }
+            
+            if(inputSchema == null) {
+                return null;
+            } else {
+                if (column<inputSchema.size()) {
+                    ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+                    inputList.add(new Pair<Integer, Integer>(inputNum, column));
+                    RequiredFields requiredFields = new RequiredFields(inputList);
+                    result.set(inputNum, requiredFields);
+                    return result;
+                }
+                column-=inputSchema.size();
+            }
+        }
+        // shall not get here
+        return null;
+    }
 }

@@ -28,6 +28,8 @@ PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-922: Logical optimizer: push up project part 1 (daijy)
+
 PIG-812: COUNT(*) does not work (breed)
 
 PIG-923: Allow specifying log file location through pig.properties (dvryaboy through daijy)

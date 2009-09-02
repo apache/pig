@@ -40,7 +40,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 
 
-public class LOSplitOutput extends LogicalOperator {
+public class LOSplitOutput extends RelationalOperator {
     private static final long serialVersionUID = 2L;
 
     protected int mIndex;
@@ -239,5 +239,25 @@ public class LOSplitOutput extends LogicalOperator {
         //be treated as one operator. Any operations on split will imply an operation on
         //split output
     }
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
 
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+        
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        inputList.add(new Pair<Integer, Integer>(0, column));
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        result.add(new RequiredFields(inputList));
+        return result;
+    }
 }

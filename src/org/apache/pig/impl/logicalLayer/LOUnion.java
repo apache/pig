@@ -37,7 +37,7 @@ import org.apache.pig.data.DataType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class LOUnion extends LogicalOperator {
+public class LOUnion extends RelationalOperator {
 
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(LOUnion.class);
@@ -203,6 +203,37 @@ public class LOUnion extends LogicalOperator {
         }
         
         return (requiredFields.size() == 0? null: requiredFields);
+    }
+
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+                
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(this);
+        if (predecessors == null)
+            return null;
+        
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        for (int i=0;i<predecessors.size();i++)
+        {
+            ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>(); 
+            inputList.add(new Pair<Integer, Integer>(i, column));
+            result.add(new RequiredFields(inputList));
+        }
+        
+        
+        return result;
     }
 
 }

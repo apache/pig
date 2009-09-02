@@ -34,16 +34,14 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 
-public class LOCogroup extends LogicalOperator {
+public class LOCogroup extends RelationalOperator {
     private static final long serialVersionUID = 2L;
 
     /**
@@ -722,5 +720,33 @@ public class LOCogroup extends LogicalOperator {
             }
         }
     }
-
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+        
+        List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
+        if(predecessors == null) {
+            return null;
+        }
+        
+        if (column>predecessors.size())
+            return null;
+        
+        if (column==0)
+        {
+            return getRequiredFields();
+        }
+        
+        List<RequiredFields> result = new ArrayList<RequiredFields>(); 
+        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
+            
+            if(inputNum == column-1) {
+                result.add(new RequiredFields(true));
+            } else {
+                result.add(null);
+            }
+        }
+        return result;
+    }
 }

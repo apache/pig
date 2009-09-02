@@ -28,8 +28,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 
-public class LOLimit extends LogicalOperator {
+public class LOLimit extends RelationalOperator {
     private static final long serialVersionUID = 2L;
     private long mLimit;
     /**
@@ -159,6 +160,28 @@ public class LOLimit extends LogicalOperator {
         List<RequiredFields> requiredFields = new ArrayList<RequiredFields>();
         requiredFields.add(new RequiredFields(false, true));
         return requiredFields;
+    }
+    
+    @Override
+    public List<RequiredFields> getRelevantInputs(int output, int column) {
+        if (output!=0)
+            return null;
+
+        if (column<0)
+            return null;
+        
+        // if we have schema information, check if output column is valid
+        if (mSchema!=null)
+        {
+            if (column >= mSchema.size())
+                return null;
+        }
+        
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        inputList.add(new Pair<Integer, Integer>(0, column));
+        List<RequiredFields> result = new ArrayList<RequiredFields>();
+        result.add(new RequiredFields(inputList));
+        return result;
     }
 
 }
