@@ -178,7 +178,8 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
      * per DFS block of the input file. Configures the PigSlice
      * and returns the list of PigSlices as an array
      */
-    public InputSplit[] getSplits(JobConf job, int numSplits)
+    @SuppressWarnings("unchecked")
+	public InputSplit[] getSplits(JobConf job, int numSplits)
             throws IOException {
         ArrayList<Pair<FileSpec, Boolean>> inputs;
 		ArrayList<ArrayList<OperatorKey>> inpTargets;
@@ -202,24 +203,24 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
             try {
 				Path path = new Path(inputs.get(i).first.getFileName());
                                 
-                                FileSystem fs;
+                FileSystem fs;
                                 
-                                try {
-                                    fs = path.getFileSystem(job);
-                                } catch (Exception e) {
-                                    // If an application specific
-                                    // scheme was used
-                                    // (e.g.: "hbase://table") we will fail
-                                    // getting the file system. That's
-                                    // ok, we just use the dfs in that case.
-                                    fs = new Path("/").getFileSystem(job);
-                                }
+                try {
+                   fs = path.getFileSystem(job);
+                } catch (Exception e) {
+                   // If an application specific
+                   // scheme was used
+                   // (e.g.: "hbase://table") we will fail
+                   // getting the file system. That's
+                   // ok, we just use the dfs in that case.
+                   fs = new Path("/").getFileSystem(job);
+                }
 
 				// if the execution is against Mapred DFS, set
 				// working dir to /user/<userid>
 				if(pigContext.getExecType() == ExecType.MAPREDUCE) {
 				    fs.setWorkingDirectory(new Path("/user", job.getUser()));
-                                }
+                }
 				
 				DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
 				ValidatingInputFileSpec spec;
@@ -244,6 +245,9 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
 				throw new ExecException(msg, errCode, PigException.BUG, e);
 			}
         }
+        // set the number of map tasks
+        pigContext.getProperties().setProperty("pig.mapsplits.count", Integer.toString(splits.size()));
+        job.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
         return splits.toArray(new SliceWrapper[splits.size()]);
     }
 
