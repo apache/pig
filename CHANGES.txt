@@ -28,11 +28,13 @@ PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-890: Create a sampler interface and improve the skewed join sampler (sriranjan via daijy)
+
 PIG-922: Logical optimizer: push up project part 1 (daijy)
 
 PIG-812: COUNT(*) does not work (breed)
 
-PIG-923: Allow specifying log file location through pig.properties (dvryaboy through daijy)
+PIG-923: Allow specifying log file location through pig.properties (dvryaboy via daijy)
 
 PIG-926: Merge-Join phase 2 (ashutoshc via pradeepkth)
 

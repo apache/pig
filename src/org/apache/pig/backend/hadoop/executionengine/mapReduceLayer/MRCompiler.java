@@ -39,6 +39,7 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.MergeJoinIndexer;
 import org.apache.pig.impl.builtin.TupleSize;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
@@ -1699,7 +1700,7 @@ public class MRCompiler extends PhyPlanVisitor {
             }
         }
         
-        return getSamplingJob(sort, prevJob, null, lFile, quantFile, rp, null, FindQuantiles.class.getName(), ctorArgs);
+        return getSamplingJob(sort, prevJob, null, lFile, quantFile, rp, null, FindQuantiles.class.getName(), ctorArgs, RandomSampleLoader.class.getName());
     }
     
     /**
@@ -1749,7 +1750,7 @@ public class MRCompiler extends PhyPlanVisitor {
     		String inputFile = lFile.getFileName();
 
     		return getSamplingJob(sort, prevJob, transformPlans, lFile, sampleFile, rp, null, 
-    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile});
+    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile}, PoissonSampleLoader.class.getName());
     	}catch(Exception e) {
     		throw new PlanException(e);
     	}
@@ -1776,21 +1777,25 @@ public class MRCompiler extends PhyPlanVisitor {
      * @param sortKeyPlans  PhysicalPlans to be set into POSort operator to get sorting keys
      * @param udfClassName  the class name of UDF
      * @param udfArgs   the arguments of UDF
+     * @param sampleLdrClassName class name for the sample loader
      * @return pair<mapreduceoper,integer>
      * @throws PlanException
      * @throws VisitorException
      */
   	protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
   			FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans, 
-  			String udfClassName, String[] udfArgs ) throws PlanException, VisitorException {
+  			String udfClassName, String[] udfArgs, String sampleLdrClassName ) throws PlanException, VisitorException {
   		
   		String[] rslargs = new String[2];
-        // RandomSampleLoader expects string version of FuncSpec 
+        // SampleLoader expects string version of FuncSpec 
         // as its first constructor argument.
+        
         rslargs[0] = (new FuncSpec(BinStorage.class.getName())).toString();
-        rslargs[1] = "100"; // TODO Needs to be determined based on file size.
+        
+        rslargs[1] = "100"; // The value is calculated based on the file size for skewed join
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
-            new FuncSpec(RandomSampleLoader.class.getName(), rslargs));
+        		new FuncSpec(sampleLdrClassName, rslargs));
+        
         MapReduceOper mro = startNew(quantLdFilName, prevJob);
        
         if(sort.isUDFComparatorUsed) {
