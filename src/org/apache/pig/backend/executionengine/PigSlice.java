@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.pig.FuncSpec;
@@ -35,10 +36,15 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
 import org.apache.pig.backend.datastorage.SeekableInputStream.FLAGS;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.SampleLoader;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 
 /**
@@ -69,9 +75,10 @@ public class PigSlice implements Slice {
         return new String[] { file };
     }
 
-    public void init(DataStorage base) throws IOException {
+    @SuppressWarnings("unchecked")
+	public void init(DataStorage base) throws IOException {
         if (parser == null) {
-            loader = new PigStorage();
+        	loader = new PigStorage();
         } else {
             try {
                 loader = (LoadFunc) PigContext.instantiateFuncFromSpec(parser);
@@ -95,9 +102,24 @@ public class PigSlice implements Slice {
             end = Long.MAX_VALUE;
         } else {
             is = fsis;
-        }
+        }       
+           
+        // set the right sample size
+        if (loader instanceof SampleLoader) {
+        	try {
+	          	PigContext pc = (PigContext) ObjectSerializer.deserialize(((HDataStorage)base).getConfiguration().getProperty("pig.pigContext"));
+	          	ArrayList<Pair<FileSpec, Boolean>> inputs = 
+	          		(ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(((HDataStorage)base).getConfiguration().getProperty("pig.inputs"));
+	          	
+	          	((SampleLoader)loader).computeSamples(inputs, pc);	          	
+	        } catch (Exception e) {
+	           	throw new ExecException(e.getMessage());
+	        }
+    	}
+        
         loader.bindTo(file.toString(), new BufferedPositionedInputStream(is,
                 start), start, end);
+                
     }
 
     public boolean next(Tuple value) throws IOException {

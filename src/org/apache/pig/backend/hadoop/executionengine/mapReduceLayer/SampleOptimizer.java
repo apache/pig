@@ -81,7 +81,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         POLoad load = (POLoad)po;
         String loadFunc = load.getLFile().getFuncName();
         String loadFile = load.getLFile().getFileName();
-        if (!("org.apache.pig.impl.builtin.RandomSampleLoader".equals(loadFunc))) {
+        if (!("org.apache.pig.impl.builtin.RandomSampleLoader".equals(loadFunc)) && !("org.apache.pig.impl.builtin.SkewedJoinSampleLoader".equals(loadFunc))) {
             log.debug("Not a sampling job.");
             return;
         }
@@ -178,7 +178,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         rslargs[0] = predFs.getFuncSpec().toString();
         // Second argument is the number of samples per block, read this from the original.
         rslargs[1] = load.getLFile().getFuncSpec().getCtorArgs()[1];
-        FileSpec fs = new FileSpec(predFs.getFileName(),new FuncSpec(RandomSampleLoader.class.getName(), rslargs));
+        FileSpec fs = new FileSpec(predFs.getFileName(),new FuncSpec(loadFunc, rslargs));
         POLoad newLoad = new POLoad(load.getOperatorKey(),load.getRequestedParallelism(), fs, load.isSplittable());
         try {
             mr.mapPlan.replace(load, newLoad);

@@ -17,33 +17,13 @@
  */
 package org.apache.pig.impl.builtin;
 
-import java.io.IOException;
-import java.util.Map;
-
-import org.apache.pig.ExecType;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.SamplableLoader;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-
-
 /**
  * A loader that samples the data.  This loader can subsume loader that
  * can handle starting in the middle of a record.  Loaders that can
  * handle this should implement the SamplableLoader interface.
  */
-public class RandomSampleLoader implements LoadFunc {
-    
-    private int numSamples;
-    private long skipInterval;    
-	private TupleFactory factory;
-    protected SamplableLoader loader;
-    
+public class RandomSampleLoader extends SampleLoader {
+ 
     /**
      * Construct with a class of loader to use.
      * @param funcSpec func spec of the loader to use.
@@ -53,107 +33,17 @@ public class RandomSampleLoader implements LoadFunc {
      * UDF constructors.
      */
     public RandomSampleLoader(String funcSpec, String ns) {
-        loader = (SamplableLoader)PigContext.instantiateFuncFromSpec(funcSpec);
-        numSamples = Integer.valueOf(ns);
+    	// instantiate the loader
+        super(funcSpec);
+        // set the number of samples
+        super.setNumSamples(Integer.valueOf(ns));
     }
     
-
-    public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {        
-    	skipInterval = (end - offset)/numSamples;
-        loader.bindTo(fileName, is, offset, end);
-    }
     
-
-    public Tuple getNext() throws IOException {
-        long initialPos = loader.getPosition();
-        
-        // make sure we move to a boundry of a record
-        Tuple t = loader.getSampledTuple();        
-        long middlePos = loader.getPosition();
-        
-        // we move to next boundry
-        t = loader.getSampledTuple();        
-        long finalPos = loader.getPosition();
-        
-        long toSkip = skipInterval - (finalPos - initialPos);
-        if (toSkip > 0) {
-            long rc = loader.skip(toSkip);
-            
-            // if we did not skip enough
-            // in the first attempt, call
-            // in.skip() repeatedly till we
-            // skip enough
-            long remainingSkip = toSkip - rc;
-            while(remainingSkip > 0) {
-                rc = loader.skip(remainingSkip);
-                if(rc == 0) {
-                    // underlying stream saw EOF
-                    break;
-                }
-                remainingSkip -= rc;
-            }
-        }       
-        
-        if (t == null) {
-        	return null;
-        }
-        
-        if (factory == null) {
-        	factory = TupleFactory.getInstance();
-        }
-
-        // copy existing field 
-        Tuple m = factory.newTuple(t.size()+1);
-        for(int i=0; i<t.size(); i++) {
-        	m.set(i, t.get(i));
-        }
-        
-        // add size of the tuple at the end
-        m.set(t.size(), (finalPos-middlePos));
-        
-        return m;
+    @Override
+    public void setNumSamples(int n) {
+    	// Setting it to 100 as default for order by
+    	super.setNumSamples(100);
     }
-    
-    public Integer bytesToInteger(byte[] b) throws IOException {
-        return loader.bytesToInteger(b);
-    }
-
-    public Long bytesToLong(byte[] b) throws IOException {
-        return loader.bytesToLong(b);
-    }
-
-    public Float bytesToFloat(byte[] b) throws IOException {
-        return loader.bytesToFloat(b);
-    }
-
-    public Double bytesToDouble(byte[] b) throws IOException {
-        return loader.bytesToDouble(b);
-    }
-
-    public String bytesToCharArray(byte[] b) throws IOException {
-        return loader.bytesToCharArray(b);
-    }
-
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-        return loader.bytesToMap(b);
-    }
-
-    public Tuple bytesToTuple(byte[] b) throws IOException {
-        return loader.bytesToTuple(b);
-    }
-
-    public DataBag bytesToBag(byte[] b) throws IOException {
-        return loader.bytesToBag(b);
-    }
-
-    public void fieldsToRead(Schema schema) {
-        loader.fieldsToRead(schema);
-    }
-
-    public Schema determineSchema(
-            String fileName,
-            ExecType execType,
-            DataStorage storage) throws IOException {
-        return loader.determineSchema(fileName, execType, storage);
-    }
+ 
 }
