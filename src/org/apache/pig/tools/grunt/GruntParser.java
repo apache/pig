@@ -61,6 +61,7 @@ import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.TupleFormat;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
@@ -532,7 +533,7 @@ public class GruntParser extends PigScriptParser {
         while (result.hasNext())
         {
             Tuple t = result.next();
-            System.out.println(t);
+            System.out.println(TupleFormat.format(t));
         }
     }
     

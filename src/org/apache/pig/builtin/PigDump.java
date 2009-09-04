@@ -22,6 +22,7 @@ import java.io.OutputStream;
 
 import org.apache.pig.StoreFunc;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.TupleFormat;
 
 
 public class PigDump implements StoreFunc {
@@ -40,7 +41,7 @@ public class PigDump implements StoreFunc {
     }
 
     public void putNext(Tuple f) throws IOException {
-        os.write((f.toString() + recordDelimiter).getBytes());
+        os.write((TupleFormat.format(f) + recordDelimiter).getBytes());
     }
 
     /* (non-Javadoc)

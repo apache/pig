@@ -33,6 +33,7 @@ import org.apache.hadoop.io.WritableComparable;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.util.TupleFormat;
 
 /**
  * A default implementation of Tuple.  This class will be created by the
@@ -214,29 +215,7 @@ public class DefaultTuple implements Tuple {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
-            Object d = it.next();
-            if(d != null) {
-                if(d instanceof Map) {
-                    sb.append(DataType.mapToString((Map<String, Object>)d));
-                } else {
-                    sb.append(d.toString());
-                    if(d instanceof Long) {
-                        sb.append("L");
-                    } else if(d instanceof Float) {
-                        sb.append("F");
-                    }
-                }
-            } else {
-                sb.append("");
-            }
-            if (it.hasNext())
-                sb.append(",");
-        }
-        sb.append(')');
-        return sb.toString();
+       return TupleFormat.format(this);
     }
 
     public int compareTo(Object other) {
