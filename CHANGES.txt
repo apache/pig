@@ -28,6 +28,8 @@ PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-936: making dump and PigDump independent from Tuple.toString (daijy)
+
 PIG-890: Create a sampler interface and improve the skewed join sampler (sriranjan via daijy)
 
 PIG-922: Logical optimizer: push up project part 1 (daijy)

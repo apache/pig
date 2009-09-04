@@ -32,6 +32,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
+import org.apache.pig.impl.util.BagFormat;
 import org.apache.pig.impl.util.Spillable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -264,17 +265,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Write the bag into a string. */
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append('{');
-        Iterator<Tuple> it = iterator();
-        while ( it.hasNext() ) {
-            Tuple t = it.next();
-            String s = t.toString();
-            sb.append(s);
-            if (it.hasNext()) sb.append(",");
-        }
-        sb.append('}');
-        return sb.toString();
+        return BagFormat.format(this);
     }
 
     @Override
