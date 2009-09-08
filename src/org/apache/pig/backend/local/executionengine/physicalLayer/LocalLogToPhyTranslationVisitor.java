@@ -139,14 +139,12 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
     public void visit(LOJoin join) throws VisitorException {
         String scope = join.getOperatorKey().scope;
         List<LogicalOperator> inputs = join.getInputs();
+        boolean[] innerFlags = join.getInnerFlags();
 
         // In local mode, LOJoin is achieved by POCogroup followed by a POForEach with flatten
         // Insert a POCogroup in the place of LOJoin
         POCogroup poc = new POCogroup(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), join.getRequestedParallelism());
-        boolean innerArray[] = new boolean[join.getInputs().size()];
-        for (int i=0;i<join.getInputs().size();i++)
-            innerArray[i] = true;
-        poc.setInner(innerArray);
+        poc.setInner(innerFlags);
         
         currentPlan.add(poc);
         
@@ -207,6 +205,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         // Append POForEach after POCogroup
         List<Boolean> flattened = new ArrayList<Boolean>();
         List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
+        
         for (int i=0;i<join.getInputs().size();i++)
         {
             PhysicalPlan ep = new PhysicalPlan();
@@ -217,6 +216,21 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             prj.setStar(false);
             ep.add(prj);
             eps.add(ep);
+            // the parser would have marked the side
+            // where we need to keep empty bags on
+            // non matched as outer (innerFlags[i] would be
+            // false)
+            if(!(innerFlags[i])) {
+                LogicalOperator joinInput = inputs.get(i);
+                // for outer join add a bincond
+                // which will project nulls when bag is
+                // empty
+                try {
+                    updateWithEmptyBagCheck(ep, joinInput);
+                } catch (PlanException e) {
+                    throw new VisitorException(e);
+                }
+            }
             flattened.add(true);
         }
         

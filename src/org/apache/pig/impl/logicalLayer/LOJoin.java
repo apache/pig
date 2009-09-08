@@ -63,7 +63,7 @@ public class LOJoin extends RelationalOperator {
      */
     private static Log log = LogFactory.getLog(LOJoin.class);
     private MultiMap<LogicalOperator, LogicalPlan> mJoinPlans;
-
+    private boolean[] mInnerFlags;
 	private JOINTYPE mJoinType; // Retains the type of the join
 
     /**
@@ -81,10 +81,20 @@ public class LOJoin extends RelationalOperator {
             LogicalPlan plan,
             OperatorKey k,
             MultiMap<LogicalOperator, LogicalPlan> joinPlans,
-            JOINTYPE jt) {
+            JOINTYPE jt,
+            boolean[] isInner) {
         super(plan, k);
         mJoinPlans = joinPlans;
 		mJoinType = jt;
+		mInnerFlags = getCopy(isInner);
+    }
+    
+    private boolean[] getCopy(boolean[] flags) {
+        boolean[] retVal = new boolean[flags.length];
+        for (int i = 0; i < flags.length; i++) {
+            retVal[i] = flags[i];
+        }
+        return retVal;
     }
 
     public List<LogicalOperator> getInputs() {
@@ -543,5 +553,12 @@ public class LOJoin extends RelationalOperator {
         }
         // shall not get here
         return null;
+    }
+
+    /**
+     * @return the mInnerFlags
+     */
+    public boolean[] getInnerFlags() {
+        return getCopy(mInnerFlags);
     }
 }
