@@ -363,10 +363,18 @@ public class Util {
         return schema;
     }
     
-    static Object getPigConstant(String pigConstantAsString) throws ParseException {
+    public static Object getPigConstant(String pigConstantAsString) throws ParseException {
         ByteArrayInputStream stream = new ByteArrayInputStream(pigConstantAsString.getBytes()) ;
         QueryParser queryParser = new QueryParser(stream) ;
         return queryParser.Datum();
+    }
+    
+    public static List<Tuple> getTuplesFromConstantTupleStrings(String[] tupleConstants) throws ParseException {
+        List<Tuple> result = new ArrayList<Tuple>(tupleConstants.length);
+        for(int i = 0; i < tupleConstants.length; i++) {
+            result.add((Tuple) getPigConstant(tupleConstants[i]));
+        }
+        return result;
     }
 
     public static File createFile(String[] data) throws Exception{

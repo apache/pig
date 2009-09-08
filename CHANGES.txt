@@ -28,6 +28,9 @@ PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-578: join ... outer, ... outer semantics are a no-ops, should produce
+corresponding null values (pradeepkth)
+
 PIG-936: making dump and PigDump independent from Tuple.toString (daijy)
 
 PIG-890: Create a sampler interface and improve the skewed join sampler (sriranjan via daijy)

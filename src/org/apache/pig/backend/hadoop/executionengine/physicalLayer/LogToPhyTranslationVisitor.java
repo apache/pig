@@ -33,7 +33,11 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -42,6 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.builtin.IsEmpty;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -928,39 +933,145 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             poPackage.setKeyType(type);
             poPackage.setResultType(DataType.TUPLE);
             poPackage.setNumInps(count);
-                
-	        boolean inner[] = new boolean[count];
-	        for (int i=0;i<count;i++) {
-	            inner[i] = true;
-	        }
-	        poPackage.setInner(inner);
-	        
+            
+            boolean[] innerFlags = loj.getInnerFlags();
+            poPackage.setInner(innerFlags);
+            
 	        List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
 	        List<Boolean> flattenLst = new ArrayList<Boolean>();
-	        for(int i=1;i<=count;i++){
-	            PhysicalPlan fep1 = new PhysicalPlan();
-	            POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), loj.getRequestedParallelism(), i);
-	            feproj1.setResultType(DataType.BAG);
-	            feproj1.setOverloaded(false);
-	            fep1.add(feproj1);
-	            fePlans.add(fep1);
-	            flattenLst.add(true);
-	        }
 	        
-	        POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), loj.getRequestedParallelism(), fePlans, flattenLst );
-	        currentPlan.add(fe);
 	        try{
+    	        for(int i=0;i< count;i++){
+    	            PhysicalPlan fep1 = new PhysicalPlan();
+    	            POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), 
+    	                    loj.getRequestedParallelism(), i+1); //i+1 since the first column is the "group" field
+    	            feproj1.setResultType(DataType.BAG);
+    	            feproj1.setOverloaded(false);
+    	            fep1.add(feproj1);
+    	            fePlans.add(fep1);
+    	            // the parser would have marked the side
+    	            // where we need to keep empty bags on
+    	            // non matched as outer (innerFlags[i] would be
+    	            // false)
+    	            if(!(innerFlags[i])) {
+    	                LogicalOperator joinInput = inputs.get(i);
+                        // for outer join add a bincond
+                        // which will project nulls when bag is
+                        // empty
+                        updateWithEmptyBagCheck(fep1, joinInput);
+    	            }
+    	            flattenLst.add(true);
+    	        }
+    	        
+    	        POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), 
+    	                loj.getRequestedParallelism(), fePlans, flattenLst );
+    	        currentPlan.add(fe);
 	            currentPlan.connect(poPackage, fe);
+	            LogToPhyMap.put(loj, fe);
 	        }catch (PlanException e1) {
 	            int errCode = 2015;
 	            String msg = "Invalid physical operators in the physical plan" ;
 	            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
 	        }
-	        LogToPhyMap.put(loj, fe);
+	        
 		}
 	}
 
-	private boolean validateMergeJoin(LOJoin loj) throws LogicalToPhysicalTranslatorException{
+	/**
+	 * updates plan with check for empty bag and if bag is empty to flatten a bag
+	 * with as many null's as dictated by the schema
+	 * @param fePlan the plan to update
+	 * @param joinInput the relation for which the corresponding bag is being checked
+	 * @throws PlanException
+	 * @throws LogicalToPhysicalTranslatorException
+	 */
+    public static void updateWithEmptyBagCheck(PhysicalPlan fePlan, LogicalOperator joinInput) throws PlanException, LogicalToPhysicalTranslatorException {
+        Schema inputSchema = null;
+        try {
+            inputSchema = joinInput.getSchema();
+            
+            
+            if(inputSchema == null) {
+                int errCode = 1105;
+                String msg = "Input (" + joinInput.getAlias() + ") " +
+                        "on which outer join is desired should have a valid schema";
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.INPUT);
+            }
+        } catch (FrontendException e) {
+            int errCode = 2014;
+            String msg = "Error while determining the schema of input";
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+        
+        // we currently have POProject[bag] as the only operator in the plan
+        // If the bag is an empty bag, we should replace
+        // it with a bag with one tuple with null fields so that when we flatten
+        // we do not drop records (flatten will drop records if the bag is left
+        // as an empty bag) and actually project nulls for the fields in 
+        // the empty bag
+        
+        // So we need to get to the following state:
+        // POProject[Bag]
+        //         \     
+        //    POUserFunc["IsEmpty()"] Const[Bag](bag with null fields)   
+        //                        \      |    POProject[Bag]             
+        //                         \     |    /
+        //                          POBinCond
+        
+        POProject relationProject = (POProject) fePlan.getRoots().get(0);
+        try {
+            
+            // condition of the bincond
+            POProject relationProjectForIsEmpty = relationProject.clone();
+            fePlan.add(relationProjectForIsEmpty);
+            String scope = relationProject.getOperatorKey().scope;
+            FuncSpec isEmptySpec = new FuncSpec(IsEmpty.class.getName());
+            Object f = PigContext.instantiateFuncFromSpec(isEmptySpec);
+            POUserFunc isEmpty = new POUserFunc(new OperatorKey(scope, NodeIdGenerator.getGenerator().
+                        getNextNodeId(scope)), -1, null, isEmptySpec, (EvalFunc) f);
+            isEmpty.setResultType(DataType.BOOLEAN);
+            fePlan.add(isEmpty);
+            fePlan.connect(relationProjectForIsEmpty, isEmpty);
+            
+            // lhs of bincond (const bag with null fields)
+            ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+            // the following should give a tuple with the
+            // required number of nulls
+            Tuple t = TupleFactory.getInstance().newTuple(inputSchema.size());
+            for(int i = 0; i < inputSchema.size(); i++) {
+                t.set(i, null);
+            }
+            List<Tuple> bagContents = new ArrayList<Tuple>(1);
+            bagContents.add(t);
+            DataBag bg = new NonSpillableDataBag(bagContents);
+            ce.setValue(bg);
+            ce.setResultType(DataType.BAG);
+            //this operator doesn't have any predecessors
+            fePlan.add(ce);
+            
+            //rhs of bincond is the original project
+            // let's set up the bincond now
+            POBinCond bincond = new POBinCond(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+            bincond.setCond(isEmpty);
+            bincond.setLhs(ce);
+            bincond.setRhs(relationProject);
+            bincond.setResultType(DataType.BAG);
+            fePlan.add(bincond);
+
+            fePlan.connect(isEmpty, bincond);
+            fePlan.connect(ce, bincond);
+            fePlan.connect(relationProject, bincond);
+
+        } catch (Exception e) {
+            throw new PlanException("Error setting up outerjoin", e);
+        }
+        
+        
+    }
+
+    private boolean validateMergeJoin(LOJoin loj) throws LogicalToPhysicalTranslatorException{
 	    
 	    List<LogicalOperator> preds = loj.getInputs();
 
