@@ -351,7 +351,7 @@ public class QueryParser {
 			isInner[i] = gi.isInner;
 		}
 
-		LogicalOperator loj  = new LOJoin(lp, new OperatorKey(scope, getNextId()), joinPlans, jt);
+		LogicalOperator loj  = new LOJoin(lp, new OperatorKey(scope, getNextId()), joinPlans, jt, isInner);
 		lp.add(loj);
 		log.debug("Added operator " + loj.getClass().getName() + " object " + loj + " to the logical plan " + lp);
 		
@@ -863,6 +863,9 @@ TOKEN : { <STDIN: "stdin"> }
 TOKEN : { <STDOUT: "stdout"> }
 TOKEN : { <LIMIT: "limit"> }
 TOKEN : { <SAMPLE: "sample"> }
+TOKEN : { <LEFT: "left"> }
+TOKEN : { <RIGHT: "right"> }
+TOKEN : { <FULL: "full"> }
 
 TOKEN:
 {
@@ -1637,6 +1640,53 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
 
 }
 
+CogroupInput JoinItem(LogicalPlan lp) :
+{
+    LogicalOperator cgOp; 
+    boolean isInner = true;
+    ArrayList<LogicalPlan> listPlans = new ArrayList<LogicalPlan>(); 
+    LogicalPlan groupByPlan;
+    ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+    ArrayList<Schema> userDefinedSchemaList = new ArrayList<Schema>();
+    log.trace("Entering JoinItem");
+    log.debug("LogicalPlan: " + lp);
+}
+{
+    (
+        cgOp = NestedExpr(lp)
+        (
+            ( <BY> 
+                ( 
+                    LOOKAHEAD ( "(" FlattenedGenerateItemList(cgOp.getSchema(), null, groupByPlan, cgOp) ")" )
+                    ( "(" FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
+                        {listPlans.add(groupByPlan);}
+                        (
+                            "," FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
+                            {listPlans.add(groupByPlan);}
+                        )*
+                        ")" 
+                    )
+                |   (
+                        FlattenedGenerateItem(cgOp.getSchema(), null, groupByPlan = new LogicalPlan(), cgOp, flattenList, userDefinedSchemaList) 
+                        {listPlans.add(groupByPlan);}
+                    )
+                )
+            )   
+        )        
+    )
+    {
+        CogroupInput cogroupInput = new CogroupInput(); 
+
+        cogroupInput.plans = listPlans;
+        cogroupInput.op = cgOp;
+        cogroupInput.isInner = isInner;
+        
+        log.trace("Exiting GroupItem");     
+        return cogroupInput;
+    }
+}
+
+
 CogroupInput GroupItem(LogicalPlan lp) : 
 {
 	ExpressionOperator es; 
@@ -1870,15 +1920,86 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	LogicalOperator frj = null;
 	LogicalOperator skj = null;
 	LogicalOperator smj = null;
+	boolean isLeftOuter = false;
+	boolean isRightOuter = false;
+	boolean isFullOuter = false;
+	boolean isOuter = false;
 }
 {
-	(gi = GroupItem(lp) { gis.add(gi); }
-	("," gi = GroupItem(lp) { gis.add(gi); })+
+	(gi = JoinItem(lp) { gis.add(gi); }
+	[
+	    (<LEFT> [<OUTER>] { isLeftOuter = true;})
+        |
+        (<RIGHT> [<OUTER>] {isRightOuter = true;})
+        |
+        (<FULL> [<OUTER>] {isFullOuter = true;})
+	]
+	("," gi = JoinItem(lp) { gis.add(gi); })+
+	
+	{
+		// in the case of outer joins, only two
+		// inputs are allowed
+		isOuter = (isLeftOuter || isRightOuter || isFullOuter);
+		if(isOuter && gis.size() > 2) {
+		  throw new ParseException("(left|right|full) outer joins are only supported for two inputs");  
+		}
+		
+		// we have exactly two inputs
+		
+		// the semantics of "outer"
+        // for join are different from cogroup
+        // cogroup a by $0 inner, b by $0 outer means keep
+        // all keys from a and for cases where there is no match
+        // from b have an empty bag for b. For keys in b which
+        // do not match in a, there will be no output records.
+        // Whereas with join,
+        // join a by $0 inner, b by $0 outer implies right outer
+        // join which has the exact opposite semantics - for
+        // all keys in b which do not have a match in b we need to
+        // output null for fields in a. For keys in a which do not
+        // match in b, no record should be output. Since we will be
+        // using the same underlying implementation for outer join
+        // as cogroup we should achieve join semantics by setting the
+        // isinner flag accordingly
+        if (isLeftOuter) {
+            gis.get(1).isInner = false;
+        } else if (isRightOuter) {
+            gis.get(0).isInner = false;
+        } else if (isFullOuter) {
+            gis.get(0).isInner = false;
+            gis.get(1).isInner = false;
+        }
+		
+	}
 	// For all types of join we create LOJoin and mark what type of join it is.
-	([<USING> ("\"replicated\"" { frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); }
-	| "\"repl\"" { frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);}
-    |"\"skewed\"" { skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); }
-    |"\"merge\"" { smj = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE); })] ))
+	(
+		[<USING> ("\"replicated\"" { 
+	                if(isOuter) {
+	                    throw new ParseException("Replicated join does not support (left|right|full) outer joins");
+	                }
+				    frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
+			    }
+			| "\"repl\"" { 
+				    if(isOuter) {
+                        throw new ParseException("Replicated join does not support (left|right|full) outer joins");
+                    }
+				    frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
+				}
+		    |"\"skewed\"" { 
+		    	    if(isOuter) {
+                        throw new ParseException("Skewed join does not support (left|right|full) outer joins");
+                    }
+		    	    skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); 
+		    	}
+		    |"\"merge\"" { 
+		    	    if(isOuter) {
+                        throw new ParseException("Merge join does not support (left|right|full) outer joins");
+                    }
+		    	    smj = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE); 
+		    	})
+	    ] 
+    )
+    )
 
 	{log.trace("Exiting JoinClause");
 	if (frj!=null) {

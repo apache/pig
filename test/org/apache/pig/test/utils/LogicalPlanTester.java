@@ -23,6 +23,7 @@ import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaCalculator;
 import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.PlanValidationException;
@@ -81,6 +82,10 @@ public class LogicalPlanTester {
      */
     public LogicalPlan buildPlan(String query) {
         return buildPlan(query, LogicalPlanBuilder.class.getClassLoader());
+    }
+    
+    public LogicalPlan buildPlanThrowExceptionOnError(String query) throws Exception {
+        return buildPlanThrowExceptionOnError(query, LogicalPlanBuilder.class.getClassLoader());
     }
 
 
@@ -207,30 +212,8 @@ public class LogicalPlanTester {
         LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
 
         try {
-            LogicalPlan lp = builder.parse(SCOPE,
-                                           query,
-                                           aliases,
-                                           logicalOpTable,
-                                           aliasOp,
-                                           fileNameMap);
-
-            List<LogicalOperator> roots = lp.getRoots();
-
-            if(roots.size() > 0) {
-                if (logicalOpTable.get(roots.get(0)) instanceof LogicalOperator){
-                    System.out.println(query);
-                    System.out.println(logicalOpTable.get(roots.get(0)));
-                }
-                if ((roots.get(0)).getAlias()!=null){
-                    aliases.put(roots.get(0), lp);
-                }
-            }
-
-            assertTrue(lp != null);
-
-            return lp ;
-        }
-        catch (IOException e) {
+            return parse(query, builder);
+        }  catch (IOException e) {
             fail("IOException: " + e.getMessage());
         }
         catch (Exception e) {
@@ -239,7 +222,47 @@ public class LogicalPlanTester {
         }
         return null;
     }
+    
+    private LogicalPlan parse(String query, LogicalPlanBuilder builder) throws IOException, ParseException {
+        LogicalPlan lp = builder.parse(SCOPE,
+                query,
+                aliases,
+                logicalOpTable,
+                aliasOp,
+                fileNameMap);
 
+        List<LogicalOperator> roots = lp.getRoots();
+        
+        if(roots.size() > 0) {
+        if (logicalOpTable.get(roots.get(0)) instanceof LogicalOperator){
+        System.out.println(query);
+        System.out.println(logicalOpTable.get(roots.get(0)));
+        }
+        if ((roots.get(0)).getAlias()!=null){
+        aliases.put(roots.get(0), lp);
+        }
+        }
+        
+        assertTrue(lp != null);
+        
+        return lp ;
+
+    }
+
+    private LogicalPlan buildPlanThrowExceptionOnError (String query, ClassLoader cldr) throws IOException, ParseException {
+
+        LogicalPlanBuilder.classloader = LogicalPlanTester.class.getClassLoader() ;
+        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
+        try {
+            pigContext.connect();
+        } catch (ExecException e1) {
+            fail(e1.getClass().getName() + ": " + e1.getMessage() + " -- " + query);
+        }
+        LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext);
+
+        return parse(query, builder);
+    }
+    
     public void setPlan(LogicalPlan lp) throws VisitorException {
         PlanSetter ps = new PlanSetter(lp);
         ps.visit();
