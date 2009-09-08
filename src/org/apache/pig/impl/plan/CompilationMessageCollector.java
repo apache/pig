@@ -24,6 +24,7 @@ import java.util.ArrayList ;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
+import org.apache.pig.PigWarning;
 /***
  * This class is used for collecting all messages (error + warning) in 
  * compilation process. These messages are reported back to users 
@@ -131,12 +132,19 @@ public class CompilationMessageCollector implements Iterable<CompilationMessageC
     }
     
     public static void logAggregate(Map<Enum, Long> aggMap, MessageType messageType, Log log) {
-    	for(Enum e: aggMap.keySet()) {
-    		Long count = aggMap.get(e);
-    		if(count != null && count > 0) {
-    			String message = "Encountered " + messageType + " " + e.toString() + " " + count + " time(s).";
-    			logMessage(message, messageType, log);
-    		}
+        long nullCounterCount = aggMap.get(PigWarning.NULL_COUNTER_COUNT)==null?0 : aggMap.get(PigWarning.NULL_COUNTER_COUNT);
+        if (nullCounterCount!=0 && aggMap.size()>1) // PigWarning.NULL_COUNTER_COUNT is definitely in appMap
+            logMessage("Unable to retrieve hadoop counter for " + nullCounterCount + 
+                    " jobs, the number following warnings may not be correct", messageType, log);
+        for(Enum e: aggMap.keySet()) {
+            if (e!=PigWarning.NULL_COUNTER_COUNT)
+            {
+                Long count = aggMap.get(e);
+                if(count != null && count > 0) {
+                    String message = "Encountered " + messageType + " " + e.toString() + " " + count + " time(s).";
+                    logMessage(message, messageType, log);
+                }
+            }
     	}	
     }
     

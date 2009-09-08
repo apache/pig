@@ -147,22 +147,34 @@ public class PigStats {
                 Counters counters = null;
                 try {
                     counters = rj.getCounters();
-                    Counters.Group taskgroup = counters.getGroup("org.apache.hadoop.mapred.Task$Counter");
-                    Counters.Group hdfsgroup = counters.getGroup("org.apache.hadoop.mapred.Task$FileSystemCounter");
-
-                    jobStats.put("PIG_STATS_MAP_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("MAP_INPUT_RECORDS").getCounter())).toString());
-                    jobStats.put("PIG_STATS_MAP_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("MAP_OUTPUT_RECORDS").getCounter())).toString());
-                    jobStats.put("PIG_STATS_REDUCE_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_INPUT_RECORDS").getCounter())).toString());
-                    jobStats.put("PIG_STATS_REDUCE_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_OUTPUT_RECORDS").getCounter())).toString());
-                    jobStats.put("PIG_STATS_BYTES_WRITTEN", (Long.valueOf(hdfsgroup.getCounterForName("HDFS_WRITE").getCounter())).toString());
+                    // This code checks if the counters is null, if it is, then all the stats are unknown.
+                    // We use -1 to indicate unknown counter. In fact, Counters should not be null, it is
+                    // a hadoop bug, once this bug is fixed in hadoop, the null handling code should never be hit.
+                    // See Pig-943
+                    if (counters!=null)
+                    {
+                        Counters.Group taskgroup = counters.getGroup("org.apache.hadoop.mapred.Task$Counter");
+                        Counters.Group hdfsgroup = counters.getGroup("org.apache.hadoop.mapred.Task$FileSystemCounter");
+                        jobStats.put("PIG_STATS_MAP_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("MAP_INPUT_RECORDS").getCounter())).toString());
+                        jobStats.put("PIG_STATS_MAP_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("MAP_OUTPUT_RECORDS").getCounter())).toString());
+                        jobStats.put("PIG_STATS_REDUCE_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_INPUT_RECORDS").getCounter())).toString());
+                        jobStats.put("PIG_STATS_REDUCE_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_OUTPUT_RECORDS").getCounter())).toString());
+                        jobStats.put("PIG_STATS_BYTES_WRITTEN", (Long.valueOf(hdfsgroup.getCounterForName("HDFS_WRITE").getCounter())).toString());
+                    }
+                    else
+                    {
+                        jobStats.put("PIG_STATS_MAP_INPUT_RECORDS", "-1");
+                        jobStats.put("PIG_STATS_MAP_OUTPUT_RECORDS", "-1");
+                        jobStats.put("PIG_STATS_REDUCE_INPUT_RECORDS", "-1");
+                        jobStats.put("PIG_STATS_REDUCE_OUTPUT_RECORDS", "-1");
+                        jobStats.put("PIG_STATS_BYTES_WRITTEN", "-1");
+                    }
+                    
                 } catch (IOException e) {
                     // TODO Auto-generated catch block
                     String error = "Unable to get the counters.";
                     throw new ExecException(error, e);
                 }
-                
-            
-            
         }
         
         getLastJobIDs(jc.getSuccessfulJobs());
@@ -225,9 +237,21 @@ public class PigStats {
             if (jobStats == null) continue;
             String reducePlan = jobStats.get("PIG_STATS_REDUCE_PLAN");
         	if(reducePlan == null) {
-            	records += Long.parseLong(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
+        	    if (Long.parseLong(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"))==-1L)
+                {
+        	        records = -1;
+                    break;
+                }
+        	    else
+        	        records += Long.parseLong(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
         	} else {
-            	records += Long.parseLong(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
+        	    if (Long.parseLong(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"))==-1L)
+                {
+                    records = -1;
+                    break;
+                }
+                else
+                    records += Long.parseLong(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
         	}
         }
     	return records;
@@ -255,6 +279,11 @@ public class PigStats {
         for (String jid : rootJobIDs) {
             Map<String, String> jobStats = stats.get(jid);
             if (jobStats == null) continue;
+            if (Long.parseLong(jobStats.get("PIG_STATS_BYTES_WRITTEN"))==-1L)
+            {
+                bytesWritten = -1L;
+                break;
+            }
             bytesWritten += Long.parseLong(jobStats.get("PIG_STATS_BYTES_WRITTEN"));
         }
         return bytesWritten;
