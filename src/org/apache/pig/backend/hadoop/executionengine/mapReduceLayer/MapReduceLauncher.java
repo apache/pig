@@ -253,8 +253,16 @@ public class MapReduceLauncher extends Launcher{
         // scripts mess up the stats reporting from hadoop.
         List<String> rji = stats.getRootJobIDs();
         if (rji != null && rji.size() == 1 && finalStores == 1) {
-            log.info("Records written : " + stats.getRecordsWritten());
-            log.info("Bytes written : " + stats.getBytesWritten());
+            if(stats.getRecordsWritten()==-1) {
+                log.info("Records written : Unable to determine number of records written");
+            } else {
+                log.info("Records written : " + stats.getRecordsWritten());
+            }
+            if(stats.getBytesWritten()==-1) {
+                log.info("Bytes written : Unable to determine number of bytes written");
+            } else {
+                log.info("Bytes written : " + stats.getBytesWritten());
+            }
         }
 
         if (!failed) {
@@ -394,13 +402,29 @@ public class MapReduceLauncher extends Launcher{
     	try {
     		runningJob = jobClient.getJob(mapRedJobID);
     		if(runningJob != null) {
-    		Counters counters = runningJob.getCounters();
-        		for(Enum e : PigWarning.values()) {
-        			Long currentCount = aggMap.get(e);
-        			currentCount = (currentCount == null? 0 : currentCount);
-        			currentCount += counters.getCounter(e);
-        			aggMap.put(e, currentCount);
-        		}
+        		Counters counters = runningJob.getCounters();
+                if (counters==null)
+                {
+                    long nullCounterCount = aggMap.get(PigWarning.NULL_COUNTER_COUNT)==null?0 : aggMap.get(PigWarning.NULL_COUNTER_COUNT);
+                    nullCounterCount++;
+                    aggMap.put(PigWarning.NULL_COUNTER_COUNT, nullCounterCount);
+                }
+                for (Enum e : PigWarning.values()) {
+                    if (e != PigWarning.NULL_COUNTER_COUNT) {
+                        Long currentCount = aggMap.get(e);
+                        currentCount = (currentCount == null ? 0 : currentCount);
+                        // This code checks if the counters is null, if it is,
+                        // we need to report to the user that the number
+                        // of warning aggregations may not be correct. In fact,
+                        // Counters should not be null, it is
+                        // a hadoop bug, once this bug is fixed in hadoop, the
+                        // null handling code should never be hit.
+                        // See Pig-943
+                        if (counters != null)
+                            currentCount += counters.getCounter(e);
+                        aggMap.put(e, currentCount);
+                    }
+                }
     		}
     	} catch (IOException ioe) {
     		String msg = "Unable to retrieve job to compute warning aggregation.";
