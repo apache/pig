@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  Copyright 2002-2004 The Apache Software Foundation
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+  
+  <!-- BEGIN DOCUMENT-->
+  
+<document>
+<header>
+<title>Pig Latin Users Guide</title>
+</header>
+<body>
+ 
+ 
+ <!-- ABOUT PIG LATIN -->
+   <section>
+   <title>Overview</title>
+   <p>Use the Pig Latin Users Guide together with the <a href="piglatin_reference.html">Pig Latin Reference Manual</a>. </p>
+    </section>
+    
+   <!-- PIG LATIN STATEMENTS -->
+   <section>
+	<title>Pig Latin Statements</title>	
+   <p>A Pig Latin statement is an operator that takes a <a href="piglatin_reference.html#Relations%2C+Bags%2C+Tuples%2C+Fields">relation</a> 
+   as input and produces another relation as output. 
+   (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.) 
+   Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ). 
+   Pig Latin statements are generally organized in the following manner: </p>
+   <ol>
+      <li>
+         <p>A LOAD statement reads data from the file system. </p>
+      </li>
+      <li>
+         <p>A series of "transformation" statements process the data. </p>
+      </li>
+      <li>
+         <p>A STORE statement writes output to the file system; or, a DUMP statement displays output to the screen.</p>
+      </li>
+   </ol>
+  
+   <section>
+   <title>Running Pig Latin </title>
+   <p>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the EXEC and RUN operators).</p>
+   
+   <p>Grunt Shell, Interactive or Batch Mode</p>
+   <source>
+$ pig 
+... - Connecting to ...
+grunt> A = load 'data';
+grunt> B = ... ;
+or
+grunt> exec myscript.pig;
+or
+grunt> run myscript.pig;
+</source> 
+
+<p>Command Line, Batch Mode</p>
+   <source>
+$ pig myscript.pig
+</source> 
+
+<p></p>
+   <p><em>In general</em>, Pig processes Pig Latin statements as follows:</p>
+   <ol>
+      <li>
+         <p>First, Pig validates the syntax and semantics of all statements.</p>
+      </li>
+      <li>
+         <p>Next, if Pig encounters a DUMP or STORE, Pig will execute the statements.</p>
+      </li>
+   </ol>  
+   <p></p>
+   <p>In this example Pig will validate, but not execute, the LOAD and FOREACH statements.</p>
+
+<source>
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+B = FOREACH A GENERATE name;
+</source>   
+
+   <p>In this example, Pig will validate and then execute the LOAD, FOREACH, and DUMP statements.</p>
+   
+<source>
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+B = FOREACH A GENERATE name;
+DUMP B;
+(John)
+(Mary)
+(Bill)
+(Joe)
+</source>   
+   
+   <p> </p>
+   <p>Note: See Multi-Query Execution for more information on how Pig Latin statements are processed.</p> 
+   </section>
+   
+   <section>
+   <title>Retrieving Pig Latin Results</title>
+   <p>Pig Latin includes operators you can use to retrieve the results of your Pig Latin statements: </p>
+   <ol>
+      <li>
+         <p>Use the DUMP operator to display results to a screen. </p>
+      </li>
+      <li>
+         <p>Use the STORE operator to write results to a file on the file system.</p>
+      </li>
+   </ol>
+   </section>   
+   
+   
+   <section>
+   <title>Debugging Pig Latin</title>
+   <p>Pig Latin includes operators that can help you debug your Pig Latin statements:</p>
+   <ol>
+      <li>
+         <p>Use the DESCRIBE operator to review the schema of a relation.</p>
+      </li>
+      <li>
+         <p>Use the EXPLAIN operator to view the logical, physical, or map reduce execution plans to compute a relation.</p>
+      </li>
+      <li>
+         <p>Use the ILLUSTRATE operator to view the step-by-step execution of a series of statements.</p>
+      </li>
+   </ol>
+   </section>
+      
+   
+   <section>
+   <title>Working with Data</title>
+   <p>Pig Latin allows you to work with data in many ways. In general, and as a starting point:</p>
+   <ol>
+      <li>
+         <p>Use the FILTER operator to work with tuples or rows of data. Use the FOREACH operator to work with columns of data.</p>
+      </li>
+      <li>
+         <p>Use the GROUP operator to group data in a single relation. Use the COGROUP and JOIN operators to group or join data in two or more relations.</p>
+      </li>
+      <li>
+         <p>Use the UNION operator to merge the contents of two or more relations. Use the SPLIT operator to partition the contents of a relation into multiple relations.</p>
+      </li>
+   </ol>
+   </section>
+   
+   <section>
+   <title>Increasing Parallelism</title>
+   <p>To increase the parallelism of a job, include the PARALLEL clause with the COGROUP, CROSS, DISTINCT, GROUP, JOIN and ORDER operators. 
+   PARALLEL controls the number of reducers only; the number of maps is determined by the input data 
+   (see the <a href="http://wiki.apache.org/pig/PigUserCookbook">Pig User Cookbook</a>).</p>
+   </section>
+   
+   <section><title>Increasing Performance</title>
+   <p>You can increase or optimize the performance of your Pig Latin scripts by following a few simple rules 
+   (see the <a href="http://wiki.apache.org/pig/PigUserCookbook">Pig User Cookbook</a>).</p>
+   </section>
+   
+   <section>
+   <title>Using Comments in Scripts</title>
+   <p>If you place Pig Latin statements in a script, the script can include comments. </p>
+   <ol>
+      <li>
+         <p>For multi-line comments use /* …. */</p>
+      </li>
+      <li>
+         <p>For single line comments use --</p>
+      </li>
+   </ol>
+<source>
+/* myscript.pig
+My script includes three simple Pig Latin Statements.
+*/
+
+A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float); -- load statement
+B = FOREACH A GENERATE name;  -- foreach statement
+DUMP B;  --dump statement
+</source>   
+</section>
+
+ <section>
+   <title>Case Sensitivity</title>
+   <p>The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. 
+   The names of parameters (see Parameter Substitution) and all other Pig Latin keywords are case insensitive.</p>
+   <p>In the example below, note the following:</p>
+   <ol>
+      <li>
+         <p>The names (aliases) of relations A, B, and C are case sensitive.</p>
+      </li>
+      <li>
+         <p>The names (aliases) of fields f1, f2, and f3 are case sensitive.</p>
+      </li>
+      <li>
+         <p>Function names PigStorage and COUNT are case sensitive.</p>
+      </li>
+      <li>
+         <p>Keywords LOAD, USING, AS, GROUP, BY, FOREACH, GENERATE, and DUMP are case insensitive. 
+         They can also be written as load, using, as, group, by, etc.</p>
+      </li>
+      <li>
+         <p>In the FOREACH statement, the field in relation B is referred to by positional notation ($0).</p>
+      </li>
+   </ol>
+   <p/>
+
+<source>
+grunt> A = LOAD 'data' USING PigStorage() AS (f1:int, f2:int, f3:int);
+grunt> B = GROUP A BY f1;
+grunt> C = FOREACH B GENERATE COUNT ($0);
+grunt> DUMP C;
+</source>
+</section>    
+</section>  
+<!-- END PIG LATIN STATEMENTS -->
+
+ 
+
+<!-- MULTI-QUERY EXECUTION-->
+<section>
+<title>Multi-Query Execution</title>
+<p>With multi-query execution Pig processes an entire script or a batch of statements at once 
+(as opposed to processing statements when a DUMP or STORE is encountered). </p>
+
+
+
+<section>
+	<title>Turning Multi-Query Execution On or Off</title>	
+	<p>Multi-query execution is turned on by default. 
+	To turn it off and revert to Pi'gs "execute-on-dump/store" behavior, use the "-M" or "-no_multiquery" options. </p>
+	<p>To run script "myscript.pig" without the optimization, execute Pig as follows: </p>
+<source>
+$ pig -M myscript.pig
+or
+$ pig -no_multiquery myscript.pig
+</source>
+</section>
+
+<section>
+<title>How it Works</title>
+<p>Multi-query execution introduces some changes:</p>
+
+<ol>
+<li>
+<p>For batch mode execution, the entire script is first parsed to determine if intermediate tasks 
+can be combined to reduce the overall amount of work that needs to be done; execution starts only after the parsing is completed 
+(see the EXPLAIN operator and the EXEC and RUN commands). </p>
+</li>
+<li>
+<p>Two run scenarios are optimized, as explained below: explicit and implicit splits, and storing intermediate results.</p>
+</li>
+</ol>
+
+<section>
+	<title>Explicit and Implicit Splits</title>
+<p>There might be cases in which you want different processing on separate parts of the same data stream.</p>
+<p>Example 1:</p>
+<source>
+A = LOAD ...
+...
+SPLIT A' INTO B IF ..., C IF ...
+...
+STORE B' ...
+STORE C' ...
+</source>
+<p>Example 2:</p>
+<source>
+A = LOAD ...
+...
+B = FILTER A' ...
+C = FILTER A' ...
+...
+STORE B' ...
+STORE C' ...
+</source>
+<p>In prior Pig releases, Example 1 will dump A' to disk and then start jobs for B' and C'. 
+Example 2 will execute all the dependencies of B' and store it and then execute all the dependencies of C' and store it. 
+Both are equivalent, but the performance will be different. </p>
+<p>Here's what the multi-query execution does to increase the performance: </p>
+	<ol>
+		<li><p>For Example 2, adds an implicit split to transform the query to Example 1. 
+		This eliminates the processing of A' multiple times.</p></li>
+		<li><p>Makes the split non-blocking and allows processing to continue. 
+		This helps reduce the amount of data that has to be stored right at the split.  </p></li>
+		<li><p>Allows multiple outputs from a job. This way some results can be stored as a side-effect of the main job. 
+		This is also necessary to make the previous item work.  </p></li>
+		<li><p>Allows multiple split branches to be carried on to the combiner/reducer. 
+		This reduces the amount of IO again in the case where multiple branches in the split can benefit from a combiner run. </p></li>
+	</ol>
+</section>
+
+<section>
+	<title>Storing Intermediate Results</title>
+<p>Sometimes it is necessary to store intermediate results. </p>
+
+<source>
+A = LOAD ...
+...
+STORE A'
+...
+STORE A''
+</source>
+
+<p>If the script doesn't re-load A' for the processing of A the steps above A' will be duplicated. 
+This is a special case of Example 2 above, so the same steps are recommended. 
+With multi-query execution, the script will process A and dump A' as a side-effect.</p>
+</section>
+</section>
+
+
+<section>
+	<title>Error Handling</title>
+	<p>With multi-query execution Pig processes an entire script or a batch of statements at once. 
+	By default Pig tries to run all the jobs that result from that, regardless of whether some jobs fail during execution. 
+	To check which jobs have succeeded or failed use one of these options. </p>
+	
+	<p>First, Pig logs all successful and failed store commands. Store commands are identified by output path. 
+	At the end of execution a summary line indicates success, partial failure or failure of all store commands. </p>	
+	
+	<p>Second, Pig returns different code upon completion for these scenarios:</p>
+	<ol>
+		<li><p>Return code 0: All jobs succeeded</p></li>
+		<li><p>Return code 1: <em>Used for retrievable errors</em> </p></li>
+		<li><p>Return code 2: All jobs have failed </p></li>
+		<li><p>Return code 3: Some jobs have failed  </p></li>
+	</ol>
+	<p></p>
+	<p>In some cases it might be desirable to fail the entire script upon detecting the first failed job. 
+	This can be achieved with the "-F" or "-stop_on_failure" command line flag. 
+	If used, Pig will stop execution when the first failed job is detected and discontinue further processing. 
+	This also means that file commands that come after a failed store in the script will not be executed (this can be used to create "done" files). </p>
+	
+	<p>This is how the flag is used: </p>
+<source>
+$ pig -F myscript.pig
+or
+$ pig -stop_on_failure myscript.pig
+</source>
+
+</section>
+
+<section>
+	<title>Backward Compatibility</title>
+	
+	<p>Most existing Pig scripts will produce the same result with or without the multi-query execution. 
+	There are cases though were this is not true. Path names and schemes are discussed here.</p>
+	
+	<p>Any script is parsed in it's entirety before it is sent to execution. Since the current directory can change 
+	throughout the script any path used in load or store is translated to a fully qualified and absolute path.</p>
+		
+	<p>In map-reduce mode, the following script will load from "hdfs://&lt;host&gt;:&lt;port&gt;/data1" and store into "hdfs://&lt;host&gt;:&lt;port&gt;/tmp/out1". </p>
+<source>
+cd /;
+A = LOAD 'data1';
+cd tmp;
+STORE A INTO 'out1';
+</source>
+
+	<p>These expanded paths will be passed to any LoadFunc or Slicer implementation. 
+	In some cases this can cause problems, especially when a LoadFunc/Slicer is not used to read from a dfs file or path 
+	(for example, loading from an SQL database). </p>
+	
+	<p>Solutions are to either: </p>
+	<ol>
+		<li><p>Specify "-M" or "-no_multiquery" to revert to the old names</p></li>
+		<li><p>Specify a custom scheme for the LoadFunc/Slicer </p></li>
+	</ol>	
+	
+	<p>Arguments used in a load statement that have a scheme other than "hdfs" or "file" will not be expanded and passed to the LoadFunc/Slicer unchanged.</p>
+	<p>In the SQL case, the SQLLoader function is invoked with "sql://mytable". </p>
+
+<source>
+A = LOAD "sql://mytable" USING SQLLoader();
+</source>
+</section>
+
+<section>
+	<title>Implicit Dependencies</title>
+<p>If a script has dependencies on the execution order outside of what Pig knows about, execution may fail. For instance, in this script
+MYUDF might try to read from out1, a file that A was just stored into. 
+However, Pig does not know that MYUDF depends on the out1 file and might submit the jobs 
+producing the out2 and out1 files at the same time.
+</p>
+<source>
+...
+STORE A INTO 'out1';
+B = LOAD 'data2';
+C = FOREACH B GENERATE MYUDF($0,'out1');
+STORE C INTO 'out2';
+</source>
+
+<p>To make the script work (to ensure that the right execution order is enforced) add the exec statement. 
+The exec statement will trigger the execution of the statements that produce the out1 file. </p>
+
+<source>
+...
+STORE A INTO 'out1';
+EXEC;
+B = LOAD 'data2';
+C = FOREACH B GENERATE MYUDF($0,'out1');
+STORE C INTO 'out2';
+</source>
+</section>
+</section>
+<!-- END MULTI-QUERY EXECUTION-->
+
+
+
+<!-- SPECIALIZED JOINS-->
+<section>
+<title>Specialized Joins</title>
+<p>
+Pig Latin includes three "specialized" joins: fragement replicate joins, skewed joins, and merge joins. 
+These joins are performed using the <a href="piglatin_reference.html#JOIN">JOIN</a> operator (inner, equijoins).
+Currently, these joins <strong>cannot</strong> be performed using outer joins.
+</p>
+
+<!-- FRAGMENT REPLICATE JOINS-->
+<section>
+<title>Fragment Replicate Joins</title>
+<p>Fragment replicate join is a special type of join that works well if one or more relations are small enough to fit into main memory. 
+In such cases, Pig can perform a very efficient join because all of the hadoop work is done on the map side. In this type of join the 
+large relation is followed by one or more small relations. The small relations must be small enough to fit into main memory; if they 
+don't, the process fails and an error is generated.</p>
+ 
+<section>
+<title>Usage</title>
+<p>Perform a fragment replicate join with the USING clause (see the <a href="piglatin_reference.html#JOIN">JOIN</a> operator).
+In this example, a large relation is joined with two smaller relations. Note that the large relation comes first followed by the smaller relations; 
+and, all small relations together must fit into main memory, otherwise an error is generated. </p>
+<source>
+big = LOAD 'big_data' AS (b1,b2,b3);
+
+tiny = LOAD 'tiny_data' AS (t1,t2,t3);
+
+mini = LOAD 'mini_data' AS (m1,m2,m3);
+
+C = JOIN big BY b1, tiny BY t1, mini BY m1 USING "replicated";
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p>Fragment replicate joins are experimental; we don't have a strong sense of how small the small relation must be to fit 
+into memory. In our tests with a simple query that involves just a JOIN, a relation of up to 100 M can be used if the process overall 
+gets 1 GB of memory. Please share your observations and experience with us.</p>
+</section>
+</section>
+<!-- END FRAGMENT REPLICATE JOINS-->
+
+
+<!-- SKEWED JOINS-->
+<section>
+<title>Skewed Joins</title>
+
+<p>
+Parallel joins are vulnerable to the presence of skew in the underlying data. 
+If the underlying data is sufficiently skewed, load imbalances will swamp any of the parallelism gains. 
+In order to counteract this problem, skewed join computes a histogram of the key space and uses this 
+data to allocate reducers for a given key. Skewed join does not place a restriction on the size of the input keys. 
+It accomplishes this by splitting one of the input on the join predicate and streaming the other input. 
+</p>
+
+<p>
+Skewed join can be used when the underlying data is sufficiently skewed and you need a finer 
+control over the allocation of reducers to counteract the skew. It should also be used when the data 
+associated with a given key is too large to fit in memory.
+</p>
+
+<section>
+<title>Usage</title>
+<p>Perform a skewed join with the USING clause (see the <a href="piglatin_reference.html#JOIN">JOIN</a> operator). </p>
+<source>
+big = LOAD 'big_data' AS (b1,b2,b3);
+massive = LOAD 'massive_data' AS (m1,m2,m3);
+c = JOIN big BY b1, massive BY m1 USING "skewed";
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p>
+Skewed join will only work under these conditions: 
+</p>
+<ul>
+<li>Skewed join works with two-table inner join. Currently we do not support more than two tables for skewed join. 
+Specifying three-way (or more) joins will fail validation. For such joins, we rely on you to break them up into two-way joins.</li>
+<li>The pig.skewedjoin.reduce.memusage Java parameter specifies the fraction of heap available for the 
+reducer to perform the join. A low fraction forces pig to use more reducers but increases 
+copying cost. We have seen good performance when we set this value 
+in the range 0.1 - 0.4. However, note that this is hardly an accurate range. Its value 
+depends on the amount of heap available for the operation, the number of columns 
+in the input and the skew. An appropriate value is best obtained by conducting experiments to achieve 
+a good performance. The default value is =0.5=. </li>
+</ul>
+</section>
+</section><!-- END SKEWED JOINS-->
+
+
+<!-- MERGE JOIN-->
+<section>
+<title>Merge Joins</title>
+
+<p>
+Often user data is stored such that both inputs are already sorted on the join key. 
+In this case, it is possible to join the data in the map phase of a MapReduce job. 
+This provides a significant performance improvement compared to passing all of the data through 
+unneeded sort and shuffle phases. 
+</p>
+
+<p>
+Pig has implemented a merge join algorithm, or sort-merge join, although in this case the sort is already 
+assumed to have been done (see the Conditions, below). 
+
+Pig implements the merge join algorithm by selecting the left input of the join to be the input file for the map phase, 
+and the right input of the join to be the side file. It then samples records from the right input to build an
+ index that contains, for each sampled record, the key(s) the filename and the offset into the file the record 
+ begins at. This sampling is done in an initial map only job. A second MapReduce job is then initiated, 
+ with the left input as its input. Each map uses the index to seek to the appropriate record in the right 
+ input and begin doing the join. 
+</p>
+
+<section>
+<title>Usage</title>
+<p>Perform a merge join with the USING clause (see the <a href="piglatin_reference.html#JOIN">JOIN</a> operator).</p>
+<source>
+C = JOIN A BY a1, B BY b1 USING "merge";
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p>
+Merge join will only work under these conditions: 
+</p>
+
+<ul>
+<li>Both inputs are sorted in *ascending* order of join keys. If an input consists of many files, there should be 
+a total ordering across the files in the *ascending order of file name*. So for example if one of the inputs to the 
+join is a directory called input1 with files a and b under it, the data should be sorted in ascending order of join 
+key when read starting at a and ending in b. Likewise if an input directory has part files part-00000, part-00001, 
+part-00002 and part-00003, the data should be sorted if the files are read in the sequence part-00000, part-00001, 
+part-00002 and part-00003. </li>
+<li>The merge join only has two inputs </li>
+<li>The loadfunc for the right input of the join should implement the SamplableLoader interface (PigStorage does 
+implement the SamplableLoader interface). </li>
+<li>Only inner join will be supported </li>
+
+<li>Between the load of the sorted input and the merge join statement there can only be filter statements and 
+foreach statement where the foreach statement should meet the following conditions: 
+<ul>
+<li>There should be no UDFs in the foreach statement </li>
+<li>The foreach statement should not change the position of the join keys </li>
+<li>There should not transformation on the join keys which will change the sort order </li>
+</ul>
+</li>
+
+</ul>
+<p></p>
+<p>
+For optimal performance, each part file of the left (sorted) input of the join should have a size of at least 
+1 hdfs block size (for example if the hdfs block size is 128 MB, each part file should be less than 128 MB). 
+If the total input size (including all part files) is greater than blocksize, then the part files should be uniform in size 
+(without large skews in sizes). The main idea is to eliminate skew in the amount of input the final map 
+job performing the merge-join will process. 
+</p>
+
+<p>
+In local mode, merge join will revert to regular join.
+</p>
+</section>
+</section><!-- END MERGE JOIN -->
+
+
+</section>
+<!-- END SPECIALIZED JOINS-->
+ 
+ <!-- OPTIMIZATION RULES -->
+<section>
+<title>Optimization Rules</title>
+<p>Pig supports various optimization rules. By default optimization, and all optimization rules, are turned on. 
+To turn off optimiztion, use:</p>
+
+<source>
+pig -optimizer_off [opt_rule | all ]
+</source>
+
+<p>Note that some rules are mandatory and cannot be turned off.</p>
+
+<section>
+<title>ImplicitSplitInserter</title>
+<p>Status: Mandatory</p>
+<p>
+<a href="piglatin_reference.html#SPLIT">SPLIT</a> is the only operator that models multiple outputs in Pig. 
+To ease the process of building logical plans, all operators are allowed to have multiple outputs. As part of the 
+optimization, all non-split operators that have multiple outputs are altered to have a SPLIT operator as the output 
+and the outputs of the operator are then made outputs of the SPLIT operator. An example will illustrate the point. 
+Here, a split will be inserted after the LOAD and the split outputs will be connected to the FILTER (b) and the COGROUP (c).
+</p>
+<source>
+A = LOAD 'input';
+B = FILTER A BY $1 == 1;
+C = COGROUP A BY $0, B BY $0;
+</source>
+</section>
+
+<section>
+<title>TypeCastInserter</title>
+<p>Status: Mandatory</p>
+<p>
+If you specify a <a href="piglatin_reference.html#Schemas">schema</a> with the 
+<a href="piglatin_reference.html#LOAD">LOAD</a> statement, the optimizer will perform a pre-fix projection of the columns 
+and <a href="piglatin_reference.html#Cast+Operators">cast</a> the columns to the appropriate types. An example will illustrate the point. 
+The LOAD statement (a) has a schema associated with it. The optimizer will insert a FOREACH operator that will project columns 0, 1 and 2 
+and also cast them to chararray, int and float respectively. 
+</p>
+<source>
+A = LOAD 'input' AS (name: chararray, age: int, gpa: float);
+B = FILER A BY $1 == 1;
+C = GROUP A By $0;
+</source>
+</section>
+
+<section>
+<title>StreamOptimizer</title>
+<p>
+Optimize when <a href="piglatin_reference.html#LOAD">LOAD</a> precedes <a href="piglatin_reference.html#STREAM">STREAM</a> 
+and the loader class is the same as the serializer for the stream. Similarly, optimize when STREAM is followed by 
+<a href="piglatin_reference.html#STORE">STORE</a> and the deserializer class is same as the storage class. 
+For both of these cases the optimization is to replace the loader/serializer with BinaryStorage which just moves bytes 
+around and to replace the storer/deserializer with BinaryStorage.
+</p>
+
+</section>
+
+<section>
+<title>OpLimitOptimizer</title>
+<p>
+The objective of this rule is to push the <a href="piglatin_reference.html#LIMIT">LIMIT</a> operator up the data flow graph 
+(or down the tree for database folks). In addition, for top-k (ORDER BY followed by a LIMIT) the LIMIT is pushed into the ORDER BY.
+</p>
+<source>
+A = LOAD 'input';
+B = ORDER A BY $0;
+C = LIMIT B 10;
+</source>
+</section>
+
+<section>
+<title>PushUpFilters</title>
+<p>
+The objective of this rule is to push the <a href="piglatin_reference.html#FILTER">FILTER</a> operators up the data flow graph. 
+As a result, the number of records that flow through the pipeline is reduced. 
+</p>
+<source>
+A = LOAD 'input';
+B = GROUP A BY $0;
+C = FILTER B BY $0 &lt; 10;
+</source>
+</section>
+
+<section>
+<title>PushDownExplodes</title>
+<p>
+The objective of this rule is to reduce the number of records that flow through the pipeline by moving 
+<a href="piglatin_reference.html#FOREACH">FOREACH</a> operators with a 
+<a href="piglatin_reference.html#Flatten+Operator">FLATTEN</a> down the data flow graph. 
+In the example shown below, it would be more efficient to move the foreach after the join to reduce the cost of the join operation.
+</p>
+<source>
+A = LOAD 'input' AS (a, b, c);
+B = LOAD 'input2' AS (x, y, z);
+C = FOREACH A GENERATE FLATTEN($0), B, C;
+D = JOIN C BY $1, B BY $1;
+</source>
+</section>
+
+
+</section> <!-- END OPTIMIZATION RULES -->
+ 
+ </body>
+ </document>
+  
+   

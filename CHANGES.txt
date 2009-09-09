@@ -28,6 +28,8 @@ PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-938: documentation changes for Pig 0.4.0 release (chandec via olgan)
+
 PIG-578: join ... outer, ... outer semantics are a no-ops, should produce
 corresponding null values (pradeepkth)
 

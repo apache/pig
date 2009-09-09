@@ -33,148 +33,20 @@
 <section>
 <title>Performance Enhancers</title>
 
-<p>The following are a list of tips that people have discovered for making their pig queries run faster. Please feel free to add any tips you have. </p>
 
 <section>
-<title>Use Latest Code</title>
-
-<p>The latest code has been merged into trunk on 1/12/09. It is significantly faster than the currently released code in Pig 0.1.1. We are planning to release Pig 0.2.0 that incorporates new changes shortly. Here is the performance comparison: </p>
-
-<table>
-<tr>
-<td>
-<p><strong>Query Type</strong> </p>
-</td>
-<td>
-<p> <strong>Pig 1.4 (s)</strong> </p>
-</td>
-<td>
-<p> <strong>Pig 2.0 (s)</strong> </p>
-</td>
-<td>
-<p> <strong>Improvement (times)</strong> </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> GENERATE with Arithmetic operations </p>
-</td>
-<td>
-<p> 837 </p>
-</td>
-<td>
-<p> 345 </p>
-</td>
-<td>
-<p> <strong>2.4x</strong> </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> DISTINCT with 1 key </p>
-</td>
-<td>
-<p> 186 </p>
-</td>
-<td>
-<p> 129 </p>
-</td>
-<td>
-<p> 1.4x </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> DISTINCT with 2 key s  </p>
-</td>
-<td>
-<p> 436 </p>
-</td>
-<td>
-<p> 184 </p>
-</td>
-<td>
-<p> <strong>2.4x</strong> </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> GROUP </p>
-</td>
-<td>
-<p> 534 </p>
-</td>
-<td>
-<p> 404 </p>
-</td>
-<td>
-<p> 1.3x </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> GROUP ALL </p>
-</td>
-<td>
-<p> 3594 </p>
-</td>
-<td>
-<p> 394 </p>
-</td>
-<td>
-<p> <strong>9x</strong> </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> JOIN </p>
-</td>
-<td>
-<p> 15376 </p>
-</td>
-<td>
-<p> 12783 </p>
-</td>
-<td>
-<p> 1.2 </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> ORDER BY 1 key </p>
-</td>
-<td>
-<p> 640 </p>
-</td>
-<td>
-<p> 316 </p>
-</td>
-<td>
-<p> <strong>2x</strong> </p>
-</td>
-</tr>
-<tr>
-<td>
-<p> ORDER BY 2 keys </p>
-</td>
-<td>
-<p> 767 </p>
-</td>
-<td>
-<p> 472 </p>
-</td>
-<td>
-<p> 1.6 x </p>
-</td>
-</tr>
-</table>
-
+<title>Use Optimization</title>
+<p>Pig supports various <a href="piglatin_users.html#Optimization+Rules">optimization rules</a> which are turned on by default. 
+Become familiar with these rules.</p>
 </section>
+
 
 <section>
 <title>Use Types</title>
 
-<p>If types are not specified in the load statement, Pig assumes the type of =double= for numeric computations. A lot of the time, your data would be much smaller, maybe, integer or long. Specifying the real type will help with speed of arithmetic computation. It has an additional advantage of early error detection. </p>
+<p>If types are not specified in the load statement, Pig assumes the type of =double= for numeric computations. 
+A lot of the time, your data would be much smaller, maybe, integer or long. Specifying the real type will help with 
+speed of arithmetic computation. It has an additional advantage of early error detection. </p>
 
 <source>
 --Query 1
@@ -280,7 +152,7 @@ B = foreach A generate CONCAT(in#k1, in#k2);
 <p>Queries that can take advantage of the combiner generally ran much faster (sometimes several times faster) than the versions that don't. 
 The latest code significantly improves combiner usage; however, you need to make sure you do your part. 
 If you have a UDF that works on grouped data and is, by nature, algebraic (meaning their computation can be decomposed into multiple steps) 
-make sure you implement it as such. For details on how to write algebraic UDFs, see <a href="http://wiki.apache.org/pig/UDFManual">UDF Manual</a>. </p>
+make sure you implement it as such. For details on how to write algebraic UDFs, see the <a href="udf.html">Pig UDF Manual</a>. </p>
 
 <source>
 A = load 'data' as (x, y, z)
