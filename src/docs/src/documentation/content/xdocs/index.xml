@@ -27,9 +27,12 @@
         The Pig Documentation provides the information you need to get started using Pig.
       </p>
       <p>
-        Begin with the <a href="getstarted.html"> Pig Getting Started Guide</a> which shows you how to download and run Pig. 
-        Then try out the <a href="tutorial.html">Pig Tutorial</a> to get an idea of how easy it us to use Pig. 
-        When you are ready to start writing your own scripts, read through the <a href="piglatin.html">Pig Latin Manual </a>to become familiar with Pig's features. 
+        Begin with the <a href="setup.html"> Pig Setup</a> which shows you how to download and run Pig. 
+        Then try out the <a href="tutorial.html">Pig Tutorial</a> to get an idea of how easy it is to use Pig. 
+      </p>
+      <p>  
+        When you are ready to start writing your own scripts, read through the <a href="piglatin_users.html">Pig Latin Users Guide</a>
+        and the <a href="piglatin_reference.html">Pig Latin Reference Manual</a> to become familiar with Pig's features. 
         Also review the <a href="cookbook.html">Pig Cookbook</a> to learn how to tweak your code for optimal performance.
       </p>
       <p>

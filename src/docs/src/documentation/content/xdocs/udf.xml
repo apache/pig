@@ -261,12 +261,12 @@ public class IsEmpty extends FilterFunc {
 
 <table>
 <tr>
-<td>
-<p> Pig Type </p>
-</td>
-<td>
-<p> Java Class </p>
-</td>
+<th>
+Pig Type
+</th>
+<th>
+Java Class
+</th>
 </tr>
 <tr>
 <td>
@@ -707,7 +707,31 @@ public class UPPER extends EvalFunc (String)
         }
 }
 </source>
-</section></section>
+</section>
+
+<section>
+<title>Import Lists</title>
+<p>An import list allows you to specify the package to which a UDF or a group of UDFs belong,
+ eliminating the need to qualify the UDF on every call. An import list can be specified via the udf.import.list Java 
+ property on the Pig command line: </p>
+<source>
+pig -Dudf.import.list=com.yahoo.yst.sds.ULT
+</source>
+<p>You can supply multiple locations as well: </p>
+<source>
+pig -Dudf.import.list=com.yahoo.yst.sds.ULT:org.apache.pig.piggybank.evaluation
+</source>
+</section>
+<p>To make use of import scripts, do the following:</p>
+<source>
+myscript.pig:
+A = load '/data/SDS/data/searcg_US/20090820' using ULTLoader as (s, m, l);
+....
+
+command:
+pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig 
+</source>
+</section>
 
 <section>
 <title> Load/Store Functions</title>
@@ -836,7 +860,7 @@ public class StringStore implements StoreFunc {
 <section>
 <title>Builtin Functions and Function Repositories</title>
 
-<p>Pig comes with a set of builtin in functions. (NEED LINK) Two main properties differentiate builtin functions from UDFs. First, they don't need to be registered because Pig knows where they are. Second, they don't need to be qualified when used because Pig knows where to find them. </p>
+<p>Pig comes with a set of built-in in functions. Two main properties differentiate builtin functions from UDFs. First, they don't need to be registered because Pig knows where they are. Second, they don't need to be qualified when used because Pig knows where to find them. </p>
 <p>In addition to builtins, Pig hosts a UDF repository called <code>piggybank</code> that allows users to share UDFs that they have written. The details are described in <a href="http://wiki.apache.org/pig/PiggyBank"> PiggyBank</a>. </p>
 
 </section>
