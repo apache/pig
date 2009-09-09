@@ -144,18 +144,24 @@
     <property name="pig.jar" value="${output.jarfile.core}"/>	
    
 
+    <!-- jdiff properties -->
+    <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
+    <property name="xerces.jar" value="${ivy.lib.dir}/xerces-${xerces.version}.jar"/>
+    <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>						
+    <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>	
+    <property name="jdiff.stable" value="0.3.1"/>
+    <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>	
+
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
-	<fileset dir="${ivy.lib.dir}">
-	    <include name="**/*.jar"/>
-        </fileset>   	
+	<path refid="compile.classpath"/>	
         <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
-   <!--     <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
+   <!-- <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
     </path>
 
     <!-- javadoc-classpath -->
@@ -168,11 +174,11 @@
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
-        <fileset file="${lib.dir}/${junit.jar}" />
         <path refid="classpath"/>
+        <path refid="test-classpath"/>
     </path>
 
-    <target name="init">
+    <target name="init" depends="ivy-compile" >
         <mkdir dir="${src.gen.query.parser.dir}" />
         <mkdir dir="${src.gen.script.parser.dir}" />
         <mkdir dir="${src.gen.param.parser.dir}" />
@@ -213,7 +219,7 @@
     <target name="clean" description="Cleanup build artifacts">
         <delete dir="${src.gen.dir}" />
         <delete dir="${docs.dir}/build" />
-        <delete file="${lib.dir}/rats.jar" />
+        <delete file="${jdiff.xml.dir}\${name}_${version}.xml" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
     </target>
@@ -243,13 +249,13 @@
         <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
         <echo>*** Else, compile-sources (which only warns about deprecations) target will be executed ***</echo>
                 
-        <antcall target="compile-sources">
+        <antcall target="compile-sources" inheritRefs="true" inheritall="true">
             <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2" />
             <param name="dist" value="${build.classes}" />
             <param name="cp" value="classpath" />
         </antcall>
     
-        <antcall target="compile-sources-all-warnings">
+        <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
             <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2" />
             <param name="dist" value="${build.classes}" />
             <param name="cp" value="classpath" />
@@ -263,13 +269,13 @@
         <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
         <echo>*** Else, compile-sources (which only warns about deprecations) target will be executed ***</echo>
         
-        <antcall target="compile-sources">
+        <antcall target="compile-sources" inheritRefs="true" inheritall="true">
             <param name="sources" value="${test.src.dir}" />
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
         </antcall>
 
-        <antcall target="compile-sources-all-warnings">
+        <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
             <param name="sources" value="${test.src.dir}" />
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
@@ -362,18 +368,18 @@
     <!-- TODO we should also exculte test here...                           -->
     <!-- ================================================================== -->
     <target name="jar" depends="compile" description="Create pig jar">
-        <antcall target="jarWithSvn"/>
-        <antcall target="jarWithOutSvn"/>
+        <antcall target="jarWithSvn" inheritRefs="true" inheritall="true"/>
+        <antcall target="jarWithOutSvn" inheritRefs="true" inheritall="true"/>
     </target>
     
     <target name="jarWithSvn" if="svn.revision">
-        <antcall target="buildJar">
+        <antcall target="buildJar" inheritRefs="true" inheritall="true">
             <param name="svnString" value="${svn.revision}" />
         </antcall>
     </target>
     
     <target name="jarWithOutSvn" unless="svn.revision">
-        <antcall target="buildJar">
+        <antcall target="buildJar" inheritRefs="true" inheritall="true">
             <param name="svnString" value=": unknown" />
         </antcall>
     </target>
@@ -466,8 +472,8 @@
     </target>
     
     <target name="test" description="to call the test-core and test-contrib target">
-	<antcall target="test-core"/>
-	<antcall target="test-contrib"/>
+	<antcall target="test-core" inheritRefs="true" inheritall="true"/>
+	<antcall target="test-contrib" inheritRefs="true" inheritall="true"/>
     </target>    
 
     <target name="test-contrib" description="to call contrib tests">
@@ -477,12 +483,13 @@
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
-    <target name="package" depends="docs" description="Create a Pig release">
+    <target name="package" depends="docs, api-report" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
         <mkdir dir="${dist.dir}/scripts" />
         <mkdir dir="${dist.dir}/docs" />
         <mkdir dir="${dist.dir}/docs/api" />
+        <mkdir dir="${dist.dir}/docs/jdiff"/>
 
         <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
             <fileset dir="${ivy.lib.dir}"/>
@@ -716,6 +723,47 @@
         </clover-report>
      </target>
 
+     <target name="api-xml" depends="ivy-jdiff, javadoc, write-null">
+        <javadoc>
+                <doclet name="jdiff.JDiff"
+                        path="${jdiff.jar}:${xerces.jar}">
+                        <param name="-apidir" value="${jdiff.xml.dir}"/>
+                        <param name="-apiname" value="${name} ${version}"/>
+                </doclet>
+                <packageset dir="${src.dir}"/>
+                <classpath>
+                        <path refid="javadoc-classpath" />
+                        <pathelement path="${output.jarfile}" />
+                </classpath>
+        </javadoc>
+      </target>
+      <target name="write-null">
+ 	<exec executable="touch">
+ 		<arg value="${build.dir}/Null.java"/>
+ 	</exec>
+      </target> 	
+ 	
+      <target name="api-report" depends="api-xml">
+ 	<mkdir dir="${jdiff.build.dir}"/>
+ 	<javadoc sourcepath="${src.dir}"
+ 		destdir="${jdiff.build.dir}"
+ 		sourceFiles="${build.dir}/Null.java">
+ 		<doclet name="jdiff.JDiff" path="${jdiff.jar}:${xerces.jar}">
+ 			<param name="-oldapi" value="${name} ${jdiff.stable}"/>
+ 			<param name="-newapi" value="${name} ${version}"/>
+ 			<param name="-oldapidir" value="${jdiff.xml.dir}"/>
+ 			<param name="-newapidir" value="${jdiff.xml.dir}"/>
+ 			<param name="-javadocold" value="${jdiff.stable.javadoc}"/>
+ 			<param name="-javadocnew" value="../../api/"/>
+ 			<param name="-stats"/>
+ 		</doclet>
+ 		<classpath>
+ 	        	<path refid="javadoc-classpath" />
+ 			<pathelement path="${output.jarfile}" />	
+  	        </classpath>
+ 	</javadoc>				
+     </target>
+
      <target name="ivy-init-dirs">
         <mkdir dir="${build.ivy.dir}" />
         <mkdir dir="${build.ivy.lib.dir}" />
@@ -772,7 +820,7 @@
        <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="test"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="test"/>
-       <ivy:cachepath pathid="test.classpath" conf="test"/> 		
+       <ivy:cachepath pathid="test-classpath" conf="test"/> 		
      </target>
 
      <target name="ivy-javadoc" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for javadoc configuration">
@@ -801,6 +849,13 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="buildJar"/>
        <ivy:cachepath pathid="buildJar.classpath" conf="buildJar"/> 		
+     </target>
+     
+     <target name="ivy-jdiff" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for jdiff configuration">
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="jdiff"/>
+       <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
+                 pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="jdiff"/>
+       <ivy:cachepath pathid="jdiff.classpath" conf="jdiff"/> 		
      </target>
 
      <target name="ivy-resolve" depends="ivy-init">
