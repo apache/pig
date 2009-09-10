@@ -70,8 +70,8 @@ $ pig
 
 <section>
 <title>Grunt Shell</title>
-<p>Use Pig's interactive shell, Grunt, to enter pig commands manually. See the <a href="getstarted.html#Sample+Code">Sample Code</a> for instructions about the passwd file used in the example.</p>
-<p>You can also run or execute script files from the Grunt shell. See the RUN and EXEC commands in the <a href="piglatin.html">Pig Latin Manual</a>. </p>
+<p>Use Pig's interactive shell, Grunt, to enter pig commands manually. See the <a href="setup.html#Sample+Code">Sample Code</a> for instructions about the passwd file used in the example.</p>
+<p>You can also run or execute script files from the Grunt shell. See the RUN and EXEC commands in the <a href="piglatin_reference.html">Pig Latin Reference Manual</a>. </p>
 <p><strong>Local Mode</strong></p>
 <source>
 $ pig -x local
@@ -94,7 +94,7 @@ grunt&gt; store B;
 
 <section>
 <title>Script Files</title>
-<p>Use script files to run Pig commands as batch jobs. See the <a href="getstarted.html#Sample+Code">Sample Code</a> for instructions about the passwd file and the script file (id.pig) used in the example.</p>
+<p>Use script files to run Pig commands as batch jobs. See the <a href="setup.html#Sample+Code">Sample Code</a> for instructions about the passwd file and the script file (id.pig) used in the example.</p>
 <p><strong>Local Mode</strong></p>
 <source>
 $ pig -x local id.pig
@@ -125,7 +125,7 @@ $ pig -x mapreduce id.pig
 
 <section>
 	<title>Environment Variables and Properties</title>
-	<p>Refer to the <a href="getstarted.html#Download+Pig">Download Pig</a> section.</p>
+	<p>Refer to the <a href="setup.html#Download+Pig">Download Pig</a> section.</p>
 	<p>The Pig environment variables are described in the Pig script file, located in the  /pig-n.n.n/bin directory.</p>
 	<p>The Pig properties file, pig.properties, is located in the /pig-n.n.n/conf directory. You can specify an alternate location using the PIG_CONF_DIR environment variable.</p>
 </section>
@@ -133,7 +133,7 @@ $ pig -x mapreduce id.pig
 <section>
 <title>Embedded Programs</title>
 <p>Used the embedded option to embed Pig commands in a host language and run the program. 
-See the <a href="getstarted.html#Sample+Code">Sample Code</a> for instructions about the passwd file and java files (idlocal.java, idmapreduce.java) used in the examples.</p>
+See the <a href="setup.html#Sample+Code">Sample Code</a> for instructions about the passwd file and java files (idlocal.java, idmapreduce.java) used in the examples.</p>
 
 <p><strong>Local Mode</strong></p>
 <p>From your current working directory, compile the program: </p>
