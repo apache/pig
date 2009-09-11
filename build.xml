@@ -490,13 +490,14 @@
         <mkdir dir="${dist.dir}/docs" />
         <mkdir dir="${dist.dir}/docs/api" />
         <mkdir dir="${dist.dir}/docs/jdiff"/>
+        <mkdir dir="${dist.dir}/license" />
 
         <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
             <fileset dir="${ivy.lib.dir}"/>
             <fileset dir="${lib.dir}"/>
         </copy>
 
-        <copy file="${output.jarfile.core}" todir="${dist.dir}" />
+        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}-core.jar" />
 
         <copy todir="${dist.dir}/" file="ivy.xml" />
 
@@ -538,6 +539,10 @@
             <fileset dir=".">
                 <include name="*.txt" />
             </fileset>
+        </copy>
+
+        <copy todir="${dist.dir}/license">
+            <fileset dir="license" />
         </copy>
 
         <chmod perm="ugo+x" type="file">
