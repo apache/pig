@@ -474,7 +474,8 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
         }
     }
     if (props.size() == 0) {
-        props.setProperty("log4j.logger.org.apache.pig", logLevel.toString()+", PIGCONSOLE");
+        props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
+        props.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
         props.setProperty("log4j.appender.PIGCONSOLE",
                 "org.apache.log4j.ConsoleAppender");
         props.setProperty("log4j.appender.PIGCONSOLE.layout",

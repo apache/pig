@@ -73,6 +73,8 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
 
+    PIG-882: log level not propogated to loggers - duplicate message (daijy)
+
     PIG-943: Pig crash when it cannot get counter from hadoop (daijy)
 
     PIG-935: Skewed join throws an exception when used with map keys(sriranjan
