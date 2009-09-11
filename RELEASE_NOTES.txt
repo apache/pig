@@ -3,8 +3,15 @@ These notes are for Pig 0.3.0 release.
 Highlights
 ==========
 
-The main focus of this release is multiquery support that allows to optimize
-multiple queries within the same script that share a computation.
+The main focus of this release is more performance improvements including the
+following:
+
+1. Support for "skewed" join that deals with skew in the data
+2. Support for sort merge join that allow to perform a map side join if both
+data sets are sorted
+3. Support for rule-based optimizer
+
+Additionally, support for the outer join has also been added.
 
 System Requirements
 ===================
