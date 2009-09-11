@@ -65,6 +65,8 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 
 	public static final String TOTAL_REDUCERS = "totalreducers";
 
+	public static final float DEFAULT_PERCENT_MEMUSAGE = 0.3f;
+
 	private Log log = LogFactory.getLog(getClass());
 
 	BagFactory mBagFactory = BagFactory.getInstance();
@@ -104,7 +106,7 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 			tupleMCount_ = Integer.parseInt(args[1]);
 			inputFile_ = args[2];			
 		} else {
-			heapPercentage_ = 0.5;
+			heapPercentage_ = DEFAULT_PERCENT_MEMUSAGE;
 		}
 		
 		if (log.isDebugEnabled()) {

@@ -73,6 +73,9 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
 
+    PIG-954: Skewed join fails when pig.skewedjoin.reduce.memusage is not
+    configured(yinghe via olgan)
+
     PIG-882: log level not propogated to loggers - duplicate message (daijy)
 
     PIG-943: Pig crash when it cannot get counter from hadoop (daijy)
