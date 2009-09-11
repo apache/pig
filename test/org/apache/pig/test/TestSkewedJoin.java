@@ -147,6 +147,38 @@ public class TestSkewedJoin extends TestCase{
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }      
     
+    public void testSkewedJoinWithNoProperties() throws IOException{
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
+        try {
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
+            DataBag dbshj = BagFactory.getInstance().newDefaultBag();
+            {
+                pigServer.registerQuery("C = join A by (id, name), B by (id, name) using \"skewed\" parallel 5;");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+	    {
+           	 pigServer.registerQuery("E = join A by(id, name), B by (id, name);");
+           	 Iterator<Tuple> iter = pigServer.openIterator("E");
+
+            	while(iter.hasNext()) {
+                    dbshj.add(iter.next());
+        	}
+            }
+            Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
+            Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
+
+        }catch(Exception e) {
+             fail(e.getMessage());
+        }
+    }
+
     public void testSkewedJoinReducers() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
