@@ -1745,7 +1745,8 @@ public class MRCompiler extends PhyPlanVisitor {
         
     	try{    		
     		// pass configurations to the User Function
-    		String per = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.memusage", "0.5");
+    		String per = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.memusage", 
+                                   String.valueOf(PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE));
     		String mc = pigContext.getProperties().getProperty("pig.skewedjoin.reduce.maxtuple", "0");
     		String inputFile = lFile.getFileName();
 

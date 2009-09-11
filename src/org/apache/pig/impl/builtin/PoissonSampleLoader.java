@@ -30,6 +30,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 
 /**
  * Currently skipInterval is similar to the randomsampleloader. However, if we were to use an
@@ -106,7 +107,14 @@ public class PoissonSampleLoader extends SampleLoader {
 		}
 		
 		// % of memory available for the records
-		float heapPerc = Float.valueOf(pcProps.getProperty(PERC_MEM_AVAIL));
+		float heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
+                if (pcProps.getProperty(PERC_MEM_AVAIL) != null) {
+		    try {
+                        heapPerc = Float.valueOf(pcProps.getProperty(PERC_MEM_AVAIL));
+                    }catch(NumberFormatException e) {
+			// ignore, use default value
+                    }
+                }
 		
 		// we are only concerned with the first input for skewed join
 		String fname = inputs.get(0).first.getFileName();
