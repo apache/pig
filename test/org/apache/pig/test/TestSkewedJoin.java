@@ -112,6 +112,7 @@ public class TestSkewedJoin extends TestCase{
     	new File(INPUT_FILE2).delete();
     	new File(INPUT_FILE3).delete();
         new File(INPUT_FILE4).delete();
+        Util.deleteDirectory(new File("skewedjoin"));
     	
         Util.deleteFile(cluster, INPUT_FILE1);
         Util.deleteFile(cluster, INPUT_FILE2);
@@ -241,4 +242,48 @@ public class TestSkewedJoin extends TestCase{
         
        	return;
 	}
+
+
+    public void testSkewedJoinKeyPartition() throws IOException {
+    	try{
+    	     Util.deleteFile(cluster, "skewedjoin");
+    	}catch(Exception e){
+    		// it is ok if directory not exist
+    	}
+    	 
+    	 pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
+         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
+           
+        
+         pigServer.registerQuery("E = join A by id, B by id using \"skewed\" parallel 7;");
+         pigServer.store("E", "skewedjoin");
+         
+         int[][] lineCount = new int[3][7];
+         
+         new File("skewedjoin").mkdir();
+         // check how many times a key appear in each part- file
+         for(int i=0; i<7; i++) {
+        	 Util.copyFromClusterToLocal(cluster, "skewedjoin/part-0000"+i, "skewedjoin/part-0000"+i);
+        	 
+        	 BufferedReader reader = new BufferedReader(new FileReader("skewedjoin/part-0000"+i));
+      	     String line = null;      	     
+      	     while((line = reader.readLine()) != null) {
+      	        String[] cols = line.split("\t");
+      	        int key = Integer.parseInt(cols[0])/100 -1;
+      	        lineCount[key][i] ++;
+      	    }
+         }
+         for(int i=0; i<3; i++) {
+        	 int fc = 0;
+        	 for(int j=0; j<7; j++) {
+        		 if (lineCount[i][j] > 0) {
+        			 fc ++;
+        		 }
+        	 }
+        	 // all three keys are skewed keys,
+        	 // check each key should appear in more than 1 part- file
+        	 assertTrue(fc > 1);
+         }
+    }
+    
 }
