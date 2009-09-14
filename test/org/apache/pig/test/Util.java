@@ -20,11 +20,14 @@ package org.apache.pig.test;
 import static java.util.regex.Matcher.quoteReplacement;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -36,6 +39,7 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -304,6 +308,26 @@ public class Util {
 	        contents.add(line);
 	    }
 	    Util.createInputFile(cluster, fileNameOnCluster, contents.toArray(new String[0]));
+	}
+	
+	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
+	    PrintWriter writer = new PrintWriter(new FileWriter(localFileName));
+	    
+	    FileSystem fs = cluster.getFileSystem();
+        if(!fs.exists(new Path(fileNameOnCluster))) {
+            throw new IOException("File " + fileNameOnCluster + " does not exists on the minicluster");
+        }
+        
+        String line = null;
+ 	   
+        FSDataInputStream stream = fs.open(new Path(fileNameOnCluster));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+        while( (line = reader.readLine()) != null) {
+        	writer.println(line);        	
+        }
+    
+        reader.close();
+        writer.close();
 	}
 	
 	static public void printQueryOutput(Iterator<Tuple> actualResults, 
