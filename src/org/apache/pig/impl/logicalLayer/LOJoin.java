@@ -170,13 +170,19 @@ public class LOJoin extends RelationalOperator {
                 }
             }
             mIsSchemaComputed = true;
+            mSchema = new Schema(fss);
             for (Entry<String, Integer> ent : nonDuplicates.entrySet()) {
                 int ind = ent.getValue();
                 if(ind==-1) continue;
                 FieldSchema prevSch = fss.get(ind);
-                prevSch.alias = ent.getKey();
+                // this is a non duplicate and hence can be referred to
+                // with just the field schema alias or outeralias::field schema alias
+                // In mSchema we have outeralias::fieldschemaalias. To allow
+                // using just the field schema alias, add it to mSchemas
+                // as an alias for this field.
+                mSchema.addAlias(ent.getKey(), prevSch);
             }
-            mSchema = new Schema(fss);
+            
         }
         return mSchema;
     }
