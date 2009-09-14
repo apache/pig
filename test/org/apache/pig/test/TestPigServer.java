@@ -504,7 +504,7 @@ public class TestPigServer extends TestCase {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("c: {field1: int,field2: float,field3: chararray,field4: bytearray,field5: double,field6: chararray}") == true);
+            assertEquals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}", s );
         }
         fileWithStdOutContents.close();
     }

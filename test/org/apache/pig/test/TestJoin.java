@@ -99,6 +99,65 @@ public class TestJoin extends TestCase {
         Util.deleteFile(cluster, "b.txt");
     }
     
+    
+    @Test
+    public void testJoinSchema() throws Exception {
+        String[] input1 = {
+                "1\t2",
+                "2\t3",
+                "3\t4"
+        };
+        String[] input2 = {
+                "1\thello",
+                "4\tbye",
+        };
+        
+        Util.createInputFile(cluster, "a.txt", input1);
+        Util.createInputFile(cluster, "b.txt", input2);
+        Tuple expectedResult = (Tuple)Util.getPigConstant("(1,2,1,'hello',1,2,1,'hello')");
+        
+        // with schema
+        String script = "a = load 'a.txt' as (i:int, j:int); " +
+                "b = load 'b.txt' as (k:int, l:chararray); " +
+                "c = join a by $0, b by $0;" +
+                "d = foreach c generate i,j,k,l,a::i,a::j,b::k,b::l;";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("d");
+        assertEquals(true, it.hasNext());
+        assertEquals(expectedResult, it.next());
+        assertEquals(false, it.hasNext());
+        
+        // schema with duplicates
+        script = "a = load 'a.txt' as (i:int, j:int); " +
+        "b = load 'b.txt' as (i:int, l:chararray); " +
+        "c = join a by $0, b by $0;" +
+        "d = foreach c generate i,j,l,a::i,a::j,b::i,b::l;";
+        boolean exceptionThrown = false;
+        try{
+            Util.registerMultiLineQuery(pigServer, script);
+        }catch (Exception e) {
+            PigException pe = LogUtils.getPigException(e);
+            assertEquals(1025, pe.getErrorCode());
+            exceptionThrown = true;
+        }
+        assertEquals(true, exceptionThrown);
+        
+        // schema with duplicates with resolution
+        script = "a = load 'a.txt' as (i:int, j:int); " +
+        "b = load 'b.txt' as (i:int, l:chararray); " +
+        "c = join a by $0, b by $0;" +
+        "d = foreach c generate a::i,j,b::i,l,a::i,a::j,b::i,b::l;";
+        Util.registerMultiLineQuery(pigServer, script);
+        it = pigServer.openIterator("d");
+        assertEquals(true, it.hasNext());
+        assertEquals(expectedResult, it.next());
+        assertEquals(false, it.hasNext());
+        Util.deleteFile(cluster, "a.txt");
+        Util.deleteFile(cluster, "b.txt");
+        
+        
+    }
+    
     @Test
     public void testLeftOuterJoin() throws IOException, ParseException {
         String[] input1 = {
