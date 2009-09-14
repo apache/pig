@@ -87,7 +87,7 @@ public class SkewedPartitioner implements Partitioner<PigNullableWritable, Writa
 		} else {
 			keyTuple = DefaultTupleFactory.getInstance().newTuple(1);
 			try {
-				keyTuple.set(0, key);
+				keyTuple.set(0, key.getValueAsPigType());
 			} catch (ExecException e) {
 				return -1;
 			}

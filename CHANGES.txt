@@ -73,6 +73,8 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
 
+    PIG-955: Skewed join produces invalid results  (yinghe via olgan)
+
     PIG-954: Skewed join fails when pig.skewedjoin.reduce.memusage is not
     configured(yinghe via olgan)
 
