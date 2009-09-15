@@ -81,7 +81,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         POLoad load = (POLoad)po;
         String loadFunc = load.getLFile().getFuncName();
         String loadFile = load.getLFile().getFileName();
-        if (!("org.apache.pig.impl.builtin.RandomSampleLoader".equals(loadFunc)) && !("org.apache.pig.impl.builtin.SkewedJoinSampleLoader".equals(loadFunc))) {
+        if (!("org.apache.pig.impl.builtin.RandomSampleLoader".equals(loadFunc)) && !("org.apache.pig.impl.builtin.PoissonSampleLoader".equals(loadFunc))) {
             log.debug("Not a sampling job.");
             return;
         }
