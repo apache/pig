@@ -151,6 +151,8 @@ BUG FIXES
 
     PIG-849: Local engine loses records in splits (hagleitn via olgan)
 
+    PIG-939: Fix checkstyle ivy configuration ( gkesavan )
+
 Release 0.3.0 - Unreleased
 
 INCOMPATIBLE CHANGES
