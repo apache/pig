@@ -180,4 +180,36 @@ public class TestSampleOptimizer {
         }
         tmpFile.delete();
     }
+    
+    @Test
+    public void testPoissonSampleOptimizer() throws Exception {
+        LogicalPlanTester planTester = new LogicalPlanTester() ;
+        planTester.buildPlan(" A = load 'input' using PigStorage('\t');");
+        planTester.buildPlan("B = load 'input' using PigStorage('\t');");
+        planTester.buildPlan(" C = join A by $0, B by $0 using \"skewed\";");
+        LogicalPlan lp = planTester.buildPlan("store C into 'output';");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+
+        int count = 1;
+        MapReduceOper mrOper = mrPlan.getRoots().get(0);
+        while(mrPlan.getSuccessors(mrOper) != null) {
+            mrOper = mrPlan.getSuccessors(mrOper).get(0);
+            ++count;
+        }        
+        // Before optimizer visits, number of MR jobs = 3.
+        assertEquals(3,count);
+
+        SampleOptimizer so = new SampleOptimizer(mrPlan);
+        so.visit();
+
+        count = 1;
+        mrOper = mrPlan.getRoots().get(0);
+        while(mrPlan.getSuccessors(mrOper) != null) {
+            mrOper = mrPlan.getSuccessors(mrOper).get(0);
+            ++count;
+        }        
+        // After optimizer visits, number of MR jobs = 2
+        assertEquals(2,count);
+    }
 }
