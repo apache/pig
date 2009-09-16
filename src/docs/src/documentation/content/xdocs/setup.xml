@@ -28,7 +28,7 @@
       <title>Requirements</title>
       <p><strong>Unix</strong> and <strong>Windows</strong> users need the following:</p>
 		<ol>
-		  <li> <strong>Hadoop 18</strong> - <a href="http://hadoop.apache.org/core/">http://hadoop.apache.org/core/</a></li>
+		  <li> <strong>Hadoop 20</strong> - <a href="http://hadoop.apache.org/core/">http://hadoop.apache.org/core/</a></li>
 		  <li> <strong>Java 1.6</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> Set JAVA_HOME to the root of your Java installation.</li>
 		  <li> <strong>Ant 1.7</strong> - (optional, for builds) <a href="http://ant.apache.org/">http://ant.apache.org/</a></li>
 		  <li> <strong>JUnit 4.5</strong> - (optional, for unit tests) <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a></li>
