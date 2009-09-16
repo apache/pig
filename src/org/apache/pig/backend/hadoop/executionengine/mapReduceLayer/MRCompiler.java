@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -1955,10 +1956,10 @@ public class MRCompiler extends PhyPlanVisitor {
             ExecutionEngine eng = pigContext.getExecutionEngine();
             if(eng instanceof HExecutionEngine){
                 try {
-                    val = Math.round(0.9f * ((HExecutionEngine)eng).getJobClient().getDefaultReduces());
+                    val = ((JobConf)((HExecutionEngine)eng).getJobClient().getConf()).getNumReduceTasks();
                     if(val<=0)
                         val = 1;
-                } catch (IOException e) {
+                } catch (Exception e) {
                     int errCode = 6015;
                     String msg = "Problem getting the default number of reduces from the Job Client.";
                     throw new MRCompilerException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
