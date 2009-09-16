@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Enumeration;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobConf;
 
 import java.util.Properties;
 
