@@ -231,9 +231,16 @@ public class POCogroup extends PhysicalOperator {
 	    Object t1 = null;
 	    Object t2 = null;
 	    try {
-		t1 = o1.get(1);
-		t2 = o2.get(1);
-	    
+        // get the keys
+        t1 = o1.get(1);
+        t2 = o2.get(1);
+        if(t1 == t2 && t1 == null) {
+            // null keys from different inputs
+            // are not treated as equals
+            int firstInputIndex = (Byte)(o1.get(0));
+            int secondInputIndex = (Byte)(o2.get(0));
+            return firstInputIndex - secondInputIndex;
+        }
 	    } catch (ExecException e) {
 		// TODO Auto-generated catch block
 		throw new RuntimeException("Error comparing tuples");
