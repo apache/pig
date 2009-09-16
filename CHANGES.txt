@@ -40,6 +40,7 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-963: Join in local mode matches null keys (pradeepkth)
 PIG-660: Integration with Hadoop 20 (sms via olgan)
 PIG-962: Skewed join creates 3 map reduce jobs (sriranjan via olgan)
 
