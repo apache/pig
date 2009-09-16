@@ -24,7 +24,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="0.5.0-dev" />
+    <property name="version" value="0.5.1-dev" />
     <property name="final.name" value="${name}-${version}" />
     <condition property="isWindows">
         <os family="windows"/>
