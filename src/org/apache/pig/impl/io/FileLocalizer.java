@@ -444,6 +444,13 @@ public class FileLocalizer {
     static Random      r           = new Random();
     static ContainerDescriptor relativeRoot;
     static boolean     initialized = false;
+    /**
+     * @param initialized the initialized to set
+     */
+    public static void setInitialized(boolean initialized) {
+        FileLocalizer.initialized = initialized;
+    }
+
     static private void init(final PigContext pigContext) throws DataStorageException {
         if (!initialized) {
             initialized = true;
