@@ -30,7 +30,6 @@ BUG FIXES
 
 PIG-963: Join in local mode matches null keys (pradeepkth)
 PIG-660: Integration with Hadoop 20 (sms via olgan)
-PIG-962: Skewed join creates 3 map reduce jobs (sriranjan via olgan)
 
 Release 0.4.0 - Unreleased
 
@@ -86,6 +85,7 @@ OPTIMIZATIONS
 PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
+    PIG-962: Skewed join creates 3 map reduce jobs (sriranjan via olgan)
 
     PIG-957: Tutorial is broken with 0.4 branch and trunk (pradeepkth)
 
