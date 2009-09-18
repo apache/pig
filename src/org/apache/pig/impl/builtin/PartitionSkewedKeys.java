@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -198,8 +199,13 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 			}
 
 			if (maxReducers > totalReducers_) {
-				throw new RuntimeException("You need at least " + maxReducers
-						+ " reducers to run this job.");
+				if(pigLogger != null) {
+                    pigLogger.warn(this,"You need at least " + maxReducers
+                    		+ " reducers to avoid spillage and run this job efficiently.", PigWarning.REDUCER_COUNT_LOW);
+                } else {
+    				log.warn("You need at least " + maxReducers
+    						+ " reducers to avoid spillage and run this job efficiently.");
+                }
 			}
 
 			output.put(PARTITION_LIST, mBagFactory.newDefaultBag(reducerList));

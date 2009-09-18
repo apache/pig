@@ -77,20 +77,20 @@ public class SkewedPartitioner implements Partitioner<PigNullableWritable, Writa
 		// for partition table, compute the index based on the sampler output
 		Pair <Integer, Integer> indexes;
 		Integer curIndex = -1;
-		Tuple keyTuple = null;
+		Tuple keyTuple = DefaultTupleFactory.getInstance().newTuple(1);
 		
 		// extract the key from nullablepartitionwritable
 		PigNullableWritable key = ((NullablePartitionWritable) wrappedKey).getKey();
 
-		if (key instanceof NullableTuple) {
+		try {
+			keyTuple.set(0, key.getValueAsPigType());
+		} catch (ExecException e) {
+			return -1;
+		}
+		
+		// if the key is not null and key 
+		if (key instanceof NullableTuple && key.getValueAsPigType() != null) {
 			keyTuple = (Tuple)key.getValueAsPigType();
-		} else {
-			keyTuple = DefaultTupleFactory.getInstance().newTuple(1);
-			try {
-				keyTuple.set(0, key.getValueAsPigType());
-			} catch (ExecException e) {
-				return -1;
-			}
 		}
 
 		indexes = reducerMap.get(keyTuple);
