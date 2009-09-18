@@ -6,7 +6,7 @@ Reduce Plan Empty
 |       |
 |       |---Load(file:/tmp/input1:org.apache.pig.builtin.PigStorage) - scope-117
 |
-|---MapReduce(-1,PigStorage) - scope-126:
+|---MapReduce(1,PigStorage) - scope-126:
     |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - scope-133
     |   |
     |   |---POSort[tuple]() - scope-132

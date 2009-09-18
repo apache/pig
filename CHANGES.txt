@@ -30,6 +30,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-951:  Set parallelism explicitly to 1 for indexing job in merge join
+          (ashutoc via gates).
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES

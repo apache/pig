@@ -26,11 +26,15 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
@@ -405,6 +409,20 @@ public class TestMergeJoin {
         Assert.assertEquals(true, TestHelper.compareBags(dbmrj, dbshj));
         Util.deleteFile(cluster, "temp_file");
     }       
+
+    @Test
+    public void testParallelism() throws Exception{
+
+        LogicalPlanTester tester = new LogicalPlanTester();
+        tester.buildPlan("A = LOAD '" + INPUT_FILE + "';");
+        tester.buildPlan("B = LOAD '" + INPUT_FILE + "';");
+        tester.buildPlan("C = join A by $0, B by $0 using \"merge\" parallel 50;");
+        LogicalPlan lp = tester.buildPlan("store C into 'out';");
+	PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
+        pc.connect();
+	MROperPlan mro = Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);
+        Assert.assertEquals(1,mro.getRoots().get(0).getRequestedParallelism());
+    }
 
     @Test
     public void testIndexer() throws IOException{
