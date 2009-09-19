@@ -30,6 +30,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-942: Maps are not implicitly casted (pradeepkth)
+
 PIG-513:  Removed unecessary bounds check in DefaultTuple (ashutoshc via
           gates).
 

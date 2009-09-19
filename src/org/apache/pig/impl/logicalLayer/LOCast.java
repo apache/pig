@@ -70,6 +70,7 @@ public class LOCast extends ExpressionOperator {
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
             mFieldSchema = new Schema.FieldSchema(null, mType);
+            mFieldSchema.setParent(getExpression().mFieldSchema.canonicalName, getExpression());
             mIsFieldSchemaComputed = true;
         }
         return mFieldSchema;

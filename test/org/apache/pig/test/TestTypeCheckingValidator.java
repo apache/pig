@@ -20,13 +20,16 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 
 import junit.framework.TestCase;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
 import org.apache.pig.impl.logicalLayer.validators.*;
 import org.apache.pig.impl.logicalLayer.* ;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -3144,14 +3147,16 @@ public class TestTypeCheckingValidator extends TestCase {
 
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
-        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
-        LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
+        LOCast cast1 = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(cast1).get(0);
+        assertTrue(cast1.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
+        LOCast cast2 = (LOCast)foreachPlan.getSuccessors(map).get(0);
+        assertTrue(cast2.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
         foreachPlan = foreach.getForEachPlans().get(2);
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
-        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
 
     }
@@ -5456,10 +5461,11 @@ public class TestTypeCheckingValidator extends TestCase {
         LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
 
         LogicalOperator exOp = foreachPlan.getRoots().get(0);
-
-        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
-
-        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
+        // the root would be the project and there would be cast
+        // to map between the project and LOMapLookup
+        LOCast cast1 = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast1.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
+        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(cast1).get(0);
         LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
         assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
@@ -5492,7 +5498,11 @@ public class TestTypeCheckingValidator extends TestCase {
 
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
 
-        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(exOp).get(0);
+        // the root would be the project and there would be cast
+        // to map between the project and LOMapLookup
+        LOCast cast1 = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
+        assertTrue(cast1.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
+        LOMapLookup map = (LOMapLookup)foreachPlan.getSuccessors(cast1).get(0);
         LOCast cast = (LOCast)foreachPlan.getSuccessors(map).get(0);
         assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
 
@@ -5540,8 +5550,11 @@ public class TestTypeCheckingValidator extends TestCase {
     @Test
     public void testMapLookupLineage3() throws Throwable {
         planTester.buildPlan("a = load 'a' as (s, m, l);") ;
-        planTester.buildPlan("b = foreach a generate s#'src_spaceid' AS vspaceid, flatten(l#'viewinfo') as viewinfo ;") ;
-        LogicalPlan plan = planTester.buildPlan("c = foreach b generate (chararray)vspaceid#'foo', (chararray)viewinfo#'pos' as position;") ;
+//        planTester.buildPlan("b = foreach a generate s#'src_spaceid' AS vspaceid, flatten(l#'viewinfo') as viewinfo ;") ;
+//        LogicalPlan plan = planTester.buildPlan("c = foreach b generate (chararray)vspaceid#'foo', (chararray)viewinfo#'pos' as position;") ;
+        
+        planTester.buildPlan("b = foreach a generate flatten(l#'viewinfo') as viewinfo ;") ;
+      LogicalPlan plan = planTester.buildPlan("c = foreach b generate (chararray)viewinfo#'pos' as position;") ;
 
         // validate
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
@@ -5654,6 +5667,65 @@ public class TestTypeCheckingValidator extends TestCase {
     
     }
 
+    @Test
+    public void testMapLookupCast() throws Exception {
+         String input[] = { "[k1#hello,k2#bye]",
+                 "[k1#good,k2#morning]" };
+         File f = Util.createInputFile("test", ".txt", input);
+         String inputFileName = f.getAbsolutePath();
+         // load as bytearray and use as map
+         planTester.buildPlan("a = load 'file://" + inputFileName + "' as (m);");
+         LogicalPlan lp = planTester.buildPlan("b = foreach a generate m#'k1';");
+         // validate
+         CompilationMessageCollector collector = new CompilationMessageCollector() ;
+         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+         typeValidator.validate(lp, collector) ;
+         
+         // check that a LOCast has been introduced
+         LOForEach foreach = (LOForEach) lp.getLeaves().get(0);
+         LogicalPlan innerPlan = foreach.getForEachPlans().get(0);
+         LOMapLookup mapLookup = (LOMapLookup) innerPlan.getLeaves().get(0);
+         assertEquals(LOCast.class, mapLookup.getMap().getClass());
+         assertEquals(DataType.MAP, ((LOCast)mapLookup.getMap()).getType());
+         
+         // load as map and use as map
+         planTester.buildPlan("a = load 'file://" + inputFileName + "' as (m:[]);");
+         lp = planTester.buildPlan("b = foreach a generate m#'k1';");
+         // validate
+         collector = new CompilationMessageCollector() ;
+         typeValidator = new TypeCheckingValidator() ;
+         typeValidator.validate(lp, collector) ;
+         
+         // check that a LOCast has NOT been introduced
+         foreach = (LOForEach) lp.getLeaves().get(0);
+         innerPlan = foreach.getForEachPlans().get(0);
+         mapLookup = (LOMapLookup) innerPlan.getLeaves().get(0);
+         assertEquals(LOProject.class, mapLookup.getMap().getClass());
+         
+         
+         PigServer ps = new PigServer(ExecType.LOCAL);
+         // load as bytearray and use as map
+         ps.registerQuery("a = load 'file://" + inputFileName + "' as (m);");
+         ps.registerQuery("b = foreach a generate m#'k1';");
+         Iterator<Tuple> it = ps.openIterator("b");
+         String[] expectedResults = new String[] {"(hello)", "(good)"};
+         int i = 0;
+         while(it.hasNext()) {
+             assertEquals(expectedResults[i++], it.next().toString());
+         }
+         
+         // load as map and use as map
+         ps.registerQuery("a = load 'file://" + inputFileName + "' as (m:[]);");
+         ps.registerQuery("b = foreach a generate m#'k1';");
+         it = ps.openIterator("b");
+         expectedResults = new String[] {"(hello)", "(good)"};
+         i = 0;
+         while(it.hasNext()) {
+             assertEquals(expectedResults[i++], it.next().toString());
+         }
+         
+    }
+    
     /*
      * A test UDF that does not data processing but implements the getOutputSchema for
      * checking the type checker

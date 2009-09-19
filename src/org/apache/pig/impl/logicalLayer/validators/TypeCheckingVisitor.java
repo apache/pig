@@ -239,6 +239,11 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
 
         map.setType(map.getValueType());
+        if(map.getMap().getType() != DataType.MAP) {
+            // insert cast if the predecessor does not
+            // return map
+            insertCast(map, DataType.MAP, map.getMap());
+        }
 
     }
 
