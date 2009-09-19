@@ -116,7 +116,6 @@ public class DefaultTuple implements Tuple {
      * than or equal to the number of fields in the tuple.
      */
     public boolean isNull(int fieldNum) throws ExecException {
-        checkBounds(fieldNum);
         return (mFields.get(fieldNum) == null);
     }
 
@@ -130,7 +129,6 @@ public class DefaultTuple implements Tuple {
      * the number of fields in the tuple.
      */
     public byte getType(int fieldNum) throws ExecException {
-        checkBounds(fieldNum);
         return DataType.findType(mFields.get(fieldNum));
     }
 
@@ -142,7 +140,6 @@ public class DefaultTuple implements Tuple {
      * the number of fields in the tuple.
      */
     public Object get(int fieldNum) throws ExecException {
-        checkBounds(fieldNum);
         return mFields.get(fieldNum);
     }
 
@@ -163,7 +160,6 @@ public class DefaultTuple implements Tuple {
      * the number of fields in the tuple.
      */
     public void set(int fieldNum, Object val) throws ExecException {
-        checkBounds(fieldNum);
         mFields.set(fieldNum, val);
     }
 
@@ -352,15 +348,6 @@ public class DefaultTuple implements Tuple {
         }
     }
 
-    private void checkBounds(int fieldNum) throws ExecException {
-        if (fieldNum >= mFields.size()) {
-            int errCode = 1072;
-            String msg = "Out of bounds access: Request for field number " + fieldNum +
-            " exceeds tuple size of " + mFields.size();
-            throw new ExecException(msg, errCode, PigException.INPUT);
-        }
-    }
-    
     /**
      * @return true if this Tuple is null
      */
@@ -376,3 +363,4 @@ public class DefaultTuple implements Tuple {
     }
 
 }
+
