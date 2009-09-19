@@ -30,6 +30,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-513:  Removed unecessary bounds check in DefaultTuple (ashutoshc via
+          gates).
+
 PIG-951:  Set parallelism explicitly to 1 for indexing job in merge join
           (ashutoc via gates).
 
