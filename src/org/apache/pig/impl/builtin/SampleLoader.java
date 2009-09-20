@@ -152,7 +152,7 @@ public abstract class SampleLoader implements LoadFunc {
         // we move to next boundry
         t = loader.getSampledTuple();        
         long finalPos = loader.getPosition();
-        
+
         long toSkip = skipInterval - (finalPos - initialPos);
         if (toSkip > 0) {
             long rc = loader.skip(toSkip);
@@ -187,7 +187,7 @@ public abstract class SampleLoader implements LoadFunc {
         }
         
         // add size of the tuple at the end
-        m.set(t.size(), (finalPos-middlePos));
+        m.set(t.size(), (finalPos-middlePos) + 1); // offset 1 for null
         
         return m;		
 	}

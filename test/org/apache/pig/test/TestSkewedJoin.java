@@ -41,6 +41,7 @@ public class TestSkewedJoin extends TestCase{
     private static final String INPUT_FILE2 = "SkewedJoinInput2.txt";
     private static final String INPUT_FILE3 = "SkewedJoinInput3.txt";
     private static final String INPUT_FILE4 = "SkewedJoinInput4.txt";
+    private static final String INPUT_FILE5 = "SkewedJoinInput5.txt";
     
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
@@ -99,11 +100,26 @@ public class TestSkewedJoin extends TestCase{
             w4.println("[a100#apple1,a100#apple2,a200#orange1,a200#orange2,a300#strawberry,a300#strawberry2,a400#pear]");
         }
     	w4.close();
-
+    	
+    	// Create a file with null keys
+    	PrintWriter w5 = new PrintWriter(new FileWriter(INPUT_FILE5));
+        for(int i=0; i < 10; i++) {
+        	w5.println("\tapple1");
+        }
+        w5.println("100\tapple2");
+        for(int i=0; i < 10; i++) {
+        	w5.println("\torange1");
+        }
+        w5.println("\t");
+        w5.println("100\t");
+        w5.close();
+        
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE2, INPUT_FILE2);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
+    	Util.copyFromLocalToCluster(cluster, INPUT_FILE5, INPUT_FILE5);
+
     }
     
     @After
@@ -118,6 +134,8 @@ public class TestSkewedJoin extends TestCase{
         Util.deleteFile(cluster, INPUT_FILE2);
         Util.deleteFile(cluster, INPUT_FILE3);
         Util.deleteFile(cluster, INPUT_FILE4);
+        Util.deleteFile(cluster, INPUT_FILE5);
+
     }
     
     
@@ -194,10 +212,9 @@ public class TestSkewedJoin extends TestCase{
                 }
             }
         }catch(Exception e) {
-        	return;
+        	fail("Should not throw exception, should continue execution");
         }
         
-        fail("Should throw exception, not enough reducers");
     }
     
     public void testSkewedJoin3Way() throws IOException{
@@ -284,6 +301,27 @@ public class TestSkewedJoin extends TestCase{
         	 // check each key should appear in more than 1 part- file
         	 assertTrue(fc > 1);
          }
+    }
+    
+    public void testSkewedJoinNullKeys() throws IOException {
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE5 + "' as (id,name);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE5 + "' as (id,name);");
+        try {
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
+            {
+                pigServer.registerQuery("C = join A by id, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+        } catch(Exception e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+        	fail("Should support null keys in skewed join");
+        }
+        return;
     }
     
 }

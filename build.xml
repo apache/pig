@@ -493,7 +493,7 @@
         <mkdir dir="${dist.dir}/license" />
 
         <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
-            <fileset dir="${ivy.lib.dir}"/>
+            <!--fileset dir="${ivy.lib.dir}"/-->
             <fileset dir="${lib.dir}"/>
         </copy>
 
