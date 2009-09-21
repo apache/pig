@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-891: Fixing dfs statement for Pig (zjffdu via daijy).
+
 OPTIMIZATIONS
 
 BUG FIXES

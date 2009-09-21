@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
@@ -708,5 +709,40 @@ public class TestGrunt extends TestCase {
 
         assertFalse(server.existsFile("done"));
         assertTrue(caught);
+    }
+    
+    public void testFsCommand(){
+        
+        try {
+            PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+            PigContext context = server.getPigContext();
+            
+            String strCmd = 
+                "fs -ls /;"
+                +"fs -mkdir /tmp;"
+                +"fs -mkdir /tmp/foo;"
+                +"cd /tmp;"
+                +"fs -rmr bar; fs -rmr foo/baz;"
+                +"fs -copyFromLocal test/org/apache/pig/test/data/passwd bar;"
+                +"a = load 'bar';"
+                +"cd foo;"
+                +"store a into 'baz';"
+                +"cd /;"
+                +"fs -ls .;"
+                +"fs -rm /tmp/foo/baz;";
+            
+            ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+            InputStreamReader reader = new InputStreamReader(cmd);
+            
+            Grunt grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+
+        } catch (ExecException e) {
+            e.printStackTrace();
+            fail();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
     }
 }

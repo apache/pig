@@ -47,6 +47,7 @@ import jline.ConsoleReaderInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.JobID;
@@ -57,6 +58,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
@@ -191,6 +193,7 @@ public class GruntParser extends PigScriptParser {
         mDfs = mPigServer.getPigContext().getDfs();
         mLfs = mPigServer.getPigContext().getLfs();
         mConf = mPigServer.getPigContext().getProperties();
+        shell = new FsShell(ConfigurationUtil.toConfiguration(mConf));
         
         // TODO: this violates the abstraction layer decoupling between
         // front end and back end and needs to be changed.
@@ -731,6 +734,14 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    protected void processFsCommand(String[] cmdTokens) throws IOException{
+        try {
+            shell.run(cmdTokens);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+    
     private class ExplainState {
         public long mTime;
         public int mCount;
@@ -764,4 +775,5 @@ public class GruntParser extends PigScriptParser {
     private ExplainState mExplain;
     private int mNumFailedJobs;
     private int mNumSucceededJobs;
+    private FsShell shell;
 }
