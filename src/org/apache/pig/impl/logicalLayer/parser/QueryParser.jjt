@@ -1277,8 +1277,8 @@ String StringList() :
 {
 	(
 	(
-	t = <QUOTEDSTRING> {sb.append(t.image);}
-	( "," t = <QUOTEDSTRING> {sb.append(",");sb.append(t.image);} )*
+	t = <QUOTEDSTRING> {sb.append(StringUtils.unescapeInputString(t.image));}
+	( "," t = <QUOTEDSTRING> {sb.append(",");sb.append(StringUtils.unescapeInputString(t.image));} )*
 	)
 	| {}
 	)
