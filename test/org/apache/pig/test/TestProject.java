@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.ArrayList;
 
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -276,6 +278,27 @@ public class TestProject extends  junit.framework.TestCase {
         res = proj.getNext(t);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(9), res.result);
+    }
+    
+    @Test
+    public void testMissingCols() throws Exception {
+        MiniCluster cluster = MiniCluster.buildCluster();
+        String input[] = { "hello\tworld", "good\tbye" };
+        Util.createInputFile(cluster, "input.txt", input);
+        String query = "a = load 'input.txt' as (s1:chararray, s2:chararray, extra:chararray);" +
+        		"b = foreach a generate s1, s2, extra;";
+        
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        Util.registerMultiLineQuery(ps, query);
+        Iterator<Tuple> it = ps.openIterator("b");
+        Tuple[] expectedResults = new Tuple[] {
+                (Tuple) Util.getPigConstant("('hello', 'world', null)"),
+                (Tuple) Util.getPigConstant("('good', 'bye', null)")
+        };
+        int i = 0;
+        while(it.hasNext()) {
+            assertEquals(expectedResults[i++], it.next());
+        }
     }
 
 }

@@ -153,6 +153,13 @@ public class POProject extends ExpressionOperator {
                 }
                 res.returnStatus = POStatus.STATUS_OK;
                 ret = null;
+            } catch (IndexOutOfBoundsException ie) {
+                if(pigLogger != null) {
+                    pigLogger.warn(this,"Attempt to access field " + 
+                            "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                }
+                res.returnStatus = POStatus.STATUS_OK;
+                ret = null;
             }
         } else {
 	        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
