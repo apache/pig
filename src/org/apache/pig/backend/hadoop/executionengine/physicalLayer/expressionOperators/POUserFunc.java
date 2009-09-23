@@ -227,7 +227,12 @@ public class POUserFunc extends ExpressionOperator {
 		    }
 		    
 			throw new ExecException(msg, errCode, PigException.BUG, ioe);
-		}
+		} catch (IndexOutOfBoundsException ie) {
+            int errCode = 2078;
+            String msg = "Caught error from UDF: " + funcSpec.getClassName() + 
+            ", Out of bounds access [" + ie.getMessage() + "]";
+            throw new ExecException(msg, errCode, PigException.BUG, ie);
+    	}
 	}
 
 	@Override
