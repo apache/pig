@@ -334,6 +334,11 @@ public class Partition {
             mColMap.put(pi.mCGName, cms);
           }
           cms.add(pi.mCGIndex);
+          for (Iterator<ColumnMappingEntry> it = pi.mSplitMaps.iterator();
+               it.hasNext(); )
+          {
+            cms.add(it.next());
+          }
         }
         else {
           HashSet<ColumnMappingEntry> cms = mColMap.get(fs.name);
