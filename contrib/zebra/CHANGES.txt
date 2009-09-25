@@ -4,6 +4,10 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
-    PIG-918 Fix infinite loop only columns in first column group are
+    PIG-918. Fix infinite loop only columns in first column group are
     specified. (Yan Zhou via rangadi)
-  
+ 
+    PIG-949. If an entire map is placed in non default column group, 
+    and a specific key placed in another CG, the second CG did not 
+    work as expected. (Yan Zhou, Jing Huang (tests) via rangadi)
+
