@@ -76,6 +76,9 @@
     <property name="test.log.dir" value="${test.build.dir}/logs" />
     <property name="test.timeout" value="2700000" />
     <property name="test.junit.output.format" value="plain" />
+    <property name="test.commit.file" value="${test.src.dir}/commit-tests"/>
+    <property name="test.all.file" value="${test.src.dir}/all-tests"/>
+
 
     <!-- test configuration, use ${user.home}/build.properties to configure values  -->
     <property name="ssh.gateway" value="" />
@@ -421,7 +424,17 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="compile-test,jar">
+    <target name="test-core" depends="compile-test,jar" description="Run full set of unit tests">
+        <macro-test-runner test.file="${test.all.file}" />
+    </target>
+
+    <target name="test-commit" depends="compile-test,jar" description="Run approximate 10-minute set of unit tests prior to commiting">
+        <macro-test-runner test.file="${test.commit.file}" />
+    </target>
+
+    <macrodef name="macro-test-runner">
+      <attribute name="test.file" />
+      <sequential>
         <delete dir="${test.log.dir}"/>
         <mkdir dir="${test.log.dir}"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
@@ -442,7 +455,11 @@
 
             <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
                 <fileset dir="test">
-                    <include name="**/*Test*.java" />
+                    <patternset>
+                       <includesfile name="@{test.file}"/>
+                    </patternset>
+
+                    <!--include name="**/*Test*.java" /-->
                     <!-- Excluced because they are end-to-end, don't work yet.  -->
                     <!--
                     <exclude name="**/TestFilterOpNumeric.java" />
@@ -470,7 +487,8 @@
             </batchtest>
         </junit>
         <fail if="tests.failed">Tests failed!</fail>
-    </target>
+      </sequential>
+    </macrodef>
     
     <target name="test" description="to call the test-core and test-contrib target">
 	<antcall target="test-core" inheritRefs="true" inheritall="true"/>
