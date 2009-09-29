@@ -28,6 +28,8 @@ IMPROVEMENTS
 
 PIG-891: Fixing dfs statement for Pig (zjffdu via daijy).
 
+PIG-956: 10 minute commit tests (olgan)
+
 OPTIMIZATIONS
 
 BUG FIXES
@@ -55,7 +57,7 @@ BUG FIXES
 PIG-963: Join in local mode matches null keys (pradeepkth)
 PIG-660: Integration with Hadoop 20 (sms via olgan)
 
-Release 0.4.0 - Unreleased
+Release 0.4.0 - 2009-09-26
 
 INCOMPATIBLE CHANGES
 
