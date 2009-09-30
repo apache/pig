@@ -30,6 +30,8 @@ PIG-891: Fixing dfs statement for Pig (zjffdu via daijy).
 
 PIG-956: 10 minute commit tests (olgan)
 
+PIG-948: [Usability] Relating pig script with MR jobs (ashutoshc via daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES
