@@ -30,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
@@ -97,6 +98,7 @@ public class MapReduceLauncher extends Launcher{
                                                     JobCreationException,
                                                     Exception {
         long sleepTime = 500;
+        long jobidDelayTime = 1000;
         aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
         PigStats stats = new PigStats();
@@ -124,12 +126,46 @@ public class MapReduceLauncher extends Launcher{
         JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
 
         while((jc = jcc.compile(mrp, grpName)) != null) {
-            numMRJobsCurrent = jc.getWaitingJobs().size();
-
+            
+            List<Job> waitingJobs = jc.getWaitingJobs();
+            numMRJobsCurrent = waitingJobs.size();
+            
             Thread jcThread = new Thread(jc);
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
             jcThread.start();
 
+            Thread.sleep(jobidDelayTime);
+            String jobTrackerAdd;
+            String port;
+            
+            try{
+                for (Job job : waitingJobs){
+                    JobConf jConf = job.getJobConf();
+                    port = jConf.get("mapred.job.tracker.http.address");
+                    port = port.substring(port.indexOf(":"));
+                    jobTrackerAdd = jConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
+                    jobTrackerAdd = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":"));
+                    if (job.getAssignedJobID()!=null)
+                    {
+                        log.info("Submitting job: "+job.getAssignedJobID()+" to execution engine.");
+                        log.info("More information at: http://"+ jobTrackerAdd+port+
+                                "/jobdetails.jsp?jobid="+job.getAssignedJobID());
+                        log.info("To kill this job, use: kill "+job.getAssignedJobID());
+                    }
+                    else
+                        log.info("Cannot get jobid for this job");
+                }
+            }
+            catch(Exception e){
+                
+                /* This is extra information Pig is providing to user.
+                   If some exception occurs here because of whatever reasons, job may still complete successfully.
+                   So, pig shouldn't die. So we just log the exception and move on. */
+                
+                log.error("Exception occured while trying to retrieve extra information about job in MapReduceLauncher."
+                            +e.getMessage());
+            }
+            
             while(!jc.allFinished()){
                 try {
                     Thread.sleep(sleepTime);
