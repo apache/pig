@@ -32,6 +32,8 @@ PIG-956: 10 minute commit tests (olgan)
 
 PIG-948: [Usability] Relating pig script with MR jobs (ashutoshc via daijy)
 
+PIG-960: Using Hadoop's optimized LineRecordReader for reading Tuples in PigStorage ( ankit.modi via daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES
@@ -45,6 +47,8 @@ PIG-513:  Removed unecessary bounds check in DefaultTuple (ashutoshc via
 
 PIG-951:  Set parallelism explicitly to 1 for indexing job in merge join
           (ashutoc via gates).
+
+PIG-592: schema inferred incorrectly (daijy)
 
 Release 0.5.0 - Unreleased
 
@@ -68,8 +72,6 @@ PIG-892: Make COUNT and AVG deal with nulls accordingly with SQL standart
 PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
-
-PIG-960: Using Hadoop's optimized LineRecordReader for reading Tuples in PigStorage ( ankit.modi via daijy)
 
 PIG-938: documentation changes for Pig 0.4.0 release (chandec via olgan)
 

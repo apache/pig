@@ -33,6 +33,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.test.utils.Identity;
 import org.apache.pig.test.utils.LogicalPlanTester;
@@ -91,6 +92,21 @@ public class TestJoin extends TestCase {
         } else if(execType == ExecType.LOCAL){
             fileName = fileName.replace("file://", "");
             new File(fileName).delete();
+        }
+    }
+
+    
+    @Test
+    public void testJoinUnkownSchema() throws Exception {
+        // If any of the input schema is unknown, the resulting schema should be unknown as well
+        for (ExecType execType : execTypes) {
+            setUp(execType);
+            String script = "a = load 'a.txt';" +
+                    "b = load 'b.txt'; " +
+                    "c = join a by $0, b by $0;";
+            Util.registerMultiLineQuery(pigServer, script);
+            Schema schema = pigServer.dumpSchema("c");
+            assertTrue(schema == null);
         }
     }
     

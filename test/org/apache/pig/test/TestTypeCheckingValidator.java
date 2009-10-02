@@ -4970,19 +4970,7 @@ public class TestTypeCheckingValidator extends TestCase {
         printTypeGraph(plan) ;
         planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
 
-        if (collector.hasError()) {
-            throw new AssertionError("Expect no error") ;
-        }
-
-        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
-        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
-
-        LogicalOperator exOp = foreachPlan.getRoots().get(0);
-
-        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
-
-        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
+        assertTrue(collector.hasError());
     }
 
     @Test
@@ -5043,19 +5031,7 @@ public class TestTypeCheckingValidator extends TestCase {
         printTypeGraph(plan) ;
         planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
 
-        if (collector.hasError()) {
-            throw new AssertionError("Expect no error") ;
-        }
-
-        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
-        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
-
-        LogicalOperator exOp = foreachPlan.getRoots().get(0);
-
-        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
-
-        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
+        assertTrue(collector.hasError());
     }
 
     @Test
