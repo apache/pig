@@ -69,6 +69,8 @@ PIG-734: Changed maps to only take strings as keys (gates).
 
 IMPROVEMENTS
 
+PIG-960: Using Hadoop's optimized LineRecordReader for reading Tuples in PigStorage ( ankit.modi via daijy)
+
 PIG-938: documentation changes for Pig 0.4.0 release (chandec via olgan)
 
 PIG-578: join ... outer, ... outer semantics are a no-ops, should produce

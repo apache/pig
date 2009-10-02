@@ -82,7 +82,7 @@ public class LocalSeekableInputStream extends SeekableInputStream {
     
     @Override
     public int available() throws IOException {
-        throw new IOException("No information on available bytes");
+    	return (int)( this.file.length() - this.file.getFilePointer() );
     }
     
     @Override

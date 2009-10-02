@@ -62,7 +62,7 @@ public class TestSkewedJoin extends TestCase{
     	PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
     	    	
     	int k = 0;
-    	for(int j=0; j<12; j++) {   	           	        
+    	for(int j=0; j<120; j++) {   	           	        
    	        w.println("100\tapple1\taaa" + k);
     	    k++;
     	    w.println("200\torange1\tbbb" + k);
