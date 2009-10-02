@@ -134,6 +134,7 @@ public class LOJoin extends RelationalOperator {
         if(!mIsSchemaComputed){
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             int i=-1;
+            boolean seeUnknown = false;
             for (LogicalOperator op : inputs) {
                 try {
                     Schema cSchema = op.getSchema();
@@ -159,9 +160,7 @@ public class LOJoin extends RelationalOperator {
                             fss.add(newFS);
                         }
                     } else {
-                        FieldSchema newFS = new FieldSchema(null, DataType.BYTEARRAY);
-                        newFS.setParent(null, op);
-                        fss.add(newFS);
+                        seeUnknown = true;
                     }
                 } catch (FrontendException ioe) {
                     mIsSchemaComputed = false;
@@ -170,19 +169,22 @@ public class LOJoin extends RelationalOperator {
                 }
             }
             mIsSchemaComputed = true;
-            mSchema = new Schema(fss);
-            for (Entry<String, Integer> ent : nonDuplicates.entrySet()) {
-                int ind = ent.getValue();
-                if(ind==-1) continue;
-                FieldSchema prevSch = fss.get(ind);
-                // this is a non duplicate and hence can be referred to
-                // with just the field schema alias or outeralias::field schema alias
-                // In mSchema we have outeralias::fieldschemaalias. To allow
-                // using just the field schema alias, add it to mSchemas
-                // as an alias for this field.
-                mSchema.addAlias(ent.getKey(), prevSch);
+            mSchema = null;
+            if (!seeUnknown)
+            {
+                mSchema = new Schema(fss);
+                for (Entry<String, Integer> ent : nonDuplicates.entrySet()) {
+                    int ind = ent.getValue();
+                    if(ind==-1) continue;
+                    FieldSchema prevSch = fss.get(ind);
+                    // this is a non duplicate and hence can be referred to
+                    // with just the field schema alias or outeralias::field schema alias
+                    // In mSchema we have outeralias::fieldschemaalias. To allow
+                    // using just the field schema alias, add it to mSchemas
+                    // as an alias for this field.
+                    mSchema.addAlias(ent.getKey(), prevSch);
+                }
             }
-            
         }
         return mSchema;
     }

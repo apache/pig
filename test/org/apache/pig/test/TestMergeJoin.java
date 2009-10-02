@@ -476,6 +476,6 @@ public class TestMergeJoin {
         mjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
         shjSch = pigServer.dumpSchema("C");
-        Assert.assertEquals(true, shjSch.equals(mjSch));
+        Assert.assertTrue(shjSch == null);
     }
 }
