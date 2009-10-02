@@ -17,7 +17,6 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -26,7 +25,7 @@ import java.util.Iterator;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
-
+import org.apache.hadoop.io.Text;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.SamplableLoader;
@@ -38,6 +37,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.PigLineRecordReader;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -47,19 +47,17 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  */
 public class PigStorage extends Utf8StorageConverter
         implements ReversibleLoadStoreFunc, SamplableLoader {
-    protected BufferedPositionedInputStream in = null;
+    protected PigLineRecordReader in = null;
     protected final Log mLog = LogFactory.getLog(getClass());
         
-    long                end            = Long.MAX_VALUE;
+    long end = Long.MAX_VALUE;
     private byte recordDel = '\n';
     private byte fieldDel = '\t';
-    private ByteArrayOutputStream mBuf = null;
     private ArrayList<Object> mProtoTuple = null;
     private int os;
     private static final int OS_UNIX = 0;
     private static final int OS_WINDOWS = 1;
     private static final String UTF8 = "UTF-8";
-    private Byte prevByte = null;
     
     public PigStorage() {
         os = OS_UNIX;
@@ -104,12 +102,21 @@ public class PigStorage extends Utf8StorageConverter
 
     public long skip(long n) throws IOException {
         
-        long skipped = in.skip(n-1);
-        prevByte = (byte)in.read();
-        if(prevByte == -1) // End of stream.
-            return skipped;
-        else
-            return skipped+1;
+        Text t = new Text();
+        long sofar = 0;
+        while (sofar < n) {
+            /*
+             *  By calling next we skip more than required bytes
+             *  but this skip will be only until end of record.. aka line
+             */
+            if (in.next( t)) {
+                sofar += t.getLength() + 1;
+            } else {
+                // End of file
+                return sofar;
+            } 
+        }
+        return sofar;
     }
 
     public Tuple getNext() throws IOException {
@@ -117,46 +124,38 @@ public class PigStorage extends Utf8StorageConverter
             return null;
         }
 
-        if (mBuf == null) mBuf = new ByteArrayOutputStream(4096);
-        mBuf.reset();
-        while (true) {
-            // BufferedPositionedInputStream is buffered, so I don't need
-            // to buffer.
-            int b = in.read();
-            prevByte = (byte)b;
-            
-            if (b == fieldDel) {
-                readField();
-            } else if (b == recordDel) {
-                readField();
-                //Tuple t =  mTupleFactory.newTuple(mProtoTuple);
-                Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
-                mProtoTuple = null;
-                return t;
-            } else if (b == -1) {
-                // hit end of file
-                return null;
-            } else {
-                mBuf.write(b);
+        Text value = new Text();
+        boolean notDone = in.next(value);
+        if (!notDone) {
+            return null;
+        }                                                                                           
+
+        byte[] buf = value.getBytes();
+        int len = value.getLength();
+        int start = 0;
+        for (int i = 0; i < len; i++) {
+            if (buf[i] == fieldDel) {
+                readField(buf, start, i);
+                start = i + 1;
             }
         }
+        // pick up the last field
+        if (start <= len) {
+            readField(buf, start, len);
+        }
+        Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
+        // System.out.println( "Arity:" + t.size() + " Value: " + value.toString() );
+        mProtoTuple = null;
+        return t;
+
     }
 
-    public Tuple getSampledTuple() throws IOException {
-       
-        if(prevByte == null || prevByte == recordDel) 
-            // prevByte = null when this is called for the first time, in that case bindTo would have already
-            // called getNext() if it was required.
+    public Tuple getSampledTuple() throws IOException {     
         return getNext();
-        
-        else{   // We are in middle of record. So, we skip this and return the next one.
-            getNext();
-            return getNext();            
-        }
     }
 
     public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = in;
+        this.in = new PigLineRecordReader( in, offset, end );
         this.end = end;
         
         // Since we are not block aligned we throw away the first
@@ -304,31 +303,17 @@ public class PigStorage extends Utf8StorageConverter
     public void finish() throws IOException {
     }
 
-    private void readField() {
-        if (mProtoTuple == null) mProtoTuple = new ArrayList<Object>();
-        if (mBuf.size() == 0) {
+    private void readField(byte[] buf, int start, int end) {
+        if (mProtoTuple == null) {
+            mProtoTuple = new ArrayList<Object>();
+        }
+
+        if (start == end) {
             // NULL value
             mProtoTuple.add(null);
         } else {
-            // TODO, once this can take schemas, we need to figure out
-            // if the user requested this to be viewed as a certain
-            // type, and if so, then construct it appropriately.
-            byte[] array = mBuf.toByteArray();
-            if (array[array.length-1]=='\r' && os==OS_WINDOWS) {
-                // This is a java 1.6 function.  Until pig officially moves to
-                // 1.6 we can't use this.
-                // array = Arrays.copyOf(array, array.length-1);
-                byte[] tmp = new byte[array.length - 1];
-                for (int i = 0; i < array.length - 1; i++) tmp[i] = array[i];
-                array = tmp;
-            }
-                
-            if (array.length==0)
-                mProtoTuple.add(null);
-            else
-                mProtoTuple.add(new DataByteArray(array));
+            mProtoTuple.add(new DataByteArray(buf, start, end));
         }
-        mBuf.reset();
     }
 
     /* (non-Javadoc)
