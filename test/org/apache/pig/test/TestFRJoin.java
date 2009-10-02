@@ -378,7 +378,7 @@ public class TestFRJoin extends TestCase{
         frjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by $0, B by $0;");
         shjSch = pigServer.dumpSchema("C");
-        Assert.assertEquals(true, shjSch.equals(frjSch));
+        Assert.assertTrue(shjSch == null);
     }
     
     @Test
@@ -404,7 +404,7 @@ public class TestFRJoin extends TestCase{
         frjSch = pigServer.dumpSchema("D");
         pigServer.registerQuery("D = join A by $0, B by $0, C by $0;");
         shjSch = pigServer.dumpSchema("D");
-        Assert.assertEquals(true, shjSch.equals(frjSch));
+        Assert.assertTrue(shjSch == null);
     }
     
     @Test
@@ -428,6 +428,6 @@ public class TestFRJoin extends TestCase{
         frjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
         shjSch = pigServer.dumpSchema("C");
-        Assert.assertEquals(true, shjSch.equals(frjSch));
+        Assert.assertTrue(shjSch == null);
     }
 }
