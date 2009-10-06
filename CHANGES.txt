@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-983:  PERFORMANCE: multi-query optimization on multiple group bys
+following a join or cogroup (rding via pradeepkth)
+
 PIG-975: Need a databag that does not register with SpillableMemoryManager and
 spill data pro-actively (yinghe via olgan)
 
