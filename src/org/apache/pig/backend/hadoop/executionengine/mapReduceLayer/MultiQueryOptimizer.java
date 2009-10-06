@@ -30,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROper
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMultiQueryPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -157,23 +158,38 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             
             numMerges += n;   
         }            
-              
-        // case 4: multiple splittees and at least one of them has reducer  
-        if (isMapOnly(mr) && mapReducers.size() > 0) {
+        
+        if (mapReducers.size() > 0) {
+            
+            boolean isMapOnly = isMapOnly(mr);
+            int merged = 0;
+            
+            // case 4: multiple splittees and at least one of them has reducer  
+            //         and the splitter is map-only   
+            if (isMapOnly) {
                          
-            PhysicalOperator leaf = splitterPl.getLeaves().get(0);
+                PhysicalOperator leaf = splitterPl.getLeaves().get(0);
                                                             
-            splitOp = (leaf instanceof POStore) ? getSplit() : (POSplit)leaf;
+                splitOp = (leaf instanceof POStore) ? getSplit() : (POSplit)leaf;
                     
-            int n = mergeMapReduceSplittees(mapReducers, mr, splitOp);  
+                merged = mergeMapReduceSplittees(mapReducers, mr, splitOp);  
+            }
             
-            log.info("Merged " + n + " map-reduce splittees.");
+            // case 5: multiple splittees and at least one of them has reducer
+            //         and splitter has reducer
+            else {
+                
+                merged = mergeMapReduceSplittees(mapReducers, mr);  
+                
+            }
             
-            numMerges += n;      
+            log.info("Merged " + merged + " map-reduce splittees.");
+            
+            numMerges += merged;      
         }
-       
-        // finally, add original store to the split operator 
-        // if there is splittee that hasn't been merged
+        
+        // Finally, add original store to the split operator 
+        // if there is splittee that hasn't been merged into the splitter
         if (splitOp != null 
                 && (numMerges < numSplittees)) {
 
@@ -187,7 +203,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 throw new OptimizerException(msg, errCode, PigException.BUG, e);
             }    
         }
-        
+
         log.info("Merged " + numMerges + " out of total " 
                 + numSplittees + " splittees.");
     }                
@@ -356,6 +372,53 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
         
         return mergeList.size();
+    }
+
+    private int mergeMapReduceSplittees(List<MapReduceOper> mapReducers, 
+            MapReduceOper splitter) throws VisitorException {
+
+        // In this case the splitter has non-empty reducer so we can't merge 
+        // MR splittees into the splitter. What we'll do is to merge multiple 
+        // splittees (if exists) into a new MR operator and connect it to the splitter.
+        
+        List<MapReduceOper> mergeList = getMergeList(mapReducers);
+    
+        if (mergeList.size() <= 1) {
+            // nothing to merge, just return
+            return  0;
+        } 
+                         
+        MapReduceOper mrOper = getMROper();
+
+        MapReduceOper splittee = mergeList.get(0);
+        PhysicalPlan pl = splittee.mapPlan;
+        POLoad load = (POLoad)pl.getRoots().get(0);
+        
+        mrOper.mapPlan.add(load);
+       
+        // add a dummy store operator, it'll be replaced by the split operator later.
+        try {
+            mrOper.mapPlan.addAsLeaf(getStore());
+        } catch (PlanException e) {                   
+            int errCode = 2137;
+            String msg = "Internal Error. Unable to add store to the plan as leaf for optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
+        }
+
+        // connect the new MR operator to the splitter
+        try {
+            getPlan().add(mrOper);
+            getPlan().connect(splitter, mrOper);
+        } catch (PlanException e) {
+            int errCode = 2133;
+            String msg = "Internal Error. Unable to connect splitter with successors for optimization.";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
+        }
+
+        // merger the splittees into the new MR operator
+        mergeAllMapReduceSplittees(mergeList, mrOper, getSplit());
+        
+        return (mergeList.size() - 1);
     }
     
     private boolean hasSameMapKeyType(List<MapReduceOper> splittees) {
@@ -1006,7 +1069,15 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     private POSplit getSplit(){
         return new POSplit(new OperatorKey(scope, nig.getNextNodeId(scope)));
     } 
-    
+ 
+    private MapReduceOper getMROper(){
+        return new MapReduceOper(new OperatorKey(scope, nig.getNextNodeId(scope)));
+    } 
+   
+    private POStore getStore(){
+        return new POStore(new OperatorKey(scope, nig.getNextNodeId(scope)));
+    } 
+     
     private PODemux getDemux(boolean sameMapKeyType, boolean inCombiner){
         PODemux demux = new PODemux(new OperatorKey(scope, nig.getNextNodeId(scope)));
         demux.setSameMapKeyType(sameMapKeyType);
