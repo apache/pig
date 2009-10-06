@@ -255,6 +255,66 @@ public class TestMultiQuery extends TestCase {
             Assert.fail();
         } 
     }         
+ 
+    @Test
+    public void testMultiQueryJiraPig983() {
+
+        System.out.println("===== multi-query Jira Pig-983 =====");
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = filter a by uid < 5;");
+            myPig.registerQuery("c = filter a by uid >= 5;");
+            myPig.registerQuery("d = join b by uname, c by uname;");
+            myPig.registerQuery("e = group d by b::gid;");
+            myPig.registerQuery("e1 = foreach e generate group, COUNT(d.b::uid);");
+            myPig.registerQuery("store e1 into '/tmp/output1';");
+            myPig.registerQuery("f = group d by c::gid;");
+            myPig.registerQuery("f1 = foreach f generate group, SUM(d.c::uid);");
+            myPig.registerQuery("store f1 into '/tmp/output2';");
+             
+            LogicalPlan lp = checkLogicalPlan(1, 2, 17);
+
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 25);
+
+            checkMRPlan(pp, 1, 1, 3);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }       
+    
+    @Test
+    public void testMultiQueryJiraPig983_2() {
+
+        System.out.println("===== multi-query Jira Pig-983_2 =====");
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = filter a by uid < 5;");
+            myPig.registerQuery("c = filter a by uid >= 5;");
+            myPig.registerQuery("d = join b by uname, c by uname;");
+            myPig.registerQuery("e = group d by b::gid;");
+            myPig.registerQuery("e1 = foreach e generate group, COUNT(d.b::uid);");
+            myPig.registerQuery("store e1 into '/tmp/output1';");
+            myPig.registerQuery("f = group d by c::gid;");
+            myPig.registerQuery("f1 = foreach f generate group, SUM(d.c::uid);");
+            myPig.registerQuery("store f1 into '/tmp/output2';");
+             
+            myPig.executeBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }     
     
     @Test
     public void testMultiQueryPhase3WithoutCombiner() {
@@ -1012,7 +1072,7 @@ public class TestMultiQuery extends TestCase {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 22);
 
-            checkMRPlan(pp, 1, 2, 3); 
+            checkMRPlan(pp, 1, 1, 2); 
         
         } catch (Exception e) {
             e.printStackTrace();
@@ -1052,7 +1112,7 @@ public class TestMultiQuery extends TestCase {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 32);
 
-            checkMRPlan(pp, 1, 2, 5);            
+            checkMRPlan(pp, 1, 2, 4);            
 
         } catch (Exception e) {
             e.printStackTrace();
