@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-975: Need a databag that does not register with SpillableMemoryManager and
+spill data pro-actively (yinghe via olgan)
+
 PIG-891: Fixing dfs statement for Pig (zjffdu via daijy).
 
 PIG-956: 10 minute commit tests (olgan)

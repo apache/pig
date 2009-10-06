@@ -21,7 +21,6 @@ import java.util.*;
 import java.io.IOException;
 
 import org.junit.Test;
-
 import org.apache.pig.data.*;
 import org.apache.pig.impl.util.Spillable;
 
@@ -790,6 +789,62 @@ public class TestDataBag extends junit.framework.TestCase {
             bg2.add(Util.createTuple(tupleContents[i]));
         }
         assertEquals(bg1, bg2);
+    }
+    
+    public void testInternalCachedBag() throws Exception {    
+    	// check equal of bags
+    	DataBag bg1 = new InternalCachedBag(1, 0.5f);
+    	assertEquals(bg1.size(), 0);
+    	
+    	String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
+    	for (int i = 0; i < tupleContents.length; i++) {
+            bg1.add(Util.createTuple(tupleContents[i]));
+        }
+    	
+    	// check size, and isSorted(), isDistinct()
+    	assertEquals(bg1.size(), 3);
+    	assertFalse(bg1.isSorted());
+    	assertFalse(bg1.isDistinct());
+    	
+    	tupleContents = new String[][] {{"c", "d" }, {"a", "b"},{ "e", "f"} };
+    	DataBag bg2 = new InternalCachedBag(1, 0.5f);
+        for (int i = 0; i < tupleContents.length; i++) {
+             bg2.add(Util.createTuple(tupleContents[i]));
+        }
+        assertEquals(bg1, bg2);
+        
+        // check bag with data written to disk
+        DataBag bg3 = new InternalCachedBag(1, 0.0f);
+        tupleContents = new String[][] {{ "e", "f"}, {"c", "d" }, {"a", "b"}};
+        for (int i = 0; i < tupleContents.length; i++) {
+            bg3.add(Util.createTuple(tupleContents[i]));
+        }
+        assertEquals(bg1, bg3);
+        
+        // check iterator
+        Iterator<Tuple> iter = bg3.iterator();
+        DataBag bg4 = new InternalCachedBag(1, 0.0f);
+        while(iter.hasNext()) {
+        	bg4.add(iter.next());
+        }
+        assertEquals(bg3, bg4);
+        
+        // call iterator methods with irregular order
+        iter = bg3.iterator();
+        assertTrue(iter.hasNext());
+        assertTrue(iter.hasNext());
+        DataBag bg5 = new InternalCachedBag(1, 0.0f);
+        bg5.add(iter.next());
+        bg5.add(iter.next());
+        assertTrue(iter.hasNext());
+        bg5.add(iter.next());
+        assertFalse(iter.hasNext());
+        assertFalse(iter.hasNext());
+        assertEquals(bg3, bg5);
+        
+        
+        bg4.clear();
+        assertEquals(bg4.size(), 0);        
     }
 }
 
