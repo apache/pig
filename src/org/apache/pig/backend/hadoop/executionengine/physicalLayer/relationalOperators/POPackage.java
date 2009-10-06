@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -34,6 +35,7 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -196,10 +198,20 @@ public class POPackage extends PhysicalOperator {
             //Create numInputs bags
             DataBag[] dbs = null;
             dbs = new DataBag[numInputs];
-            for (int i = 0; i < numInputs; i++) {
-                dbs[i] = mBagFactory.newDefaultBag();
-            }
+                 
+            String bagType = null;
+            if (PigMapReduce.sJobConf != null) {
+       			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
+       	    }
             
+        	for (int i = 0; i < numInputs; i++) {        		          	           		
+        	    if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
+           			dbs[i] = mBagFactory.newDefaultBag();           			
+           	    } else {
+        	    	dbs[i] = new InternalCachedBag(numInputs);
+        	    }
+        	}      
+                           
             //For each indexed tup in the inp, sort them
             //into their corresponding bags based
             //on the index
@@ -220,7 +232,7 @@ public class POPackage extends PhysicalOperator {
                 }
                 if(reporter!=null) reporter.progress();
             }
-            
+                      
             //Construct the output tuple by appending
             //the key and all the above constructed bags
             //and return it.
