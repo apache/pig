@@ -157,13 +157,11 @@ public class MapReduceLauncher extends Launcher{
                 }
             }
             catch(Exception e){
-                
                 /* This is extra information Pig is providing to user.
-                   If some exception occurs here because of whatever reasons, job may still complete successfully.
-                   So, pig shouldn't die. So we just log the exception and move on. */
-                
-                log.error("Exception occured while trying to retrieve extra information about job in MapReduceLauncher."
-                            +e.getMessage());
+                   If exception occurs here, job may still complete successfully.
+                   So, pig shouldn't die or even give confusing message to the user. 
+                   So we just log information and move on. */
+                log.info("Cannot get jobid for this job");
             }
             
             while(!jc.allFinished()){
