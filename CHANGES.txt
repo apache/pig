@@ -56,6 +56,8 @@ PIG-951:  Set parallelism explicitly to 1 for indexing job in merge join
 
 PIG-592: schema inferred incorrectly (daijy)
 
+PIG-989: Allow type merge between numerical type and non-numerical type (daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES
