@@ -262,6 +262,12 @@ public class LOJoin extends RelationalOperator {
             }
             byte innerType = innerPlans.get(0).getSingleLeafPlanOutputType() ;
             groupType = DataType.mergeType(groupType, innerType) ;
+            if (groupType==-1)
+            {
+                int errCode = 1107;
+                String msg = "Cannot merge join keys, incompatible types";
+                throw new FrontendException(msg, errCode, PigException.INPUT) ;
+            }
         }
 
         return groupType ;
