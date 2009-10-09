@@ -119,7 +119,7 @@ public class TestBasicTableProjections {
     try {
       value.get(2);
       Assert.fail("Failed to catch out of boundary exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 

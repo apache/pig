@@ -62,8 +62,8 @@ public class TestColumnGroupOpen {
   @Test
   public void testNew() throws IOException, ParseException {
     System.out.println("testNew");
-    writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     // NOTE: don't call writer.close() here
     close();
   }
@@ -73,11 +73,11 @@ public class TestColumnGroupOpen {
       ParseException {
     System.out.println("testFailureExistingSortedDiff");
     try {
-      writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "lzo2",
-          true, conf);
+      writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "gz",
+          null, null, (short) -1, true, conf);
       finish();
-      writer = new ColumnGroup.Writer(path, "abc, def", true, "pig", "lzo2",
-          false, conf);
+      writer = new ColumnGroup.Writer(path, "abc, def", true, "pig", "gz",
+          null, null, (short) -1, false, conf);
       Assert.fail("Failed to catch sorted flag alteration.");
     } catch (IOException e) {
       // noop, expecting exceptions
@@ -89,8 +89,8 @@ public class TestColumnGroupOpen {
   @Test
   public void testExisting() throws IOException, ParseException {
     System.out.println("testExisting");
-    writer = new ColumnGroup.Writer(path, " abc ,  def ", false, "pig", "lzo2",
-        false, conf);
+    writer = new ColumnGroup.Writer(path, " abc ,  def ", false, "pig", "gz",
+        null, null, (short) -1, false, conf);
     writer.close();
     close();
   }
@@ -105,7 +105,7 @@ public class TestColumnGroupOpen {
       FSDataOutputStream in = fs.create(path);
       in.close();
       writer = new ColumnGroup.Writer(path, "   abc ,  def   ", false, "pig",
-          "lzo2", false, conf);
+          "gz", null, null, (short) -1, false, conf);
       Assert.fail("Failed to catch path not a directory.");
     } catch (IOException e) {
       // noop, expecting exceptions
@@ -121,7 +121,7 @@ public class TestColumnGroupOpen {
       fs.delete(path, true);
       FSDataOutputStream in = fs.create(new Path(path, ColumnGroup.META_FILE));
       in.close();
-      writer = new ColumnGroup.Writer(path, "abc", false, "pig", "lzo2", false,
+      writer = new ColumnGroup.Writer(path, "abc", false, "pig", "gz", null, null, (short) -1, false,
           conf);
       Assert.fail("Failed to catch meta file existence.");
     } catch (IOException e) {
@@ -135,10 +135,10 @@ public class TestColumnGroupOpen {
   public void testFailureDiffSchema() throws IOException, ParseException {
     System.out.println("testFailureDiffSchema");
     try {
-      writer = new ColumnGroup.Writer(path, "abc", false, "pig", "lzo2", false,
+      writer = new ColumnGroup.Writer(path, "abc", false, "pig", "gz", null, null, (short) -1, false,
           conf);
       writer.finish();
-      writer = new ColumnGroup.Writer(path, "efg", false, "pig", "lzo2", false,
+      writer = new ColumnGroup.Writer(path, "efg", false, "pig", "gz", null, null, (short) -1, false,
           conf);
       Assert.fail("Failed to catch schema differences.");
     } catch (IOException e) {
@@ -155,7 +155,7 @@ public class TestColumnGroupOpen {
     ColumnGroup.Writer writer2 = null;
     ColumnGroup.Writer writer3 = null;
     try {
-      writer1 = new ColumnGroup.Writer(path, "abc", false, "pig", "lzo2", true,
+      writer1 = new ColumnGroup.Writer(path, "abc", false, "pig", "gz", null, null, (short) -1, true,
           conf);
       writer2 = new ColumnGroup.Writer(path, conf);
       writer3 = new ColumnGroup.Writer(path, conf);

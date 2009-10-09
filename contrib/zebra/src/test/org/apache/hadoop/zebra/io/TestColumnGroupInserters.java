@@ -69,8 +69,8 @@ public class TestColumnGroupInserters {
   public void testInsertNullValues() throws IOException, ParseException {
     fs.delete(path, true);
     System.out.println("testInsertNullValues");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
     // Tuple row = TypesUtils.createTuple(writer.getSchema());
     // ins.insert(new BytesWritable("key".getBytes()), row);
@@ -82,8 +82,8 @@ public class TestColumnGroupInserters {
   public void testFailureInvalidSchema() throws IOException, ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInvalidSchema");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
     Tuple row = TypesUtils.createTuple(Schema.parse("xyz, ijk, def"));
     try {
@@ -102,8 +102,8 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureGetInserterAfterWriterClosed");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     try {
       writer.close();
       TableInserter ins = writer.getInserter("part1", true);
@@ -120,8 +120,8 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertAfterClose");
-    writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
     Tuple row = TypesUtils.createTuple(writer.getSchema());
@@ -151,7 +151,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertXtraColumn");
-    writer = new ColumnGroup.Writer(path, "abc ", false, "pig", "lzo2", true,
+    writer = new ColumnGroup.Writer(path, "abc ", false, "pig", "gz", null, null, (short) -1, true,
         conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -164,7 +164,7 @@ public class TestColumnGroupInserters {
       row.set(1, map);
       Assert
           .fail("Failed to catch insertion an extra column not defined in schema.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // noop, expecting exceptions
     } finally {
       ins.close();
@@ -177,8 +177,8 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testInsertOneRow");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
     Tuple row = TypesUtils.createTuple(writer.getSchema());
@@ -199,8 +199,8 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Rows");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
     // row 1
@@ -233,8 +233,8 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Inserters");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", true);
     TableInserter ins2 = writer.getInserter("part2", true);
 
@@ -270,8 +270,8 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureOverlappingKeys");
-    writer = new ColumnGroup.Writer(path, "abc, def ", true, "pig", "lzo2",
-        true, conf);
+    writer = new ColumnGroup.Writer(path, "abc, def ", true, "pig", "gz",
+        null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", false);
     TableInserter ins2 = writer.getInserter("part2", false);
 

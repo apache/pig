@@ -38,6 +38,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.permission.*;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -530,8 +531,12 @@ class ColumnGroup {
             if ((offsetEnd > lastBlockOffsetBegin)
                 && (offsetEnd - lastBlockOffsetBegin < EPSILON)) {
               // the split includes a bit of the next block, remove it.
-              offsetEnd = lastBlockOffsetBegin;
-              splitBytes = offsetEnd - offsetBegin;
+              if (offsetEnd != fileLen)
+              {
+            	// only if this is not the last chunk
+                offsetEnd = lastBlockOffsetBegin;
+                splitBytes = offsetEnd - offsetBegin;
+              }
             }
             else if ((lastBlockOffsetEnd > offsetEnd)
                 && (lastBlockOffsetEnd - offsetEnd < EPSILON)) {
@@ -1076,14 +1081,14 @@ class ColumnGroup {
      * @throws IOException
      */
     public Writer(Path path, String schema, boolean sorted, String serializer,
-        String compressor, boolean overwrite, Configuration conf)
+        String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
         throws IOException, ParseException {
-      this(path, new Schema(schema), sorted, serializer, compressor, overwrite,
+      this(path, new Schema(schema), sorted, serializer, compressor, owner, group, perm, overwrite,
           conf);
     }
-
+    
     public Writer(Path path, Schema schema, boolean sorted, String serializer,
-        String compressor, boolean overwrite, Configuration conf)
+        String compressor, String owner, String group, short perm, boolean overwrite, Configuration conf)
         throws IOException, ParseException {
       this.path = path;
       this.conf = conf;
@@ -1101,7 +1106,7 @@ class ColumnGroup {
 
       checkPath(path, true);
 
-      cgschema = new CGSchema(schema, sorted, serializer, compressor);
+      cgschema = new CGSchema(schema, sorted, serializer, compressor, owner, group, perm);
       CGSchema sfNew = CGSchema.load(fs, path);
       if (sfNew != null) {
         // compare input with on-disk schema.
@@ -1223,7 +1228,8 @@ class ColumnGroup {
       TFile.Writer tfileWriter;
       TupleWriter tupleWriter;
       boolean closed = true;
-
+      
+      
       private void createTempFile() throws IOException {
         int maxTrial = 10;
         String prefix = ".tmp." + name + ".";
@@ -1239,7 +1245,27 @@ class ColumnGroup {
           try {
             tmpName = prefix + String.format("%08X", random.nextInt());
             Path tmpPath = new Path(path, tmpName);
+            fs.mkdirs(path);
+
+            if(cgschema.getOwner() != null  || cgschema.getGroup() != null) {
+              fs.setOwner(path, cgschema.getOwner(), cgschema.getGroup());
+            }  
+
+            FsPermission permission = null;
+            if(cgschema.getPerm() != -1) {
+                permission = new FsPermission((short) cgschema.getPerm());
+            	fs.setPermission(path, permission);
+            }  
+            
             out = fs.create(tmpPath, false);
+
+            if(cgschema.getOwner() != null || cgschema.getGroup() != null) {
+                fs.setOwner(tmpPath, cgschema.getOwner(), cgschema.getGroup());
+       	    }  
+
+            if(cgschema.getPerm() != -1) {
+        	  fs.setPermission(tmpPath, permission);
+            }	
             return;
           }
           catch (IOException e) {
@@ -1259,8 +1285,7 @@ class ColumnGroup {
         try {
           createTempFile();
           tfileWriter =
-              new TFile.Writer(out, getMinBlockSize(conf),
-                  getCompression(conf), cgschema.getComparator(), conf);
+        	  new TFile.Writer(out, getMinBlockSize(conf), cgschema.getCompressor(), cgschema.getComparator(), conf);
           closed = false;
         }
         finally {
@@ -1334,6 +1359,16 @@ class ColumnGroup {
           out = null;
           // do renaming only if all the above is successful.
           fs.rename(new Path(path, tmpName), new Path(path, name));
+/*
+          if(cgschema.getOwner() != null || cgschema.getGroup() != null) {
+            fs.setOwner(new Path(path, name), cgschema.getOwner(), cgschema.getGroup());
+          }  
+          FsPermission permission = null;
+          if(cgschema.getPerm() != -1) {
+            permission = new FsPermission((short) cgschema.getPerm());
+            fs.setPermission(path, permission);
+          }
+*/                     
           tmpName = null;
           if (finishWriter) {
             finish();

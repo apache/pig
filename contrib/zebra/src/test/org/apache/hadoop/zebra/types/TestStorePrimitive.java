@@ -107,11 +107,11 @@ public class TestStorePrimitive {
       Assert.assertEquals("f6", f32.name);
       Assert.assertEquals(ColumnType.BYTES, f32.type);
 
-      Assert.assertEquals(cgs1.getCompressor(), "lzo2");
+      Assert.assertEquals(cgs1.getCompressor(), "lzo");
       Assert.assertEquals(cgs1.getSerializer(), "pig");
       Assert.assertEquals(cgs2.getCompressor(), "gzip");
       Assert.assertEquals(cgs2.getSerializer(), "avro");
-      Assert.assertEquals(cgs3.getCompressor(), "lzo2");
+      Assert.assertEquals(cgs3.getCompressor(), "lzo");
       Assert.assertEquals(cgs3.getSerializer(), "pig");
 
       System.out.println("*********** Column Map **********");
@@ -204,10 +204,10 @@ public class TestStorePrimitive {
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" <IDENTIFIER> \"f1 \"\" at line 1, column 1.\nWas expecting one of:\n    <EOF> \n    \"compress by\" ...\n    \"serialize by\" ...\n    \"[\" ...\n    ";
+      String str = "Encountered \" <IDENTIFIER> \"f1 \"\" at line 1, column 1.\n";
       System.out.println(errMsg);
       System.out.println(str);
-      Assert.assertEquals(errMsg, str);
+      Assert.assertEquals(errMsg.startsWith(str), true);
     }
   }
 
@@ -238,10 +238,10 @@ public class TestStorePrimitive {
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" <IDENTIFIER> \"f1 \"\" at line 1, column 1.\nWas expecting one of:\n    <EOF> \n    \"compress by\" ...\n    \"serialize by\" ...\n    \"[\" ...\n    ";
+      String str = "Encountered \" <IDENTIFIER> \"f1 \"\" at line 1, column 1.\nWas expecting one of:\n";
       System.out.println(errMsg);
       System.out.println(str);
-      Assert.assertEquals(errMsg, str);
+      Assert.assertEquals(errMsg.startsWith(str), true);
     }
   }
 
@@ -255,10 +255,10 @@ public class TestStorePrimitive {
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"[\" \"[ \"\" at line 1, column 1.\nWas expecting one of:\n    \"compress by\" ...\n    \"serialize by\" ...\n    ";
+      String str = "Encountered \"<EOF>\" at line 1, column 1.\nWas expecting one of:\n";
       System.out.println(errMsg);
       System.out.println(str);
-      Assert.assertEquals(errMsg, str);
+      Assert.assertEquals(errMsg.startsWith(str), true);
     }
   }
 
@@ -289,24 +289,24 @@ public class TestStorePrimitive {
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Lexical error at line 1, column 2.  Encountered: <EOF> after : \"\"";
+      String str = "Encountered \" \":\" \": \"\" at line 1, column 1.\n";
       System.out.println(errMsg);
       System.out.println(str);
-      Assert.assertEquals(errMsg, str);
+      Assert.assertEquals(errMsg.startsWith(str), true);
     }
   }
 
   @Test
   public void testStorageInvalid7() {
     try {
-      String strStorage = "[f1, f2] serialize by xyz compress by gzip; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo2";
+      String strStorage = "[f1, f2] serialize by xyz compress by gzip; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo";
       Partition p = new Partition(schema.toString(), strStorage);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"serialize by\" \"serialize by \"\" at line 1, column 10.";
+      String str = "Encountered \" <IDENTIFIER> \"xyz \"\" at line 1, column 23.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
@@ -316,14 +316,14 @@ public class TestStorePrimitive {
   @Test
   public void testStorageInvalid8() {
     try {
-      String strStorage = "[f1, f2] serialize by avro compress by xyz; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo2";
+      String strStorage = "[f1, f2] serialize by avro compress by xyz; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo";
       Partition p = new Partition(schema.toString(), strStorage);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"compress by\" \"compress by \"\" at line 1, column 28.";
+      String str = "Encountered \" <IDENTIFIER> \"xyz \"\" at line 1, column 40.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);

@@ -207,9 +207,9 @@ public class TestStorageMisc3 {
 
       Assert.assertEquals(cgs1.getCompressor(), "gzip");
       Assert.assertEquals(cgs1.getSerializer(), "pig");
-      Assert.assertEquals(cgs2.getCompressor(), "lzo2");
+      Assert.assertEquals(cgs2.getCompressor(), "lzo");
       Assert.assertEquals(cgs2.getSerializer(), "avro");
-      Assert.assertEquals(cgs3.getCompressor(), "lzo2");
+      Assert.assertEquals(cgs3.getCompressor(), "lzo");
       Assert.assertEquals(cgs3.getSerializer(), "pig");
 
       System.out.println("*********** Column Map **********");
