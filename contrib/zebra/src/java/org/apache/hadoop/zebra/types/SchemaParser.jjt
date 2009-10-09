@@ -22,7 +22,7 @@ options {
 }
 
 PARSER_BEGIN(TableSchemaParser)
-package org.apache.pig.table.types;
+package org.apache.hadoop.zebra.types;
 import java.io.*;
 
 public class TableSchemaParser {

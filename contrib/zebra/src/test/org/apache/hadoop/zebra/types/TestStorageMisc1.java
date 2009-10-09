@@ -81,7 +81,7 @@ public class TestStorageMisc1 {
   @Test
   public void testStorageValid1() {
     try {
-        String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+        String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gz SECURE BY user:gaurav; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav group:data perm:0766; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav group:data perm:966; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
