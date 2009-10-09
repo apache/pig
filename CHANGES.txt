@@ -58,6 +58,8 @@ PIG-592: schema inferred incorrectly (daijy)
 
 PIG-989: Allow type merge between numerical type and non-numerical type (daijy)
 
+PIG-894: order-by fails when input is empty (daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES
