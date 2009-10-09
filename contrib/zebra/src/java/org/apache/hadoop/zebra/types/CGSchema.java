@@ -22,6 +22,9 @@ import java.io.IOException;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.permission.*;
+
+
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.file.tfile.Utils.Version;
@@ -37,14 +40,18 @@ public class CGSchema {
    private boolean sorted;
    private String comparator;
    private Schema schema;
-   private String compressor = "lzo2";
+   private String compressor = "lzo";
    private String serializer = "pig";
+   private String group		 = null;
+   private String owner		 = null;
+   private short  perm		 = -1;
+   
    // tmp schema file name, used as a flag of unfinished CG
    private final static String SCHEMA_FILE = ".schema";
    private final static String DEFAULT_COMPARATOR = "memcmp";
 	// schema version, should be same as BasicTable's most of the time
    private final static Version SCHEMA_VERSION =
-     new Version((short) 1, (short) 0);
+     new Version((short) 1, (short) 1);
 
    @Override
    public String toString() {
@@ -82,10 +89,13 @@ public class CGSchema {
      this.version = SCHEMA_VERSION;
    }
 
-   public CGSchema(Schema schema, boolean sorted, String serializer, String compressor) {
+   public CGSchema(Schema schema, boolean sorted, String serializer, String compressor, String owner, String group, short perm) {
   	this(schema, sorted);
   	this.serializer = serializer;
   	this.compressor = compressor;
+//  	this.owner = owner;
+  	this.group = group;
+  	this.perm  = perm;
    }
 
    @Override
@@ -125,12 +135,48 @@ public class CGSchema {
      return compressor;
    }
 
+   public String getGroup() {
+	     return this.group;
+   }
+
+   public short getPerm() {
+	     return this.perm;
+   }
+
+   public String getOwner() {
+	     return this.owner;
+ }
+   
+   
+   
    public void create(FileSystem fs, Path parent) throws IOException {
-     FSDataOutputStream outSchema = fs.create(makeFilePath(parent), false);
-	  version.write(outSchema);
-     WritableUtils.writeString(outSchema, schema.toString());
+	 fs.mkdirs(parent);
+	 if(this.owner != null || this.group != null) {
+	   fs.setOwner(parent, this.owner, this.group);
+	 }  
+
+	 if(this.perm != -1) {
+       fs.setPermission(parent, new FsPermission((short) this.perm));
+
+	 }
+	 
+	 FSDataOutputStream outSchema = fs.create(makeFilePath(parent), false);
+	 if(this.owner != null || this.group != null) {
+	   fs.setOwner(makeFilePath(parent), owner, group);
+	 }  
+	 if(this.perm != -1) {
+       fs.setPermission(makeFilePath(parent), new FsPermission((short) this.perm));
+
+	 }
+     version.write(outSchema);
+	 WritableUtils.writeString(outSchema, schema.toString());
      WritableUtils.writeVInt(outSchema, sorted ? 1 : 0);
      WritableUtils.writeString(outSchema, comparator);
+	 WritableUtils.writeString(outSchema, this.getCompressor());
+	 WritableUtils.writeString(outSchema, this.getSerializer());
+	 WritableUtils.writeString(outSchema, this.getGroup());
+     WritableUtils.writeVInt(outSchema, this.getPerm());
+
      outSchema.close();
    }
 
@@ -146,6 +192,13 @@ public class CGSchema {
      schema = new Schema(s);
      sorted = WritableUtils.readVInt(in) == 1 ? true : false;
      comparator = WritableUtils.readString(in);
+     if(version.compareTo(SCHEMA_VERSION) >= 0) {
+       compressor = WritableUtils.readString(in);
+       serializer = WritableUtils.readString(in);  
+   	   owner		= null;
+       group 		= WritableUtils.readString(in);
+       perm 		= (short) WritableUtils.readVInt(in);
+     }  
      in.close();
    }
 

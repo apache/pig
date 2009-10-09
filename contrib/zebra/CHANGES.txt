@@ -11,3 +11,7 @@ Trunk (unreleased changes)
     and a specific key placed in another CG, the second CG did not 
     work as expected. (Yan Zhou, Jing Huang (tests) via rangadi)
 
+    PIG-987. Access control for column groups. Users can specifify
+    desired group, owner, and, permissions for a column group.
+    (Yan Zhou via rangadi)
+

@@ -63,7 +63,7 @@ public class TestColumnGroupProjections {
     schema = new Schema("a,b,c,d,e,f,g");
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false,
-        "pig", "lzo2", true, conf);
+        "pig", "gz", null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part0", true);
 
     // row 1
@@ -168,7 +168,7 @@ public class TestColumnGroupProjections {
     try {
       row.get(0);
       Assert.fail("Failed to catch out of boundary exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -202,7 +202,7 @@ public class TestColumnGroupProjections {
     try {
       row.get(1);
       Assert.fail("Failed to catch out of boundary exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -236,7 +236,7 @@ public class TestColumnGroupProjections {
     try {
       row.get(1);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -270,7 +270,7 @@ public class TestColumnGroupProjections {
     try {
       row.get(2);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -304,7 +304,7 @@ public class TestColumnGroupProjections {
     try {
       row.get(2);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 

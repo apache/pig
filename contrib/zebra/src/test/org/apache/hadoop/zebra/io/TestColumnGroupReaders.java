@@ -77,7 +77,7 @@ public class TestColumnGroupReaders {
     System.out.println("testInsert2Inserters");
     boolean sorted = false; // true;
     writer = new ColumnGroup.Writer(path, "col1, colTWO", sorted, "pig",
-        "lzo2", true, conf);
+        "gz", null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", false);
     TableInserter ins2 = writer.getInserter("part2", false);
 
@@ -197,8 +197,8 @@ public class TestColumnGroupReaders {
       throws IOException, ExecException, ParseException {
     ColumnGroup.Writer writer = null;
     if (schemaString != null) {
-      writer = new ColumnGroup.Writer(path, schemaString, false, "pig", "lzo2",
-          true, conf);
+      writer = new ColumnGroup.Writer(path, schemaString, false, "pig", "gz",
+          null, null, (short) -1, true, conf);
     } else {
       writer = new ColumnGroup.Writer(path, conf);
     }

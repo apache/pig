@@ -914,10 +914,17 @@ public class BasicTable {
         cgTuples = new Tuple[numCGs];
         for (int nx = 0; nx < numCGs; nx++) {
           colGroups[nx] =
-              new ColumnGroup.Writer(BasicTable.makeCGPath(path, numCGs, nx),
-                  schemaFile.getPhysicalSchema(nx), sorted, schemaFile
-                      .getSerializer(nx), schemaFile.getCompressor(nx), false,
-                  conf);
+              new ColumnGroup.Writer(
+            		 BasicTable.makeCGPath(path, numCGs, nx), 
+            		 schemaFile.getPhysicalSchema(nx), 
+            		 sorted, 
+            		 schemaFile.getSerializer(nx), 
+            		 schemaFile.getCompressor(nx), 
+            		 schemaFile.getOwner(nx), 
+            		 schemaFile.getGroup(nx),
+            		 schemaFile.getPerm(nx), 
+            		 false, 
+            		 conf);
           cgTuples[nx] = TypesUtils.createTuple(colGroups[nx].getSchema());
         }
         metaWriter = MetaFile.createWriter(new Path(path, BT_META_FILE), conf);
@@ -1312,6 +1319,19 @@ public class BasicTable {
       return cgschemas[nx].getCompressor();
     }
 
+    public String getOwner(int nx) {
+        return cgschemas[nx].getOwner();
+      }
+
+    public String getGroup(int nx) {
+        return cgschemas[nx].getGroup();
+    }
+
+    public short getPerm(int nx) {
+        return cgschemas[nx].getPerm();
+    }
+    
+    
     /**
      * @return the string representation of the physical schema.
      */
