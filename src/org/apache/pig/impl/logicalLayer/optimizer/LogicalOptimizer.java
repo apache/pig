@@ -168,6 +168,7 @@ public class LogicalOptimizer extends
         //the code that follows is a copy of the code in the
         //base class. see the todo note in the base class
         boolean sawMatch = false;
+        boolean initialized = false;
         int numIterations = 0;
         do {
             sawMatch = false;
@@ -180,22 +181,21 @@ public class LogicalOptimizer extends
                     for (List<LogicalOperator> match:matches)
                     {
                         if (rule.getTransformer().check(match)) {
-                            // The transformer approves.
-                            sawMatch = true;
-                            rule.getTransformer().transform(match);
                             try {
+                                // The transformer approves.
+                                sawMatch = true;
+                                if (!initialized)
+                                {
+                                    ((LogicalTransformer)rule.getTransformer()).rebuildSchemas();
+                                    ((LogicalTransformer)rule.getTransformer()).rebuildProjectionMaps();
+                                    initialized = true;
+                                }
+                                rule.getTransformer().transform(match);
                                 ((LogicalTransformer)rule.getTransformer()).rebuildSchemas();
-                            } catch (FrontendException fee) {
-                                int errCode = 2145;
-                                String msg = "Problem while rebuilding schemas after transformation.";
-                                throw new OptimizerException(msg, errCode, PigException.BUG, fee);
-                            }
-
-                            try {
                                 ((LogicalTransformer)rule.getTransformer()).rebuildProjectionMaps();
                             } catch (FrontendException fee) {
                                 int errCode = 2145;
-                                String msg = "Problem while rebuilding projection maps after transformation.";
+                                String msg = "Problem while rebuilding projection map or schema in logical optimizer.";
                                 throw new OptimizerException(msg, errCode, PigException.BUG, fee);
                             }
 

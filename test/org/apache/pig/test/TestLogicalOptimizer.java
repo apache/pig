@@ -241,6 +241,14 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         } catch(Exception e) {
             assertTrue(((OptimizerException)e).getErrorCode() == 2052);
         }
-    }    
+    }
+    
+    @Test
+    //See bug PIG-995
+    //We shall throw no exception here
+    public void testOPLimit11Optimizer() throws Exception {
+        LogicalPlan plan = planTester.buildPlan("B = foreach (limit (order (load 'myfile' AS (a0, a1, a2)) by $1) 10) generate $0;");
+        optimizePlan(plan);
+    }
 }
 
