@@ -75,7 +75,7 @@ public class TableStorageParser implements TableStorageParserConstants {
                 public TableStorageParser(java.io.Reader in, Partition partition, Schema schema) { this(in); mSchema = schema; this.partition = partition;}
                 private Schema mSchema;
                 private int mDefaultCGIndex = -1;
-                private String mCompressor = "lzo", mSerializer = "pig";
+                private String mCompressor = "gz", mSerializer = "pig";
                 private String mOwner = null, mGroup = null;
                 private short mPerm = -1;
                 private int mCGCount = 0;
@@ -258,9 +258,8 @@ public class TableStorageParser implements TableStorageParserConstants {
       }
     }
 //		String compressor, serializer;
-                System.out.println( "compressor = " + compressor + " serializer = " + serializer + " " + owner + " " + group + " " + perm);
                 if (compressor == null)
-                        compressor = "lzo";
+                        compressor = "gz";
                 if (serializer == null)
                         serializer = "pig";
                 if (fs == null)
@@ -620,15 +619,15 @@ public class TableStorageParser implements TableStorageParserConstants {
     return false;
   }
 
+  private boolean jj_3_1() {
+    if (jj_scan_token(0)) return true;
+    return false;
+  }
+
   private boolean jj_3R_7() {
     if (jj_scan_token(IDENTIFIER)) return true;
     if (jj_scan_token(27)) return true;
     if (jj_3R_12()) return true;
-    return false;
-  }
-
-  private boolean jj_3_1() {
-    if (jj_scan_token(0)) return true;
     return false;
   }
 

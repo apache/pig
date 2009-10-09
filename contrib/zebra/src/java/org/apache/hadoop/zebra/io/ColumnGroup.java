@@ -339,6 +339,14 @@ class ColumnGroup {
       return cgschema;
     }
 
+    public String getGroup() {
+        return cgschema.getGroup();
+      }
+
+    public short getPerm() {
+        return cgschema.getPerm();
+    }
+
     /**
      * Get a scanner that reads all rows whose row keys fall in a specific
      * range.
@@ -1717,7 +1725,12 @@ class ColumnGroup {
       IOutils.indent(out, indent);
       out.println("Serializer: " + reader.getSerializer());
       IOutils.indent(out, indent);
-      out.println("Compressor: " + reader.getCompressor());
+      out.println("Compressor: " + reader.getCompressor());      
+      IOutils.indent(out, indent);
+      out.println("Group: " + reader.getGroup());      
+      IOutils.indent(out, indent);
+      out.println("Perm: " + reader.getPerm());      
+
       properties.put("Schema", reader.getSchema().toString());
       // Now output the properties table.
       int maxKeyLength = 0;

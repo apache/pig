@@ -14,4 +14,6 @@ Trunk (unreleased changes)
     PIG-987. Access control for column groups. Users can specifify
     desired group, owner, and, permissions for a column group.
     (Yan Zhou via rangadi)
+    
+    PIG-991. Various minor bugs. (Yan Zhou via rangadi)
 
