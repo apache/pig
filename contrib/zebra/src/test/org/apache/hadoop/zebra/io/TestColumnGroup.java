@@ -61,6 +61,7 @@ public class TestColumnGroup {
     conf.setInt("table.output.tfile.minBlock.size", 64 * 1024);
     conf.setInt("table.input.split.minSize", 64 * 1024);
     conf.set("table.output.tfile.compression", "none");
+    conf.set("io.compression.codec.lzo.class", "no");
     random = new Random(System.nanoTime());
     rootPath = new Path(System.getProperty("test.build.data",
         "build/test/data/workdir3"));

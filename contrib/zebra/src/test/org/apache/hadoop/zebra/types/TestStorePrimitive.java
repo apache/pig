@@ -72,7 +72,7 @@ public class TestStorePrimitive {
   @Test
   public void testStorageValid1() {
     try {
-      String strStorage = "[f1, f2]; [f3, f4] COMPRESS BY gzip SERIALIZE BY avro";
+      String strStorage = "[f1, f2]; [f3, f4] COMPRESS BY gz SERIALIZE BY avro";
       Partition p = new Partition(schema.toString(), strStorage);
       CGSchema[] cgschemas = p.getCGSchemas();
 
@@ -107,11 +107,11 @@ public class TestStorePrimitive {
       Assert.assertEquals("f6", f32.name);
       Assert.assertEquals(ColumnType.BYTES, f32.type);
 
-      Assert.assertEquals(cgs1.getCompressor(), "lzo");
+      Assert.assertEquals(cgs1.getCompressor(), "gz");
       Assert.assertEquals(cgs1.getSerializer(), "pig");
-      Assert.assertEquals(cgs2.getCompressor(), "gzip");
+      Assert.assertEquals(cgs2.getCompressor(), "gz");
       Assert.assertEquals(cgs2.getSerializer(), "avro");
-      Assert.assertEquals(cgs3.getCompressor(), "lzo");
+      Assert.assertEquals(cgs3.getCompressor(), "gz");
       Assert.assertEquals(cgs3.getSerializer(), "pig");
 
       System.out.println("*********** Column Map **********");
