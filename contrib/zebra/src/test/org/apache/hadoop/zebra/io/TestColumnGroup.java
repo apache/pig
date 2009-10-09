@@ -63,7 +63,7 @@ public class TestColumnGroup {
     conf.set("table.output.tfile.compression", "none");
     random = new Random(System.nanoTime());
     rootPath = new Path(System.getProperty("test.build.data",
-        "build/test/data/work-dir"));
+        "build/test/data/workdir3"));
     fs = rootPath.getFileSystem(conf);
   }
 
@@ -98,7 +98,7 @@ public class TestColumnGroup {
     }
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, sorted,
-        "pig", "lzo2", false, conf);
+        "pig", "gz", "gauravj", null, (short) Short.parseShort("755", 8), false, conf);
     writer.finish();
 
     int total = 0;
@@ -197,7 +197,7 @@ public class TestColumnGroup {
     }
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, true,
-        "pig", "lzo2", false, conf);
+        "pig", "gz", "gauravj", null, (short) Short.parseShort("777", 8), false, conf);
     writer.finish();
 
     int total = 0;

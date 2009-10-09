@@ -262,7 +262,7 @@ public class TestStorageMap {
       System.out.println(cgs1);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"[\" \"[ \"\" at line 1, column 1.";
+      String str = "Encountered \" \"{\" \"{ \"\" at line 1, column 4.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);

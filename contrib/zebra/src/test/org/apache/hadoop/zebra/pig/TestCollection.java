@@ -210,7 +210,7 @@ public class TestCollection {
   @Test
   public void testRead1() throws IOException, ParseException {
     String query = "records = LOAD '" + path.toString()
-        + "' USING org.apache.pig.table.pig.TableLoader('c');";
+        + "' USING org.apache.hadoop.zebra.pig.TableLoader('c');";
     System.out.println(query);
     pigServer.registerQuery(query);
     Iterator<Tuple> it = pigServer.openIterator("records");

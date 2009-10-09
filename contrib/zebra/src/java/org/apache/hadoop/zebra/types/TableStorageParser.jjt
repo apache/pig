@@ -22,7 +22,7 @@ options {
 }
 
 PARSER_BEGIN(TableStorageParser)
-package org.apache.pig.table.types;
+package org.apache.hadoop.zebra.types;
 import java.io.*;
 import java.util.*;
 
@@ -98,7 +98,9 @@ public class TableStorageParser {
 		public TableStorageParser(java.io.Reader in, Partition partition, Schema schema) { this(in); mSchema = schema; this.partition = partition;}
 		private Schema mSchema;
 		private int mDefaultCGIndex = -1;
-		private String mCompressor = "lzo2", mSerializer = "pig";
+		private String mCompressor = "lzo", mSerializer = "pig";
+		private String mOwner = null, mGroup = null;
+		private short mPerm = -1;
 		private int mCGCount = 0;
 		private Partition partition;
 }
@@ -113,20 +115,28 @@ SKIP : {
 |  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
 }
 
-TOKEN : { <COMPRESSOR : "lzo2" | "gzip"> }
+TOKEN : { <COMPRESSOR : "lzo" | "gzip"> }
 TOKEN : { <SERIALIZER : ("pig" | "avro")> }
 
-TOKEN : { <ORDER : "order by"> }
-TOKEN : { <COMPRESS : "compress by"> }
+TOKEN : { <ORDER	 : "order by"> }
+TOKEN : { <COMPRESS	 : "compress by"> }
 TOKEN : { <SERIALIZE : "serialize by"> }
+TOKEN : { <SECURE 	 : "secure by"> }
+TOKEN : { <USER		 : "user"> }
+TOKEN : { <GROUP	 : "group"> }
+TOKEN : { <PERM		 : "perm"> }
+
+
 
 TOKEN:
 {
  	<#LETTER : ["a"-"z", "A"-"Z"] >
 |	<#DIGIT : ["0"-"9"] >
+|   <#OCTAL : ["0" - "7"] >
 |   <#SPECIALCHAR : ["_"] >
 |   <#FSSPECIALCHAR: ["-", ":", "/"]>
 |	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* >
+|   <SHORT	:	(<OCTAL>){3}	>
 }
 
 ArrayList<CGSchema> StorageSchema() throws ParseException :
@@ -137,9 +147,9 @@ ArrayList<CGSchema> StorageSchema() throws ParseException :
 }
 {
 	try {
-		<EOF>
+		LOOKAHEAD(2) <EOF>
 		{
-			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, 0);
+			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mOwner, mGroup, mPerm, 0);
 			if (defaultSchema != null)
 				s.add(defaultSchema);
 			return s;
@@ -148,7 +158,7 @@ ArrayList<CGSchema> StorageSchema() throws ParseException :
 		fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);}
 		(";" fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);})* <EOF>
 		{
-			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
+			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
 			if (defaultSchema != null)
 				s.add(defaultSchema);
 			return s;
@@ -163,37 +173,107 @@ CGSchema FieldSchema() :
 	Token t1 = null, t2 = null; 
 	Schema fs = null;
 	CGSchema cs = null;
+	String compressor = null;
+	String serializer = null;
+	String secureBy   = null;
+	String owner       = null;
+	String group	  = null;
+	short perm		  = -1;
+	String secure	  = null;
 }
 {
+
 	(
-	<COMPRESS> t1 = <IDENTIFIER> [ <SERIALIZE> t2 = <IDENTIFIER> ]
-|
-	<SERIALIZE> t2 = <IDENTIFIER> [ <COMPRESS> t1 = <IDENTIFIER> ]
-|
-// one column group schema's length cannot exceed 1000;
-// how good is value 1000?
-  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <COMPRESS> t1 = <COMPRESSOR> <SERIALIZE> t2 = <SERIALIZER>
-|
-  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <SERIALIZE> t2 = <SERIALIZER> <COMPRESS> t1 = <COMPRESSOR> 
-|
-  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <COMPRESS> t1 = <COMPRESSOR> 
-|
-  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" <SERIALIZE> t2 = <SERIALIZER>
-|
-  LOOKAHEAD(100) "[" fs = RecordSchema(null) "]" 
+  		( "[" fs = RecordSchema(null) "]" )?
+  		(
+    	  <COMPRESS>
+      	  t1 = <COMPRESSOR>
+      	  {
+      	    if(compressor != null )
+      	    {
+				String msg = "Compression information defined more than once";
+				throw new ParseException(msg);      	      
+      	    } else {
+      	    	compressor = t1.image;
+      	    }
+      	      
+      	  }
+      	  |
+      	  <SERIALIZE>
+      	  t1 = <SERIALIZER>
+      	  {
+      	    if(serializer != null )
+      	    {
+				String msg = "Serializer Information defined more than once";
+				throw new ParseException(msg);      	      
+      	    } else 
+      	    	serializer = t1.image;
+      	      
+      	  }
+      	  |
+      	  t1 = <SECURE>
+      	  {
+      	    if(secure != null)
+      	    {
+				String msg = "SECURE BY defined more than once";
+				throw new ParseException(msg);      	      
+      	      
+      	    } else
+      	    	secure = t1.image;
+      	      
+      	  }
+      	  (
+      	    <USER>
+      	    ":"
+      	    t1 = <IDENTIFIER>
+      	    {
+      	      if(owner != null) 
+      	      {
+				String msg = "User defined more than once";
+				throw new ParseException(msg);      	      
+      	      } else
+      	      		owner = t1.image;	
+      	    }
+      	    |
+      	    <GROUP>
+      	    ":"
+      	    t1 = <IDENTIFIER>
+      	    {
+      	      if(group != null) 
+      	      {
+				String msg = "Group defined more than once";
+				throw new ParseException(msg);      	      
+      	      } else
+      	      		group = t1.image;
+      	    
+      	    }
+      	    |
+      	    <PERM>
+      	    ":"
+      	    t1 = <SHORT>
+      	    {
+      	      if(perm != -1) 
+      	      {
+				String msg = "Perms defined more than once";
+				throw new ParseException(msg);      	      
+      	      } else
+      	      		perm = Short.parseShort(t1.image, 8); 
+      	    
+      	    }
+      	  
+      	  )+
+      
+        )*
+       	
+     
 	)
 	{
-		String compressor, serializer;
-		if (t1 == null)
-			compressor = "lzo2";
-		else {
-			compressor = t1.image;
-		}
-		if (t2 == null)
+//		String compressor, serializer;
+		System.out.println( "compressor = " + compressor + " serializer = " + serializer + " " + owner + " " + group + " " + perm);
+		if (compressor == null)
+			compressor = "lzo";
+		if (serializer == null)
 			serializer = "pig";
-		else {
-			serializer = t2.image;
-		}
 		if (fs == null)
 		{
 			if (mDefaultCGIndex != -1)
@@ -204,11 +284,16 @@ CGSchema FieldSchema() :
 			mDefaultCGIndex = mCGCount;
 			mCompressor = compressor;
 			mSerializer = serializer;
+			mOwner		= owner;
+			mGroup		= group;
+			mPerm 		= perm; 
 		} else
-			cs = new CGSchema(fs, false, serializer, compressor);
+			cs = new CGSchema(fs, false, serializer, compressor, owner, group, perm);
 		return cs;
 	}
 }
+
+
 
 Schema.ColumnSchema ColumnSchema(int colIndex) throws ParseException: 
 {

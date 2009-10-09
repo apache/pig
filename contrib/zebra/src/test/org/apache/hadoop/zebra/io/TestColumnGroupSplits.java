@@ -73,7 +73,7 @@ public class TestColumnGroupSplits {
     schema = new Schema(STR_SCHEMA);
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false,
-        "pig", "lzo2", true, conf);
+        "pig", "gz", null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part0", true);
 
     Tuple row = TypesUtils.createTuple(schema);
@@ -273,7 +273,7 @@ public class TestColumnGroupSplits {
     try {
       row.get(0);
       Assert.fail("Failed to catch out of boundary exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -306,7 +306,7 @@ public class TestColumnGroupSplits {
     try {
       row.get(1);
       Assert.fail("Failed to catch out of boundary exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -340,7 +340,7 @@ public class TestColumnGroupSplits {
     try {
       row.get(1);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -374,7 +374,7 @@ public class TestColumnGroupSplits {
     try {
       row.get(2);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -415,7 +415,7 @@ public class TestColumnGroupSplits {
     try {
       Object obj = tupColl.get(1);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
     tupColl = itorColl.next();
@@ -424,7 +424,7 @@ public class TestColumnGroupSplits {
     try {
       row.get(3);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -474,7 +474,7 @@ public class TestColumnGroupSplits {
     try {
       Object obj = tupColl.get(1);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
     tupColl = itorColl.next();
@@ -482,7 +482,7 @@ public class TestColumnGroupSplits {
     try {
       Object obj = tupColl.get(1);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
     Assert.assertFalse(itorColl.hasNext());
@@ -492,7 +492,7 @@ public class TestColumnGroupSplits {
     try {
       Object obj = row.get(4);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
@@ -545,7 +545,7 @@ public class TestColumnGroupSplits {
     try {
       row.get(3);
       Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (ExecException e) {
+    } catch (IndexOutOfBoundsException e) {
       // no op, expecting out of bounds exceptions
     }
 
