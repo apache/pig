@@ -145,12 +145,8 @@ public abstract class SampleLoader implements LoadFunc {
 	public Tuple getNext() throws IOException {
        long initialPos = loader.getPosition();
         
-        // make sure we move to a boundry of a record
-        Tuple t = loader.getSampledTuple();        
-        long middlePos = loader.getPosition();
-        
         // we move to next boundry
-        t = loader.getSampledTuple();        
+        Tuple t = loader.getSampledTuple();        
         long finalPos = loader.getPosition();
 
         long toSkip = skipInterval - (finalPos - initialPos);
@@ -187,7 +183,7 @@ public abstract class SampleLoader implements LoadFunc {
         }
         
         // add size of the tuple at the end
-        m.set(t.size(), (finalPos-middlePos) + 1); // offset 1 for null
+        m.set(t.size(), (finalPos-initialPos) + 1); // offset 1 for null
         
         return m;		
 	}

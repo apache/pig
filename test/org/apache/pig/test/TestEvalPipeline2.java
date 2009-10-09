@@ -59,7 +59,6 @@ public class TestEvalPipeline2 extends TestCase {
 //        pigServer = new PigServer(ExecType.LOCAL);
     }
     
-    
     @Test
     public void testUdfInputOrder() throws IOException {
         String[] input = {
@@ -409,5 +408,14 @@ public class TestEvalPipeline2 extends TestCase {
         assertEquals(10, numIdentity);
     }
 
-
+    @Test
+    // See PIG-894
+    public void testEmptySort() throws Exception{
+        File tmpFile = File.createTempFile("test", "txt");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("B = order A by $0;");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        
+        assertTrue(iter.hasNext()==false);
+    }
 }
