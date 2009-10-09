@@ -41,6 +41,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
@@ -49,6 +50,8 @@ import org.apache.pig.impl.io.NullableLongWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 
 public class WeightedRangePartitioner implements Partitioner<PigNullableWritable, Writable> {
     PigNullableWritable[] quantiles;
@@ -86,19 +89,32 @@ public class WeightedRangePartitioner implements Partitioner<PigNullableWritable
             DataBag quantilesList;
             loader.bindTo(quantilesFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
             Tuple t = loader.getNext();
-            if(t==null) throw new RuntimeException("Empty samples file");
-            // the Quantiles file has a tuple as under:
-            // (numQuantiles, bag of samples) 
-            // numQuantiles here is the reduce parallelism
-            Map<String, Object> quantileMap = (Map<String, Object>) t.get(0);
-            quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
-            InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
-            convertToArray(quantilesList);
-            for(Entry<Object, Object> ent : weightedPartsData.entrySet()){
-                Tuple key = (Tuple)ent.getKey(); // sample item which repeats
-                float[] probVec = getProbVec((Tuple)ent.getValue());
-                weightedParts.put(getPigNullableWritable(key), 
-                        new DiscreteProbabilitySampleGenerator(probVec));
+            if(t!=null)
+            {
+                // the Quantiles file has a tuple as under:
+                // (numQuantiles, bag of samples) 
+                // numQuantiles here is the reduce parallelism
+                Map<String, Object> quantileMap = (Map<String, Object>) t.get(0);
+                quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
+                InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
+                convertToArray(quantilesList);
+                for(Entry<Object, Object> ent : weightedPartsData.entrySet()){
+                    Tuple key = (Tuple)ent.getKey(); // sample item which repeats
+                    float[] probVec = getProbVec((Tuple)ent.getValue());
+                    weightedParts.put(getPigNullableWritable(key), 
+                            new DiscreteProbabilitySampleGenerator(probVec));
+                }
+            }
+            else
+            {
+                ArrayList<Pair<FileSpec, Boolean>> inp = (ArrayList<Pair<FileSpec, Boolean>>)ObjectSerializer.deserialize(job.get("pig.inputs", ""));
+                String inputFileName = inp.get(0).first.getFileName();
+                long inputSize = FileLocalizer.getSize(inputFileName);
+                if (inputSize!=0)
+                {
+                    throw new RuntimeException("Empty samples file and non-empty input file");
+                }
+                // Otherwise, we do not put anything to weightedParts
             }
         }catch (Exception e){
             throw new RuntimeException(e);
