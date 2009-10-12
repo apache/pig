@@ -72,7 +72,7 @@ public class TestColumnGroupSplits {
 
     schema = new Schema(STR_SCHEMA);
 
-    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false,
+    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false, path.getName(),
         "pig", "gz", null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part0", true);
 

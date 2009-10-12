@@ -62,7 +62,7 @@ public class TestColumnGroupProjections {
 
     schema = new Schema("a,b,c,d,e,f,g");
 
-    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false,
+    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false, path.getName(),
         "pig", "gz", null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part0", true);
 

@@ -98,6 +98,7 @@ public class TableStorageParser {
 		public TableStorageParser(java.io.Reader in, Partition partition, Schema schema) { this(in); mSchema = schema; this.partition = partition;}
 		private Schema mSchema;
 		private int mDefaultCGIndex = -1;
+		private String mName = null;
 		private String mCompressor = "gz", mSerializer = "pig";
 		private String mOwner = null, mGroup = null;
 		private short mPerm = -1;
@@ -125,6 +126,8 @@ TOKEN : { <SECURE 	 : "secure by"> }
 TOKEN : { <USER		 : "user"> }
 TOKEN : { <GROUP	 : "group"> }
 TOKEN : { <PERM		 : "perm"> }
+TOKEN : { <AS		 : "as"> }
+
 
 
 
@@ -149,18 +152,90 @@ ArrayList<CGSchema> StorageSchema() throws ParseException :
 	try {
 		LOOKAHEAD(2) <EOF>
 		{
-			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mOwner, mGroup, mPerm, 0);
+			defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, 0);
 			if (defaultSchema != null)
 				s.add(defaultSchema);
+
+      // check column group names, add system created names when necessary;
+      HashSet<String> cgNames = new HashSet<String>();
+      ArrayList<CGSchema> unnamed = new ArrayList<CGSchema>(); 	
+      for (int i = 0; i < s.size(); i++) { 
+        CGSchema cgSchema = s.get(i);
+        String str = cgSchema.getName();
+        if (str != null) {
+          if (!cgNames.add(str)) {
+            throw new ParseException("Duplicate column group names.");
+          }
+        } else {
+          unnamed.add(cgSchema);
+        }
+      }
+      
+      int digits = 1;
+      int total = unnamed.size();
+      while (total >= 10) {
+        ++digits;
+        total /= 10;
+      }
+      String formatString = "%0" + digits + "d";
+      
+      int idx = 0;
+      for (int i = 0; i < unnamed.size(); i++) { 
+        CGSchema cgSchema = unnamed.get(i);
+        String str = null;
+        while (true) {
+          str = "CG" + String.format(formatString, idx++);
+          if (!cgNames.contains(str)) {
+            break;
+          }
+        }
+        cgSchema.setName(str);
+      }
 			return s;
 		}
 	|
 		fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);}
 		(";" fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);})* <EOF>
 		{
-			defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
+			defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
 			if (defaultSchema != null)
 				s.add(defaultSchema);
+
+      // check column group names, add system created names when necessary;
+      HashSet<String> cgNames = new HashSet<String>();
+      ArrayList<CGSchema> unnamed = new ArrayList<CGSchema>(); 	
+      for (int i = 0; i < s.size(); i++) { 
+        CGSchema cgSchema = s.get(i);
+        String str = cgSchema.getName();
+        if (str != null) {
+          if (!cgNames.add(str)) {
+            throw new ParseException("Duplicate column group names.");
+          }
+        } else {
+          unnamed.add(cgSchema);
+        }
+      }
+      
+      int digits = 1;
+      int total = unnamed.size();
+      while (total >= 10) {
+        ++digits;
+        total /= 10;
+      }
+      String formatString = "%0" + digits + "d";
+      
+      int idx = 0;
+      for (int i = 0; i < unnamed.size(); i++) { 
+        CGSchema cgSchema = unnamed.get(i);
+        String str = null;
+        while (true) {
+          str = "CG" + String.format(formatString, idx++);
+          if (!cgNames.contains(str)) {
+            break;
+          }
+        }
+        cgSchema.setName(str);
+      }
 			return s;
 		}
 	} catch (TokenMgrError e) {
@@ -173,6 +248,7 @@ CGSchema FieldSchema() :
 	Token t1 = null, t2 = null; 
 	Schema fs = null;
 	CGSchema cs = null;
+	String name = null;
 	String compressor = null;
 	String serializer = null;
 	String secureBy   = null;
@@ -185,6 +261,18 @@ CGSchema FieldSchema() :
 
 	(
   		( "[" fs = RecordSchema(null) "]" )?
+  		(
+  		  <AS>
+  		  t1 = <IDENTIFIER>
+  		  {
+  		    if (name != null)
+  		    {
+  		      String msg = "Column group name defined more than once";
+  		    } else {
+  		      name = t1.image;
+  		    }
+  		  }
+  		)?
   		(
     	  <COMPRESS>
       	  t1 = <COMPRESSOR>
@@ -281,13 +369,14 @@ CGSchema FieldSchema() :
 				throw new ParseException(msg);
 			}
 			mDefaultCGIndex = mCGCount;
+			mName       = name;
 			mCompressor = compressor;
 			mSerializer = serializer;
 			mOwner		= owner;
 			mGroup		= group;
 			mPerm 		= perm; 
 		} else
-			cs = new CGSchema(fs, false, serializer, compressor, owner, group, perm);
+			cs = new CGSchema(fs, false, name, serializer, compressor, owner, group, perm);
 		return cs;
 	}
 }

@@ -30,6 +30,7 @@ import org.junit.runners.Suite;
   TestCollection.class,
   TestColumnGroupInserters.class,
   TestColumnGroup.class,
+  TestColumnGroupName1.class,
   TestColumnGroupOpen.class,
   TestColumnGroupProjections.class,
   TestColumnGroupReaders.class,

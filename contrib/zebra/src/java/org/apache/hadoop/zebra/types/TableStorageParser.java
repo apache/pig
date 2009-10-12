@@ -75,6 +75,7 @@ public class TableStorageParser implements TableStorageParserConstants {
                 public TableStorageParser(java.io.Reader in, Partition partition, Schema schema) { this(in); mSchema = schema; this.partition = partition;}
                 private Schema mSchema;
                 private int mDefaultCGIndex = -1;
+                private String mName = null;
                 private String mCompressor = "gz", mSerializer = "pig";
                 private String mOwner = null, mGroup = null;
                 private short mPerm = -1;
@@ -88,9 +89,45 @@ public class TableStorageParser implements TableStorageParserConstants {
     try {
       if (jj_2_1(2)) {
         jj_consume_token(0);
-                        defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mOwner, mGroup, mPerm, 0);
+                        defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, 0);
                         if (defaultSchema != null)
                                 s.add(defaultSchema);
+
+      // check column group names, add system created names when necessary;
+      HashSet<String> cgNames = new HashSet<String>();
+      ArrayList<CGSchema> unnamed = new ArrayList<CGSchema>();
+      for (int i = 0; i < s.size(); i++) {
+        CGSchema cgSchema = s.get(i);
+        String str = cgSchema.getName();
+        if (str != null) {
+          if (!cgNames.add(str)) {
+            {if (true) throw new ParseException("Duplicate column group names.");}
+          }
+        } else {
+          unnamed.add(cgSchema);
+        }
+      }
+
+      int digits = 1;
+      int total = unnamed.size();
+      while (total >= 10) {
+        ++digits;
+        total /= 10;
+      }
+      String formatString = "%0" + digits + "d";
+
+      int idx = 0;
+      for (int i = 0; i < unnamed.size(); i++) {
+        CGSchema cgSchema = unnamed.get(i);
+        String str = null;
+        while (true) {
+          str = "CG" + String.format(formatString, idx++);
+          if (!cgNames.contains(str)) {
+            break;
+          }
+        }
+        cgSchema.setName(str);
+      }
                         {if (true) return s;}
       } else {
         switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -98,28 +135,65 @@ public class TableStorageParser implements TableStorageParserConstants {
         case COMPRESS:
         case SERIALIZE:
         case SECURE:
-        case 23:
+        case AS:
         case 24:
+        case 25:
           fs = FieldSchema();
                                     mCGCount++; if (fs != null) s.add(fs);
           label_1:
           while (true) {
             switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
-            case 23:
+            case 24:
               ;
               break;
             default:
               jj_la1[0] = jj_gen;
               break label_1;
             }
-            jj_consume_token(23);
+            jj_consume_token(24);
             fs = FieldSchema();
                                          mCGCount++; if (fs != null) s.add(fs);
           }
           jj_consume_token(0);
-                        defaultSchema = partition.generateDefaultCGSchema(mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
+                        defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
                         if (defaultSchema != null)
                                 s.add(defaultSchema);
+
+      // check column group names, add system created names when necessary;
+      HashSet<String> cgNames = new HashSet<String>();
+      ArrayList<CGSchema> unnamed = new ArrayList<CGSchema>();
+      for (int i = 0; i < s.size(); i++) {
+        CGSchema cgSchema = s.get(i);
+        String str = cgSchema.getName();
+        if (str != null) {
+          if (!cgNames.add(str)) {
+            {if (true) throw new ParseException("Duplicate column group names.");}
+          }
+        } else {
+          unnamed.add(cgSchema);
+        }
+      }
+
+      int digits = 1;
+      int total = unnamed.size();
+      while (total >= 10) {
+        ++digits;
+        total /= 10;
+      }
+      String formatString = "%0" + digits + "d";
+
+      int idx = 0;
+      for (int i = 0; i < unnamed.size(); i++) {
+        CGSchema cgSchema = unnamed.get(i);
+        String str = null;
+        while (true) {
+          str = "CG" + String.format(formatString, idx++);
+          if (!cgNames.contains(str)) {
+            break;
+          }
+        }
+        cgSchema.setName(str);
+      }
                         {if (true) return s;}
           break;
         default:
@@ -138,6 +212,7 @@ public class TableStorageParser implements TableStorageParserConstants {
         Token t1 = null, t2 = null;
         Schema fs = null;
         CGSchema cs = null;
+        String name = null;
         String compressor = null;
         String serializer = null;
         String secureBy   = null;
@@ -146,13 +221,28 @@ public class TableStorageParser implements TableStorageParserConstants {
         short perm                = -1;
         String secure     = null;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
-    case 24:
-      jj_consume_token(24);
-      fs = RecordSchema(null);
+    case 25:
       jj_consume_token(25);
+      fs = RecordSchema(null);
+      jj_consume_token(26);
       break;
     default:
       jj_la1[2] = jj_gen;
+      ;
+    }
+    switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
+    case AS:
+      jj_consume_token(AS);
+      t1 = jj_consume_token(IDENTIFIER);
+                    if (name != null)
+                    {
+                      String msg = "Column group name defined more than once";
+                    } else {
+                      name = t1.image;
+                    }
+      break;
+    default:
+      jj_la1[3] = jj_gen;
       ;
     }
     label_2:
@@ -164,7 +254,7 @@ public class TableStorageParser implements TableStorageParserConstants {
         ;
         break;
       default:
-        jj_la1[3] = jj_gen;
+        jj_la1[4] = jj_gen;
         break label_2;
       }
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -203,7 +293,7 @@ public class TableStorageParser implements TableStorageParserConstants {
           switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
           case USER:
             jj_consume_token(USER);
-            jj_consume_token(26);
+            jj_consume_token(27);
             t1 = jj_consume_token(IDENTIFIER);
               if(owner != null)
               {
@@ -214,7 +304,7 @@ public class TableStorageParser implements TableStorageParserConstants {
             break;
           case GROUP:
             jj_consume_token(GROUP);
-            jj_consume_token(26);
+            jj_consume_token(27);
             t1 = jj_consume_token(IDENTIFIER);
               if(group != null)
               {
@@ -225,7 +315,7 @@ public class TableStorageParser implements TableStorageParserConstants {
             break;
           case PERM:
             jj_consume_token(PERM);
-            jj_consume_token(26);
+            jj_consume_token(27);
             t1 = jj_consume_token(SHORT);
               if(perm != -1)
               {
@@ -235,7 +325,7 @@ public class TableStorageParser implements TableStorageParserConstants {
                         perm = Short.parseShort(t1.image, 8);
             break;
           default:
-            jj_la1[4] = jj_gen;
+            jj_la1[5] = jj_gen;
             jj_consume_token(-1);
             throw new ParseException();
           }
@@ -246,13 +336,13 @@ public class TableStorageParser implements TableStorageParserConstants {
             ;
             break;
           default:
-            jj_la1[5] = jj_gen;
+            jj_la1[6] = jj_gen;
             break label_3;
           }
         }
         break;
       default:
-        jj_la1[6] = jj_gen;
+        jj_la1[7] = jj_gen;
         jj_consume_token(-1);
         throw new ParseException();
       }
@@ -270,13 +360,14 @@ public class TableStorageParser implements TableStorageParserConstants {
                                 {if (true) throw new ParseException(msg);}
                         }
                         mDefaultCGIndex = mCGCount;
+                        mName       = name;
                         mCompressor = compressor;
                         mSerializer = serializer;
                         mOwner          = owner;
                         mGroup          = group;
                         mPerm           = perm;
                 } else
-                        cs = new CGSchema(fs, false, serializer, compressor, owner, group, perm);
+                        cs = new CGSchema(fs, false, name, serializer, compressor, owner, group, perm);
                 {if (true) return cs;}
     throw new Error("Missing return statement in function");
   }
@@ -324,7 +415,7 @@ public class TableStorageParser implements TableStorageParserConstants {
         Token t1 = null;
         Schema.ColumnSchema fs;
     t1 = jj_consume_token(IDENTIFIER);
-    jj_consume_token(27);
+    jj_consume_token(28);
     fs = AnonymousMapSchema(schema.getColumn(t1.image), t1.image, 0, colIndex);
                 {if (true) return fs;}
     throw new Error("Missing return statement in function");
@@ -334,7 +425,7 @@ public class TableStorageParser implements TableStorageParserConstants {
         Token t1 = null;
         Schema.ColumnSchema fs;
     t1 = jj_consume_token(IDENTIFIER);
-    jj_consume_token(28);
+    jj_consume_token(29);
     fs = AnonymousRecordSchema(schema.getColumn(t1.image), t1.image, 0, colIndex);
                 {if (true) return fs;}
     throw new Error("Missing return statement in function");
@@ -357,7 +448,7 @@ public class TableStorageParser implements TableStorageParserConstants {
 
   final public Schema.ColumnSchema AnonymousSchemaRecord(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException, ParseException {
         Schema.ColumnSchema fs;
-    jj_consume_token(28);
+    jj_consume_token(29);
     fs = AnonymousRecordSchema(schema, name, cl, colIndex);
                 {if (true) return fs;}
     throw new Error("Missing return statement in function");
@@ -365,7 +456,7 @@ public class TableStorageParser implements TableStorageParserConstants {
 
   final public Schema.ColumnSchema AnonymousSchemaMap(Schema.ColumnSchema schema, String name, int cl, int colIndex) throws ParseException, ParseException {
         Schema.ColumnSchema fs;
-    jj_consume_token(27);
+    jj_consume_token(28);
     fs = AnonymousMapSchema(schema, name, cl, colIndex);
                 {if (true) return fs;}
     throw new Error("Missing return statement in function");
@@ -383,20 +474,20 @@ public class TableStorageParser implements TableStorageParserConstants {
       label_4:
       while (true) {
         switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
-        case 29:
+        case 30:
           ;
           break;
         default:
-          jj_la1[7] = jj_gen;
+          jj_la1[8] = jj_gen;
           break label_4;
         }
-        jj_consume_token(29);
+        jj_consume_token(30);
         fs = ColumnSchema(++colIndex);
                                                      list.add(fs);
       }
       break;
     default:
-      jj_la1[8] = jj_gen;
+      jj_la1[9] = jj_gen;
 
                     list = null;
     }
@@ -455,7 +546,7 @@ public class TableStorageParser implements TableStorageParserConstants {
                         fs = new Schema.ColumnSchema(name, fs0.schema, fs0.type);
         break;
       default:
-        jj_la1[9] = jj_gen;
+        jj_la1[10] = jj_gen;
         jj_consume_token(-1);
         throw new ParseException();
       }
@@ -476,9 +567,9 @@ public class TableStorageParser implements TableStorageParserConstants {
                 throw new ParseException(msg);
         }
         partition.setSplit(schema, Partition.SplitType.MAP, Partition.SplitType.RECORD, name, null, false);
-    jj_consume_token(30);
-    keys = hashKeys();
     jj_consume_token(31);
+    keys = hashKeys();
+    jj_consume_token(32);
                         if(!partition.getPartitionInfo().setKeyCGIndex(schema, mCGCount, colIndex, name, keys))
                                 {if (true) throw new ParseException("Column "+name+" specified more than once!");}
                         fs = new Schema.ColumnSchema(name, schema.schema, schema.type);
@@ -494,14 +585,14 @@ public class TableStorageParser implements TableStorageParserConstants {
     label_5:
     while (true) {
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
-      case 32:
+      case 33:
         ;
         break;
       default:
-        jj_la1[10] = jj_gen;
+        jj_la1[11] = jj_gen;
         break label_5;
       }
-      jj_consume_token(32);
+      jj_consume_token(33);
       t = jj_consume_token(IDENTIFIER);
                           result.add(t.image);
     }
@@ -565,6 +656,17 @@ public class TableStorageParser implements TableStorageParserConstants {
     finally { jj_save(7, xla); }
   }
 
+  private boolean jj_3_8() {
+    if (jj_scan_token(IDENTIFIER)) return true;
+    if (jj_3R_10()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_8() {
+    if (jj_scan_token(IDENTIFIER)) return true;
+    return false;
+  }
+
   private boolean jj_3_4() {
     if (jj_3R_8()) return true;
     return false;
@@ -575,21 +677,26 @@ public class TableStorageParser implements TableStorageParserConstants {
     return false;
   }
 
-  private boolean jj_3_2() {
-    if (jj_3R_6()) return true;
-    return false;
-  }
-
   private boolean jj_3_7() {
     if (jj_scan_token(IDENTIFIER)) return true;
     if (jj_3R_9()) return true;
     return false;
   }
 
+  private boolean jj_3_2() {
+    if (jj_3R_6()) return true;
+    return false;
+  }
+
   private boolean jj_3R_6() {
     if (jj_scan_token(IDENTIFIER)) return true;
-    if (jj_scan_token(28)) return true;
+    if (jj_scan_token(29)) return true;
     if (jj_3R_11()) return true;
+    return false;
+  }
+
+  private boolean jj_3_1() {
+    if (jj_scan_token(0)) return true;
     return false;
   }
 
@@ -607,32 +714,27 @@ public class TableStorageParser implements TableStorageParserConstants {
   }
 
   private boolean jj_3R_12() {
-    if (jj_scan_token(30)) return true;
-    if (jj_3R_14()) return true;
     if (jj_scan_token(31)) return true;
+    if (jj_3R_14()) return true;
+    if (jj_scan_token(32)) return true;
     return false;
   }
 
   private boolean jj_3R_10() {
-    if (jj_scan_token(27)) return true;
+    if (jj_scan_token(28)) return true;
     if (jj_3R_12()) return true;
-    return false;
-  }
-
-  private boolean jj_3_1() {
-    if (jj_scan_token(0)) return true;
     return false;
   }
 
   private boolean jj_3R_7() {
     if (jj_scan_token(IDENTIFIER)) return true;
-    if (jj_scan_token(27)) return true;
+    if (jj_scan_token(28)) return true;
     if (jj_3R_12()) return true;
     return false;
   }
 
   private boolean jj_3R_9() {
-    if (jj_scan_token(28)) return true;
+    if (jj_scan_token(29)) return true;
     if (jj_3R_11()) return true;
     return false;
   }
@@ -648,7 +750,7 @@ public class TableStorageParser implements TableStorageParserConstants {
   }
 
   private boolean jj_3R_15() {
-    if (jj_scan_token(32)) return true;
+    if (jj_scan_token(33)) return true;
     if (jj_scan_token(IDENTIFIER)) return true;
     return false;
   }
@@ -668,17 +770,6 @@ public class TableStorageParser implements TableStorageParserConstants {
     return false;
   }
 
-  private boolean jj_3_8() {
-    if (jj_scan_token(IDENTIFIER)) return true;
-    if (jj_3R_10()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_8() {
-    if (jj_scan_token(IDENTIFIER)) return true;
-    return false;
-  }
-
   /** Generated Token Manager. */
   public TableStorageParserTokenManager token_source;
   SimpleCharStream jj_input_stream;
@@ -690,7 +781,7 @@ public class TableStorageParser implements TableStorageParserConstants {
   private Token jj_scanpos, jj_lastpos;
   private int jj_la;
   private int jj_gen;
-  final private int[] jj_la1 = new int[11];
+  final private int[] jj_la1 = new int[12];
   static private int[] jj_la1_0;
   static private int[] jj_la1_1;
   static {
@@ -698,10 +789,10 @@ public class TableStorageParser implements TableStorageParserConstants {
       jj_la1_init_1();
    }
    private static void jj_la1_init_0() {
-      jj_la1_0 = new int[] {0x800000,0x1801c01,0x1000000,0x1c00,0xe000,0xe000,0x1c00,0x20000000,0x200000,0x200000,0x0,};
+      jj_la1_0 = new int[] {0x1000000,0x3011c01,0x2000000,0x10000,0x1c00,0xe000,0xe000,0x1c00,0x40000000,0x400000,0x400000,0x0,};
    }
    private static void jj_la1_init_1() {
-      jj_la1_1 = new int[] {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,};
+      jj_la1_1 = new int[] {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x2,};
    }
   final private JJCalls[] jj_2_rtns = new JJCalls[8];
   private boolean jj_rescan = false;
@@ -718,7 +809,7 @@ public class TableStorageParser implements TableStorageParserConstants {
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 11; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 12; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -733,7 +824,7 @@ public class TableStorageParser implements TableStorageParserConstants {
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 11; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 12; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -744,7 +835,7 @@ public class TableStorageParser implements TableStorageParserConstants {
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 11; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 12; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -755,7 +846,7 @@ public class TableStorageParser implements TableStorageParserConstants {
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 11; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 12; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -765,7 +856,7 @@ public class TableStorageParser implements TableStorageParserConstants {
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 11; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 12; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -775,7 +866,7 @@ public class TableStorageParser implements TableStorageParserConstants {
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 11; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 12; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -887,12 +978,12 @@ public class TableStorageParser implements TableStorageParserConstants {
   /** Generate ParseException. */
   public ParseException generateParseException() {
     jj_expentries.clear();
-    boolean[] la1tokens = new boolean[33];
+    boolean[] la1tokens = new boolean[34];
     if (jj_kind >= 0) {
       la1tokens[jj_kind] = true;
       jj_kind = -1;
     }
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
       if (jj_la1[i] == jj_gen) {
         for (int j = 0; j < 32; j++) {
           if ((jj_la1_0[i] & (1<<j)) != 0) {
@@ -904,7 +995,7 @@ public class TableStorageParser implements TableStorageParserConstants {
         }
       }
     }
-    for (int i = 0; i < 33; i++) {
+    for (int i = 0; i < 34; i++) {
       if (la1tokens[i]) {
         jj_expentry = new int[1];
         jj_expentry[0] = i;

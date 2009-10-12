@@ -86,27 +86,6 @@ public class BasicTable {
   }
 
   /**
-   * Form a Path for the i-th ColumnGroup.
-   * 
-   * @param path
-   *          The path to the BasicTable
-   * @param total
-   *          The total number of ColumnGruops, ignored.
-   * @param i
-   *          The rank of the ColumnGroup to compute the name.
-   * @return A Path object.
-   */
-  static Path makeCGPath(Path path, int total, int i) {
-    int digits = 1;
-    while (total >= 10) {
-      ++digits;
-      total /= 10;
-    }
-    String formatString = "%0" + digits + "d";
-    return new Path(path, CGPathPrefix + String.format(formatString, i));
-  }
-
-  /**
    * BasicTable reader.
    */
   public static class Reader implements Closeable {
@@ -165,7 +144,7 @@ public class BasicTable {
         partition = new Partition(schema, projection, storage);
         for (int nx = 0; nx < numCGs; nx++) {
           colGroups[nx] =
-              new ColumnGroup.Reader(BasicTable.makeCGPath(path, numCGs, nx),
+            new ColumnGroup.Reader(new Path(path, partition.getCGSchema(nx).getName()),
                   conf);
           if (partition.isCGNeeded(nx))
             cgTuples[nx] = TypesUtils.createTuple(colGroups[nx].getSchema());
@@ -914,10 +893,11 @@ public class BasicTable {
         cgTuples = new Tuple[numCGs];
         for (int nx = 0; nx < numCGs; nx++) {
           colGroups[nx] =
-              new ColumnGroup.Writer(
-            		 BasicTable.makeCGPath(path, numCGs, nx), 
+              new ColumnGroup.Writer( 
+                 new Path(path, schemaFile.getName(nx)),
             		 schemaFile.getPhysicalSchema(nx), 
             		 sorted, 
+            		 schemaFile.getName(nx),
             		 schemaFile.getSerializer(nx), 
             		 schemaFile.getCompressor(nx), 
             		 schemaFile.getOwner(nx), 
@@ -975,7 +955,7 @@ public class BasicTable {
         cgTuples = new Tuple[numCGs];
         for (int nx = 0; nx < numCGs; nx++) {
           colGroups[nx] =
-              new ColumnGroup.Writer(BasicTable.makeCGPath(path, numCGs, nx),
+            new ColumnGroup.Writer(new Path(path, partition.getCGSchema(nx).getName()),
                   conf);
           cgTuples[nx] = TypesUtils.createTuple(colGroups[nx].getSchema());
         }
@@ -1310,7 +1290,11 @@ public class BasicTable {
     public Schema getPhysicalSchema(int nx) {
       return physical[nx];
     }
-
+    
+    public String getName(int nx) {
+      return cgschemas[nx].getName();
+    }
+    
     public String getSerializer(int nx) {
       return cgschemas[nx].getSerializer();
     }

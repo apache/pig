@@ -40,6 +40,7 @@ public class CGSchema {
    private boolean sorted;
    private String comparator;
    private Schema schema;
+   private String name = null;
    private String compressor = "lzo";
    private String serializer = "pig";
    private String group		 = null;
@@ -56,6 +57,9 @@ public class CGSchema {
    @Override
    public String toString() {
      StringBuilder sb = new StringBuilder();
+     sb.append("{Name = ");
+     sb.append(name);
+     sb.append("}\n");
      sb.append("{Compressor = ");
      sb.append(compressor);
      sb.append("}\n");
@@ -89,8 +93,9 @@ public class CGSchema {
      this.version = SCHEMA_VERSION;
    }
 
-   public CGSchema(Schema schema, boolean sorted, String serializer, String compressor, String owner, String group, short perm) {
+   public CGSchema(Schema schema, boolean sorted, String name, String serializer, String compressor, String owner, String group, short perm) {
   	this(schema, sorted);
+    this.name = name;
   	this.serializer = serializer;
   	this.compressor = compressor;
 //  	this.owner = owner;
@@ -127,6 +132,14 @@ public class CGSchema {
      return comparator;
    }
 
+   public String getName() {
+     return name;
+   }
+   
+   public void setName(String newName) {
+     name = newName;
+   }
+
    public String getSerializer() {
      return serializer;
    }
@@ -145,7 +158,7 @@ public class CGSchema {
 
    public String getOwner() {
 	     return this.owner;
- }
+   } 
    
    
    
@@ -169,6 +182,7 @@ public class CGSchema {
 
 	 }
      version.write(outSchema);
+       
 	 WritableUtils.writeString(outSchema, schema.toString());
      WritableUtils.writeVInt(outSchema, sorted ? 1 : 0);
      WritableUtils.writeString(outSchema, comparator);
@@ -176,6 +190,7 @@ public class CGSchema {
 	 WritableUtils.writeString(outSchema, this.getSerializer());
 	 WritableUtils.writeString(outSchema, this.getGroup());
      WritableUtils.writeVInt(outSchema, this.getPerm());
+     WritableUtils.writeString(outSchema, name);
 
      outSchema.close();
    }
@@ -187,17 +202,21 @@ public class CGSchema {
      if (!version.compatibleWith(SCHEMA_VERSION)) {
        new IOException("Incompatible versions, expecting: " + SCHEMA_VERSION
             + "; found in file: " + version);
-     }
+     }     
+     
+     name = parent.getName();     
      String s = WritableUtils.readString(in);
      schema = new Schema(s);
      sorted = WritableUtils.readVInt(in) == 1 ? true : false;
      comparator = WritableUtils.readString(in);
-     if(version.compareTo(SCHEMA_VERSION) >= 0) {
+     // V2 table;
+     if(version.compareTo(SCHEMA_VERSION) >= 0) { 
        compressor = WritableUtils.readString(in);
        serializer = WritableUtils.readString(in);  
    	   owner		= null;
        group 		= WritableUtils.readString(in);
        perm 		= (short) WritableUtils.readVInt(in);
+       name = WritableUtils.readString(in);
      }  
      in.close();
    }

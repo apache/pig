@@ -168,7 +168,7 @@ public class TestStorePrimitive {
   @Test
   public void testStorageValid2() {
     try {
-      String strStorage = "[f1, f2] serialize by avro compress by gzip; [f3, f4] SERIALIZE BY avro COMPRESS BY gzip";
+      String strStorage = "[f1, f2] serialize by avro compress by gz; [f3, f4] SERIALIZE BY avro COMPRESS BY gz";
       Partition p = new Partition(schema.toString(), strStorage);
       CGSchema[] cgschemas = p.getCGSchemas();
 
@@ -299,7 +299,7 @@ public class TestStorePrimitive {
   @Test
   public void testStorageInvalid7() {
     try {
-      String strStorage = "[f1, f2] serialize by xyz compress by gzip; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo";
+      String strStorage = "[f1, f2] serialize by xyz compress by gz; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo";
       Partition p = new Partition(schema.toString(), strStorage);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];

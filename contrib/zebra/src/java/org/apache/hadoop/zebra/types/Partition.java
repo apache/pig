@@ -307,7 +307,7 @@ public class Partition {
     /*
      * creates a default "catch-all" CG schema if necessary
      */
-    public CGSchema generateDefaultCGSchema(String compressor,
+    public CGSchema generateDefaultCGSchema(String name, String compressor,
         String serializer, String owner, String group, 
         short perm, final int defaultCGIndex) throws ParseException {
       Schema schema = new Schema();
@@ -361,7 +361,7 @@ public class Partition {
         }
       }
       CGSchema defaultSchema =
-          (schema.getNumColumns() == 0 ? null : new CGSchema(schema, false, serializer, compressor, owner, group, perm));
+          (schema.getNumColumns() == 0 ? null : new CGSchema(schema, false, name, serializer, compressor, owner, group, perm));
       return defaultSchema;
     }
 
@@ -1267,10 +1267,10 @@ public class Partition {
     return mPartitionInfo.getSplitMap(fs);
   }
 
-  public CGSchema generateDefaultCGSchema(String compressor, String serializer,
+  public CGSchema generateDefaultCGSchema(String name, String compressor, String serializer,
       String owner, String group, short perm, 
       final int defaultCGIndex) throws ParseException {
-    return mPartitionInfo.generateDefaultCGSchema(compressor, serializer,owner, group, perm,
+    return mPartitionInfo.generateDefaultCGSchema(name, compressor, serializer,owner, group, perm,
         defaultCGIndex);
   }
 
