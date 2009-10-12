@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -29,9 +30,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.WrappedIOException;
 
 /**
- * DateExtractor has three different constructors which each allow for different functionality. The
- * incomingDateFormat (yyyy-MM-dd by default) is used to match the date string that gets passed in from the
- * log. The outgoingDateFormat (dd/MMM/yyyy:HH:mm:ss Z by default) is used to format the returned string.
+ * DateExtractor has four different constructors which each allow for different functionality. The
+ * incomingDateFormat ("dd/MMM/yyyy:HH:mm:ss Z" by default) is used to match the date string that gets passed in from the
+ * log. The outgoingDateFormat ("yyyy-MM-dd" by default) is used to format the returned string.
  * 
  * Different constructors exist for each combination; please use the appropriate respective constructor.
  * 
@@ -46,12 +47,14 @@ import org.apache.pig.impl.util.WrappedIOException;
  * A = FOREACH row GENERATE DateExtractor(dayTime);
  * 
  * If a string cannot be parsed, null will be returned and an error message printed to stderr.
- * 
+ *
+ * By default, the DateExtractor uses the GMT timezone. You can use the three-parameter constructor to override the
+ * timezone.
  */
 public class DateExtractor extends EvalFunc<String> {
-    private static SimpleDateFormat DEFAULT_INCOMING_DATE_FORMAT = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss Z");
-    private static SimpleDateFormat DEFAULT_OUTGOING_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-
+    private static String DEFAULT_INCOMING_DATE_FORMAT = "dd/MMM/yyyy:HH:mm:ss Z";
+    private static String DEFAULT_OUTGOING_DATE_FORMAT = "yyyy-MM-dd";
+    private static String DEFAULT_TZ_ID="GMT";
     private SimpleDateFormat incomingDateFormat;
     private SimpleDateFormat outgoingDateFormat;
 
@@ -61,8 +64,7 @@ public class DateExtractor extends EvalFunc<String> {
      * @param outgoingDateString outgoingDateFormat is based on outgoingDateString
      */
     public DateExtractor() {
-        incomingDateFormat = DEFAULT_INCOMING_DATE_FORMAT;
-        outgoingDateFormat = DEFAULT_OUTGOING_DATE_FORMAT;
+        this(DEFAULT_INCOMING_DATE_FORMAT, DEFAULT_OUTGOING_DATE_FORMAT, DEFAULT_TZ_ID);
     }
 
     /**
@@ -71,8 +73,7 @@ public class DateExtractor extends EvalFunc<String> {
      * @param outgoingDateString outgoingDateFormat is based on outgoingDateString
      */
     public DateExtractor(String outgoingDateString) {
-        incomingDateFormat = DEFAULT_INCOMING_DATE_FORMAT;
-        outgoingDateFormat = new SimpleDateFormat(outgoingDateString);
+        this(DEFAULT_INCOMING_DATE_FORMAT, outgoingDateString, "GMT");
     }
 
     /**
@@ -83,10 +84,25 @@ public class DateExtractor extends EvalFunc<String> {
      * 
      */
     public DateExtractor(String incomingDateString, String outgoingDateString) {
-        incomingDateFormat = new SimpleDateFormat(incomingDateString);
-        outgoingDateFormat = new SimpleDateFormat(outgoingDateString);
+        this(incomingDateString, outgoingDateString, DEFAULT_TZ_ID);
     }
 
+    /**
+     * forms the formats based on passed incomingDateString and outgoingDateString
+     * 
+     * @param incomingDateString incomingDateFormat is based on incomingDateString
+     * @param outgoingDateString outgoingDateFormat is based on outgoingDateString
+     * @param timeZoneID time zone id in which dates should be expressed.
+     * 
+     */
+    public DateExtractor(String incomingDateString, String outgoingDateString, String timeZoneID) {
+        TimeZone tz = TimeZone.getTimeZone(timeZoneID);
+        incomingDateFormat = new SimpleDateFormat(incomingDateString);
+        outgoingDateFormat = new SimpleDateFormat(outgoingDateString);
+        incomingDateFormat.setTimeZone(tz);
+        outgoingDateFormat.setTimeZone(tz);
+    }
+    
     @Override
     public String exec(Tuple input) throws IOException {
       if (input == null || input.size() == 0)
@@ -96,6 +112,7 @@ public class DateExtractor extends EvalFunc<String> {
         str = (String)input.get(0);
         Date date = incomingDateFormat.parse(str);
         return outgoingDateFormat.format(date);
+        
       } catch (ParseException pe) {
         System.err.println("piggybank.evaluation.util.apachelogparser.DateExtractor: unable to parse date "+str);
         return null;

@@ -33,23 +33,35 @@ public class TestDateExtractor extends TestCase {
     @Test
     public void testDefaultFormatters() throws Exception {
         DateExtractor dayExtractor = new DateExtractor();
+        // test that GMT conversion moves the day
         input.set(0, "20/Sep/2008:23:53:04 -0600");
+        assertEquals("2008-09-21", dayExtractor.exec(input));
+        
+        // test that if the string is already in GMT, nothing moves
+        input.set(0, "20/Sep/2008:23:53:04 -0000");
         assertEquals("2008-09-20", dayExtractor.exec(input));
     }
 
+    @Test
+    public void testMZFormatters() throws Exception {
+        DateExtractor extractor = new DateExtractor("dd/MMM/yyyy:HH:mm:ss Z", "yyyy-MM-dd", "PST");
+        input.set(0, "20/Sep/2008:23:53:04 -0700");
+        assertEquals("2008-09-20", extractor.exec(input));
+    }
+    
     @Test
     public void testFailureThenSuccess() throws Exception {
         DateExtractor dayExtractor = new DateExtractor();
         input.set(0,"dud");
         assertEquals(null, dayExtractor.exec(input));
-        input.set(0,"20/Sep/2008:23:53:04 -0600");
+        input.set(0,"20/Sep/2008:23:53:04 -0000");
         assertEquals("2008-09-20", dayExtractor.exec(input));
     }
 
     @Test
     public void testPassedOutputFormatter() throws Exception {
         DateExtractor dayExtractor = new DateExtractor("MM-dd-yyyy");
-        input.set(0,"20/Sep/2008:23:53:04 -0600");
+        input.set(0,"20/Sep/2008:23:53:04 -0000");
         assertEquals("09-20-2008", dayExtractor.exec(input));
     }
 
