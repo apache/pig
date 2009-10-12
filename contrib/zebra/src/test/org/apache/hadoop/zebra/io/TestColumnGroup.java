@@ -98,8 +98,9 @@ public class TestColumnGroup {
       }
     }
 
-    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, sorted,
+    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, sorted, path.getName(),
         "pig", "gz", "gauravj", null, (short) Short.parseShort("755", 8), false, conf);
+
     writer.finish();
 
     int total = 0;
@@ -197,7 +198,7 @@ public class TestColumnGroup {
       ColumnGroup.drop(path, conf);
     }
 
-    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, true,
+    ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, true, path.getName(),
         "pig", "gz", "gauravj", null, (short) Short.parseShort("777", 8), false, conf);
     writer.finish();
 

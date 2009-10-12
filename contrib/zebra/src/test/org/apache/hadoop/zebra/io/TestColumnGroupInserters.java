@@ -69,7 +69,7 @@ public class TestColumnGroupInserters {
   public void testInsertNullValues() throws IOException, ParseException {
     fs.delete(path, true);
     System.out.println("testInsertNullValues");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
     // Tuple row = TypesUtils.createTuple(writer.getSchema());
@@ -82,7 +82,7 @@ public class TestColumnGroupInserters {
   public void testFailureInvalidSchema() throws IOException, ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInvalidSchema");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
     Tuple row = TypesUtils.createTuple(Schema.parse("xyz, ijk, def"));
@@ -102,7 +102,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureGetInserterAfterWriterClosed");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     try {
       writer.close();
@@ -120,7 +120,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertAfterClose");
-    writer = new ColumnGroup.Writer(path, "abc, def ", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def ", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -151,7 +151,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertXtraColumn");
-    writer = new ColumnGroup.Writer(path, "abc ", false, "pig", "gz", null, null, (short) -1, true,
+    writer = new ColumnGroup.Writer(path, "abc ", false, path.getName(), "pig", "gz", null, null, (short) -1, true,
         conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -177,7 +177,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testInsertOneRow");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -199,7 +199,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Rows");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -233,7 +233,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Inserters");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", true);
     TableInserter ins2 = writer.getInserter("part2", true);
@@ -270,7 +270,7 @@ public class TestColumnGroupInserters {
       ParseException {
     fs.delete(path, true);
     System.out.println("testFailureOverlappingKeys");
-    writer = new ColumnGroup.Writer(path, "abc, def ", true, "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc, def ", true, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", false);
     TableInserter ins2 = writer.getInserter("part2", false);

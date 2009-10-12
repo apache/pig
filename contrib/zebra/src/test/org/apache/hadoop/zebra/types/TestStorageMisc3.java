@@ -112,7 +112,7 @@ public class TestStorageMisc3 {
   @Test
   public void testStorageValid2() {
     try {
-      String strStorage = "[c.r] compress by gzip; [m1] serialize by avro";
+      String strStorage = "[c.r] compress by gz; [m1] serialize by avro";
       Partition p = new Partition(schema.toString(), strStorage);
       Assert.assertTrue(false);
       CGSchema[] cgschemas = p.getCGSchemas();
@@ -136,7 +136,7 @@ public class TestStorageMisc3 {
       Assert.assertEquals("m1", f21.name);
       Assert.assertEquals(ColumnType.MAP, f21.type);
 
-      Assert.assertEquals(cgs1.getCompressor(), "gzip");
+      Assert.assertEquals(cgs1.getCompressor(), "gz");
       Assert.assertEquals(cgs2.getSerializer(), "avro");
 
       System.out.println("*********** Column Map **********");
@@ -176,7 +176,7 @@ public class TestStorageMisc3 {
   @Test
   public void testStorageValid3() {
     try {
-      String strStorage = "[c.r.f1] compress by gzip; [m1] serialize by avro";
+      String strStorage = "[c.r.f1] compress by gz; [m1] serialize by avro";
       Partition p = new Partition(schema.toString(), strStorage);
       Assert.assertTrue(false);
       CGSchema[] cgschemas = p.getCGSchemas();
@@ -205,7 +205,7 @@ public class TestStorageMisc3 {
       Assert.assertEquals("c.r.f2", f31.name);
       Assert.assertEquals(ColumnType.INT, f31.type);
 
-      Assert.assertEquals(cgs1.getCompressor(), "gzip");
+      Assert.assertEquals(cgs1.getCompressor(), "gz");
       Assert.assertEquals(cgs1.getSerializer(), "pig");
       Assert.assertEquals(cgs2.getCompressor(), "lzo");
       Assert.assertEquals(cgs2.getSerializer(), "avro");

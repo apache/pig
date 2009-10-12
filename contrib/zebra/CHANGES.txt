@@ -17,3 +17,6 @@ Trunk (unreleased changes)
     
     PIG-991. Various minor bugs. (Yan Zhou via rangadi)
 
+    PIG-986. Column groups can have explicit names specified in
+    storage hint. (Yan Zhou via rangadi)
+

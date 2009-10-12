@@ -23,6 +23,7 @@ import org.junit.runners.Suite;
  
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+  TestColumnGroupName.class,
   TestSchemaCollection.class,
   TestSchemaMap.class,
   TestSchemaPrimitive.class,

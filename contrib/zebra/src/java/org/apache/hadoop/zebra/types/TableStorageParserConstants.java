@@ -29,19 +29,21 @@ public interface TableStorageParserConstants {
   /** RegularExpression Id. */
   int PERM = 15;
   /** RegularExpression Id. */
-  int LETTER = 16;
+  int AS = 16;
   /** RegularExpression Id. */
-  int DIGIT = 17;
+  int LETTER = 17;
   /** RegularExpression Id. */
-  int OCTAL = 18;
+  int DIGIT = 18;
   /** RegularExpression Id. */
-  int SPECIALCHAR = 19;
+  int OCTAL = 19;
   /** RegularExpression Id. */
-  int FSSPECIALCHAR = 20;
+  int SPECIALCHAR = 20;
   /** RegularExpression Id. */
-  int IDENTIFIER = 21;
+  int FSSPECIALCHAR = 21;
   /** RegularExpression Id. */
-  int SHORT = 22;
+  int IDENTIFIER = 22;
+  /** RegularExpression Id. */
+  int SHORT = 23;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -64,6 +66,7 @@ public interface TableStorageParserConstants {
     "\"user\"",
     "\"group\"",
     "\"perm\"",
+    "\"as\"",
     "<LETTER>",
     "<DIGIT>",
     "<OCTAL>",
