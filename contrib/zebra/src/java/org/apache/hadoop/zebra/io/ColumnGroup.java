@@ -327,6 +327,10 @@ class ColumnGroup {
       return projection;
     }
 
+    public String getName() {
+      return cgschema.getName();
+    }
+    
     public String getSerializer() {
       return cgschema.getSerializer();
     }
@@ -1088,14 +1092,14 @@ class ColumnGroup {
      *          The optional configuration objects.
      * @throws IOException
      */
-    public Writer(Path path, String schema, boolean sorted, String serializer,
+    public Writer(Path path, String schema, boolean sorted, String name, String serializer,
         String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
         throws IOException, ParseException {
-      this(path, new Schema(schema), sorted, serializer, compressor, owner, group, perm, overwrite,
+      this(path, new Schema(schema), sorted, name, serializer, compressor, owner, group, perm, overwrite,
           conf);
     }
     
-    public Writer(Path path, Schema schema, boolean sorted, String serializer,
+    public Writer(Path path, Schema schema, boolean sorted, String name, String serializer,
         String compressor, String owner, String group, short perm, boolean overwrite, Configuration conf)
         throws IOException, ParseException {
       this.path = path;
@@ -1114,7 +1118,7 @@ class ColumnGroup {
 
       checkPath(path, true);
 
-      cgschema = new CGSchema(schema, sorted, serializer, compressor, owner, group, perm);
+      cgschema = new CGSchema(schema, sorted, name, serializer, compressor, owner, group, perm);
       CGSchema sfNew = CGSchema.load(fs, path);
       if (sfNew != null) {
         // compare input with on-disk schema.
@@ -1722,6 +1726,8 @@ class ColumnGroup {
     try {
       LinkedHashMap<String, String> properties =
           new LinkedHashMap<String, String>();
+      IOutils.indent(out, indent);
+      out.println("Name: " + reader.getName());
       IOutils.indent(out, indent);
       out.println("Serializer: " + reader.getSerializer());
       IOutils.indent(out, indent);
