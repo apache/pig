@@ -1,3 +1,4 @@
+PIG-1015: [piggybank] DateExtractor should take into account timezones (dryaboy via  olgan)
 PIG-911: Added SequenceFileLoader (dryaboy via gates)
 PIG-885: New UDFs for piggybank (Bin, Decode, LookupInFiles, RegexExtract, RegexMatch, HashFVN, DiffDate) (daijy)
 PIG-868: added strin manipulation functions (bennies via olgan)
