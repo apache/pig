@@ -1,0 +1,38 @@
+<FindBugsFilter>
+    <Match>
+        <Package name="org.apache.pig.data.parser.*" />
+    </Match>
+    <Match>
+        <Package name="org.apache.pig.impl.logicalLayer.parser.*" />
+    </Match>
+    <Match>
+        <Package name="org.apache.pig.tools.pigscript.parser.*" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.JavaCharStream" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.Token*" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.ParamLoader" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.ParamLoaderConstants" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.ParamLoaderTokenManager" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.PigFileParser" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.PigFileParserConstants" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.PigFileParserTokenManager" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.ParserException" />
+    </Match>
+</FindBugsFilter>
