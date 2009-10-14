@@ -1,4 +1,20 @@
-
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.pig.data;
 
 import java.io.*;
@@ -9,14 +25,15 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 
 
 public class InternalCachedBag extends DefaultAbstractBag {
-
+	private static final long serialVersionUID = 1L;
+	
 	private static final Log log = LogFactory.getLog(InternalCachedBag.class);
-    private int cacheLimit;
-    private long maxMemUsage;
-    private long memUsage;
-    private DataOutputStream out;
-    private boolean addDone;
-    private TupleFactory factory;
+    private transient int cacheLimit;
+    private transient long maxMemUsage;
+    private transient long memUsage;
+    private transient DataOutputStream out;
+    private transient boolean addDone;
+    private transient TupleFactory factory;
 
  
     public InternalCachedBag() {
@@ -150,7 +167,7 @@ public class InternalCachedBag extends DefaultAbstractBag {
         public CachedBagIterator() {
             iter = mContents.iterator();
             if(mSpillFiles != null && mSpillFiles.size() > 0) {
-                File file = (File)mSpillFiles.get(0);
+                File file = mSpillFiles.get(0);
                 try {
                     in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
                 }
@@ -168,7 +185,7 @@ public class InternalCachedBag extends DefaultAbstractBag {
         	}
         	
             if(iter.hasNext()){
-                next = (Tuple)iter.next();
+                next = iter.next();
                 return true;
             }
             
