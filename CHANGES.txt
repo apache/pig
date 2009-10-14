@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1023: FINDBUGS: exclude CN_IDIOM_NO_SUPER_CALL (olgan)
+
 PIG-1019: added findbugs exclusion file (olgan)
 
 PIG-983:  PERFORMANCE: multi-query optimization on multiple group bys
