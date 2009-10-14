@@ -1,4 +1,5 @@
 <FindBugsFilter>
+    <!-- Exclude generated code -->
     <Match>
         <Package name="org.apache.pig.data.parser.*" />
     </Match>
@@ -35,4 +36,37 @@
     <Match>
         <Class name="org.apache.pig.tools.parameters.ParserException" />
     </Match>
+
+    <!-- Exclude CN_IDIOM_NO_SUPER_CALL issue in logical and physical plans for now-->
+    <Match>
+        <Package name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+    <Match>
+        <Package name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LogicalPlan" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+
+    <!-- Exclude CN_IDIOM_NO_SUPER_CALL - no parent class -->
+    <Match>
+        <Class name="org.apache.pig.FuncSpec" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema" />
+        <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
+    </Match>
+
 </FindBugsFilter>
