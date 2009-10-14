@@ -46,6 +46,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-968: Fix findContainingJar to work properly when there is a + in the jar
+         path (tlipcon via gates).
+
 PIG-738: Regexp passed from pigscript fails in UDF  (pradeepkth)
 
 PIG-942: Maps are not implicitly casted (pradeepkth)
