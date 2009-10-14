@@ -69,6 +69,8 @@ PIG-894: order-by fails when input is empty (daijy)
 
 PIG-995: Limit Optimizer throw exception "ERROR 2156: Error while fixing projections" (daijy)
 
+PIG-1000: InternalCachedBag.java generates javac warning and findbug warning (yinghe via daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES
