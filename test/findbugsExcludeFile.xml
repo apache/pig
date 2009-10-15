@@ -13,7 +13,10 @@
         <Class name="org.apache.pig.tools.parameters.JavaCharStream" />
     </Match>
     <Match>
-        <Class name="org.apache.pig.tools.parameters.Token*" />
+        <Class name="org.apache.pig.tools.parameters.Token" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.parameters.TokenMgrError" />
     </Match>
     <Match>
         <Class name="org.apache.pig.tools.parameters.ParamLoader" />
@@ -68,5 +71,12 @@
         <Class name="org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema" />
         <Bug pattern="CN_IDIOM_NO_SUPER_CALL" />
     </Match>
+
+    <Match>
+        <Class name="org.apache.pig.impl.util.WrappedIOException" />
+        <Bug pattern="NM_CLASS_NOT_EXCEPTION" />
+    </Match>
+    
+
 
 </FindBugsFilter>
