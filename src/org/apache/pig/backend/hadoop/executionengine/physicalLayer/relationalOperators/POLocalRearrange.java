@@ -441,7 +441,7 @@ public class POLocalRearrange extends PhysicalOperator {
                     } else {
                         try {
                             List<PhysicalOperator> preds = plan.getPredecessors(leaf);
-                            if (!(preds.get(0) instanceof POProject))
+                            if (preds==null || !(preds.get(0) instanceof POProject))
                                 mProjectedColsMap.put(project.getColumn(), keyIndex);
                         } catch (ExecException e) {
                             int errCode = 2070;
