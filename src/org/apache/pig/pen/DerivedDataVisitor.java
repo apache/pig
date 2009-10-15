@@ -190,7 +190,7 @@ public class DerivedDataVisitor extends LOVisitor {
 
         try {
             Collection<IdentityHashSet<Tuple>> eq = EquivalenceClasses
-                    .GetEquivalenceClasses(cg, derivedData);
+                    .getEquivalenceClasses(cg, derivedData);
             EqClasses.addAll(eq);
             OpToEqClasses.put(cg, eq);
         } catch (ExecException e) {
@@ -241,7 +241,7 @@ public class DerivedDataVisitor extends LOVisitor {
         derivedData.put(load, baseData.get(load));
 
         Collection<IdentityHashSet<Tuple>> eq = EquivalenceClasses
-                .GetEquivalenceClasses(load, derivedData);
+                .getEquivalenceClasses(load, derivedData);
         EqClasses.addAll(eq);
         OpToEqClasses.put(load, eq);
 
@@ -366,7 +366,7 @@ public class DerivedDataVisitor extends LOVisitor {
 
         try {
             Collection<IdentityHashSet<Tuple>> eq = EquivalenceClasses
-                    .GetEquivalenceClasses(op, derivedData);
+                    .getEquivalenceClasses(op, derivedData);
             EqClasses.addAll(eq);
             OpToEqClasses.put(op, eq);
         } catch (ExecException e) {

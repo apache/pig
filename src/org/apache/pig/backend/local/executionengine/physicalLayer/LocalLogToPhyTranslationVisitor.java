@@ -68,7 +68,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
     }
     
     public Map<LogicalOperator, PhysicalOperator> getLogToPhyMap() {
-	return LogToPhyMap;
+	return logToPhyMap;
     }
     
     @Override
@@ -123,7 +123,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             currentPlan.add(physOp);
 
             try {
-                currentPlan.connect(LogToPhyMap.get(lo), physOp);
+                currentPlan.connect(logToPhyMap.get(lo), physOp);
                 currentPlan.connect(physOp, poc);
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
@@ -132,7 +132,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             }
             
         }
-        LogToPhyMap.put(cg, poc);
+        logToPhyMap.put(cg, poc);
     }
     
     @Override
@@ -192,7 +192,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             currentPlan.add(physOp);
 
             try {
-                currentPlan.connect(LogToPhyMap.get(lo), physOp);
+                currentPlan.connect(logToPhyMap.get(lo), physOp);
                 currentPlan.connect(physOp, poc);
             } catch (PlanException e) {
                 log.error("Invalid physical operators in the physical plan"
@@ -239,7 +239,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         fe.setResultType(DataType.BAG);
 
         currentPlan.add(fe);
-        LogToPhyMap.put(join, fe);
+        logToPhyMap.put(join, fe);
         try {
             currentPlan.connect(poc, fe);
         } catch (PlanException e) {
@@ -255,10 +255,10 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         PhysicalOperator physOp = new POSplit(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), split.getRequestedParallelism());
         
-        LogToPhyMap.put(split, physOp);
+        logToPhyMap.put(split, physOp);
 
         currentPlan.add(physOp);
-        PhysicalOperator from = LogToPhyMap.get(split.getPlan()
+        PhysicalOperator from = logToPhyMap.get(split.getPlan()
                 .getPredecessors(split).get(0));
         try {
             currentPlan.connect(from, physOp);
@@ -273,7 +273,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
 	String scope = split.getOperatorKey().scope;
         PhysicalOperator physOp = new POSplitOutput(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), split.getRequestedParallelism());
-        LogToPhyMap.put(split, physOp);
+        logToPhyMap.put(split, physOp);
 
         currentPlan.add(physOp);
         currentPlans.push(currentPlan);
@@ -287,7 +287,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         ((POSplitOutput) physOp).setPlan((PhysicalPlan) currentPlan);
         currentPlan = currentPlans.pop();
         currentPlan.add(physOp);
-        PhysicalOperator from = LogToPhyMap.get(split.getPlan()
+        PhysicalOperator from = logToPhyMap.get(split.getPlan()
                 .getPredecessors(split).get(0));
         try {
             currentPlan.connect(from, physOp);
@@ -304,11 +304,11 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
                 .getNextNodeId(scope)), stream.getExecutableManager(), 
                 stream.getStreamingCommand(), pc.getProperties());
         currentPlan.add(poStream);
-        LogToPhyMap.put(stream, poStream);
+        logToPhyMap.put(stream, poStream);
         
         List<LogicalOperator> op = stream.getPlan().getPredecessors(stream);
 
-        PhysicalOperator from = LogToPhyMap.get(op.get(0));
+        PhysicalOperator from = logToPhyMap.get(op.get(0));
         try {
             currentPlan.connect(from, poStream);
         } catch (PlanException e) {
@@ -323,12 +323,12 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         String scope = cross.getOperatorKey().scope;
         
         POCross pocross = new POCross(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
-        LogToPhyMap.put(cross, pocross);
+        logToPhyMap.put(cross, pocross);
         currentPlan.add(pocross);
         
         
         for(LogicalOperator in : cross.getInputs()) {
-            PhysicalOperator from = LogToPhyMap.get(in);
+            PhysicalOperator from = logToPhyMap.get(in);
             try {
                 currentPlan.connect(from, pocross);
             } catch (PlanException e) {
@@ -363,7 +363,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         }
         //store.setPc(pc);
         currentPlan.add(store);
-        PhysicalOperator from = LogToPhyMap.get(loStore
+        PhysicalOperator from = logToPhyMap.get(loStore
                 .getPlan().getPredecessors(loStore).get(0));
         
         POCounter counter = new POCounter(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
@@ -376,7 +376,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
-        LogToPhyMap.put(loStore, store);
+        logToPhyMap.put(loStore, store);
         
     }
 

@@ -69,7 +69,7 @@ public class POForEach extends PhysicalOperator {
     //This holds the outputs given out by the input expressions of any datatype
     protected Object [] bags = null;
     
-    //This is the template whcih contains tuples and is flattened out in CreateTuple() to generate the final output
+    //This is the template whcih contains tuples and is flattened out in createTuple() to generate the final output
     protected Object[] data = null;
     
     // store result types of the plan leaves
@@ -333,8 +333,8 @@ public class POForEach extends PhysicalOperator {
                     
                 }
                 if(reporter!=null) reporter.progress();
-                //CreateTuple(data);
-                res.result = CreateTuple(data);
+                //createTuple(data);
+                res.result = createTuple(data);
                 res.returnStatus = POStatus.STATUS_OK;
                 return res;
             } else {
@@ -344,7 +344,7 @@ public class POForEach extends PhysicalOperator {
                     if(its[index] != null && isToBeFlattenedArray[index]) {
                         if(its[index].hasNext()) {
                             data[index] =  its[index].next();
-                            res.result = CreateTuple(data);
+                            res.result = createTuple(data);
                             res.returnStatus = POStatus.STATUS_OK;
                             return res;
                         }
@@ -370,7 +370,7 @@ public class POForEach extends PhysicalOperator {
      * @param data array that is the template for the final flattened tuple
      * @return the final flattened tuple
      */
-    protected Tuple CreateTuple(Object[] data) throws ExecException {
+    protected Tuple createTuple(Object[] data) throws ExecException {
         Tuple out =  mTupleFactory.newTuple();
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];

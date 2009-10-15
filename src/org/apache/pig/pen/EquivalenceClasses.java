@@ -40,27 +40,27 @@ import org.apache.pig.impl.util.IdentityHashSet;
 //These methods are used to generate equivalence classes given the operator name and the output from the operator
 //For example, it gives out 2 eq. classes for filter, one that passes the filter and one that doesn't
 public class EquivalenceClasses {
-    public static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(
+    public static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
             LogicalOperator op, Map<LogicalOperator, DataBag> derivedData)
             throws ExecException {
         if (op instanceof LOCogroup)
-            return GetEquivalenceClasses((LOCogroup) op, derivedData);
+            return getEquivalenceClasses((LOCogroup) op, derivedData);
         else if (op instanceof LOForEach)
-            return GetEquivalenceClasses((LOForEach) op, derivedData);
+            return getEquivalenceClasses((LOForEach) op, derivedData);
         else if (op instanceof LOFilter)
-            return GetEquivalenceClasses((LOFilter) op, derivedData);
+            return getEquivalenceClasses((LOFilter) op, derivedData);
         else if (op instanceof LOSort)
-            return GetEquivalenceClasses((LOSort) op, derivedData);
+            return getEquivalenceClasses((LOSort) op, derivedData);
         else if (op instanceof LOSplit)
-            return GetEquivalenceClasses((LOSplit) op, derivedData);
+            return getEquivalenceClasses((LOSplit) op, derivedData);
         else if (op instanceof LOUnion)
-            return GetEquivalenceClasses((LOUnion) op, derivedData);
+            return getEquivalenceClasses((LOUnion) op, derivedData);
         else if (op instanceof LOLoad)
-            return GetEquivalenceClasses((LOLoad) op, derivedData);
+            return getEquivalenceClasses((LOLoad) op, derivedData);
             throw new RuntimeException("Unrecognized logical operator.");
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(LOLoad op,
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOLoad op,
             Map<LogicalOperator, DataBag> derivedData) {
         // Since its a load, all the tuples belong to a single equivalence class
         Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
@@ -79,7 +79,7 @@ public class EquivalenceClasses {
         return equivClasses;
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
             LOCogroup op, Map<LogicalOperator, DataBag> derivedData)
             throws ExecException {
         Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
@@ -112,7 +112,7 @@ public class EquivalenceClasses {
         return equivClasses;
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
             LOForEach op, Map<LogicalOperator, DataBag> derivedData) {
         Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
 
@@ -126,7 +126,7 @@ public class EquivalenceClasses {
         return equivClasses;
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
             LOFilter op, Map<LogicalOperator, DataBag> derivedData) {
         Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
 
@@ -155,7 +155,7 @@ public class EquivalenceClasses {
 
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(LOSort op,
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOSort op,
             Map<LogicalOperator, DataBag> derivedData) {
         //We don't create any eq. class for sort
         IdentityHashSet<Tuple> temp = new IdentityHashSet<Tuple>();
@@ -164,13 +164,13 @@ public class EquivalenceClasses {
         return output;
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(LOSplit op,
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOSplit op,
             Map<LogicalOperator, DataBag> derivedData) {
         throw new RuntimeException(
                 "LOSplit not supported yet in example generator.");
     }
 
-    static Collection<IdentityHashSet<Tuple>> GetEquivalenceClasses(LOUnion op,
+    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOUnion op,
             Map<LogicalOperator, DataBag> derivedData) {
 
         // make one equivalence class per input relation
