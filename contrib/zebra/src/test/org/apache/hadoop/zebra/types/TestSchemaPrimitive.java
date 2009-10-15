@@ -21,11 +21,11 @@ package org.apache.hadoop.zebra.types;
 import java.io.StringReader;
 import junit.framework.Assert;
 
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Test;
 
 public class TestSchemaPrimitive {
@@ -40,8 +40,8 @@ public class TestSchemaPrimitive {
     System.out.println(schema);
 
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("f2", f2.name);
-    Assert.assertEquals(ColumnType.LONG, f2.type);
+    Assert.assertEquals("f2", f2.getName());
+    Assert.assertEquals(ColumnType.LONG, f2.getType());
   }
 
   @Test
@@ -55,12 +55,12 @@ public class TestSchemaPrimitive {
     System.out.println(schema);
 
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("f2", f2.name);
-    Assert.assertEquals(ColumnType.BYTES, f2.type);
+    Assert.assertEquals("f2", f2.getName());
+    Assert.assertEquals(ColumnType.BYTES, f2.getType());
 
     ColumnSchema f4 = schema.getColumn(3);
-    Assert.assertEquals("f4", f4.name);
-    Assert.assertEquals(ColumnType.BYTES, f4.type);
+    Assert.assertEquals("f4", f4.getName());
+    Assert.assertEquals(ColumnType.BYTES, f4.getType());
   }
 
   /*
@@ -71,10 +71,10 @@ public class TestSchemaPrimitive {
    * parser.RecordSchema(null); System.out.println(schema);
    * 
    * ColumnSchema f1 = schema.getColumn(0); //Assert.assertEquals("f2",
-   * f2.name); //Assert.assertEquals(ColumnType.BYTES, f2.type);
+   * f2.getName()); //Assert.assertEquals(ColumnType.BYTES, f2.getType());
    * 
    * ColumnSchema f2 = schema.getColumn(1); //Assert.assertEquals("f1",
-   * f4.name); //Assert.assertEquals(ColumnType.BYTES, f4.type); } catch
+   * f4.getName()); //Assert.assertEquals(ColumnType.BYTES, f4.getType()); } catch
    * (Exception e) { System.out.println(e.getMessage()); } }
    */
 

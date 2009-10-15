@@ -36,8 +36,8 @@ import org.apache.hadoop.zebra.io.ColumnGroup;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRangeSplit;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -72,7 +72,7 @@ public class TestColumnGroupReaders {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testInsert2Inserters() throws ExecException, IOException,
+  public void testInsert2Inserters() throws ParseException, ExecException, IOException,
       ParseException {
     System.out.println("testInsert2Inserters");
     boolean sorted = false; // true;
@@ -246,7 +246,7 @@ public class TestColumnGroupReaders {
   }
 
   private static void readOnePart(int count) throws IOException, ExecException,
-      ParseException {
+    ParseException {
     ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
     TableScanner scanner = reader.getScanner(reader.rangeSplit(5)
         .get(count - 1), true);

@@ -25,6 +25,9 @@ import java.util.Map;
 import java.util.HashMap;
 import java.io.IOException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
 
 
 public class SubColumnExtraction {
@@ -64,7 +67,7 @@ public class SubColumnExtraction {
 				fs = projection.getColumnSchema(i);
 				if (fs == null)
 				  continue;
-				name = fs.name;
+				name = fs.getName();
 				if (name == null)
 					continue;
 				if (projection.getKeys() != null)
@@ -78,7 +81,7 @@ public class SubColumnExtraction {
 				if (fs == null)
 		     		continue; // skip non-existing field
 		
-				j = fs.index;
+				j = fs.getIndex();
 				if (pn.mDT == ColumnType.MAP || pn.mDT == ColumnType.RECORD || pn.mDT == ColumnType.COLLECTION)
 				{
 					// record/map subfield is expected
@@ -105,8 +108,8 @@ public class SubColumnExtraction {
         Schema.ParsedName pn, final int projIndex, HashSet<String> keys) throws ParseException, ExecException
 		{
 			// recursive call to get the next level schema
-			if (pn.mDT != fs.type)
-	      	throw new ParseException(fs.name+" is not of proper type.");
+			if (pn.mDT != fs.getType())
+	      	throw new ParseException(fs.getName()+" is not of proper type.");
 	
 			String prefix;
 			int fieldIndex;
@@ -116,16 +119,17 @@ public class SubColumnExtraction {
 				                                 (pn.mDT == ColumnType.COLLECTION ? Partition.SplitType.COLLECTION :
 				                        	         Partition.SplitType.NONE)));
 			prefix = pn.parseName(fs);
+			Schema schema = fs.getSchema();
 			if (callerDT == Partition.SplitType.RECORD || callerDT == Partition.SplitType.COLLECTION)
 			{
         if (keys != null)
           throw new AssertionError("Internal Logical Error: empty key map expected.");
-				 if ((fieldIndex = fs.schema.getColumnIndex(prefix)) == -1)
+				 if ((fieldIndex = schema.getColumnIndex(prefix)) == -1)
 	        		return; // skip non-existing fields
-				 fs = fs.schema.getColumn(fieldIndex);
+				 fs = schema.getColumn(fieldIndex);
 			} else {       
         parent.setKeys(keys); // map key is set at parent which is of type MAP
-        fs = fs.schema.getColumn(0); // MAP value is a singleton type!
+        fs = schema.getColumn(0); // MAP value is a singleton type!
 				fieldIndex = 0;
 			}
 	

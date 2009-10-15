@@ -27,9 +27,11 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
 
 /**
- * Utility methods manipulating Table types (speicifically, Tuple objects).
+ * Utility methods manipulating Table types (specifically, Tuple objects).
  */
 public class TypesUtils {
   static TupleFactory tf = DefaultTupleFactory.getInstance();

@@ -43,7 +43,7 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.mapred.TableInputFormat;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
@@ -154,10 +154,10 @@ public class TableLoader implements LoadFunc, Slicer {
 		checkConf(storage, fileName);
 
 		Projection projection;
-		org.apache.hadoop.zebra.types.Schema projectionSchema;
+		org.apache.hadoop.zebra.schema.Schema projectionSchema;
 		
 		if (!fileName.contains(",")) { // one table;
-			org.apache.hadoop.zebra.types.Schema tschema = BasicTable.Reader.getSchema(new Path(fileName), jobConf);
+			org.apache.hadoop.zebra.schema.Schema tschema = BasicTable.Reader.getSchema(new Path(fileName), jobConf);
 			try {
 				projection = new org.apache.hadoop.zebra.types.Projection(tschema, TableInputFormat.getProjection(jobConf));
 				projectionSchema = projection.getProjectionSchema();
@@ -165,9 +165,9 @@ public class TableLoader implements LoadFunc, Slicer {
 				throw new IOException("Schema parsing failed : "+e.getMessage());
 			}
 		} else { // table union;
-			org.apache.hadoop.zebra.types.Schema unionSchema = new org.apache.hadoop.zebra.types.Schema();
+			org.apache.hadoop.zebra.schema.Schema unionSchema = new org.apache.hadoop.zebra.schema.Schema();
 			for (Path p : paths) {
-				org.apache.hadoop.zebra.types.Schema schema = BasicTable.Reader.getSchema(p, jobConf);
+				org.apache.hadoop.zebra.schema.Schema schema = BasicTable.Reader.getSchema(p, jobConf);
 				try {
 					unionSchema.unionSchema(schema);
 				} catch (ParseException e) {

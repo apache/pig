@@ -25,12 +25,12 @@ import java.util.HashSet;
 import junit.framework.Assert;
 
 import org.apache.hadoop.zebra.types.CGSchema;
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,43 +51,43 @@ public class TestStorageMisc1 {
 
     // test 1st level schema;
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("r", f1.name);
-    Assert.assertEquals(ColumnType.RECORD, f1.type);
+    Assert.assertEquals("r", f1.getName());
+    Assert.assertEquals(ColumnType.RECORD, f1.getType());
 
     // test 2nd level schema;
-    Schema f1Schema = f1.schema;
+    Schema f1Schema = f1.getSchema();
     ColumnSchema f11 = f1Schema.getColumn(0);
-    Assert.assertEquals("r", f11.name);
-    Assert.assertEquals(ColumnType.RECORD, f11.type);
+    Assert.assertEquals("r", f11.getName());
+    Assert.assertEquals(ColumnType.RECORD, f11.getType());
     ColumnSchema f12 = f1Schema.getColumn(1);
-    Assert.assertEquals("f2", f12.name);
-    Assert.assertEquals(ColumnType.MAP, f12.type);
+    Assert.assertEquals("f2", f12.getName());
+    Assert.assertEquals(ColumnType.MAP, f12.getType());
 
     // test 3rd level schema;
-    Schema f11Schema = f11.schema;
+    Schema f11Schema = f11.getSchema();
     ColumnSchema f111 = f11Schema.getColumn(0);
-    Assert.assertEquals("f1", f111.name);
-    Assert.assertEquals(ColumnType.INT, f111.type);
+    Assert.assertEquals("f1", f111.getName());
+    Assert.assertEquals(ColumnType.INT, f111.getType());
     ColumnSchema f112 = f11Schema.getColumn(1);
-    Assert.assertEquals("f2", f112.name);
-    Assert.assertEquals(ColumnType.INT, f112.type);
+    Assert.assertEquals("f2", f112.getName());
+    Assert.assertEquals(ColumnType.INT, f112.getType());
 
-    Schema f12Schema = f12.schema;
+    Schema f12Schema = f12.getSchema();
     ColumnSchema f121 = f12Schema.getColumn(0);
-    // Assert.assertEquals("", f121.name);
-    Assert.assertEquals(ColumnType.BYTES, f121.type);
+    // Assert.assertEquals("", f121.getName());
+    Assert.assertEquals(ColumnType.BYTES, f121.getType());
   }
 
   @Test
   public void testStorageValid1() {
     try {
-        String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gz SECURE BY user:gaurav; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav group:data perm:0766; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gaurav group:data perm:966; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+        String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gz SECURE BY user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root group:data perm:0766; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root group:data perm:966; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:ggg SECURE BY group:fff; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:gauravj user:gauravj; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 
     	Partition p = new Partition(schema.toString(), strStorage);
       CGSchema[] cgschemas = p.getCGSchemas();
@@ -105,22 +105,22 @@ public class TestStorageMisc1 {
       CGSchema cgs3 = cgschemas[2];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals("r.r.f1", f11.name);
-      Assert.assertEquals(ColumnType.INT, f11.type);
+      Assert.assertEquals("r.r.f1", f11.getName());
+      Assert.assertEquals(ColumnType.INT, f11.getType());
       ColumnSchema f12 = cgs1.getSchema().getColumn(1);
-      Assert.assertEquals("r.f2", f12.name);
-      Assert.assertEquals(ColumnType.MAP, f12.type);
+      Assert.assertEquals("r.f2", f12.getName());
+      Assert.assertEquals(ColumnType.MAP, f12.getType());
 
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals("r.r.f2", f21.name);
-      Assert.assertEquals(ColumnType.INT, f21.type);
+      Assert.assertEquals("r.r.f2", f21.getName());
+      Assert.assertEquals(ColumnType.INT, f21.getType());
       ColumnSchema f22 = cgs2.getSchema().getColumn(1);
-      Assert.assertEquals("r.f2", f22.name);
-      Assert.assertEquals(ColumnType.MAP, f22.type);
+      Assert.assertEquals("r.f2", f22.getName());
+      Assert.assertEquals(ColumnType.MAP, f22.getType());
 
       ColumnSchema f31 = cgs3.getSchema().getColumn(0);
-      Assert.assertEquals("r.f2", f31.name);
-      Assert.assertEquals(ColumnType.MAP, f31.type);
+      Assert.assertEquals("r.f2", f31.getName());
+      Assert.assertEquals(ColumnType.MAP, f31.getType());
 
       System.out.println("*********** Column Map **********");
       Map<String, HashSet<Partition.PartitionInfo.ColumnMappingEntry>> colmap = p

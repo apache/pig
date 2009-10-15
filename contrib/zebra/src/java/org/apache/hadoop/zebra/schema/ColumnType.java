@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.zebra.types;
+package org.apache.hadoop.zebra.schema;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -26,7 +26,7 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.file.tfile.Utils;
 import org.apache.pig.data.DataType;
 
-public enum ColumnType implements Writable {
+public enum ColumnType {
   ANY("any") {
 	  public byte pigDataType() {
 		  return DataType.UNKNOWN;
@@ -121,16 +121,6 @@ public enum ColumnType implements Writable {
 
   public String toString() {
     return name;
-  }
-
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    // no op, instantiated by the caller
-  }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    Utils.writeString(out, name);
   }
 
   public static boolean isSchemaType(ColumnType columnType) {

@@ -25,12 +25,12 @@ import java.util.HashSet;
 import junit.framework.Assert;
 
 import org.apache.hadoop.zebra.types.CGSchema;
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,45 +51,45 @@ public class TestStorageMisc2 {
 
     // test 1st level schema;
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("c", f1.name);
-    Assert.assertEquals(ColumnType.COLLECTION, f1.type);
+    Assert.assertEquals("c", f1.getName());
+    Assert.assertEquals(ColumnType.COLLECTION, f1.getType());
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("m1", f2.name);
-    Assert.assertEquals(ColumnType.MAP, f2.type);
+    Assert.assertEquals("m1", f2.getName());
+    Assert.assertEquals(ColumnType.MAP, f2.getType());
 
     // test 2nd level schema;
-    Schema f1Schema = f1.schema;
+    Schema f1Schema = f1.getSchema();
     ColumnSchema f11 = f1Schema.getColumn(0);
-    Assert.assertEquals("r", f11.name);
-    Assert.assertEquals(ColumnType.RECORD, f11.type);
+    Assert.assertEquals("r", f11.getName());
+    Assert.assertEquals(ColumnType.RECORD, f11.getType());
 
-    Schema f2Schema = f2.schema;
+    Schema f2Schema = f2.getSchema();
     ColumnSchema f21 = f2Schema.getColumn(0);
-    // Assert.assertEquals("", f21.name);
-    Assert.assertEquals(ColumnType.INT, f21.type);
+    // Assert.assertEquals("", f21.getName());
+    Assert.assertEquals(ColumnType.INT, f21.getType());
 
     // test 3rd level schema;
-    Schema f11Schema = f11.schema;
+    Schema f11Schema = f11.getSchema();
     ColumnSchema f111 = f11Schema.getColumn(0);
-    Assert.assertEquals("r", f111.name);
-    Assert.assertEquals(ColumnType.RECORD, f111.type);
+    Assert.assertEquals("r", f111.getName());
+    Assert.assertEquals(ColumnType.RECORD, f111.getType());
     ColumnSchema f112 = f11Schema.getColumn(1);
-    Assert.assertEquals("f2", f112.name);
-    Assert.assertEquals(ColumnType.MAP, f112.type);
+    Assert.assertEquals("f2", f112.getName());
+    Assert.assertEquals(ColumnType.MAP, f112.getType());
 
     // test 4th level schema;
-    Schema f111Schema = f111.schema;
+    Schema f111Schema = f111.getSchema();
     ColumnSchema f1111 = f111Schema.getColumn(0);
-    Assert.assertEquals("f1", f1111.name);
-    Assert.assertEquals(ColumnType.INT, f1111.type);
+    Assert.assertEquals("f1", f1111.getName());
+    Assert.assertEquals(ColumnType.INT, f1111.getType());
     ColumnSchema f1112 = f111Schema.getColumn(1);
-    Assert.assertEquals("f2", f1112.name);
-    Assert.assertEquals(ColumnType.INT, f1112.type);
+    Assert.assertEquals("f2", f1112.getName());
+    Assert.assertEquals(ColumnType.INT, f1112.getType());
 
-    Schema f112Schema = f112.schema;
+    Schema f112Schema = f112.getSchema();
     ColumnSchema f1121 = f112Schema.getColumn(0);
-    // Assert.assertEquals("", f1121.name);
-    Assert.assertEquals(ColumnType.BYTES, f1121.type);
+    // Assert.assertEquals("", f1121.getName());
+    Assert.assertEquals(ColumnType.BYTES, f1121.getType());
   }
 
   @Test
@@ -111,12 +111,12 @@ public class TestStorageMisc2 {
       CGSchema cgs2 = cgschemas[1];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals("c", f11.name);
-      Assert.assertEquals(ColumnType.COLLECTION, f11.type);
+      Assert.assertEquals("c", f11.getName());
+      Assert.assertEquals(ColumnType.COLLECTION, f11.getType());
 
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals("m1", f21.name);
-      Assert.assertEquals(ColumnType.MAP, f21.type);
+      Assert.assertEquals("m1", f21.getName());
+      Assert.assertEquals(ColumnType.MAP, f21.getType());
 
       Assert.assertEquals(cgs1.getCompressor(), "gz");
       Assert.assertEquals(cgs2.getSerializer(), "avro");
@@ -176,16 +176,16 @@ public class TestStorageMisc2 {
       CGSchema cgs3 = cgschemas[2];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals("c", f11.name);
-      Assert.assertEquals(ColumnType.COLLECTION, f11.type);
+      Assert.assertEquals("c", f11.getName());
+      Assert.assertEquals(ColumnType.COLLECTION, f11.getType());
 
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals("m1", f21.name);
-      Assert.assertEquals(ColumnType.MAP, f21.type);
+      Assert.assertEquals("m1", f21.getName());
+      Assert.assertEquals(ColumnType.MAP, f21.getType());
 
       ColumnSchema f31 = cgs3.getSchema().getColumn(0);
-      Assert.assertEquals("m1", f31.name);
-      Assert.assertEquals(ColumnType.MAP, f31.type);
+      Assert.assertEquals("m1", f31.getName());
+      Assert.assertEquals(ColumnType.MAP, f31.getType());
 
       System.out.println("*********** Column Map **********");
       Map<String, HashSet<Partition.PartitionInfo.ColumnMappingEntry>> colmap = p

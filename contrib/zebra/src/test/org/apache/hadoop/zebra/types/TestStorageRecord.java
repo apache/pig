@@ -25,12 +25,12 @@ import java.util.HashSet;
 import junit.framework.Assert;
 
 import org.apache.hadoop.zebra.types.CGSchema;
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,18 +64,18 @@ public class TestStorageRecord {
       CGSchema cgs2 = cgschemas[1];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals("r1.f1", f11.name);
-      Assert.assertEquals(ColumnType.INT, f11.type);
+      Assert.assertEquals("r1.f1", f11.getName());
+      Assert.assertEquals(ColumnType.INT, f11.getType());
       ColumnSchema f12 = cgs1.getSchema().getColumn(1);
-      Assert.assertEquals("r2.r3.f3", f12.name);
-      Assert.assertEquals(ColumnType.FLOAT, f12.type);
+      Assert.assertEquals("r2.r3.f3", f12.getName());
+      Assert.assertEquals(ColumnType.FLOAT, f12.getType());
 
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals("r1.f2", f21.name);
-      Assert.assertEquals(ColumnType.INT, f21.type);
+      Assert.assertEquals("r1.f2", f21.getName());
+      Assert.assertEquals(ColumnType.INT, f21.getType());
       ColumnSchema f22 = cgs2.getSchema().getColumn(1);
-      Assert.assertEquals("r2.r3.f4", f22.name);
-      Assert.assertEquals(ColumnType.BYTES, f22.type);
+      Assert.assertEquals("r2.r3.f4", f22.getName());
+      Assert.assertEquals(ColumnType.BYTES, f22.getType());
 
       System.out.println("*********** Column Map **********");
       Map<String, HashSet<Partition.PartitionInfo.ColumnMappingEntry>> colmap = p
