@@ -139,9 +139,9 @@ public class ExampleGenerator {
                     + e.getMessage());
         }
 
-        // DisplayExamples.PrintSimple(plan.getLeaves().get(0),
+        // DisplayExamples.printSimple(plan.getLeaves().get(0),
         // derivedData.derivedData);
-        System.out.println(DisplayExamples.PrintTabular(plan,
+        System.out.println(DisplayExamples.printTabular(plan,
                 derivedData.derivedData));
         return derivedData.derivedData;
     }

@@ -35,10 +35,10 @@ import org.apache.pig.impl.util.IdentityHashSet;
 //Class containing some generic printing methods to print example data in a simple/tabular form
 public class DisplayExamples {
 
-    public static StringBuffer Result = new StringBuffer();
+    //public static StringBuffer result = new StringBuffer();
     public static final int MAX_DATAATOM_LENGTH = 25;
 
-    static void PrintMetrics(
+    static void printMetrics(
             LogicalOperator op,
             Map<LogicalOperator, DataBag> derivedData,
             Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> OperatorToEqClasses) {
@@ -61,27 +61,27 @@ public class DisplayExamples {
                         OperatorToEqClasses, true) + "\n");
     }
 
-    public static String PrintTabular(LogicalPlan lp,
+    public static String printTabular(LogicalPlan lp,
             Map<LogicalOperator, DataBag> exampleData) {
         StringBuffer output = new StringBuffer();
 
         LogicalOperator currentOp = lp.getLeaves().get(0);
-        PrintTabular(currentOp, exampleData, output);
+        printTabular(currentOp, exampleData, output);
         return output.toString();
     }
 
-    static void PrintTabular(LogicalOperator op,
+    static void printTabular(LogicalOperator op,
             Map<LogicalOperator, DataBag> exampleData, StringBuffer output) {
         DataBag bag = exampleData.get(op);
 
         List<LogicalOperator> inputs = op.getPlan().getPredecessors(op);
         if (inputs != null) { // to avoid an exception when op == LOLoad
             for (LogicalOperator Op : inputs) {
-                PrintTabular(Op, exampleData, output);
+                printTabular(Op, exampleData, output);
             }
         }
         if (op.getAlias() != null) {
-            // PrintTable(op, bag, output);
+            // printTable(op, bag, output);
             try {
                 DisplayTable(MakeArray(op, bag), op, bag, output);
             } catch (FrontendException e) {
@@ -95,18 +95,18 @@ public class DisplayExamples {
 
     }
 
-    public static void PrintSimple(LogicalOperator op,
+    public static void printSimple(LogicalOperator op,
             Map<LogicalOperator, DataBag> exampleData) {
         DataBag bag = exampleData.get(op);
 
         List<LogicalOperator> inputs = op.getPlan().getPredecessors(op);
         if (inputs != null) {
             for (LogicalOperator lOp : inputs) {
-                PrintSimple(lOp, exampleData);
+                printSimple(lOp, exampleData);
             }
         }
         if (op.getAlias() != null) {
-            // PrintTable(op, bag, output);
+            // printTable(op, bag, output);
             // DisplayTable(MakeArray(op, bag), op, bag, output);
             System.out.println(op.getAlias() + " : " + bag);
         }

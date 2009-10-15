@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1018: FINDBUGS: NM_FIELD_NAMING_CONVENTION: Field names should start with
+a lower case letter (olgan)
+
 PIG-1023: FINDBUGS: exclude CN_IDIOM_NO_SUPER_CALL (olgan)
 
 PIG-1019: added findbugs exclusion file (olgan)
