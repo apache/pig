@@ -27,8 +27,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 
 /**
  * Table expression for reading a BasicTable.
@@ -111,9 +111,9 @@ class BasicTableExpr extends TableExpr {
       reader.setProjection(projection);
     } catch (ParseException e) {
     	throw new IOException("Projection parsing failed : "+e.getMessage());
-    }
+    } 
     return reader.getScanner(begin, end, true);
-  }
+  } 
 
   @Override
   public Schema getSchema(Configuration conf) throws IOException {

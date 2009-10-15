@@ -20,7 +20,7 @@ package org.apache.hadoop.zebra.pig;
 
 import java.util.Iterator;
 
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -90,14 +90,14 @@ class SchemaConverter {
   }
   
   public static Schema toPigSchema(
-      org.apache.hadoop.zebra.types.Schema tschema)
+      org.apache.hadoop.zebra.schema.Schema tschema)
       throws FrontendException {
     Schema ret = new Schema();
     for (String col : tschema.getColumns()) {
-    	org.apache.hadoop.zebra.types.Schema.ColumnSchema columnSchema = 
+    	org.apache.hadoop.zebra.schema.Schema.ColumnSchema columnSchema = 
     		tschema.getColumn(col);
 			if (columnSchema != null) {
-        ret.add(new FieldSchema(col, columnSchema.type.pigDataType()));
+        ret.add(new FieldSchema(col, columnSchema.getType().pigDataType()));
 			} else {
 				ret.add(new FieldSchema(null, null));
 			}
@@ -106,7 +106,7 @@ class SchemaConverter {
     return ret;
   }
 
-  public static org.apache.hadoop.zebra.types.Schema fromPigSchema(
+  public static org.apache.hadoop.zebra.schema.Schema fromPigSchema(
       Schema pschema) throws FrontendException, ParseException {
     String[] colnames = new String[pschema.size()];
     int i = 0;
@@ -115,6 +115,6 @@ class SchemaConverter {
       FieldSchema fs = it.next();
       colnames[i] = FieldSchemaMaker.makeColumnName(fs);
     }
-    return new org.apache.hadoop.zebra.types.Schema(colnames);
+    return new org.apache.hadoop.zebra.schema.Schema(colnames);
   }
 }

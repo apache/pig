@@ -56,6 +56,15 @@
   <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
   <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
 
+  <!-- IVY properteis set here -->
+  <property name="build.ivy.dir" location="${pig.root}/build/ivy" />
+  <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
+  <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/Pig"/>
+
+  <!-- javacc properties -->
+  <property name="src.gen.dir" value="${basedir}/src-gen/" />
+  <property name="src.gen.zebra.parser.dir" value="${src.gen.dir}/org/apache/hadoop/zebra/parser" />
+
   <!-- convert spaces to _ so that mac os doesn't break things -->
   <exec executable="sed" inputstring="${os.name}"
         outputproperty="nonspace.os">
@@ -111,6 +120,7 @@
   <!-- ====================================================== -->
   <target name="init" depends="check-contrib" unless="skip.contrib">
     <echo message="contrib: ${name}"/>
+    <mkdir dir="${src.gen.zebra.parser.dir}"/>
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${build.classes}"/>
     <mkdir dir="${build.test}"/>
@@ -123,11 +133,11 @@
   <!-- ====================================================== -->
   <!-- Compile a Pig contrib's files                          -->
   <!-- ====================================================== -->
-  <target name="compile" depends="init, hadoop-jar-exists" unless="skip.contrib">
+  <target name="compile" depends="init, cc-compile, hadoop-jar-exists" unless="skip.contrib">
     <echo message="contrib: ${name}"/>
     <javac
      encoding="${build.encoding}"
-     srcdir="${src.dir}"
+     srcdir="${src.dir};${src.gen.dir}"
      includes="**/*.java"
 	 excludes="**/doc-files/examples/*.java"
      destdir="${build.classes}"
@@ -138,7 +148,24 @@
     </javac>
   </target>
 
+  <property name="javacc.home" location="${ivy.lib.dir}" />
 
+  <target name="cc-compile" depends="init, javacc-exists" description="Create and Compile Parser">
+    <javacc target="${root}/src/java/org/apache/hadoop/zebra/schema/SchemaParser.jjt" outputdirectory="${src.gen.zebra.parser.dir}" javacchome="${javacc.home}" />
+    <javacc target="${root}/src/java/org/apache/hadoop/zebra/types/TableStorageParser.jjt" outputdirectory="${src.gen.zebra.parser.dir}" javacchome="${javacc.home}" />
+  </target>
+
+  <target name="javacc-exists">
+    <fail>
+      <condition >
+        <not>
+          <available file="${javacc.home}/javacc.jar" />
+        </not>
+      </condition>
+          Not found: ${javacc.home}/javacc.jar
+          Please run the target "cc-compile" in the main build file
+    </fail>
+  </target>
   <!-- ======================================================= -->
   <!-- Compile a Pig contrib's example files (if available)    -->
   <!-- ======================================================= -->
@@ -257,6 +284,7 @@
   <target name="clean">
     <echo message="contrib: ${name}"/>
     <delete dir="${build.dir}"/>
+    <delete dir="${src.gen.dir}" />
   </target>
 
 </project>

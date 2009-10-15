@@ -38,6 +38,15 @@ to call at top-level: ant deploy-contrib compile-core-test
     </jar>
   </target>
 
+  <target name="schema-jar" depends="compile">
+    <jar
+      jarfile="${build.dir}/schema-${zebraVersion}.jar"
+      basedir="${build.classes}"      
+      includes="**/schema/**"
+    >
+    </jar>
+  </target>
+
   <!-- Temp check for hadoop jar file --> 
   <target name="hadoop-jar-exists">
      <fail message="${hadoop.jarfile} is missing. ${line.separator}

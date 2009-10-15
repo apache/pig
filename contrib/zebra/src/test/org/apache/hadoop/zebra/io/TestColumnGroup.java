@@ -37,8 +37,8 @@ import org.apache.hadoop.zebra.io.KeyDistribution;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRangeSplit;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -99,7 +99,7 @@ public class TestColumnGroup {
     }
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, sorted, path.getName(),
-        "pig", "gz", "gauravj", null, (short) Short.parseShort("755", 8), false, conf);
+        "pig", "gz", "root", null, (short) Short.parseShort("755", 8), false, conf);
 
     writer.finish();
 
@@ -199,7 +199,7 @@ public class TestColumnGroup {
     }
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, strSchema, true, path.getName(),
-        "pig", "gz", "gauravj", null, (short) Short.parseShort("777", 8), false, conf);
+        "pig", "gz", "root", null, (short) Short.parseShort("777", 8), false, conf);
     writer.finish();
 
     int total = 0;
@@ -442,7 +442,7 @@ public class TestColumnGroup {
   }
 
   int countRows(Path path, String projection) throws IOException,
-      ParseException {
+    ParseException {
     ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
     if (projection != null) {
       reader.setProjection(projection);

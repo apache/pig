@@ -22,7 +22,7 @@ import java.io.IOException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.types.Projection;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.data.Tuple;
 

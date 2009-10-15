@@ -29,7 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.zebra.io.ColumnGroup;
 import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -70,7 +70,7 @@ public class TestColumnGroupOpen {
 
   @Test
   public void testFailureExistingSortedDiff() throws IOException,
-      ParseException {
+    ParseException {
     System.out.println("testFailureExistingSortedDiff");
     try {
       writer = new ColumnGroup.Writer(path, "abc, def ", false, path.getName(), "pig", "gz",

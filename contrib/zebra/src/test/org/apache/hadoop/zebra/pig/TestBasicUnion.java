@@ -34,8 +34,8 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -339,7 +339,7 @@ public class TestBasicUnion {
   }
 
   public void testReaderThroughIO() throws ExecException, IOException,
-      ParseException {
+    ParseException {
 
     String projection1 = new String("a,b,c");
     BasicTable.Reader reader = new BasicTable.Reader(pathTable1, conf);

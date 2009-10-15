@@ -30,8 +30,8 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -112,7 +112,8 @@ public class TestColumnGroupName1 {
 
   // Test simple projection
   @Test
-  public void testReadSimple1() throws IOException, ParseException {
+  public void testReadSimple1() throws IOException, 
+    ParseException {
     String projection = new String("s6,s5,s4,s3,s2,s1");
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection(projection);
@@ -144,7 +145,8 @@ public class TestColumnGroupName1 {
 
   // test stitch,
   @Test
-  public void testReadSimpleStitch() throws IOException, ParseException {
+  public void testReadSimpleStitch() throws IOException, 
+    ParseException {
     String projection2 = new String("s5, s1");
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection(projection2);

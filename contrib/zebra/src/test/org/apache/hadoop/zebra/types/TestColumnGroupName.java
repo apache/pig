@@ -26,12 +26,12 @@ import java.util.HashSet;
 import junit.framework.Assert;
 
 import org.apache.hadoop.zebra.types.CGSchema;
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,23 +49,23 @@ public class TestColumnGroupName {
   @Test
   public void testSchema() throws ParseException {
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("f1", f1.name);
-    Assert.assertEquals(ColumnType.INT, f1.type);
+    Assert.assertEquals("f1", f1.getName());
+    Assert.assertEquals(ColumnType.INT, f1.getType());
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("f2", f2.name);
-    Assert.assertEquals(ColumnType.LONG, f2.type);
+    Assert.assertEquals("f2", f2.getName());
+    Assert.assertEquals(ColumnType.LONG, f2.getType());
     ColumnSchema f3 = schema.getColumn(2);
-    Assert.assertEquals("f3", f3.name);
-    Assert.assertEquals(ColumnType.FLOAT, f3.type);
+    Assert.assertEquals("f3", f3.getName());
+    Assert.assertEquals(ColumnType.FLOAT, f3.getType());
     ColumnSchema f4 = schema.getColumn(3);
-    Assert.assertEquals("f4", f4.name);
-    Assert.assertEquals(ColumnType.BOOL, f4.type);
+    Assert.assertEquals("f4", f4.getName());
+    Assert.assertEquals(ColumnType.BOOL, f4.getType());
     ColumnSchema f5 = schema.getColumn(4);
-    Assert.assertEquals("f5", f5.name);
-    Assert.assertEquals(ColumnType.STRING, f5.type);
+    Assert.assertEquals("f5", f5.getName());
+    Assert.assertEquals(ColumnType.STRING, f5.getType());
     ColumnSchema f6 = schema.getColumn(5);
-    Assert.assertEquals("f6", f6.name);
-    Assert.assertEquals(ColumnType.BYTES, f6.type);
+    Assert.assertEquals("f6", f6.getName());
+    Assert.assertEquals(ColumnType.BYTES, f6.getType());
 
     System.out.println(schema.toString());
   }
@@ -90,23 +90,23 @@ public class TestColumnGroupName {
       CGSchema cgs3 = cgschemas[2];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals("f1", f11.name);
-      Assert.assertEquals(ColumnType.INT, f11.type);
+      Assert.assertEquals("f1", f11.getName());
+      Assert.assertEquals(ColumnType.INT, f11.getType());
       ColumnSchema f12 = cgs1.getSchema().getColumn(1);
-      Assert.assertEquals("f2", f12.name);
-      Assert.assertEquals(ColumnType.LONG, f12.type);
+      Assert.assertEquals("f2", f12.getName());
+      Assert.assertEquals(ColumnType.LONG, f12.getType());
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals("f3", f21.name);
-      Assert.assertEquals(ColumnType.FLOAT, f21.type);
+      Assert.assertEquals("f3", f21.getName());
+      Assert.assertEquals(ColumnType.FLOAT, f21.getType());
       ColumnSchema f22 = cgs2.getSchema().getColumn(1);
-      Assert.assertEquals("f4", f22.name);
-      Assert.assertEquals(ColumnType.BOOL, f22.type);
+      Assert.assertEquals("f4", f22.getName());
+      Assert.assertEquals(ColumnType.BOOL, f22.getType());
       ColumnSchema f31 = cgs3.getSchema().getColumn(0);
-      Assert.assertEquals("f5", f31.name);
-      Assert.assertEquals(ColumnType.STRING, f31.type);
+      Assert.assertEquals("f5", f31.getName());
+      Assert.assertEquals(ColumnType.STRING, f31.getType());
       ColumnSchema f32 = cgs3.getSchema().getColumn(1);
-      Assert.assertEquals("f6", f32.name);
-      Assert.assertEquals(ColumnType.BYTES, f32.type);
+      Assert.assertEquals("f6", f32.getName());
+      Assert.assertEquals(ColumnType.BYTES, f32.getType());
 
       Assert.assertEquals(cgs1.getCompressor(), "gz");
       Assert.assertEquals(cgs1.getSerializer(), "pig");
