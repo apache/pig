@@ -2059,6 +2059,13 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan("a = foreach (load 'b') generate (([],[]));");
     }
 
+    @Test
+    // See PIG-1024, shall not throw exception
+    public void testLimitMultipleOutput() {
+        buildPlan(" a = load '1.txt' as (a0:int, a1:int, a2:int);");
+        buildPlan(" b = group a by a0;");
+        buildPlan(" c = foreach b { c1 = limit a 10;c2 = (c1.a0/c1.a1);c3 = (c1.a0/c1.a2);generate c2, c3;};");
+    }
     
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
