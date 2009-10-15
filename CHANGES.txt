@@ -73,6 +73,8 @@ PIG-995: Limit Optimizer throw exception "ERROR 2156: Error while fixing project
 
 PIG-1000: InternalCachedBag.java generates javac warning and findbug warning (yinghe via daijy)
 
+PIG-921: Strange use case for Join which produces different results in local and map reduce mode (daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES

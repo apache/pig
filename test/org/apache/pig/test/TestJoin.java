@@ -474,5 +474,40 @@ public class TestJoin extends TestCase {
         }
         
     }
+    
+    @Test
+    public void testJoinTupleFieldKey() throws Exception{
+        for (ExecType execType : execTypes) {
+            setUp(execType);
+            String[] input1 = {
+                    "(1,a)",
+                    "(2,aa)"
+            };
+            String[] input2 = {
+                    "(1,b)",
+                    "(2,bb)"
+            };
+            
+            String firstInput = createInputFile(execType, "a.txt", input1);
+            String secondInput = createInputFile(execType, "b.txt", input2);
+            
+            String script = "a = load '"+ firstInput +"' as (a:tuple(a1:int, a2:chararray));" +
+                    "b = load '"+ secondInput +"' as (b:tuple(b1:int, b2:chararray));" +
+                    "c = join a by a.a1, b by b.b1;";
+            Util.registerMultiLineQuery(pigServer, script);
+            Iterator<Tuple> it = pigServer.openIterator("c");
+            
+            assertTrue(it.hasNext());
+            Tuple t = it.next();
+            assertTrue(t.toString().equals("((1,a),(1,b))"));
+            
+            assertTrue(it.hasNext());
+            t = it.next();
+            assertTrue(t.toString().equals("((2,aa),(2,bb))"));
+            
+            deleteInputFile(execType, firstInput);
+            deleteInputFile(execType, secondInput);
+        }
+    }
 
 }
