@@ -20,7 +20,7 @@ System Requirements
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
 3. Cygwin: http://www.cygwin.com/ - to run under Windows 
-4. This release is compatible with Hadoop 0.18.x releases
+4. This release is compatible with Hadoop 0.20.x releases
 
 Trying the Release
 ==================
