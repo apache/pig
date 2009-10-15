@@ -503,7 +503,7 @@ public class StreamingCommand implements Serializable, Cloneable {
         
         public boolean equals(Object obj) {
           HandleSpec other = (HandleSpec)obj;
-          return (name.equals(other.name) && spec.equals(other.spec));
+          return (other != null && name.equals(other.name) && spec.equals(other.spec));
         }
 
 
