@@ -33,8 +33,8 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.ColumnGroup;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -59,7 +59,8 @@ public class TestColumnGroupSplits {
   static private Schema schema;
 
   @BeforeClass
-  public static void setUpOnce() throws IOException, ParseException {
+  public static void setUpOnce() throws IOException,
+    ParseException {
     // set default file system to local file system
     conf.set("fs.file.impl", "org.apache.hadoop.fs.LocalFileSystem");
 
@@ -165,7 +166,7 @@ public class TestColumnGroupSplits {
   @Test
   // default projection (without any projection) should return every column
   public void testDefaultProjection() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     System.out.println("testDefaultProjection");
     ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
     TableScanner scanner = reader.getScanner(null, false);
@@ -243,7 +244,7 @@ public class TestColumnGroupSplits {
   @Test
   // null projection should be same as default (fully projected) projection
   public void testNullProjection() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     System.out.println("testNullProjection");
     ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
     reader.setProjection(null);

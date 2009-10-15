@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.hadoop.zebra.types;
+package org.apache.hadoop.zebra.schema;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -26,6 +26,8 @@ import java.io.StringReader;
 import java.util.HashSet;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
 
 /**
  * Logical schema of tabular data.
@@ -36,13 +38,14 @@ public class Schema implements Comparable<Schema>, Writable {
   private static final long schemaVersion = 1L;
 
   public static class ColumnSchema {
-    public String name;
-    public ColumnType type;
-    public Schema schema;
-    public int index; // field index in schema
+    private String name;
+    private ColumnType type;
+    private Schema schema;
+    private int index; // field index in schema
 
     /**
      * construct a ColumnSchema for a native type
+     * 
      * @param a
      *          column name
      * @param t
@@ -56,6 +59,7 @@ public class Schema implements Comparable<Schema>, Writable {
 
     /**
      * construct a Column schema for a RECORD column type
+     * 
      * @param a
      *          column name
      * @param s
@@ -68,7 +72,29 @@ public class Schema implements Comparable<Schema>, Writable {
     }
 
     /**
+     * access function to get the column name 
+     */
+    public String getName() {
+      return name;
+    }
+    
+    /**
+     * access function to get the column type 
+     */
+    public ColumnType getType() {
+      return type;
+    }
+    
+    /**
+     * access function to get the column name 
+     */
+    public int getIndex() {
+      return index;
+    }
+    
+    /**
      * construct a column schema for a complex column type
+     * 
      * @param a
      *          column name
      * @param s
@@ -89,16 +115,16 @@ public class Schema implements Comparable<Schema>, Writable {
 
     /**
      * copy ctor
+     * 
      * @param cs
      *          source column schema
      */
-    public ColumnSchema(ColumnSchema cs)
-    {
+    public ColumnSchema(ColumnSchema cs) {
       name = cs.name;
       type = cs.type;
       schema = cs.schema;
     }
-        
+
     /**
      * Compare two field schema for equality
      * 
@@ -176,32 +202,31 @@ public class Schema implements Comparable<Schema>, Writable {
   }
 
   /*
-   * helper class to parse a column name string one section at a time and find the required
-   * type for the parsed part.
+   * helper class to parse a column name string one section at a time and find
+   * the required type for the parsed part.
    */
-  static class ParsedName {
-    String mName;
+  public static class ParsedName {
+    public String mName;
     int mKeyOffset; // the offset where the keysstring starts
-    ColumnType mDT = ColumnType.ANY; // parent's type
+    public ColumnType mDT = ColumnType.ANY; // parent's type
 
-    ParsedName() {
+    public ParsedName() {
     }
 
-    void setName(String name) {
+    public void setName(String name) {
       mName = name;
     }
 
-    void setName(String name, ColumnType pdt) {
+    public void setName(String name, ColumnType pdt) {
       mName = name;
       mDT = pdt;
     }
 
-    void setName(String name, ColumnType pdt, int keyStrOffset)
-    {
+    void setName(String name, ColumnType pdt, int keyStrOffset) {
       this.setName(name, pdt);
       mKeyOffset = keyStrOffset;
     }
-    
+
     void setDT(ColumnType dt) {
       mDT = dt;
     }
@@ -214,7 +239,7 @@ public class Schema implements Comparable<Schema>, Writable {
       return mName;
     }
 
-    String parseName(Schema.ColumnSchema fs) throws ParseException {
+    public String parseName(Schema.ColumnSchema fs) throws ParseException {
       // parse one sector of a fq name, also checks sanity of MAP and RECORD
       // fields
       int fieldIndex, hashIndex;
@@ -257,7 +282,6 @@ public class Schema implements Comparable<Schema>, Writable {
 
   private ArrayList<ColumnSchema> mFields;
   private HashMap<String, ColumnSchema> mNames;
-  private long mVersion = schemaVersion;
   private boolean dupColNameAllowed;
 
   /**
@@ -280,13 +304,13 @@ public class Schema implements Comparable<Schema>, Writable {
   public Schema(String schema) throws ParseException {
     init(schema);
   }
-  
-  Schema(String schema, boolean dupAllowed) throws ParseException {
+
+  public Schema(String schema, boolean dupAllowed) throws ParseException {
     dupColNameAllowed = dupAllowed;
     init(schema);
   }
 
-  Schema(ColumnSchema fs) throws ParseException {
+  public Schema(ColumnSchema fs) throws ParseException {
     init();
     add(fs);
   }
@@ -303,13 +327,15 @@ public class Schema implements Comparable<Schema>, Writable {
   }
 
   /**
-   * add a field
+   * add a column
+   * 
+   * @param f
+   *          Column to be added to the schema
    */
-  public void add(ColumnSchema f) throws ParseException
-  {
+  public void add(ColumnSchema f) throws ParseException {
     add(f, false);
   }
-  
+
   private void add(ColumnSchema f, boolean dupAllowed) throws ParseException {
     if (f == null) {
       mFields.add(null);
@@ -340,9 +366,10 @@ public class Schema implements Comparable<Schema>, Writable {
     for (int i = 0; i < mFields.size(); i++) {
       ColumnSchema cs = mFields.get(i);
       if (cs != null) {
-       result[i] = mFields.get(i).name;
-      } else {
-       result[i] = null;  
+        result[i] = mFields.get(i).name;
+      }
+      else {
+        result[i] = null;
       }
     }
     return result;
@@ -351,9 +378,8 @@ public class Schema implements Comparable<Schema>, Writable {
   /**
    * Get a particular column's schema
    */
-  public ColumnSchema getColumn(int index)
-  {
-	  return mFields.get(index);
+  public ColumnSchema getColumn(int index) {
+    return mFields.get(index);
   }
 
   public String getColumnName(int index) {
@@ -425,8 +451,8 @@ public class Schema implements Comparable<Schema>, Writable {
   }
 
   /**
-   * This is used for building up output string
-   * type can only be COLLECTION or RECORD or MAP
+   * This is used for building up output string type can only be COLLECTION or
+   * RECORD or MAP
    */
   private void stringifySchema(StringBuilder sb, Schema schema,
       ColumnType type, boolean top) {
@@ -470,7 +496,7 @@ public class Schema implements Comparable<Schema>, Writable {
           stringifySchema(sb, fs.schema, fs.type, false);
         }
         else {
-          throw new AssertionError("Schema refers to itself "
+          throw new IllegalArgumentException("Schema refers to itself "
               + "as inner schema");
         }
       }
@@ -498,8 +524,7 @@ public class Schema implements Comparable<Schema>, Writable {
   public static String normalize(String value) {
     String result = new String();
 
-    if (value == null || value.trim().isEmpty())
-      return result;
+    if (value == null || value.trim().isEmpty()) return result;
 
     StringBuilder sb = new StringBuilder();
     String[] parts = value.trim().split(COLUMN_DELIMITER);
@@ -584,7 +609,12 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public void readFields(DataInput in) throws IOException {
-    mVersion = org.apache.hadoop.io.file.tfile.Utils.readVLong(in);
+    long version = org.apache.hadoop.io.file.tfile.Utils.readVLong(in);
+
+    if (version > schemaVersion)
+      throw new IOException("Schema version is newer than that in software.");
+
+    // check-ups are needed for future versions for backward-compatibility
     String strSchema = org.apache.hadoop.io.file.tfile.Utils.readString(in);
     try {
       init(strSchema);
@@ -599,21 +629,24 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public void write(DataOutput out) throws IOException {
-    org.apache.hadoop.io.file.tfile.Utils.writeVLong(out, mVersion);
+    org.apache.hadoop.io.file.tfile.Utils.writeVLong(out, schemaVersion);
     org.apache.hadoop.io.file.tfile.Utils.writeString(out, toString());
   }
 
   private void init(String[] columnNames) throws ParseException {
     // the arg must be of type or they will be treated as the default type
-    // TODO: verify column names don't contain COLUMN_DELIMITER
     mFields = new ArrayList<ColumnSchema>();
     mNames = new HashMap<String, ColumnSchema>();
-    String merged = new String();
+    StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columnNames.length; i++) {
-      if (i > 0) merged += ",";
-      merged += columnNames[i];
+      if (columnNames[i].contains(COLUMN_DELIMITER))
+        throw new ParseException("Column name should not contain "
+            + COLUMN_DELIMITER);
+      if (i > 0) sb.append(",");
+      sb.append(columnNames[i]);
     }
-    TableSchemaParser parser = new TableSchemaParser(new StringReader(merged));
+    TableSchemaParser parser =
+        new TableSchemaParser(new StringReader(sb.toString()));
     parser.RecordSchema(this);
   }
 
@@ -623,12 +656,13 @@ public class Schema implements Comparable<Schema>, Writable {
   }
 
   private void init(String columnString) throws ParseException {
-    if (columnString == null || columnString.trim().isEmpty()) {
+    String trimmedColumnStr;
+    if (columnString == null || (trimmedColumnStr = columnString.trim()).isEmpty()) {
       init();
       return;
     }
 
-    String[] parts = columnString.trim().split(COLUMN_DELIMITER);
+    String[] parts = trimmedColumnStr.split(COLUMN_DELIMITER);
     for (int nx = 0; nx < parts.length; nx++) {
       parts[nx] = parts[nx].trim();
     }
@@ -639,212 +673,232 @@ public class Schema implements Comparable<Schema>, Writable {
    * Get a projection's schema
    */
   public Schema getProjectionSchema(String[] projcols,
-      HashMap<Schema.ColumnSchema, HashSet<String>> keysmap) throws ParseException
-  {
-	  int ncols = projcols.length;
-	  Schema result = new Schema();
-	  ColumnSchema cs, mycs;
+      HashMap<Schema.ColumnSchema, HashSet<String>> keysmap)
+      throws ParseException {
+    int ncols = projcols.length;
+    Schema result = new Schema();
+    ColumnSchema cs, mycs;
     String keysStr;
     String[] keys;
     ParsedName pn = new ParsedName();
     HashSet<String> keyentries;
-	  for (int i = 0; i < ncols; i++)
-	  {
+    for (int i = 0; i < ncols; i++) {
       pn.setName(projcols[i]);
-		  if ((cs = getColumnSchemaOnParsedName(pn)) != null)
-      {
+      if ((cs = getColumnSchemaOnParsedName(pn)) != null) {
         mycs = new ColumnSchema(pn.mName, cs.schema, cs.type);
-			  result.add(mycs, true);
-        if (pn.mDT == ColumnType.MAP)
-        {
+        result.add(mycs, true);
+        if (pn.mDT == ColumnType.MAP) {
           keysStr = projcols[i].substring(pn.mKeyOffset);
           if (!keysStr.startsWith("{") || !keysStr.endsWith("}"))
-            throw new ParseException("Invalid map key specification in "+projcols[i]);
-          keysStr = keysStr.substring(1, keysStr.length()-1);
-          if ((keysStr.indexOf('{') != -1 ) ||
-              (keysStr.indexOf('}') != -1 ) ||
-              (keysStr.indexOf('.') != -1 ) ||
-              (keysStr.indexOf('#') != -1 ))
-            throw new ParseException("Invalid map key specification in "+projcols[i]);
+            throw new ParseException("Invalid map key specification in "
+                + projcols[i]);
+          keysStr = keysStr.substring(1, keysStr.length() - 1);
+          if ((keysStr.indexOf('{') != -1) || (keysStr.indexOf('}') != -1)
+              || (keysStr.indexOf('.') != -1) || (keysStr.indexOf('#') != -1))
+            throw new ParseException("Invalid map key specification in "
+                + projcols[i]);
           keys = keysStr.split("\\|");
-          if ((keyentries = keysmap.get(mycs)) == null)
-          {
+          if ((keyentries = keysmap.get(mycs)) == null) {
             keyentries = new HashSet<String>();
             keysmap.put(mycs, keyentries);
           }
-          for (int j = 0; j < keys.length; j++)
-          {
+          for (int j = 0; j < keys.length; j++) {
             keyentries.add(keys[j]);
           }
         }
-      } else
-        result.add(null);
-	  }
-	  return result;
+      }
+      else result.add(null);
+    }
+    return result;
   }
 
   /**
    * Get a column's schema
+   *
+   * @param name
+   *          column name
+   * @return Column schema for the named column
    */
-  public ColumnSchema getColumnSchema(String name) throws ParseException
-  {
-	  int hashIndex, fieldIndex;
-	  String currentName = name, prefix;
-	  Schema currentSchema = this;
-	  ColumnSchema fs = null;
+  public ColumnSchema getColumnSchema(String name) throws ParseException {
+    int hashIndex, fieldIndex;
+    String currentName = name, prefix;
+    Schema currentSchema = this;
+    ColumnSchema fs = null;
 
-	  while (true)
-	  {
-		  /**
-			* this loop is necessary because the top columns in schema may
-      * contain .s and #s, particularly for column group schemas
-			*/
-			fieldIndex = currentName.lastIndexOf('.');
-			hashIndex = currentName.lastIndexOf('#');
-			if (fieldIndex == -1 && hashIndex == -1) {
-				break;
-			} else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex > fieldIndex)) {
-				currentName = currentName.substring(0, hashIndex);
-				if (getColumn(currentName) != null)
-					break;
-			} else {
-				currentName = currentName.substring(0, fieldIndex);
-				if (getColumn(currentName) != null)
-					break;
-			}
-	  }
+    while (true) {
+      /**
+       * this loop is necessary because the top columns in schema may contain .s
+       * and #s, particularly for column group schemas
+       */
+      fieldIndex = currentName.lastIndexOf('.');
+      hashIndex = currentName.lastIndexOf('#');
+      if (fieldIndex == -1 && hashIndex == -1) {
+        break;
+      }
+      else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex > fieldIndex)) {
+        currentName = currentName.substring(0, hashIndex);
+        if (getColumn(currentName) != null) break;
+      }
+      else {
+        currentName = currentName.substring(0, fieldIndex);
+        if (getColumn(currentName) != null) break;
+      }
+    }
 
-	  currentName = name;
-	  while(true)
-	  {
-			if (fieldIndex == -1 && hashIndex == -1)
-			{
-				fs = currentSchema.getColumn(currentName);
-				return fs;
-			} else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex < fieldIndex)) {
-				prefix = currentName.substring(0, hashIndex);
-				fs = currentSchema.getColumn(prefix);
-				if (fs == null)
-					throw new ParseException("Column "+name+" does not exist");
-				currentSchema = fs.schema;
-				if (fs.type != ColumnType.MAP)
-					throw new ParseException(name+" is not of type MAP");
-				fs = currentSchema.getColumn(0);
+    currentName = name;
+    while (true) {
+      if (fieldIndex == -1 && hashIndex == -1) {
+        fs = currentSchema.getColumn(currentName);
         return fs;
-			} else {
-				prefix = currentName.substring(0, fieldIndex);
-				if ((fs = currentSchema.getColumn(prefix)) == null)
-					throw new ParseException("Column "+name+" does not exist");
-				currentSchema = fs.schema;
-				if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
-					throw new ParseException(name+" is not of type RECORD or COLLECTION");
-				currentName = currentName.substring(fieldIndex+1);
-				if (currentName.length() == 0)
-					throw new ParseException("Column "+name+" does not have field after the record field separator '.'");
-			}
-			fieldIndex = currentName.indexOf('.');
-			hashIndex = currentName.indexOf('#');
-	  }
+      }
+      else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex < fieldIndex)) {
+        prefix = currentName.substring(0, hashIndex);
+        fs = currentSchema.getColumn(prefix);
+        if (fs == null)
+          throw new ParseException("Column " + name + " does not exist");
+        currentSchema = fs.schema;
+        if (fs.type != ColumnType.MAP)
+          throw new ParseException(name + " is not of type MAP");
+        fs = currentSchema.getColumn(0);
+        return fs;
+      }
+      else {
+        prefix = currentName.substring(0, fieldIndex);
+        if ((fs = currentSchema.getColumn(prefix)) == null)
+          throw new ParseException("Column " + name + " does not exist");
+        currentSchema = fs.schema;
+        if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
+          throw new ParseException(name
+              + " is not of type RECORD or COLLECTION");
+        currentName = currentName.substring(fieldIndex + 1);
+        if (currentName.length() == 0)
+          throw new ParseException("Column " + name
+              + " does not have field after the record field separator '.'");
+      }
+      fieldIndex = currentName.indexOf('.');
+      hashIndex = currentName.indexOf('#');
+    }
   }
 
   /**
-   * Get a column's schema
+   * Get a subcolumn's schema and move the name just parsed into the next subtype
+   *
+   * @param pn
+   *           The name of subcolumn to be parsed. On return it contains the
+   *           subcolumn at the next level after parsing
+   *
+   * @return   the discovered Column Schema for the subcolumn
    */
-  public ColumnSchema getColumnSchemaOnParsedName(ParsedName pn) throws ParseException
-  {
-	  int hashIndex, fieldIndex, offset = 0;
-	  String name = pn.mName;
+  public ColumnSchema getColumnSchemaOnParsedName(ParsedName pn)
+      throws ParseException {
+    int hashIndex, fieldIndex, offset = 0;
+    String name = pn.mName;
 
     /**
      * strip of any possible type specs
      */
-	  String currentName = name, prefix;
-	  Schema currentSchema = this;
-	  ColumnSchema fs = null;
+    String currentName = name, prefix;
+    Schema currentSchema = this;
+    ColumnSchema fs = null;
 
-	  while (true)
-	  {
-		  /**
-			* this loop is necessary because the top columns in schema may
-      * contain .s and #s, particularly for column group schemas
-			*/
-			fieldIndex = currentName.lastIndexOf('.');
-			hashIndex = currentName.lastIndexOf('#');
-			if (fieldIndex == -1 && hashIndex == -1) {
-				break;
-			} else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex > fieldIndex)) {
-				currentName = currentName.substring(0, hashIndex);
-				if ((fs = getColumn(currentName)) != null)
-        {
-			  	if (fs.type != ColumnType.MAP)
-			  		throw new ParseException(name+" is not of type MAP");
-			  	offset += hashIndex;
-          pn.setName(name.substring(0, hashIndex), ColumnType.MAP, hashIndex+1);
+    while (true) {
+      /**
+       * this loop is necessary because the top columns in schema may contain .s
+       * and #s, particularly for column group schemas
+       */
+      fieldIndex = currentName.lastIndexOf('.');
+      hashIndex = currentName.lastIndexOf('#');
+      if (fieldIndex == -1 && hashIndex == -1) {
+        break;
+      }
+      else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex > fieldIndex)) {
+        currentName = currentName.substring(0, hashIndex);
+        if ((fs = getColumn(currentName)) != null) {
+          if (fs.type != ColumnType.MAP)
+            throw new ParseException(name + " is not of type MAP");
+          offset += hashIndex;
+          pn.setName(name.substring(0, hashIndex), ColumnType.MAP,
+              hashIndex + 1);
           return fs;
         }
-			} else {
-				currentName = currentName.substring(0, fieldIndex);
-				if (getColumn(currentName) != null)
-					break;
-			}
-	  }
+      }
+      else {
+        currentName = currentName.substring(0, fieldIndex);
+        if (getColumn(currentName) != null) break;
+      }
+    }
 
-	  currentName = name;
-	  ColumnType ct = ColumnType.ANY; 
+    currentName = name;
+    ColumnType ct = ColumnType.ANY;
 
-	  while(true)
-	  {
-			if (fieldIndex == -1 && hashIndex == -1)
-			{
-			  offset += currentName.length();
+    while (true) {
+      if (fieldIndex == -1 && hashIndex == -1) {
+        offset += currentName.length();
         pn.setName(name.substring(0, offset), ct);
-				fs = currentSchema.getColumn(currentName);
-				return fs;
-			} else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex < fieldIndex)) {
-				prefix = currentName.substring(0, hashIndex);
-				fs = currentSchema.getColumn(prefix);
-				if (fs == null)
-					throw new ParseException("Column "+name+" does not exist");
-				currentSchema = fs.schema;
-				if (fs.type != ColumnType.MAP)
-					throw new ParseException(name+" is not of type MAP");
-				offset += hashIndex;
-        pn.setName(name.substring(0, offset), ColumnType.MAP, offset+1);
+        fs = currentSchema.getColumn(currentName);
         return fs;
-			} else {
-				prefix = currentName.substring(0, fieldIndex);
-				if ((fs = currentSchema.getColumn(prefix)) == null)
-					throw new ParseException("Column "+name+" does not exist");
-				currentSchema = fs.schema;
-				if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
-					throw new ParseException(name+" is not of type RECORD or COLLECTION");
-				currentName = currentName.substring(fieldIndex+1);
-				if (currentName.length() == 0)
-					throw new ParseException("Column "+name+" does not have field after the record field separator '.'");
+      }
+      else if (hashIndex != -1 && (fieldIndex == -1 || hashIndex < fieldIndex)) {
+        prefix = currentName.substring(0, hashIndex);
+        fs = currentSchema.getColumn(prefix);
+        if (fs == null)
+          throw new ParseException("Column " + name + " does not exist");
+        currentSchema = fs.schema;
+        if (fs.type != ColumnType.MAP)
+          throw new ParseException(name + " is not of type MAP");
+        offset += hashIndex;
+        pn.setName(name.substring(0, offset), ColumnType.MAP, offset + 1);
+        return fs;
+      }
+      else {
+        prefix = currentName.substring(0, fieldIndex);
+        if ((fs = currentSchema.getColumn(prefix)) == null)
+          throw new ParseException("Column " + name + " does not exist");
+        currentSchema = fs.schema;
+        if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
+          throw new ParseException(name
+              + " is not of type RECORD or COLLECTION");
+        currentName = currentName.substring(fieldIndex + 1);
+        if (currentName.length() == 0)
+          throw new ParseException("Column " + name
+              + " does not have field after the record field separator '.'");
         offset += fieldIndex + 1;
         ct = fs.type;
-			}
-			fieldIndex = currentName.indexOf('.');
-			hashIndex = currentName.indexOf('#');
-	  }
+      }
+      fieldIndex = currentName.indexOf('.');
+      hashIndex = currentName.indexOf('#');
+    }
   }
 
   /**
-   * find the most fitting field containing the name:
-   * the parsed name is set after the field name plus any possible separator
-   * of '.' or '#'
+   * find the most fitting subcolumn containing the name: the parsed name is set
+   * after the field name plus any possible separator of '.' or '#'.
+   *
+   * This is used to help discover the most fitting column schema in multiple
+   * CG schemas.
+   *
+   * For instance, if pn contains a name of r.r1.f11 and current schema has
+   * r.r1:record(f11:int, f12), it will return f11's column schema, and pn
+   * is set at "f12".
+   *
+   * @param pn
+   *           The name of subcolumn to be parsed. On return it contains the
+   *           subcolumn at the next level after parsing
+   *
+   * @return   the discovered Column Schema for the subcolumn
    */
   public ColumnSchema getColumnSchema(ParsedName pn) throws ParseException {
     int maxlen = 0, size = getNumColumns(), len;
     Schema.ColumnSchema fs = null;
     String name = pn.getName(), fname;
-    boolean whole = false, record = false, map = false, tmprecord = false, tmpmap = false;
+    boolean whole = false, record = false, map = false, tmprecord = false, tmpmap =
+        false;
     for (int i = 0; i < size; i++) {
       fname = getColumnName(i);
       if ((whole = name.equals(fname))
           || (tmprecord = name.startsWith(fname + "."))
           || (tmpmap = name.startsWith(fname + "#"))) {
-        len = getColumnName(i).length();
+        len = fname.length();
         if (len > maxlen) {
           maxlen = len;
           record = tmprecord;
@@ -857,14 +911,15 @@ public class Schema implements Comparable<Schema>, Writable {
     if (fs != null) {
       name = name.substring(maxlen);
       if (record) {
-				if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
-					throw new ParseException(name+" is not of type RECORD or COLLECTION");
+        if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
+          throw new ParseException(name
+              + " is not of type RECORD or COLLECTION");
         name = name.substring(1);
         pn.setName(name, fs.type);
       }
       else if (map) {
-				if (fs.type != ColumnType.MAP)
-					throw new ParseException(name+" is not of type MAP");
+        if (fs.type != ColumnType.MAP)
+          throw new ParseException(name + " is not of type MAP");
         name = name.substring(1);
         pn.setName(name, ColumnType.MAP);
       }
@@ -873,42 +928,36 @@ public class Schema implements Comparable<Schema>, Writable {
     }
     else return null;
   }
-  
+
   /**
-   * union compatible schemas. Exception will be thrown if a name appears in multiple
-   * schemas but the types are different.
+   * union compatible schemas. Exception will be thrown if a name appears in
+   * multiple schemas but the types are different.
    */
-  public void unionSchema(Schema other) throws ParseException
-  {
+  public void unionSchema(Schema other) throws ParseException {
     int size = other.getNumColumns();
     ColumnSchema fs, otherfs;
-    for (int i = 0; i < size; i++)
-    {
+    for (int i = 0; i < size; i++) {
       otherfs = other.getColumn(i);
-      if (otherfs == null)
-        continue;
+      if (otherfs == null) continue;
       fs = getColumn(otherfs.name);
-      if (fs == null)
-        add(otherfs);
+      if (fs == null) add(otherfs);
       else {
         if (!ColumnSchema.equals(fs, otherfs))
-          throw new ParseException("Different types of column "+fs.name+" in uioned tables");
+          throw new ParseException("Different types of column " + fs.name
+              + " in uioned tables");
       }
     }
-  }  
+  }
 
   /**
    * return untyped schema string for projection
    */
-  public String toProjectionString()
-  {
+  public String toProjectionString() {
     String result = new String();
     ColumnSchema fs;
-    for (int i = 0; i < mFields.size(); i++)
-    {
+    for (int i = 0; i < mFields.size(); i++) {
       if (i > 0) result += ",";
-      if ((fs = mFields.get(i)) != null)
-        result += fs.name;
+      if ((fs = mFields.get(i)) != null) result += fs.name;
     }
     return result;
   }

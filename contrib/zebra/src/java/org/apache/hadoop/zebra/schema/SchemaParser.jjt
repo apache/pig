@@ -22,8 +22,10 @@ options {
 }
 
 PARSER_BEGIN(TableSchemaParser)
-package org.apache.hadoop.zebra.types;
+package org.apache.hadoop.zebra.parser;
 import java.io.*;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.schema.ColumnType;
 
 public class TableSchemaParser {
            public static void main( String[] args )

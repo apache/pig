@@ -32,7 +32,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;

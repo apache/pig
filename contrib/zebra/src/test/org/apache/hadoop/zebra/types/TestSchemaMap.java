@@ -21,11 +21,11 @@ package org.apache.hadoop.zebra.types;
 import java.io.StringReader;
 import junit.framework.Assert;
 
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Test;
 
 public class TestSchemaMap {
@@ -41,12 +41,12 @@ public class TestSchemaMap {
 
     // test 1st level schema;
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("f1", f1.name);
-    Assert.assertEquals(ColumnType.INT, f1.type);
+    Assert.assertEquals("f1", f1.getName());
+    Assert.assertEquals(ColumnType.INT, f1.getType());
 
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("m1", f2.name);
-    Assert.assertEquals(ColumnType.MAP, f2.type);
+    Assert.assertEquals("m1", f2.getName());
+    Assert.assertEquals(ColumnType.MAP, f2.getType());
   }
 
   @Test
@@ -61,24 +61,24 @@ public class TestSchemaMap {
 
     // test 1st level schema;
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("f1", f1.name);
-    Assert.assertEquals(ColumnType.INT, f1.type);
+    Assert.assertEquals("f1", f1.getName());
+    Assert.assertEquals(ColumnType.INT, f1.getType());
 
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("m1", f2.name);
-    Assert.assertEquals(ColumnType.MAP, f2.type);
+    Assert.assertEquals("m1", f2.getName());
+    Assert.assertEquals(ColumnType.MAP, f2.getType());
 
     // test 2nd level schema;
-    Schema f2Schema = f2.schema;
+    Schema f2Schema = f2.getSchema();
     ColumnSchema f21 = f2Schema.getColumn(0);
-    // Assert.assertEquals("m1", f2.name);
-    Assert.assertEquals(ColumnType.MAP, f21.type);
+    // Assert.assertEquals("m1", f2.getName());
+    Assert.assertEquals(ColumnType.MAP, f21.getType());
 
     // test 3rd level schema;
-    Schema f21Schema = f21.schema;
+    Schema f21Schema = f21.getSchema();
     ColumnSchema f211 = f21Schema.getColumn(0);
-    // Assert.assertEquals("m1", f2.name);
-    Assert.assertEquals(ColumnType.FLOAT, f211.type);
+    // Assert.assertEquals("m1", f2.getName());
+    Assert.assertEquals(ColumnType.FLOAT, f211.getType());
   }
 
   @Test
@@ -93,30 +93,30 @@ public class TestSchemaMap {
 
     // test 1st level schema;
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("m1", f1.name);
-    Assert.assertEquals(ColumnType.MAP, f1.type);
+    Assert.assertEquals("m1", f1.getName());
+    Assert.assertEquals(ColumnType.MAP, f1.getType());
 
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("m2", f2.name);
-    Assert.assertEquals(ColumnType.MAP, f2.type);
+    Assert.assertEquals("m2", f2.getName());
+    Assert.assertEquals(ColumnType.MAP, f2.getType());
 
     ColumnSchema f3 = schema.getColumn(2);
-    Assert.assertEquals("f3", f3.name);
-    Assert.assertEquals(ColumnType.BYTES, f3.type);
+    Assert.assertEquals("f3", f3.getName());
+    Assert.assertEquals(ColumnType.BYTES, f3.getType());
 
     // test 2nd level schema;
-    Schema f1Schema = f1.schema;
+    Schema f1Schema = f1.getSchema();
     ColumnSchema f11 = f1Schema.getColumn(0);
-    Assert.assertEquals(ColumnType.MAP, f11.type);
+    Assert.assertEquals(ColumnType.MAP, f11.getType());
 
-    Schema f2Schema = f2.schema;
+    Schema f2Schema = f2.getSchema();
     ColumnSchema f21 = f2Schema.getColumn(0);
-    Assert.assertEquals(ColumnType.BOOL, f21.type);
+    Assert.assertEquals(ColumnType.BOOL, f21.getType());
 
     // test 3rd level schema;
-    Schema f11Schema = f11.schema;
+    Schema f11Schema = f11.getSchema();
     ColumnSchema f111 = f11Schema.getColumn(0);
-    Assert.assertEquals(ColumnType.FLOAT, f111.type);
+    Assert.assertEquals(ColumnType.FLOAT, f111.getType());
   }
 
   @Test

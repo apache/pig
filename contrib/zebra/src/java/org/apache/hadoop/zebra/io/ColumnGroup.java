@@ -53,10 +53,10 @@ import org.apache.hadoop.io.file.tfile.Utils;
 import org.apache.hadoop.io.file.tfile.ByteArray;
 import org.apache.hadoop.io.file.tfile.RawComparable;
 import org.apache.hadoop.zebra.types.CGSchema;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
 import org.apache.hadoop.zebra.types.Projection;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.types.TypesUtils.TupleReader;
 import org.apache.hadoop.zebra.types.TypesUtils.TupleWriter;
@@ -241,12 +241,12 @@ class ColumnGroup {
      * @throws IOException
      */
     public Reader(Path path, Configuration conf) throws IOException,
-        ParseException {
+      ParseException {
       this(path, true, conf);
     }
 
     Reader(Path path, boolean dirty, Configuration conf) throws IOException,
-        ParseException {
+      ParseException {
       this.path = path;
       this.conf = conf;
 
@@ -786,7 +786,7 @@ class ColumnGroup {
       private boolean scannerClosed = true;
 
       CGScanner(CGRangeSplit split, boolean closeReader) throws IOException,
-          ParseException {
+      ParseException {
         if (split == null) {
           beginIndex = 0;
           endIndex = cgindex.size();

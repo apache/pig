@@ -21,11 +21,11 @@ package org.apache.hadoop.zebra.types;
 import java.io.StringReader;
 import junit.framework.Assert;
 
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Test;
 
 public class TestSchemaCollection {
@@ -41,35 +41,35 @@ public class TestSchemaCollection {
 
     // test 1st level schema;
     ColumnSchema f1 = schema.getColumn(0);
-    Assert.assertEquals("c1", f1.name);
-    Assert.assertEquals(ColumnType.COLLECTION, f1.type);
+    Assert.assertEquals("c1", f1.getName());
+    Assert.assertEquals(ColumnType.COLLECTION, f1.getType());
 
     ColumnSchema f2 = schema.getColumn(1);
-    Assert.assertEquals("c2", f2.name);
-    Assert.assertEquals(ColumnType.COLLECTION, f2.type);
+    Assert.assertEquals("c2", f2.getName());
+    Assert.assertEquals(ColumnType.COLLECTION, f2.getType());
 
     // test 2nd level schema;
-    Schema f1Schema = f1.schema;
+    Schema f1Schema = f1.getSchema();
     ColumnSchema f11 = f1Schema.getColumn(0);
-    Assert.assertEquals("f1", f11.name);
-    Assert.assertEquals(ColumnType.INT, f11.type);
+    Assert.assertEquals("f1", f11.getName());
+    Assert.assertEquals(ColumnType.INT, f11.getType());
     ColumnSchema f12 = f1Schema.getColumn(1);
-    Assert.assertEquals("f2", f12.name);
-    Assert.assertEquals(ColumnType.INT, f12.type);
+    Assert.assertEquals("f2", f12.getName());
+    Assert.assertEquals(ColumnType.INT, f12.getType());
 
-    Schema f2Schema = f2.schema;
+    Schema f2Schema = f2.getSchema();
     ColumnSchema f21 = f2Schema.getColumn(0);
-    Assert.assertEquals("c3", f21.name);
-    Assert.assertEquals(ColumnType.COLLECTION, f21.type);
+    Assert.assertEquals("c3", f21.getName());
+    Assert.assertEquals(ColumnType.COLLECTION, f21.getType());
 
     // test 3rd level schema;
-    Schema f21Schema = f21.schema;
+    Schema f21Schema = f21.getSchema();
     ColumnSchema f211 = f21Schema.getColumn(0);
-    Assert.assertEquals("f3", f211.name);
-    Assert.assertEquals(ColumnType.FLOAT, f211.type);
+    Assert.assertEquals("f3", f211.getName());
+    Assert.assertEquals(ColumnType.FLOAT, f211.getType());
     ColumnSchema f212 = f21Schema.getColumn(1);
-    Assert.assertEquals("f4", f212.name);
-    Assert.assertEquals(ColumnType.BYTES, f212.type);
+    Assert.assertEquals("f4", f212.getName());
+    Assert.assertEquals(ColumnType.BYTES, f212.getType());
   }
 
   @Test

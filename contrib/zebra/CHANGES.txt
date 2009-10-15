@@ -2,6 +2,15 @@ Zebra Change Log
 
 Trunk (unreleased changes)
 
+  INCOMPATIBLE CHANGES
+
+  IMPROVEMENTS
+
+    PIG-992 Separate schema related files into a schema package (yanz via
+	gates)
+
+  OPTIMIZATIONS
+
   BUG FIXES
 
     PIG-918. Fix infinite loop only columns in first column group are

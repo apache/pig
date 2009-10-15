@@ -26,12 +26,12 @@ import java.util.TreeSet;
 import junit.framework.Assert;
 
 import org.apache.hadoop.zebra.types.CGSchema;
-import org.apache.hadoop.zebra.types.ColumnType;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
-import org.apache.hadoop.zebra.types.Schema;
-import org.apache.hadoop.zebra.types.TableSchemaParser;
-import org.apache.hadoop.zebra.types.Schema.ColumnSchema;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,23 +67,23 @@ public class TestStorageMap {
       CGSchema cgs3 = cgschemas[2];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals(f11.name, "m1");
-      Assert.assertEquals(ColumnType.MAP, f11.type);
+      Assert.assertEquals(f11.getName(), "m1");
+      Assert.assertEquals(ColumnType.MAP, f11.getType());
 
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals(f21.name, "m2");
+      Assert.assertEquals(f21.getName(), "m2");
       // TODO: type should be MAP!
-      Assert.assertEquals(ColumnType.MAP, f21.type);
+      Assert.assertEquals(ColumnType.MAP, f21.getType());
 
       ColumnSchema f22 = cgs2.getSchema().getColumn(1);
-      Assert.assertEquals(f22.name, "f3");
-      Assert.assertEquals(ColumnType.INT, f22.type);
+      Assert.assertEquals(f22.getName(), "f3");
+      Assert.assertEquals(ColumnType.INT, f22.getType());
       ColumnSchema f31 = cgs3.getSchema().getColumn(0);
-      Assert.assertEquals(f31.name, "m1");
-      Assert.assertEquals(ColumnType.MAP, f31.type);
+      Assert.assertEquals(f31.getName(), "m1");
+      Assert.assertEquals(ColumnType.MAP, f31.getType());
       ColumnSchema f32 = cgs3.getSchema().getColumn(1);
-      Assert.assertEquals(f32.name, "m2");
-      Assert.assertEquals(ColumnType.MAP, f32.type);
+      Assert.assertEquals(f32.getName(), "m2");
+      Assert.assertEquals(ColumnType.MAP, f32.getType());
 
       System.out.println("*********** Column Map **********");
       Map<String, HashSet<Partition.PartitionInfo.ColumnMappingEntry>> colmap = p
@@ -154,20 +154,20 @@ public class TestStorageMap {
       CGSchema cgs3 = cgschemas[2];
 
       ColumnSchema f11 = cgs1.getSchema().getColumn(0);
-      Assert.assertEquals(f11.name, "m1");
-      Assert.assertEquals(ColumnType.MAP, f11.type);
+      Assert.assertEquals(f11.getName(), "m1");
+      Assert.assertEquals(ColumnType.MAP, f11.getType());
       ColumnSchema f21 = cgs2.getSchema().getColumn(0);
-      Assert.assertEquals(f21.name, "m1");
-      Assert.assertEquals(ColumnType.MAP, f21.type);
+      Assert.assertEquals(f21.getName(), "m1");
+      Assert.assertEquals(ColumnType.MAP, f21.getType());
       ColumnSchema f22 = cgs2.getSchema().getColumn(1);
-      Assert.assertEquals(f22.name, "f3");
-      Assert.assertEquals(ColumnType.INT, f22.type);
+      Assert.assertEquals(f22.getName(), "f3");
+      Assert.assertEquals(ColumnType.INT, f22.getType());
       ColumnSchema f31 = cgs3.getSchema().getColumn(0);
-      Assert.assertEquals(f31.name, "m1");
-      Assert.assertEquals(ColumnType.MAP, f31.type);
+      Assert.assertEquals(f31.getName(), "m1");
+      Assert.assertEquals(ColumnType.MAP, f31.getType());
       ColumnSchema f32 = cgs3.getSchema().getColumn(1);
-      Assert.assertEquals(f32.name, "m2");
-      Assert.assertEquals(ColumnType.MAP, f32.type);
+      Assert.assertEquals(f32.getName(), "m2");
+      Assert.assertEquals(ColumnType.MAP, f32.getType());
 
       System.out.println("*********** Column Map **********");
       Map<String, HashSet<Partition.PartitionInfo.ColumnMappingEntry>> colmap = p

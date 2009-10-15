@@ -241,8 +241,6 @@
         <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <jjtree target="${src.dir}/org/apache/pig/data/parser/TextDataParser.jjt" outputdirectory="${src.gen.textdata.parser.dir}/" javacchome="${javacc.home}" />
         <javacc target="${src.gen.textdata.parser.dir}/TextDataParser.jj" outputdirectory="${src.gen.textdata.parser.dir}" javacchome="${javacc.home}" />
-        <javacc target="contrib/zebra/src/java/org/apache/hadoop/zebra/types/SchemaParser.jjt" outputdirectory="contrib/zebra/src/java/org/apache/hadoop/zebra/types/" javacchome="${javacc.home}" />
-        <javacc target="contrib/zebra/src/java/org/apache/hadoop/zebra/types/TableStorageParser.jjt" outputdirectory="contrib/zebra/src/java/org/apache/hadoop/zebra/types/" javacchome="${javacc.home}" />
     </target>
 
     <!-- ================================================================== -->

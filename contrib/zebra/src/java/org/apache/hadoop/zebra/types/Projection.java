@@ -19,6 +19,8 @@ package org.apache.hadoop.zebra.types;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
 
 /**
  * Projection for Table and Column Group

@@ -30,8 +30,8 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.zebra.mapred.BasicTableOutputFormat;
 import org.apache.hadoop.zebra.mapred.TableInputFormat;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.data.Tuple;
 

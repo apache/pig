@@ -31,8 +31,8 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.ColumnGroup;
 import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -99,7 +99,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testFailureGetInserterAfterWriterClosed() throws IOException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testFailureGetInserterAfterWriterClosed");
     writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
@@ -117,7 +117,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testFailureInsertAfterClose() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertAfterClose");
     writer = new ColumnGroup.Writer(path, "abc, def ", false, path.getName(), "pig", "gz",
@@ -148,7 +148,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testFailureInsertXtraColumn() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertXtraColumn");
     writer = new ColumnGroup.Writer(path, "abc ", false, path.getName(), "pig", "gz", null, null, (short) -1, true,
@@ -174,7 +174,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testInsertOneRow() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testInsertOneRow");
     writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
@@ -196,7 +196,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testInsert2Rows() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Rows");
     writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
@@ -230,7 +230,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testInsert2Inserters() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Inserters");
     writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
@@ -267,7 +267,7 @@ public class TestColumnGroupInserters {
 
   @Test
   public void testFailureOverlappingKeys() throws IOException, ExecException,
-      ParseException {
+    ParseException {
     fs.delete(path, true);
     System.out.println("testFailureOverlappingKeys");
     writer = new ColumnGroup.Writer(path, "abc, def ", true, path.getName(), "pig", "gz",

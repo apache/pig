@@ -31,8 +31,8 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
-import org.apache.hadoop.zebra.types.ParseException;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
@@ -135,8 +135,7 @@ public class TestNonDefaultWholeMapSplit {
 
  
   @Test
-  public void testRead1() throws IOException,
-      org.apache.hadoop.zebra.types.ParseException, ParseException {
+  public void testRead1() throws IOException, ParseException {
     /*
      * read one map
      */
@@ -166,8 +165,7 @@ public class TestNonDefaultWholeMapSplit {
 
  
   @Test
-  public void testRead2() throws IOException,
-      ParseException, ParseException {
+  public void testRead2() throws IOException, ParseException {
     /*
      * read map of map, stitch
      */
@@ -222,8 +220,7 @@ public class TestNonDefaultWholeMapSplit {
 
   
   @Test
-  public void testRead3() throws IOException,
-      ParseException, ParseException {
+  public void testRead3() throws IOException, ParseException {
     /*
      * negative , read one map who is non-exist 
      */
@@ -255,8 +252,7 @@ public class TestNonDefaultWholeMapSplit {
 
  
   @Test
-  public void testRead4() throws IOException,
-      ParseException, ParseException {
+  public void testRead4() throws IOException, ParseException {
     /*
      *  Not exist key for all rows
      */

@@ -31,9 +31,9 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.BasicTableStatus;
 import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.types.ParseException;
+import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
-import org.apache.hadoop.zebra.types.Schema;
+import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.pig.data.Tuple;
 
 /**
