@@ -86,7 +86,7 @@ public class LOLimit extends RelationalOperator {
 
     @Override
     public boolean supportsMultipleOutputs() {
-        return false;
+        return true;
     }
 
     @Override
