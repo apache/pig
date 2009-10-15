@@ -143,7 +143,7 @@ public class DataByteArray implements Comparable, Serializable {
 
     @Override
     public String toString() {
-        String r=null;
+        String r="";
     	try {
 			r = new String(mData, "UTF8");
 		} catch (Exception e) {
