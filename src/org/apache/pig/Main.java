@@ -463,14 +463,19 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
     }
     
     Properties props = new Properties();
+    FileReader propertyReader = null;
     if (log4jconf != null) {
         try {
-            FileReader propertyReader = new FileReader(log4jconf);
+            propertyReader = new FileReader(log4jconf);
             props.load(propertyReader);
         }
         catch (IOException e)
         {
             System.err.println("Warn: Cannot open log4j properties file, use default");
+        }
+        finally
+        {
+            if (propertyReader != null) try {propertyReader.close();} catch(Exception e) {}
         }
     }
     if (props.size() == 0) {
