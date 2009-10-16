@@ -22,15 +22,21 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -68,6 +74,9 @@ import org.apache.pig.data.Tuple;
  * </ul>
  */
 public class BasicTable {
+  
+  static Log LOG = LogFactory.getLog(BasicTable.class);
+  
   // name of the BasicTable schema file
   private final static String BT_SCHEMA_FILE = ".btschema";
   // schema version
@@ -80,11 +89,113 @@ public class BasicTable {
   // default comparator to "memcmp"
   private final static String DEFAULT_COMPARATOR = TFile.COMPARATOR_MEMCMP;
 
+  private final static String DELETED_CG_PREFIX = ".deleted-";
+  
   // no public ctor for instantiating a BasicTable object
   private BasicTable() {
     // no-op
   }
 
+  /**
+   * Deletes the data for column group specified by cgName.
+   * When the readers try to read the fields that were stored in the
+   * column group get null since the underlying data is removed.
+   * <br> <br>
+   * 
+   * Effect on the readers that are currently reading from the table while
+   * a column group is droped is unspecified. Suggested practice is to 
+   * drop column groups when there are no readers or writes for the table.
+   * <br> <br>
+   * 
+   * Column group names are usually specified in the "storage hint" while
+   * creating a table. If no name is specified, system assigns a simple name.
+   * These names could be obtained through "dumpInfo()" and other methods.
+   * <br> <br> 
+   *
+   * Dropping a column group that has already been removed is a no-op no 
+   * exception is thrown.
+   * 
+   * @param path path to BasicTable
+   * @param conf Configuration determines file system and other parameters.
+   * @param cgName name of the column group to drop.
+   * @throws IOException IOException could occur for various reasons. E.g.
+   *         a user does not have permissions to write to table directory.
+   *         
+   */
+  public static void dropColumnGroup(Path path, Configuration conf,
+                                     String cgName) 
+                                     throws IOException {
+    
+    FileSystem fs = FileSystem.get(conf);
+    
+    SchemaFile schemaFile = new SchemaFile(path, conf);
+    
+    int cgIdx = schemaFile.getCGByName(cgName);
+    if (cgIdx < 0) {
+      throw new IOException(path + 
+             " : Could not find a column group with the name '" + cgName + "'");
+    }
+    
+    Path cgPath = new Path(path, schemaFile.getName(cgIdx));
+    
+    //Clean up any previous unfinished attempts to drop column groups?
+    
+    if (schemaFile.isCGDeleted(cgIdx)) {
+      // Clean up unfinished delete if it exists. so that clean up can 
+      // complete if the previous deletion was interrupted for some reason.
+      if (fs.exists(cgPath)) {
+        LOG.info(path + " : " + 
+                 " clearing unfinished deletion of column group " +
+                 cgName + ".");
+        fs.delete(cgPath, true);
+      }
+      LOG.info(path + " : column group " + cgName + " is already deleted.");
+      return;
+    }
+    
+    // try to delete the column group:
+    
+    // first check if the user has enough permissions to list the directory
+    fs.listStatus(cgPath);   
+    
+    //verify if the user has enough permissions by trying to create
+    //a temporary file in cg.
+    OutputStream out = fs.create(
+              new Path(cgPath, ".tmp" + DELETED_CG_PREFIX + cgName), true);
+    out.close();
+    
+    //First try to create a file indicating a column group is deleted.
+    try {
+      Path deletedCGPath = new Path(path, DELETED_CG_PREFIX + cgName);
+      // create without overriding.
+      out = fs.create(deletedCGPath, false);
+      // should we write anything?
+      out.close();
+    } catch (IOException e) {
+      // one remote possibility is that another user 
+      // already deleted CG. 
+      SchemaFile tempSchema = new SchemaFile(path, conf);
+      if (tempSchema.isCGDeleted(cgIdx)) {
+        LOG.info(path + " : " + cgName + 
+                 " is deleted by someone else. That is ok.");
+        return;
+      }
+      // otherwise, it is some other error.
+      throw e;
+    }
+    
+    // At this stage, the CG is marked deleted. Now just try to
+    // delete the actual directory:
+    if (!fs.delete(cgPath, true)) {
+      String msg = path + " : Could not detete column group " +
+                   cgName + ". It is marked deleted.";
+      LOG.warn(msg);
+      throw new IOException(msg);
+    }
+    
+    LOG.info("Dropped " + cgName + " from " + path);
+  }
+  
   /**
    * BasicTable reader.
    */
@@ -96,6 +207,7 @@ public class BasicTable {
     boolean inferredMapping;
     private MetaFile.Reader metaReader;
     private BasicTableStatus status;
+    private int firstValidCG = -1; /// First column group that exists.
     Partition partition;
     ColumnGroup.Reader[] colGroups;
     Tuple[] cgTuples;
@@ -103,9 +215,20 @@ public class BasicTable {
     private synchronized void checkInferredMapping() throws ParseException, IOException {
       if (!inferredMapping) {
         for (int i = 0; i < colGroups.length; ++i) {
-          colGroups[i].setProjection(partition.getProjection(i));
-          if (partition.isCGNeeded(i))
-            cgTuples[i] = TypesUtils.createTuple(colGroups[i].getSchema());
+          if (colGroups[i] != null) {
+            colGroups[i].setProjection(partition.getProjection(i));
+          } 
+          if (partition.isCGNeeded(i)) {
+            if (isCGDeleted(i)) {
+              // this is a deleted column group. Warn about it.
+              LOG.warn("Trying to read from deleted column group " + 
+                       schemaFile.getName(i) + 
+                       ". NULL is returned for corresponding columns. " +
+                       "Table at " + path);
+            } else {
+              cgTuples[i] = TypesUtils.createTuple(colGroups[i].getSchema());
+            }
+          }
           else
             cgTuples[i] = null;
         }
@@ -118,6 +241,13 @@ public class BasicTable {
       }
     }
 
+    /**
+     * Returns true if a column group is deleted.
+     */
+    private boolean isCGDeleted(int nx) {
+      return colGroups[nx] == null;
+    }
+    
     /**
      * Create a BasicTable reader.
      * 
@@ -143,15 +273,19 @@ public class BasicTable {
         String storage = schemaFile.getStorageString();
         partition = new Partition(schema, projection, storage);
         for (int nx = 0; nx < numCGs; nx++) {
-          colGroups[nx] =
-            new ColumnGroup.Reader(new Path(path, partition.getCGSchema(nx).getName()),
-                  conf);
-          if (partition.isCGNeeded(nx))
+          if (!schemaFile.isCGDeleted(nx)) {
+            colGroups[nx] =
+              new ColumnGroup.Reader(new Path(path, partition.getCGSchema(nx).getName()),
+                                     conf);
+            if (firstValidCG < 0) {
+              firstValidCG = nx;
+            }
+          }
+          if (colGroups[nx] != null && partition.isCGNeeded(nx))
             cgTuples[nx] = TypesUtils.createTuple(colGroups[nx].getSchema());
           else
             cgTuples[nx] = null;
         }
-        partition.setSource(cgTuples);
         buildStatus();
         closed = false;
       }
@@ -254,8 +388,10 @@ public class BasicTable {
         throws IOException {
       BlockDistribution bd = new BlockDistribution();
       for (int nx = 0; nx < colGroups.length; nx++) {
-        bd.add(colGroups[nx].getBlockDistribution(split == null ? null : split
+        if (!isCGDeleted(nx)) {
+          bd.add(colGroups[nx].getBlockDistribution(split == null ? null : split
             .get(nx)));
+        }
       }
       return bd;
     }
@@ -275,7 +411,9 @@ public class BasicTable {
       KeyDistribution kd =
           new KeyDistribution(TFile.makeComparator(schemaFile.getComparator()));
       for (int nx = 0; nx < colGroups.length; nx++) {
-        kd.add(colGroups[nx].getKeyDistribution(n));
+        if (!isCGDeleted(nx)) {
+           kd.add(colGroups[nx].getKeyDistribution(n));
+        }
       }
       if (kd.size() > (int) (n * 1.5)) {
         kd.resize(n);
@@ -384,12 +522,16 @@ public class BasicTable {
       List<CGRangeSplit>[] cgSplitsAll = new ArrayList[colGroups.length];
       // split each CG
       for (int nx = 0; nx < colGroups.length; nx++) {
-        cgSplitsAll[nx] = colGroups[nx].rangeSplit(n);
+        if (!isCGDeleted(nx))
+          cgSplitsAll[nx] = colGroups[nx].rangeSplit(n);
       }
 
       // verify all CGs have same number of slices
       int numSlices = -1;
       for (int nx = 0; nx < cgSplitsAll.length; nx++) {
+        if (isCGDeleted(nx)) {
+          continue;
+        }
         if (numSlices < 0) {
           numSlices = cgSplitsAll[nx].size();
         }
@@ -398,12 +540,22 @@ public class BasicTable {
               "BasicTable's column groups were not equally split.");
         }
       }
+      if (numSlices <= 0) {
+        // This could happen because of various reasons.
+        // One possibility is that all the CGs are deleted.
+        numSlices = 1;
+      }
       // return horizontal slices as RangeSplits
       List<RangeSplit> ret = new ArrayList<RangeSplit>(numSlices);
       for (int slice = 0; slice < numSlices; slice++) {
         CGRangeSplit[] oneSliceSplits = new CGRangeSplit[cgSplitsAll.length];
         for (int cgIndex = 0; cgIndex < cgSplitsAll.length; cgIndex++) {
-          oneSliceSplits[cgIndex] = cgSplitsAll[cgIndex].get(slice);
+          if (isCGDeleted(cgIndex)) {
+            // set a dummy split
+            oneSliceSplits[cgIndex] = new CGRangeSplit(0, 0);
+          } else {
+            oneSliceSplits[cgIndex] = cgSplitsAll[cgIndex].get(slice);
+          }
         }
         ret.add(new BasicTable.Reader.RangeSplit(oneSliceSplits));
       }
@@ -420,7 +572,9 @@ public class BasicTable {
           closed = true;
           metaReader.close();
           for (int i = 0; i < colGroups.length; ++i) {
-            colGroups[i].close();
+            if (colGroups[i] != null) {
+              colGroups[i].close();
+            }
           }
         }
         finally {
@@ -452,12 +606,20 @@ public class BasicTable {
 
     private void buildStatus() {
       status = new BasicTableStatus();
-      status.beginKey = colGroups[0].getStatus().getBeginKey();
-      status.endKey = colGroups[0].getStatus().getEndKey();
-      status.rows = colGroups[0].getStatus().getRows();
+      if (firstValidCG >= 0) {
+        status.beginKey = colGroups[firstValidCG].getStatus().getBeginKey();
+        status.endKey = colGroups[firstValidCG].getStatus().getEndKey();
+        status.rows = colGroups[firstValidCG].getStatus().getRows();
+      } else {
+        status.beginKey = new BytesWritable(new byte[0]);
+        status.endKey = status.beginKey;
+        status.rows = 0;
+      }
       status.size = 0;
       for (int nx = 0; nx < colGroups.length; nx++) {
-        status.size += colGroups[nx].getStatus().getSize();
+        if (colGroups[nx] != null) {
+          status.size += colGroups[nx].getStatus().getSize();
+        }
       }
     }
 
@@ -549,13 +711,17 @@ public class BasicTable {
           schema = partition.getProjection();
           cgScanners = new TableScanner[colGroups.length];
           for (int i = 0; i < colGroups.length; ++i) {
-            // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
-            if (partition.isCGNeeded(i) || (!anyScanner && (i == colGroups.length-1)))
+            if (!isCGDeleted(i) && partition.isCGNeeded(i)) 
             {
               anyScanner = true;
               cgScanners[i] = colGroups[i].getScanner(beginKey, endKey, false);
             } else
               cgScanners[i] = null;
+          }
+          if (!anyScanner && firstValidCG >= 0) {
+            // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
+            cgScanners[firstValidCG] = colGroups[firstValidCG].
+                                         getScanner(beginKey, endKey, false);
           }
           this.closeReader = closeReader;
           sClosed = false;
@@ -591,7 +757,7 @@ public class BasicTable {
           boolean anyScanner = false;
           for (int i = 0; i < colGroups.length; ++i) {
             // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
-            if (partition.isCGNeeded(i) || (!anyScanner && (i == colGroups.length-1)))
+            if (!isCGDeleted(i) && partition.isCGNeeded(i))
             {
               cgScanners[i] =
                   colGroups[i].getScanner(split == null ? null : split.get(i),
@@ -599,6 +765,11 @@ public class BasicTable {
               anyScanner = true;
             } else
               cgScanners[i] = null;
+          }
+          if (!anyScanner && firstValidCG >= 0) {
+            // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
+            cgScanners[firstValidCG] = colGroups[firstValidCG].
+              getScanner(split == null ? null : split.get(firstValidCG), false);
           }
           this.partition = partition;
           this.closeReader = closeReader;
@@ -1232,7 +1403,12 @@ public class BasicTable {
     boolean sorted;
     String storage;
     CGSchema[] cgschemas;
-
+    
+    // Array indicating if a physical schema is already dropped
+    // It is probably better to create "CGProperties" class and
+    // store multiple properties like name there.
+    boolean[] cgDeletedFlags;
+   
     // ctor for reading
     public SchemaFile(Path path, Configuration conf) throws IOException {
       readSchemaFile(path, conf);
@@ -1260,6 +1436,7 @@ public class BasicTable {
       for (int nx = 0; nx < cgschemas.length; nx++) {
         physical[nx] = cgschemas[nx].getSchema();
       }
+      cgDeletedFlags = new boolean[physical.length];
       this.sorted = sorted;
       version = SCHEMA_VERSION;
 
@@ -1303,6 +1480,24 @@ public class BasicTable {
       return cgschemas[nx].getCompressor();
     }
 
+    /** 
+     * Returns the index for CG with the given name.
+     * -1 indicates that there is no CG with the name.
+     */
+    int getCGByName(String cgName) {
+      for(int i=0; i<physical.length; i++) {
+        if (cgName.equals(getName(i))) {
+          return i;
+        }
+      }
+      return -1;
+    }
+    
+    /** Returns if the CG at the given index is delete */
+    boolean isCGDeleted(int idx) {
+      return cgDeletedFlags[idx];
+    }
+    
     public String getOwner(int nx) {
         return cgschemas[nx].getOwner();
       }
@@ -1314,7 +1509,6 @@ public class BasicTable {
     public short getPerm(int nx) {
         return cgschemas[nx].getPerm();
     }
-    
     
     /**
      * @return the string representation of the physical schema.
@@ -1377,8 +1571,10 @@ public class BasicTable {
       catch (Exception e) {
         throw new IOException("Partition constructor failed :" + e.getMessage());
       }
+      cgschemas = partition.getCGSchemas();
       int numCGs = WritableUtils.readVInt(in);
       physical = new Schema[numCGs];
+      cgDeletedFlags = new boolean[physical.length];
       TableSchemaParser parser;
       String cgschemastr;
       try {
@@ -1392,11 +1588,36 @@ public class BasicTable {
         throw new IOException("parser.RecordSchema failed :" + e.getMessage());
       }
       sorted = WritableUtils.readVInt(in) == 1 ? true : false;
+      setCGDeletedFlags(path, conf);
       in.close();
     }
 
     private static Path makeSchemaFilePath(Path parent) {
       return new Path(parent, BT_SCHEMA_FILE);
+    }
+    
+    /**
+     * Sets cgDeletedFlags array by checking presense of
+     * ".deleted-CGNAME" directory in the table top level
+     * directory. 
+     */
+    void setCGDeletedFlags(Path path, Configuration conf) throws IOException {
+      
+      Set<String> deletedCGs = new HashSet<String>(); 
+      
+      for (FileStatus file : path.getFileSystem(conf).listStatus(path)) {
+        if (!file.isDir()) {
+           String fname =  file.getPath().getName();
+           if (fname.startsWith(DELETED_CG_PREFIX)) {
+             deletedCGs.add(fname.substring(DELETED_CG_PREFIX.length()));
+           }
+        }
+      }
+      
+      for(int i=0; i<physical.length; i++) {
+        cgDeletedFlags[i] = 
+          deletedCGs.contains(getName(i));
+      }
     }
   }
 
@@ -1421,7 +1642,15 @@ public class BasicTable {
       for (int nx = 0; nx < reader.colGroups.length; nx++) {
         IOutils.indent(out, indent);
         out.printf("\nColumn Group [%d] :", nx);
-        ColumnGroup.dumpInfo(reader.colGroups[nx].path, out, conf, indent);
+        if (reader.colGroups[nx] != null) {
+          ColumnGroup.dumpInfo(reader.colGroups[nx].path, out, conf, indent);
+        } else {
+          // print basic info for deleted column groups.
+          out.printf("\nColum Group : DELETED");
+          out.printf("\nName : %s", reader.schemaFile.getName(nx));
+          out.printf("\nSchema : %s\n", 
+                     reader.schemaFile.cgschemas[nx].getSchema().toString());
+        }
       }
     }
     catch (Exception e) {

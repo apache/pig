@@ -69,19 +69,19 @@ public class TestBasicTable {
   public static void tearDownOnce() throws IOException {
   }
 
-  BytesWritable makeRandomKey(int max) {
+  static BytesWritable makeRandomKey(int max) {
     return makeKey(random.nextInt(max));
   }
 
-  BytesWritable makeKey(int i) {
+  static BytesWritable makeKey(int i) {
     return new BytesWritable(String.format("key%09d", i).getBytes());
   }
 
-  String makeString(String prefix, int max) {
+  static String makeString(String prefix, int max) {
     return String.format("%s%09d", prefix, random.nextInt(max));
   }
 
-  int createBasicTable(int parts, int rows, String strSchema, String storage,
+  static int createBasicTable(int parts, int rows, String strSchema, String storage,
       Path path, boolean properClose, boolean sorted) throws IOException {
     if (fs.exists(path)) {
       BasicTable.drop(path, conf);
@@ -133,7 +133,7 @@ public class TestBasicTable {
     return total;
   }
 
-  void rangeSplitBasicTable(int numSplits, int totalRows, String strProjection,
+  static void rangeSplitBasicTable(int numSplits, int totalRows, String strProjection,
       Path path) throws IOException, ParseException {
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection(strProjection);
@@ -153,7 +153,7 @@ public class TestBasicTable {
     // TODO: verify tuples contains the right projected values
   }
 
-  void doRangeSplit(int[] numSplits, int totalRows, String projection, Path path)
+  static void doRangeSplit(int[] numSplits, int totalRows, String projection, Path path)
       throws IOException, ParseException {
     for (int i : numSplits) {
       if (i > 0) {
@@ -162,7 +162,7 @@ public class TestBasicTable {
     }
   }
 
-  void keySplitBasicTable(int numSplits, int totalRows, String strProjection,
+  static void keySplitBasicTable(int numSplits, int totalRows, String strProjection,
       Path path) throws IOException, ParseException {
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection(strProjection);
@@ -211,7 +211,7 @@ public class TestBasicTable {
     Assert.assertEquals(total, totalRows);
   }
 
-  void doKeySplit(int[] numSplits, int totalRows, String projection, Path path)
+  static void doKeySplit(int[] numSplits, int totalRows, String projection, Path path)
       throws IOException, ParseException {
     for (int i : numSplits) {
       if (i > 0) {
@@ -220,7 +220,7 @@ public class TestBasicTable {
     }
   }
 
-  BasicTableStatus getStatus(Path path) throws IOException {
+  static BasicTableStatus getStatus(Path path) throws IOException {
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     try {
       return reader.getStatus();
@@ -229,7 +229,7 @@ public class TestBasicTable {
     }
   }
 
-  void doReadWrite(Path path, int parts, int rows, String schema,
+  static void doReadWrite(Path path, int parts, int rows, String schema,
       String storage, String projection, boolean properClose, boolean sorted)
       throws IOException, ParseException {
     int totalRows = createBasicTable(parts, rows, schema, storage, path,
@@ -261,7 +261,7 @@ public class TestBasicTable {
     doReadWrite(path, 2, 0, "a, b, c", "", "a, d, c, f", true, true);
   }
 
-  int doReadOnly(TableScanner scanner) throws IOException, ParseException {
+  static int doReadOnly(TableScanner scanner) throws IOException, ParseException {
     int total = 0;
     BytesWritable key = new BytesWritable();
     Tuple value = TypesUtils.createTuple(scanner.getSchema());
