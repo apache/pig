@@ -57,6 +57,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-858: Order By followed by "replicated" join fails while compiling MR-plan
+from physical plan (ashutoshc via gates)
+
 PIG-968: Fix findContainingJar to work properly when there is a + in the jar
          path (tlipcon via gates).
 

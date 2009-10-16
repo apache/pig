@@ -146,6 +146,58 @@ public class TestFRJoin extends TestCase{
         
     }
     
+    public void testSortFRJoin() throws IOException{
+      pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+      pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+      pigServer.registerQuery("D = ORDER A by y;");
+      pigServer.registerQuery("E = ORDER B by y;");
+      DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+      {
+          pigServer.registerQuery("C = join D by $0, E by $0 using \"replicated\";");
+          Iterator<Tuple> iter = pigServer.openIterator("C");
+          
+          while(iter.hasNext()) {
+              dbfrj.add(iter.next());
+          }
+      }
+      {
+          pigServer.registerQuery("C = join D by $0, E by $0;");
+          Iterator<Tuple> iter = pigServer.openIterator("C");
+          
+          while(iter.hasNext()) {
+              dbshj.add(iter.next());
+          }
+      }
+      Assert.assertEquals(dbfrj.size(), dbshj.size());
+      Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+    }
+    
+    public void testDistinctFRJoin() throws IOException{
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("D = distinct A ;");
+        pigServer.registerQuery("E = distinct B ;");
+        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("C = join D by $0, E by $0 using \"replicated\";");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+            
+            while(iter.hasNext()) {
+                dbfrj.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("C = join D by $0, E by $0;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+            
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Assert.assertEquals(dbfrj.size(), dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+      }
+    
     @Test
     public void testUDFFRJ() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:chararray,y:int);");
