@@ -664,12 +664,16 @@ public class FileLocalizer {
         if (exitVal != 0)
             return null;
         String line = null;
+        BufferedReader br = null;
         try {
             InputStreamReader isr = new InputStreamReader(p.getInputStream());
-            BufferedReader br = new BufferedReader(isr);
+            br = new BufferedReader(isr);
             line = br.readLine();
+            isr.close();
         } catch (IOException e) {
             return null;
+        } finally {
+            if (br != null) try {br.close();} catch (Exception e) {}
         }
         return line;
     }
