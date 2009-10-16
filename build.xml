@@ -64,9 +64,11 @@
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
+    <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
     <property name="output.jarfile.sources" value="${build.dir}/${final.name}-sources.jar" />
     <!-- Maintain old pig.jar in top level directory. -->
+    <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
     <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
 
     <!-- test properties -->
@@ -375,15 +377,6 @@
         <antcall target="jarWithOutSvn" inheritRefs="true" inheritall="true"/>
     </target>
     
-    <target name="jar-withouthadoop" depends="compile" description="Create pig jar">
-        <antcall target="jarWithSvn" inheritRefs="true" inheritall="true">
-            <param name="nohadooplib" value="yes" />
-        </antcall>
-        <antcall target="jarWithOutSvn" inheritRefs="true" inheritall="true">
-            <param name="nohadooplib" value="yes" />
-        </antcall>
-    </target>
-
     <target name="jarWithSvn" if="svn.revision">
         <antcall target="buildJar" inheritRefs="true" inheritall="true">
             <param name="svnString" value="${svn.revision}" />
@@ -422,14 +415,65 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${lib.dir}/${hadoop.jarfile}">
-                <exclude name="**" if="nohadooplib"/>
-            </zipfileset>
+            <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
         </jar>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Make pig-withouthadoop.jar                                                       -->
+    <!-- ================================================================== -->
+    <target name="jar-withouthadoop" depends="compile" description="Create pig jar withouthadoop">
+        <antcall target="jar-withouthadoopWithSvn" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar-withouthadoopWithOutSvn" inheritRefs="true" inheritall="true"/>
+    </target>
+    
+    <target name="jar-withouthadoopWithSvn" if="svn.revision">
+        <antcall target="buildJar-withouthadoop" inheritRefs="true" inheritall="true">
+            <param name="svnString" value="${svn.revision}" />
+        </antcall>
+    </target>
+    
+    <target name="jar-withouthadoopWithOutSvn" unless="svn.revision">
+        <antcall target="buildJar-withouthadoop" inheritRefs="true" inheritall="true">
+            <param name="svnString" value=": unknown" />
+        </antcall>
+    </target>
+    
+    <target name="buildJar-withouthadoop" depends="ivy-buildJar">
+        <echo>svnString ${svnString}</echo>
+        <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
+            <manifest>
+                <attribute name="Main-Class" value="org.apache.pig.Main" />
+                <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Implementation-Title" value="Pig" />
+                    <attribute name="Implementation-Version" value="${version}" />
+                    <attribute name="Build-TimeStamp" value="${timestamp}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
+                </section>
+            </manifest>
+        </jar>
+        <!-- @depricated -->
+        <jar jarfile="${output.jarfile.withouthadoop}" basedir="${build.classes}">
+            <manifest>
+                <attribute name="Main-Class" value="org.apache.pig.Main" />
+                <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Implementation-Title" value="Pig" />
+                    <attribute name="Implementation-Version" value="${version}" />
+                    <attribute name="Build-TimeStamp" value="${timestamp}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
+                </section>
+            </manifest>
+            <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
+        </jar>
+        <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
     </target>
 
     <!-- ================================================================== -->
@@ -455,7 +499,7 @@
             			<sysproperty key="hod.param" value="${hod.param}"/> -->
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
             <classpath>
-                <pathelement location="${output.jarfile}" />
+                <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="${junit.hadoop.conf}" />
 		<pathelement path="${clover.jar}"/>
