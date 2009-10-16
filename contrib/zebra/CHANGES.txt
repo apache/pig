@@ -5,6 +5,8 @@ Trunk (unreleased changes)
   INCOMPATIBLE CHANGES
 
   IMPROVEMENTS
+  	
+	PIG-993 Ability to drop a column group in a table (yanz and rangadi via gates)
 
     PIG-992 Separate schema related files into a schema package (yanz via
 	gates)
