@@ -73,7 +73,7 @@ to call at top-level: ant deploy-contrib compile-core-test
   <target name="javadoc" depends="jar">
 	  <mkdir dir="${build.javadoc}" />
 	  <javadoc packagenames="org.apache.pig.*" overview="${src.docs.dir}/overview.html" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="Hadoop Zebra API" doctitle="Hadoop Zebra API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
-		  <packageset dir="${src.dir}" excludes="**/examples,**/comparator/,**/io/" />
+		  <packageset dir="${src.dir}" excludes="**/examples" />
 		  <link href="${javadoc.link}" />
           <classpath refid="classpath"/>
 		  <!--
@@ -126,10 +126,16 @@ to call at top-level: ant deploy-contrib compile-core-test
       <classpath refid="test.classpath"/>
       <formatter type="${test.junit.output.format}" />
 
-      <batchtest todir="${build.test}">
+      <batchtest todir="${build.test}"  unless="testcase">
         <fileset dir="${src.test}"
                  includes="**/TestCheckin*.java" excludes="**/${test.exclude}.java" />
       </batchtest>
+      <batchtest todir="${build.test}"  if="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/${testcase}.java"/>
+      </batchtest>
+
+
     </junit>
     <fail if="tests.failed">Tests failed!</fail>
   </target>

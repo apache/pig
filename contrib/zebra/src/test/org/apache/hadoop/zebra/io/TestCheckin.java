@@ -36,6 +36,7 @@ import org.junit.runners.Suite;
   TestColumnGroupReaders.class,
   TestColumnGroupSchemas.class,
   TestColumnGroupSplits.class,
+  TestDropColumnGroup.class,
   TestMap.class,
   TestMapOfRecord.class,
   TestMixedType1.class,

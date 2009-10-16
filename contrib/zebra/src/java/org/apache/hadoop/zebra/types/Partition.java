@@ -426,6 +426,12 @@ public class Partition {
       src.setProjIndex(mSize++);
     }
 
+    void cleanup()
+    {
+      for (int i = 0;  i < mSources.size(); i++)
+        mSources.get(i).cleanup();
+    }
+
     void insert(final BytesWritable key) throws ExecException {
       for (int i = 0; i < mSize; i++)
         ((Tuple) mTuple).set(mSources.get(i).getProjIndex(), mSources.get(i)
@@ -488,6 +494,7 @@ public class Partition {
     private Object mTuple = null;
     private boolean mNeedTmpTuple;
     private HashSet<String> mKeys; // interested hash keys
+    private PartitionedColumn parent = null;
 
     PartitionedColumn(int fi, boolean needTmpTuple)
         throws IOException {
@@ -503,6 +510,10 @@ public class Partition {
 
     void setKeys(HashSet<String> keys) {
       mKeys = keys;
+    }
+
+    private void setParent(PartitionedColumn parent) {
+      this.parent = parent;
     }
 
     /**
@@ -580,6 +591,28 @@ public class Partition {
       if (mChildren == null) mChildren = new ArrayList<PartitionedColumn>();
       mChildren.add(child);
       mChildrenLen++;
+      child.setParent(this);
+    }
+
+    void cleanup() {
+      if (parent != null) {
+        parent.removeChild(this);
+      }
+      if (mNeedTmpTuple && mTuple != null)
+        mTuple = null;
+    }
+
+    void removeChild(PartitionedColumn child)
+    {
+      for (int i = 0; i < mChildrenLen; i++)
+      {
+        if (mChildren.get(i) == child)
+        {
+          mChildren.remove(i);
+          mChildrenLen--;
+          i--;
+        }
+      }
     }
 
     void setProjIndex(int projindex) {
@@ -1025,8 +1058,7 @@ public class Partition {
       cgentry = getCGEntry(getCGIndex(child).getCGIndex());
 
       PartitionedColumn mapParCol =
-          new PartitionedColumn(i, Partition.SplitType.MAP, true);
-      mPCNeedTmpTuple.add(mapParCol);
+          new PartitionedColumn(i, Partition.SplitType.MAP, false);
       cgentry.addUser(mapParCol, getCGName(child));
       mExecs.add(mapParCol); // not a leaf : MAP stitch needed
       mStitchSize++;
@@ -1047,12 +1079,11 @@ public class Partition {
         if (!projectedCGs.contains(index))
         {
           PartitionedColumn parCol =
-             new PartitionedColumn(0, true);
-          mPCNeedTmpTuple.add(parCol);
+             new PartitionedColumn(0, false);
+          // mPCNeedTmpTuple.add(parCol);
           cgentry.addUser(parCol, getCGName(child), cgindex.getKeys());
           mapParCol.addChild(parCol); // contribute to the non-key-partitioned
          // hashes
-          mPCNeedMap.add(parCol);
          projectedCGs.add(index);
         }
       }
@@ -1079,19 +1110,17 @@ public class Partition {
         cgentry = getCGEntry(mapentry.getKey().getCGIndex());
         if (needParent)
         {
-          parCol = new PartitionedColumn(i, Partition.SplitType.MAP, true);
+          parCol = new PartitionedColumn(i, Partition.SplitType.MAP, false);
           mExecs.add(parCol); // not a leaf : MAP stitch needed
           mStitchSize++;
-          mPCNeedMap.add(parCol);
           parent.addChild(parCol);
           parent = parCol;
           needParent = false;
           newParent = true;
         } else {
-          parCol = new PartitionedColumn(newParent ? 0 : i, true);
+          parCol = new PartitionedColumn(newParent ? 0 : i, false);
           parent.addChild(parCol);
         }
-        mPCNeedTmpTuple.add(parCol);
         cgentry.addUser(parCol, getCGName(child), projectedKeys);
       }
     }
@@ -1250,7 +1279,14 @@ public class Partition {
       throw new ParseException(
           "Internal Logical Error: Invalid number of column groups");
     for (int i = 0; i < tuples.length; i++) {
-      if (mCGs.get(i) != null) mCGs.get(i).setSource(tuples[i]);
+      if (mCGs.get(i) != null) {
+        if (tuples[i] == null) {
+          mCGs.get(i).cleanup();
+          mCGs.remove(i);
+        } else {
+          mCGs.get(i).setSource(tuples[i]);
+        }
+      }
     }
   }
 
