@@ -35,9 +35,11 @@ public class PropertiesUtil {
     private final static Log log = LogFactory.getLog(PropertiesUtil.class);
 
     public static void loadPropertiesFromFile(Properties properties) {
+        InputStream inputStream = null;
+        BufferedInputStream bis = null;
         try {
             Class<PropertiesUtil> clazz = PropertiesUtil.class;
-            InputStream inputStream = clazz
+            inputStream = clazz
                     .getResourceAsStream(PROPERTIES_FILE);
             if (inputStream == null) {
                 String msg = "no pig.properties configuration file available in the classpath";
@@ -47,6 +49,8 @@ public class PropertiesUtil {
             }
         } catch (Exception e) {
             log.error("unable to parse pig.properties :", e);
+        } finally {
+            if (inputStream != null) try {inputStream.close();} catch (Exception e) {}
         }
 
         Properties pigrcProps = new Properties() ;
@@ -55,10 +59,14 @@ public class PropertiesUtil {
             if (pigrcFile.exists()) {
                 log.warn(pigrcFile.getAbsolutePath()
                         + " exists but will be deprecated soon. Use conf/pig.properties instead!");
-                pigrcProps.load(new BufferedInputStream(new FileInputStream(pigrcFile))) ;
+
+                bis = new BufferedInputStream(new FileInputStream(pigrcFile));
+                pigrcProps.load(bis) ;
             }
         } catch (Exception e) {
             log.error("unable to parse .pigrc :", e);
+        } finally {
+            if (bis != null) try {bis.close();} catch (Exception e) {}
         }
 
 		// Now put all the entries from pigrcProps into properties, but
