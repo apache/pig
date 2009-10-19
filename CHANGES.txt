@@ -26,7 +26,10 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-1001: FINDBUGS: SE_NO_SERIALVERSIONID: Class is Serializable, but doesn't
+PIG-1013: FINDBUGS: DMI_INVOKING_TOSTRING_ON_ARRAY: Invocation of toString on
+an array (olgan)
+
+PIG-1011: FINDBUGS: SE_NO_SERIALVERSIONID: Class is Serializable, but doesn't
 define serialVersionUID (olgan)
 
 PIG-1009: FINDBUGS: OS_OPEN_STREAM: Method may fail to close stream (olgan)

@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -500,7 +501,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 sb.append("could not instantiate '");
                 sb.append(className);
                 sb.append("' with arguments '");
-                sb.append(args);
+                sb.append(Arrays.toString(args));
                 sb.append("'");
                 throw new RuntimeException(sb.toString(), e);
             }
@@ -511,7 +512,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
             sb.append("could not instantiate '");
             sb.append(className);
             sb.append("' with arguments '");
-            sb.append(args);
+            sb.append(Arrays.toString(args));
             sb.append("'");
             throw new RuntimeException(sb.toString(), e);
         }
