@@ -41,7 +41,7 @@ import org.apache.pig.pen.util.ExampleTuple;
  *
  */
 public class POCross extends PhysicalOperator {
-    
+    private static final long serialVersionUID = 1L;    
     DataBag [] inputBags;
     Tuple [] data;
     Iterator [] its;

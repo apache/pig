@@ -51,7 +51,7 @@ public class POLoad extends PhysicalOperator {
     /**
      * 
      */
-//    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
     LoadFunc loader = null;
     // The filespec on which the operator is based

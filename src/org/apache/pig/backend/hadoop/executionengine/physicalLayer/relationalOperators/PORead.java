@@ -35,7 +35,7 @@ import org.apache.pig.impl.plan.VisitorException;
  * 
  */
 public class PORead extends PhysicalOperator {
-
+    private static final long serialVersionUID = 1L;
     DataBag bag;
     transient Iterator<Tuple> it;
 
