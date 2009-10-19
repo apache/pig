@@ -47,9 +47,13 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.validators.SchemaAliasValidator;
+import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.parser.ParseException ;
 import org.apache.pig.impl.util.MultiMap;
@@ -2067,6 +2071,37 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         buildPlan(" c = foreach b { c1 = limit a 10;c2 = (c1.a0/c1.a1);c3 = (c1.a0/c1.a2);generate c2, c3;};");
     }
     
+    @Test
+    // See PIG-644
+    public void testDuplicateSchema1() {
+        try {
+            LogicalPlan lp = buildPlan(" a = load '1.txt' as (a0:int, a0:int);");
+            SchemaAliasValidator schemaAliasValidator = new SchemaAliasValidator() ;
+            CompilationMessageCollector collector = new CompilationMessageCollector() ;
+            schemaAliasValidator.validate(lp, collector);
+        } catch (PlanValidationException e) {
+            assertTrue(e.getCause().getMessage().contains("Duplicate schema"));
+            return;
+        }
+        fail();
+    }
+    
+    @Test
+    // See PIG-644
+    public void testDuplicateSchema2() {
+        try {
+            buildPlan(" a = load '1.txt' as (a0:int, a1:int);");
+            LogicalPlan lp = buildPlan(" b = foreach a generate a0, a1 as a0;");
+            SchemaAliasValidator schemaAliasValidator = new SchemaAliasValidator() ;
+            CompilationMessageCollector collector = new CompilationMessageCollector() ;
+            schemaAliasValidator.validate(lp, collector);
+        } catch (PlanValidationException e) {
+            assertTrue(e.getCause().getMessage().contains("Duplicate schema"));
+            return;
+        }
+        fail();
+    }
+
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

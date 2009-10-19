@@ -68,7 +68,7 @@ public class LogicalPlanValidationExecutor
         //validatorList.add(new TypeCastInserterValidator()) ;
         validatorList.add(new TypeCheckingValidator()) ;
         
-       
+        validatorList.add(new SchemaAliasValidator()) ;
     }    
 
     public void validate(LogicalPlan plan,
