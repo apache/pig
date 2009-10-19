@@ -93,6 +93,8 @@ PIG-921: Strange use case for Join which produces different results in local and
 
 PIG-1024: Script contains nested limit fail due to "LOLimit does not support multiple outputs" (daijy)
 
+PIG-644: Duplicate column names in foreach do not throw parser error (daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES
