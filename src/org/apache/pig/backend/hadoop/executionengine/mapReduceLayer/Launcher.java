@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -503,7 +504,7 @@ public abstract class Launcher {
             	return (Throwable)object;
             } else { //else for if(exceptionName != null)
         		int errCode = 2055;
-        		String msg = "Did not find exception name to create exception from string: " + stackTraceLines.toString();
+        		String msg = "Did not find exception name to create exception from string: " + Arrays.toString(stackTraceLines);
         		throw new ExecException(msg, errCode, PigException.BUG);
             }
         } else { //else for if(lines.length > 0)

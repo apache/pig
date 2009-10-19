@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Map;
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
@@ -75,14 +76,14 @@ abstract public class Utf8StorageConverter {
         try {
             db = (DataBag)parseFromBytes(b);
         } catch (ParseException pe) {
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type bag, caught ParseException <" +
                     pe.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;       
         }catch (Exception e){
             // can happen if parseFromBytes identifies it as being of different type
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type bag, caught Exception <" +
                     e.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
@@ -103,7 +104,7 @@ abstract public class Utf8StorageConverter {
         try {
             return Double.valueOf(new String(b));
         } catch (NumberFormatException nfe) {
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to double, caught NumberFormatException <" +
                     nfe.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
@@ -126,7 +127,7 @@ abstract public class Utf8StorageConverter {
         try {
             return Float.valueOf(s);
         } catch (NumberFormatException nfe) {
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to float, caught NumberFormatException <" +
                     nfe.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
@@ -155,7 +156,7 @@ abstract public class Utf8StorageConverter {
                 }
                 return new Integer(d.intValue());
             } catch (NumberFormatException nfe2) {
-                LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+                LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                         "converted to int, caught NumberFormatException <" +
                         nfe.getMessage() + "> field discarded", 
                         PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
@@ -194,7 +195,7 @@ abstract public class Utf8StorageConverter {
                 }
                 return new Long(d.longValue());
             } catch (NumberFormatException nfe2) {
-                LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+                LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                             "converted to long, caught NumberFormatException <" +
                             nfe.getMessage() + "> field discarded", 
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
@@ -211,14 +212,14 @@ abstract public class Utf8StorageConverter {
             map = (Map<String, Object>)parseFromBytes(b);
         }
         catch (ParseException pe) {
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type map, caught ParseException <" +
                     pe.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;       
         }catch (Exception e){
             // can happen if parseFromBytes identifies it as being of different type
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type map, caught Exception <" +
                     e.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
@@ -235,14 +236,14 @@ abstract public class Utf8StorageConverter {
             t = (Tuple)parseFromBytes(b);
         } 
         catch (ParseException pe) {
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type tuple, caught ParseException <" +
                     pe.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;       
         }catch (Exception e){
             // can happen if parseFromBytes identifies it as being of different type
-            LogUtils.warn(this, "Unable to interpret value " + b + " in field being " +
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type tuple, caught Exception <" +
                     e.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
