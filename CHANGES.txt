@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1001: FINDBUGS: SE_NO_SERIALVERSIONID: Class is Serializable, but doesn't
+define serialVersionUID (olgan)
+
 PIG-1009: FINDBUGS: OS_OPEN_STREAM: Method may fail to close stream (olgan)
 
 PIG-1008: FINDBUGS: NP_TOSTRING_COULD_RETURN_NULL (olgan)
