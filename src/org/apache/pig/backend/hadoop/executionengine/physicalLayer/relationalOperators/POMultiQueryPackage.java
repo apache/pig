@@ -30,9 +30,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.NullableUnknownWritable;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.backend.hadoop.HDataType;
 
 /**
  * The package operator that packages the globally rearranged tuples 
@@ -168,7 +170,9 @@ public class POMultiQueryPackage extends POPackage {
     @Override
     public Result getNext(Tuple t) throws ExecException {
         
-        int index = myKey.getIndex();
+        byte origIndex = myKey.getIndex();
+
+        int index = (int)origIndex;
         index &= idxPart;
         index -= baseIndex;
         
@@ -187,18 +191,33 @@ public class POMultiQueryPackage extends POPackage {
         
         Tuple tuple = (Tuple)res.result;
 
-        // the key present in the first field
-        // of the tuple above is the real key without
+        // the object present in the first field
+        // of the tuple above is the real data without
         // index information - this is because the
-        // package above, extracts the real key out of
-        // the PigNullableWritable key - we are going to
+        // package above, extracts the real data out of
+        // the PigNullableWritable object - we are going to
         // give this result tuple to a PODemux operator
-        // which needs a PigNullableWritable key so
-        // it can figure out the index - we already have
-        // the PigNullableWritable key cachec in "myKey"
-        // let's send this in the result tuple
-        tuple.set(0, myKey);
-
+        // which needs a PigNullableWritable first field so
+        // it can figure out the index. Therefore we need
+        // to add index to the first field of the tuple.
+                
+        Object obj = tuple.get(0);
+        if (obj instanceof PigNullableWritable) {
+            ((PigNullableWritable)obj).setIndex(origIndex);
+        }
+        else {
+            PigNullableWritable myObj = null;
+            if (obj == null) {
+                myObj = new NullableUnknownWritable();
+                myObj.setNull(true);
+            }
+            else {
+                myObj = HDataType.getWritableComparableTypes(obj, (byte)0);
+            }
+            myObj.setIndex(origIndex);
+            tuple.set(0, myObj);
+        }
+        
         return res;
     }
 
