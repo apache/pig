@@ -60,7 +60,7 @@ public class PODemux extends PhysicalOperator {
     
     private static Result eop = new Result(POStatus.STATUS_EOP, null);
     
-    private Log log = LogFactory.getLog(getClass());
+    transient private Log log = LogFactory.getLog(getClass());
     
     /*
      * The base index of this demux. In the case of

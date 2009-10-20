@@ -53,7 +53,7 @@ public class POCombinerPackage extends POPackage {
      */
     private static final long serialVersionUID = 1L;
 
-    private final Log log = LogFactory.getLog(getClass());
+    transient private final Log log = LogFactory.getLog(getClass());
 
     private static BagFactory mBagFactory = BagFactory.getInstance();
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();

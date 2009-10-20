@@ -50,9 +50,9 @@ public class POStore extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
     private static Result empty = new Result(POStatus.STATUS_NULL, null);
-    private StoreFunc storer;    
-    private final Log log = LogFactory.getLog(getClass());
-    private POStoreImpl impl;
+    transient private StoreFunc storer;    
+    transient private final Log log = LogFactory.getLog(getClass());
+    transient private POStoreImpl impl;
     private FileSpec sFile;
     private Schema schema;
 

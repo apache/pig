@@ -191,10 +191,10 @@ public class PigSlice implements Slice {
     FuncSpec parser;
 
     // Created as part of init
-    private InputStream is;
-    private SeekableInputStream fsis;
+    transient private InputStream is;
+    transient private SeekableInputStream fsis;
     private long end;
-    private LoadFunc loader;
+    transient private LoadFunc loader;
 
     private static final long serialVersionUID = 1L;
 }

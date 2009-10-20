@@ -43,7 +43,7 @@ public class POSkewedJoin extends PhysicalOperator  {
 	
 	private static final long serialVersionUID = 1L;
 	
-	private static Log log = LogFactory.getLog(POSkewedJoin.class);
+	transient private static Log log = LogFactory.getLog(POSkewedJoin.class);
 	
 	// physical plans to retrive join keys
 	// the key of this <code>MultiMap</code> is the PhysicalOperator that corresponds to an input

@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1012: FINDBUGS: SE_BAD_FIELD: Non-transient non-serializable instance field in
+serializable class (olgan)
+
 PIG-1013: FINDBUGS: DMI_INVOKING_TOSTRING_ON_ARRAY: Invocation of toString on
 an array (olgan)
 

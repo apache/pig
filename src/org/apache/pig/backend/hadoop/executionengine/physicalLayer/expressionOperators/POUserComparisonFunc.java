@@ -48,7 +48,7 @@ public class POUserComparisonFunc extends ExpressionOperator {
     FuncSpec funcSpec;
     Tuple t1, t2;
     transient ComparisonFunc func;
-	private Log log = LogFactory.getLog(getClass());
+	transient private Log log = LogFactory.getLog(getClass());
 	
 	public POUserComparisonFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec, ComparisonFunc func) {
         super(k, rp);

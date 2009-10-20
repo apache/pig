@@ -12,6 +12,16 @@
     <Match>
         <Class name="org.apache.pig.tools.parameters.JavaCharStream" />
     </Match>
+    <!-- Ingnore non-serializable comparators --> 
+    <Match>
+        <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE" />
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP" />
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2" />
+    </Match>
     <Match>
         <Class name="org.apache.pig.tools.parameters.Token" />
     </Match>
@@ -76,7 +86,42 @@
         <Class name="org.apache.pig.impl.util.WrappedIOException" />
         <Bug pattern="NM_CLASS_NOT_EXCEPTION" />
     </Match>
-    
-
+    <Match>
+        <Package name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*" />
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
+    <Match>
+        <Package name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*" />
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.SortedDataBag" />
+        <Field name="mComp" />
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LOLoad" />
+        <Field name="mLoadFunc" />
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LOStore" />
+        <Field name="mStoreFunc" />
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.PigContext" />
+        <Or>
+        <Field name="extraJars" />
+        <Field name="skipJars" />
+        <Field name="log" />
+        </Or>
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper" />
+        <Field name="nig" />
+        <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
+    </Match>
 
 </FindBugsFilter>

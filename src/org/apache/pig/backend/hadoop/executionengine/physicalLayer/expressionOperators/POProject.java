@@ -66,7 +66,7 @@ public class POProject extends ExpressionOperator {
     boolean processingBagOfTuples = false;
     
     //The bag iterator used while straeming tuple
-    Iterator<Tuple> bagIterator = null;
+    transient Iterator<Tuple> bagIterator = null;
     
     //Represents the fact that this instance of POProject
     //is overloaded to stream tuples in the bag rather

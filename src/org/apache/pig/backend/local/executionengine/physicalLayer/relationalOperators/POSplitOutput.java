@@ -40,7 +40,7 @@ public class POSplitOutput extends PhysicalOperator {
     
     PhysicalOperator compOp;
     PhysicalPlan compPlan;
-    Iterator<Tuple> it;
+    transient Iterator<Tuple> it;
     
     public POSplitOutput(OperatorKey k, int rp, List<PhysicalOperator> inp) {
 	super(k, rp, inp);
