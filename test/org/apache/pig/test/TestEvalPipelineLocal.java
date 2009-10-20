@@ -587,7 +587,7 @@ public class TestEvalPipelineLocal extends TestCase {
                 "as (b, t2, m);",
                 "p = load '" + output +"' using BinStorage() ;"};
         // the corresponding generate statements
-        String[] generates = {"q = foreach p generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2', b;",
+        String[] generates = {"q = foreach p generate COUNT(b), t2.a, t2.b as t2b, m#'key1', m#'key2', b;",
                 "q = foreach p generate COUNT(b), t2.$0, t2.$1, m#'key1', m#'key2', b;",
                 "q = foreach p generate COUNT($0), $1.$0, $1.$1, $2#'key1', $2#'key2', $0;"};
         
