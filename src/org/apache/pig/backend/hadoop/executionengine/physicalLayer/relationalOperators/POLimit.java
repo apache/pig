@@ -39,7 +39,7 @@ public class POLimit extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
 
-    private Log log = LogFactory.getLog(getClass());
+    transient private Log log = LogFactory.getLog(getClass());
 
     // Counts for outputs processed
     private long soFar = 0;

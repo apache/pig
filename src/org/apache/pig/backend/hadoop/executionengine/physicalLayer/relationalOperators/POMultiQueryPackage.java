@@ -59,11 +59,11 @@ public class POMultiQueryPackage extends POPackage {
     
     private static int idxPart = 0x7F;
 
-    private final Log log = LogFactory.getLog(getClass());
+    transient private final Log log = LogFactory.getLog(getClass());
     
     private List<POPackage> packages = new ArrayList<POPackage>();
 
-    private PigNullableWritable myKey;
+    transient private PigNullableWritable myKey;
     
     private int baseIndex = 0;      
 

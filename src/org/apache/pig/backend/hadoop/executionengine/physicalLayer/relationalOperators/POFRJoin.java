@@ -65,7 +65,7 @@ public class POFRJoin extends PhysicalOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
-    private Log log = LogFactory.getLog(getClass());
+    transient private Log log = LogFactory.getLog(getClass());
     //The number in the input list which denotes the fragmented input
     private int fragment;
     //There can be n inputs each being a List<PhysicalPlan>

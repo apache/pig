@@ -49,7 +49,7 @@ import org.apache.pig.impl.util.CastUtils;
 public class POCast extends ExpressionOperator {
     private FuncSpec loadFSpec = null;
     transient private LoadFunc load;
-    private Log log = LogFactory.getLog(getClass());
+    transient private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
     private Byte realType = null;
 

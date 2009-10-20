@@ -58,7 +58,7 @@ public class SortedDataBag extends DefaultAbstractBag{
 
     private static final Log log = LogFactory.getLog(SortedDataBag.class);
 
-    private Comparator<Tuple> mComp;
+    transient private Comparator<Tuple> mComp;
     private boolean mReadStarted = false;
 
     private class DefaultComparator implements Comparator<Tuple> {

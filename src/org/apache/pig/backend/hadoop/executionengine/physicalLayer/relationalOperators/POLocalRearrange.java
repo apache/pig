@@ -57,7 +57,7 @@ public class POLocalRearrange extends PhysicalOperator {
 
     protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    private Log log = LogFactory.getLog(getClass());
+    transient private Log log = LogFactory.getLog(getClass());
 
     protected List<PhysicalPlan> plans;
     

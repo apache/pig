@@ -56,7 +56,7 @@ public class POForEach extends PhysicalOperator {
     
     protected List<PhysicalPlan> inputPlans;
     protected List<PhysicalOperator> opsToBeReset;
-    protected Log log = LogFactory.getLog(getClass());
+    transient protected Log log = LogFactory.getLog(getClass());
     protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
     //Since the plan has a generate, this needs to be maintained
     //as the generate can potentially return multiple tuples for
@@ -64,7 +64,7 @@ public class POForEach extends PhysicalOperator {
     protected boolean processingPlan = false;
     
     //its holds the iterators of the databags given by the input expressions which need flattening.
-    protected Iterator<Tuple> [] its = null;
+    transient protected Iterator<Tuple> [] its = null;
     
     //This holds the outputs given out by the input expressions of any datatype
     protected Object [] bags = null;
