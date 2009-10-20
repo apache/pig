@@ -176,7 +176,7 @@ public class TestJoin extends TestCase {
             String script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
                     "b = load '"+ secondInput +"' as (k:int, l:chararray); " +
                     "c = join a by $0, b by $0;" +
-                    "d = foreach c generate i,j,k,l,a::i,a::j,b::k,b::l;";
+                    "d = foreach c generate i,j,k,l,a::i as ai,a::j as aj,b::k as bk,b::l as bl;";
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("d");
             assertEquals(true, it.hasNext());
@@ -187,7 +187,7 @@ public class TestJoin extends TestCase {
             script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
             "b = load '"+ secondInput +"' as (i:int, l:chararray); " +
             "c = join a by $0, b by $0;" +
-            "d = foreach c generate i,j,l,a::i,a::j,b::i,b::l;";
+            "d = foreach c generate i,j,l,a::i as ai,a::j as aj,b::i as bi,b::l as bl;";
             boolean exceptionThrown = false;
             try{
                 Util.registerMultiLineQuery(pigServer, script);
@@ -202,7 +202,7 @@ public class TestJoin extends TestCase {
             script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
             "b = load '"+ secondInput +"' as (i:int, l:chararray); " +
             "c = join a by $0, b by $0;" +
-            "d = foreach c generate a::i,j,b::i,l,a::i,a::j,b::i,b::l;";
+            "d = foreach c generate a::i as ai1,j,b::i as bi1,l,a::i as ai2,a::j as aj2,b::i as bi3,b::l as bl3;";
             Util.registerMultiLineQuery(pigServer, script);
             it = pigServer.openIterator("d");
             assertEquals(true, it.hasNext());
