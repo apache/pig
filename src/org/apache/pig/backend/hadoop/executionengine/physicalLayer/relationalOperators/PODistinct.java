@@ -47,7 +47,7 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
     private static final long serialVersionUID = 1L;
     private boolean inputsAccumulated = false;
     private DataBag distinctBag = null;
-    private final Log log = LogFactory.getLog(getClass());
+    transient private final Log log = LogFactory.getLog(getClass());
     transient Iterator<Tuple> it;
 
     public PODistinct(OperatorKey k, int rp, List<PhysicalOperator> inp) {

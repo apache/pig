@@ -37,7 +37,7 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
-    private final Log log = LogFactory.getLog(getClass());
+    transient private final Log log = LogFactory.getLog(getClass());
 
     public GreaterThanExpr(OperatorKey k) {
         this(k, -1);

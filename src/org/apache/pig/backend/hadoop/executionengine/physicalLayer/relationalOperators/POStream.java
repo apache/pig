@@ -42,7 +42,7 @@ public class POStream extends PhysicalOperator {
     private static final long serialVersionUID = 2L;
 
     private String executableManagerStr;            // String representing ExecutableManager to use
-    private ExecutableManager executableManager;    // ExecutableManager to use 
+    transient private ExecutableManager executableManager;    // ExecutableManager to use 
     private StreamingCommand command;               // Actual command to be run
     private Properties properties;
 

@@ -78,7 +78,7 @@ public class POSplit extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
     
-    private Log log = LogFactory.getLog(getClass());
+    transient private Log log = LogFactory.getLog(getClass());
     
     /*
      * The filespec that is used to store and load the output of the split job

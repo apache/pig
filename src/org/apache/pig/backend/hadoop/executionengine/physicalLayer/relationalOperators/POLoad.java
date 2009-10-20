@@ -53,11 +53,11 @@ public class POLoad extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
-    LoadFunc loader = null;
+    transient LoadFunc loader = null;
     // The filespec on which the operator is based
     FileSpec lFile;
     // The stream used to bind to by the loader
-    InputStream is;
+    transient InputStream is;
     // PigContext passed to us by the operator creator
     PigContext pc;
     //Indicates whether the loader setup is done or not
@@ -67,7 +67,7 @@ public class POLoad extends PhysicalOperator {
     // default offset.
     private long offset = 0;
     
-    private final Log log = LogFactory.getLog(getClass());
+    transient private final Log log = LogFactory.getLog(getClass());
     
     public POLoad(OperatorKey k, boolean splittable) {
         this(k,-1, null, splittable);

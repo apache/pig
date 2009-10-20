@@ -49,7 +49,7 @@ import org.apache.pig.pen.util.ExampleTuple;
 public class POCogroup extends PhysicalOperator {
     private static final long serialVersionUID = 1L;    
     Tuple[] data = null;
-    Iterator<Tuple>[] its = null;
+    transient Iterator<Tuple>[] its = null;
     boolean[] inner;
 
     public POCogroup(OperatorKey k) {

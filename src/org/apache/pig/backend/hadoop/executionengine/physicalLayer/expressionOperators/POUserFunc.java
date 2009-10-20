@@ -57,7 +57,7 @@ public class POUserFunc extends ExpressionOperator {
     private static final long serialVersionUID = 1L;
     transient EvalFunc func;
 	
-	private final Log log = LogFactory.getLog(getClass());
+	transient private final Log log = LogFactory.getLog(getClass());
 	FuncSpec funcSpec;
     FuncSpec origFSpec;
 	public static final byte INITIAL = 0;

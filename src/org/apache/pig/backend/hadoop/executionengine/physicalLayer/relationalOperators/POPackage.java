@@ -71,7 +71,7 @@ public class POPackage extends PhysicalOperator {
     //The iterator of indexed Tuples
     //that is typically provided by
     //Hadoop
-    Iterator<NullableTuple> tupIter;
+    transient Iterator<NullableTuple> tupIter;
 
     //The key being worked on
     Object key;
@@ -105,7 +105,7 @@ public class POPackage extends PhysicalOperator {
     // the "value"
     protected Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
     
-    private final Log log = LogFactory.getLog(getClass());
+    transient private final Log log = LogFactory.getLog(getClass());
 
     protected static BagFactory mBagFactory = BagFactory.getInstance();
     protected static TupleFactory mTupleFactory = TupleFactory.getInstance();

@@ -55,7 +55,7 @@ public class LOStream extends RelationalOperator {
     // the StreamingCommand object for the
     // Stream Operator this operator represents
     private StreamingCommand command;
-    private ExecutableManager executableManager;
+    transient private ExecutableManager executableManager;
     /**
      * Create a new <code>LOStream</code> with the given command.
      * 

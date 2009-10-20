@@ -44,7 +44,7 @@ public class POCross extends PhysicalOperator {
     private static final long serialVersionUID = 1L;    
     DataBag [] inputBags;
     Tuple [] data;
-    Iterator [] its;
+    transient Iterator [] its;
 
     public POCross(OperatorKey k) {
         super(k);

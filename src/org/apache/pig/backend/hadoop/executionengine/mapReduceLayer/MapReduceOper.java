@@ -42,6 +42,8 @@ import org.apache.pig.impl.plan.VisitorException;
  * in order to capture the dependecies amongst jobs.
  */
 public class MapReduceOper extends Operator<MROpPlanVisitor> {
+    private static final long serialVersionUID = 1L;
+
     //The physical plan that should be executed
     //in the map phase
     public PhysicalPlan mapPlan;
@@ -95,7 +97,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public List<String> UDFs;
     
-    NodeIdGenerator nig;
+    transient NodeIdGenerator nig;
 
     private String scope;
     
