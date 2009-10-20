@@ -600,9 +600,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             pkg.addPackage(pk);
         }
         
+        boolean[] keyPos = pk.getKeyPositionsInTuple();
+        
         PODemux demux = (PODemux)to.getLeaves().get(0);
         for (int i=initial; i<current; i++) {
-            demux.addPlan(from, mapKeyType);
+            demux.addPlan(from, mapKeyType, keyPos);
         }
                
         if (demux.isSameMapKeyType()) {
@@ -752,11 +754,13 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         
         pkg.setKeyType(cpk.getKeyType());
         
+        boolean[] keyPos = cpk.getKeyPositionsInTuple();
+        
         // See comment above for why we replicated the Package
         // in the from plan - for the same reason, we replicate
         // the Demux operators now.
         for (int i=initial; i<current; i++) {
-            demux.addPlan(from, mapKeyType);
+            demux.addPlan(from, mapKeyType, keyPos);
         }
     }
     

@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -86,6 +85,15 @@ public class PODemux extends PhysicalOperator {
      * to "unwrap" the tuple to get to the key
      */
     private ArrayList<Boolean> isKeyWrapped = new ArrayList<Boolean>();
+    
+    /**
+     * The list tracks the field position of the key in the input tuple so that
+     * the right values are "unwrapped" to get the key. 
+     * The tuples emitted from POCombinerPackages always have keys in a fixed 
+     * position, but this position varies depending on the Pig Latin scripts.
+     */
+    private ArrayList<boolean[]> keyPositions = new ArrayList<boolean[]>();
+    
     /*
      * Flag indicating when a new pull should start 
      */
@@ -215,13 +223,14 @@ public class PODemux extends PhysicalOperator {
      * 
      * @param inPlan plan to be appended to the inner plan list
      */
-    public void addPlan(PhysicalPlan inPlan, byte mapKeyType) {  
+    public void addPlan(PhysicalPlan inPlan, byte mapKeyType, boolean[] keyPos) {  
         myPlans.add(inPlan);
         processedSet.set(myPlans.size()-1);
         // if mapKeyType is already a tuple, we will NOT
         // be wrapping it in an extra tuple. If it is not
         // a tuple, we will wrap into in a tuple
         isKeyWrapped.add(mapKeyType == DataType.TUPLE ? false : true);
+        keyPositions.add(keyPos);
     }
    
     @Override
@@ -339,24 +348,37 @@ public class PODemux extends PhysicalOperator {
     
     private PhysicalOperator attachInputWithIndex(Tuple res) throws ExecException {
         
-        // unwrap the key to get the wrapped value which
-        // is expected by the inner plans
-        PigNullableWritable key = (PigNullableWritable)res.get(0);        
+        // unwrap the first field of the tuple to get the wrapped value which
+        // is expected by the inner plans, as well as the index of the associated
+        // inner plan.
+        PigNullableWritable fld = (PigNullableWritable)res.get(0);        
     
         // choose an inner plan to run based on the index set by
         // the POLocalRearrange operator and passed to this operator
         // by POMultiQueryPackage
-        int index = key.getIndex();
+        int index = fld.getIndex();
         index &= idxPart;
         index -= baseIndex;                         
         
         PhysicalPlan pl = myPlans.get(index);
         if (!(pl.getRoots().get(0) instanceof PODemux)) {                             
             if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {                                       
-                Tuple tup = (Tuple)key.getValueAsPigType();
-                res.set(0, tup.get(0));
+                
+                // unwrap the keys
+                boolean[] keys = keyPositions.get(index);
+                for (int pos = 0; pos < keys.length; pos++) {
+                    if (keys[pos]) {
+                        Tuple tup = (pos == 0) ? 
+                                (Tuple)fld.getValueAsPigType() : (Tuple)res.get(pos);
+                        res.set(pos, tup.get(0));
+                    } 
+                    else if (pos == 0) {                 
+                        res.set(0, fld.getValueAsPigType());
+                    }
+                }
+                
             } else {
-                res.set(0, key.getValueAsPigType());
+                res.set(0, fld.getValueAsPigType());
             }
         }
     

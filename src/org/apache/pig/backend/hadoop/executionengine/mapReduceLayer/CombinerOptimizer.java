@@ -106,6 +106,11 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         DISTINCT };
 
     private int mKeyField = -1;
+    
+    // This array tracks the positions of the group key in the output tuples 
+    // of the foreach clause. This needs to be revisited when combiner optimizer
+    // supports foreach output with parts of group key (e.g. group.$0).
+    private boolean[] keyFieldPositions;
 
     private byte mKeyType = 0;
     
@@ -247,7 +252,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 					// as it needs to act differently than the regular
 					// package operator.
                     POCombinerPackage combinePack =
-                        new POCombinerPackage(pack, bags);
+                        new POCombinerPackage(pack, bags, keyFieldPositions);
                     mr.combinePlan.add(combinePack);
                     mr.combinePlan.add(cfe);
                     mr.combinePlan.connect(combinePack, cfe);
@@ -282,7 +287,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     // be the POCombiner package, as it needs to act
                     // differently than the regular package operator.
                     POCombinerPackage newReducePack =
-                        new POCombinerPackage(pack, bags);
+                        new POCombinerPackage(pack, bags, keyFieldPositions);
                     mr.reducePlan.replace(pack, newReducePack);
                     
                     // the replace() above only changes
@@ -360,6 +365,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         List<ExprType> types = new ArrayList<ExprType>(plans.size());
         boolean atLeastOneAlgebraic = false;
         boolean noNonAlgebraics = true;
+        keyFieldPositions = new boolean[plans.size()];
         for (int i = 0; i < plans.size(); i++) {
             ExprType t = algebraic(plans.get(i), flattens.get(i), i);
             types.add(t);
@@ -412,6 +418,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             if (cols != null && cols.size() == 1 && cols.get(0) == 0 &&
                     pp.getPredecessors(proj) == null) {
                 mKeyField = field;
+                keyFieldPositions[field] = true;
                 mKeyType = proj.getResultType();
             } else {
                 // It can't be a flatten except on the grouping column
@@ -525,6 +532,8 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             addKeyProject(mfe);
             addKeyProject(cfe);
             mKeyField = cPlans.size() - 1;
+            keyFieldPositions = new boolean[cPlans.size()];
+            keyFieldPositions[mKeyField] = true;
         }
 
         // Change the plans on the reduce/combine foreach to project from the column
@@ -925,5 +934,6 @@ public class CombinerOptimizer extends MROpPlanVisitor {
     private void resetState() {
         mKeyField = -1;
         mKeyType = 0;
+        keyFieldPositions = null;
     }
 }
