@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -58,9 +59,12 @@ public class POCombinerPackage extends POPackage {
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private boolean[] mBags; // For each field, indicates whether or not it
-
-    private Map<Integer, Integer> keyLookup;
                              // needs to be put in a bag.
+    
+    private boolean[] keyPositions;
+    
+    private Map<Integer, Integer> keyLookup;
+                             
 
     /**
      * A new POPostCombinePackage will be constructed as a near clone of the
@@ -68,8 +72,10 @@ public class POCombinerPackage extends POPackage {
      * @param pkg POPackage to clone.
      * @param bags for each field, indicates whether it should be a bag (true)
      * or a simple field (false).
+     * @param keyPos for each field in the output tuple of the foreach operator, 
+     * indicates whether it's the group key.
      */
-    public POCombinerPackage(POPackage pkg, boolean[] bags) {
+    public POCombinerPackage(POPackage pkg, boolean[] bags, boolean[] keyPos) {
         super(new OperatorKey(pkg.getOperatorKey().scope,
             NodeIdGenerator.getGenerator().getNextNodeId(pkg.getOperatorKey().scope)),
             pkg.getRequestedParallelism(), pkg.getInputs());
@@ -80,7 +86,12 @@ public class POCombinerPackage extends POPackage {
         for (int i = 0; i < pkg.inner.length; i++) {
             inner[i] = true;
         }
-        mBags = bags;
+        if (bags != null) {
+            mBags = Arrays.copyOf(bags, bags.length);
+        }
+        if (keyPos != null) {
+            keyPositions = Arrays.copyOf(keyPos, keyPos.length);
+        }
     }
 
     @Override
@@ -129,7 +140,7 @@ public class POCombinerPackage extends POPackage {
                               // the value (tup) that we have currently
             for(int i = 0; i < mBags.length; i++) {
                 Integer keyIndex = keyLookup.get(i);
-                if(keyIndex == null) {
+                if(keyIndex == null && mBags[i]) {
                     // the field for this index is not the
                     // key - so just take it from the "value"
                     // we were handed - Currently THIS HAS TO BE A BAG
@@ -158,6 +169,11 @@ public class POCombinerPackage extends POPackage {
         r.returnStatus = POStatus.STATUS_OK;
         return r;
 
+    }
+    
+    @Override
+    public boolean[] getKeyPositionsInTuple() {
+        return keyPositions.clone();
     }
 
 }

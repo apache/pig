@@ -18,7 +18,10 @@
 package org.apache.pig.test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,6 +45,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -56,6 +60,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.jobcontrol.Job;
 
 public class TestMultiQuery extends TestCase {
 
@@ -107,7 +112,203 @@ public class TestMultiQuery extends TestCase {
             Assert.fail();
         } 
     }         
+
+    @Test
+    public void testMultiQueryJiraPig976() {
+
+        // test case: key ('group') isn't part of foreach output
+        // and keys have the same type.
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = group a by uid;");
+            myPig.registerQuery("c = group a by gid;");
+            myPig.registerQuery("d = foreach b generate SUM(a.gid);");
+            myPig.registerQuery("e = foreach c generate group, COUNT(a);");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store e into '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
+    @Test
+    public void testMultiQueryJiraPig976_2() {
+
+        // test case: key ('group') isn't part of foreach output 
+        // and keys have different types
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = group a by uname;");
+            myPig.registerQuery("c = group a by gid;");
+            myPig.registerQuery("d = foreach b generate SUM(a.gid);");
+            myPig.registerQuery("e = foreach c generate group, COUNT(a);");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store e into '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
+    @Test
+    public void testMultiQueryJiraPig976_3() {
+
+        // test case: group all and key ('group') isn't part of output
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = group a all;");
+            myPig.registerQuery("c = group a by gid;");
+            myPig.registerQuery("d = foreach b generate SUM(a.gid);");
+            myPig.registerQuery("e = foreach c generate group, COUNT(a);");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store e into '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
+    @Test
+    public void testMultiQueryJiraPig976_4() {
+
+        // test case: group by multi-cols and key ('group') isn't part of output
+         
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = group a by uid;");
+            myPig.registerQuery("c = group a by (uname, gid);");
+            myPig.registerQuery("d = foreach b generate SUM(a.gid);");
+            myPig.registerQuery("e = foreach c generate group.uname, group.gid, COUNT(a);");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store e into '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+   
+    @Test
+    public void testMultiQueryJiraPig976_5() {
+
+        // test case: key ('group') in multiple positions.
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = group a by uid;");
+            myPig.registerQuery("c = group a by (uname, gid);");
+            myPig.registerQuery("d = foreach b generate SUM(a.gid), group, group;");
+            myPig.registerQuery("d1 = foreach d generate $1 + $2;");
+            myPig.registerQuery("e = foreach c generate group, COUNT(a);");
+            myPig.registerQuery("store d1 into '/tmp/output1';");
+            myPig.registerQuery("store e into '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
     
+    @Test
+    public void testMultiQueryJiraPig976_6() {
+
+        // test case: key ('group') has null values.
+
+        String INPUT_FILE = "pig-976.txt";
+        
+        try {
+            
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("apple\tapple\t100\t10");
+            w.println("apple\tapple\t\t20");
+            w.println("orange\torange\t100\t10");
+            w.println("orange\torange\t\t20");
+            w.println("strawberry\tstrawberry\t300\t10");
+   
+            w.close();
+            
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+        
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load '" + INPUT_FILE +
+                                "' as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = group a by uid;");
+            myPig.registerQuery("c = group a by gid;");
+            myPig.registerQuery("d = foreach b generate group, SUM(a.gid);");
+            myPig.registerQuery("e = foreach c generate COUNT(a), group;");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store e into '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertTrue(jobs.size() == 2);
+            
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+            
+        }
+    }    
+
     @Test
     public void testMultiQueryWithTwoStores2() {
 

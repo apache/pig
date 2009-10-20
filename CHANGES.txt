@@ -63,6 +63,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-976: Multi-query optimization throws ClassCastException (rding via
+pradeepkth)
+
 PIG-858: Order By followed by "replicated" join fails while compiling MR-plan
 from physical plan (ashutoshc via gates)
 
