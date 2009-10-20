@@ -57,6 +57,8 @@ public class SchemaAliasVisitor extends LOVisitor {
                     for (int j = i + 1; j < schema.size(); j++) {
                         if (schema.getField(i) != null
                                 && schema.getField(j) != null
+                                && schema.getField(i).alias != null 
+                                && schema.getField(j).alias != null
                                 && schema.getField(i).alias.equals(schema
                                         .getField(j).alias)) {
                             int errCode = 1108;
