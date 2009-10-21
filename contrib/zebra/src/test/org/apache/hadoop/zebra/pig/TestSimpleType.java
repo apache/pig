@@ -265,7 +265,7 @@ public class TestSimpleType {
             "records",
             new Path(newPath, "store").toString(),
             TableStorer.class.getCanonicalName()
-                + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1, s2]; [s3, s4]')");
+                + "('[s1, s2]; [s3, s4]')");
 
   }
 
@@ -290,7 +290,7 @@ public class TestSimpleType {
             "newRecord",
             newPath.toString(),
             TableStorer.class.getCanonicalName()
-                + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1, s2]; [s3, s4]')");
+                + "('[s1, s2]; [s3, s4]')");
 
     // check new table content
     String query3 = "newRecords = LOAD '"
@@ -340,7 +340,7 @@ public class TestSimpleType {
     Path newPath = new Path(getCurrentMethodName());
     pigServer.store("newRecord", newPath.toString(), TableStorer.class
         .getCanonicalName()
-        + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '')");
+        + "('')");
 
     // check new table content
     String query3 = "newRecords = LOAD '"
@@ -390,7 +390,7 @@ public class TestSimpleType {
     Path newPath = new Path(getCurrentMethodName());
     pigServer.store("newRecord", newPath.toString(), TableStorer.class
         .getCanonicalName()
-        + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[]')");
+        + "('[]')");
 
     // check new table content
     String query3 = "newRecords = LOAD '"
@@ -443,7 +443,7 @@ public class TestSimpleType {
             "records",
             new Path(newPath, "store").toString(),
             TableStorer.class.getCanonicalName()
-                + "('s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1, s2]; [s3, s4]')");
+                + "('[s7, s2]; [s3, s4]')");
     Assert.assertNotNull(pigJob.getException());
     System.out.println(pigJob.getException());
   }
@@ -469,7 +469,7 @@ public class TestSimpleType {
               "records",
               new Path(newPath, "store").toString(),
               TableStorer.class.getCanonicalName()
-                  + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1, s2]; [s1, s4]')");
+                  + "('[s1, s2]; [s1, s4]')");
       Assert.assertNotNull(pigJob.getException());
       System.out.println(pigJob.getException());
   }
@@ -495,7 +495,7 @@ public class TestSimpleType {
             "records",
             new Path(newPath, "store").toString(),
             TableStorer.class.getCanonicalName()
-                + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1]; [s1]')");
+                + "('[s1]; [s1]')");
     Assert.assertNotNull(pigJob.getException());
     System.out.println(pigJob.getException());
   }
@@ -521,7 +521,7 @@ public class TestSimpleType {
             "records",
             new Path(newPath, "store").toString(),
             TableStorer.class.getCanonicalName()
-                + "('s1:int, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1, s2]; [s3, s4]')");
+                + "('[s1, s2]; [s3, s4]')");
     Assert.assertNotNull(pigJob.getException());
     System.out.println(pigJob.getException());
   }
@@ -546,7 +546,7 @@ public class TestSimpleType {
             "records",
             path.toString(),
             TableStorer.class.getCanonicalName()
-                + "('s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes', '[s1, s2]; [s3, s4]')");
+                + "('[s1, s2]; [s3, s4]')");
     Assert.assertNotNull(pigJob.getException());
     System.out.println(pigJob.getException());
   }

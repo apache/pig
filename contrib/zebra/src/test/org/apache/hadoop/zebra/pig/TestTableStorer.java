@@ -139,7 +139,7 @@ public class TestTableStorer {
             "records",
             new Path(pathTable, "store").toString(),
             TableStorer.class.getCanonicalName()
-                + "('SF_a,SF_b,SF_c,SF_d,SF_e,SF_f,SF_g', '[SF_a, SF_b, SF_c]; [SF_e]')");
+                + "('[SF_a, SF_b, SF_c]; [SF_e]')");
 
   }
 }

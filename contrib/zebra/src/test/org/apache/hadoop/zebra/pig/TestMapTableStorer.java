@@ -132,6 +132,6 @@ public class TestMapTableStorer {
     pigServer
         .store("records", new Path(pathTable, "store").toString(),
             TableStorer.class.getCanonicalName()
-                + "('m:map(string)', '[m#{a|b}]')");
+                + "('[m#{a|b}]')");
   }
 }

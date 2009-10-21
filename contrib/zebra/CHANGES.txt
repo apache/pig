@@ -15,6 +15,9 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+	PIG-944  Change schema to be taken from StoreConfig instead of
+	TableStorer's constructor (yanz via gates).
+
     PIG-918. Fix infinite loop only columns in first column group are
     specified. (Yan Zhou via rangadi)
  
