@@ -438,7 +438,7 @@ class SSHSocketImpl extends SocketImpl {
 
     public Object getOption(int optID) throws SocketException {
         if (optID == SocketOptions.SO_SNDBUF)
-            return new Integer(1024);
+            return Integer.valueOf(1024);
         else
 		    throw new SocketException("SSHSocketImpl does not implement getOption for " + optID);
     }

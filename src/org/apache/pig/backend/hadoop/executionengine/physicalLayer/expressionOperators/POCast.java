@@ -162,9 +162,9 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(b);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 if (((Boolean) res.result) == true)
-                    res.result = new Integer(1);
+                    res.result = Integer.valueOf(1);
                 else
-                    res.result = new Integer(0);
+                    res.result = Integer.valueOf(0);
             }
             return res;
         }
@@ -179,7 +179,7 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(d);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 // res.result = DataType.toInteger(res.result);
-                res.result = new Integer(((Double) res.result).intValue());
+                res.result = Integer.valueOf(((Double) res.result).intValue());
             }
             return res;
         }
@@ -188,7 +188,7 @@ public class POCast extends ExpressionOperator {
             Long l = null;
             Result res = in.getNext(l);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Integer(((Long) res.result).intValue());
+                res.result = Integer.valueOf(((Long) res.result).intValue());
             }
             return res;
         }
@@ -197,7 +197,7 @@ public class POCast extends ExpressionOperator {
             Float f = null;
             Result res = in.getNext(f);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Integer(((Float) res.result).intValue());
+                res.result = Integer.valueOf(((Float) res.result).intValue());
             }
             return res;
         }
@@ -283,9 +283,9 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(b);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 if (((Boolean) res.result) == true)
-                    res.result = new Long(1);
+                    res.result = Long.valueOf(1);
                 else
-                    res.result = new Long(0);
+                    res.result = Long.valueOf(0);
             }
             return res;
         }
@@ -293,7 +293,7 @@ public class POCast extends ExpressionOperator {
             Integer dummyI = null;
             Result res = in.getNext(dummyI);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Long(((Integer) res.result).longValue());
+                res.result = Long.valueOf(((Integer) res.result).longValue());
             }
             return res;
         }
@@ -303,7 +303,7 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(d);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 // res.result = DataType.toInteger(res.result);
-                res.result = new Long(((Double) res.result).longValue());
+                res.result = Long.valueOf(((Double) res.result).longValue());
             }
             return res;
         }
@@ -319,7 +319,7 @@ public class POCast extends ExpressionOperator {
             Float f = null;
             Result res = in.getNext(f);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new Long(((Float) res.result).longValue());
+                res.result = Long.valueOf(((Float) res.result).longValue());
             }
             return res;
         }

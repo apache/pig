@@ -202,7 +202,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
             for (Tuple it : samples){
                 ++i;
                 if (i % 1000 == 0) progress();
-                int partInd = new Long(i/toSkip).intValue(); // which partition
+                int partInd = (int)(i/toSkip); // which partition
                 if(partInd==numQuantiles) break;
                 // the quantiles array has the element from the sample which is the
                 // last element for a given partition. For example: if numQuantiles 

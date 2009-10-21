@@ -256,7 +256,7 @@ public static void main(String args[])
                     }
                 break;
             default: {
-                Character cc = new Character(opt);
+                Character cc = Character.valueOf(opt);
                 throw new AssertionError("Unhandled option " + cc.toString());
                      }
             }

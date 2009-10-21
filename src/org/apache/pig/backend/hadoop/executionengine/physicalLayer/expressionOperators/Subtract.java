@@ -116,7 +116,7 @@ public class Subtract extends BinaryExpressionOperator {
         }
         right = (Integer) res.result;
         
-        res.result = new Integer(left - right);
+        res.result = Integer.valueOf(left - right);
         return res;
     }
     
@@ -139,7 +139,7 @@ public class Subtract extends BinaryExpressionOperator {
         }
         right = (Long) res.result;
         
-        res.result = new Long(left - right);
+        res.result = Long.valueOf(left - right);
         return res;
     }
 

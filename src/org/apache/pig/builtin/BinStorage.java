@@ -202,7 +202,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
     public Integer bytesToInteger(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return new Integer(dis.readInt());
+            return Integer.valueOf(dis.readInt());
         } catch (IOException e) {
             LogUtils.warn(this, "Unable to convert bytearray to integer, " +
                     "caught IOException <" + e.getMessage() + ">",
@@ -216,7 +216,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
     public Long bytesToLong(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
-            return new Long(dis.readLong());
+            return Long.valueOf(dis.readLong());
         } catch (IOException e) {
             LogUtils.warn(this, "Unable to convert bytearray to long, " +
                     "caught IOException <" + e.getMessage() + ">",

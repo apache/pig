@@ -142,7 +142,7 @@ public class LongMax extends EvalFunc<Long> implements Algebraic {
         }
 
         if(sawNonNull) {
-            return new Long(curMax);
+            return Long.valueOf(curMax);
         } else {
             return null;
         }
