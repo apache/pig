@@ -239,7 +239,7 @@ public class TestMultiQuery extends TestCase {
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uid;");
             myPig.registerQuery("c = group a by (uname, gid);");
-            myPig.registerQuery("d = foreach b generate SUM(a.gid), group, group;");
+            myPig.registerQuery("d = foreach b generate SUM(a.gid), group, group as foo;");
             myPig.registerQuery("d1 = foreach d generate $1 + $2;");
             myPig.registerQuery("e = foreach c generate group, COUNT(a);");
             myPig.registerQuery("store d1 into '/tmp/output1';");
