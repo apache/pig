@@ -138,7 +138,7 @@ public class Divide extends BinaryExpressionOperator {
         	res.result = null;
         }
         else
-            res.result = new Integer(left / right);
+            res.result = Integer.valueOf(left / right);
         return res;
     }
     
@@ -168,7 +168,7 @@ public class Divide extends BinaryExpressionOperator {
             res.result = null;
         }
         else
-            res.result = new Long(left / right);
+            res.result = Long.valueOf(left / right);
         return res;
     }
 

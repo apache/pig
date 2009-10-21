@@ -95,7 +95,7 @@ public class POLocalRearrangeForIllustrate extends POLocalRearrange {
 
             //Put the key and the indexed tuple
             //in a tuple and return
-            output.set(0, new Byte((byte)0));
+            output.set(0, Byte.valueOf((byte)0));
             output.set(1, key);
             output.set(2, mFakeTuple);
             return output;
@@ -107,7 +107,7 @@ public class POLocalRearrangeForIllustrate extends POLocalRearrange {
 
             //Put the index, key, and value
             //in a tuple and return
-            output.set(0, new Byte(index));
+            output.set(0, Byte.valueOf(index));
             output.set(1, key);
             output.set(2, value);
             return output;

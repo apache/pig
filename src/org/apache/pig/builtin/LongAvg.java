@@ -174,11 +174,11 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic {
             count += (Long)t.get(1);
         }
         if(sawNonNull) {
-            output.set(0, new Long(sum));
+            output.set(0, Long.valueOf(sum));
         } else {
             output.set(0, null);
         }
-        output.set(1, new Long(count));
+        output.set(1, Long.valueOf(count));
         return output;
     }
 
@@ -220,7 +220,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic {
         }
 
         if(sawNonNull) {
-            return new Long(sum);
+            return Long.valueOf(sum);
         } else {
             return null;
         }

@@ -144,7 +144,7 @@ public class IntMin extends EvalFunc<Integer> implements Algebraic {
         }
     
         if(sawNonNull) {
-            return new Integer(curMin);
+            return Integer.valueOf(curMin);
         } else {
             return null;
         }

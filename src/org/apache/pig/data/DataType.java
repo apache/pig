@@ -398,23 +398,23 @@ public class DataType {
         try {
 			switch (type) {
 			case BOOLEAN:
-			    if (((Boolean)o) == true) return new Integer(1);
-			    else return new Integer(0);
+			    if (((Boolean)o) == true) return Integer.valueOf(1);
+			    else return Integer.valueOf(0);
 
 			case BYTE:
-			    return new Integer(((Byte)o).intValue());
+			    return Integer.valueOf(((Byte)o).intValue());
 
 			case INTEGER:
 			    return (Integer)o;
 
 			case LONG:
-			    return new Integer(((Long)o).intValue());
+			    return Integer.valueOf(((Long)o).intValue());
 
 			case FLOAT:
-			    return new Integer(((Float)o).intValue());
+			    return Integer.valueOf(((Float)o).intValue());
 
 			case DOUBLE:
-			    return new Integer(((Double)o).intValue());
+			    return Integer.valueOf(((Double)o).intValue());
 
 			case BYTEARRAY:
 			    return Integer.valueOf(((DataByteArray)o).toString());
@@ -475,23 +475,23 @@ public class DataType {
         try {
 			switch (type) {
 			case BOOLEAN:
-			    if (((Boolean)o) == true) return new Long(1);
-			    else return new Long(0);
+			    if (((Boolean)o) == true) return Long.valueOf(1);
+			    else return Long.valueOf(0);
 
 			case BYTE:
-			    return new Long(((Byte)o).longValue());
+			    return Long.valueOf(((Byte)o).longValue());
 
 			case INTEGER:
-			    return new Long(((Integer)o).longValue());
+			    return Long.valueOf(((Integer)o).longValue());
 
 			case LONG:
 			    return (Long)o;
 
 			case FLOAT:
-			    return new Long(((Float)o).longValue());
+			    return Long.valueOf(((Float)o).longValue());
 
 			case DOUBLE:
-			    return new Long(((Double)o).longValue());
+			    return Long.valueOf(((Double)o).longValue());
 
 			case BYTEARRAY:
 			    return Long.valueOf(((DataByteArray)o).toString());

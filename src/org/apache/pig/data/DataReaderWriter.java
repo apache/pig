@@ -119,22 +119,22 @@ public class DataReaderWriter {
                 return bytesToInternalMap(in);    
 
             case DataType.INTEGER:
-                return new Integer(in.readInt());
+                return Integer.valueOf(in.readInt());
 
             case DataType.LONG:
-                return new Long(in.readLong());
+                return Long.valueOf(in.readLong());
 
             case DataType.FLOAT:
-                return new Float(in.readFloat());
+                return Float.valueOf(in.readFloat());
 
             case DataType.DOUBLE:
-                return new Double(in.readDouble());
+                return Double.valueOf(in.readDouble());
 
             case DataType.BOOLEAN:
-                return new Boolean(in.readBoolean());
+                return Boolean.valueOf(in.readBoolean());
 
             case DataType.BYTE:
-                return new Byte(in.readByte());
+                return Byte.valueOf(in.readByte());
 
             case DataType.BYTEARRAY: {
                 int size = in.readInt();

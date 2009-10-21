@@ -142,7 +142,7 @@ public class IntMax extends EvalFunc<Integer> implements Algebraic {
         }
 
         if(sawNonNull) {
-            return new Integer(curMax);
+            return Integer.valueOf(curMax);
         } else {
             return null;
         }

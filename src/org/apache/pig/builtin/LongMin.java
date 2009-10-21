@@ -142,7 +142,7 @@ public class LongMin extends EvalFunc<Long> implements Algebraic {
         }
     
         if(sawNonNull) {
-            return new Long(curMin);
+            return Long.valueOf(curMin);
         } else {
             return null;
         }

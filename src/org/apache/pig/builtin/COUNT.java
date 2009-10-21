@@ -85,9 +85,9 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
             if (it.hasNext()){
                 Tuple t = (Tuple)it.next();
                 if (t != null && t.size() > 0 && t.get(0) != null)
-                    return mTupleFactory.newTuple(new Long(1));
+                    return mTupleFactory.newTuple(Long.valueOf(1));
             }
-            return mTupleFactory.newTuple(new Long(0));
+            return mTupleFactory.newTuple(Long.valueOf(0));
         }
     }
 

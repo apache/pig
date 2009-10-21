@@ -33,7 +33,7 @@ public class ARITY extends EvalFunc<Integer> {
     public Integer exec(Tuple input) throws IOException {
         try{
             if (input == null) return null;
-            return new Integer(input.size());
+            return Integer.valueOf(input.size());
         } catch (Exception e) {
             int errCode = 2106;
             String msg = "Error while computing arity in " + this.getClass().getSimpleName();

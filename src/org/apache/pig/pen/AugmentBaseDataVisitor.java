@@ -844,13 +844,13 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             else
                 return null;
         case DataType.INTEGER:
-            return new Integer((Integer) v - 1);
+            return Integer.valueOf((Integer) v - 1);
         case DataType.LONG:
-            return new Long((Long) v - 1);
+            return Long.valueOf((Long) v - 1);
         case DataType.FLOAT:
-            return new Float((Float) v - 1);
+            return Float.valueOf((Float) v - 1);
         case DataType.DOUBLE:
-            return new Double((Double) v - 1);
+            return Double.valueOf((Double) v - 1);
         default:
             return null;
         }
@@ -872,13 +872,13 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             str = str + "0";
             return new DataByteArray(str);
         case DataType.INTEGER:
-            return new Integer((Integer) v + 1);
+            return Integer.valueOf((Integer) v + 1);
         case DataType.LONG:
-            return new Long((Long) v + 1);
+            return Long.valueOf((Long) v + 1);
         case DataType.FLOAT:
-            return new Float((Float) v + 1);
+            return Float.valueOf((Float) v + 1);
         case DataType.DOUBLE:
-            return new Double((Double) v + 1);
+            return Double.valueOf((Double) v + 1);
         default:
             return null;
         }
@@ -887,17 +887,17 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     Object generateData(byte type, String data) {
         switch (type) {
         case DataType.BOOLEAN:
-            return new Boolean(data);
+            return Boolean.valueOf(data);
         case DataType.BYTEARRAY:
             return new DataByteArray(data.getBytes());
         case DataType.DOUBLE:
-            return new Double(data);
+            return Double.valueOf(data);
         case DataType.FLOAT:
-            return new Float(data);
+            return Float.valueOf(data);
         case DataType.INTEGER:
-            return new Integer(data);
+            return Integer.valueOf(data);
         case DataType.LONG:
-            return new Long(data);
+            return Long.valueOf(data);
         case DataType.CHARARRAY:
             return data;
         default:

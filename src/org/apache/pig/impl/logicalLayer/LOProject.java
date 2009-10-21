@@ -456,7 +456,7 @@ public class LOProject extends ExpressionOperator {
         // deep copy project specific attributes
         clone.mProjection = new ArrayList<Integer>();
         for (Iterator<Integer> it = mProjection.iterator(); it.hasNext();) {
-            clone.mProjection.add(new Integer(it.next()));
+            clone.mProjection.add(Integer.valueOf(it.next()));
         }
         
         return clone;

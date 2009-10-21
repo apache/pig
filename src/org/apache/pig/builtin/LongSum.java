@@ -145,7 +145,7 @@ public class LongSum extends EvalFunc<Long> implements Algebraic {
         }
 
         if(sawNonNull) {
-            return new Long(sum);
+            return Long.valueOf(sum);
         } else {
             return null;
         }

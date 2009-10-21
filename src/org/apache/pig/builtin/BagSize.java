@@ -36,7 +36,7 @@ public class BagSize extends EvalFunc<Long> {
     public Long exec(Tuple input) throws IOException {
         try {
             DataBag bag = (DataBag)(input.get(0));
-            return bag == null ? null : new Long(bag.size());
+            return bag == null ? null : Long.valueOf(bag.size());
         } catch (ExecException exp) {
             throw exp;
         } catch (Exception e) {

@@ -125,8 +125,8 @@ public abstract class HPath implements ElementDescriptor {
 
         short replication = fs.getHFS().getFileStatus(path).getReplication();
         
-        props.setProperty(BLOCK_SIZE_KEY, (new Long(blockSize)).toString());
-        props.setProperty(BLOCK_REPLICATION_KEY, (new Short(replication)).toString());
+        props.setProperty(BLOCK_SIZE_KEY, (Long.valueOf(blockSize)).toString());
+        props.setProperty(BLOCK_REPLICATION_KEY, (Short.valueOf(replication)).toString());
         
         return props;
     }

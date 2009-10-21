@@ -35,7 +35,7 @@ public class ConstantSize extends EvalFunc<Long> {
     @Override
     public Long exec(Tuple input) throws IOException {
         try {
-           return input.get(0) == null ? null : new Long(1);
+           return input.get(0) == null ? null : Long.valueOf(1);
         } catch (ExecException exp) {
             throw exp;
         } catch (Exception e) {
