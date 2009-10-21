@@ -35,7 +35,7 @@ public class StringSize extends EvalFunc<Long> {
     public Long exec(Tuple input) throws IOException {
         try {
         	String s = (String)(input.get(0));
-            return s == null ? null : new Long(s.length());
+            return s == null ? null : Long.valueOf(s.length());
         } catch (ExecException exp) {
             throw exp;            
         } catch (Exception e) {

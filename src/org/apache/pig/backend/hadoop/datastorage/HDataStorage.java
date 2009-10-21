@@ -75,8 +75,8 @@ public class HDataStorage implements DataStorage {
             throw new RuntimeException("Failed to create DataStorage", e);
         }
         short defaultReplication = fs.getDefaultReplication();
-        properties.setProperty(DEFAULT_REPLICATION_FACTOR_KEY, (new Short(
-                defaultReplication)).toString());
+        properties.setProperty(DEFAULT_REPLICATION_FACTOR_KEY, 
+                               Short.valueOf(defaultReplication).toString());
     }
 
     public void close() throws IOException {
@@ -112,16 +112,16 @@ public class HDataStorage implements DataStorage {
         Map<String, Object> stats = new HashMap<String, Object>();
 
         long usedBytes = fs.getUsed();
-        stats.put(USED_BYTES_KEY , new Long(usedBytes).toString());
+        stats.put(USED_BYTES_KEY , Long.valueOf(usedBytes).toString());
         
         if (fs instanceof DistributedFileSystem) {
             DistributedFileSystem dfs = (DistributedFileSystem) fs;
             
             long rawCapacityBytes = dfs.getRawCapacity();
-            stats.put(RAW_CAPACITY_KEY, new Long(rawCapacityBytes).toString());
+            stats.put(RAW_CAPACITY_KEY, Long.valueOf(rawCapacityBytes).toString());
             
             long rawUsedBytes = dfs.getRawUsed();
-            stats.put(RAW_USED_KEY, new Long(rawUsedBytes).toString());
+            stats.put(RAW_USED_KEY, Long.valueOf(rawUsedBytes).toString());
         }
         
         return stats;

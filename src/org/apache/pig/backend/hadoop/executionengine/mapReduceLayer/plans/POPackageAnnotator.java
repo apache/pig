@@ -222,7 +222,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
                 throw new OptimizerException(msg, errCode, PigException.BUG);
                 
             }
-            keyInfo.put(new Integer(lrearrange.getIndex()), 
+            keyInfo.put(Integer.valueOf(lrearrange.getIndex()), 
                 new Pair<Boolean, Map<Integer, Integer>>(
                         lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
             pkg.setKeyInfo(keyInfo);

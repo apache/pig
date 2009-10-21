@@ -203,7 +203,7 @@ public class POLocalRearrange extends PhysicalOperator {
             // indices and hence would go to different invocation of reduce()
             this.index = multiQuery ? (byte)(index | PigNullableWritable.mqFlag) : (byte)index;
         }            
-        lrOutput.set(0, new Byte(this.index));
+        lrOutput.set(0, Byte.valueOf(this.index));
     }
     
     public boolean isDistinct() { 

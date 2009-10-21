@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1028: FINDBUGS: DM_NUMBER_CTOR: Method invokes inefficient Number
+constructor; use static valueOf instead (olgan)
+
 PIG-1012: FINDBUGS: SE_BAD_FIELD: Non-transient non-serializable instance field in
 serializable class (olgan)
 

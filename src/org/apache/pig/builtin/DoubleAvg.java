@@ -182,7 +182,7 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic {
         } else {
             output.set(0, null);
         }
-        output.set(1, new Long(count));
+        output.set(1, Long.valueOf(count));
         return output;
     }
 

@@ -41,7 +41,7 @@ public class SIZE extends EvalFunc<Long> {
     public Long exec(Tuple input) throws IOException {
         try {
             DataByteArray dba = (DataByteArray)(input.get(0));
-            return dba == null ? null : new Long(dba.size());
+            return dba == null ? null : Long.valueOf(dba.size());
         } catch (ExecException exp) {
             throw exp;
         } catch (Exception e) {

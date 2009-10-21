@@ -641,7 +641,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
         int existingIndex = existingIndices.iterator().next();
-        keyInfo.put(new Integer(newIndex), keyInfo.get(existingIndex));
+        keyInfo.put(Integer.valueOf(newIndex), keyInfo.get(existingIndex));
         
         // clean up the old entry so we only keep
         // the valid entry around - if we did something wrong while

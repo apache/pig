@@ -50,8 +50,8 @@ abstract public class Utf8StorageConverter {
     protected TupleFactory mTupleFactory = TupleFactory.getInstance();
     protected final Log mLog = LogFactory.getLog(getClass());
 
-    private Integer mMaxInt = new Integer(Integer.MAX_VALUE);
-    private Long mMaxLong = new Long(Long.MAX_VALUE);
+    private Integer mMaxInt = Integer.valueOf(Integer.MAX_VALUE);
+    private Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
     private TextDataParser dataParser = null;
     
     private PigLogger pigLogger = PhysicalOperator.getPigLogger();
@@ -154,7 +154,7 @@ abstract public class Utf8StorageConverter {
                                 PigWarning.TOO_LARGE_FOR_INT, mLog);
                     return null;
                 }
-                return new Integer(d.intValue());
+                return Integer.valueOf(d.intValue());
             } catch (NumberFormatException nfe2) {
                 LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                         "converted to int, caught NumberFormatException <" +
@@ -193,7 +193,7 @@ abstract public class Utf8StorageConverter {
                 	            PigWarning.TOO_LARGE_FOR_INT, mLog);
                     return null;
                 }
-                return new Long(d.longValue());
+                return Long.valueOf(d.longValue());
             } catch (NumberFormatException nfe2) {
                 LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                             "converted to long, caught NumberFormatException <" +

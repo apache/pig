@@ -42,7 +42,7 @@ public class GFReplicate extends EvalFunc<DataBag> {
     public DataBag exec(Tuple input) throws IOException {
         DataBag b = mBagFactory.newDefaultBag();
         for (int i = 0; i < numGroups; i++) {
-            b.add(mTupleFactory.newTuple(new Integer(1)));
+            b.add(mTupleFactory.newTuple(Integer.valueOf(1)));
         }
         return b;
     }

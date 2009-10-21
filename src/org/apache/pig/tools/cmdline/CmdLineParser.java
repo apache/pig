@@ -66,7 +66,7 @@ public void registerOpt(char c, String s, ValueExpected ve)
         throw new AssertionError("CmdLineParser:  '-' is not a legal single character designator.");
     }
 
-    Character cc = new Character(c);
+    Character cc = Character.valueOf(c);
     if (mShort.put(cc, ve) != null) {
         throw new AssertionError("CmdLineParser:  You have already registered option " + cc.toString());
     }
@@ -110,11 +110,11 @@ public char getNextOpt() throws ParseException
 
         Character cc = null;
         if (arg.substring(offset).length() == 1) {
-            cc = new Character(arg.substring(offset).charAt(0));
+            cc = Character.valueOf(arg.substring(offset).charAt(0));
         } else {
             cc = mLong.get(arg.substring(offset));
             if (cc == null) {
-                Integer ii = new Integer(mArgNum + 1);
+                Integer ii = Integer.valueOf(mArgNum + 1);
                 String errMsg = "Found unknown option (" + arg + ") at position " +
                     ii.toString();
                 throw new ParseException(errMsg, mArgNum);
@@ -123,7 +123,7 @@ public char getNextOpt() throws ParseException
 
         ValueExpected ve = mShort.get(cc);
         if (ve == null) {
-            Integer ii = new Integer(mArgNum + 1);
+            Integer ii = Integer.valueOf(mArgNum + 1);
             String errMsg = "Found unknown option (" + arg + ") at position " +
                 ii.toString();
             throw new ParseException(errMsg, mArgNum);
