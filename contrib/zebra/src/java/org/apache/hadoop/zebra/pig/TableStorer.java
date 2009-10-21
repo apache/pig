@@ -35,18 +35,17 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 
 public class TableStorer implements StoreFunc {
-	private String schemaString;
 	private String storageHintString;
 
 	public TableStorer() {	  
 	}
 
-	public TableStorer(String schemaStr, String storageHintStr) throws ParseException, IOException {
-		schemaString = schemaStr;
+	public TableStorer(String storageHintStr) throws ParseException, IOException {
 		storageHintString = storageHintStr;
 	}
   
@@ -69,10 +68,6 @@ public class TableStorer implements StoreFunc {
 	public Class getStorePreparationClass() throws IOException {
 		return TableOutputFormat.class;
 	}
-
-	public String getSchemaString() {
-		return schemaString;  
-	}
   
 	public String getStorageHintString() {
 		return storageHintString;  
@@ -94,10 +89,16 @@ class TableOutputFormat implements OutputFormat<BytesWritable, Tuple> {
 	@Override
 	public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
 		StoreConfig storeConfig = MapRedUtil.getStoreConfig(job);
-		String location = storeConfig.getLocation();
+		String location = storeConfig.getLocation(), schemaStr;
+    Schema schema = storeConfig.getSchema();
+    try {
+      schemaStr = SchemaConverter.fromPigSchema(schema).toString();
+    } catch (ParseException e) {
+      throw new IOException("Exception thrown from SchemaConverter: " + e.getMessage());
+    }
 		TableStorer storeFunc = (TableStorer)MapRedUtil.getStoreFunc(job);   
 		BasicTable.Writer writer = new BasicTable.Writer(new Path(location), 
-				storeFunc.getSchemaString(), storeFunc.getStorageHintString(), false, job);
+				schemaStr, storeFunc.getStorageHintString(), false, job);
 		writer.finish();
 	}
     
@@ -134,11 +135,11 @@ class TableRecordWriter implements RecordWriter<BytesWritable, Tuple> {
 		writer.finish();
 	}
 
-	@Override
-	public void write(BytesWritable key, Tuple value) throws IOException {
-		if (key == null) {
-			key = KEY0;
-		}
-		inserter.insert(key, value);
-	}
+  @Override
+  public void write(BytesWritable key, Tuple value) throws IOException {
+    if (key == null) {
+      key = KEY0;
+    }
+    inserter.insert(key, value);
+  }
 }
