@@ -143,6 +143,6 @@ public class TestCollectionTableStorer {
 
     pigServer.store("records", new Path(pathTable, "store").toString(),
         TableStorer.class.getCanonicalName()
-            + "('c:collection(a:double, b:float, c:bytes)', '[c]')");
+            + "('[c]')");
   }
 }

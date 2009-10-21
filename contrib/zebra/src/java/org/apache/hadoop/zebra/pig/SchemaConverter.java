@@ -21,72 +21,52 @@ package org.apache.hadoop.zebra.pig;
 import java.util.Iterator;
 
 import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
-/**
- * A simple schema converter that only understands three field types.
- */
 class SchemaConverter {
-  enum FieldSchemaMaker {
-    SimpleField("SF_") {
-      @Override
-      FieldSchema toFieldSchema(String name) {
-        return new FieldSchema(name, DataType.BYTEARRAY);
-      }
-    },
-
-    MapField("MF_") {
-      @Override
-      FieldSchema toFieldSchema(String name) {
-        // TODO: how to convey key and value types?
-        return new FieldSchema(name, DataType.MAP);
-      }
-    },
-
-    MapListField("MLF_") {
-      @Override
-      FieldSchema toFieldSchema(String name) throws FrontendException {
-        Schema tupleSchema = new Schema();
-        tupleSchema.add(MapField.toFieldSchema(null));
-        tupleSchema.setTwoLevelAccessRequired(true);
-        return new FieldSchema(name, tupleSchema, DataType.BAG);
-      }
-    };
-
-    private String prefix;
-
-    FieldSchemaMaker(String prefix) {
-      this.prefix = prefix;
+  public static ColumnType toTableType(byte ptype)
+  {
+    ColumnType ret;
+    switch (ptype) {
+      case DataType.INTEGER:
+        ret = ColumnType.INT; 
+        break;
+      case DataType.LONG:
+        ret = ColumnType.LONG; 
+        break;
+      case DataType.FLOAT:
+        ret = ColumnType.FLOAT; 
+        break;
+      case DataType.DOUBLE:
+        ret = ColumnType.DOUBLE; 
+        break;
+      case DataType.BOOLEAN:
+        ret = ColumnType.BOOL; 
+        break;
+      case DataType.BAG:
+        ret = ColumnType.COLLECTION; 
+        break;
+      case DataType.MAP:
+        ret = ColumnType.MAP; 
+        break;
+      case DataType.TUPLE:
+        ret = ColumnType.RECORD; 
+        break;
+      case DataType.CHARARRAY:
+        ret = ColumnType.STRING; 
+        break;
+      case DataType.BYTEARRAY:
+        ret = ColumnType.BYTES; 
+        break;
+      default:
+        ret = null;
+        break;
     }
-
-    abstract FieldSchema toFieldSchema(String name) throws FrontendException;
-
-    public static FieldSchema makeFieldSchema(String colname)
-        throws FrontendException {
-      for (FieldSchemaMaker e : FieldSchemaMaker.values()) {
-        if (colname.startsWith(e.prefix)) {
-          return e.toFieldSchema(colname.substring(e.prefix.length()));
-        }
-      }
-      throw new FrontendException("Cannot determine type from column name");
-    }
-    
-    public static String makeColumnName(FieldSchema fs)
-        throws FrontendException {
-      if (fs.alias == null) {
-        throw new FrontendException("No alias provided for field schema");
-      }
-      for (FieldSchemaMaker e : FieldSchemaMaker.values()) {
-        FieldSchema expected = e.toFieldSchema("dummy");
-        if (FieldSchema.equals(fs, expected, false, true)) {
-          return e.prefix + fs.alias;
-        }
-      }
-      throw new FrontendException("Unsupported field schema");
-    }
+    return ret;
   }
   
   public static Schema toPigSchema(
@@ -97,24 +77,39 @@ class SchemaConverter {
     	org.apache.hadoop.zebra.schema.Schema.ColumnSchema columnSchema = 
     		tschema.getColumn(col);
 			if (columnSchema != null) {
-        ret.add(new FieldSchema(col, columnSchema.getType().pigDataType()));
+        ColumnType ct = columnSchema.getType();
+        if (ct == org.apache.hadoop.zebra.schema.ColumnType.RECORD ||
+            ct == org.apache.hadoop.zebra.schema.ColumnType.COLLECTION)
+          ret.add(new FieldSchema(col, toPigSchema(columnSchema.getSchema()), ct.pigDataType()));
+        else
+          ret.add(new FieldSchema(col, ct.pigDataType()));
 			} else {
 				ret.add(new FieldSchema(null, null));
 			}
     }
-    
     return ret;
   }
 
   public static org.apache.hadoop.zebra.schema.Schema fromPigSchema(
       Schema pschema) throws FrontendException, ParseException {
-    String[] colnames = new String[pschema.size()];
-    int i = 0;
-    for (Iterator<FieldSchema> it = pschema.getFields().iterator(); it
-        .hasNext(); ++i) {
-      FieldSchema fs = it.next();
-      colnames[i] = FieldSchemaMaker.makeColumnName(fs);
+    org.apache.hadoop.zebra.schema.Schema tschema = new org.apache.hadoop.zebra.schema.Schema();
+    Schema.FieldSchema columnSchema;
+    for (int i = 0; i < pschema.size(); i++) {
+    	columnSchema = pschema.getField(i);
+    	if (columnSchema != null) {
+    		if (DataType.isSchemaType(columnSchema.type))
+    			tschema.add(new org.apache.hadoop.zebra.schema.Schema.ColumnSchema(columnSchema.alias, 
+    					fromPigSchema(columnSchema.schema), toTableType(columnSchema.type)));
+    		else if (columnSchema.type == DataType.MAP)
+    			tschema.add(new org.apache.hadoop.zebra.schema.Schema.ColumnSchema(columnSchema.alias, 
+    					new org.apache.hadoop.zebra.schema.Schema(new org.apache.hadoop.zebra.schema.Schema.ColumnSchema(null, 
+    							org.apache.hadoop.zebra.schema.ColumnType.BYTES)), toTableType(columnSchema.type)));
+    		else
+    			tschema.add(new org.apache.hadoop.zebra.schema.Schema.ColumnSchema(columnSchema.alias, toTableType(columnSchema.type)));
+		  } else {
+		  	tschema.add(new org.apache.hadoop.zebra.schema.Schema.ColumnSchema(null, ColumnType.ANY));
+		  }
     }
-    return new org.apache.hadoop.zebra.schema.Schema(colnames);
+    return tschema;
   }
 }
