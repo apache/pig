@@ -110,6 +110,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1039: documentation update (chandec via olgan)
+
 OPTIMIZATIONS
 
 BUG FIXES
