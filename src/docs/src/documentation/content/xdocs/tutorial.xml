@@ -27,16 +27,16 @@
 <section>
 <title>Overview</title>
 
-<p>The Pig tutorial shows you how to run two Pig scripts in local mode and hadoop mode.   </p>
+<p>The Pig tutorial shows you how to run two Pig scripts in local mode and mapreduce mode.   </p>
 
 <ul>
 <li><p> <strong>Local Mode</strong>: To run the scripts in local mode, no Hadoop or HDFS installation is required. All files are installed and run from your local host and file system. </p>
 </li>
-<li><p> <strong>Hadoop Mode</strong>: To run the scripts in hadoop (mapreduce) mode, you need access to a Hadoop cluster and HDFS installation. </p>
+<li><p> <strong>Mapreduce Mode</strong>: To run the scripts in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. </p>
 </li>
 </ul>
 <p>The Pig tutorial file (tutorial/pigtutorial.tar.gz file in the pig distribution) includes the Pig JAR file (pig.jar) and the tutorial files (tutorial.jar, Pigs scripts, log files). 
-These files work with Hadoop 0.18 and provide everything you need to run the Pig scripts.</p>
+These files work with Hadoop 0.20 and provide everything you need to run the Pig scripts.</p>
 
 <p>To get started, follow these basic steps:  </p>
 <ol>
@@ -119,9 +119,9 @@ $ cat script1-local-results.txt
 </section>
 
 <section>
-<title> Running the Pig Scripts in Hadoop Mode</title>
+<title> Running the Pig Scripts in Mapreduce Mode</title>
 
-<p>To run the Pig scripts in hadoop (mapreduce) mode, do the following: </p>
+<p>To run the Pig scripts in mapreduce mode, do the following: </p>
 <ol>
 <li><p>Move to the pigtmp directory. </p>
 </li>
@@ -135,14 +135,14 @@ $ cat script1-local-results.txt
 $ hadoop fs –copyFromLocal excite.log.bz2 .
 </source>
 <ol>
-<li><p>Set the HADOOPSITEPATH environment variable to the location of your hadoop-site.xml file. </p>
+<li><p>Set the HADOOP_CONF_DIR environment variable to the location of your core-site.xml, hdfs-site.xml and mapred-site.xml files. </p>
 </li>
 <li><p>Execute the following command (using either script1-hadoop.pig or script2-hadoop.pig): </p>
 </li>
 </ol>
 
 <source>
-$ java -cp $PIGDIR/pig.jar:$HADOOPSITEPATH org.apache.pig.Main script1-hadoop.pig
+$ java -cp $PIGDIR/pig.jar:$HADOOP_CONF_DIR  org.apache.pig.Main script1-hadoop.pig
 </source>
 <ol>
 <li><p>Review the result files (located in either the script1-hadoop-results or script2-hadoop-results HDFS directory): </p>
