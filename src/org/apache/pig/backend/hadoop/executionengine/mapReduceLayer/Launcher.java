@@ -596,7 +596,7 @@ public abstract class Launcher {
         if(messages.length > 0) {
             return messages[0];
         } else {
-            return new String(message);
+            return message;
         }        
     }
 

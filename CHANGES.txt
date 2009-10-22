@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1032: FINDBUGS: DM_STRING_CTOR: Method invokes inefficient new
+String(String) constructor (olgan)
+
 PIG-984:  Add map side grouping for data that is already collected when
 it is read into the map (rding via gates).
 

@@ -102,7 +102,7 @@ public class RemoveRedundantOperators extends
                         currentPlan.removeAndReconnectMultiSucc(project);
                         patchInputReference(pred, project, prSuccessors);
                     }catch (PlanException pe){
-                        String msg = new String("Error while removing redundant project in plan");
+                        String msg = "Error while removing redundant project in plan";
                         throw new VisitorException(msg,pe);
                     }
                 }

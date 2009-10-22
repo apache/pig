@@ -117,7 +117,7 @@ public class PigSlice implements Slice {
 	        }
     	}
         
-        loader.bindTo(file.toString(), new BufferedPositionedInputStream(is,
+        loader.bindTo(file, new BufferedPositionedInputStream(is,
                 start), start, end);
                 
     }

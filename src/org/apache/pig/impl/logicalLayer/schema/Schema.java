@@ -672,7 +672,7 @@ public class Schema implements Serializable, Cloneable {
     public FieldSchema getField(String alias) throws FrontendException {
         FieldSchema fs = mAliases.get(alias);
         if(null == fs) {
-            String cocoPrefix = new String("::" + alias);
+            String cocoPrefix = "::" + alias;
             Map<String, Integer> aliasMatches = new HashMap<String, Integer>();
             //build the map of aliases that have cocoPrefix as the suffix
             for(String key: mAliases.keySet()) {
@@ -798,7 +798,7 @@ public class Schema implements Serializable, Cloneable {
                         if (aliases != null) {
                             List<String> listAliases = new ArrayList<String>();
                             for(String alias: aliases) {
-                                listAliases.add(new String(alias));
+                                listAliases.add(alias);
                             }
                             for(String alias: listAliases) {
                                 log.debug("Removing alias " + alias + " from multimap");

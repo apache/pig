@@ -834,7 +834,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         case DataType.CHARARRAY:
             String str = (String) v;
             if (str.length() > 0)
-                return new String(str.substring(0, str.length() - 1));
+                return str.substring(0, str.length() - 1);
             else
                 return null;
         case DataType.BYTEARRAY:
@@ -866,7 +866,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
 
         switch (type) {
         case DataType.CHARARRAY:
-            return new String((String) v + "0");
+            return (String) v + "0";
         case DataType.BYTEARRAY:
             String str = ((DataByteArray) v).toString();
             str = str + "0";

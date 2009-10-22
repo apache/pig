@@ -3007,7 +3007,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             // This is just cast insertion so we don't have any flatten
             ArrayList<Boolean> flattenList = new ArrayList<Boolean>() ;
             for(int i=0;i < targetSchema.size(); i++) {
-                flattenList.add(new Boolean(false)) ;
+                flattenList.add(Boolean.valueOf(false)) ;
             }
 
             // Create ForEach to be inserted
