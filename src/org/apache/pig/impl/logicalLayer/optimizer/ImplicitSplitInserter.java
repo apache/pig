@@ -146,7 +146,7 @@ public class ImplicitSplitInserter extends LogicalTransformer {
             for (LogicalOperator succ : succs) {
                 LogicalPlan condPlan = new LogicalPlan();
                 LOConst cnst = new LOConst(mPlan, new OperatorKey(scope, 
-                        idGen.getNextNodeId(scope)), new Boolean(true));
+                        idGen.getNextNodeId(scope)), Boolean.valueOf(true));
                 cnst.setType(DataType.BOOLEAN);
                 condPlan.add(cnst);
                 LOSplitOutput splitOutput = new LOSplitOutput(mPlan, 

@@ -166,7 +166,7 @@ public class LOGenerate extends LogicalOperator {
         if(mFlatten != null) {
             generateClone.mFlatten = new ArrayList<Boolean>();
             for (Iterator<Boolean> it = mFlatten.iterator(); it.hasNext();) {
-                generateClone.mFlatten.add(new Boolean(it.next()));
+                generateClone.mFlatten.add(Boolean.valueOf(it.next()));
             }
         }
         

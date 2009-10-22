@@ -58,8 +58,8 @@ public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
     // Necessary because the objects are serialized, not constructed on the
     // other side.
     protected void initializeRefs() {
-        trueRef = new Boolean(true);
-        falseRef = new Boolean(false);
+        trueRef = Boolean.valueOf(true);
+        falseRef = Boolean.valueOf(false);
     }
 
     protected void cloneHelper(BinaryComparisonOperator op) {

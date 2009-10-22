@@ -126,8 +126,7 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
         for (LogicalOperator op : mToEdges.keySet()) {
             LogicalOperator cloneTo = matches.get(op);
             if (cloneTo == null) {
-                String msg = new String("Unable to find clone for op "
-                    + op.name());
+                String msg = "Unable to find clone for op " + op.name();
                 log.error(msg);
                 throw new RuntimeException(msg);
             }
@@ -135,8 +134,7 @@ public class LogicalPlan extends OperatorPlan<LogicalOperator> {
             for (LogicalOperator fromOp : fromOps) {
                 LogicalOperator cloneFrom = matches.get(fromOp);
                 if (cloneFrom == null) {
-                    String msg = new String("Unable to find clone for op "
-                        + fromOp.name());
+                    String msg = "Unable to find clone for op " + fromOp.name();
                     log.error(msg);
                     throw new RuntimeException(msg);
                 }
